@@ -66,21 +66,11 @@ public:
      * \param[in] expectedOutcome If results should match or not.
      */
     void checkMemory(bool expectedOutcome);
-    //! Access underlying storage object.
-    ProcessFrameConversion* method() { return &method_; }
-    //! Access to none owning frame object.
-    t_trxframe* newFrame() { return newFrame_; }
-
-private:
-    //! Storage object.
-    ProcessFrameConversion method_;
-    //! Non owning pointer to new coordinate frame.
-    t_trxframe* newFrame_;
 };
 
 void RegisterFrameConverterTest::runTest()
 {
-    newFrame_ = method()->prepareAndTransformCoordinates(frame());
+    setNewFrame(method()->prepareAndTransformCoordinates(frame()));
 }
 void RegisterFrameConverterTest::checkMemory(bool expectedOutcome)
 {

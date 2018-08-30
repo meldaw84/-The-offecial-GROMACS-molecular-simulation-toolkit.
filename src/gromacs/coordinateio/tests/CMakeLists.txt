@@ -42,6 +42,7 @@ gmx_add_unit_test(CoordinateIOTests coordinateio-test
         setbothtime.cpp
         setstarttime.cpp
         settimestep.cpp
+        shiftcoord.cpp
         testmodule.cpp
         )
 
