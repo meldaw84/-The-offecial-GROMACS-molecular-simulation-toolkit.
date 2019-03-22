@@ -41,6 +41,7 @@
 
 #include "gromacs/topology/atoms.h"
 
+#include <iterator>
 #include <memory>
 #include <optional>
 #include <string>
@@ -356,6 +357,12 @@ void checkResidue(TestReferenceChecker* checker, const SimulationResidue& residu
             &compound, residue.name(), residue.nr(), residue.insertionCode(), residue.begin(), residue.size());
 }
 
+void checkResidues(TestReferenceChecker* checker, gmx::ArrayRef<const SimulationResidue> residues)
+{
+    TestReferenceChecker compound(checker->checkCompound("Residues", "Collection"));
+    compound.checkSequence(residues.begin(), residues.end(), "SimulationResidueCollection", checkResidue);
+}
+
 class SimulationResidueBuilderTest : public ::testing::Test
 {
 public:
@@ -487,6 +494,160 @@ TEST_F(SimulationResidueBuilderTest, ResidueSerializerWorks)
     runTest(readResidue);
 }
 
+/*! \brief
+ * Parameter pack for molecule generation.
+ *
+ * First tuple: Use BState, use BState for all residues, num residues, num particle in residue
+ * Second tuple: Select if BState for mass, charge, type, typeName
+ */
+using MoleculeBuilderTestParams =
+        std::tuple<std::tuple<bool, bool, int, int>, std::tuple<bool, bool, bool, bool>>;
+
+class MoleculeBuilderTest : public ::testing::Test, public ::testing::WithParamInterface<MoleculeBuilderTestParams>
+{
+public:
+    MoleculeBuilderTest();
+    //! Add residues to build up the molecule.
+    void addResidues();
+    //! Finalize the builder to generate the ready object.
+    SimulationMolecule finalize();
+    //! Access to table.
+    const StringTable& table() const { return *table_; }
+    //! Access to checker.
+    TestReferenceChecker* checker() { return &checker_; }
+
+private:
+    //! Stored information.
+    SimulationMoleculeBuilder molecule_;
+    //! Need a string table with test strings, initialized during setup.
+    StringTableBuilder tableBuilder_;
+    //! Table data.
+    std::unique_ptr<StringTable> table_;
+    //! Data for particles used in the residue.
+    std::vector<SimulationParticle> particles_;
+    //! Handler for reference data.
+    TestReferenceData data_;
+    //! Handler for checking reference data.
+    TestReferenceChecker checker_;
+};
+
+MoleculeBuilderTest::MoleculeBuilderTest() : checker_(data_.rootChecker())
+{
+    std::string nameString   = "residue name";
+    std::string rtpString    = "rtp name";
+    std::string particleName = "Calpha";
+    std::string typeAName    = "cool";
+    std::string typeBName    = "boring";
+    tableBuilder_.addString(nameString);
+    tableBuilder_.addString(rtpString);
+    tableBuilder_.addString(particleName);
+    tableBuilder_.addString(typeAName);
+    tableBuilder_.addString(typeBName);
+    table_ = std::make_unique<StringTable>(tableBuilder_.build());
+}
+void MoleculeBuilderTest::addResidues()
+{
+    auto params         = GetParam();
+    auto residueParams  = std::get<0>(params);
+    auto particleParams = std::get<1>(params);
+    int  numResidues    = std::get<2>(residueParams);
+    int  numParticles   = std::get<3>(residueParams);
+
+    for (int numRes = 0; numRes < numResidues; ++numRes)
+    {
+        auto useBState = std::get<0>(residueParams) && (std::get<1>(residueParams) || numRes % 2 == 0);
+        std::vector<SimulationParticle> particles;
+        for (int numPar = 0; numPar < numParticles; ++numPar)
+        {
+            bool massBState     = useBState && (std::get<0>(particleParams) || numPar % 2 == 0);
+            bool chargeBState   = useBState && (std::get<1>(particleParams) || numPar % 2 == 0);
+            bool typeBState     = useBState && (std::get<2>(particleParams) || numPar % 2 == 0);
+            bool typeNameBState = useBState && (std::get<3>(particleParams) || numPar % 2 == 0);
+
+            auto mass   = massBState ? testParticleMassTwoState : testParticleMassOneState;
+            auto charge = chargeBState ? testParticleChargeTwoState : testParticleChargeOneState;
+            auto type = typeBState ? testParticleTypeValueTwoState : testParticleTypeValueOneState;
+            auto typeName = typeNameBState
+                                    ? std::optional(ParticleTypeName(table().at(3), table().at(4)))
+                                    : std::optional(ParticleTypeName(table().at(3)));
+            auto name     = table().at(2);
+
+            particles.emplace_back(
+                    mass, charge, type, typeName, name, ParticleType::Atom, 0, 12, "C");
+        }
+        molecule_.addResidue(SimulationResidueBuilder(table().at(0), ' ', 0, ' ', table().at(1), &particles));
+    }
+}
+
+SimulationMolecule MoleculeBuilderTest::finalize()
+{
+    return molecule_.finalize();
+}
+
+void checkMoleculeSanity(TestReferenceChecker* checker, const SimulationMolecule& molecule)
+{
+    TestReferenceChecker compound(checker->checkCompound("MoleculeData", "Molecule"));
+    compound.checkBoolean(molecule.allParticlesHaveChargeAndNotEmpty(), "ChargePresentEverywhere");
+    compound.checkBoolean(molecule.allParticlesHaveMassAndNotEmpy(), "MassPresentEverywhere");
+    compound.checkBoolean(molecule.allParticlesHaveTypeAndNotEmpty(), "TypePresentEverywhere");
+    compound.checkBoolean(molecule.allParticlesHaveBstateAndNotEmpty(), "BStatePresentEverywhere");
+    compound.checkBoolean(molecule.allParticlesHaveAtomNameAndNotEmpty(),
+                          "AtomNamePresentEverywhere");
+    compound.checkBoolean(molecule.allParticlesHaveTypeNameAndNotEmpty(),
+                          "AtomTypeNamePresentEverywhere");
+    compound.checkInteger(molecule.numResidues(), "NumberOfResidues");
+    TestReferenceChecker residueCompound(
+            compound.checkCompound("MoleculeResidues", "ResidueValues"));
+    checkResidues(&residueCompound, molecule.residues());
+
+    compound.checkInteger(molecule.numParticles(), "NumberOfParticles");
+    TestReferenceChecker particleCompound(
+            compound.checkCompound("MoleculeParticles", "ParticleValues"));
+    checkParticles(&particleCompound, molecule.particles());
+}
+
+TEST_F(MoleculeBuilderTest, EmptyStructureGivesFalseForAll)
+{
+    checkMoleculeSanity(checker(), finalize());
+}
+
+TEST_P(MoleculeBuilderTest, ParticlesCheckValidEntries)
+{
+    addResidues();
+    checkMoleculeSanity(checker(), finalize());
+}
+
+TEST_P(MoleculeBuilderTest, BuilderIsEmptyAfterFinalize)
+{
+    addResidues();
+    checkMoleculeSanity(checker(), finalize());
+    checkMoleculeSanity(checker(), finalize());
+}
+
+TEST_P(MoleculeBuilderTest, SerializerWorks)
+{
+    addResidues();
+    gmx::InMemorySerializer writer;
+    auto                    molecule = finalize();
+    molecule.serializeMolecule(&writer);
+
+    auto                      buffer = writer.finishAndGetBuffer();
+    gmx::InMemoryDeserializer reader(buffer, GMX_DOUBLE);
+
+    SimulationMolecule readMolecule(&reader, table());
+    checkMoleculeSanity(checker(), readMolecule);
+}
+
+INSTANTIATE_TEST_SUITE_P(DetectsValidEntries,
+                         MoleculeBuilderTest,
+                         ::testing::Combine(::testing::Combine(::testing::Values(true, false),
+                                                               ::testing::Values(true, false),
+                                                               ::testing::Values(1, 2, 3),
+                                                               ::testing::Values(2, 3)),
+                                            ::testing::Combine(::testing::Values(true, false),
+                                                               ::testing::Values(true, false),
+                                                               ::testing::Values(true, false),
+                                                               ::testing::Values(true, false))));
 } // namespace
 
 } // namespace test

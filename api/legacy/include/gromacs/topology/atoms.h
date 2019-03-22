@@ -448,7 +448,140 @@ private:
     std::vector<SimulationParticle> residueParticles_;
 };
 
-// Legacy types begin here
+/*! \brief
+ * Container of finalized datastructures for Simulation atoms and residues.
+ *
+ * Can only be created from its builder.
+ */
+class SimulationMolecule
+{
+public:
+    //! Read data from serialized format.
+    SimulationMolecule(gmx::ISerializer* serializer, const StringTable& table);
+
+    //! Copy constructor.
+    SimulationMolecule(const SimulationMolecule&) = default;
+    //! Copy assignment.
+    SimulationMolecule& operator=(const SimulationMolecule&) = default;
+    //! Default move constructor.
+    SimulationMolecule(SimulationMolecule&&) = default;
+    //! Default move assignment.
+    SimulationMolecule& operator=(SimulationMolecule&&) = default;
+
+    //! Write data to serializer.
+    void serializeMolecule(gmx::ISerializer* serializer);
+    //! Get number of atoms.
+    int numParticles() const { return particles_.size(); }
+    //! Get number of residues.
+    int numResidues() const { return residues_.size(); }
+    //! Const view on particle information.
+    gmx::ArrayRef<const SimulationParticle> particles() const { return particles_; }
+    //! Const view on residue information.
+    gmx::ArrayRef<const SimulationResidue> residues() const { return residues_; }
+
+
+    //! If all atoms have mass.
+    bool allParticlesHaveMassAndNotEmpy() const
+    {
+        return particles_.empty() ? false : allParticlesHaveMass_;
+    }
+    //! If all atoms have charge.
+    bool allParticlesHaveChargeAndNotEmpty() const
+    {
+        return particles_.empty() ? false : allParticlesHaveCharge_;
+    }
+    //! If all atoms have atomnames set.
+    bool allParticlesHaveAtomNameAndNotEmpty() const
+    {
+        return particles_.empty() ? false : allParticlesHaveAtomName_;
+    }
+    //! If all atoms have type information.
+    bool allParticlesHaveTypeAndNotEmpty() const
+    {
+        return particles_.empty() ? false : allParticlesHaveType_;
+    }
+    //! If all atoms have type information.
+    bool allParticlesHaveTypeNameAndNotEmpty() const
+    {
+        return particles_.empty() ? false : allParticlesHaveTypeName_;
+    }
+    //! If all atoms have b state information.
+    bool allParticlesHaveBstateAndNotEmpty() const
+    {
+        return particles_.empty() ? false : allParticlesHaveBstate_;
+    }
+
+    friend class SimulationMoleculeBuilder;
+
+private:
+    SimulationMolecule(std::vector<SimulationParticle>* particles,
+                       std::vector<SimulationResidue>*  residues,
+                       bool                             allParticlesHaveMass,
+                       bool                             allParticlesHaveCharge,
+                       bool                             allParticlesHaveAtomName,
+                       bool                             allParticlesHaveType,
+                       bool                             allParticlesHaveTypeName,
+                       bool                             allParticlesHaveBstate);
+
+    //! Atom information for A state.
+    std::vector<SimulationParticle> particles_;
+    //! Residue information.
+    std::vector<SimulationResidue> residues_;
+    //! Container specific information for atom masses.
+    bool allParticlesHaveMass_ = false;
+    //! Container specific information for atom charges.
+    bool allParticlesHaveCharge_ = false;
+    //! Container specific information for atom names.
+    bool allParticlesHaveAtomName_ = false;
+    //! Container specific information for atom types.
+    bool allParticlesHaveType_ = false;
+    //! Container specific information for atom type names.
+    bool allParticlesHaveTypeName_ = false;
+    //! Container specific information for atom b state.
+    bool allParticlesHaveBstate_ = false;
+};
+
+/*! \brief \libinternal
+ * Convenience class combining the new datastructures for atoms and residues.
+ *
+ * Used to build the final molecule by adding particles, residues or pdb entries.
+ * The data used to run a simulation can be obtained from this builder.
+ */
+class SimulationMoleculeBuilder
+{
+public:
+    //! Function to add new residue.
+    void addResidue(const SimulationResidueBuilder& residue);
+    /*! \brief
+     * Finalize datastructure to store information about validity of the entries.
+     *
+     * \returns A simulation ready datastructure and a clean state of the builder.
+     */
+    SimulationMolecule finalize();
+
+    //! Get number of atoms.
+    int numParticles() const { return particles_.size(); }
+    //! Get number of residues.
+    int numResidues() const { return residues_.size(); }
+    //! Const view on particles information.
+    gmx::ArrayRef<const SimulationParticle> particles() const { return particles_; }
+    //! Const view on residue information.
+    gmx::ArrayRef<const SimulationResidueBuilder> residues() const { return residues_; }
+    //! View on particles information.
+    gmx::ArrayRef<SimulationParticle> particles() { return particles_; }
+    //! View on residue information.
+    gmx::ArrayRef<SimulationResidueBuilder> residues() { return residues_; }
+
+private:
+    //! Function to add new atom. Only accessed internally through addResidue.
+    void addParticle(const SimulationParticle& particle, gmx::index residueNumber);
+    //! Atom information for state A.
+    std::vector<SimulationParticle> particles_;
+    //! Residue information.
+    std::vector<SimulationResidueBuilder> residues_;
+};
+
+// Legacy datastructures begin below.
 typedef struct t_atom
 {
     real           m, q;       /* Mass and charge                      */

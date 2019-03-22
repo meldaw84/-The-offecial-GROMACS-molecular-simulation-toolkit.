@@ -235,7 +235,121 @@ SimulationResidue SimulationResidueBuilder::finalize(gmx::index residueNumber,
     return SimulationResidue(name_, residueNumber, insertionCode_, begin, end);
 }
 
-// Legacy functions begin here.
+SimulationMolecule SimulationMoleculeBuilder::finalize()
+{
+    std::vector<SimulationResidue> residues;
+    int                            residueNumber = 0;
+    for (const auto& builderResidue : residues_)
+    {
+        const int first = particles_.size();
+        for (const auto& particle : builderResidue.particles())
+        {
+            addParticle(particle, residueNumber);
+        }
+        const int size = particles_.size() - first;
+
+        residues.emplace_back(builderResidue.finalize(residueNumber, first, size));
+        residueNumber++;
+    }
+
+    SimulationMolecule molecule(
+            &particles_,
+            &residues,
+            std::all_of(particles_.begin(),
+                        particles_.end(),
+                        [](const auto& particle) { return particle.haveMass(); }),
+            std::all_of(particles_.begin(),
+                        particles_.end(),
+                        [](const auto& particle) { return particle.haveCharge(); }),
+            std::all_of(particles_.begin(),
+                        particles_.end(),
+                        [](const auto& particle) { return particle.haveParticleName(); }),
+            std::all_of(particles_.begin(),
+                        particles_.end(),
+                        [](const auto& particle) { return particle.haveType(); }),
+            std::all_of(particles_.begin(),
+                        particles_.end(),
+                        [](const auto& particle) { return particle.haveParticleTypeName(); }),
+            std::all_of(particles_.begin(), particles_.end(), [](const auto& particle) {
+                return particle.haveBState();
+            }));
+    return molecule;
+}
+
+SimulationMolecule::SimulationMolecule(std::vector<SimulationParticle>* particles,
+                                       std::vector<SimulationResidue>*  residues,
+                                       bool                             allParticlesHaveMass,
+                                       bool                             allParticlesHaveCharge,
+                                       bool                             allParticlesHaveAtomName,
+                                       bool                             allParticlesHaveType,
+                                       bool                             allParticlesHaveTypeName,
+                                       bool                             allParticlesHaveBstate) :
+    allParticlesHaveMass_(allParticlesHaveMass),
+    allParticlesHaveCharge_(allParticlesHaveCharge),
+    allParticlesHaveAtomName_(allParticlesHaveAtomName),
+    allParticlesHaveType_(allParticlesHaveType),
+    allParticlesHaveTypeName_(allParticlesHaveTypeName),
+    allParticlesHaveBstate_(allParticlesHaveBstate)
+{
+    std::swap(*particles, particles_);
+    std::swap(*residues, residues_);
+}
+
+SimulationMolecule::SimulationMolecule(gmx::ISerializer* serializer, const StringTable& table)
+{
+    GMX_ASSERT(serializer->reading(), "Can not read molecule with writing serializer");
+    int numParticle;
+    serializer->doInt(&numParticle);
+    for (int index = 0; index < numParticle; ++index)
+    {
+        particles_.emplace_back(SimulationParticle(serializer, table));
+    }
+    int numResidue;
+    serializer->doInt(&numResidue);
+    for (int index = 0; index < numResidue; ++index)
+    {
+        residues_.emplace_back(SimulationResidue(serializer, table));
+    }
+    serializer->doBool(&allParticlesHaveMass_);
+    serializer->doBool(&allParticlesHaveCharge_);
+    serializer->doBool(&allParticlesHaveAtomName_);
+    serializer->doBool(&allParticlesHaveType_);
+    serializer->doBool(&allParticlesHaveTypeName_);
+    serializer->doBool(&allParticlesHaveBstate_);
+}
+void SimulationMolecule::serializeMolecule(gmx::ISerializer* serializer)
+{
+    GMX_ASSERT(!serializer->reading(), "Can not write molecule with reading serializer");
+    int numParticle = particles_.size();
+    serializer->doInt(&numParticle);
+    for (auto& particle : particles_)
+    {
+        particle.serializeParticle(serializer);
+    }
+    int numResidue = residues_.size();
+    serializer->doInt(&numResidue);
+    for (auto& residue : residues_)
+    {
+        residue.serializeResidue(serializer);
+    }
+    serializer->doBool(&allParticlesHaveMass_);
+    serializer->doBool(&allParticlesHaveCharge_);
+    serializer->doBool(&allParticlesHaveAtomName_);
+    serializer->doBool(&allParticlesHaveType_);
+    serializer->doBool(&allParticlesHaveTypeName_);
+    serializer->doBool(&allParticlesHaveBstate_);
+}
+
+void SimulationMoleculeBuilder::addParticle(const SimulationParticle& particle, gmx::index residueNumber)
+{
+    particles_.emplace_back(particle, residueNumber);
+}
+
+void SimulationMoleculeBuilder::addResidue(const SimulationResidueBuilder& residue)
+{
+    residues_.emplace_back(residue);
+}
+
 void init_atom(t_atoms* at)
 {
     at->nr          = 0;
