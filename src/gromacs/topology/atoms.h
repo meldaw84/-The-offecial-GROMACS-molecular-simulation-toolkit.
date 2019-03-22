@@ -85,6 +85,7 @@ enum class PdbRecordType : int
     Count
 };
 
+
 const char* enumValueToString(PdbRecordType enumValue);
 
 using NameHolder = std::optional<StringTableEntry>;
@@ -355,7 +356,143 @@ private:
     std::array<int, 6> uij_;
 };
 
-// Legacy types begin here
+/*! \brief
+ * Container of finalized datastructures for Simulation atoms and residues.
+ *
+ * Can only be created from its builder.
+ */
+class SimulationMolecule
+{
+public:
+    //! Get number of atoms.
+    int numParticles() const { return particles_.size(); }
+    //! Get number of residues.
+    int numResidues() const { return residues_.size(); }
+    //! Get number of pdbatoms.
+    int numPdbAtoms() const { return pdbAtoms_.size(); }
+    //! Const view on particle information.
+    gmx::ArrayRef<const SimulationParticle> particles() const { return particles_; }
+    //! Const view on residue information.
+    gmx::ArrayRef<const SimulationResidue> residues() const { return residues_; }
+    //! Const view on pdbatom information.
+    gmx::ArrayRef<const PdbEntry> pdbAtoms() const { return pdbAtoms_; }
+
+
+    //! If all atoms have mass.
+    bool allAtomsHaveMassAndNotEmpy() const
+    {
+        return particles_.empty() ? false : allAtomsHaveMass_;
+    }
+    //! If all atoms have charge.
+    bool allAtomsHaveChargeAndNotEmpty() const
+    {
+        return particles_.empty() ? false : allAtomsHaveCharge_;
+    }
+    //! If all atoms have atomnames set.
+    bool allAtomsHaveAtomNameAndNotEmpty() const
+    {
+        return particles_.empty() ? false : allAtomsHaveAtomName_;
+    }
+    //! If all atoms have type information.
+    bool allAtomsHaveTypeAndNotEmpty() const
+    {
+        return particles_.empty() ? false : allAtomsHaveType_;
+    }
+    //! If all atoms have b state information.
+    bool allAtomsHaveBstateAndNotEmpty() const
+    {
+        return particles_.empty() ? false : allAtomsHaveBstate_;
+    }
+    //! If pdb information for all atoms has been set.
+    bool allAtomsHavePdbInfoAndNotEmpty() const
+    {
+        return pdbAtoms_.empty() ? false : allAtomsHavePdbInfo_;
+    }
+
+    friend class SimulationMoleculeBuilder;
+
+private:
+    SimulationMolecule(std::vector<SimulationParticle>* atoms,
+                       std::vector<SimulationResidue>*  residues,
+                       std::vector<PdbEntry>*           pdbAtoms,
+                       bool                             allAtomsHaveMass,
+                       bool                             allAtomsHaveCharge,
+                       bool                             allAtomsHaveAtomName,
+                       bool                             allAtomsHaveType,
+                       bool                             allAtomsHaveBstate,
+                       bool                             allAtomsHavePdbInfo);
+
+    //! Atom information for A state.
+    std::vector<SimulationParticle> particles_;
+    //! Residue information.
+    std::vector<SimulationResidue> residues_;
+    //! PDB information.
+    std::vector<PdbEntry> pdbAtoms_;
+    //! Container specific information for atom masses.
+    bool allAtomsHaveMass_ = false;
+    //! Container specific information for atom charges.
+    bool allAtomsHaveCharge_ = false;
+    //! Container specific information for atom names.
+    bool allAtomsHaveAtomName_ = false;
+    //! Container specific information for atom types.
+    bool allAtomsHaveType_ = false;
+    //! Container specific information for atom b state.
+    bool allAtomsHaveBstate_ = false;
+    //! Container specific information for pdbatom information.
+    bool allAtomsHavePdbInfo_ = false;
+};
+
+/*! \brief \libinternal
+ * Convenience class combining the new datastructures for atoms and residues.
+ *
+ * Used to build the final molecule by adding particles, residues or pdb entries.
+ * The data used to run a simulation can be obtained from this builder.
+ */
+class SimulationMoleculeBuilder
+{
+public:
+    //! Function to add new atom.
+    void addParticle(const SimulationParticle& atom);
+    //! Function to add new residue.
+    void addResidue(const SimulationResidue& residue);
+    //! Function to add new pdbatom.
+    void addPdbatom(const PdbEntry& pdbatom);
+    /*! \brief
+     * Finalize datastructure to store information about validity of the entries.
+     *
+     * \returns A simulation ready datastructure and a clean state of the builder.
+     */
+    SimulationMolecule finalize();
+
+    //! Get number of atoms.
+    int numParticles() const { return particles_.size(); }
+    //! Get number of residues.
+    int numResidues() const { return residues_.size(); }
+    //! Get number of pdbatoms.
+    int numPdbAtoms() const { return pdbAtoms_.size(); }
+    //! Const view on particles information.
+    gmx::ArrayRef<const SimulationParticle> particles() const { return particles_; }
+    //! Const view on residue information.
+    gmx::ArrayRef<const SimulationResidue> residues() const { return residues_; }
+    //! Const view on pdbatom information.
+    gmx::ArrayRef<const PdbEntry> pdbAtoms() const { return pdbAtoms_; }
+    //! View on particles information.
+    gmx::ArrayRef<SimulationParticle> particles() { return particles_; }
+    //! View on residue information.
+    gmx::ArrayRef<SimulationResidue> residues() { return residues_; }
+    //! View on pdbatom information.
+    gmx::ArrayRef<PdbEntry> pdbAtoms() { return pdbAtoms_; }
+
+private:
+    //! Atom information for state A.
+    std::vector<SimulationParticle> particles_;
+    //! Residue information.
+    std::vector<SimulationResidue> residues_;
+    //! PDB information.
+    std::vector<PdbEntry> pdbAtoms_;
+};
+
+// Legacy datastructures begin below.
 typedef struct t_atom
 {
     real           m, q;       /* Mass and charge                      */

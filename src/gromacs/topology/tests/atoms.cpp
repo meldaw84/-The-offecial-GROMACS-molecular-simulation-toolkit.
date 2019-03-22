@@ -41,7 +41,9 @@
 
 #include "gromacs/topology/atoms.h"
 
+#include <iterator>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include <gtest/gtest.h>
@@ -208,9 +210,6 @@ TEST(SimulationParticleTest, RoundTrip)
     EXPECT_EQ(testParticle.atomnumber(), newParticle.atomnumber());
 }
 
-<<<<<<< HEAD
-} // namespace
-=======
 TEST(PdbEntryTest, CanCreateBasicEntry)
 {
     PdbEntry testEntry(PdbRecordType::Atom, 1, ' ', "CA");
@@ -254,7 +253,128 @@ TEST(PdbEntryTest, CanCreateFullEntry)
         pos++;
     }
 }
->>>>>>> 5ca0b70b9f (Add replacement for t_pdbinfo)
+
+using MoleculeBuilderTestParams = std::tuple<bool, bool, bool, bool>;
+
+class MoleculeBuilderTest : public ::testing::Test, public ::testing::WithParamInterface<MoleculeBuilderTestParams>
+{
+public:
+    void addParticle(bool addCharge, bool addMass, bool addType, bool addBstate, const char* atomname);
+    void                               addPdbEntry();
+    SimulationMolecule                 finalize();
+    ArrayRef<const SimulationParticle> particles() { return molecule_.particles(); }
+    ArrayRef<const PdbEntry>           pdbAtoms() { return molecule_.pdbAtoms(); }
+
+private:
+    //! Stored information.
+    SimulationMoleculeBuilder molecule_;
+};
+
+void MoleculeBuilderTest::addParticle(bool addCharge, bool addMass, bool addType, bool addBstate, const char* atomname)
+{
+    auto               mass   = addBstate ? ParticleMass(1, 2) : ParticleMass(3);
+    auto               charge = addBstate ? ParticleCharge(4, 5) : ParticleCharge(6);
+    auto               type   = addBstate ? ParticleTypeName(7, 8) : ParticleTypeName(9);
+    SimulationParticle particle(addMass ? std::optional(mass) : std::nullopt,
+                                addCharge ? std::optional(charge) : std::nullopt,
+                                addType ? std::optional(type) : std::nullopt,
+                                ParticleType::Atom,
+                                1,
+                                11,
+                                atomname != nullptr ? atomname : "");
+    molecule_.addParticle(particle);
+}
+
+void MoleculeBuilderTest::addPdbEntry()
+{
+    PdbEntry pdbAtom(PdbRecordType::Atom, 1, ' ', "test");
+    molecule_.addPdbatom(pdbAtom);
+}
+
+SimulationMolecule MoleculeBuilderTest::finalize()
+{
+    return molecule_.finalize();
+}
+
+void checkParticles(bool                      haveCharge,
+                    bool                      haveMass,
+                    bool                      haveType,
+                    bool                      haveBstate,
+                    const SimulationMolecule& molecule,
+                    bool                      haveName)
+
+{
+    EXPECT_EQ(haveCharge, molecule.allAtomsHaveChargeAndNotEmpty());
+    EXPECT_EQ(haveMass, molecule.allAtomsHaveMassAndNotEmpy());
+    EXPECT_EQ(haveType, molecule.allAtomsHaveTypeAndNotEmpty());
+    EXPECT_EQ(haveBstate, molecule.allAtomsHaveBstateAndNotEmpty());
+    EXPECT_EQ(haveName, molecule.allAtomsHaveAtomNameAndNotEmpty());
+}
+
+void checkPdbAtoms(bool isValid, const SimulationMolecule& molecule)
+{
+    EXPECT_EQ(isValid, molecule.allAtomsHavePdbInfoAndNotEmpty());
+}
+
+TEST_F(MoleculeBuilderTest, EmptyStructureGivesFalseForAll)
+{
+    checkParticles(false, false, false, false, finalize(), false);
+}
+
+TEST_P(MoleculeBuilderTest, ParticlesCheckValidEntries)
+{
+    const auto params    = GetParam();
+    const bool addCharge = std::get<0>(params);
+    const bool addMass   = std::get<1>(params);
+    const bool addType   = std::get<2>(params);
+    const bool addBState = std::get<3>(params);
+    addParticle(addCharge, addMass, addType, addBState, "CA");
+    addParticle(addCharge, addMass, addType, addBState, "CB");
+    const bool haveBState = addCharge && addMass && addType && addBState;
+    checkParticles(addCharge, addMass, addType, haveBState, finalize(), true);
+}
+
+TEST_P(MoleculeBuilderTest, BuilderIsEmptyAfterFinalize)
+{
+    const auto params    = GetParam();
+    const bool addCharge = std::get<0>(params);
+    const bool addMass   = std::get<1>(params);
+    const bool addType   = std::get<2>(params);
+    const bool addBState = std::get<3>(params);
+    addParticle(addCharge, addMass, addType, addBState, "CA");
+    const bool haveBState = addCharge && addMass && addType && addBState;
+    checkParticles(addCharge, addMass, addType, haveBState, finalize(), true);
+    checkParticles(false, false, false, false, finalize(), false);
+}
+
+TEST_P(MoleculeBuilderTest, ParticlesCheckSingleInvalidStringEntry)
+{
+    const auto params    = GetParam();
+    bool       addCharge = std::get<0>(params);
+    bool       addMass   = std::get<1>(params);
+    bool       addType   = std::get<2>(params);
+    bool       addBState = std::get<3>(params);
+    addParticle(addCharge, addMass, addType, addBState, "CA");
+    addParticle(addCharge, addMass, addType, addBState, nullptr);
+    const bool haveBState = addCharge && addMass && addType && addBState;
+    checkParticles(addCharge, addMass, addType, haveBState, finalize(), false);
+}
+
+INSTANTIATE_TEST_SUITE_P(DetectsValidEntries,
+                         MoleculeBuilderTest,
+                         ::testing::Combine(::testing::Values(true, false),
+                                            ::testing::Values(true, false),
+                                            ::testing::Values(true, false),
+                                            ::testing::Values(true, false)));
+
+TEST_F(MoleculeBuilderTest, PdbCheckWorks)
+{
+    addPdbEntry();
+    checkPdbAtoms(true, finalize());
+    checkPdbAtoms(false, finalize());
+}
+
+} // namespace
 
 } // namespace test
 

@@ -194,7 +194,68 @@ gmx::ArrayRef<const int> PdbEntry::uij() const
     }
 }
 
-// Legacy functions begin here.
+SimulationMolecule SimulationMoleculeBuilder::finalize()
+{
+    SimulationMolecule molecule(
+            &particles_,
+            &residues_,
+            &pdbAtoms_,
+            std::all_of(particles_.begin(),
+                        particles_.end(),
+                        [](const auto& particle) { return particle.haveMass(); }),
+            std::all_of(particles_.begin(),
+                        particles_.end(),
+                        [](const auto& particle) { return particle.haveCharge(); }),
+            std::all_of(particles_.begin(),
+                        particles_.end(),
+                        [](const auto& particle) { return !particle.elem().empty(); }),
+            std::all_of(particles_.begin(),
+                        particles_.end(),
+                        [](const auto& particle) { return particle.haveType(); }),
+            std::all_of(particles_.begin(),
+                        particles_.end(),
+                        [](const auto& particle) { return particle.haveBState(); }),
+            !pdbAtoms_.empty());
+    return molecule;
+}
+
+SimulationMolecule::SimulationMolecule(std::vector<SimulationParticle>* particles,
+                                       std::vector<SimulationResidue>*  residues,
+                                       std::vector<PdbEntry>*           pdbAtoms,
+                                       bool                             allAtomsHaveMass,
+                                       bool                             allAtomsHaveCharge,
+                                       bool                             allAtomsHaveAtomName,
+                                       bool                             allAtomsHaveType,
+                                       bool                             allAtomsHaveBstate,
+                                       bool                             allAtomsHavePdbInfo) :
+    allAtomsHaveMass_(allAtomsHaveMass),
+    allAtomsHaveCharge_(allAtomsHaveCharge),
+    allAtomsHaveAtomName_(allAtomsHaveAtomName),
+    allAtomsHaveType_(allAtomsHaveType),
+    allAtomsHaveBstate_(allAtomsHaveBstate),
+    allAtomsHavePdbInfo_(allAtomsHavePdbInfo)
+{
+    std::swap(*particles, particles_);
+    std::swap(*residues, residues_);
+    std::swap(*pdbAtoms, pdbAtoms_);
+}
+
+void SimulationMoleculeBuilder::addParticle(const SimulationParticle& particle)
+{
+    particles_.emplace_back(particle);
+}
+
+void SimulationMoleculeBuilder::addResidue(const SimulationResidue& residue)
+{
+    residues_.emplace_back(residue);
+}
+
+void SimulationMoleculeBuilder::addPdbatom(const PdbEntry& pdbatom)
+{
+    pdbAtoms_.emplace_back(pdbatom);
+}
+
+
 void init_atom(t_atoms* at)
 {
     at->nr          = 0;
