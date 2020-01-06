@@ -906,6 +906,8 @@ int Mdrunner::mdrunner()
         fplog = gmx_fio_getfp(logFileHandle);
     }
     const bool       isSimulationMainRank = findIsSimulationMainRank(ms, simulationCommunicator);
+    // Once we know whether we are on the master rank, we can decide whether to initialize the
+    // global state.
     gmx::LoggerOwner logOwner(buildLogger(fplog, isSimulationMainRank));
     gmx::MDLogger    mdlog(logOwner.logger());
 
@@ -938,6 +940,8 @@ int Mdrunner::mdrunner()
         applyGlobalSimulationState(
                 *inputHolder_.get(), partialDeserializedTpr.get(), globalState.get(), inputrec.get(), &mtop);
     }
+    // inputrec, globalState, and mtop are initialized on the master rank. TPR file is not used
+    // past this point.
 
     /* Check and update the hardware options for internal consistency */
     checkAndUpdateHardwareOptions(
@@ -996,6 +1000,10 @@ int Mdrunner::mdrunner()
         // main and spawned threads joins at the end of this block.
     }
 
+    // This is approximately the point where the front-end code has established the Workers.
+    // From here, we continue to configure the parallel resources, then proceed with the module
+    // initialization protocol(s).
+
     GMX_RELEASE_ASSERT(!GMX_MPI || ms || simulationCommunicator != MPI_COMM_NULL,
                        "Must have valid communicator unless running a multi-simulation");
     std::unique_ptr<t_commrec> crHandle(init_commrec(simulationCommunicator));
@@ -1018,6 +1026,11 @@ int Mdrunner::mdrunner()
     }
     GMX_RELEASE_ASSERT(inputrec != nullptr, "All ranks should have a valid inputrec now");
     partialDeserializedTpr.reset(nullptr);
+    // Remaining ranks have an initialized inputrec and mtop.
+    // Now the number of ranks is known to all ranks, and each knows
+    // the inputrec read by the master rank. The ranks can now all run
+    // the task-deciding functions and will agree on the result
+    // without needing to communicate.
 
     // Note that these variables describe only their own node.
     //
@@ -1092,6 +1105,8 @@ int Mdrunner::mdrunner()
         useDDWithSingleRank = std::strtol(ddSingleRankEnv, nullptr, 10);
     }
 
+    // Computing resource allocation is mostly complete. We now begin to configure the MD Modules.
+
     // The overhead of DD partitioning is only compensated when we have both non-bondeds and PME on the CPU
     const bool useDomainDecomposition =
             canUseDomainDecomposition
@@ -1119,6 +1134,7 @@ int Mdrunner::mdrunner()
     // now that the MDModules know their options, they know which callbacks to sign up to
     mdModules_->subscribeToSimulationSetupNotifications();
     const auto& setupNotifier = mdModules_->notifiers().simulationSetupNotifier_;
+    // More module initialization occurs on all ranks from inputrec data.
 
     // Notify MdModules of existing logger
     setupNotifier.notify(mdlog);
@@ -1248,6 +1264,18 @@ int Mdrunner::mdrunner()
 
     ObservablesHistory observablesHistory = {};
 
+    // Initialize checkpoint.
+    // Update hysteresis.
+    // Update globalState.
+    // Allow module hooks.
+    // Question: where does checkpoint get initialized for 'NewSimulation's?
+    // Note: Some logic needs to occur here to initialize code components with hysteresis. Is there
+    // any reason, though, that we can't read the checkpoint earlier and deserialize such data from
+    // the full on-disk state here (or as needed)?
+    // The other major task that occurs here is to reconcile potentially inconsistent on-disk state,
+    // such as truncating outputs back to the checkpointed state, or preparing outputs for
+    // appending. These tasks could similarly be performed by initialization routines that are
+    // informed by an object that has been prepared earlier.
     auto modularSimulatorCheckpointData = std::make_unique<ReadCheckpointDataHolder>();
     if (startingBehavior != StartingBehavior::NewSimulation)
     {
@@ -1285,6 +1313,8 @@ int Mdrunner::mdrunner()
         // state with the filesystem state only for restarted simulations. We should
         // be calling applyLocalState unconditionally and expect that the completeness
         // of SimulationInput is not dependent on its creation method.
+        // Plausible "to do": Convert load_checkpoint() to operate on a Mdrunner::Input object
+        // instead of the "-cpi" value.
 
         if (startingBehavior == StartingBehavior::RestartWithAppending && logFileHandle)
         {
@@ -1316,6 +1346,10 @@ int Mdrunner::mdrunner()
     /* override nsteps with value set on the commandline */
     override_nsteps_cmdline(mdlog, mdrunOptions.numStepsCommandline, inputrec.get());
 
+    // Simulation input is now basically established for most simulations. Some features continue
+    // to be initialized from external data sources below. Some logic for handling continuations
+    // may also occur later. Question: at what point to continued simulations become
+    // indistinguishable from new simulations?
     matrix box;
     if (isSimulationMainRank)
     {
@@ -2219,6 +2253,12 @@ int Mdrunner::mdrunner()
         // build and run simulator object based on user-input
         auto simulator = simulatorBuilder.build(useModularSimulator);
         simulator->run();
+        // checkpoint writing has occurred during run(). We could reasonably return a handle to
+        // the final Simulator state, or give the Simulator an accessor (or helper function) to
+        // produce a Memento.
+        // Note: Goal: create or initialize a Simulator from another Simulator and/or as few objects
+        // as possible so that we can restore a State or construct the Simulator for the next
+        // simulation segment using encapsulated state of the segment just completed.
 
         if (fr->pmePpCommGpu)
         {
