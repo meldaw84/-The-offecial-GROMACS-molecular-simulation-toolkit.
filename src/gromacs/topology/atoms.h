@@ -36,12 +36,19 @@
 
 #include <stdio.h>
 
+#include <optional>
+#include <utility>
 #include <vector>
 
+#include "gromacs/topology/symtab.h"
+#include "gromacs/utility/basedefinitions.h"
 #include "gromacs/utility/real.h"
 #include "gromacs/utility/unique_cptr.h"
 
-struct t_symtab;
+namespace gmx
+{
+class ISerializer;
+} // namespace gmx
 
 /* The particle type */
 enum class ParticleType : int
@@ -79,6 +86,63 @@ enum class PdbRecordType : int
 
 const char* enumValueToString(PdbRecordType enumValue);
 
+using NameHolder = std::optional<StringTableEntry>;
+
+//! Single amino acid residue in a simulation
+class SimulationResidue
+{
+public:
+    //! Construct info from serializer.
+    SimulationResidue(gmx::ISerializer* serializer, const StringTable& table);
+
+    //! Construct object with complete information.
+    SimulationResidue(NameHolder    name,
+                      gmx::index    nr,
+                      unsigned char insertionCode,
+                      gmx::index    chainNumber,
+                      char          chainIdentifier,
+                      NameHolder    rtp) :
+        name_(std::move(name)),
+        nr_(nr),
+        insertionCode_(insertionCode),
+        chainNumber_(chainNumber),
+        chainIdentifier_(chainIdentifier),
+        rtp_(std::move(rtp))
+    {
+    }
+    //! Write info to serializer.
+    void serializeResidue(gmx::ISerializer* serializer);
+    //! Access name.
+    const std::string& name() const
+    {
+        GMX_ASSERT(name_.has_value(), "Can not access uninitialized element");
+        return *name_.value();
+    }
+    //! Access residue number.
+    gmx::index nr() const { return nr_; }
+    //! Access insertion code.
+    unsigned char insertionCode() const { return insertionCode_; }
+    //! Access chain number.
+    gmx::index chainNumber() const { return chainNumber_; }
+    //! Access chain indentifier.
+    char chainIdentifier() const { return chainIdentifier_; }
+
+private:
+    //! Residue name.
+    NameHolder name_;
+    //! Residue number.
+    gmx::index nr_;
+    //! Code for insertion of residues.
+    unsigned char insertionCode_;
+    //! Chain number, incremented at TER or new chain identifier.
+    gmx::index chainNumber_;
+    //! Chain identifier written/read to pdb.
+    char chainIdentifier_;
+    //! Optional rtp building block name.
+    NameHolder rtp_;
+};
+
+// Legacy types begin here
 typedef struct t_atom
 {
     real           m, q;       /* Mass and charge                      */

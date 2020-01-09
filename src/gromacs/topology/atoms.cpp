@@ -45,6 +45,7 @@
 #include "gromacs/utility/compare.h"
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/fatalerror.h"
+#include "gromacs/utility/iserializer.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/txtdump.h"
 
@@ -56,6 +57,26 @@ const char* enumValueToString(ParticleType enumValue)
     return particleTypeNames[enumValue];
 }
 
+SimulationResidue::SimulationResidue(gmx::ISerializer* serializer, const StringTable& table)
+{
+    GMX_ASSERT(serializer->reading(), "Can not create residue with writing serializer");
+    name_ = readStringTableEntry(serializer, table);
+    int number;
+    serializer->doInt(&number);
+    nr_ = number;
+    serializer->doUChar(&insertionCode_);
+}
+
+void SimulationResidue::serializeResidue(gmx::ISerializer* serializer)
+{
+    GMX_ASSERT(!serializer->reading(), "Can not write residue with reading serializer");
+    name_->serialize(serializer);
+    int number = nr_;
+    serializer->doInt(&number);
+    serializer->doUChar(&insertionCode_);
+}
+
+// Legacy functions begin here.
 void init_atom(t_atoms* at)
 {
     at->nr          = 0;
