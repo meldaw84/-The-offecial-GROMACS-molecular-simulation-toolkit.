@@ -40,6 +40,7 @@
 
 #include <algorithm>
 #include <type_traits>
+#include <vector>
 
 #include "gromacs/topology/atomprop.h"
 #include "gromacs/topology/symtab.h"
@@ -205,6 +206,33 @@ void SimulationParticle::serializeParticle(gmx::ISerializer* serializer)
     serializer->doBool(&haveType_);
     serializer->doBool(&haveParticleName_);
     serializer->doBool(&haveParticleTypeName_);
+}
+
+SimulationResidue::SimulationResidue(gmx::ISerializer* serializer, const StringTable& table)
+{
+    GMX_ASSERT(serializer->reading(), "Can not create residue with writing serializer");
+    residueName_ = readStringTableEntry(serializer, table);
+    serializer->doInt64(&nr_);
+    serializer->doUChar(&insertionCode_);
+    serializer->doInt64(&begin_);
+    serializer->doInt64(&size_);
+}
+
+void SimulationResidue::serializeResidue(gmx::ISerializer* serializer)
+{
+    GMX_ASSERT(!serializer->reading(), "Can not write residue with reading serializer");
+    residueName_->serialize(serializer);
+    serializer->doInt64(&nr_);
+    serializer->doUChar(&insertionCode_);
+    serializer->doInt64(&begin_);
+    serializer->doInt64(&size_);
+}
+
+SimulationResidue SimulationResidueBuilder::finalize(gmx::index residueNumber,
+                                                     gmx::index begin,
+                                                     gmx::index end) const
+{
+    return SimulationResidue(name_, residueNumber, insertionCode_, begin, end);
 }
 
 // Legacy functions begin here.

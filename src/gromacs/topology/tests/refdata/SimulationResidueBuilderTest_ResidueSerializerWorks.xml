@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="referencedata.xsl"?>
+<ReferenceData>
+  <Residue>
+    <ResidueValues Name="ResidueValues">
+      <String Name="Name">residue name</String>
+      <Int64 Name="Number">0</Int64>
+      <Int Name="InsertionCode">32</Int>
+      <Int64 Name="Begin">0</Int64>
+      <Int64 Name="Size">2</Int64>
+    </ResidueValues>
+  </Residue>
+</ReferenceData>

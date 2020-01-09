@@ -259,6 +259,26 @@ public:
     {
         GMX_ASSERT(elementName.length() <= 4, "Element name can only be three characters");
     }
+
+    //! Build from existing object with new residue number.
+    SimulationParticle(const SimulationParticle& oldParticle, gmx::index residueNumber) :
+        mass_(oldParticle.mass_),
+        charge_(oldParticle.charge_),
+        particleTypeValue_(oldParticle.particleTypeValue_),
+        particleTypeName_(oldParticle.particleTypeName_),
+        particleName_(oldParticle.particleName_),
+        particleType_(oldParticle.particleType_),
+        residueIndex_(residueNumber),
+        atomicNumber_(oldParticle.atomicNumber_),
+        elementName_(oldParticle.elementName_),
+        haveMass_(oldParticle.haveMass_),
+        haveCharge_(oldParticle.haveCharge_),
+        haveType_(oldParticle.haveType_),
+        haveParticleName_(oldParticle.haveParticleName_),
+        haveParticleTypeName_(oldParticle.haveParticleTypeName_),
+        haveBState_(oldParticle.haveBState_)
+    {
+    }
     //! Construct new datastructure from deserialization.
     SimulationParticle(gmx::ISerializer* serializer, const StringTable& table);
 
@@ -302,6 +322,130 @@ private:
     bool haveParticleTypeName_;
     //! If all fields have B state set.
     bool haveBStateForAll_;
+};
+
+//! Finished single amino acid residue in a simulation topology
+class SimulationResidue
+{
+public:
+    //! Construct info from serializer.
+    SimulationResidue(gmx::ISerializer* serializer, const StringTable& table);
+    //! Write info to serializer.
+    void serializeResidue(gmx::ISerializer* serializer);
+    //! Access name
+    const std::string& name() const
+    {
+        GMX_ASSERT(residueName_.has_value(), "Can not access uninitialized element");
+        return *residueName_.value();
+    }
+    //! Access residue number.
+    gmx::index nr() const { return nr_; }
+    //! Access insertion code.
+    unsigned char insertionCode() const { return insertionCode_; }
+    //! Begin of particles in global structure.
+    gmx::index begin() const { return begin_; }
+    //! End of particles in global strucutre.
+    gmx::index size() const { return size_; }
+
+    //! Copy constructor.
+    SimulationResidue(const SimulationResidue&) = default;
+    //! Copy assignment.
+    SimulationResidue& operator=(const SimulationResidue&) = default;
+    //! Default move constructor.
+    SimulationResidue(SimulationResidue&&) = default;
+    //! Default move assignment.
+    SimulationResidue& operator=(SimulationResidue&&) = default;
+
+    friend class SimulationResidueBuilder;
+
+private:
+    SimulationResidue(NameHolder name, gmx::index nr, unsigned char insertionCode, gmx::index begin, gmx::index size) :
+        residueName_(name), nr_(nr), insertionCode_(insertionCode), begin_(begin), size_(size)
+    {
+    }
+
+    //! Residue name.
+    NameHolder residueName_;
+    //! Residue number.
+    gmx::index nr_;
+    //! Insertion code, why?
+    unsigned char insertionCode_;
+    //! Begin of particles.
+    gmx::index begin_;
+    //! Size of particles.
+    gmx::index size_;
+};
+
+//! Build single amino acid residue in a simulation
+class SimulationResidueBuilder
+{
+public:
+    //! Construct object with complete information.
+    SimulationResidueBuilder(NameHolder                       name,
+                             unsigned char                    insertionCode,
+                             gmx::index                       chainNumber,
+                             char                             chainIdentifier,
+                             NameHolder                       rtp,
+                             std::vector<SimulationParticle>* particles) :
+        name_(name),
+        insertionCode_(insertionCode),
+        chainNumber_(chainNumber),
+        chainIdentifier_(chainIdentifier),
+        rtp_(rtp)
+    {
+        std::swap(*particles, residueParticles_);
+    }
+
+    //! Copy constructor.
+    SimulationResidueBuilder(const SimulationResidueBuilder&) = default;
+    //! Copy assignment.
+    SimulationResidueBuilder& operator=(const SimulationResidueBuilder&) = default;
+    //! Default move constructor.
+    SimulationResidueBuilder(SimulationResidueBuilder&& old) = default;
+    //! Default move assignment.
+    SimulationResidueBuilder& operator=(SimulationResidueBuilder&& old) = default;
+
+    //! Access name.
+    const std::string& name() const
+    {
+        GMX_ASSERT(name_.has_value(), "Can not access uninitialized element");
+        return *name_.value();
+    }
+    //! Access RTP code
+    const std::string& rtp() const
+    {
+        GMX_ASSERT(rtp_.has_value(), "Can not access uninitialized element");
+        return *rtp_.value();
+    }
+    //! Make finalized residue.
+    SimulationResidue finalize(gmx::index residueNumber, gmx::index begin, gmx::index size) const;
+    //! Access insertion code.
+    unsigned char insertionCode() const { return insertionCode_; }
+    //! Access chain number.
+    gmx::index chainNumber() const { return chainNumber_; }
+    //! Access chain indentifier.
+    char chainIdentifier() const { return chainIdentifier_; }
+    //! Change particles in this residue.
+    void updateParticles(std::vector<SimulationParticle>* newParticles)
+    {
+        std::swap(*newParticles, residueParticles_);
+    }
+    //! View on residue particles
+    gmx::ArrayRef<const SimulationParticle> particles() const { return residueParticles_; }
+
+private:
+    //! Residue name.
+    NameHolder name_;
+    //! Code for insertion of residues.
+    unsigned char insertionCode_;
+    //! Chain number, incremented at TER or new chain identifier.
+    gmx::index chainNumber_;
+    //! Chain identifier written/read to pdb.
+    char chainIdentifier_;
+    //! Optional rtp building block name.
+    NameHolder rtp_;
+    //! Particles that make up this residue.
+    std::vector<SimulationParticle> residueParticles_;
 };
 
 // Legacy types begin here
