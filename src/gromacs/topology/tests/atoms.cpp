@@ -44,6 +44,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <gtest/gtest-param-test.h>
 #include <gtest/gtest.h>
@@ -189,6 +190,12 @@ void checkParticle(TestReferenceChecker* checker, const SimulationParticle& part
             &compound, particle.ptype(), particle.resind(), particle.atomnumber(), particle.elem());
 }
 
+void checkParticles(TestReferenceChecker* checker, gmx::ArrayRef<const SimulationParticle> particles)
+{
+    TestReferenceChecker compound(checker->checkCompound("Particles", "Collection"));
+    compound.checkSequence(particles.begin(), particles.end(), "SimulationParticleCollection", checkParticle);
+}
+
 using SimulationParticleTestParameters =
         std::tuple<std::optional<ParticleMass>, std::optional<ParticleCharge>, std::optional<ParticleTypeValue>, bool>;
 
@@ -308,6 +315,177 @@ TEST(DISABLED_SimulationParticleTest, DeathTestSerialize)
 }
 
 #endif
+
+void checkResidueBuilderValues(TestReferenceChecker*                   checker,
+                               const std::string&                      name,
+                               unsigned char                           insertionCode,
+                               gmx::index                              chainNumber,
+                               char                                    chainId,
+                               const std::string&                      rtp,
+                               gmx::ArrayRef<const SimulationParticle> particles)
+{
+    TestReferenceChecker compound(checker->checkCompound("ResidueBuilder", "ResidueBuilderValues"));
+    compound.checkString(name, "Name");
+    compound.checkInteger(insertionCode, "InsertionCode");
+    compound.checkInt64(chainNumber, "ChainNumber");
+    compound.checkInteger(chainId, "ChainIdentifier");
+    compound.checkString(rtp, "RTP");
+    compound.checkInteger(particles.size(), "NumberOfParticles");
+    checkParticles(&compound, particles);
+}
+
+void checkResidueValues(TestReferenceChecker* checker,
+                        const std::string&    name,
+                        gmx::index            nr,
+                        unsigned char         insertionCode,
+                        gmx::index            begin,
+                        gmx::index            size)
+{
+    TestReferenceChecker compound(checker->checkCompound("ResidueValues", "ResidueValues"));
+    compound.checkString(name, "Name");
+    compound.checkInt64(nr, "Number");
+    compound.checkInteger(insertionCode, "InsertionCode");
+    compound.checkInt64(begin, "Begin");
+    compound.checkInt64(size, "Size");
+}
+
+void checkResidue(TestReferenceChecker* checker, const SimulationResidue& residue)
+{
+    TestReferenceChecker compound(checker->checkCompound("Residue", nullptr));
+    checkResidueValues(
+            &compound, residue.name(), residue.nr(), residue.insertionCode(), residue.begin(), residue.size());
+}
+
+class SimulationResidueBuilderTest : public ::testing::Test
+{
+public:
+    SimulationResidueBuilderTest();
+    //! Run the test with a single residue still in the builder.
+    void runTest(const SimulationResidueBuilder& residue);
+    //! Run the test with a single residue after finalizing.
+    void runTest(const SimulationResidue& residue);
+    //! Access to particles information for test.'
+    std::vector<SimulationParticle>* particles() { return &particles_; }
+    //! Access to table.
+    const StringTable& table() const { return *table_; }
+
+private:
+    //! Need a string table with test strings, initialized during setup.
+    StringTableBuilder tableBuilder_;
+    //! Table data.
+    std::unique_ptr<StringTable> table_;
+    //! Data for particles used in the residue.
+    std::vector<SimulationParticle> particles_;
+    //! Handler for reference data.
+    TestReferenceData data_;
+    //! Handler for checking reference data.
+    TestReferenceChecker checker_;
+};
+
+SimulationResidueBuilderTest::SimulationResidueBuilderTest() : checker_(data_.rootChecker())
+{
+    std::string nameString   = "residue name";
+    std::string rtpString    = "rtp name";
+    std::string particleName = "Calpha";
+    std::string typeAName    = "cool";
+    std::string typeBName    = "boring";
+    tableBuilder_.addString(nameString);
+    tableBuilder_.addString(rtpString);
+    tableBuilder_.addString(particleName);
+    tableBuilder_.addString(typeAName);
+    tableBuilder_.addString(typeBName);
+
+    table_ = std::make_unique<StringTable>(tableBuilder_.build());
+
+    ParticleTypeName typeNameOne{ table_->at(3) };
+    ParticleTypeName typeNameTwo{ table_->at(3), table_->at(4) };
+    particles_.emplace_back(SimulationParticle(testParticleMassOneState,
+                                               testParticleChargeOneState,
+                                               testParticleTypeValueOneState,
+                                               typeNameOne,
+                                               table_->at(2),
+                                               ParticleType::Atom,
+                                               3,
+                                               4,
+                                               "Ref\n"));
+    particles_.emplace_back(SimulationParticle(testParticleMassTwoState,
+                                               testParticleChargeTwoState,
+                                               testParticleTypeValueTwoState,
+                                               typeNameTwo,
+                                               table_->at(2),
+                                               ParticleType::Atom,
+                                               3,
+                                               4,
+                                               "Ref\n"));
+}
+
+void SimulationResidueBuilderTest::runTest(const SimulationResidueBuilder& residue)
+{
+    checkResidueBuilderValues(&checker_,
+                              residue.name(),
+                              residue.insertionCode(),
+                              residue.chainNumber(),
+                              residue.chainIdentifier(),
+                              residue.rtp(),
+                              residue.particles());
+}
+
+void SimulationResidueBuilderTest::runTest(const SimulationResidue& residue)
+{
+    checkResidue(&checker_, residue);
+}
+
+TEST_F(SimulationResidueBuilderTest, CanCreateFullWithConstructor)
+{
+    runTest(SimulationResidueBuilder(table().at(0), ' ', 0, ' ', table().at(1), particles()));
+}
+
+TEST_F(SimulationResidueBuilderTest, CanUpdateAtoms)
+{
+    auto residueBuilder =
+            SimulationResidueBuilder(table().at(0), ' ', 0, ' ', table().at(1), particles());
+    std::vector<SimulationParticle> newParticles(particles()->begin(), particles()->end());
+    ParticleTypeName                typeNameOne{ table().at(3) };
+    newParticles.emplace_back(SimulationParticle(testParticleMassOneState,
+                                                 testParticleChargeOneState,
+                                                 testParticleTypeValueOneState,
+                                                 typeNameOne,
+                                                 table().at(2),
+                                                 ParticleType::Atom,
+                                                 3,
+                                                 4,
+                                                 "Ref\n"));
+    residueBuilder.updateParticles(&newParticles);
+    runTest(residueBuilder);
+}
+
+TEST_F(SimulationResidueBuilderTest, CanCreateResidueFromBuilder)
+{
+    auto residueBuilder =
+            SimulationResidueBuilder(table().at(0), ' ', 0, ' ', table().at(1), particles());
+    runTest(residueBuilder);
+    auto residue = residueBuilder.finalize(0, 0, residueBuilder.particles().size());
+    runTest(residue);
+
+    EXPECT_EQ(residueBuilder.name(), residue.name());
+    EXPECT_EQ(residueBuilder.insertionCode(), residue.insertionCode());
+}
+
+TEST_F(SimulationResidueBuilderTest, ResidueSerializerWorks)
+{
+    gmx::ArrayRef<const SimulationParticle> simParticles = *(particles());
+    auto                                    residueBuilder =
+            SimulationResidueBuilder(table().at(0), ' ', 0, ' ', table().at(1), particles());
+    auto                    residue = residueBuilder.finalize(0, 0, simParticles.size());
+    gmx::InMemorySerializer writer;
+    residue.serializeResidue(&writer);
+
+    auto                      buffer = writer.finishAndGetBuffer();
+    gmx::InMemoryDeserializer reader(buffer, GMX_DOUBLE);
+
+    SimulationResidue readResidue(&reader, table());
+    runTest(readResidue);
+}
 
 } // namespace
 
