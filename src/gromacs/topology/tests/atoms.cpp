@@ -42,6 +42,7 @@
 #include "gromacs/topology/atoms.h"
 
 #include <memory>
+#include <string>
 
 #include <gtest/gtest.h>
 
@@ -58,6 +59,9 @@ namespace gmx
 {
 
 namespace test
+{
+
+namespace
 {
 
 class SimulationResidueTest : public ::testing::Test
@@ -120,6 +124,91 @@ TEST_F(SimulationResidueTest, RoundTrip)
     EXPECT_EQ(testResidue.nr(), newResidue.nr());
     EXPECT_EQ(testResidue.insertionCode(), newResidue.insertionCode());
 }
+
+TEST(SimulationParticleTest, CanCreateWithIdenticalABStates)
+{
+    std::string        elem("foo\n");
+    ParticleMass       mass{ 0.1 };
+    ParticleCharge     charge{ 0.2 };
+    ParticleTypeName   type{ 1 };
+    SimulationParticle testParticle(mass, charge, type, ParticleType::Atom, 3, 4, elem);
+    EXPECT_FLOAT_EQ(testParticle.m(), 0.1);
+    EXPECT_FLOAT_EQ(testParticle.m(), testParticle.mB());
+    EXPECT_FLOAT_EQ(testParticle.q(), 0.2);
+    EXPECT_FLOAT_EQ(testParticle.q(), testParticle.qB());
+    EXPECT_EQ(testParticle.type(), 1);
+    EXPECT_EQ(testParticle.type(), testParticle.typeB());
+    EXPECT_EQ(testParticle.ptype(), ParticleType::Atom);
+    EXPECT_EQ(testParticle.resind(), 3);
+    EXPECT_EQ(testParticle.atomnumber(), 4);
+    EXPECT_STREQ(testParticle.elem().c_str(), elem.c_str());
+}
+
+TEST(SimulationParticleTest, CanCreateWithDifferentABStates)
+{
+    std::string        elem("foo\n");
+    ParticleMass       mass   = { 0.1, 0.3 };
+    ParticleCharge     charge = { 0.2, 0.4 };
+    ParticleTypeName   type   = { 1, 4 };
+    SimulationParticle testParticle(mass, charge, type, ParticleType::Bond, 3, 4, elem);
+    EXPECT_FLOAT_EQ(testParticle.m(), 0.1);
+    EXPECT_NE(testParticle.m(), testParticle.mB());
+    EXPECT_FLOAT_EQ(testParticle.mB(), 0.3);
+    EXPECT_FLOAT_EQ(testParticle.q(), 0.2);
+    EXPECT_NE(testParticle.q(), testParticle.qB());
+    EXPECT_FLOAT_EQ(testParticle.qB(), 0.4);
+    EXPECT_EQ(testParticle.type(), 1);
+    EXPECT_NE(testParticle.type(), testParticle.typeB());
+    EXPECT_EQ(testParticle.typeB(), 4);
+    EXPECT_EQ(testParticle.ptype(), ParticleType::Bond);
+    EXPECT_EQ(testParticle.resind(), 3);
+    EXPECT_EQ(testParticle.atomnumber(), 4);
+    EXPECT_STREQ(testParticle.elem().c_str(), elem.c_str());
+}
+
+TEST(SimulationParticleTest, CanWriteToSerializer)
+{
+    std::string             elem("foo\n");
+    ParticleMass            mass   = { 0.1, 0.3 };
+    ParticleCharge          charge = { 0.2, 0.4 };
+    ParticleTypeName        type   = { 1, 4 };
+    SimulationParticle      testParticle(mass, charge, type, ParticleType::Nucleus, 3, 4, elem);
+    gmx::InMemorySerializer writer;
+    testParticle.serializeParticle(&writer);
+    auto buffer = writer.finishAndGetBuffer();
+    int  expectedResult =
+            GMX_DOUBLE ? 54 : 38; // 2 * (2 * real + bool) + (2 * ushort + bool) + 3 * int + 3 * bool
+    EXPECT_EQ(buffer.size(), expectedResult);
+}
+
+TEST(SimulationParticleTest, RoundTrip)
+{
+    std::string             elem("foo\n");
+    ParticleMass            mass   = { 0.1, 0.3 };
+    ParticleCharge          charge = { 0.2, 0.4 };
+    ParticleTypeName        type   = { 1, 4 };
+    SimulationParticle      testParticle(mass, charge, type, ParticleType::Shell, 3, 4, elem);
+    gmx::InMemorySerializer writer;
+    testParticle.serializeParticle(&writer);
+    auto buffer = writer.finishAndGetBuffer();
+    int  expectedResult =
+            GMX_DOUBLE ? 54 : 38; // 2 * (2 * real + bool) + (2 * ushort + bool) + 3 * int + 3 * bool
+    EXPECT_EQ(buffer.size(), expectedResult);
+
+    gmx::InMemoryDeserializer reader(buffer, GMX_DOUBLE);
+    SimulationParticle        newParticle(&reader);
+    EXPECT_FLOAT_EQ(testParticle.m(), newParticle.m());
+    EXPECT_FLOAT_EQ(testParticle.mB(), newParticle.mB());
+    EXPECT_FLOAT_EQ(testParticle.q(), newParticle.q());
+    EXPECT_FLOAT_EQ(testParticle.qB(), newParticle.qB());
+    EXPECT_EQ(testParticle.type(), newParticle.type());
+    EXPECT_EQ(testParticle.typeB(), newParticle.typeB());
+    EXPECT_EQ(testParticle.ptype(), newParticle.ptype());
+    EXPECT_EQ(testParticle.resind(), newParticle.resind());
+    EXPECT_EQ(testParticle.atomnumber(), newParticle.atomnumber());
+}
+
+} // namespace
 
 } // namespace test
 

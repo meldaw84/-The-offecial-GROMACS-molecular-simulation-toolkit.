@@ -39,6 +39,7 @@
 #include <cstring>
 
 #include <algorithm>
+#include <type_traits>
 
 #include "gromacs/topology/atomprop.h"
 #include "gromacs/topology/symtab.h"
@@ -55,6 +56,86 @@ const char* enumValueToString(ParticleType enumValue)
         "Atom", "Nucleus", "Shell", "Bond", "VSite"
     };
     return particleTypeNames[enumValue];
+}
+
+namespace
+{
+
+/*! \brief Serialize unsigned short values.
+ *
+ * \tparam T type to be serialized
+ * \param[in,out] serializer the serializer
+ * \param[in,out] value to be serialized
+ */
+template<typename T>
+std::enable_if_t<std::is_same_v<T, unsigned short>, void> serializeValue(gmx::ISerializer* serializer,
+                                                                         T*                value)
+{
+    serializer->doUShort(value);
+}
+
+/*! \brief Serialize real values.
+ *
+ * \tparam T type to be serialized
+ * \param[in,out] serializer the serializer
+ * \param[in,out] value to be serialized
+ */
+template<typename T>
+std::enable_if_t<std::is_same_v<T, real>, void> serializeValue(gmx::ISerializer* serializer, T* value)
+{
+    serializer->doReal(value);
+}
+
+} // namespace
+
+template<typename T>
+void FEPStateValue<T>::serialize(gmx::ISerializer* serializer)
+{
+    GMX_ASSERT(!serializer->reading(), "Can not write with reading serializer");
+    serializeValue<T>(serializer, &storage_[0]);
+    serializeValue<T>(serializer, &storage_[1]);
+    serializer->doBool(&haveBState_);
+}
+
+template<typename T>
+FEPStateValue<T>::FEPStateValue(gmx::ISerializer* serializer)
+{
+    GMX_ASSERT(serializer->reading(), "Can not create with writing serializer");
+    serializeValue<T>(serializer, &storage_[0]);
+    serializeValue<T>(serializer, &storage_[1]);
+    serializer->doBool(&haveBState_);
+}
+
+SimulationParticle::SimulationParticle(gmx::ISerializer* serializer)
+{
+    GMX_ASSERT(serializer->reading(), "Can not create particle with writing serializer");
+    mass_     = FEPStateValue<real>(serializer);
+    charge_   = FEPStateValue<real>(serializer);
+    atomType_ = FEPStateValue<unsigned short>(serializer);
+    serializer->doEnumAsInt<ParticleType>(&particleType_);
+    int residueIndex;
+    serializer->doInt(&residueIndex);
+    residueIndex_ = residueIndex;
+    serializer->doInt(&atomicNumber_);
+    serializer->doBool(&haveMass_);
+    serializer->doBool(&haveCharge_);
+    serializer->doBool(&haveType_);
+    haveBState_ = mass_.haveBState_ && charge_.haveBState_ && atomType_.haveBState_;
+}
+
+void SimulationParticle::serializeParticle(gmx::ISerializer* serializer)
+{
+    GMX_ASSERT(!serializer->reading(), "Can not write particle with reading serializer");
+    mass_.serialize(serializer);
+    charge_.serialize(serializer);
+    atomType_.serialize(serializer);
+    serializer->doEnumAsInt<ParticleType>(&particleType_);
+    int residueIndex = residueIndex_;
+    serializer->doInt(&residueIndex);
+    serializer->doInt(&atomicNumber_);
+    serializer->doBool(&haveMass_);
+    serializer->doBool(&haveCharge_);
+    serializer->doBool(&haveType_);
 }
 
 SimulationResidue::SimulationResidue(gmx::ISerializer* serializer, const StringTable& table)

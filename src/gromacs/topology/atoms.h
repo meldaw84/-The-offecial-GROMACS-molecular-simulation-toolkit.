@@ -88,6 +88,115 @@ const char* enumValueToString(PdbRecordType enumValue);
 
 using NameHolder = std::optional<StringTableEntry>;
 
+//! Template wrapper struct for particle FEP state values
+template<typename T>
+struct FEPStateValue
+{
+    //! Empty object.
+    FEPStateValue() : storage_({}), haveBState_(false) {}
+    //! Construct without FEP state changes.
+    FEPStateValue(T value) : storage_({ value, value }), haveBState_(false) {}
+    //! Construct with FEP state changes.
+    FEPStateValue(T valueA, T valueB) : storage_({ valueA, valueB }), haveBState_(true) {}
+    //! Read from serialized datastructure.
+    FEPStateValue(gmx::ISerializer* serializer);
+    //! Write data to serializer.
+    void serialize(gmx::ISerializer* serializer);
+    //! Internal storage.
+    std::array<T, 2> storage_;
+    //! Whether this value has B state set or not.
+    bool haveBState_;
+};
+
+using ParticleMass     = FEPStateValue<real>;
+using ParticleCharge   = FEPStateValue<real>;
+using ParticleTypeName = FEPStateValue<unsigned short>;
+
+//! Single particle in a simulation.
+class SimulationParticle
+{
+public:
+    //! Write info to serializer.
+    void serializeParticle(gmx::ISerializer* serializer);
+    //! Access mass. A state.
+    real m() const { return mass_.storage_[0]; }
+    //! Access charge. A state.
+    real q() const { return charge_.storage_[0]; }
+    //! Access atom type. A state.
+    unsigned short type() const { return atomType_.storage_[0]; }
+    //! Access mass. B state.
+    real mB() const { return mass_.storage_[1]; }
+    //! Access charge. B state.
+    real qB() const { return charge_.storage_[1]; }
+    //! Access atom type. B state.
+    unsigned short typeB() const { return atomType_.storage_[1]; }
+    //! Access particle type.
+    ParticleType ptype() const { return particleType_; }
+    //! Access residue index.
+    gmx::index resind() const { return residueIndex_; }
+    //! Access atomic number.
+    int atomnumber() const { return atomicNumber_; }
+    //! Access element name.
+    std::string elem() const { return elementName_; }
+    //! Do we have mass?
+    bool haveMass() const { return haveMass_; }
+    //! Do we have charge?
+    bool haveCharge() const { return haveCharge_; }
+    //! Do we have type?
+    bool haveType() const { return haveType_; }
+    //! Do we have B state?
+    bool haveBState() const { return haveBState_; }
+
+    //! Constructor with complete information. A and B states are equivalent.
+    SimulationParticle(const std::optional<ParticleMass>&     mass,
+                       const std::optional<ParticleCharge>&   charge,
+                       const std::optional<ParticleTypeName>& atomType,
+                       ParticleType                           particleType,
+                       gmx::index                             residueIndex,
+                       int                                    atomicNumber,
+                       const std::string&                     elementName) :
+        mass_(mass.has_value() ? *mass : ParticleMass()),
+        charge_(charge.has_value() ? *charge : ParticleCharge()),
+        atomType_(atomType.has_value() ? *atomType : ParticleTypeName()),
+        particleType_(particleType),
+        residueIndex_(residueIndex),
+        atomicNumber_(atomicNumber),
+        elementName_(elementName),
+        haveMass_(mass.has_value()),
+        haveCharge_(charge.has_value()),
+        haveType_(atomType.has_value()),
+        haveBState_(mass_.haveBState_ && charge_.haveBState_ && atomType_.haveBState_)
+    {
+        GMX_ASSERT(elementName.length() <= 4, "Element name can only be three characters");
+    }
+    //! Construct new datastructure from deserialization.
+    SimulationParticle(gmx::ISerializer* serializer);
+
+private:
+    //! Mass of the particle. A and B state.
+    ParticleMass mass_;
+    //! Charge of the particle. A and B state.
+    ParticleCharge charge_;
+    //! Atom type. A and B state.
+    ParticleTypeName atomType_;
+    //! Type of the particle.
+    ParticleType particleType_;
+    //! Residue this atoms is part of.
+    gmx::index residueIndex_;
+    //! Atomic Number or 0.
+    int atomicNumber_;
+    //! Name of the element if applicable.
+    std::string elementName_;
+    //! If we have mass for the particle.
+    bool haveMass_;
+    //! If we have charge for the particle.
+    bool haveCharge_;
+    //! If the particle type is set.
+    bool haveType_;
+    //! If all fields have B state set.
+    bool haveBState_;
+};
+
 //! Single amino acid residue in a simulation
 class SimulationResidue
 {
@@ -102,12 +211,12 @@ public:
                       gmx::index    chainNumber,
                       char          chainIdentifier,
                       NameHolder    rtp) :
-        name_(std::move(name)),
+        name_(name),
         nr_(nr),
         insertionCode_(insertionCode),
         chainNumber_(chainNumber),
         chainIdentifier_(chainIdentifier),
-        rtp_(std::move(rtp))
+        rtp_(rtp)
     {
     }
     //! Write info to serializer.
