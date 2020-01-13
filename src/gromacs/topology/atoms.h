@@ -41,6 +41,7 @@
 #include <vector>
 
 #include "gromacs/topology/symtab.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/basedefinitions.h"
 #include "gromacs/utility/real.h"
 #include "gromacs/utility/unique_cptr.h"
@@ -249,6 +250,109 @@ private:
     char chainIdentifier_;
     //! Optional rtp building block name.
     NameHolder rtp_;
+};
+
+//! Defines a single line in a PDB file, for legacy PDB file handling.
+class PdbEntry
+{
+public:
+    //! Construct full structure without anisotropy information, bfactor or occupancy.
+    PdbEntry(PdbRecordType type, int pdbAtomNumber, char alternativeLocation, const std::string& atomName) :
+        type_(type),
+        pdbAtomNumber_(pdbAtomNumber),
+        alternativeLocation_(alternativeLocation),
+        trueAtomName_(atomName),
+        hasOccupancy_(false),
+        occupancy_(0.0),
+        hasbFactor_(false),
+        bFactor_(0.0),
+        hasAnistropy_(false)
+    {
+        GMX_ASSERT(atomName.length() <= 6, "Can not have atom name swith more than 6 characters");
+    }
+    //! Construct full structure without anisotropy information, but with bfactor and occupancy.
+    PdbEntry(PdbRecordType      type,
+             int                pdbAtomNumber,
+             char               alternativeLocation,
+             const std::string& atomName,
+             real               occupancy,
+             real               bFactor) :
+        type_(type),
+        pdbAtomNumber_(pdbAtomNumber),
+        alternativeLocation_(alternativeLocation),
+        trueAtomName_(atomName),
+        hasOccupancy_(true),
+        occupancy_(occupancy),
+        hasbFactor_(true),
+        bFactor_(bFactor),
+        hasAnistropy_(false)
+    {
+        GMX_ASSERT(atomName.length() <= 6, "Can not have atom name swith more than 6 characters");
+    }
+    //! Construct full structure.
+    PdbEntry(PdbRecordType            type,
+             int                      pdbAtomNumber,
+             char                     alternativeLocation,
+             const std::string&       atomName,
+             real                     occupancy,
+             real                     bFactor,
+             gmx::ArrayRef<const int> uij) :
+        type_(type),
+        pdbAtomNumber_(pdbAtomNumber),
+        alternativeLocation_(alternativeLocation),
+        trueAtomName_(atomName),
+        hasOccupancy_(true),
+        occupancy_(occupancy),
+        hasbFactor_(true),
+        bFactor_(bFactor),
+        hasAnistropy_(true)
+    {
+        GMX_ASSERT(atomName.length() <= 6, "Can not have atom name swith more than 6 characters");
+        GMX_ASSERT(uij.size() == uij_.size() || uij.empty(),
+                   "Input for anisotropy needs to be exactly 6 or zero");
+        int pos = 0;
+        for (const auto& value : uij)
+        {
+            uij_[pos] = value;
+            pos++;
+        }
+    }
+    //! Get PDB record type
+    PdbRecordType type() const { return type_; }
+    //! Get atom number.
+    int atomNumber() const { return pdbAtomNumber_; }
+    //! Get access to alternative location identifier.
+    char altloc() const { return alternativeLocation_; }
+    //! Get access to real atom name.
+    const std::string& atomName() const { return trueAtomName_; }
+    //! Get access to occupancy.
+    real occup() const;
+    //! Get access to b factor.
+    real bfac() const;
+    //! Get access to anisotropy values.
+    gmx::ArrayRef<const int> uij() const;
+
+private:
+    //! PDB record type
+    PdbRecordType type_;
+    //! PDB atom number.
+    int pdbAtomNumber_;
+    //! Defines alternative location in PDB.
+    char alternativeLocation_;
+    //! The actual atom name from the pdb file.
+    std::string trueAtomName_;
+    //! If entry has occupancy value.
+    bool hasOccupancy_;
+    //! Occupancy field, abused for other things.
+    real occupancy_;
+    //! If entry has bfactor value.
+    bool hasbFactor_;
+    //! B-Factor field, abused for other things.
+    real bFactor_;
+    //! If entry has anisotropy value.
+    bool hasAnistropy_;
+    //! Array of anisotropy values.
+    std::array<int, 6> uij_;
 };
 
 // Legacy types begin here

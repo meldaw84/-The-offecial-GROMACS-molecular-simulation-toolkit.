@@ -208,7 +208,53 @@ TEST(SimulationParticleTest, RoundTrip)
     EXPECT_EQ(testParticle.atomnumber(), newParticle.atomnumber());
 }
 
+<<<<<<< HEAD
 } // namespace
+=======
+TEST(PdbEntryTest, CanCreateBasicEntry)
+{
+    PdbEntry testEntry(PdbRecordType::Atom, 1, ' ', "CA");
+    EXPECT_EQ(testEntry.type(), PdbRecordType::Atom);
+    EXPECT_EQ(testEntry.atomNumber(), 1);
+    EXPECT_EQ(testEntry.altloc(), ' ');
+    EXPECT_STREQ(testEntry.atomName().c_str(), "CA");
+    EXPECT_THROW(testEntry.occup(), InternalError);
+    EXPECT_THROW(testEntry.bfac(), InternalError);
+    EXPECT_THROW(testEntry.uij(), gmx::InternalError);
+}
+
+TEST(PdbEntryTest, CanCreateEntryWithOccupAndBfac)
+{
+    PdbEntry testEntry(PdbRecordType::Atom, 1, ' ', "CA", 0.53, 42.1);
+    EXPECT_EQ(testEntry.type(), PdbRecordType::Atom);
+    EXPECT_EQ(testEntry.atomNumber(), 1);
+    EXPECT_EQ(testEntry.altloc(), ' ');
+    EXPECT_STREQ(testEntry.atomName().c_str(), "CA");
+    EXPECT_FLOAT_EQ(testEntry.occup(), 0.53);
+    EXPECT_FLOAT_EQ(testEntry.bfac(), 42.1);
+    EXPECT_THROW(testEntry.uij(), InternalError);
+}
+
+TEST(PdbEntryTest, CanCreateFullEntry)
+{
+    std::array<int, 6> uij = { 1, 2, 3, 4, 5, 6 };
+    PdbEntry           testEntry(PdbRecordType::Atom, 1, ' ', "CA", 0.53, 42.1, uij);
+    EXPECT_EQ(testEntry.type(), PdbRecordType::Atom);
+    EXPECT_EQ(testEntry.atomNumber(), 1);
+    EXPECT_EQ(testEntry.altloc(), ' ');
+    EXPECT_STREQ(testEntry.atomName().c_str(), "CA");
+    EXPECT_FLOAT_EQ(testEntry.occup(), 0.53);
+    EXPECT_FLOAT_EQ(testEntry.bfac(), 42.1);
+    EXPECT_NO_THROW(testEntry.uij());
+    auto accessedArray = testEntry.uij();
+    int  pos           = 0;
+    for (const auto& i : accessedArray)
+    {
+        EXPECT_EQ(i, uij[pos]);
+        pos++;
+    }
+}
+>>>>>>> 5ca0b70b9f (Add replacement for t_pdbinfo)
 
 } // namespace test
 

@@ -45,6 +45,7 @@
 #include "gromacs/topology/symtab.h"
 #include "gromacs/utility/compare.h"
 #include "gromacs/utility/enumerationhelpers.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/iserializer.h"
 #include "gromacs/utility/smalloc.h"
@@ -155,6 +156,42 @@ void SimulationResidue::serializeResidue(gmx::ISerializer* serializer)
     int number = nr_;
     serializer->doInt(&number);
     serializer->doUChar(&insertionCode_);
+}
+
+real PdbEntry::occup() const
+{
+    if (!hasOccupancy_)
+    {
+        GMX_THROW(gmx::InternalError("Can not access occupancy information that is not present"));
+    }
+    else
+    {
+        return occupancy_;
+    }
+}
+
+real PdbEntry::bfac() const
+{
+    if (!hasbFactor_)
+    {
+        GMX_THROW(gmx::InternalError("Can not access B-Factor information that is not present"));
+    }
+    else
+    {
+        return bFactor_;
+    }
+}
+
+gmx::ArrayRef<const int> PdbEntry::uij() const
+{
+    if (!hasAnistropy_)
+    {
+        GMX_THROW(gmx::InternalError("Can not access anisotropy information that is not present"));
+    }
+    else
+    {
+        return uij_;
+    }
 }
 
 // Legacy functions begin here.
