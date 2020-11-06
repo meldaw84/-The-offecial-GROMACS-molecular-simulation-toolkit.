@@ -117,7 +117,7 @@ public:
     //! Constructor from input file.
     AwhDimParams(std::vector<t_inpfile>* inp, const std::string& prefix, WarningHandler* wi, bool bComment);
     //! Constructor to generate from file reading.
-    explicit AwhDimParams(ISerializer* serializer);
+    explicit AwhDimParams(ISerializer* serializer, bool bReadSymmetryOption);
 
     //! Move constructor.
     AwhDimParams(AwhDimParams&&) = default;
@@ -150,6 +150,8 @@ public:
     void setInitialCoordinate(double initialCoordinate) { coordValueInit_ = initialCoordinate; }
     //! Diameter needed to be sampled.
     double coverDiameter() const { return coverDiameter_; }
+    //! Whether the dimension is symmetric or not.
+    bool isSymmetric() const { return isSymmetric_; }
     //! Write datastructure.
     void serialize(ISerializer* serializer);
 
@@ -172,6 +174,8 @@ private:
     double coordValueInit_ = 0.0;
     //! The diameter that needs to be sampled around a point before it is considered covered.
     double coverDiameter_ = 0.0;
+    //! Whether the dimension is symmetric or not.
+    bool isSymmetric_ = false;
 };
 
 class AwhBiasParams
@@ -180,7 +184,7 @@ public:
     //! Constructor from input file.
     AwhBiasParams(std::vector<t_inpfile>* inp, const std::string& prefix, WarningHandler* wi, bool bComment);
     //! Constructor to generate from file reading.
-    explicit AwhBiasParams(ISerializer* serializer);
+    explicit AwhBiasParams(ISerializer* serializer, bool bReadSymmetryOption);
 
     //! Move constructor.
     AwhBiasParams(AwhBiasParams&&) = default;
@@ -245,7 +249,7 @@ public:
     //! Constructor from input file.
     AwhParams(std::vector<t_inpfile>* inp, WarningHandler* wi);
     //! Constructor used to generate awh parameter from file reading.
-    explicit AwhParams(ISerializer* serializer);
+    explicit AwhParams(ISerializer* serializer, bool bReadSymmetryOption);
 
     //! Move constructor.
     AwhParams(AwhParams&&) = default;
