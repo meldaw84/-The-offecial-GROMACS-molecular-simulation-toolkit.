@@ -139,6 +139,7 @@ enum tpxv
     tpxv_RemoveTholeRfac,             /**< Remove unused rfac parameter from thole listed force */
     tpxv_RemoveAtomtypes,             /**< Remove unused atomtypes parameter from mtop */
     tpxv_EnsembleTemperature,         /**< Add ensemble temperature settings */
+    tpxv_AWHSymmetry,                 /**< Added AWH option to symmetrise bias dimensions */
     tpxv_Count                        /**< the total number of tpxv versions */
 };
 
@@ -1530,7 +1531,9 @@ static void do_inputrec(gmx::ISerializer* serializer, t_inputrec* ir, int file_v
         {
             if (serializer->reading())
             {
-                ir->awhParams = std::make_unique<gmx::AwhParams>(serializer);
+                bool bReadSymmetryOption = file_version >= tpxv_AWHSymmetry;
+
+                ir->awhParams = std::make_unique<gmx::AwhParams>(serializer, bReadSymmetryOption);
             }
             else
             {
