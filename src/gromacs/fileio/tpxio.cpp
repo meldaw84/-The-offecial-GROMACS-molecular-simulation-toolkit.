@@ -141,6 +141,7 @@ enum tpxv
     tpxv_SoftcoreGapsys,              /**< Added gapsys softcore function */
     tpxv_ReaddedConstantAcceleration, /**< Re-added support for constant acceleration NEMD. */
     tpxv_RemoveTholeRfac,             /**< Remove unused rfac parameter from thole listed force */
+    tpxv_AWHSymmetry,                 /**< Added AWH option to symmetrise bias dimensions */
     tpxv_Count                        /**< the total number of tpxv versions */
 };
 
@@ -1521,7 +1522,9 @@ static void do_inputrec(gmx::ISerializer* serializer, t_inputrec* ir, int file_v
         {
             if (serializer->reading())
             {
-                ir->awhParams = std::make_unique<gmx::AwhParams>(serializer);
+                bool bReadSymmetryOption = file_version >= tpxv_AWHSymmetry;
+
+                ir->awhParams = std::make_unique<gmx::AwhParams>(serializer, bReadSymmetryOption);
             }
             else
             {
