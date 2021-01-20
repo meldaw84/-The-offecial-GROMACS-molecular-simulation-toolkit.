@@ -211,7 +211,7 @@ class CorrelationTensor
 {
 public:
     /*! \brief 64 blocks is a good trade-off between signal and noise */
-    static constexpr int c_numCorrelationBlocks = 64;
+    static constexpr int c_numCorrelationBlocks = 128;
 
     /*! \brief Constructor.
      *
