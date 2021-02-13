@@ -61,7 +61,8 @@ TrajectoryElement::TrajectoryElement(std::vector<ITrajectoryWriterClient*> write
                                      const gmx_output_env_t*               oenv,
                                      gmx_wallcycle*                        wcycle,
                                      StartingBehavior                      startingBehavior,
-                                     const bool                            simulationsShareState) :
+                                     const bool                            simulationsShareState,
+                                     const gmx_multisim_t*                 multisim) :
     writeEnergyStep_(-1),
     writeStateStep_(-1),
     writeLogStep_(-1),
@@ -78,7 +79,7 @@ TrajectoryElement::TrajectoryElement(std::vector<ITrajectoryWriterClient*> write
                       wcycle,
                       startingBehavior,
                       simulationsShareState,
-                      nullptr)),
+                      multisim)),
     writerClients_(std::move(writerClients))
 {
 }

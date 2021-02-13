@@ -50,6 +50,7 @@
 #include "modularsimulatorinterfaces.h"
 
 struct gmx_mtop_t;
+struct gmx_multisim_t;
 struct gmx_output_env_t;
 struct gmx_wallcycle;
 struct t_commrec;
@@ -140,7 +141,8 @@ private:
                       const gmx_output_env_t*               oenv,
                       gmx_wallcycle*                        wcycle,
                       StartingBehavior                      startingBehavior,
-                      bool                                  simulationsSharingState);
+                      bool                                  simulationsSharingState,
+                      const gmx_multisim_t*                 multisim);
 
     //! The next energy writing step
     Step writeEnergyStep_;

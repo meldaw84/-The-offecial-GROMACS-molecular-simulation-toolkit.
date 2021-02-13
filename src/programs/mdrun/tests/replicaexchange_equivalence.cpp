@@ -128,7 +128,7 @@ TEST_P(ReplicaExchangeTest, Works)
     checkTestNameLength();
     if (!mpiSetupValid())
     {
-        // Can't test multi-sim without multiple simulations
+        GTEST_SKIP() << "MPI setup is not suitable for multi-sim";
         return;
     }
 

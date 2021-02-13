@@ -47,6 +47,7 @@
 
 #include "gromacs/mdtypes/md_enums.h"
 
+#include "simulatorcomparison.h"
 #include "multisimtest.h"
 
 namespace gmx
@@ -63,8 +64,7 @@ namespace test
  * trigger an error that is currently fatal to mdrun and also to the
  * test binary. So, in the meantime we must not test those cases. If
  * there is no MPI, we disable the test, so that there is a reminder
- * that it is disabled. There's no elegant way to conditionally
- * disable a test at run time, so currently there is no feedback if
+ * that it is disabled. We skip the test if
  * only one rank is available. However, the test harness knows to run
  * this test with more than one rank. */
 TEST_P(MultiSimTest, ExitsNormally)
@@ -76,8 +76,7 @@ TEST_P(MultiSimTest, ExitsNormallyWithDifferentNumbersOfStepsPerSimulation)
 {
     if (!mpiSetupValid())
     {
-        // MPI setup is not suitable for multi-sim
-        return;
+        GTEST_SKIP() << "MPI setup is not suitable for multi-sim";
     }
     SimulationRunner runner(&fileManager_);
     runner.useTopGroAndNdxFromDatabase("spc2");
@@ -92,13 +91,13 @@ TEST_P(MultiSimTest, ExitsNormallyWithDifferentNumbersOfStepsPerSimulation)
 /* Note, not all preprocessor implementations nest macro expansions
    the same way / at all, if we would try to duplicate less code. */
 #if GMX_LIB_MPI
-INSTANTIATE_TEST_SUITE_P(InNvt,
-                         MultiSimTest,
-                         ::testing::Combine(::testing::Values(NumRanksPerSimulation(1),
-                                                              NumRanksPerSimulation(2)),
-                                            ::testing::Values(IntegrationAlgorithm::MD),
-                                            ::testing::Values(TemperatureCoupling::VRescale),
-                                            ::testing::Values(PressureCoupling::No)));
+INSTANTIATE_TEST_SUITE_P(
+        InNvt,
+        MultiSimTest,
+        ::testing::Combine(::testing::Values(NumRanksPerSimulation(1), NumRanksPerSimulation(2)),
+                           ::testing::Values(IntegrationAlgorithm::MD, IntegrationAlgorithm::VV),
+                           ::testing::Values(TemperatureCoupling::VRescale),
+                           ::testing::Values(PressureCoupling::No)));
 #else
 // Test needs real MPI to run
 INSTANTIATE_TEST_SUITE_P(DISABLED_InNvt,
@@ -118,13 +117,13 @@ TEST_P(MultiSimTerminationTest, WritesCheckpointAfterMaxhTerminationAndThenResta
     runMaxhTest();
 }
 
-INSTANTIATE_TEST_SUITE_P(InNvt,
-                         MultiSimTerminationTest,
-                         ::testing::Combine(::testing::Values(NumRanksPerSimulation(1),
-                                                              NumRanksPerSimulation(2)),
-                                            ::testing::Values(IntegrationAlgorithm::MD),
-                                            ::testing::Values(TemperatureCoupling::VRescale),
-                                            ::testing::Values(PressureCoupling::No)));
+INSTANTIATE_TEST_SUITE_P(
+        InNvt,
+        MultiSimTerminationTest,
+        ::testing::Combine(::testing::Values(NumRanksPerSimulation(1), NumRanksPerSimulation(2)),
+                           ::testing::Values(IntegrationAlgorithm::MD, IntegrationAlgorithm::VV),
+                           ::testing::Values(TemperatureCoupling::VRescale),
+                           ::testing::Values(PressureCoupling::No)));
 
 } // namespace test
 } // namespace gmx

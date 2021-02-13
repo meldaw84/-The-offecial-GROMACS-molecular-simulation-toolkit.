@@ -60,6 +60,7 @@
 #include "gromacs/mdrun/shellfc.h"
 #include "gromacs/mdrunutility/freeenergy.h"
 #include "gromacs/mdrunutility/handlerestart.h"
+#include "gromacs/mdrunutility/multisim.h"
 #include "gromacs/mdrunutility/printtime.h"
 #include "gromacs/mdtypes/commrec.h"
 #include "gromacs/mdtypes/fcdata.h"
@@ -97,7 +98,8 @@ ModularSimulatorAlgorithm::ModularSimulatorAlgorithm(std::string              to
                                                      t_nrnb*                  nrnb,
                                                      gmx_wallcycle*           wcycle,
                                                      t_forcerec*              fr,
-                                                     gmx_walltime_accounting* walltime_accounting) :
+                                                     gmx_walltime_accounting* walltime_accounting,
+                                                     const gmx_multisim_t*    multisim) :
     taskIterator_(taskQueue_.end()),
     statePropagatorData_(nullptr),
     energyData_(nullptr),
@@ -107,6 +109,7 @@ ModularSimulatorAlgorithm::ModularSimulatorAlgorithm(std::string              to
     topologyName_(std::move(topologyName)),
     fplog(fplog),
     cr(cr),
+    multisim(multisim),
     mdlog(mdlog),
     mdrunOptions(mdrunOptions),
     inputrec(inputrec),
@@ -296,7 +299,7 @@ void ModularSimulatorAlgorithm::postStep(Step step, Time gmx_unused time)
                             && (step % mdrunOptions.verboseStepPrintInterval == 0
                                 || step == inputrec->init_step || step == signalHelper_->lastStep_);
     // Print the remaining wall clock time for the run
-    if (MAIN(cr) && (do_verbose || gmx_got_usr_signal())
+    if (isMainSimMainRank(multisim, MAIN(cr)) && (do_verbose || gmx_got_usr_signal())
         && !(pmeLoadBalanceHelper_ && pmeLoadBalanceHelper_->pmePrinting()))
     {
         print_time(stderr, walltime_accounting, step, inputrec, cr);
@@ -401,6 +404,23 @@ void ModularSimulatorAlgorithm::populateTaskQueue()
     }
 }
 
+static bool multipleSimsShareState(const LegacySimulatorData& legacySimulatorData)
+{
+    const bool useReplicaExchange = (legacySimulatorData.replExParams.exchangeInterval > 0);
+    const bool usingEnsembleRestraints =
+            (legacySimulatorData.fr->fcdata->disres->nsystems > 1)
+            || ((legacySimulatorData.ms != nullptr)
+                && (legacySimulatorData.fr->fcdata->orires
+                    && legacySimulatorData.fr->fcdata->orires->numRestraints != 0));
+
+    // Replica exchange and ensemble restraints need all
+    // simulations to remain synchronized, so they need
+    // checkpoints and stop conditions to act on the same step, so
+    // the propagation of such signals must take place between
+    // simulations, not just within simulations.
+    return useReplicaExchange || usingEnsembleRestraints;
+}
+
 ModularSimulatorAlgorithmBuilder::ModularSimulatorAlgorithmBuilder(
         compat::not_null<LegacySimulatorData*>    legacySimulatorData,
         std::unique_ptr<ReadCheckpointDataHolder> checkpointDataHolder) :
@@ -410,7 +430,8 @@ ModularSimulatorAlgorithmBuilder::ModularSimulatorAlgorithmBuilder(
     globalCommunicationHelper_(computeGlobalCommunicationPeriod(legacySimulatorData->mdlog,
                                                                 legacySimulatorData->inputrec,
                                                                 legacySimulatorData->cr),
-                               signals_.get()),
+                               signals_.get(),
+                               multipleSimsShareState(*legacySimulatorData)),
     observablesReducer_(legacySimulatorData->observablesReducerBuilder->build()),
     checkpointHelperBuilder_(std::move(checkpointDataHolder),
                              legacySimulatorData->startingBehavior,
@@ -441,25 +462,23 @@ ModularSimulatorAlgorithmBuilder::ModularSimulatorAlgorithmBuilder(
             legacySimulatorData->top_global);
     registerExistingElement(statePropagatorData_->element());
 
-    // Multi sim is turned off
-    const bool simulationsShareHamiltonian = false;
-
-    energyData_ = std::make_unique<EnergyData>(statePropagatorData_.get(),
-                                               freeEnergyPerturbationData_.get(),
-                                               legacySimulatorData->top_global,
-                                               legacySimulatorData->inputrec,
-                                               legacySimulatorData->mdAtoms,
-                                               legacySimulatorData->enerd,
-                                               legacySimulatorData->ekind,
-                                               legacySimulatorData->constr,
-                                               legacySimulatorData->fplog,
-                                               legacySimulatorData->fr->fcdata.get(),
-                                               legacySimulatorData->mdModulesNotifiers,
-                                               MAIN(legacySimulatorData->cr),
-                                               legacySimulatorData->observablesHistory,
-                                               legacySimulatorData->startingBehavior,
-                                               simulationsShareHamiltonian,
-                                               legacySimulatorData->pull_work);
+    energyData_ = std::make_unique<EnergyData>(
+            statePropagatorData_.get(),
+            freeEnergyPerturbationData_.get(),
+            legacySimulatorData->top_global,
+            legacySimulatorData->inputrec,
+            legacySimulatorData->mdAtoms,
+            legacySimulatorData->enerd,
+            legacySimulatorData->ekind,
+            legacySimulatorData->constr,
+            legacySimulatorData->fplog,
+            legacySimulatorData->fr->fcdata.get(),
+            legacySimulatorData->mdModulesNotifiers,
+            MAIN(legacySimulatorData->cr),
+            legacySimulatorData->observablesHistory,
+            legacySimulatorData->startingBehavior,
+            globalCommunicationHelper_.interSimulationCommunicationIsActive(),
+            legacySimulatorData->pull_work);
     registerExistingElement(energyData_->element());
 
     storeSimulationData("ReferenceTemperatureManager",
@@ -503,7 +522,8 @@ ModularSimulatorAlgorithm ModularSimulatorAlgorithmBuilder::build()
                                         legacySimulatorData_->nrnb,
                                         legacySimulatorData_->wcycle,
                                         legacySimulatorData_->fr,
-                                        legacySimulatorData_->walltime_accounting);
+                                        legacySimulatorData_->walltime_accounting,
+                                        legacySimulatorData_->ms);
     registerWithInfrastructureAndSignallers(algorithm.signalHelper_.get());
     algorithm.statePropagatorData_        = std::move(statePropagatorData_);
     algorithm.energyData_                 = std::move(energyData_);
@@ -511,18 +531,15 @@ ModularSimulatorAlgorithm ModularSimulatorAlgorithmBuilder::build()
     algorithm.signals_                    = std::move(signals_);
     algorithm.simulationData_             = std::move(simulationData_);
 
-    // Multi sim is turned off
-    const bool simulationsShareState = false;
-
     // Build stop handler
     algorithm.stopHandler_ = legacySimulatorData_->stopHandlerBuilder->getStopHandlerMD(
             compat::not_null<SimulationSignal*>(
                     &(*globalCommunicationHelper_.simulationSignals())[eglsSTOPCOND]),
-            simulationsShareState,
+            globalCommunicationHelper_.interSimulationCommunicationIsActive(),
             MAIN(legacySimulatorData_->cr),
             legacySimulatorData_->inputrec->nstlist,
             legacySimulatorData_->mdrunOptions.reproducible,
-            globalCommunicationHelper_.nstglobalcomm(),
+            globalCommunicationHelper_.nstSignalComm(),
             legacySimulatorData_->mdrunOptions.maximumHoursToRun,
             legacySimulatorData_->inputrec->nstlist == 0,
             legacySimulatorData_->fplog,
@@ -574,19 +591,21 @@ ModularSimulatorAlgorithm ModularSimulatorAlgorithmBuilder::build()
     }
 
     // Build trajectory element
-    auto trajectoryElement = trajectoryElementBuilder_.build(legacySimulatorData_->fplog,
-                                                             legacySimulatorData_->nfile,
-                                                             legacySimulatorData_->fnm,
-                                                             legacySimulatorData_->mdrunOptions,
-                                                             legacySimulatorData_->cr,
-                                                             legacySimulatorData_->outputProvider,
-                                                             legacySimulatorData_->mdModulesNotifiers,
-                                                             legacySimulatorData_->inputrec,
-                                                             legacySimulatorData_->top_global,
-                                                             legacySimulatorData_->oenv,
-                                                             legacySimulatorData_->wcycle,
-                                                             legacySimulatorData_->startingBehavior,
-                                                             simulationsShareState);
+    auto trajectoryElement = trajectoryElementBuilder_.build(
+            legacySimulatorData_->fplog,
+            legacySimulatorData_->nfile,
+            legacySimulatorData_->fnm,
+            legacySimulatorData_->mdrunOptions,
+            legacySimulatorData_->cr,
+            legacySimulatorData_->outputProvider,
+            legacySimulatorData_->mdModulesNotifiers,
+            legacySimulatorData_->inputrec,
+            legacySimulatorData_->top_global,
+            legacySimulatorData_->oenv,
+            legacySimulatorData_->wcycle,
+            legacySimulatorData_->startingBehavior,
+            globalCommunicationHelper_.interSimulationCommunicationIsActive(),
+            legacySimulatorData_->ms);
     registerWithInfrastructureAndSignallers(trajectoryElement.get());
 
     // Build domdec helper (free energy element is a client, so keep this after it is built)
@@ -615,7 +634,7 @@ ModularSimulatorAlgorithm ModularSimulatorAlgorithmBuilder::build()
     {
         checkpointHelperBuilder_.setCheckpointHandler(std::make_unique<CheckpointHandler>(
                 compat::make_not_null<SimulationSignal*>(&(*algorithm.signals_)[eglsCHKPT]),
-                simulationsShareState,
+                globalCommunicationHelper_.interSimulationCommunicationIsActive(),
                 legacySimulatorData_->inputrec->nstlist == 0,
                 MAIN(legacySimulatorData_->cr),
                 legacySimulatorData_->mdrunOptions.writeConfout,
@@ -744,14 +763,29 @@ std::optional<SignallerCallback> ModularSimulatorAlgorithm::SignalHelper::regist
     return [this](Step step, Time gmx_unused time) { this->nextNSStep_ = step; };
 }
 
-GlobalCommunicationHelper::GlobalCommunicationHelper(int nstglobalcomm, SimulationSignals* simulationSignals) :
-    nstglobalcomm_(nstglobalcomm), simulationSignals_(simulationSignals)
+GlobalCommunicationHelper::GlobalCommunicationHelper(int                nstglobalcomm,
+                                                     SimulationSignals* simulationSignals,
+                                                     bool               multipleSimsShareState) :
+    nstglobalcomm_(nstglobalcomm),
+    nstSignalComm_(calculateInterSimulationCommunicationPeriod(nstglobalcomm, multipleSimsShareState)),
+    interSimulationCommunicationIsActive_(multipleSimsShareState),
+    simulationSignals_(simulationSignals)
 {
 }
 
 int GlobalCommunicationHelper::nstglobalcomm() const
 {
     return nstglobalcomm_;
+}
+
+int GlobalCommunicationHelper::nstSignalComm() const
+{
+    return nstSignalComm_;
+}
+
+bool GlobalCommunicationHelper::interSimulationCommunicationIsActive() const
+{
+    return interSimulationCommunicationIsActive_;
 }
 
 SimulationSignals* GlobalCommunicationHelper::simulationSignals()

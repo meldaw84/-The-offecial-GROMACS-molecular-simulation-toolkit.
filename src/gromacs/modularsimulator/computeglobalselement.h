@@ -116,7 +116,11 @@ public:
                           t_forcerec*                 fr,
                           const gmx_mtop_t&           global_top,
                           Constraints*                constr,
-                          ObservablesReducer*         observablesReducer);
+                          ObservablesReducer*         observablesReducer,
+                          const gmx_multisim_t*       multisim,
+                          int                         nstSignalComm,
+                          bool                        interSimulationCommunicationIsActive,
+                          bool                        doReplicaExchange);
 
     //! Destructor
     ~ComputeGlobalsElement() override;
@@ -206,6 +210,12 @@ private:
     t_vcm vcm_;
     //! Signals
     SimulationSignals* signals_;
+    //! Simulation signal communication period
+    const int nstSignalComm_;
+    //! Whether the simulation(s) require inter-sim communication
+    const bool interSimulationCommunicationIsActive_;
+    //! Whether the current simulation involves replica exchange
+    const bool doReplicaExchange_;
 
     // Access to ISimulator data
     //! Handles logging.
@@ -214,6 +224,8 @@ private:
     const MDLogger& mdlog_;
     //! Handles communication.
     t_commrec* cr_;
+    //! Coordinates multi-simulations.
+    const gmx_multisim_t* multisim_;
     //! Contains user input mdp options.
     const t_inputrec* inputrec_;
     //! Full system topology - only needed for checkNumberOfBondedInteractions.

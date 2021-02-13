@@ -222,8 +222,7 @@ void MultiSimTest::runExitsNormallyTest()
 {
     if (!mpiSetupValid())
     {
-        // Can't test multi-sim without multiple simulations
-        return;
+        GTEST_SKIP() << "MPI setup is not suitable for multi-sim";
     }
 
     SimulationRunner runner(&fileManager_);
@@ -238,8 +237,7 @@ void MultiSimTest::runMaxhTest()
 {
     if (!mpiSetupValid())
     {
-        // Can't test multi-sim without multiple simulations
-        return;
+        GTEST_SKIP() << "MPI setup is not suitable for multi-sim";
     }
 
     SimulationRunner runner(&fileManager_);

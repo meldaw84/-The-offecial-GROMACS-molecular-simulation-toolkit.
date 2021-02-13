@@ -112,7 +112,8 @@ private:
                               t_nrnb*                  nrnb,
                               gmx_wallcycle*           wcycle,
                               t_forcerec*              fr,
-                              gmx_walltime_accounting* walltime_accounting);
+                              gmx_walltime_accounting* walltime_accounting,
+                              const gmx_multisim_t*    multisim);
 
     //! Calls setup for the simulator and all elements and signallers
     void setup();
@@ -266,6 +267,8 @@ private:
     FILE* fplog;
     //! Handles communication.
     t_commrec* cr;
+    //! Coordinates multi-simulations.
+    const gmx_multisim_t* multisim;
     //! Handles logging.
     const MDLogger& mdlog;
     //! Contains command-line options to mdrun.
@@ -293,16 +296,24 @@ class GlobalCommunicationHelper
 {
 public:
     //! Constructor
-    GlobalCommunicationHelper(int nstglobalcomm, SimulationSignals* simulationSignals);
+    GlobalCommunicationHelper(int nstglobalcomm, SimulationSignals* simulationSignals, bool multipleSimsShareState);
 
     //! Get the compute globals communication period
     [[nodiscard]] int nstglobalcomm() const;
+    //! Get the simulation signal communication period
+    [[nodiscard]] int nstSignalComm() const;
+    //! Whether the simulation(s) require inter-sim communication
+    [[nodiscard]] bool interSimulationCommunicationIsActive() const;
     //! Get a pointer to the signals vector
     [[nodiscard]] SimulationSignals* simulationSignals();
 
 private:
     //! Compute globals communication period
     const int nstglobalcomm_;
+    //! Simulation signal communication period
+    const int nstSignalComm_;
+    //! Whether the simulation(s) require inter-sim communication
+    const bool interSimulationCommunicationIsActive_;
     //! Signal vector (used by stop / reset / checkpointing signaller)
     SimulationSignals* simulationSignals_;
 };
