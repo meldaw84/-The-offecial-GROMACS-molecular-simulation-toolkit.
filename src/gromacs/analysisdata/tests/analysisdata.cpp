@@ -417,12 +417,12 @@ TYPED_TEST(AnalysisDataCommonTest, CallsModulesCorrectlyWithConcurrentExecution)
     gmx::AnalysisDataParallelOptions options(3);
     ASSERT_NO_THROW_GMX(handle1 = this->data_.startData(options));
     ASSERT_NO_THROW_GMX(handle2 = this->data_.startData(options));
-    std::future<void> handle1Waiter = std::async(std::launch::async, [&, this](){
-      ASSERT_NO_THROW_GMX(AnalysisDataTest::presentDataFrame(this->input_, 0, handle1));
-      ASSERT_NO_THROW_GMX(AnalysisDataTest::presentDataFrame(this->input_, 2, handle1));
+    std::future<void> handle1Waiter = std::async(std::launch::async, [&, this]() {
+        ASSERT_NO_THROW_GMX(AnalysisDataTest::presentDataFrame(this->input_, 0, handle1));
+        ASSERT_NO_THROW_GMX(AnalysisDataTest::presentDataFrame(this->input_, 2, handle1));
     });
-    std::future<void> handle2Waiter = std::async(std::launch::async, [&, this](){
-      ASSERT_NO_THROW_GMX(AnalysisDataTest::presentDataFrame(this->input_, 1, handle2));
+    std::future<void> handle2Waiter = std::async(std::launch::async, [&, this]() {
+        ASSERT_NO_THROW_GMX(AnalysisDataTest::presentDataFrame(this->input_, 1, handle2));
     });
     handle1Waiter.wait();
     handle2Waiter.wait();
