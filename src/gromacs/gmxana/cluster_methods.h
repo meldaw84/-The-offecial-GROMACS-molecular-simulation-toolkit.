@@ -42,6 +42,17 @@
 struct gmx_output_env_t;
 struct t_mat;
 
+enum class ClusterMethods : int
+{
+    Linkage,
+    JarvisPatrick,
+    MonteCarlo,
+    Diagonalization,
+    Gromos,
+    Count,
+    Default = Linkage
+};
+
 struct t_clusters
 {
     int  ncl;
