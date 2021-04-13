@@ -323,14 +323,22 @@ void dd_collect_state(gmx_domdec_t* dd, const t_state* state_local, t_state* sta
                        state_local->v,
                        globalVRef);
     }
-    if (state_local->hasEntry(StateEntry::Cgp))
+    GMX_RELEASE_ASSERT(state == nullptr || state->rvecVectors().size() == state_local->rvecVectors().size(),
+                       "The number of rvecVectors in the global and local state should match");
+    // On non-master ranks we don't use globalRVecVectorsIt and we assign the local vector iterator
+    // begin value to avoid type issues
+    auto globalRVecVectorsIt = state ? state->rvecVectors().begin() : state_local->rvecVectors().begin();
+    for (const auto& localRVecVector : state_local->rvecVectors())
     {
-        auto globalCgpRef = state ? state->cg_p : gmx::ArrayRef<gmx::RVec>();
         dd_collect_vec(dd,
                        state_local->ddp_count,
                        state_local->ddp_count_cg_gl,
                        state_local->cg_gl,
-                       state_local->cg_p,
-                       globalCgpRef);
+                       localRVecVector.second.second,
+                       globalRVecVectorsIt->second.second);
+        if (DDMAIN(dd))
+        {
+            globalRVecVectorsIt++;
+        }
     }
 }

@@ -54,6 +54,7 @@
 #include "gromacs/mdtypes/state.h"
 #include "gromacs/topology/topology.h"
 #include "gromacs/utility/enumerationhelpers.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/logger.h"
 
@@ -269,9 +270,20 @@ static void dd_distribute_state(gmx_domdec_t* dd, const t_state* state, t_state*
     {
         distributeVec(dd, DDMAIN(dd) ? state->v : gmx::ArrayRef<const gmx::RVec>(), state_local->v);
     }
-    if (state_local->hasEntry(StateEntry::Cgp))
+    GMX_RELEASE_ASSERT(state == nullptr || state->rvecVectors().size() == state_local->rvecVectors().size(),
+                       "The number of rvecVectors in the global and local state should match");
+    // On non-master ranks we don't use globalRVecVectorsIt and we assign the local vector iterator
+    // begin value to avoid type issues
+    auto globalRVecVectorsIt = state ? state->rvecVectors().begin() : state_local->rvecVectors().begin();
+    for (const auto& localRVecVector : state_local->rvecVectors())
     {
-        distributeVec(dd, DDMAIN(dd) ? state->cg_p : gmx::ArrayRef<const gmx::RVec>(), state_local->cg_p);
+        distributeVec(dd,
+                      DDMAIN(dd) ? globalRVecVectorsIt->second.second : gmx::ArrayRef<const gmx::RVec>(),
+                      localRVecVector.second.second);
+        if (DDMAIN(dd))
+        {
+            globalRVecVectorsIt++;
+        }
     }
 }
 

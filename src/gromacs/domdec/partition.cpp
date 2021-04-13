@@ -2593,9 +2593,9 @@ static void dd_sort_state(gmx_domdec_t* dd, t_forcerec* fr, t_state* state)
     {
         orderVector(cgsort, makeArrayRef(state->v), rvecBuffer.buffer);
     }
-    if (state->hasEntry(StateEntry::Cgp))
+    for (const auto& rvecVector : state->rvecVectors())
     {
-        orderVector(cgsort, makeArrayRef(state->cg_p), rvecBuffer.buffer);
+        orderVector(cgsort, rvecVector.second.second, rvecBuffer.buffer);
     }
 
     /* Reorder the global cg index */

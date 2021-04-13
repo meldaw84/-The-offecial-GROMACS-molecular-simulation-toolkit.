@@ -52,6 +52,7 @@
 #define GMX_MDTYPES_STATE_H
 
 #include <array>
+#include <map>
 #include <memory>
 #include <vector>
 
@@ -59,6 +60,7 @@
 #include "gromacs/math/paddedvector.h"
 #include "gromacs/math/vectypes.h"
 #include "gromacs/mdtypes/md_enums.h"
+#include "gromacs/utility/classhelpers.h"
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/real.h"
 
@@ -104,7 +106,7 @@ enum class StateEntry : int
     X,
     V,
     SDxNotSupported,
-    Cgp,
+    Cgp_unused,
     LDRngNotSupported,
     LDRngINotSupported,
     DisreInitF,
@@ -264,6 +266,35 @@ public:
     //! Sets the present entries to the ones set in \p flags
     void setFlags(int flags);
 
+    /*! \brief Adds a vector to the state, returns a reference to the ArrayRef of the vector
+     *
+     * The vector will have size \p natoms and is initialized with zeros.
+     * The reference to arrayref returned is valid for the lifetime of
+     * the t_state object. The memory and size of this ArrayRef can change,
+     * so never store a copy of the ArrayRef, only copies of the reference.
+     *
+     * \throws InvalidInputError when a name is passed that has been passed before to this method.
+     */
+    const gmx::ArrayRef<gmx::RVec>& addRVecVector(const std::string& name);
+
+    /*! \brief Returns the list registered with name \p name or empty when not found
+     *
+     * Note: store the reference, as a copy of the arrayref itself can be invalidated.
+     *
+     * \throws InvalidInputError when a name is passed that has not been passed before to addRVecVector().
+     */
+    const gmx::ArrayRef<gmx::RVec>& rvecVector(const std::string& name) const;
+
+    /*! \brief Returns a const reference to the map of RVec vectors
+     *
+     * Note that due to how gmx::ArrayRef works, the contents of the vectors
+     * can be changed with the constant reference returned.
+     */
+    const std::map<std::string, std::pair<PaddedVector<gmx::RVec>, gmx::ArrayRef<gmx::RVec>>>& rvecVectors() const
+    {
+        return rvecVectors_;
+    }
+
 private:
     int numAtoms_; //!< Number of atoms, local + non-local; this is the size of \p x, \p v and \p cg_p, when used
     int flags_; //!< Set of bit-flags telling which entries are present, see enum at the top of the file
@@ -290,9 +321,8 @@ public:
     double              baros_integral; //!< For Berendsen P-coupling conserved quantity
     real                veta;           //!< Trotter based isotropic P-coupling
     real                vol0; //!< Initial volume,required for computing MTTK conserved quantity
-    PaddedHostVector<gmx::RVec> x;    //!< The coordinates (numAtoms_)
-    PaddedHostVector<gmx::RVec> v;    //!< The velocities (numAtoms_)
-    PaddedHostVector<gmx::RVec> cg_p; //!< p vector for conjugate gradient minimization
+    PaddedHostVector<gmx::RVec> x; //!< The coordinates (numAtoms_)
+    PaddedHostVector<gmx::RVec> v; //!< The velocities (numAtoms_)
 
     ekinstate_t ekinstate; //!< The state of the kinetic energy
 
@@ -301,11 +331,17 @@ public:
     df_history_t*                    dfhist;     //!< Free-energy history for free energy analysis
     std::shared_ptr<gmx::AwhHistory> awhHistory; //!< Accelerated weight histogram history
 
-    int              ddp_count;       //!< The DD partitioning count for this state
-    int              ddp_count_cg_gl; //!< The DD partitioning count for index_gl
-    std::vector<int> cg_gl;           //!< The global cg number of the local cgs
+    int              ddp_count       = -1; //!< The DD partitioning count for this state
+    int              ddp_count_cg_gl = -1; //!< The DD partitioning count for index_gl
+    std::vector<int> cg_gl;                //!< The global cg number of the local cgs
 
     std::vector<double> pull_com_prev_step; //!< The COM of the previous step of each pull group
+
+private:
+    //! A vector of padded RVec vectors with arrayRefs and names
+    std::map<std::string, std::pair<PaddedVector<gmx::RVec>, gmx::ArrayRef<gmx::RVec>>> rvecVectors_;
+
+    GMX_DISALLOW_COPY_MOVE_AND_ASSIGN(t_state);
 };
 
 #ifndef DOXYGEN

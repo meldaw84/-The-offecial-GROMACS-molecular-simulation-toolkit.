@@ -39,6 +39,7 @@
 #include <cstring>
 
 #include <algorithm>
+#include <mutex>
 
 #include "gromacs/math/paddedvector.h"
 #include "gromacs/math/vec.h"
@@ -53,6 +54,7 @@
 #include "gromacs/pbcutil/boxutilities.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/utility/compare.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringutil.h"
@@ -164,9 +166,10 @@ void t_state::changeNumAtoms(const int numAtoms)
     {
         v.resizeWithPadding(numAtoms);
     }
-    if (hasEntry(StateEntry::Cgp))
+    for (auto& rvecVector : rvecVectors_)
     {
-        cg_p.resizeWithPadding(numAtoms);
+        rvecVector.second.first.resizeWithPadding(numAtoms);
+        rvecVector.second.second = makeArrayRef(rvecVector.second.first);
     }
 }
 
@@ -390,6 +393,44 @@ t_state::t_state() :
     clear_mat(pres_prev);
     clear_mat(svir_prev);
     clear_mat(fvir_prev);
+}
+
+const gmx::ArrayRef<gmx::RVec>& t_state::addRVecVector(const std::string& name)
+{
+    // We use a global mutex for locking access to the state during registration of extra RVec vectors
+    static std::mutex s_registrationMutex;
+
+    std::lock_guard<std::mutex> registrationLock(s_registrationMutex);
+
+    auto [it, success] = rvecVectors_.insert({ name, { {}, {} } });
+    if (!success)
+    {
+        GMX_THROW(gmx::InvalidInputError(
+                "addRVecVector() called with a name that is already present"));
+    }
+
+    auto& rvecVector = it->second.first;
+    rvecVector.resizeWithPadding(numAtoms_);
+    // Clear the buffer, including the padding
+    gmx::ArrayRef<gmx::RVec> viewWithPadding = rvecVector.arrayRefWithPadding().paddedArrayRef();
+    const gmx::RVec          zeroVec         = { 0.0_real, 0.0_real, 0.0_real };
+    std::fill(viewWithPadding.begin(), viewWithPadding.end(), zeroVec);
+    // Store an ArrayRef, so we can later create a permanently valid reference to it
+    it->second.second = makeArrayRef(rvecVector);
+
+    // Return a reference to an ArrayRef so the view remains valid after reallocation
+    return it->second.second;
+}
+
+const gmx::ArrayRef<gmx::RVec>& t_state::rvecVector(const std::string& name) const
+{
+    auto it = rvecVectors_.find(name);
+    if (it == rvecVectors_.end())
+    {
+        GMX_THROW(gmx::InconsistentInputError(
+                "request for rvecVector with string that has not been added"));
+    }
+    return it->second.second;
 }
 
 void set_box_rel(const t_inputrec* ir, t_state* state)
