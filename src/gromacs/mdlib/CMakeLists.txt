@@ -38,6 +38,7 @@ file(GLOB MDLIB_SOURCES *.cpp)
 list(REMOVE_ITEM MDLIB_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/gpuforcereduction_impl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/gpuforcereduction_impl_internal_sycl.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/langevin_gpu_internal_sycl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/leapfrog_gpu.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/leapfrog_gpu_internal_sycl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/lincs_gpu.cpp
@@ -52,6 +53,7 @@ if(GMX_GPU_CUDA)
     gmx_add_libgromacs_sources(
        gpuforcereduction_impl.cpp
        gpuforcereduction_impl_internal.cu
+       langevin_gpu_internal.cu
        leapfrog_gpu.cpp
        leapfrog_gpu_internal.cu
        lincs_gpu.cpp
@@ -75,6 +77,7 @@ if(GMX_GPU_SYCL)
     gmx_add_libgromacs_sources(
         gpuforcereduction_impl.cpp
         gpuforcereduction_impl_internal_sycl.cpp
+        langevin_gpu_internal_sycl.cpp
         leapfrog_gpu.cpp
         leapfrog_gpu_internal_sycl.cpp
         lincs_gpu.cpp
@@ -88,6 +91,7 @@ if(GMX_GPU_SYCL)
     _gmx_add_files_to_property(SYCL_SOURCES
         gpuforcereduction_impl.cpp
         gpuforcereduction_impl_internal_sycl.cpp
+        langevin_gpu_internal_sycl.cpp
         leapfrog_gpu.cpp
         leapfrog_gpu_internal_sycl.cpp
         lincs_gpu.cpp

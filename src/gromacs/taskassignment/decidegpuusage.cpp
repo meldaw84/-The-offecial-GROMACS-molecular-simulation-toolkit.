@@ -672,9 +672,9 @@ bool decideWhetherToUseGpuForUpdate(const bool                     isDomainDecom
     {
         errorMessage += "Only CUDA and SYCL builds are supported.\n";
     }
-    if (inputrec.eI != IntegrationAlgorithm::MD)
+    if (inputrec.eI != IntegrationAlgorithm::MD && inputrec.eI != IntegrationAlgorithm::SD1)
     {
-        errorMessage += "Only the md integrator is supported.\n";
+        errorMessage += "Only the md and sd integrators are supported.\n";
     }
     if (inputrec.etc == TemperatureCoupling::NoseHoover)
     {
@@ -688,6 +688,13 @@ bool decideWhetherToUseGpuForUpdate(const bool                     isDomainDecom
         errorMessage +=
                 "Only Parrinello-Rahman, Berendsen, and C-rescale pressure coupling are "
                 "supported.\n";
+    }
+    if (inputrec.eI == IntegrationAlgorithm::SD1
+        && inputrec.pressureCouplingOptions.epc == PressureCoupling::ParrinelloRahman)
+    {
+        errorMessage +=
+                "The SD integrator cannot be used with Parrinello-Rahman pressure coupling. "
+                "C-rescale pressure coupling is recommended.\n";
     }
     if (inputrec.cos_accel != 0 || inputrec.useConstantAcceleration)
     {
