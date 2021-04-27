@@ -42,6 +42,7 @@
 
 #include "gromacs/fileio/rgb.h"
 #include "gromacs/math/multidimarray.h"
+#include "gromacs/mdspan/extensions.h"
 #include "gromacs/utility/basedefinitions.h"
 #include "gromacs/utility/real.h"
 
@@ -193,6 +194,28 @@ void write_xpm_split(FILE*              out,
  * which is white.
  */
 
+/*! \brief Writes matrix data to XPM file.
+ * \param[in] out        xpm file
+ * \param[in] flags      flags, defined types/matrix.h
+ *                       MAT_SPATIAL_X
+ *                       MAT_SPATIAL_Y
+ *                       Defines if x and y are spatial dimensions,
+ *                       when not, there are n axis ticks at the middle of the elements,
+ *                       when set, there are n+1 axis ticks at the edges of the elements.
+ * \param[in] title      matrix title
+ * \param[in] legend     label for the continuous legend
+ * \param[in] label_x    label for the x-axis
+ * \param[in] label_y    label for the y-axis
+ * \param[in] n_x, n_y   size of the matrix
+ * \param[in] axis_x[]   the x-ticklabels (n_x or n_x+1)
+ * \param[in] axis_y[]   the y-ticklables (n_y or n_y+1)
+ * \param[in] *mat[]     element x,y is mat[x][y]
+ * \param[in] lo         output lower than lo is set to lo
+ * \param[in] hi         output higher than hi is set to hi
+ * \param[in] rlo        rgb value for level lo
+ * \param[in] rhi        rgb value for level hi
+ * \param[in] nlevels    number of color levels for the output
+ */
 void write_xpm(FILE*              out,
                unsigned int       flags,
                const std::string& title,
@@ -209,27 +232,23 @@ void write_xpm(FILE*              out,
                t_rgb              rlo,
                t_rgb              rhi,
                int*               nlevels);
-/* out        xpm file
- * flags      flags, defined types/matrix.h
- *            MAT_SPATIAL_X
- *            MAT_SPATIAL_Y
- *            Defines if x and y are spatial dimensions,
- *            when not, there are n axis ticks at the middle of the elements,
- *            when set, there are n+1 axis ticks at the edges of the elements.
- * title      matrix title
- * legend     label for the continuous legend
- * label_x    label for the x-axis
- * label_y    label for the y-axis
- * n_x, n_y   size of the matrix
- * axis_x[]   the x-ticklabels (n_x or n_x+1)
- * axis_y[]   the y-ticklables (n_y or n_y+1)
- * *mat[]     element x,y is mat[x][y]
- * lo         output lower than lo is set to lo
- * hi         output higher than hi is set to hi
- * rlo        rgb value for level lo
- * rhi        rgb value for level hi
- * nlevels    number of color levels for the output
- */
+
+void write_xpm(FILE*                                          out,
+               unsigned int                                   flags,
+               const std::string&                             title,
+               const std::string&                             legend,
+               const std::string&                             label_x,
+               const std::string&                             label_y,
+               int                                            n_x,
+               int                                            n_y,
+               real                                           t_x[],
+               real                                           t_y[],
+               gmx::basic_mdspan<real, gmx::dynamicExtents2D> mat,
+               real                                           lo,
+               real                                           hi,
+               t_rgb                                          rlo,
+               t_rgb                                          rhi,
+               int*                                           nlevels);
 
 real** mk_matrix(int nx, int ny, gmx_bool b1D);
 

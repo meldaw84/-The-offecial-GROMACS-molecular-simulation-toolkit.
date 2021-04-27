@@ -1234,3 +1234,38 @@ void write_xpm(FILE*              out,
     writeXpmAxis(out, "y", ArrayRef<real>(axis_y, axis_y + n_y + ((flags & MAT_SPATIAL_Y) != 0U ? 1 : 0)));
     write_xpm_data(out, n_x, n_y, mat, lo, hi, *nlevels);
 }
+
+void write_xpm(FILE*                                          out,
+               unsigned int                                   flags,
+               const std::string&                             title,
+               const std::string&                             legend,
+               const std::string&                             label_x,
+               const std::string&                             label_y,
+               int                                            n_x,
+               int                                            n_y,
+               real                                           t_x[],
+               real                                           t_y[],
+               gmx::basic_mdspan<real, gmx::dynamicExtents2D> mat,
+               real                                           lo,
+               real                                           hi,
+               t_rgb                                          rlo,
+               t_rgb                                          rhi,
+               int*                                           nlevels)
+{
+    real** tempMatrix;
+    snew(tempMatrix, mat.extent(0));
+    for (int i = 0; i < mat.extent(0); ++i)
+    {
+        snew(tempMatrix[i], mat.extent(1));
+        for (int j = 0; j < mat.extent(1); ++j)
+        {
+            tempMatrix[i][j] = mat(i, j);
+        }
+    }
+    write_xpm(out, flags, title, legend, label_x, label_y, n_x, n_y, t_x, t_y, tempMatrix, lo, hi, rlo, rhi, nlevels);
+    for (int i = 0; i < mat.extent(0); ++i)
+    {
+        sfree(tempMatrix[i]);
+    }
+    sfree(tempMatrix);
+}
