@@ -166,7 +166,7 @@ void printcmap(FILE* out, int n, const t_mapping map[])
                 "%c%c  %20s  %10g  %10g  %10g\n",
                 map[i].code.c1 ? map[i].code.c1 : ' ',
                 map[i].code.c2 ? map[i].code.c2 : ' ',
-                map[i].desc,
+                map[i].desc.c_str(),
                 map[i].rgb.r,
                 map[i].rgb.g,
                 map[i].rgb.b);
@@ -434,7 +434,7 @@ static t_matrix read_xpm_entry(FILE* in)
             line = std::strchr(line, '\"');
             line++;
             line2string(&line);
-            mm.map[m].desc = gmx_strdup(line);
+            mm.map[m].desc = line;
             m++;
         }
     }
@@ -584,13 +584,13 @@ real** matrix2real(const t_matrix* in, real** out)
 
     for (gmx::Index i = 0; i != ssize(in->map); ++i)
     {
-        if ((in->map[i].desc == nullptr) || (sscanf(in->map[i].desc, "%lf", &tmp) != 1))
+        if ((in->map[i].desc.empty()) || (sscanf(in->map[i].desc.c_str(), "%lf", &tmp) != 1))
         {
             fprintf(stderr,
                     "Could not convert matrix to reals,\n"
                     "color map entry %zd has a non-real description: \"%s\"\n",
                     i,
-                    in->map[i].desc);
+                    in->map[i].desc.c_str());
             return nullptr;
         }
         rmap[i] = tmp;
@@ -1065,7 +1065,7 @@ void write_xpm_m(FILE* out, t_matrix m)
                 static_cast<unsigned int>(round(map.rgb.r * 255)),
                 static_cast<unsigned int>(round(map.rgb.g * 255)),
                 static_cast<unsigned int>(round(map.rgb.b * 255)),
-                map.desc);
+                map.desc.c_str());
     }
     writeXpmAxis(out, "x", m.axis_x);
     writeXpmAxis(out, "y", m.axis_y);
