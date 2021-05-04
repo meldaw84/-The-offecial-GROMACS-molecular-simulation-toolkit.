@@ -153,7 +153,7 @@ void write_xpm_m(FILE* out, t_matrix m);
 /* Writes a t_matrix struct to .xpm file */
 
 /*! \brief
- * Se write_xpm.
+ * See write_xpm.
  *
  * Writes a colormap varying as rlo -> rmid -> rhi.
  */
