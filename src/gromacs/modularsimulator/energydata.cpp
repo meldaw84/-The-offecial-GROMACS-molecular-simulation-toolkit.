@@ -228,10 +228,6 @@ std::optional<SignallerCallback> EnergyData::Element::registerEnergyCallback(Ene
     {
         return [this](Step step, Time /*unused*/) { energyCalculationStep_ = step; };
     }
-    if (event == EnergySignallerEvent::FreeEnergyCalculationStep && isMasterRank_)
-    {
-        return [this](Step step, Time /*unused*/) { freeEnergyCalculationStep_ = step; };
-    }
     return std::nullopt;
 }
 

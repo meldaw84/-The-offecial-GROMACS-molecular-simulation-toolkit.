@@ -416,7 +416,8 @@ ModularSimulatorAlgorithmBuilder::ModularSimulatorAlgorithmBuilder(
                              legacySimulatorData->startingBehavior,
                              legacySimulatorData->cr)
 {
-    if (legacySimulatorData->inputrec->efep != FreeEnergyPerturbationType::No)
+    if (legacySimulatorData->inputrec->efep != FreeEnergyPerturbationType::No
+        || legacySimulatorData->inputrec->bSimTemp)
     {
         freeEnergyPerturbationData_ = std::make_unique<FreeEnergyPerturbationData>(
                 legacySimulatorData->fplog, *legacySimulatorData->inputrec, legacySimulatorData->mdAtoms);
