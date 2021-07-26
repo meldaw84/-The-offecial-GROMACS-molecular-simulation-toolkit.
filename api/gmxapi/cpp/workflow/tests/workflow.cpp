@@ -39,6 +39,8 @@
 #include "workflow_impl.h"
 #include "testingconfiguration.h"
 
+#include "testutils/mpitest.h"
+
 namespace gmxapi
 {
 
@@ -83,3 +85,13 @@ TEST_F(GmxApiTest, CreateApiWorkflow)
 } // end namespace testing
 
 } // end namespace gmxapi
+
+namespace gmx::test
+{
+
+void registerMpiTests(int /*numRanks*/)
+{
+    // No need to dynamically register tests
+}
+
+} // namespace gmx::test

@@ -46,6 +46,8 @@
 
 #include "periodicactions.h"
 
+#include "testutils/mpitest.h"
+
 namespace gmx
 {
 namespace test
@@ -69,6 +71,11 @@ INSTANTIATE_TEST_SUITE_P(DISABLED_PropagatorsWithConstraints,
                          Combine(ValuesIn(propagationParametersWithConstraints()),
                                  Values(outputParameters)));
 #endif
+
+void registerMpiTests(int /*numRanks*/)
+{
+    // No need to dynamically register tests
+}
 
 } // namespace test
 } // namespace gmx
