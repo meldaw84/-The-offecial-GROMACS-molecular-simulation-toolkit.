@@ -108,7 +108,7 @@ TEST_F(GmxApiTest, TprWriter)
 {
     auto&             fileManager    = this->fileManager_;
     auto              outputFilePath = fileManager.getTemporaryFilePath(".new.tpr");
-    std::vector<real> coordinates;
+    std::vector<real> inputCoordinates;
     const int         nsteps = 2;
     makeTprFile(nsteps);
     auto& inputFilename = this->runner_.tprFileName_;
@@ -117,43 +117,39 @@ TEST_F(GmxApiTest, TprWriter)
     {
         auto structureSource =
                 gmxapicompat::getStructureSource(*gmxapicompat::readTprFile(inputFilename));
-        auto      coordinatesBuffer = gmxapicompat::coordinates(*structureSource, real());
-        const int num_elements      = coordinatesBuffer.shape[0] * coordinatesBuffer.shape[1];
-        real*     begin             = static_cast<real*>(coordinatesBuffer.ptr);
-        real*     end               = begin + num_elements;
-        coordinates.assign(begin, end);
+        auto inputCoordinatesBuffer = gmxapicompat::coordinates(*structureSource, real());
+        ASSERT_EQ(inputCoordinatesBuffer.strides[0], 3 * sizeof(real));
+        ASSERT_EQ(inputCoordinatesBuffer.strides[1], sizeof(real));
+        const int num_elements = inputCoordinatesBuffer.shape[0] * inputCoordinatesBuffer.shape[1];
+        real*     begin        = static_cast<real*>(inputCoordinatesBuffer.ptr);
+        real*     end          = begin + num_elements;
+        inputCoordinates.assign(begin, end);
 
         std::vector<real> outputCoordinates;
-        outputCoordinates.reserve(coordinates.size());
-        for (const auto& x : coordinates)
+        outputCoordinates.reserve(inputCoordinates.size());
+        for (const auto& x : inputCoordinates)
         {
             outputCoordinates.emplace_back(x + 1.);
         }
-        coordinatesBuffer.ptr = outputCoordinates.data();
+        gmxapicompat::CoordinatesBuffer outputCoordinatesBuffer{ inputCoordinatesBuffer };
+        outputCoordinatesBuffer.ptr = outputCoordinates.data();
 
         auto tprBuilder = gmxapicompat::editTprFile(inputFilename);
-        tprBuilder->set(coordinatesBuffer);
+        tprBuilder->set(outputCoordinatesBuffer);
 
         tprBuilder->write(outputFilePath);
     }
 
     {
-        auto inputStructureSource =
-                gmxapicompat::getStructureSource(*gmxapicompat::readTprFile(inputFilename));
-        auto inputCoordinatesBuffer = gmxapicompat::coordinates(*inputStructureSource, real());
-        ASSERT_EQ(inputCoordinatesBuffer.strides[0], 3 * sizeof(real));
-        ASSERT_EQ(inputCoordinatesBuffer.strides[1], sizeof(real));
-        real* inputCoordinates = static_cast<real*>(inputCoordinatesBuffer.ptr);
-
         auto outputStructureSource =
                 gmxapicompat::getStructureSource(*gmxapicompat::readTprFile(outputFilePath));
         auto  outputCoordinatesBuffer = gmxapicompat::coordinates(*outputStructureSource, real());
         real* outputCoordinates       = static_cast<real*>(outputCoordinatesBuffer.ptr);
 
-        const size_t num_items = inputCoordinatesBuffer.shape[0] * inputCoordinatesBuffer.shape[1];
+        const size_t num_items = inputCoordinates.size();
         for (size_t i = 0; i < num_items; ++i)
         {
-            EXPECT_FLOAT_EQ(coordinates[i] + 1., outputCoordinates[i]);
+            EXPECT_FLOAT_EQ(inputCoordinates[i] + 1., outputCoordinates[i]);
         }
     }
 }
