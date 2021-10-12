@@ -99,6 +99,22 @@ DeviceBuffer<RVec> StatePropagatorDataGpu::getCoordinates()
     return {};
 }
 
+uint64_t* StatePropagatorDataGpu::getSyncArr()
+{
+    GMX_ASSERT(!impl_,
+               "A CPU stub method from GPU state propagator data was called instead of one from "
+               "GPU implementation.");
+    return {};
+}
+
+uint64_t* StatePropagatorDataGpu::getSyncCounter()
+{
+    GMX_ASSERT(!impl_,
+               "A CPU stub method from GPU state propagator data was called instead of one from "
+               "GPU implementation.");
+    return {};
+}
+
 GpuEventSynchronizer* StatePropagatorDataGpu::getCoordinatesReadyOnDeviceEvent(
         AtomLocality /* atomLocality */,
         const SimulationWorkload& /* simulationWork */,

@@ -45,7 +45,47 @@ if(GMX_GPU_CUDA)
   _gmx_add_files_to_property(CUDA_SOURCES gpuhaloexchange_impl_gpu.cpp)
 endif()
 
-set(LIBGROMACS_SOURCES ${LIBGROMACS_SOURCES} ${DOMDEC_SOURCES} ${DOMDEC_GPU_SOURCES} PARENT_SCOPE)
+# Public interface for modules, including dependencies and interfaces
+target_include_directories(domdec INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+
+# Module dependencies
+# domdec interfaces convey transitive dependence on these modules.
+target_link_libraries(domdec INTERFACE
+legacy_api
+gpu_utils
+mdlib
+timing
+topology
+utility
+)
+
+if (GMX_NVSHMEM)
+    set(LIBGROMACS_SOURCES ${LIBGROMACS_SOURCES} ${DOMDEC_SOURCES} PARENT_SCOPE)
+
+    enable_language(CUDA)
+    add_library(domdec_gpu OBJECT ${DOMDEC_GPU_SOURCES} )
+
+    set_target_properties(domdec_gpu PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+    set_target_properties(domdec_gpu PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS OFF)
+    set_target_properties(domdec_gpu PROPERTIES CUDA_ARCHITECTURES "${GMX_CUDA_TARGET_COMPUTE}")
+    set_target_properties(domdec_gpu PROPERTIES POSITION_INDEPENDENT_CODE ${SHARED_LIBS_DEFAULT})
+
+    target_link_libraries(domdec_gpu  PRIVATE nvshmem_host_lib nvshmem_device_lib)
+    target_link_libraries(domdec_gpu  PRIVATE legacy_api gpu_utils mdlib utility)
+    target_include_directories(domdec_gpu PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+    target_include_directories(domdec_gpu PRIVATE
+                                $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+    target_include_directories(domdec_gpu PRIVATE
+                                $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../include>)
+    target_include_directories(domdec_gpu PRIVATE
+                                $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../..>)
+    target_include_directories(domdec_gpu PRIVATE
+                                $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src/include>)
+
+    target_link_libraries(domdec INTERFACE domdec_gpu)
+else()
+    set(LIBGROMACS_SOURCES ${LIBGROMACS_SOURCES} ${DOMDEC_SOURCES} ${DOMDEC_GPU_SOURCES} PARENT_SCOPE)
+endif()
 
 # Source files have the following dependencies on library infrastructure.
 #target_link_libraries(domdec PRIVATE
@@ -53,19 +93,8 @@ set(LIBGROMACS_SOURCES ${LIBGROMACS_SOURCES} ${DOMDEC_SOURCES} ${DOMDEC_GPU_SOUR
 #                      legacy_modules
 #)
 
-# Public interface for modules, including dependencies and interfaces
-#target_include_directories(domdec PUBLIC
-target_include_directories(domdec INTERFACE
-                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-#target_link_libraries(domdec PUBLIC
-target_link_libraries(domdec INTERFACE
-                      legacy_api
-                      gpu_utils
-                      mdlib
-                      timing
-                      topology
-                      utility
-                      )
+
+
 
 # TODO: when domdec is an OBJECT target
 #target_link_libraries(domdec PUBLIC legacy_api)

@@ -51,6 +51,7 @@
 #include "gromacs/gpu_utils/gpueventsynchronizer.h"
 #include "gromacs/gpu_utils/hostallocator.h"
 #include "gromacs/utility/gmxmpi.h"
+#include <cuda/barrier>
 
 #include "domdec_internal.h"
 
@@ -98,7 +99,8 @@ public:
      * \param [in] dependencyEvent   Dependency event for this operation
      * \returns                      Event recorded when this operation has been launched
      */
-    GpuEventSynchronizer* communicateHaloCoordinates(const matrix box, GpuEventSynchronizer* dependencyEvent);
+    GpuEventSynchronizer* communicateHaloCoordinates(const matrix box, GpuEventSynchronizer* dependencyEvent,
+                                                    uint64_t synccounter, uint64_t *sync_arr);
 
     /*! \brief  GPU halo exchange of force buffer
      * \param [in] accumulateForces  True if forces should accumulate, otherwise they are set
@@ -148,7 +150,7 @@ private:
                                         int     recvRank);
 
     //! Backend-specific function for launching coordinate packing kernel
-    void launchPackXKernel(const matrix box);
+    void launchPackXKernel(const matrix box, uint64_t synccounter, uint64_t *sync_arr);
 
     //! Backend-specific function for launching force unpacking kernel
     void launchUnpackFKernel(bool accumulateForces);
@@ -198,7 +200,11 @@ private:
     DeviceBuffer<Float3> d_sendBuf_ = nullptr;
     //! number of atoms in \c sendbuf array
     int sendBufSize_ = -1;
-    //! number of atoms allocated in \c sendbuf array
+#if GMX_NVSHMEM
+    //! maximum size of packed nvshmem send buffer
+    int maxPackedBufferSizeNvShmem_ = 0;
+#endif
+    //! number of atoms allocated in sendbuf array
     int sendBufSizeAlloc_ = -1;
     //! device buffer for receiving packed data
     DeviceBuffer<Float3> d_recvBuf_ = nullptr;
@@ -258,6 +264,17 @@ private:
     gmx_wallcycle* wcycle_ = nullptr;
     //! The atom offset for receive (x) or send (f) for dimension index and pulse corresponding to this halo exchange instance
     int atomOffset_ = 0;
+#if GMX_NVSHMEM
+    int remoteAtomOffset_ = 0;
+    uint64_t* sync_recv_arr = nullptr;
+    uint64_t* sync_f = nullptr;
+    uint64_t synccounter_f = 1;
+    cuda::barrier<cuda::thread_scope_device> *bar = nullptr;
+    uint32_t gridDimX = 0;
+    uint32_t recvBuf_symsize = 0;
+    uint32_t recvBuf_symsize_fSize = 0;
+    uint32_t recvBuf_symsize_fCapacity = 0;
+#endif
     //! Event triggered when coordinate halo has been launched
     GpuEventSynchronizer coordinateHaloLaunched_;
     //! flag on whether the recieve for this halo exchange is performed in-place

@@ -272,7 +272,9 @@ void reinitGpuHaloExchange(const t_commrec&        cr,
  */
 GpuEventSynchronizer* communicateGpuHaloCoordinates(const t_commrec&      cr,
                                                     const matrix          box,
-                                                    GpuEventSynchronizer* dependencyEvent);
+                                                    GpuEventSynchronizer* dependencyEvent,
+                                                    uint64_t *synccounter,
+                                                    uint64_t *sync_arr);
 
 /*! \brief  Wait for copy of nonlocal part of coordinate array from GPU to CPU
  * following coordinate halo exchange

@@ -51,6 +51,15 @@
 
 #include "domdec_struct.h"
 
+#if GMX_NVSHMEM
+#include "nvshmem.h"
+#include "nvshmemx.h"
+#include <nvshmem_api.h>
+#include <omp.h>
+#include "gromacs/gpu_utils/nvshmembuffer.cuh"
+#include <cuda/barrier>
+#endif
+
 namespace gmx
 {
 
@@ -113,7 +122,154 @@ __global__ void unpackRecvBufKernel(float3* __restrict__ data,
     }
 }
 
-void GpuHaloExchange::Impl::launchPackXKernel(const matrix box)
+#if GMX_NVSHMEM
+template<bool usePBC>
+__global__ void packSendMultiBlockNvshmemBufKernel(const float3* data,
+                                  float3* __restrict__ dataPacked,
+                                  const int* map,
+                                  const int    mapSize,
+                                  const float3 coordinateShift,
+                                  const int sendRank,
+                                  const int remoteAtomOffset,
+                                  uint64_t *sync_arr,
+                                  uint64_t *sync_recv_arr,
+                                  const int recvRank,
+                                  uint64_t counter,
+                                  cuda::barrier<cuda::thread_scope_device> *bar,
+                                  int pulse,
+                                  int npulses,
+                                  int dimIndex,
+                                  int ndim)
+{
+    uint32_t threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    using barrier = cuda::barrier<cuda::thread_scope_device>;
+    if (threadIdx.x == 0 && ((pulse > 0) || (dimIndex > 0))) {
+        /* Wait for neighbors notification */
+        nvshmem_signal_wait_until(sync_arr - 1, NVSHMEM_CMP_EQ, counter);
+    }
+
+    /* Notify neighbors about arrival */
+    if (threadIndex == 0) {
+        nvshmemx_signal_op(sync_recv_arr, counter, NVSHMEM_SIGNAL_SET, recvRank);
+    }
+
+    const uint32_t gridSize = blockDim.x * gridDim.x;
+
+    uint32_t gid = threadIndex;
+    const float3* gm_dataSrc = nullptr;
+    float3* gm_dataDest = nullptr;
+    if (gid < mapSize) {
+        int atomIndex = map[gid];
+        gm_dataSrc  = &data[atomIndex];
+        gm_dataDest = &dataPacked[gid];
+    }
+    if ((pulse > 0)  || (dimIndex > 0)) {
+        __syncthreads();
+    }
+    if (gid < mapSize) {
+        if (usePBC) {
+            *gm_dataDest = *gm_dataSrc + coordinateShift;
+        }
+        else {
+            *gm_dataDest = *gm_dataSrc;
+        }
+    }
+    for (uint32_t idx = gid + gridSize; idx < mapSize; idx += gridSize)
+    {
+        int atomIndex = map[idx];
+        gm_dataSrc  = &data[atomIndex];
+        gm_dataDest = &dataPacked[idx];
+        if (usePBC) {
+            *gm_dataDest = *gm_dataSrc + coordinateShift;
+        }
+        else {
+            *gm_dataDest = *gm_dataSrc;
+        }
+    }
+    __syncthreads();
+
+    // More study is needed to understand why more than 1 block nvshmem_put performs bad
+    constexpr size_t numFinalBlocks = 1;
+    barrier::arrival_token token;
+    if (threadIdx.x == 0) {
+        token = bar->arrive();
+    }
+
+    if (blockIdx.x < numFinalBlocks) {
+        size_t const chunkSize = mapSize / numFinalBlocks;
+        size_t blockOffset = blockIdx.x * chunkSize;
+        size_t dataSize = blockIdx.x != (numFinalBlocks - 1) ? chunkSize : max(mapSize - blockOffset, chunkSize);
+
+        float3 *recvPtr = (float3*)&data[remoteAtomOffset +  blockOffset];
+        if (threadIdx.x == 0) {
+            bar->wait(std::move(token));
+            nvshmem_signal_wait_until(sync_recv_arr, NVSHMEM_CMP_EQ, counter);
+        }
+        __syncthreads();
+
+        nvshmemx_float_put_signal_nbi_block((float*)recvPtr, (float*)&dataPacked[blockOffset], dataSize * 3, sync_arr, counter, NVSHMEM_SIGNAL_SET, sendRank);
+
+        if (threadIdx.x == 0 && ((pulse == npulses - 1) && (dimIndex == ndim - 1))) {
+            nvshmem_signal_wait_until(sync_arr, NVSHMEM_CMP_EQ, counter);
+        }
+    }
+}
+
+
+/*! \brief unpack non-local force data buffer on the GPU using pre-populated "map" containing index
+ * information
+ * \param[out] data        full array of force values
+ * \param[in]  dataPacked  packed array of force values to be transferred
+ * \param[in]  map         array of indices defining mapping from full to packed array
+ * \param[in]  mapSize     number of elements in map array
+ */
+template<bool accumulate>
+__global__ void unpackRecvBufNvshmemKernel(float3* __restrict__ data,
+                                    const float3* __restrict__ dataPacked,
+                                    const int* __restrict__ map,
+                                    const int mapSize,
+                                    const int sendSize,
+                                    const int atomOffset,
+                                    const int sendRank,
+                                    uint64_t *sync_f,
+                                    uint64_t counter)
+{
+    // put approach
+    if (blockIdx.x  == 0) {
+        nvshmemx_float_put_signal_nbi_block((float*)dataPacked, (float*)&data[atomOffset],
+        sendSize * 3, sync_f, counter, NVSHMEM_SIGNAL_SET, sendRank);
+    }
+
+    int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    const float3* gm_dataSrc;
+    float3* gm_dataDest;
+    if (threadIndex < mapSize) {
+        gm_dataSrc  = &dataPacked[threadIndex];
+        gm_dataDest = &data[map[threadIndex]];
+    }
+
+    if (threadIdx.x == 0) {
+        nvshmem_signal_wait_until(sync_f, NVSHMEM_CMP_EQ, counter);
+    }
+    __syncthreads();
+
+    if (threadIndex < mapSize)
+    {
+        if (accumulate)
+        {
+            *gm_dataDest += *gm_dataSrc;
+        }
+        else
+        {
+            *gm_dataDest = *gm_dataSrc;
+        }
+    }
+}
+#endif
+
+void GpuHaloExchange::Impl::launchPackXKernel(const matrix box, 
+                                              uint64_t synccounter,
+                                              uint64_t *sync_arr)
 {
     // launch kernel to pack send buffer
     KernelLaunchConfig config;
@@ -139,6 +295,7 @@ void GpuHaloExchange::Impl::launchPackXKernel(const matrix box)
                                   box[boxDimensionIndex][YY],
                                   box[boxDimensionIndex][ZZ] };
 
+#if !GMX_NVSHMEM
     // Avoid launching kernel when there is no work to do
     if (size > 0)
     {
@@ -149,6 +306,34 @@ void GpuHaloExchange::Impl::launchPackXKernel(const matrix box)
 
         launchGpuKernel(kernelFn, config, *haloStream_, nullptr, "Domdec GPU Apply X Halo Exchange", kernelArgs);
     }
+#else
+    auto packNvShmemkernelFn = usePBC_ ? packSendMultiBlockNvshmemBufKernel<true> : packSendMultiBlockNvshmemBufKernel<false>;
+
+    constexpr int newThreadblockSize = c_threadsPerBlock * 4;
+    config.blockSize[0]     = newThreadblockSize;
+    config.blockSize[1]     = 1;
+    config.blockSize[2]     = 1;
+    config.gridSize[0]      = (xSendSize_ + newThreadblockSize + 1) / newThreadblockSize;
+    config.gridSize[1]      = 1;
+    config.gridSize[2]      = 1;
+    config.sharedMemorySize = 0;
+
+    if (gridDimX != config.gridSize[0]) {
+        gridDimX = config.gridSize[0];
+        cuda::barrier<cuda::thread_scope_device> temp_bar(gridDimX);
+        cudaMemcpyAsync(bar, &temp_bar, sizeof(cuda::barrier<cuda::thread_scope_device>), cudaMemcpyDefault, haloStream_->stream());
+    } else {
+        config.gridSize[0] = gridDimX;
+    }
+    const gmx_domdec_comm_t&     comm = *dd_->comm;
+    const int nPulses =  comm.cd[dimIndex_].numPulses();
+    const auto kernelArgs = prepareGpuKernelArguments(
+            packNvShmemkernelFn, config, &d_x, &sendBuf, &indexMap, &size, &coordinateShift, &sendRankX_,
+                    &remoteAtomOffset_, &sync_arr, &sync_recv_arr, &recvRankX_, &synccounter,
+                    &bar, &pulse_, &nPulses, &dimIndex_, &dd_->ndim);
+
+    launchGpuKernel(packNvShmemkernelFn, config, *haloStream_, nullptr, "Domdec GPU Apply X Halo Exchange", kernelArgs);
+#endif
 }
 
 // The following method should be called after non-local buffer operations,
@@ -169,6 +354,7 @@ void GpuHaloExchange::Impl::launchUnpackFKernel(bool accumulateForces)
     const int*    indexMap = d_indexMap_;
     const int     size     = fRecvSize_;
 
+#if !GMX_NVSHMEM
     if (size > 0)
     {
         auto kernelFn = accumulateForces ? unpackRecvBufKernel<true> : unpackRecvBufKernel<false>;
@@ -178,6 +364,17 @@ void GpuHaloExchange::Impl::launchUnpackFKernel(bool accumulateForces)
 
         launchGpuKernel(kernelFn, config, *haloStream_, nullptr, "Domdec GPU Apply F Halo Exchange", kernelArgs);
     }
+#else
+    config.blockSize[0]     = c_threadsPerBlock * 4;
+    config.gridSize[0]      = (fRecvSize_ + config.blockSize[0] + 1) / config.blockSize[0];
+    auto kernelFn = accumulateForces ? unpackRecvBufNvshmemKernel<true> : unpackRecvBufNvshmemKernel<false>;
+    const auto kernelArgs =
+            prepareGpuKernelArguments(kernelFn, config, &d_f, &recvBuf, &indexMap, &size, &fSendSize_, &atomOffset_, 
+                                    &sendRankF_, &sync_f, &synccounter_f);
+
+    launchGpuKernel(kernelFn, config, *haloStream_, nullptr, "Domdec GPU Apply F Halo Exchange", kernelArgs);
+    synccounter_f++;
+#endif
 }
 
 } // namespace gmx

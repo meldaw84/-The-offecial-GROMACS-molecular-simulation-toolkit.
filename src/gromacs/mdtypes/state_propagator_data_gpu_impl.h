@@ -360,6 +360,9 @@ public:
      */
     int numAtomsAll() const;
 
+    uint64_t* getSyncArr();
+    uint64_t* getSyncCounter();
+
 private:
     //! GPU PME stream.
     const DeviceStream* pmeStream_;
@@ -414,6 +417,7 @@ private:
 
     //! Device positions buffer
     DeviceBuffer<RVec> d_x_;
+
     //! Number of particles saved in the positions buffer
     int d_xSize_ = -1;
     //! Allocation size for the positions buffer
@@ -435,6 +439,14 @@ private:
 
     //! \brief Pointer to wallcycle structure.
     gmx_wallcycle* wcycle_;
+#if GMX_NVSHMEM
+    uint64_t* sync_arr = nullptr;
+    uint64_t counter = 1;
+    //! Number of particles saved in the positions buffer
+    int d_nvshmem_xSize_ = -1;
+    //! Allocation size for the positions buffer
+    int d_nvshmem_xCapacity_ = -1;
+#endif
 
     /*! \brief Performs the copy of data from host to device buffer.
      *

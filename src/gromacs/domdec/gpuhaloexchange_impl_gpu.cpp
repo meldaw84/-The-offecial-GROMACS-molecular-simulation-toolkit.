@@ -47,6 +47,19 @@
 
 #include "config.h"
 
+#include <assert.h>
+#include <stdio.h>
+
+#include <utility>
+
+#if GMX_NVSHMEM
+#include "nvshmem.h"
+#include "nvshmemx.h"
+#include <nvshmem_api.h>
+#include <omp.h>
+#include "gromacs/gpu_utils/nvshmembuffer.cuh"
+#endif
+
 #include "gromacs/domdec/domdec.h"
 #include "gromacs/domdec/domdec_struct.h"
 #include "gromacs/domdec/gpuhaloexchange.h"
@@ -113,11 +126,29 @@ void GpuHaloExchange::Impl::reinitHalo(DeviceBuffer<Float3> d_coordinatesBuffer,
     {
         reallocateDeviceBuffer(&d_indexMap_, newSize, &indexMapSize_, &indexMapSizeAlloc_, deviceContext_);
         reallocateDeviceBuffer(&d_sendBuf_, newSize, &sendBufSize_, &sendBufSizeAlloc_, deviceContext_);
-        reallocateDeviceBuffer(&d_recvBuf_, newSize, &recvBufSize_, &recvBufSizeAlloc_, deviceContext_);
         maxPackedBufferSize_ = newSize;
+#if GMX_NVSHMEM
+        if (maxPackedBufferSizeNvShmem_ < sendBufSizeAlloc_) {
+            nvshmemx_buffer_unregister(d_sendBuf_);
+            int ret = nvshmemx_buffer_register(d_sendBuf_, sendBufSizeAlloc_ * sizeof(float3));
+            maxPackedBufferSizeNvShmem_ = sendBufSizeAlloc_;
+            if (ret != 0 ) { printf("buffer registration failed with = %d newSize = %d\n", ret, newSize); }
+        }
+#else
+        reallocateDeviceBuffer(&d_recvBuf_, newSize, &recvBufSize_, &recvBufSizeAlloc_, deviceContext_);
+#endif
     }
 
+#if GMX_NVSHMEM
+    uint32_t prevRecvBuf_symsize = recvBuf_symsize;
+    MPI_Allreduce(&newSize, &recvBuf_symsize, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+    if (recvBuf_symsize > prevRecvBuf_symsize) {
+        reallocateNvshmemBuffer(&d_recvBuf_, (size_t)recvBuf_symsize, (int32_t*)&recvBuf_symsize_fSize, (int32_t*)&recvBuf_symsize_fCapacity, deviceContext_);
+    }
+#endif
+
     xSendSize_ = newSize;
+
 #if GMX_MPI
     MPI_Sendrecv(&xSendSize_,
                  sizeof(int),
@@ -131,6 +162,21 @@ void GpuHaloExchange::Impl::reinitHalo(DeviceBuffer<Float3> d_coordinatesBuffer,
                  0,
                  mpi_comm_mysim_,
                  MPI_STATUS_IGNORE);
+#if GMX_NVSHMEM
+    // remote PE atomOffset to nvshmem put halo coordinates
+    MPI_Sendrecv(&atomOffset_,
+        sizeof(int),
+        MPI_BYTE,
+        recvRankX_,
+        0,
+        &remoteAtomOffset_,
+        sizeof(int),
+        MPI_BYTE,
+        sendRankX_,
+        0,
+        mpi_comm_mysim_,
+        MPI_STATUS_IGNORE);
+#endif
 #endif
     fSendSize_ = xRecvSize_;
     fRecvSize_ = xSendSize_;
@@ -227,7 +273,9 @@ void GpuHaloExchange::Impl::enqueueWaitRemoteCoordinatesReadyEvent(GpuEventSynch
 }
 
 GpuEventSynchronizer* GpuHaloExchange::Impl::communicateHaloCoordinates(const matrix box,
-                                                                        GpuEventSynchronizer* dependencyEvent)
+                                                                        GpuEventSynchronizer* dependencyEvent,
+                                                                        uint64_t synccounter,
+                                                                        uint64_t *sync_arr)
 {
     wallcycle_start(wcycle_, WallCycleCounter::LaunchGpuPp);
 
@@ -235,7 +283,7 @@ GpuEventSynchronizer* GpuHaloExchange::Impl::communicateHaloCoordinates(const ma
     dependencyEvent->enqueueWaitEvent(*haloStream_);
 
     wallcycle_sub_start(wcycle_, WallCycleSubCounter::LaunchGpuMoveX);
-    launchPackXKernel(box);
+    launchPackXKernel(box, synccounter, sync_arr);
     wallcycle_sub_stop(wcycle_, WallCycleSubCounter::LaunchGpuMoveX);
 
     wallcycle_stop(wcycle_, WallCycleCounter::LaunchGpuPp);
@@ -244,6 +292,7 @@ GpuEventSynchronizer* GpuHaloExchange::Impl::communicateHaloCoordinates(const ma
     // TODO: We need further refinement here as communicateHaloData includes launch time for async mem copy
     wallcycle_start(wcycle_, WallCycleCounter::MoveX);
 
+#if !GMX_NVSHMEM
     // wait for remote co-ordinates is implicit with process-MPI as non-local stream is synchronized before MPI calls
     // and MPI_Waitall call makes sure both neighboring ranks' non-local stream is synchronized before data transfer is initiated
     // For multidimensional halo exchanges, this needs to be done for every dimIndex_, since the remote ranks will be different
@@ -264,11 +313,11 @@ GpuEventSynchronizer* GpuHaloExchange::Impl::communicateHaloCoordinates(const ma
     {
         communicateHaloCoordinatesOutOfPlace(d_sendBuf_, xSendSize_, sendRankX_, xRecvSize_, recvRankX_);
     }
+#endif
 
     coordinateHaloLaunched_.markEvent(*haloStream_);
 
     wallcycle_stop(wcycle_, WallCycleCounter::MoveX);
-
     return &coordinateHaloLaunched_;
 }
 
@@ -291,6 +340,7 @@ void GpuHaloExchange::Impl::communicateHaloForces(bool accumulateForces,
 
     Float3* recvPtr = asMpiPointer(GMX_THREAD_MPI ? remoteFPtr_ : d_recvBuf_);
 
+#if !GMX_NVSHMEM
     // Communicate halo data
     if (receiveInPlace_)
     {
@@ -301,6 +351,7 @@ void GpuHaloExchange::Impl::communicateHaloForces(bool accumulateForces,
     {
         communicateHaloForcesOutOfPlace(d_f_, fSendSize_, sendRankF_, fRecvSize_, recvRankF_);
     }
+#endif
 
     wallcycle_stop(wcycle_, WallCycleCounter::MoveF);
 
@@ -569,13 +620,40 @@ GpuHaloExchange::Impl::Impl(gmx_domdec_t*        dd,
     changePinningPolicy(&h_indexMap_, gmx::PinningPolicy::PinnedIfSupported);
 
     allocateDeviceBuffer(&d_fShift_, 1, deviceContext_);
+#if GMX_NVSHMEM
+    if (sync_recv_arr == nullptr) {
+        sync_recv_arr = (uint64_t*)nvshmem_malloc(sizeof(uint64_t));
+        cudaMemsetAsync(sync_recv_arr, 0, sizeof(uint64_t), haloStream_->stream());
+    }
+
+    if (sync_f == nullptr) {
+        sync_f = (uint64_t*)nvshmem_malloc( sizeof(uint64_t));
+        cudaMemsetAsync(sync_f, 0, sizeof(uint64_t), haloStream_->stream());
+    }
+
+    if (bar == nullptr) {
+        allocateDeviceBuffer(&bar, 1, deviceContext_);
+    }
+
+#endif
+    
 }
 
 GpuHaloExchange::Impl::~Impl()
 {
+
+#if GMX_NVSHMEM
+    freeDeviceBuffer(&bar);
+
+    int ret = nvshmemx_buffer_unregister(d_sendBuf_);
+    freeNvshmemBuffer(&sync_recv_arr);
+    freeNvshmemBuffer(&sync_f);
+    freeNvshmemBuffer(&d_recvBuf_);
+#else
+    freeDeviceBuffer(&d_recvBuf_);
+#endif
     freeDeviceBuffer(&d_indexMap_);
     freeDeviceBuffer(&d_sendBuf_);
-    freeDeviceBuffer(&d_recvBuf_);
     freeDeviceBuffer(&d_fShift_);
 }
 
@@ -605,9 +683,10 @@ void GpuHaloExchange::reinitHalo(DeviceBuffer<RVec> d_coordinatesBuffer, DeviceB
 }
 
 GpuEventSynchronizer* GpuHaloExchange::communicateHaloCoordinates(const matrix          box,
-                                                                  GpuEventSynchronizer* dependencyEvent)
+                                                                  GpuEventSynchronizer* dependencyEvent,
+                                                                  uint64_t synccounter, uint64_t *sync_arr)
 {
-    return impl_->communicateHaloCoordinates(box, dependencyEvent);
+    return impl_->communicateHaloCoordinates(box, dependencyEvent, synccounter, sync_arr);
 }
 
 void GpuHaloExchange::communicateHaloForces(bool accumulateForces,

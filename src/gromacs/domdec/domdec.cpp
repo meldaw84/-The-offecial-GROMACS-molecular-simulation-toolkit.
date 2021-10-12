@@ -121,6 +121,11 @@
 #include "redistribute.h"
 #include "utility.h"
 
+#if GMX_NVSHMEM
+#include <nvshmem.h>
+#include <nvshmemx_api.h>
+#endif
+
 // TODO remove this when moving domdec into gmx namespace
 using gmx::ArrayRef;
 using gmx::DdRankOrder;
@@ -978,6 +983,26 @@ void dd_setup_dlb_resource_sharing(const t_commrec* cr, int gpu_id)
     MPI_Comm_split(mpi_comm_pp_physicalnode, gpu_id, dd->rank, &dd->comm->mpi_comm_gpu_shared);
     MPI_Comm_free(&mpi_comm_pp_physicalnode);
     MPI_Comm_size(dd->comm->mpi_comm_gpu_shared, &dd->comm->nrank_gpu_shared);
+
+#if GMX_NVSHMEM
+    // TODO: add nvshmem detection flag and cleanup in case multiple GPU share same GPU
+    if (dd->comm->nrank_gpu_shared == 1)
+    {
+        nvshmemx_init_attr_t attr;
+        //MPI_Comm mpi_comm = MPI_COMM_WORLD;
+        //attr.mpi_comm = &mpi_comm;
+        attr.mpi_comm = (void*)&dd->mpi_comm_all;
+
+        cudaSetDevice(gpu_id);
+        cudaFree(0);
+        int ret = nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
+
+        if (ret != 0)
+            printf("return code of nvshmem init = %d\n", ret);
+    } else {
+        printf("NVSHMEM cannot work as more than one MPI process sharing the GPU\n");
+    }
+#endif
 
     if (debug)
     {
@@ -3174,16 +3199,28 @@ void reinitGpuHaloExchange(const t_commrec&              cr,
 
 GpuEventSynchronizer* communicateGpuHaloCoordinates(const t_commrec&      cr,
                                                     const matrix          box,
-                                                    GpuEventSynchronizer* dependencyEvent)
+                                                    GpuEventSynchronizer* dependencyEvent,
+                                                    uint64_t *synccounter,
+                                                    uint64_t *sync_arr)
 {
     GpuEventSynchronizer* eventPtr = dependencyEvent;
+    uint64_t synccounter_ = 0;
+#if GMX_NVSHMEM
+    (*synccounter)++;
+    synccounter_ = *synccounter;
+#endif
+
+    int npulses = 0;
     for (int d = 0; d < cr.dd->ndim; d++)
     {
         for (int pulse = 0; pulse < cr.dd->comm->cd[d].numPulses(); pulse++)
         {
-            eventPtr = cr.dd->gpuHaloExchange[d][pulse]->communicateHaloCoordinates(box, eventPtr);
+            eventPtr = cr.dd->gpuHaloExchange[d][pulse]->communicateHaloCoordinates(box, eventPtr, synccounter_,
+                                                                                sync_arr + pulse + npulses);
         }
+        npulses += cr.dd->comm->cd[d].numPulses();
     }
+
     return eventPtr;
 }
 

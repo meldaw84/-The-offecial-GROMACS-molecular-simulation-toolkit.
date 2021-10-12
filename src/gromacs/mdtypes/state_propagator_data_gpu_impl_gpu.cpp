@@ -42,6 +42,7 @@
 #include "gmxpre.h"
 
 #include "config.h"
+#include <mpi.h>
 
 #if GMX_GPU
 
@@ -54,6 +55,10 @@
 #    include "gromacs/utility/classhelpers.h"
 
 #    include "state_propagator_data_gpu_impl.h"
+
+#if GMX_NVSHMEM
+#include "gromacs/gpu_utils/nvshmembuffer.cuh"
+#endif
 
 
 namespace gmx
@@ -139,6 +144,22 @@ StatePropagatorDataGpu::Impl::~Impl()
     freeDeviceBuffer(&d_f_);
 }
 
+uint64_t* StatePropagatorDataGpu::Impl::getSyncArr() {
+#if GMX_NVSHMEM
+    return sync_arr;
+#else
+    return nullptr;
+#endif
+}
+
+uint64_t* StatePropagatorDataGpu::Impl::getSyncCounter() {
+#if GMX_NVSHMEM
+    return &counter;
+#else
+    return nullptr;
+#endif
+}
+
 void StatePropagatorDataGpu::Impl::reinit(int numAtomsLocal, int numAtomsAll)
 {
     wallcycle_start_nocount(wcycle_, WallCycleCounter::LaunchGpuPp);
@@ -158,7 +179,21 @@ void StatePropagatorDataGpu::Impl::reinit(int numAtomsLocal, int numAtomsAll)
         numAtomsPadded = numAtomsAll_;
     }
 
+#if GMX_NVSHMEM
+    int maxNumAtomsPadded = 0;
+    MPI_Allreduce(&numAtomsPadded, &maxNumAtomsPadded, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+
+    reallocateNvshmemBuffer(&d_x_, maxNumAtomsPadded, &d_nvshmem_xSize_, &d_nvshmem_xCapacity_, deviceContext_);
+
+    if (sync_arr == nullptr) {
+        // Can work for max 3 dims & 4 pulses
+        sync_arr = (uint64_t*)nvshmem_malloc(3 * 4 * sizeof(uint64_t));
+        cudaMemsetAsync(sync_arr, 0, 3 * 4 * sizeof(uint64_t), (*localStream_).stream());
+    }
+    d_xSize_ = numAtomsPadded;
+#else
     reallocateDeviceBuffer(&d_x_, numAtomsPadded, &d_xSize_, &d_xCapacity_, deviceContext_);
+#endif
 
     const size_t paddingAllocationSize = numAtomsPadded - numAtomsAll_;
     if (paddingAllocationSize > 0)
@@ -178,6 +213,10 @@ void StatePropagatorDataGpu::Impl::reinit(int numAtomsLocal, int numAtomsAll)
     static constexpr bool sc_haveGpuFBufferOps = ((GMX_GPU_CUDA != 0) || (GMX_GPU_SYCL != 0));
     if (sc_haveGpuFBufferOps)
     {
+#if GMX_NVSHMEM
+        nvshmemx_buffer_unregister(d_f_);
+        int ret = nvshmemx_buffer_register(d_f_, d_fCapacity_ * sizeof(float3));
+#endif
         clearDeviceBufferAsync(&d_f_, 0, d_fCapacity_, *localStream_);
     }
 
@@ -671,6 +710,17 @@ DeviceBuffer<RVec> StatePropagatorDataGpu::getCoordinates()
 {
     return impl_->getCoordinates();
 }
+
+uint64_t* StatePropagatorDataGpu::getSyncArr()
+{
+    return impl_->getSyncArr();
+}
+
+uint64_t* StatePropagatorDataGpu::getSyncCounter()
+{
+    return impl_->getSyncCounter();
+}
+
 
 void StatePropagatorDataGpu::copyCoordinatesToGpu(const gmx::ArrayRef<const gmx::RVec> h_x,
                                                   AtomLocality                         atomLocality,

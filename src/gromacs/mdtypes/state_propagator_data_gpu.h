@@ -402,6 +402,9 @@ public:
      */
     int numAtomsAll() const;
 
+    uint64_t* getSyncArr();
+
+    uint64_t* getSyncCounter();
 private:
     class Impl;
     std::unique_ptr<Impl> impl_;

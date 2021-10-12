@@ -118,7 +118,8 @@ public:
      * \param [in] dependencyEvent   Dependency event for this operation
      * \returns                      Event recorded when this operation has been launched
      */
-    GpuEventSynchronizer* communicateHaloCoordinates(const matrix box, GpuEventSynchronizer* dependencyEvent);
+    GpuEventSynchronizer* communicateHaloCoordinates(const matrix box, GpuEventSynchronizer* dependencyEvent, uint64_t synccounter,
+                                                                  uint64_t *sync_arr);
 
     /*! \brief GPU halo exchange of force buffer.
      * \param[in] accumulateForces  True if forces should accumulate, otherwise they are set
