@@ -32,17 +32,15 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out http://www.gromacs.org.
 
-gmx_add_unit_test(TestUtilsUnitTests testutils-test
+gmx_add_unit_test(
+    TestUtilsUnitTests
+    testutils-test
     CPP_SOURCE_FILES
-        interactivetest.cpp
-        refdata_tests.cpp
-        testasserts_tests.cpp
-        xvgtest_tests.cpp
-        )
+    interactivetest.cpp
+    refdata_tests.cpp
+    testasserts_tests.cpp
+    xvgtest_tests.cpp)
 target_link_libraries(testutils-test PRIVATE testutils)
 
-gmx_add_mpi_unit_test(TestUtilsMpiUnitTests testutils-mpi-test 2
-    CPP_SOURCE_FILES
-        mpitest.cpp
-        )
+gmx_add_mpi_unit_test(TestUtilsMpiUnitTests testutils-mpi-test 2 CPP_SOURCE_FILES mpitest.cpp)
 target_link_libraries(testutils-test PRIVATE testutils)

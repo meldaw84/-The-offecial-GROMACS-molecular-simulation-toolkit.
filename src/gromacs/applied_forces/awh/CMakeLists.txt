@@ -32,21 +32,22 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out http://www.gromacs.org.
 
-gmx_add_libgromacs_sources(awh.cpp
-                           bias.cpp
-                           biasgrid.cpp
-                           biasparams.cpp
-                           biassharing.cpp
-                           biasstate.cpp
-                           biaswriter.cpp
-                           coordstate.cpp
-                           correlationgrid.cpp
-                           correlationhistory.cpp
-                           correlationtensor.cpp
-                           histogramsize.cpp
-                           pointstate.cpp
-                           read_params.cpp)
+gmx_add_libgromacs_sources(
+    awh.cpp
+    bias.cpp
+    biasgrid.cpp
+    biasparams.cpp
+    biassharing.cpp
+    biasstate.cpp
+    biaswriter.cpp
+    coordstate.cpp
+    correlationgrid.cpp
+    correlationhistory.cpp
+    correlationtensor.cpp
+    histogramsize.cpp
+    pointstate.cpp
+    read_params.cpp)
 
-if (BUILD_TESTING)
+if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()

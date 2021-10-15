@@ -37,24 +37,24 @@
 add_library(math INTERFACE)
 
 file(GLOB MATH_SOURCES *.cpp)
-set(LIBGROMACS_SOURCES ${LIBGROMACS_SOURCES} ${MATH_SOURCES} PARENT_SCOPE)
+set(LIBGROMACS_SOURCES
+    ${LIBGROMACS_SOURCES} ${MATH_SOURCES}
+    PARENT_SCOPE)
 
 # Source files have the following private module dependencies.
-target_link_libraries(math PRIVATE
-                      #                      gmxlib
-                      #                      math
-                      #                      mdtypes
-                      #                      tng_io
-                      )
+target_link_libraries(
+    math
+    PRIVATE #                      gmxlib
+            #                      math
+            #                      mdtypes
+            #                      tng_io
+)
 
 # Public interface for modules, including dependencies and interfaces
 #target_include_directories(math PUBLIC
-target_include_directories(math INTERFACE
-                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+target_include_directories(math INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 #target_link_libraries(math PUBLIC
-target_link_libraries(math INTERFACE
-                      legacy_api
-                      )
+target_link_libraries(math INTERFACE legacy_api)
 
 # TODO: when fileio is an OBJECT target
 #target_link_libraries(math PUBLIC legacy_api)
@@ -63,15 +63,12 @@ target_link_libraries(math INTERFACE
 # Module dependencies
 # fileio interfaces convey transitive dependence on these modules.
 #target_link_libraries(math PUBLIC
-target_link_libraries(math INTERFACE
-                      utility
-                      )
+target_link_libraries(math INTERFACE utility)
 # Source files have the following private module dependencies.
 #target_link_libraries(math PRIVATE tng_io)
 # TODO: Explicitly link specific modules.
 #target_link_libraries(math PRIVATE legacy_modules)
 
-
-if (BUILD_TESTING)
+if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()

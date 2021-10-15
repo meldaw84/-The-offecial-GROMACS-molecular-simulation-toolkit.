@@ -37,24 +37,24 @@ add_library(correlationfunctions INTERFACE)
 
 file(GLOB GMXCORRFUNC_SOURCES *.cpp)
 
-set(LIBGROMACS_SOURCES ${LIBGROMACS_SOURCES} ${GMXCORRFUNC_SOURCES} PARENT_SCOPE)
+set(LIBGROMACS_SOURCES
+    ${LIBGROMACS_SOURCES} ${GMXCORRFUNC_SOURCES}
+    PARENT_SCOPE)
 
 # Source files have the following private module dependencies.
-target_link_libraries(correlationfunctions PRIVATE
-                      #                      gmxlib
-                      #                      math
-                      #                      mdtypes
-                      #                      tng_io
-                      )
+target_link_libraries(
+    correlationfunctions
+    PRIVATE #                      gmxlib
+            #                      math
+            #                      mdtypes
+            #                      tng_io
+)
 
 # Public interface for modules, including dependencies and interfaces
 #target_include_directories(correlationfunctions PUBLIC
-target_include_directories(correlationfunctions INTERFACE
-                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+target_include_directories(correlationfunctions INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 #target_link_libraries(correlationfunctions PUBLIC
-target_link_libraries(correlationfunctions INTERFACE
-                      legacy_api
-                      )
+target_link_libraries(correlationfunctions INTERFACE legacy_api)
 
 # TODO: when fileio is an OBJECT target
 #target_link_libraries(correlationfunctions PUBLIC legacy_api)
@@ -63,14 +63,13 @@ target_link_libraries(correlationfunctions INTERFACE
 # Module dependencies
 # This module convey transitive dependence on these modules.
 #target_link_libraries(correlationfunctions PUBLIC
-target_link_libraries(correlationfunctions INTERFACE
-                      #                      utility
-                      )
+target_link_libraries(correlationfunctions INTERFACE #                      utility
+)
 # Source files have the following private module dependencies.
 #target_link_libraries(correlationfunctions PRIVATE tng_io)
 # TODO: Explicitly link specific modules.
 #target_link_libraries(correlationfunctions PRIVATE legacy_modules)
 
-if (BUILD_TESTING)
+if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()

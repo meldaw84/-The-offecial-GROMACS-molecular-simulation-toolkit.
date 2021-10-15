@@ -32,10 +32,11 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out http://www.gromacs.org.
 
-gmx_add_unit_test(DensityFittingAppliedForcesUnitTest density_fitting_applied_forces-test
+gmx_add_unit_test(
+    DensityFittingAppliedForcesUnitTest
+    density_fitting_applied_forces-test
     CPP_SOURCE_FILES
-        densityfitting.cpp
-        densityfittingamplitudelookup.cpp
-        densityfittingforceprovider.cpp
-        densityfittingoptions.cpp
-        )
+    densityfitting.cpp
+    densityfittingamplitudelookup.cpp
+    densityfittingforceprovider.cpp
+    densityfittingoptions.cpp)

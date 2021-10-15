@@ -32,17 +32,16 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out http://www.gromacs.org.
 
-gmx_add_unit_test_library(analysisdata-test-shared
-                          datatest.cpp
-                          mock_datamodule.cpp)
+gmx_add_unit_test_library(analysisdata-test-shared datatest.cpp mock_datamodule.cpp)
 target_link_libraries(analysisdata-test-shared PRIVATE legacy_api)
 
-gmx_add_unit_test(AnalysisDataUnitTests analysisdata-test
+gmx_add_unit_test(
+    AnalysisDataUnitTests
+    analysisdata-test
     CPP_SOURCE_FILES
-        analysisdata.cpp
-        arraydata.cpp
-        average.cpp
-        histogram.cpp
-        lifetime.cpp
-        )
+    analysisdata.cpp
+    arraydata.cpp
+    average.cpp
+    histogram.cpp
+    lifetime.cpp)
 target_link_libraries(analysisdata-test PRIVATE analysisdata-test-shared)

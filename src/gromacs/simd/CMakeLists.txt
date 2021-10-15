@@ -34,16 +34,15 @@
 
 add_library(simd INTERFACE)
 file(GLOB SIMD_SOURCES *.cpp)
-set(LIBGROMACS_SOURCES ${LIBGROMACS_SOURCES} ${SIMD_SOURCES} PARENT_SCOPE)
+set(LIBGROMACS_SOURCES
+    ${LIBGROMACS_SOURCES} ${SIMD_SOURCES}
+    PARENT_SCOPE)
 
 # Public interface for modules, including dependencies and interfaces
 #target_include_directories(simd PUBLIC
-target_include_directories(simd INTERFACE
-                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+target_include_directories(simd INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 #target_link_libraries(simd PUBLIC
-target_link_libraries(simd INTERFACE
-                      legacy_api
-                      )
+target_link_libraries(simd INTERFACE legacy_api)
 
 # TODO: when simd is an OBJECT target
 #target_link_libraries(simd PUBLIC legacy_api)
@@ -52,10 +51,8 @@ target_link_libraries(simd INTERFACE
 # Module dependencies
 # simd interfaces convey transitive dependence on these modules.
 #target_link_libraries(simd PUBLIC
-target_link_libraries(simd INTERFACE
-                      utility
-                      )
+target_link_libraries(simd INTERFACE utility)
 
-if (BUILD_TESTING)
+if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()

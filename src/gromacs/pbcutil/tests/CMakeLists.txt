@@ -32,10 +32,11 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out http://www.gromacs.org.
 
-gmx_add_unit_test(PbcutilUnitTest pbcutil-test
+gmx_add_unit_test(
+    PbcutilUnitTest
+    pbcutil-test
     CPP_SOURCE_FILES
-        com.cpp
-        mshift.cpp
-        pbc.cpp
-        pbcenums.cpp
-        )
+    com.cpp
+    mshift.cpp
+    pbc.cpp
+    pbcenums.cpp)

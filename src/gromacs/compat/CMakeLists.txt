@@ -35,17 +35,13 @@
 add_library(compat INTERFACE)
 
 # Source files have the following private module dependencies.
-target_link_libraries(compat PRIVATE
-                      )
+target_link_libraries(compat PRIVATE)
 
 # Public interface for modules, including dependencies and interfaces
 #target_include_directories(compat PUBLIC
-target_include_directories(compat INTERFACE
-                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+target_include_directories(compat INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 #target_link_libraries(compat PUBLIC
-target_link_libraries(compat INTERFACE
-                      legacy_api
-                      )
+target_link_libraries(compat INTERFACE legacy_api)
 
 # TODO: when compat is an OBJECT target
 #target_link_libraries(compat PUBLIC legacy_api)
@@ -54,14 +50,12 @@ target_link_libraries(compat INTERFACE
 # Module dependencies
 # compat interfaces convey transitive dependence on these modules.
 #target_link_libraries(compat PUBLIC
-target_link_libraries(compat INTERFACE
-                      utility
-                      )
+target_link_libraries(compat INTERFACE utility)
 # Source files have the following private module dependencies.
 #target_link_libraries(compat PRIVATE tng_io)
 # TODO: Explicitly link specific modules.
 #target_link_libraries(compat PRIVATE legacy_modules)
 
-if (BUILD_TESTING)
+if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()

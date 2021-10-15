@@ -32,11 +32,11 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out http://www.gromacs.org.
 
-gmx_add_unit_test(CorrelationsTest  correlations-test
+gmx_add_unit_test(
+    CorrelationsTest
+    correlations-test
     CPP_SOURCE_FILES
-        autocorr.cpp
-        correlationdataset.cpp
-        expfit.cpp
-        manyautocorrelation.cpp
-        )
-
+    autocorr.cpp
+    correlationdataset.cpp
+    expfit.cpp
+    manyautocorrelation.cpp)

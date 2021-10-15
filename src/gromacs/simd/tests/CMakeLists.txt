@@ -32,22 +32,23 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out http://www.gromacs.org.
 
-gmx_add_unit_test(SimdUnitTests simd-test
+gmx_add_unit_test(
+    SimdUnitTests
+    simd-test
     CPP_SOURCE_FILES
-        base.cpp
-        bootstrap_loadstore.cpp
-        scalar.cpp
-        scalar_util.cpp
-        scalar_math.cpp
-        simd.cpp
-        simd_floatingpoint.cpp
-        simd_floatingpoint_util.cpp
-        simd_integer.cpp
-        simd_math.cpp
-        simd_memory.cpp
-        simd_vector_operations.cpp
-        simd4.cpp
-        simd4_floatingpoint.cpp
-        simd4_math.cpp
-        simd4_vector_operations.cpp
-        )
+    base.cpp
+    bootstrap_loadstore.cpp
+    scalar.cpp
+    scalar_util.cpp
+    scalar_math.cpp
+    simd.cpp
+    simd_floatingpoint.cpp
+    simd_floatingpoint_util.cpp
+    simd_integer.cpp
+    simd_math.cpp
+    simd_memory.cpp
+    simd_vector_operations.cpp
+    simd4.cpp
+    simd4_floatingpoint.cpp
+    simd4_math.cpp
+    simd4_vector_operations.cpp)

@@ -39,32 +39,32 @@ file(GLOB FILEIO_SOURCES *.cpp)
 if(GMX_USE_PLUGINS)
     add_library(vmddlopen OBJECT ${CMAKE_SOURCE_DIR}/src/external/vmd_molfile/vmddlopen.cpp)
     gmx_target_compile_options(vmddlopen)
-    if (WIN32)
+    if(WIN32)
         gmx_target_warning_suppression(vmddlopen /wd4996 HAS_NO_MSVC_UNSAFE_FUNCTION)
     endif()
     list(APPEND libgromacs_object_library_dependencies vmddlopen)
-    set(libgromacs_object_library_dependencies ${libgromacs_object_library_dependencies} PARENT_SCOPE)
+    set(libgromacs_object_library_dependencies
+        ${libgromacs_object_library_dependencies}
+        PARENT_SCOPE)
 else()
     # Remove vmdio.cpp from sources since we do not have plugin support
     list(FILTER FILEIO_SOURCES EXCLUDE REGEX ".*vmdio.cpp$")
 endif()
 
 # Source files have the following private module dependencies.
-target_link_libraries(fileio PRIVATE
-#                      gmxlib
-#                      math
-#                      mdtypes
-#                      tng_io
-                      )
+target_link_libraries(
+    fileio
+    PRIVATE #                      gmxlib
+            #                      math
+            #                      mdtypes
+            #                      tng_io
+)
 
 # Public interface for modules, including dependencies and interfaces
 #target_include_directories(fileio PUBLIC
-target_include_directories(fileio INTERFACE
-                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+target_include_directories(fileio INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 #target_link_libraries(fileio PUBLIC
-target_link_libraries(fileio INTERFACE
-                      legacy_api
-                      )
+target_link_libraries(fileio INTERFACE legacy_api)
 
 # TODO: when fileio is an OBJECT target
 #target_link_libraries(fileio PUBLIC legacy_api)
@@ -73,9 +73,7 @@ target_link_libraries(fileio INTERFACE
 # Module dependencies
 # fileio interfaces convey transitive dependence on these modules.
 #target_link_libraries(fileio PUBLIC
-target_link_libraries(fileio INTERFACE
-                      utility
-                      )
+target_link_libraries(fileio INTERFACE utility)
 # Source files have the following private module dependencies.
 #target_link_libraries(fileio PRIVATE tng_io)
 # TODO: Explicitly link specific modules.
@@ -83,6 +81,6 @@ target_link_libraries(fileio INTERFACE
 
 target_sources(libgromacs PRIVATE ${FILEIO_SOURCES})
 
-if (BUILD_TESTING)
-     add_subdirectory(tests)
+if(BUILD_TESTING)
+    add_subdirectory(tests)
 endif()

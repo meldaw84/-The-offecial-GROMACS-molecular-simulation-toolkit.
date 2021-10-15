@@ -32,10 +32,11 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out http://www.gromacs.org.
 
-gmx_add_unit_test(HardwareUnitTests hardware-test
+gmx_add_unit_test(
+    HardwareUnitTests
+    hardware-test
     CPP_SOURCE_FILES
-        cpuinfo.cpp
-        hardwaretopology.cpp
+    cpuinfo.cpp
+    hardwaretopology.cpp
     GPU_CPP_SOURCE_FILES
-        device_management.cpp
-        )
+    device_management.cpp)

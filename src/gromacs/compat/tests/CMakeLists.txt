@@ -33,12 +33,8 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out http://www.gromacs.org.
 
-if (GMX_BUILD_UNITTESTS)
-    gmx_add_unit_test(CompatibilityHelpersTests compat-test
-        CPP_SOURCE_FILES
-            mp11.cpp
-            pointers.cpp
-            )
+if(GMX_BUILD_UNITTESTS)
+    gmx_add_unit_test(CompatibilityHelpersTests compat-test CPP_SOURCE_FILES mp11.cpp pointers.cpp)
     # Maintainer note: The files here may be borrowed from other projects, and
     # can require additional handling for compiler flags, warning suppression,
     # etcetera. Rather than documenting best practices and tips here, we refer

@@ -32,13 +32,6 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out http://www.gromacs.org.
 
-gmx_add_unit_test(DomDecTests domdec-test
-    CPP_SOURCE_FILES
-        hashedmap.cpp
-        localatomsetmanager.cpp
-        )
+gmx_add_unit_test(DomDecTests domdec-test CPP_SOURCE_FILES hashedmap.cpp localatomsetmanager.cpp)
 
-gmx_add_mpi_unit_test(DomDecMpiTests domdec-mpi-test 4 HARDWARE_DETECTION
-    GPU_CPP_SOURCE_FILES
-        haloexchange_mpi.cpp
-        )
+gmx_add_mpi_unit_test(DomDecMpiTests domdec-mpi-test 4 HARDWARE_DETECTION GPU_CPP_SOURCE_FILES haloexchange_mpi.cpp)

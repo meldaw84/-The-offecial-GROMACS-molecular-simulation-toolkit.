@@ -37,20 +37,18 @@ add_library(gmxana INTERFACE)
 
 file(GLOB GMXANA_SOURCES *.cpp)
 
-set(LIBGROMACS_SOURCES ${LIBGROMACS_SOURCES} ${GMXANA_SOURCES} PARENT_SCOPE)
+set(LIBGROMACS_SOURCES
+    ${LIBGROMACS_SOURCES} ${GMXANA_SOURCES}
+    PARENT_SCOPE)
 
 # Source files have the following private module dependencies.
-target_link_libraries(gmxana PRIVATE
-        )
+target_link_libraries(gmxana PRIVATE)
 
 # Public interface for modules, including dependencies and interfaces
 #target_include_directories(gmxana PUBLIC
-target_include_directories(gmxana INTERFACE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+target_include_directories(gmxana INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 #target_link_libraries(gmxana PUBLIC
-target_link_libraries(gmxana INTERFACE
-        legacy_api
-        )
+target_link_libraries(gmxana INTERFACE legacy_api)
 
 # TODO: when gmxana is an OBJECT target
 #target_link_libraries(gmxana PUBLIC legacy_api)
@@ -59,9 +57,7 @@ target_link_libraries(gmxana INTERFACE
 # Module dependencies
 # gmxana interfaces convey transitive dependence on these modules.
 #target_link_libraries(gmxana PUBLIC
-target_link_libraries(gmxana INTERFACE
-        utility
-        )
+target_link_libraries(gmxana INTERFACE utility)
 
 if(BUILD_TESTING)
     add_subdirectory(tests)

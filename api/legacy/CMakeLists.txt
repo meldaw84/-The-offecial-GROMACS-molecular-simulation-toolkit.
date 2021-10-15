@@ -41,25 +41,24 @@
 # be propagated when linking to the `common` target) can be added directly
 # to the `common` target.
 add_library(legacy_api INTERFACE)
-target_include_directories(legacy_api INTERFACE
-                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                           $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
-                           $<INSTALL_INTERFACE:include>)
+target_include_directories(
+    legacy_api INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include> $<INSTALL_INTERFACE:include>)
 
 configure_file(version.h.cmakein include/gromacs/version.h)
 
 # Allow an export target for legacy_api since it is a dependency of the
 # installable libgromacs target.
-install(TARGETS legacy_api
-        EXPORT libgromacs
-        INCLUDES DESTINATION include)
+install(
+    TARGETS legacy_api
+    EXPORT libgromacs
+    INCLUDES
+    DESTINATION include)
 
 if(GMX_INSTALL_LEGACY_API)
     # Install public header directories.
-    install(DIRECTORY include/gromacs
-            DESTINATION include)
+    install(DIRECTORY include/gromacs DESTINATION include)
 
     # Install "configured" files from the build tree.
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/gromacs/version.h
-            DESTINATION include/gromacs)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/gromacs/version.h DESTINATION include/gromacs)
 endif()

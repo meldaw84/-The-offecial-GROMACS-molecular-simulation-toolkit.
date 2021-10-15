@@ -49,7 +49,7 @@ target_compile_definitions(scanner PRIVATE HAVE_CONFIG_H)
 # are awkward to suppress inline, so we do it in the compilation
 # command (after testing that the compiler supports the
 # suppressions).
-if (WIN32)
+if(WIN32)
     gmx_target_warning_suppression(scanner /wd4101 HAS_NO_MSVC_UNUSED)
     gmx_target_warning_suppression(scanner /wd4244 HAS_NO_MSVC_LOSSY_CONVERSION)
     gmx_target_warning_suppression(scanner /wd4267 HAS_NO_MSVC_LOSSY_CONVERSION_SIZE_T_TO_INT)
@@ -64,7 +64,9 @@ target_link_libraries(scanner PRIVATE legacy_api)
 target_link_libraries(scanner PRIVATE legacy_modules)
 
 list(APPEND libgromacs_object_library_dependencies scanner)
-set(libgromacs_object_library_dependencies ${libgromacs_object_library_dependencies} PARENT_SCOPE)
+set(libgromacs_object_library_dependencies
+    ${libgromacs_object_library_dependencies}
+    PARENT_SCOPE)
 
 # Source files have the following dependencies on library infrastructure.
 #target_link_libraries(selection PRIVATE
@@ -74,12 +76,9 @@ set(libgromacs_object_library_dependencies ${libgromacs_object_library_dependenc
 
 # Public interface for modules, including dependencies and interfaces
 #target_include_directories(selection PUBLIC
-target_include_directories(selection INTERFACE
-                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+target_include_directories(selection INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 #target_link_libraries(selection PUBLIC
-target_link_libraries(selection INTERFACE
-                      legacy_api
-                      )
+target_link_libraries(selection INTERFACE legacy_api)
 
 # TODO: when selection is an OBJECT target
 #target_link_libraries(selection PUBLIC legacy_api)
@@ -88,28 +87,26 @@ target_link_libraries(selection INTERFACE
 # Module dependencies
 # selection interfaces convey transitive dependence on these modules.
 #target_link_libraries(selection PUBLIC
-target_link_libraries(selection INTERFACE
-                      utility
-                      )
+target_link_libraries(selection INTERFACE utility)
 # Source files have the following private module dependencies.
 #target_link_libraries(selection PRIVATE NOTHING)
 # TODO: Explicitly link specific modules.
 #target_link_libraries(selection PRIVATE legacy_modules)
 
 if(GMX_INSTALL_LEGACY_API)
-    install(FILES
-	    indexutil.h
-	    nbsearch.h
-	    position.h
-	    selectioncollection.h
-	    selectionenums.h
-	    selection.h
-	    selectionoptionbehavior.h
-	    selectionoption.h
-	    selectionoptionmanager.h
-            DESTINATION include/gromacs/selection)
+    install(
+        FILES indexutil.h
+              nbsearch.h
+              position.h
+              selectioncollection.h
+              selectionenums.h
+              selection.h
+              selectionoptionbehavior.h
+              selectionoption.h
+              selectionoptionmanager.h
+        DESTINATION include/gromacs/selection)
 endif()
 
-if (BUILD_TESTING)
+if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()

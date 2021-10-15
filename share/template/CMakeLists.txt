@@ -34,7 +34,7 @@
 # the research papers on the package. Check out http://www.gromacs.org.
 
 add_executable(template template.cpp)
-if (WIN32)
+if(WIN32)
     gmx_target_warning_suppression(template /wd4244 HAS_NO_MSVC_LOSSY_CONVERSION_DOUBLE_TO_REAL)
     gmx_target_warning_suppression(template /wd4267 HAS_NO_MSVC_LOSSY_CONVERSION_SIZE_T_TO_INT)
 endif()
@@ -43,23 +43,24 @@ endif()
 target_include_directories(template SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/src/external)
 target_link_libraries(template libgromacs legacy_modules ${GMX_EXE_LINKER_FLAGS})
 
-set(DOCUMENTATION_HTTP_URL_BASE
-    http://jenkins.gromacs.org/job/Documentation_Nightly_master/javadoc)
-if (SOURCE_IS_SOURCE_DISTRIBUTION)
-    set(DOCUMENTATION_HTTP_URL_BASE
-        http://manual.gromacs.org/documentation/${GMX_VERSION_STRING})
+set(DOCUMENTATION_HTTP_URL_BASE http://jenkins.gromacs.org/job/Documentation_Nightly_master/javadoc)
+if(SOURCE_IS_SOURCE_DISTRIBUTION)
+    set(DOCUMENTATION_HTTP_URL_BASE http://manual.gromacs.org/documentation/${GMX_VERSION_STRING})
 endif()
 configure_file(README.cmakein README @ONLY)
 
-install(FILES CMakeLists.txt.template
-        DESTINATION ${GMX_INSTALL_GMXDATADIR}/template
-        RENAME CMakeLists.txt
-        COMPONENT development)
+install(
+    FILES CMakeLists.txt.template
+    DESTINATION ${GMX_INSTALL_GMXDATADIR}/template
+    RENAME CMakeLists.txt
+    COMPONENT development)
 
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/README template.cpp Makefile.pkg
-        DESTINATION ${GMX_INSTALL_GMXDATADIR}/template
-        COMPONENT development)
+install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/README template.cpp Makefile.pkg
+    DESTINATION ${GMX_INSTALL_GMXDATADIR}/template
+    COMPONENT development)
 
-install(FILES cmake/FindGROMACS.cmake
-        DESTINATION ${GMX_INSTALL_GMXDATADIR}/template/cmake
-        COMPONENT development)
+install(
+    FILES cmake/FindGROMACS.cmake
+    DESTINATION ${GMX_INSTALL_GMXDATADIR}/template/cmake
+    COMPONENT development)

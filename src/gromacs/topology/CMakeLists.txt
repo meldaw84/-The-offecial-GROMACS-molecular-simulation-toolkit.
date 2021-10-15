@@ -36,34 +36,32 @@
 add_library(topology INTERFACE)
 
 file(GLOB TOPOLOGY_SOURCES *.cpp)
-set(LIBGROMACS_SOURCES ${LIBGROMACS_SOURCES} ${TOPOLOGY_SOURCES} PARENT_SCOPE)
+set(LIBGROMACS_SOURCES
+    ${LIBGROMACS_SOURCES} ${TOPOLOGY_SOURCES}
+    PARENT_SCOPE)
 
 if(GMX_INSTALL_LEGACY_API)
-  install(FILES
-	  atomprop.h
-	  atoms.h
-	  block.h
-	  forcefieldparameters.h
-	  idef.h
-	  ifunc.h
-	  index.h
-	  symtab.h
-	  topology.h
-	  DESTINATION include/gromacs/topology)
+    install(
+        FILES atomprop.h
+              atoms.h
+              block.h
+              forcefieldparameters.h
+              idef.h
+              ifunc.h
+              index.h
+              symtab.h
+              topology.h
+        DESTINATION include/gromacs/topology)
 endif()
 
 # Source files have the following private module dependencies.
-target_link_libraries(options PRIVATE
-		)
+target_link_libraries(options PRIVATE)
 
 # Public interface for modules, including dependencies and interfaces
 #target_include_directories(topology PUBLIC
-target_include_directories(topology INTERFACE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+target_include_directories(topology INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 #target_link_libraries(topology PUBLIC
-target_link_libraries(topology INTERFACE
-        legacy_api
-        )
+target_link_libraries(topology INTERFACE legacy_api)
 
 # TODO: when topology is an OBJECT target
 #target_link_libraries(topology PUBLIC legacy_api)
@@ -72,10 +70,8 @@ target_link_libraries(topology INTERFACE
 # Module dependencies
 # topology interfaces convey transitive dependence on these modules.
 #target_link_libraries(topology PUBLIC
-target_link_libraries(topology INTERFACE
-                      utility
-        )
+target_link_libraries(topology INTERFACE utility)
 
-if (BUILD_TESTING)
-	add_subdirectory(tests)
+if(BUILD_TESTING)
+    add_subdirectory(tests)
 endif()

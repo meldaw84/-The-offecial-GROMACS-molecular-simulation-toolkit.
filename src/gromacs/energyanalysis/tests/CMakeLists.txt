@@ -32,7 +32,4 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out http://www.gromacs.org.
 
-gmx_add_unit_test(EnergyAnalysisUnitTests energyanalysis-test
-    CPP_SOURCE_FILES
-        legacyenergy.cpp
-        )
+gmx_add_unit_test(EnergyAnalysisUnitTests energyanalysis-test CPP_SOURCE_FILES legacyenergy.cpp)

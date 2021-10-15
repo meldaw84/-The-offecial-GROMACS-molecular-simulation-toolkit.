@@ -37,10 +37,12 @@ if(GMX_INSTALL_LEGACY_API)
     add_subdirectory(template)
 endif()
 
-install(FILES README.tutor README_FreeEnergyModifications.txt
+install(
+    FILES README.tutor README_FreeEnergyModifications.txt
     DESTINATION ${GMX_INSTALL_GMXDATADIR}
     COMPONENT data)
-install(DIRECTORY top
+install(
+    DIRECTORY top
     DESTINATION ${GMX_INSTALL_GMXDATADIR}
     COMPONENT data
     PATTERN "*~" EXCLUDE)

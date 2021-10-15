@@ -32,16 +32,16 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out http://www.gromacs.org.
 
-gmx_add_unit_test(CoordinateIOTests coordinateio-test
+gmx_add_unit_test(
+    CoordinateIOTests
+    coordinateio-test
     CPP_SOURCE_FILES
-        builder.cpp
-        outputadaptercontainer.cpp
-        outputadapters.cpp
-        requirements.cpp
-        setatoms.cpp
-        setbothtime.cpp
-        setstarttime.cpp
-        settimestep.cpp
-        testmodule.cpp
-        )
-
+    builder.cpp
+    outputadaptercontainer.cpp
+    outputadapters.cpp
+    requirements.cpp
+    setatoms.cpp
+    setbothtime.cpp
+    setstarttime.cpp
+    settimestep.cpp
+    testmodule.cpp)

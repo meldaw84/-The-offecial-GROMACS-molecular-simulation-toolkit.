@@ -32,14 +32,15 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out http://www.gromacs.org.
 
-gmx_add_unit_test(OptionsUnitTests options-test
+gmx_add_unit_test(
+    OptionsUnitTests
+    options-test
     CPP_SOURCE_FILES
-        abstractoptionstorage.cpp
-        filenameoption.cpp
-        filenameoptionmanager.cpp
-        option.cpp
-        optionsassigner.cpp
-        repeatingsection.cpp
-        timeunitmanager.cpp
-        treesupport.cpp
-        )
+    abstractoptionstorage.cpp
+    filenameoption.cpp
+    filenameoptionmanager.cpp
+    option.cpp
+    optionsassigner.cpp
+    repeatingsection.cpp
+    timeunitmanager.cpp
+    treesupport.cpp)

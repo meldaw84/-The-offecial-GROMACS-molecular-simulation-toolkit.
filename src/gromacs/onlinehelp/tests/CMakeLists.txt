@@ -32,14 +32,9 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out http://www.gromacs.org.
 
-gmx_add_unit_test_library(onlinehelp-test-shared
-                          mock_helptopic.cpp)
+gmx_add_unit_test_library(onlinehelp-test-shared mock_helptopic.cpp)
 target_link_libraries(onlinehelp-test-shared PUBLIC common)
 
-gmx_add_unit_test(OnlineHelpUnitTests onlinehelp-test
-    CPP_SOURCE_FILES
-        helpformat.cpp
-        helpmanager.cpp
-        helpwritercontext.cpp
-        )
+gmx_add_unit_test(OnlineHelpUnitTests onlinehelp-test CPP_SOURCE_FILES helpformat.cpp helpmanager.cpp
+                  helpwritercontext.cpp)
 target_link_libraries(onlinehelp-test PRIVATE onlinehelp-test-shared)

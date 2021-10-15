@@ -59,17 +59,19 @@ configure_file(Doxyfile-dev.in Doxyfile-dev @ONLY)
 # C++ external API documentation
 ################################
 find_package(Doxygen)
-if (DOXYGEN_FOUND)
-    add_custom_target( gmxapi-cppdocs
+if(DOXYGEN_FOUND)
+    add_custom_target(
+        gmxapi-cppdocs
         COMMAND ${DOXYGEN_EXECUTABLE} Doxyfile
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         COMMENT "Generating API user documentation for ${GMXAPI_USERDOC_OUTPUT}"
-        VERBATIM )
-    add_custom_target( gmxapi-cppdocs-dev
+        VERBATIM)
+    add_custom_target(
+        gmxapi-cppdocs-dev
         COMMAND ${DOXYGEN_EXECUTABLE} Doxyfile-dev
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         COMMENT "Generating API developer documentation for ${GMXAPI_DEVDOC_OUTPUT}"
-        VERBATIM )
-else ()
+        VERBATIM)
+else()
     message(STATUS "Doxygen not found. Documentation targets will not be generated.")
-endif ()
+endif()

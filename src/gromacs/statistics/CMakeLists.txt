@@ -36,16 +36,14 @@
 add_library(statistics INTERFACE)
 file(GLOB STATISTICS_SOURCES *.cpp)
 set(LIBGROMACS_SOURCES
-    ${LIBGROMACS_SOURCES} ${STATISTICS_SOURCES} PARENT_SCOPE)
+    ${LIBGROMACS_SOURCES} ${STATISTICS_SOURCES}
+    PARENT_SCOPE)
 
 # Public interface for modules, including dependencies and interfaces
 #target_include_directories(statistics PUBLIC
-target_include_directories(statistics INTERFACE
-                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+target_include_directories(statistics INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 #target_link_libraries(statistics PUBLIC
-target_link_libraries(statistics INTERFACE
-                      legacy_api
-                      )
+target_link_libraries(statistics INTERFACE legacy_api)
 
 # TODO: when statistics is an OBJECT target
 #target_link_libraries(statistics PUBLIC legacy_api)
@@ -54,9 +52,7 @@ target_link_libraries(statistics INTERFACE
 # Module dependencies
 # statistics interfaces convey transitive dependence on these modules.
 #target_link_libraries(statistics PUBLIC
-target_link_libraries(statistics INTERFACE
-                      utility
-                      )
+target_link_libraries(statistics INTERFACE utility)
 # Source files have the following private module dependencies.
 #target_link_libraries(statistics PRIVATE NOTHING)
 # TODO: Explicitly link specific modules.

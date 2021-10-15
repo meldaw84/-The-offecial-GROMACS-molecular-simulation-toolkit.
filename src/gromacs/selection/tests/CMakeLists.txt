@@ -32,12 +32,13 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out http://www.gromacs.org.
 
-gmx_add_unit_test(SelectionUnitTests selection-test
+gmx_add_unit_test(
+    SelectionUnitTests
+    selection-test
     CPP_SOURCE_FILES
-        indexutil.cpp
-        nbsearch.cpp
-        poscalc.cpp
-        selectioncollection.cpp
-        selectionoption.cpp
-        toputils.cpp
-        )
+    indexutil.cpp
+    nbsearch.cpp
+    poscalc.cpp
+    selectioncollection.cpp
+    selectionoption.cpp
+    toputils.cpp)

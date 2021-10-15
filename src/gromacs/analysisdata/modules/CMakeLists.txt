@@ -33,11 +33,6 @@
 # the research papers on the package. Check out http://www.gromacs.org.
 
 if(GMX_INSTALL_LEGACY_API)
-    install(FILES
-	    average.h
-	    displacement.h
-	    histogram.h
-	    lifetime.h
-	    plot.h
+    install(FILES average.h displacement.h histogram.h lifetime.h plot.h
             DESTINATION include/gromacs/analysisdata/modules)
 endif()

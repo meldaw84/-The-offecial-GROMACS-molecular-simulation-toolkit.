@@ -32,12 +32,13 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out http://www.gromacs.org.
 
-gmx_add_unit_test(MDSpanTests mdspan-test
+gmx_add_unit_test(
+    MDSpanTests
+    mdspan-test
     CPP_SOURCE_FILES
-        accessor_policy.cpp
-        extents.cpp
-        extensions.cpp
-        layouts.cpp
-        mdspan.cpp
-        )
+    accessor_policy.cpp
+    extents.cpp
+    extensions.cpp
+    layouts.cpp
+    mdspan.cpp)
 target_link_libraries(mdspan-test PRIVATE mdspan)
