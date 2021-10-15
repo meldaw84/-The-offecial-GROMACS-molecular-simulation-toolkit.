@@ -1534,8 +1534,8 @@ void pme_gpu_spread(const PmeGpu*                  pmeGpu,
             // with other matching parameters.
             const bool canPipelineReceives = computeSplines && spreadCharges && !writeGlobalOrSaveSplines;
             std::tie(kernelParamsPtr->usePipeline,
-                     kernelParamsPtr->pipelineAtomEnd,
                      kernelParamsPtr->pipelineAtomStart,
+                     kernelParamsPtr->pipelineAtomEnd,
                      launchStream,
                      spreadIsComplete) =
                     pmeCoordinateReceiverGpu->synchronizeOnCoordinatesFromPpRank(
