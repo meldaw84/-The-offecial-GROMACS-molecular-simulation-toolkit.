@@ -110,9 +110,11 @@ public:
                                                int                ppRank,
                                                int                senderIndex);
 
-    //! \copydoc PmeCoordinateReceiverGpu::synchronizeOnCoordinatesFromPpRank
-    std::tuple<bool, int, int, const DeviceStream*, bool>
-    synchronizeOnCoordinatesFromPpRank(bool canPipelineReceives, const DeviceStream* pmeStream);
+    //! \copydoc PmeCoordinateReceiverGpu::prepareForSpread
+    int prepareForSpread(const bool canPipelineReceives, const DeviceStream& pmeStream);
+
+    //! \copydoc PmeCoordinateReceiverGpu::synchronizeOnCoordinatesFromAPpRank
+    PipelinedSpreadManager synchronizeOnCoordinatesFromAPpRank();
 
     //! \copydoc PmeCoordinateReceiverGpu::addPipelineDependencies
     void addPipelineDependencies(const DeviceStream& pmeStream);
