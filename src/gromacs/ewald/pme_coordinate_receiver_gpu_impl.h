@@ -111,10 +111,10 @@ public:
                                                int                senderIndex);
 
     //! \copydoc PmeCoordinateReceiverGpu::prepareForSpread
-    int prepareForSpread(const bool canPipelineReceives, const DeviceStream& pmeStream);
+    std::pair<int,int> prepareForSpread(const bool canPipelineReceives, const DeviceStream& pmeStream);
 
     //! \copydoc PmeCoordinateReceiverGpu::synchronizeOnCoordinatesFromAPpRank
-    PipelinedSpreadManager synchronizeOnCoordinatesFromAPpRank();
+    PipelinedSpreadManager synchronizeOnCoordinatesFromAPpRank(int senderRank);
 
     //! \copydoc PmeCoordinateReceiverGpu::addPipelineDependencies
     void addPipelineDependencies(const DeviceStream& pmeStream);
