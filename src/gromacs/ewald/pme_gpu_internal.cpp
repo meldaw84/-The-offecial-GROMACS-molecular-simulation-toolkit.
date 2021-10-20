@@ -1529,15 +1529,13 @@ void pme_gpu_spread(const PmeGpu*                  pmeGpu,
     // the number of spread operations. Pipelining is active when
     // that is greater than one.
     const bool canPipelineReceives = computeSplines && spreadCharges && !writeGlobalOrSaveSplines;
-    int        pipelineIndexBegin, pipelineIndexEnd;
-    std::tie(pipelineIndexBegin, pipelineIndexEnd) =
-            useGpuDirectComm ? pmeCoordinateReceiverGpu->prepareForSpread(
-                    canPipelineReceives, pmeGpu->archSpecific->pmeStream_)
-                             : std::make_pair<int, int>(0, 1);
+    gmx::Range<int> pipelineIndexRange = useGpuDirectComm ? pmeCoordinateReceiverGpu->prepareForSpread(
+                                                 canPipelineReceives, pmeGpu->archSpecific->pmeStream_)
+                                                          : gmx::Range<int>(0, 1);
     const DeviceStream* launchStream = &pmeGpu->archSpecific->pmeStream_;
-    for (int pipelineIndex = pipelineIndexBegin; pipelineIndex < pipelineIndexEnd; ++pipelineIndex)
+    for (auto pipelineIndex : pipelineIndexRange)
     {
-        if ((pipelineIndexEnd - pipelineIndexBegin) > 1)
+        if (pipelineIndexRange.size() > 1)
         {
             const gmx::PipelinedSpreadManager manager =
                     pmeCoordinateReceiverGpu->synchronizeOnCoordinatesFromAPpRank(pipelineIndex);
@@ -1574,7 +1572,7 @@ void pme_gpu_spread(const PmeGpu*                  pmeGpu,
         launchGpuKernel(kernelPtr, config, *launchStream, timingEvent, "PME spline/spread", kernelArgs);
     }
 
-    if ((pipelineIndexEnd - pipelineIndexBegin) > 1)
+    if (pipelineIndexRange.size() > 1)
     {
         // Set dependencies for PME stream on all pipeline streams
         pmeCoordinateReceiverGpu->addPipelineDependencies(pmeGpu->archSpecific->pmeStream_);

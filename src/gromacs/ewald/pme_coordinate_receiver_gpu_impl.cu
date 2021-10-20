@@ -142,13 +142,13 @@ void PmeCoordinateReceiverGpu::Impl::launchReceiveCoordinatesFromPpCudaMpi(Devic
 #endif
 }
 
-std::pair<int,int> PmeCoordinateReceiverGpu::Impl::prepareForSpread(const bool          canPipelineReceives,
-                                                                    const DeviceStream& pmeStream)
+Range<int> PmeCoordinateReceiverGpu::Impl::prepareForSpread(const bool          canPipelineReceives,
+                                                            const DeviceStream& pmeStream)
 {
     const bool usePipeline = canPipelineReceives && ppCommManagers_.size() > 1;
     if (usePipeline)
     {
-        return {0, ppCommManagers_.size()};
+        return Range<int>(0, gmx::ssize(ppCommManagers_));
     }
     // Either we can't pipeline the receives, or there's only one of them
 #if GMX_MPI
@@ -162,7 +162,7 @@ std::pair<int,int> PmeCoordinateReceiverGpu::Impl::prepareForSpread(const bool  
 #else
     GMX_UNUSED_VALUE(pmeStream);
 #endif
-    return {0, 1};
+    return { 0, 1 };
 }
 
 PipelinedSpreadManager PmeCoordinateReceiverGpu::Impl::synchronizeOnCoordinatesFromAPpRank(int senderRank)
@@ -241,7 +241,8 @@ void PmeCoordinateReceiverGpu::launchReceiveCoordinatesFromPpCudaMpi(DeviceBuffe
     impl_->launchReceiveCoordinatesFromPpCudaMpi(recvbuf, numAtoms, numBytes, ppRank, senderIndex);
 }
 
-std::pair<int,int> PmeCoordinateReceiverGpu::prepareForSpread(const bool canPipelineReceives, const DeviceStream& pmeStream)
+Range<int> PmeCoordinateReceiverGpu::prepareForSpread(const bool          canPipelineReceives,
+                                                      const DeviceStream& pmeStream)
 {
     return impl_->prepareForSpread(canPipelineReceives, pmeStream);
 }

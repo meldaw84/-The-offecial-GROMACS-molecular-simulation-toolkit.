@@ -43,11 +43,11 @@
 #define GMX_PMECOORDINATERECEIVERGPU_H
 
 #include <memory>
-#include <utility>
 
 #include "gromacs/gpu_utils/devicebuffer_datatype.h"
 #include "gromacs/math/vectypes.h"
 #include "gromacs/utility/gmxmpi.h"
+#include "gromacs/utility/range.h"
 
 class DeviceStream;
 class DeviceContext;
@@ -134,10 +134,10 @@ public:
      *                                 consistent with pipelining
      * \param[in] pmeStream            The stream in which PME operates
      *
-     * \return A [begin,end) range of indices for the pipeline chunks
+     * \return A range of indices for the pipeline chunks
      * (where the size of the range being > 1 indicates pipelining is
      * active), so the calling code can loop appropriately. */
-    std::pair<int, int> prepareForSpread(bool canPipelineReceives, const DeviceStream& pmeStream);
+    Range<int> prepareForSpread(bool canPipelineReceives, const DeviceStream& pmeStream);
 
     /*! \brief When using pipelined spread kernel launches, wait for
      * the coordinates from a PP rank and prepare to launch a spread
