@@ -1529,9 +1529,11 @@ void pme_gpu_spread(const PmeGpu*                  pmeGpu,
     // the number of spread operations. Pipelining is active when
     // that is greater than one.
     const bool canPipelineReceives = computeSplines && spreadCharges && !writeGlobalOrSaveSplines;
-    const auto [pipelineIndexBegin, pipelineIndexEnd] = useGpuDirectComm ? pmeCoordinateReceiverGpu->prepareForSpread(
-                                         canPipelineReceives, pmeGpu->archSpecific->pmeStream_)
-        : std::make_pair<int, int>(0, 1);
+    int        pipelineIndexBegin, pipelineIndexEnd;
+    std::tie(pipelineIndexBegin, pipelineIndexEnd) =
+            useGpuDirectComm ? pmeCoordinateReceiverGpu->prepareForSpread(
+                    canPipelineReceives, pmeGpu->archSpecific->pmeStream_)
+                             : std::make_pair<int, int>(0, 1);
     const DeviceStream* launchStream = &pmeGpu->archSpecific->pmeStream_;
     for (int pipelineIndex = pipelineIndexBegin; pipelineIndex < pipelineIndexEnd; ++pipelineIndex)
     {
