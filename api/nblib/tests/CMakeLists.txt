@@ -88,6 +88,7 @@ set(exename "nblib-integration-test")
 
 gmx_add_gtest_executable(
     ${exename}
+    HARDWARE_DETECTION
     CPP_SOURCE_FILES
     # files with code for tests
         gmxcalculator.cpp
