@@ -79,7 +79,7 @@ namespace
 {
 
 //! Required number of MPI ranks to run the tests
-static constexpr int sc_requiredRankCount = 4;
+constexpr int sc_requiredRankCount = 4;
 
 /*! \brief Get encoded numerical value for sending rank, atom number and spatial 3D index
  *
