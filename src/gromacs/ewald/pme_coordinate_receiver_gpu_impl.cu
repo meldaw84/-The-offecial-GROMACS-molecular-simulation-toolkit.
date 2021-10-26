@@ -171,11 +171,12 @@ PipelinedSpreadManager PmeCoordinateReceiverGpu::Impl::synchronizeOnCoordinatesF
 
     GMX_ASSERT(ppCommManagers_.size() > 1, "Multiple PP ranks are required for pipelining");
 #if GMX_MPI
+#    if GMX_LIB_MPI
     // Ignore the rank passed in
     senderRank = -1; // Rank of PP task that is associated with this invocation.
-#    if GMX_LIB_MPI
     // Wait on data from any one of the PP sender GPUs
     MPI_Waitany(requests_.size(), requests_.data(), &senderRank, MPI_STATUS_IGNORE);
+    // Now we have a valid senderRank
     GMX_ASSERT(senderRank >= 0, "Rank of sending PP task must be 0 or greater");
     manager.launchStream = ppCommManagers_[senderRank].stream.get();
 #    else
