@@ -2468,13 +2468,17 @@ TestInfo* RegisterTest(const char* test_suite_name, const char* test_name,
     Factory factory_;
   };
 
-  //NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
+#ifndef __clang_analyzer__
   return internal::MakeAndRegisterTestInfo(
       test_suite_name, test_name, type_param, value_param,
       internal::CodeLocation(file, line), internal::GetTypeId<TestT>(),
       internal::SuiteApiResolver<TestT>::GetSetUpCaseOrSuite(file, line),
       internal::SuiteApiResolver<TestT>::GetTearDownCaseOrSuite(file, line),
       new FactoryImpl{std::move(factory)});
+#else
+  // Works because this path is only taken during static analysis
+  return nullptr;
+#endif
 }
 
 }  // namespace testing
