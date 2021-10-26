@@ -128,7 +128,6 @@ public:
         {
             return;
         }
-        //NOLINTNEXTLINE(clang-analyzer.cplusplus.NewDeleteLeaks)
         testing::RegisterTest(
                 testSuiteName, testCaseName, nullptr, nullptr, __FILE__, __LINE__, [=]() -> TestFixture* {
                     return new TestCase();

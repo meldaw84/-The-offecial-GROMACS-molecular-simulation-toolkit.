@@ -2468,6 +2468,7 @@ TestInfo* RegisterTest(const char* test_suite_name, const char* test_name,
     Factory factory_;
   };
 
+  //NOLINTNEXTLINE(clang-analyzer.cplusplus.NewDeleteLeaks)
   return internal::MakeAndRegisterTestInfo(
       test_suite_name, test_name, type_param, value_param,
       internal::CodeLocation(file, line), internal::GetTypeId<TestT>(),

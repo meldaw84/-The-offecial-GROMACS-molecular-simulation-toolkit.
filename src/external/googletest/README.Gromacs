@@ -13,6 +13,9 @@ around reports from the clang static analyzer in
 googletest/include/gtest/gtest-matchers.h and
 googlemock/include/gmock/gmock-matchers.h.
 
+A clang-analyzer suppression is added to
+googletest/include/gtest/gtest.h.
+
 Some warning-generation flags are removed from
 googletest/cmake/internal_utils.cmake because these are not always
 supported by compilers.
