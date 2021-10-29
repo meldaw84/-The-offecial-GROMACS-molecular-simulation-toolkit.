@@ -1524,10 +1524,10 @@ void pme_gpu_spread(const PmeGpu*                  pmeGpu,
     // coordinate range.
     //
     // To find out which mode is being used, we let the
-    // pmeCoordinateReceiver know whether this spread stage can be
+    // pmeCoordinateReceiver know whether this spread operation can be
     // pipelined. It will add its own conditions to those, and return
-    // the number of spread operations. Pipelining is active when
-    // that is greater than one.
+    // a range describing the number of pipeline stages. Pipelining is
+    // active when that is greater than one.
     const bool canPipelineReceives = computeSplines && spreadCharges && !writeGlobalOrSaveSplines;
     gmx::Range<int> pipelineIndexRange = useGpuDirectComm ? pmeCoordinateReceiverGpu->prepareForSpread(
                                                  canPipelineReceives, pmeGpu->archSpecific->pmeStream_)

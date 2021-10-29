@@ -165,37 +165,37 @@ Range<int> PmeCoordinateReceiverGpu::Impl::prepareForSpread(const bool          
     return { 0, 1 };
 }
 
-PipelinedSpreadManager PmeCoordinateReceiverGpu::Impl::synchronizeOnCoordinatesFromAPpRank(int senderRank)
+PipelinedSpreadManager PmeCoordinateReceiverGpu::Impl::synchronizeOnCoordinatesFromAPpRank(int pipelineIndex)
 {
     PipelinedSpreadManager manager;
 
     GMX_ASSERT(ppCommManagers_.size() > 1, "Multiple PP ranks are required for pipelining");
 #if GMX_MPI
 #    if GMX_LIB_MPI
-    // Ignore the rank passed in
-    senderRank = -1; // Rank of PP task that is associated with this invocation.
+    int senderRank = -1;
     // Wait on data from any one of the PP sender GPUs
     MPI_Waitany(requests_.size(), requests_.data(), &senderRank, MPI_STATUS_IGNORE);
     // Now we have a valid senderRank
     GMX_ASSERT(senderRank >= 0, "Rank of sending PP task must be 0 or greater");
-    manager.launchStream = ppCommManagers_[senderRank].stream.get();
+    manager.launchStream = ppCommManagers_[pipelineIndex].stream.get();
 #    else
     // MPI_Waitany is not available in thread-MPI. However, the
     // MPI_Wait here is not associated with data but is host-side
     // scheduling code to receive a CUDA event, and will be executed
     // in advance of the actual data transfer. Therefore we can
-    // receive in order of pipeline stage, still allowing the
+    // receive in order of pipeline index, still allowing the
     // scheduled GPU-direct comms to initiate out-of-order in their
     // respective streams. For cases with CPU force computations, the
     // scheduling is less asynchronous (done on a per-step basis), so
     // host-side improvements should be investigated as tracked in
     // issue #4047
+    const int senderRank = pipelineIndex;
     MPI_Wait(&requests_[senderRank], MPI_STATUS_IGNORE);
     // Prepare to launch the spread kernel in the stream of the
     // rank whose coordinates have arrived, and synchronize
     // appropriately.
-    manager.launchStream = ppCommManagers_[senderRank].stream.get();
-    ppCommManagers_[senderRank].sync->enqueueWaitEvent(*manager.launchStream);
+    manager.launchStream = ppCommManagers_[pipelineIndex].stream.get();
+    ppCommManagers_[pipelineIndex].sync->enqueueWaitEvent(*manager.launchStream);
 #    endif
     manager.atomStart = std::get<0>(ppCommManagers_[senderRank].atomRange);
     manager.atomEnd   = std::get<1>(ppCommManagers_[senderRank].atomRange);

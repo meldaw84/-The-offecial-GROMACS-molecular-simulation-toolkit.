@@ -134,29 +134,22 @@ public:
      *                                 consistent with pipelining
      * \param[in] pmeStream            The stream in which PME operates
      *
-     * \return A range of indices for the pipeline chunks
+     * \return A range of indices for the pipeline stages
      * (where the size of the range being > 1 indicates pipelining is
      * active), so the calling code can loop appropriately. */
     Range<int> prepareForSpread(bool canPipelineReceives, const DeviceStream& pmeStream);
 
     /*! \brief When using pipelined spread kernel launches, wait for
      * the coordinates from a PP rank and prepare to launch a spread
-     * kernel in the stream corresponding to that rank.
-     *
-     * With library MPI, ignore the \c senderRank and wait on any
-     * incoming communication.
-     *
-     * With thread MPI, wait on the PP rank described by \c senderRank
-     * and then enqueue the PP co-ordinate transfer event received
-     * from that rank into the launch stream.
+     * kernel in the stream corresponding to \c pipelineIndex.
      *
      * \return The atom range and GPU stream for this kernel launch.
      */
-    PipelinedSpreadManager synchronizeOnCoordinatesFromAPpRank(int senderRank);
+    PipelinedSpreadManager synchronizeOnCoordinatesFromAPpRank(int pipelineIndex);
 
     /*! \brief When using pipelined spread kernel launches,
      * synchronize the PME stream with the streams used for pipelined
-     * spread-kernel chunks.
+     * spread-kernel stages.
      *
      * \param[in] pmeStream  The stream in which PME operates
      */
