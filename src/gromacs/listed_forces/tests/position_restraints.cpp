@@ -177,9 +177,9 @@ TEST_P(PositionRestraintsTest, BasicPosResNoFreeEnergy)
 std::array<PbcType, 3> c_pbcForTests = { PbcType::No, PbcType::XY, PbcType::Xyz };
 //! Reference Coordinate Scaling values for testing
 std::array<RefCoordScaling, 3> c_refCoordScalingForTests = { RefCoordScaling::No,
-                                                           RefCoordScaling::Com,
-                                                           RefCoordScaling::All };
-std::array<int, 3> c_threadCounts = {1, 2, 3};
+                                                             RefCoordScaling::Com,
+                                                             RefCoordScaling::All };
+std::array<int, 3>             c_threadCounts            = { 1, 2, 3 };
 
 INSTANTIATE_TEST_CASE_P(PosResBasicTest,
                         PositionRestraintsTest,
