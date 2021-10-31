@@ -52,6 +52,8 @@ gromacs:clang-ASAN:test:
     - k8s-scilifelab
   needs:
     - job: gromacs:clang-ASAN:build
+  before_script:
+    - export LSAN_OPTIONS="suppressions=$CI_PROJECT_DIR/admin/lsan-suppressions.txt:print_suppressions=0"
   after_script:
     - for file in $(compgen -G "build/Testing/Temporary/MemoryChecker*log") ; do
       echo Error log file for ASAN via ctest $file ;
