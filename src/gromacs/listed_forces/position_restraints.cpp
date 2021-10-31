@@ -453,7 +453,7 @@ real posres(const int             numThreads,
         rvec_inc(output.virial, localVirial);
     }
 
-    for (auto& output : outputs)
+    for (PosResOutputAccumulator& output : outputs)
     {
         *dvdlambda += output.dvdl;
         vtot += output.vtot;

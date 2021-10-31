@@ -53,10 +53,9 @@
 #include "testutils/testfilemanager.h"
 
 
-namespace gmx
+namespace gmx::test
 {
-namespace test
-{
+
 namespace
 {
 
@@ -113,6 +112,4 @@ TEST_F(GromppTest, FailsWithOverlappingRestraints)
 
 } // namespace
 
-} // namespace test
-
-} // namespace gmx
+} // namespace gmx::test

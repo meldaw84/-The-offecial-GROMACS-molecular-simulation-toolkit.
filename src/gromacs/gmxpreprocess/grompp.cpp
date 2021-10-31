@@ -974,8 +974,6 @@ static void read_posres(gmx_mtop_t*                              mtop,
     totmass = 0;
     a       = 0;
     snew(hadAtom, natoms);
-
-
     for (gmx_molblock_t& molb : mtop->molblock)
     {
         nat_molb                       = molb.nmol * mtop->moltype[molb.type].atoms.nr;
