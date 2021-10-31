@@ -181,7 +181,7 @@ std::array<RefCoordScaling, 3> c_refCoordScalingForTests = { RefCoordScaling::No
                                                              RefCoordScaling::All };
 std::array<int, 3>             c_threadCounts            = { 1, 2, 3 };
 
-INSTANTIATE_TEST_CASE_P(PosResBasicTest,
+INSTANTIATE_TEST_SUITE_P(PosResBasicTest,
                         PositionRestraintsTest,
                         ::testing::Combine(::testing::ValuesIn(c_refCoordScalingForTests),
                                            ::testing::ValuesIn(c_pbcForTests),
