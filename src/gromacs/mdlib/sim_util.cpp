@@ -1339,7 +1339,7 @@ void do_force(FILE*                               fplog,
     const bool reinitGpuPmePpComms =
             simulationWork.useGpuPmePpCommunication && (stepWork.doNeighborSearch);
 
-    auto* localXReadyOnDevice = (stepWork.haveGpuPmeOnThisRank || simulationWork.useGpuBufferOps)
+    auto* localXReadyOnDevice = (stepWork.haveGpuPmeOnThisRank || stepWork.useGpuXBufferOps)
                                         ? stateGpu->getCoordinatesReadyOnDeviceEvent(
                                                 AtomLocality::Local, simulationWork, stepWork)
                                         : nullptr;
