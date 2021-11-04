@@ -255,6 +255,44 @@ private:
 };
 #    endif // GMX_SYCL_USE_USM
 
+/** \brief Partial specialization of \c DeviceAccessor that adds \c
+ * cl::sycl::no_init to write-mode accessors
+ *
+ * This avoids the hipSYCL runtime warning "Detected a requirement
+ * that is neither of discard access mode (SYCL 1.2.1) or noinit
+ * property (SYCL 2020) that accesses uninitialized data. Consider
+ * changing to discard/noinit. Optimizing potential data transfers
+ * away."
+ *
+ * When GROMACS uses an accessor whose mode is
+ * cl::sycl::access::mode::write then we want to runtime to know
+ * explicitly that we do not depend on the former contents of the
+ * buffer. As the message says, with hipSYCL this optimization was
+ * already done, but other runtimes might need this standard hint. */
+template<class T>
+class DeviceAccessor<T, cl::sycl::access::mode::write> :
+    public gmx::internal::PlaceholderAccessor<T, cl::sycl::access::mode::write>
+{
+public:
+    // Inherit all the constructors
+    using gmx::internal::PlaceholderAccessor<T, cl::sycl::access::mode::write>::PlaceholderAccessor;
+    //! Construct Accessor from DeviceBuffer (must be initialized)
+    DeviceAccessor(DeviceBuffer<T>& buffer) :
+        gmx::internal::PlaceholderAccessor<T, cl::sycl::access::mode::write>(getSyclBuffer(buffer),
+                                                                             { cl::sycl::no_init })
+    {
+    }
+    void bind(cl::sycl::handler& cgh) { cgh.require(*this); }
+
+private:
+    //! Helper function to get sycl:buffer object from DeviceBuffer wrapper, with a sanity check.
+    static inline cl::sycl::buffer<T, 1>& getSyclBuffer(DeviceBuffer<T>& buffer)
+    {
+        GMX_ASSERT(bool(buffer), "Trying to construct accessor from an uninitialized buffer");
+        return *buffer.buffer_;
+    }
+};
+
 namespace gmx::internal
 {
 //! A non-functional class that can be used instead of real accessors
