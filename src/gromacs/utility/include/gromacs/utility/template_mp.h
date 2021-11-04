@@ -129,7 +129,8 @@ auto constructObjectWithVariadicOptionalInitializerHelper(std::tuple<std::option
     }
     else
     {
-        static_assert(std::tuple_size_v<decltype(allArgs)> >= CurrentArgIndex);
+        static_assert(std::tuple_size_v<decltype(allArgs)> > CurrentArgIndex);
+        static_assert(std::tuple_size_v<decltype(allArgs)> >= sizeof...(resolvedArgs));
         auto currentArg = std::get<CurrentArgIndex>(allArgs);
         if (currentArg.has_value())
         {
