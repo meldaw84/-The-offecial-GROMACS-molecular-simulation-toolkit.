@@ -33,6 +33,8 @@
  */
 #include "gmxpre.h"
 
+#include <any>
+
 #include "gromacs/utility/template_mp.h"
 
 #include <gtest/gtest.h>
@@ -96,6 +98,66 @@ TEST(TemplateMPTest, DispatchTemplatedFunctionEnumBool)
             Options::Op2);
     EXPECT_EQ(two1plus2plus5, 9);
 }
+
+
+TEST(TemplateMPTest, ConstructObjectWithVariadicOptionalInitializerEmptyOne)
+{
+    std::optional<int> p1   = { std::nullopt };
+    std::vector<int> result = constructObjectWithVariadicOptionalInitializer<std::vector<int>>(p1);
+    EXPECT_EQ(result.size(), 0);
+}
+
+TEST(TemplateMPTest, ConstructObjectWithVariadicOptionalInitializerEmptyTwo)
+{
+    std::optional<int> p1 = { std::nullopt };
+    std::vector<int> result = constructObjectWithVariadicOptionalInitializer<std::vector<int>>(p1, p1);
+    EXPECT_EQ(result.size(), 0);
+}
+
+TEST(TemplateMPTest, ConstructObjectWithVariadicOptionalInitializerValidOne)
+{
+    std::optional<int> p1   = 5;
+    std::vector<int> result = constructObjectWithVariadicOptionalInitializer<std::vector<int>>(p1);
+    ASSERT_EQ(result.size(), 1);
+    EXPECT_EQ(result[0], 5);
+}
+
+TEST(TemplateMPTest, ConstructObjectWithVariadicOptionalInitializerValidOneEmptyOne)
+{
+    std::optional<int> p1 = 5;
+    std::optional<int> p2 = std::nullopt;
+    std::vector<int> result12 = constructObjectWithVariadicOptionalInitializer<std::vector<int>>(p1, p2);
+    std::vector<int> result21 = constructObjectWithVariadicOptionalInitializer<std::vector<int>>(p2, p1);
+    ASSERT_EQ(result12.size(), 1);
+    EXPECT_EQ(result12[0], 5);
+    ASSERT_EQ(result21.size(), 1);
+    EXPECT_EQ(result21[0], 5);
+}
+
+TEST(TemplateMPTest, ConstructObjectWithVariadicOptionalInitializerThreeValid)
+{
+    std::optional<int>   p1 = 5;
+    std::optional<float> p2 = 5.5;
+    std::optional<char>  p3 = 'A';
+    auto result = constructObjectWithVariadicOptionalInitializer<std::vector<std::any>>(p1, p2, p3);
+    ASSERT_EQ(result.size(), 3);
+    EXPECT_EQ(std::any_cast<int>(result[0]), 5);
+    EXPECT_EQ(std::any_cast<float>(result[1]), 5.5);
+    EXPECT_EQ(std::any_cast<char>(result[2]), 'A');
+}
+
+
+TEST(TemplateMPTest, ConstructObjectWithVariadicOptionalInitializerTwoOfThreeValid)
+{
+    std::optional<int>   p1 = 5;
+    std::optional<float> p2 = std::nullopt;
+    std::optional<char>  p3 = 'A';
+    auto result = constructObjectWithVariadicOptionalInitializer<std::vector<std::any>>(p1, p2, p3);
+    ASSERT_EQ(result.size(), 2);
+    EXPECT_EQ(std::any_cast<int>(result[0]), 5);
+    EXPECT_EQ(std::any_cast<char>(result[1]), 'A');
+}
+
 
 } // anonymous namespace
 } // namespace gmx

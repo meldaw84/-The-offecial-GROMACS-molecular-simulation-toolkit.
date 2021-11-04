@@ -46,6 +46,8 @@
 #include <cassert>
 #include <cstddef>
 
+#include <optional>
+#include <tuple>
 #include <utility>
 
 #include "gromacs/compat/mp11.h"
@@ -116,6 +118,58 @@ auto dispatchTemplatedFunction(Function&& f, bool e, Enums... es)
             es...);
 }
 //! \endcond
+
+template<int CurrentArgIndex, class Object, typename... AllArgs, typename... ResolvedArgs>
+auto constructObjectWithVariadicOptionalInitializerHelper(std::tuple<std::optional<AllArgs>...> allArgs,
+                                                          ResolvedArgs... resolvedArgs)
+{
+    if constexpr (CurrentArgIndex < 0)
+    {
+        return Object{ resolvedArgs... };
+    }
+    else
+    {
+        static_assert(std::tuple_size_v<decltype(allArgs)> >= CurrentArgIndex);
+        auto currentArg = std::get<CurrentArgIndex>(allArgs);
+        if (currentArg.has_value())
+        {
+            return constructObjectWithVariadicOptionalInitializerHelper<CurrentArgIndex - 1, Object>(
+                    allArgs, currentArg.value(), resolvedArgs...);
+        }
+        else
+        {
+            return constructObjectWithVariadicOptionalInitializerHelper<CurrentArgIndex - 1, Object>(
+                    allArgs, resolvedArgs...);
+        }
+    }
+}
+
+/*! \internal \brief
+ * Helper function to create a class with initializer list when some of the arguments are optional.
+ *
+ * Example usage:
+ * \code
+class Foo {
+    template <typename... Args>
+    Foo(Args... args) {}
+}
+
+Foo bar(bool haveOne, bool haveTwo) {
+    std::optional<int> one = haveOne ? 1 : std::nullopt;
+    std::optional<int> two = haveTwo ? 2 : std::nullopt;
+    return constructObjectWithVariadicOptionalInitializer<Foo>(one, two);
+}
+ * \endcode
+ */
+template<typename Object, typename... AllArgs>
+auto constructObjectWithVariadicOptionalInitializer(std::optional<AllArgs>... allArgs)
+{
+    auto          allArgsTuple = std::make_tuple(allArgs...);
+    constexpr int numArgs      = std::tuple_size_v<decltype(allArgsTuple)>;
+    static_assert(numArgs > 0);
+    return constructObjectWithVariadicOptionalInitializerHelper<numArgs - 1, Object>(std::move(allArgsTuple));
+}
+
 
 } // namespace gmx
 
