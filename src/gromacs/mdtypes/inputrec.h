@@ -226,10 +226,14 @@ struct t_expanded
     gmx_bool bWLoneovert;
     //! Did we initialize the weights? TODO: REMOVE FOR 5.0, no longer needed with new logic
     gmx_bool bInit_weights;
+	//! did we initialize the counts? TODO: REMOVE FOR 5.0, no longer needed with new logic 
+	gmx_bool bInit_counts;
     //! To override the main temperature, or define it if it's not defined
     real mc_temp;
     //! User-specified initial weights to start with
     real* init_lambda_weights;
+	/* user-specified initial histogram counts to start with  */
+	real* init_histogram_counts; 
 };
 
 struct t_rotgrp

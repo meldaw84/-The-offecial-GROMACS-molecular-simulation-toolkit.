@@ -130,6 +130,7 @@ enum tpxv
     tpxv_GenericInternalParameters, /**< Added internal parameters for mdrun modules*/
     tpxv_VSite2FD,                  /**< Added 2FD type virtual site */
     tpxv_AddSizeField, /**< Added field with information about the size of the serialized tpr file in bytes, excluding the header */
+	tpxv_InputHistogramCounts,                                /**< can input histogram counts > */
     tpxv_Count         /**< the total number of tpxv versions */
 };
 
@@ -422,6 +423,18 @@ static void do_expandedvals(gmx::ISerializer* serializer, t_expanded* expand, t_
         serializer->doReal(&expand->equil_wl_delta);
         serializer->doReal(&expand->equil_ratio);
     }
+	if (file_version >= tpxv_InputHistogramCounts)
+	{
+		if (n_lambda > 0)
+		{
+            if (serializer->reading())
+			{
+				snew(expand->init_histogram_counts, n_lambda);
+			}
+			serializer->doRealArray(expand->init_histogram_counts, n_lambda);
+			serializer->doBool(&expand->bInit_counts);
+		}
+	}
 }
 
 static void do_simtempvals(gmx::ISerializer* serializer, t_simtemp* simtemp, int n_lambda, int file_version)
