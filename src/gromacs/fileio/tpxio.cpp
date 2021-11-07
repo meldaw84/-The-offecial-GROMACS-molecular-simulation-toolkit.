@@ -137,7 +137,8 @@ enum tpxv
     tpxv_SoftcoreGapsys,              /**< Added gapsys softcore function */
     tpxv_ReaddedConstantAcceleration, /**< Re-added support for constant acceleration NEMD. */
     tpxv_RemoveTholeRfac,             /**< Remove unused rfac parameter from thole listed force */
-    tpxv_Count                        /**< the total number of tpxv versions */
+	tpxv_InputHistogramCounts,        /**< can input histogram counts > */
+    tpxv_Count         /**< the total number of tpxv versions */
 };
 
 /*! \brief Version number of the file format written to run input
@@ -432,6 +433,15 @@ static void do_expandedvals(gmx::ISerializer* serializer, t_expanded* expand, t_
         serializer->doReal(&expand->equil_wl_delta);
         serializer->doReal(&expand->equil_ratio);
     }
+	if (file_version >= tpxv_InputHistogramCounts)
+	{
+		if (n_lambda > 0)
+		{
+			expand->init_histogram_counts.resize(n_lambda);
+			serializer->doRealArray(expand->init_histogram_counts.data(), n_lambda);
+			serializer->doBool(&expand->bInit_counts);
+		}
+	}
 }
 
 static void do_simtempvals(gmx::ISerializer* serializer, t_simtemp* simtemp, int n_lambda, int file_version)
