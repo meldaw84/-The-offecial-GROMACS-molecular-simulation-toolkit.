@@ -119,7 +119,7 @@ DeviceStreamManager::Impl::Impl(const DeviceInformation& deviceInfo,
         if (simulationWork.useGpuPmePpCommunication)
         {
             streams_[DeviceStreamType::PmePpTransfer] =
-                    std::make_unique<DeviceStream>(context_, DeviceStreamPriority::Normal, useTiming);
+                    std::make_unique<DeviceStream>(context_, DeviceStreamPriority::High, useTiming);
         }
     }
     GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR
