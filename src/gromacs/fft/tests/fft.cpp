@@ -50,6 +50,7 @@
 #include "config.h"
 
 #include <algorithm>
+#include <random>
 #include <vector>
 
 #include <gmock/gmock.h>
@@ -554,6 +555,150 @@ TEST_F(FFTTest3D, GpuReal5_6_9)
         }
     }
 }
+
+template<typename T>
+static void fillArray(std::vector<T>& array)
+{
+    const unsigned int               seed = 20211109;
+    std::mt19937                     generator(seed);
+    std::uniform_real_distribution<> distribution(-1.0, 1.0);
+    std::generate(array.begin(), array.end(), [&]() { return distribution(generator); });
+}
+
+TEST_F(FFTTest3D, GpuReal20_20_40)
+{
+    // Ensure library resources are managed appropriately
+    ClfftInitializer clfftInitializer;
+    for (const auto& testDevice : getTestHardwareEnvironment()->getTestDeviceList())
+    {
+        const DeviceContext& deviceContext = testDevice->deviceContext();
+        setActiveDevice(testDevice->deviceInfo());
+        const DeviceStream& deviceStream = testDevice->deviceStream();
+
+        ivec realGridSize          = { 20, 20, 40 };
+        ivec realGridSizePadded    = { 20, 20, 40 };
+        ivec complexGridSizePadded = { 20, 20, 21 };
+
+        int size = complexGridSizePadded[0] * complexGridSizePadded[1] * complexGridSizePadded[2];
+        int sizeInReals = size * 2;
+
+        // Set up the complex grid. Complex numbers take twice the
+        // memory.
+        std::vector<float> complexGridValues(sizeInReals);
+        in_.resize(sizeInReals);
+
+        fillArray(in_);
+
+#    if GMX_GPU_CUDA
+        const FftBackend backend = FftBackend::Cufft;
+#    elif GMX_GPU_OPENCL
+        const FftBackend backend = FftBackend::Ocl;
+#    elif GMX_GPU_SYCL
+#        if GMX_SYCL_HIPSYCL
+#            if GMX_HIPSYCL_HAVE_HIP_TARGET
+        const FftBackend backend = FftBackend::SyclRocfft;
+#            else
+        // Use stub backend so compilation succeeds
+        const FftBackend backend = FftBackend::Sycl;
+        // Skip the rest of the test
+        GTEST_SKIP() << "Only rocFFT backend is supported with hipSYCL";
+#            endif
+#        elif GMX_SYCL_DPCPP
+#            if GMX_FFT_MKL
+        const FftBackend backend = FftBackend::SyclMkl;
+#            else
+        // Use stub backend so compilation succeeds
+        const FftBackend backend = FftBackend::Sycl;
+        // Skip the rest of the test
+        GTEST_SKIP() << "Only MKL backend is supported with DPC++";
+#            endif
+#        else
+#            error "Unsupported SYCL implementation"
+#        endif
+#    endif
+
+        DeviceBuffer<float> realGrid, complexGrid;
+        allocateDeviceBuffer(&realGrid, in_.size(), deviceContext);
+        if (sc_performOutOfPlaceFFT)
+        {
+            allocateDeviceBuffer(&complexGrid, complexGridValues.size(), deviceContext);
+        }
+
+        MPI_Comm           comm                    = MPI_COMM_NULL;
+        const bool         allocateGrid            = false;
+        std::array<int, 1> gridSizesInXForEachRank = { 0 };
+        std::array<int, 1> gridSizesInYForEachRank = { 0 };
+        const int          nz                      = realGridSize[ZZ];
+        Gpu3dFft           gpu3dFft(backend,
+                          allocateGrid,
+                          comm,
+                          gridSizesInXForEachRank,
+                          gridSizesInYForEachRank,
+                          nz,
+                          sc_performOutOfPlaceFFT,
+                          deviceContext,
+                          deviceStream,
+                          realGridSize,
+                          realGridSizePadded,
+                          complexGridSizePadded,
+                          &realGrid,
+                          actualOutputGrid<sc_performOutOfPlaceFFT>(&realGrid, &complexGrid));
+
+        // Transfer the real grid input data for the FFT
+        copyToDeviceBuffer(
+                &realGrid, in_.data(), 0, in_.size(), deviceStream, GpuApiCallBehavior::Sync, nullptr);
+
+        // Do the forward FFT to compute the complex grid
+        CommandEvent* timingEvent = nullptr;
+        gpu3dFft.perform3dFft(GMX_FFT_REAL_TO_COMPLEX, timingEvent);
+        deviceStream.synchronize();
+
+        // Check the complex grid (NB this data has not been normalized)
+        copyFromDeviceBuffer(complexGridValues.data(),
+                             actualOutputGrid<sc_performOutOfPlaceFFT>(&realGrid, &complexGrid),
+                             0,
+                             complexGridValues.size(),
+                             deviceStream,
+                             GpuApiCallBehavior::Sync,
+                             nullptr);
+
+        std::vector<float> outputRealGridValues(in_.size());
+        if (sc_performOutOfPlaceFFT)
+        {
+            // Clear the real grid input data for the FFT so we can
+            // compute the back transform into it and observe that it did
+            // the work expected.
+            copyToDeviceBuffer(&realGrid,
+                               outputRealGridValues.data(),
+                               0,
+                               outputRealGridValues.size(),
+                               deviceStream,
+                               GpuApiCallBehavior::Sync,
+                               nullptr);
+        }
+
+        gpu3dFft.perform3dFft(GMX_FFT_COMPLEX_TO_REAL, timingEvent);
+        deviceStream.synchronize();
+
+        // Transfer the real grid back from the device
+        copyFromDeviceBuffer(outputRealGridValues.data(),
+                             &realGrid,
+                             0,
+                             outputRealGridValues.size(),
+                             deviceStream,
+                             GpuApiCallBehavior::Sync,
+                             nullptr);
+
+        checkRealGrid(realGridSize, realGridSizePadded, in_, outputRealGridValues);
+
+        freeDeviceBuffer(&realGrid);
+        if (sc_performOutOfPlaceFFT)
+        {
+            freeDeviceBuffer(&complexGrid);
+        }
+    }
+}
+
 
 #endif
 
