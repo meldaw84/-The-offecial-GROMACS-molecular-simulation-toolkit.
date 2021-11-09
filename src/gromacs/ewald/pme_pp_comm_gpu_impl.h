@@ -43,8 +43,10 @@
 #ifndef GMX_PME_PP_COMM_GPU_IMPL_H
 #define GMX_PME_PP_COMM_GPU_IMPL_H
 
+#include <atomic>
+
 #include "gromacs/ewald/pme_pp_comm_gpu.h"
-#include "gromacs/gpu_utils/gpueventsynchronizer.cuh"
+#include "gromacs/gpu_utils/gpueventsynchronizer.h"
 #include "gromacs/math/vectypes.h"
 #include "gromacs/utility/gmxmpi.h"
 
@@ -58,12 +60,17 @@ class PmePpCommGpu::Impl
 public:
     /*! \brief Creates PME-PP GPU communication object.
      *
-     * \param[in] comm            Communicator used for simulation
-     * \param[in] pmeRank         Rank of PME task
-     * \param[in] deviceContext   GPU context.
-     * \param[in] deviceStream    GPU stream.
+     * \param[in] comm              Communicator used for simulation
+     * \param[in] pmeRank           Rank of PME task
+     * \param[in] pmeCpuForceBuffer Buffer for PME force in CPU memory
+     * \param[in] deviceContext     GPU context.
+     * \param[in] deviceStream      GPU stream.
      */
-    Impl(MPI_Comm comm, int pmeRank, const DeviceContext& deviceContext, const DeviceStream& deviceStream);
+    Impl(MPI_Comm                comm,
+         int                     pmeRank,
+         std::vector<gmx::RVec>* pmeCpuForceBuffer,
+         const DeviceContext&    deviceContext,
+         const DeviceStream&     deviceStream);
     ~Impl();
 
     /*! \brief Perform steps required when buffer size changes
@@ -88,7 +95,6 @@ public:
      * \param[in] receivePmeForceToGpu Whether receive is to GPU, otherwise CPU
      */
     void receiveForceFromPme(float3* recvPtr, int recvSize, bool receivePmeForceToGpu);
-
 
     /*! \brief Push coordinates buffer directly to GPU memory on PME
      * task, from either GPU or CPU memory on PP task using CUDA
@@ -116,11 +122,9 @@ private:
     /*! \brief Pull force buffer directly from GPU memory on PME
      * rank to either GPU or CPU memory on PP task using CUDA
      * Memory copy. This method is used with Thread-MPI.
-     * \param[out] recvPtr CPU buffer to receive PME force data
-     * \param[in] recvSize Number of elements to receive
      * \param[in] receivePmeForceToGpu Whether receive is to GPU, otherwise CPU
      */
-    void receiveForceFromPmeCudaDirect(float3* recvPtr, int recvSize, bool receivePmeForceToGpu);
+    void receiveForceFromPmeCudaDirect(bool receivePmeForceToGpu);
 
     /*! \brief Pull force buffer directly from GPU memory on PME
      * rank to either GPU or CPU memory on PP task using CUDA-aware
@@ -152,19 +156,18 @@ private:
                                      int                   sendSize,
                                      GpuEventSynchronizer* coordinatesReadyOnDeviceEvent);
 
-private:
     //! GPU context handle (not used in CUDA)
     const DeviceContext& deviceContext_;
     //! Handle for CUDA stream used for the communication operations in this class
     const DeviceStream& pmePpCommStream_;
     //! Remote location of PME coordinate data buffer
     float3* remotePmeXBuffer_ = nullptr;
-    //! Remote location of PME force data buffer
-    float3* remotePmeFBuffer_ = nullptr;
     //! communicator for simulation
     MPI_Comm comm_;
     //! Rank of PME task
     int pmeRank_ = -1;
+    //! Buffer for PME force on CPU
+    std::vector<gmx::RVec>* pmeCpuForceBuffer_;
     //! Buffer for staging PME force on GPU
     DeviceBuffer<gmx::RVec> d_pmeForces_;
     //! number of atoms in PME force staging array
@@ -175,6 +178,10 @@ private:
     GpuEventSynchronizer forcesReadySynchronizer_;
     //! Event recorded when coordinates have been transferred to PME task
     GpuEventSynchronizer pmeCoordinatesSynchronizer_;
+    //! Event recorded by remote PME task when forces have been transferred
+    GpuEventSynchronizer* remotePmeForceSendEvent_;
+    //! Flag to track when remote PP event has been recorded, ready for enqueueing
+    volatile std::atomic<bool>* remotePmeForceSendEventRecorded_;
 };
 
 } // namespace gmx

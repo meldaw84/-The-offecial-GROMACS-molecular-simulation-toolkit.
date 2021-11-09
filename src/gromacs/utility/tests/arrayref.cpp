@@ -84,6 +84,8 @@ TEST(EmptyConstArrayRefTest, IsEmpty)
     EXPECT_EQ(empty.data(), nullptr);
 }
 
+#if !defined(NDEBUG)
+
 TEST(EmptyArrayRefDeathTest, AssertOnBadPointers)
 {
     real random = 5;
@@ -99,6 +101,14 @@ TEST(EmptyArrayRefDeathTest, AssertOnBadIterators)
                                   "If begin is nullptr, end needs to be nullptr as well");
 }
 
+#else
+
+TEST(DISABLED_ArrayRefDeathTest, GenericTests)
+{
+    ADD_FAILURE() << "Tests for proper assertion triggering only works with assertions enabled.";
+}
+
+#endif
 
 TEST(EmptyArrayRefTest, arrayRefFromArrayIsEmptyForNullptr)
 {
@@ -178,7 +188,7 @@ public:
     NonConstValueType ma[aSize] = { ValueType(1.2), ValueType(2.4), ValueType(3.1) };
 };
 
-TYPED_TEST_CASE(ArrayRefTest, ArrayRefTypes);
+TYPED_TEST_SUITE(ArrayRefTest, ArrayRefTypes);
 
 
 TYPED_TEST(ArrayRefTest, MakeWithAssignmentWorks)

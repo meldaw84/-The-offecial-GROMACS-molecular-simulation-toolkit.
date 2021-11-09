@@ -43,6 +43,7 @@
 #include <vector>
 
 #include "gromacs/math/vectypes.h"
+#include "gromacs/mdtypes/atominfo.h"
 #include "gromacs/mdtypes/md_enums.h"
 #include "gromacs/pbcutil/ishift.h"
 #include "gromacs/pbcutil/pbc.h"
@@ -58,6 +59,7 @@ struct bonded_threading_t;
 class DeviceContext;
 class DispersionCorrection;
 class ListedForces;
+class CpuPpLongRangeNonbondeds;
 struct t_fcdata;
 struct t_forcetable;
 struct interaction_const_t;
@@ -65,41 +67,13 @@ struct interaction_const_t;
 namespace gmx
 {
 class DeviceStreamManager;
-class GpuBonded;
+class ListedForcesGpu;
 class GpuForceReduction;
 class ForceProviders;
 class StatePropagatorDataGpu;
 class PmePpCommGpu;
 class WholeMoleculeTransform;
 } // namespace gmx
-
-/* macros for the cginfo data in forcerec
- *
- * Since the tpx format support max 256 energy groups, we do the same here.
- * Note that we thus have bits 8-14 still unused.
- *
- * The maximum cg size in cginfo is 63
- * because we only have space for 6 bits in cginfo,
- * this cg size entry is actually only read with domain decomposition.
- */
-#define SET_CGINFO_GID(cgi, gid) (cgi) = (((cgi) & ~255) | (gid))
-#define GET_CGINFO_GID(cgi) ((cgi)&255)
-#define SET_CGINFO_FEP(cgi) (cgi) = ((cgi) | (1 << 15))
-#define GET_CGINFO_FEP(cgi) ((cgi) & (1 << 15))
-#define SET_CGINFO_EXCL_INTER(cgi) (cgi) = ((cgi) | (1 << 17))
-#define GET_CGINFO_EXCL_INTER(cgi) ((cgi) & (1 << 17))
-#define SET_CGINFO_CONSTR(cgi) (cgi) = ((cgi) | (1 << 20))
-#define GET_CGINFO_CONSTR(cgi) ((cgi) & (1 << 20))
-#define SET_CGINFO_SETTLE(cgi) (cgi) = ((cgi) | (1 << 21))
-#define GET_CGINFO_SETTLE(cgi) ((cgi) & (1 << 21))
-/* This bit is only used with bBondComm in the domain decomposition */
-#define SET_CGINFO_BOND_INTER(cgi) (cgi) = ((cgi) | (1 << 22))
-#define GET_CGINFO_BOND_INTER(cgi) ((cgi) & (1 << 22))
-#define SET_CGINFO_HAS_VDW(cgi) (cgi) = ((cgi) | (1 << 23))
-#define GET_CGINFO_HAS_VDW(cgi) ((cgi) & (1 << 23))
-#define SET_CGINFO_HAS_Q(cgi) (cgi) = ((cgi) | (1 << 24))
-#define GET_CGINFO_HAS_Q(cgi) ((cgi) & (1 << 24))
-
 
 /* Value to be used in mdrun for an infinite cut-off.
  * Since we need to compare with the cut-off squared,
@@ -109,19 +83,8 @@ class WholeMoleculeTransform;
 //! Check the cuttoff
 real cutoff_inf(real cutoff);
 
-struct cginfo_mb_t
-{
-    int              cg_start = 0;
-    int              cg_end   = 0;
-    int              cg_mod   = 0;
-    std::vector<int> cginfo;
-};
-
-
 /* Forward declaration of type for managing Ewald tables */
 struct gmx_ewald_tab_t;
-
-struct ewald_corr_thread_t;
 
 /*! \brief Helper force buffers for ForceOutputs
  *
@@ -224,10 +187,10 @@ struct t_forcerec
     /* Free energy */
     FreeEnergyPerturbationType efep = FreeEnergyPerturbationType::No;
 
-    /* Information about atom properties for the molecule blocks in the system */
-    std::vector<cginfo_mb_t> cginfo_mb;
+    /* Information about atom properties for the molecule blocks in the global topology */
+    std::vector<gmx::AtomInfoWithinMoleculeBlock> atomInfoForEachMoleculeBlock;
     /* Information about atom properties for local and non-local atoms */
-    std::vector<int> cginfo;
+    std::vector<int64_t> atomInfo;
 
     std::vector<gmx::RVec> shift_vec;
 
@@ -251,9 +214,6 @@ struct t_forcerec
     /* Data for PPPM/PME/Ewald */
     gmx_pme_t*   pmedata                = nullptr;
     LongRangeVdW ljpme_combination_rule = LongRangeVdW::Geom;
-
-    /* PME/Ewald stuff */
-    std::unique_ptr<gmx_ewald_tab_t> ewald_table;
 
     /* Non bonded Parameter lists */
     int               ntype          = 0; /* Number of atom types */
@@ -287,21 +247,17 @@ struct t_forcerec
     real userreal3 = 0;
     real userreal4 = 0;
 
-    /* Tells whether we use multiple time stepping, computing some forces less frequently */
-    bool useMts = false;
-
     /* Data for special listed force calculations */
     std::unique_ptr<t_fcdata> fcdata;
 
     // The listed forces calculation data, 1 entry or multiple entries with multiple time stepping
     std::vector<ListedForces> listedForces;
 
-    /* TODO: Replace the pointer by an object once we got rid of C */
-    gmx::GpuBonded* gpuBonded = nullptr;
+    // The listed forces calculation data for GPU
+    std::unique_ptr<gmx::ListedForcesGpu> listedForcesGpu;
 
-    /* Ewald correction thread local virial and energy data */
-    int                              nthread_ewc = 0;
-    std::vector<ewald_corr_thread_t> ewc_t;
+    // The long range non-bonded forces
+    std::unique_ptr<CpuPpLongRangeNonbondeds> longRangeNonbondeds;
 
     gmx::ForceProviders* forceProviders = nullptr;
 

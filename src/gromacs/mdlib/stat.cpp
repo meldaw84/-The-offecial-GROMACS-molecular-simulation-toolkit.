@@ -58,6 +58,7 @@
 #include "gromacs/mdtypes/group.h"
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/md_enums.h"
+#include "gromacs/mdtypes/observablesreducer.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
@@ -140,35 +141,41 @@ static int filter_enerdterm(const real* afrom, gmx_bool bToBuffer, real* ato, gm
     return to;
 }
 
-void global_stat(const gmx_global_stat& gs,
-                 const t_commrec*       cr,
-                 gmx_enerdata_t*        enerd,
-                 tensor                 fvir,
-                 tensor                 svir,
-                 const t_inputrec&      inputrec,
-                 gmx_ekindata_t*        ekind,
-                 gmx::ArrayRef<real>    constraintsRmsdData,
-                 t_vcm*                 vcm,
-                 gmx::ArrayRef<real>    sig,
-                 bool                   bSumEkinhOld,
-                 int                    flags)
+void global_stat(const gmx_global_stat&   gs,
+                 const t_commrec*         cr,
+                 gmx_enerdata_t*          enerd,
+                 tensor                   fvir,
+                 tensor                   svir,
+                 const t_inputrec&        inputrec,
+                 gmx_ekindata_t*          ekind,
+                 t_vcm*                   vcm,
+                 gmx::ArrayRef<real>      sig,
+                 bool                     bSumEkinhOld,
+                 int                      flags,
+                 int64_t                  step,
+                 gmx::ObservablesReducer* observablesReducer)
 /* instead of current system, gmx_booleans for summing virial, kinetic energy, and other terms */
 {
-    int ie = 0, ifv = 0, isv = 0, irmsd = 0;
-    int idedl = 0, idedlo = 0, idvdll = 0, idvdlnl = 0, iepl = 0, icm = 0, imass = 0, ica = 0, inb = 0;
+    int ie = 0, ifv = 0, isv = 0;
+    int idedl = 0, idedlo = 0, idvdll = 0, idvdlnl = 0, iepl = 0, icm = 0, imass = 0, ica = 0;
     int isig = -1;
     int icj = -1, ici = -1, icx = -1;
 
-    bool checkNumberOfBondedInteractions = (flags & CGLO_CHECK_NUMBER_OF_BONDED_INTERACTIONS) != 0;
-    bool bVV                             = EI_VV(inputrec.eI);
-    bool bTemp                           = ((flags & CGLO_TEMPERATURE) != 0);
-    bool bEner                           = ((flags & CGLO_ENERGY) != 0);
-    bool bPres                           = ((flags & CGLO_PRESSURE) != 0);
-    bool bConstrVir                      = ((flags & CGLO_CONSTRAINT) != 0);
-    bool bEkinAveVel                     = (inputrec.eI == IntegrationAlgorithm::VV
+    bool bVV         = EI_VV(inputrec.eI);
+    bool bTemp       = ((flags & CGLO_TEMPERATURE) != 0);
+    bool bEner       = ((flags & CGLO_ENERGY) != 0);
+    bool bPres       = ((flags & CGLO_PRESSURE) != 0);
+    bool bConstrVir  = ((flags & CGLO_CONSTRAINT) != 0);
+    bool bEkinAveVel = (inputrec.eI == IntegrationAlgorithm::VV
                         || (inputrec.eI == IntegrationAlgorithm::VVAK && bPres));
-    bool bReadEkin                       = ((flags & CGLO_READEKIN) != 0);
+    bool bReadEkin   = ((flags & CGLO_READEKIN) != 0);
 
+    // This structure implements something akin to a vector. As
+    // modules add their data into it with add_bin[rd], they save the
+    // index it returns, which allows them to look up their data later
+    // after the reduction with extract_bin[rd]. The various index
+    // variables are mostly named following the pattern
+    // "i<abbreviation for module>".
     t_bin* rb   = gs.rb;
     int*   itc0 = gs.itc0;
     int*   itc1 = gs.itc1;
@@ -236,10 +243,6 @@ void global_stat(const gmx_global_stat& gs,
     if (bEner)
     {
         ie = add_binr(rb, nener, copyenerd.data());
-        if (!constraintsRmsdData.empty())
-        {
-            irmsd = add_binr(rb, 2, constraintsRmsdData.data());
-        }
         for (auto key : gmx::keysOf(inn))
         {
             inn[key] = add_binr(rb, enerd->grpp.nener, enerd->grpp.energyGroupPairTerms[key].data());
@@ -269,18 +272,17 @@ void global_stat(const gmx_global_stat& gs,
         }
     }
 
-    double nb;
-    if (checkNumberOfBondedInteractions)
-    {
-        GMX_RELEASE_ASSERT(DOMAINDECOMP(cr),
-                           "No need to check number of bonded interactions when not using domain "
-                           "decomposition");
-        nb  = numBondedInteractions(*cr->dd);
-        inb = add_bind(rb, 1, &nb);
-    }
     if (!sig.empty())
     {
         isig = add_binr(rb, sig);
+    }
+
+    gmx::ArrayRef<double> observablesReducerBuffer = observablesReducer->communicationBuffer();
+    int                   tbinIndexForObservablesReducer = 0;
+    if (!observablesReducerBuffer.empty())
+    {
+        tbinIndexForObservablesReducer =
+                add_bind(rb, observablesReducerBuffer.ssize(), observablesReducerBuffer.data());
     }
 
     sum_bin(rb, cr);
@@ -331,10 +333,6 @@ void global_stat(const gmx_global_stat& gs,
     if (bEner)
     {
         extract_binr(rb, ie, nener, copyenerd.data());
-        if (!constraintsRmsdData.empty())
-        {
-            extract_binr(rb, irmsd, constraintsRmsdData);
-        }
         for (auto key : gmx::keysOf(inn))
         {
             extract_binr(rb, inn[key], enerd->grpp.nener, enerd->grpp.energyGroupPairTerms[key].data());
@@ -367,17 +365,17 @@ void global_stat(const gmx_global_stat& gs,
         }
     }
 
-    if (checkNumberOfBondedInteractions)
-    {
-        extract_bind(rb, inb, 1, &nb);
-        GMX_RELEASE_ASSERT(DOMAINDECOMP(cr),
-                           "No need to check number of bonded interactions when not using domain "
-                           "decomposition");
-        setNumberOfBondedInteractionsOverAllDomains(*cr->dd, gmx::roundToInt(nb));
-    }
-
     if (!sig.empty())
     {
         extract_binr(rb, isig, sig);
+    }
+
+    if (!observablesReducerBuffer.empty())
+    {
+        extract_bind(rb,
+                     tbinIndexForObservablesReducer,
+                     observablesReducerBuffer.ssize(),
+                     observablesReducerBuffer.data());
+        observablesReducer->reductionComplete(step);
     }
 }

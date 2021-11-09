@@ -290,6 +290,7 @@ if (SPHINX_FOUND)
         reference-manual/functions/plots/f-rbs.pdf
         reference-manual/functions/plots/ring-imp.pdf
         reference-manual/functions/plots/softcore.pdf
+        reference-manual/functions/plots/gapsys-sc.pdf
         reference-manual/functions/plots/subst-im.pdf
         reference-manual/functions/plots/tetra-im.pdf
         reference-manual/functions/plots/vcrf.pdf
@@ -374,6 +375,7 @@ if (SPHINX_FOUND)
         release-notes/2022/major/portability.rst
         release-notes/2022/major/miscellaneous.rst
         release-notes/2022/major/api.rst
+        release-notes/2021/2021.4.rst
         release-notes/2021/2021.3.rst
         release-notes/2021/2021.2.rst
         release-notes/2021/2021.1.rst
@@ -786,7 +788,7 @@ if (HTML_BUILD_IS_POSSIBLE)
     # to).
 
     # Add a top-level target that builds everything related to the webpage,
-    # for Jenkins (and possibly others) to use
+    # for CI (and possibly others) to use
     add_custom_target(webpage ${_webpage_target_properties}
         COMMENT "Building webpage"
         VERBATIM)

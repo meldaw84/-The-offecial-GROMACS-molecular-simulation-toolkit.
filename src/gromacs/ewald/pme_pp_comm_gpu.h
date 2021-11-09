@@ -43,6 +43,7 @@
 #define GMX_PME_PP_COMM_GPU_H
 
 #include <memory>
+#include <vector>
 
 #include "gromacs/gpu_utils/devicebuffer_datatype.h"
 #include "gromacs/math/vectypes.h"
@@ -66,12 +67,17 @@ class PmePpCommGpu
 
 public:
     /*! \brief Creates PME-PP GPU communication object
-     * \param[in] comm            Communicator used for simulation
-     * \param[in] pmeRank         Rank of PME task
-     * \param[in] deviceContext   GPU context.
-     * \param[in] deviceStream    GPU stream.
+     * \param[in] comm              Communicator used for simulation
+     * \param[in] pmeRank           Rank of PME task
+     * \param[in] pmeCpuForceBuffer Buffer for PME force in CPU memory
+     * \param[in] deviceContext     GPU context.
+     * \param[in] deviceStream      GPU stream.
      */
-    PmePpCommGpu(MPI_Comm comm, int pmeRank, const DeviceContext& deviceContext, const DeviceStream& deviceStream);
+    PmePpCommGpu(MPI_Comm                comm,
+                 int                     pmeRank,
+                 std::vector<gmx::RVec>* pmeCpuForceBuffer,
+                 const DeviceContext&    deviceContext,
+                 const DeviceStream&     deviceStream);
     ~PmePpCommGpu();
 
     /*! \brief Perform steps required when buffer size changes
@@ -82,7 +88,7 @@ public:
     /*! \brief
      * Pull data from PME GPU directly using CUDA Memory copy.
      * \param[out] recvPtr  Buffer to receive PME force data
-     * \param[in]  recvSize Number of elements to receive
+     * \param[in] recvSize Number of elements to receive
      * \param[in] recvPmeForceToGpu Whether receive is to GPU, otherwise CPU
      */
     void receiveForceFromPme(RVec* recvPtr, int recvSize, bool recvPmeForceToGpu);

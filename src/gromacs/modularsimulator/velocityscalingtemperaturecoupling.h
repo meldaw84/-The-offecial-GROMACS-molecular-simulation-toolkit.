@@ -57,18 +57,11 @@ namespace gmx
 {
 class ITemperatureCouplingImpl;
 class LegacySimulatorData;
+class ObservablesReducer;
 struct TemperatureCouplingData;
 
 //! Enum describing whether the thermostat is using full or half step kinetic energy
 enum class UseFullStepKE
-{
-    Yes,
-    No,
-    Count
-};
-
-//! Enum describing whether the thermostat is reporting conserved energy from the previous step
-enum class ReportPreviousStepConservedEnergy
 {
     Yes,
     No,
@@ -137,7 +130,8 @@ public:
      * \param statePropagatorData  Pointer to the \c StatePropagatorData object
      * \param energyData  Pointer to the \c EnergyData object
      * \param freeEnergyPerturbationData  Pointer to the \c FreeEnergyPerturbationData object
-     * \param globalCommunicationHelper  Pointer to the \c GlobalCommunicationHelper object
+     * \param globalCommunicationHelper   Pointer to the \c GlobalCommunicationHelper object
+     * \param observablesReducer          Pointer to the \c ObservablesReducer object
      * \param propagatorTag  Tag of the propagator to connect to
      * \param offset  The step offset at which the thermostat is applied
      * \param useFullStepKE  Whether full step or half step KE is used
@@ -152,12 +146,17 @@ public:
                           EnergyData*                             energyData,
                           FreeEnergyPerturbationData*             freeEnergyPerturbationData,
                           GlobalCommunicationHelper*              globalCommunicationHelper,
+                          ObservablesReducer*                     observablesReducer,
                           Offset                                  offset,
                           UseFullStepKE                           useFullStepKE,
                           ReportPreviousStepConservedEnergy       reportPreviousStepConservedEnergy,
                           const PropagatorTag&                    propagatorTag);
 
 private:
+    //! Update the reference temperature
+    void updateReferenceTemperature(ArrayRef<const real>                temperatures,
+                                    ReferenceTemperatureChangeAlgorithm algorithm);
+
     //! The frequency at which the thermostat is applied
     const int nstcouple_;
     //! If != 0, offset the step at which the thermostat is applied
@@ -172,7 +171,7 @@ private:
     //! The coupling time step - simulation time step x nstcouple_
     const double couplingTimeStep_;
     //! Coupling temperature per group
-    const std::vector<real> referenceTemperature_;
+    std::vector<real> referenceTemperature_;
     //! Coupling time per group
     const std::vector<real> couplingTime_;
     //! Number of degrees of freedom per group

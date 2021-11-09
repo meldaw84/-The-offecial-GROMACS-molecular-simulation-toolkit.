@@ -102,7 +102,7 @@ public:
         BiasGrid   grid(dimParams, awhBiasParams.dimParams());
         BiasParams biasParams(
                 awhParams, awhBiasParams, dimParams, 1.0, 1.0, BiasParams::DisableUpdateSkips::no, 1, grid.axis(), 0);
-        biasState_ = std::make_unique<BiasState>(awhBiasParams, 1.0, dimParams, grid);
+        biasState_ = std::make_unique<BiasState>(awhBiasParams, 1.0, dimParams, grid, nullptr);
 
         // Here we initialize the grid point state using the input file
         std::string filename = gmx::test::TestFileManager::getInputFilePath(GetParam());
@@ -131,9 +131,9 @@ TEST_P(BiasStateTest, InitializesFromFile)
 
 // Test that Bias initialization open and reads the correct initialization
 // files and the correct PMF and target distribution is set.
-INSTANTIATE_TEST_CASE_P(WithParameters,
-                        BiasStateTest,
-                        ::testing::Values("pmf_target_format0.xvg", "pmf_target_format1.xvg"));
+INSTANTIATE_TEST_SUITE_P(WithParameters,
+                         BiasStateTest,
+                         ::testing::Values("pmf_target_format0.xvg", "pmf_target_format1.xvg"));
 
 } // namespace test
 } // namespace gmx

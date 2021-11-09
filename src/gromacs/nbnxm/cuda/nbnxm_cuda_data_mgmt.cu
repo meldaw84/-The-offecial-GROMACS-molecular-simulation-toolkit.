@@ -53,7 +53,7 @@
 #include "gromacs/gpu_utils/cudautils.cuh"
 #include "gromacs/gpu_utils/device_context.h"
 #include "gromacs/gpu_utils/gpu_utils.h"
-#include "gromacs/gpu_utils/gpueventsynchronizer.cuh"
+#include "gromacs/gpu_utils/gpueventsynchronizer.h"
 #include "gromacs/gpu_utils/pmalloc.h"
 #include "gromacs/hardware/device_information.h"
 #include "gromacs/hardware/device_management.h"
@@ -89,7 +89,7 @@ namespace Nbnxm
  * there is a bit of fluctuations in the generated block counts, we use
  * a target of 44 instead of the ideal value of 48.
  */
-static unsigned int gpu_min_ci_balanced_factor = 44;
+static const unsigned int gpu_min_ci_balanced_factor = 44;
 
 void gpu_init_platform_specific(NbnxmGpu* /* nb */)
 {

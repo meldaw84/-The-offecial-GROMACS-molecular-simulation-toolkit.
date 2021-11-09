@@ -107,7 +107,7 @@ static inline void init_ewald_coulomb_force_table(const EwaldCorrectionTables& t
 {
     if (nbp->coulomb_tab)
     {
-        destroyParamLookupTable(&nbp->coulomb_tab, nbp->coulomb_tab_texobj);
+        destroyParamLookupTable(&nbp->coulomb_tab, &nbp->coulomb_tab_texobj);
     }
 
     nbp->coulomb_tab_scale = tables.scale;
@@ -431,18 +431,7 @@ NbnxmGpu* gpu_init(const gmx::DeviceStreamManager& deviceStreamManager,
     nb->timers = new Nbnxm::GpuTimers();
     snew(nb->timings, 1);
 
-    /* WARNING: CUDA timings are incorrect with multiple streams.
-     * This is the main reason why they are disabled by default.
-     * Can be enabled by setting GMX_ENABLE_GPU_TIMING environment variable.
-     * TODO: Consider turning on by default when we can detect nr of streams.
-     *
-     * OpenCL timing is enabled by default and can be disabled by
-     * GMX_DISABLE_GPU_TIMING environment variable.
-     *
-     * Timing is disabled in SYCL.
-     */
-    nb->bDoTime = (GMX_GPU_CUDA && (getenv("GMX_ENABLE_GPU_TIMING") != nullptr))
-                  || (GMX_GPU_OPENCL && (getenv("GMX_DISABLE_GPU_TIMING") == nullptr));
+    nb->bDoTime = decideGpuTimingsUsage();
 
     if (nb->bDoTime)
     {
@@ -746,7 +735,9 @@ bool gpu_is_kernel_ewald_analytical(const NbnxmGpu* nb)
             || (nb->nbparam->elecType == ElecType::EwaldAnaTwin));
 }
 
-void setupGpuShortRangeWork(NbnxmGpu* nb, const gmx::GpuBonded* gpuBonded, const gmx::InteractionLocality iLocality)
+void setupGpuShortRangeWork(NbnxmGpu*                      nb,
+                            const gmx::ListedForcesGpu*    listedForcesGpu,
+                            const gmx::InteractionLocality iLocality)
 {
     GMX_ASSERT(nb, "Need a valid nbnxn_gpu object");
 
@@ -754,7 +745,7 @@ void setupGpuShortRangeWork(NbnxmGpu* nb, const gmx::GpuBonded* gpuBonded, const
     // interaction locality contains entries or if there is any
     // bonded work (as this is not split into local/nonlocal).
     nb->haveWork[iLocality] = ((nb->plist[iLocality]->nsci != 0)
-                               || (gpuBonded != nullptr && gpuBonded->haveInteractions()));
+                               || (listedForcesGpu != nullptr && listedForcesGpu->haveInteractions()));
 }
 
 bool haveGpuShortRangeWork(const NbnxmGpu* nb, const gmx::InteractionLocality interactionLocality)
@@ -1132,17 +1123,17 @@ void gpu_free(NbnxmGpu* nb)
     /* Free nbparam */
     if (nbparam->elecType == ElecType::EwaldTab || nbparam->elecType == ElecType::EwaldTabTwin)
     {
-        destroyParamLookupTable(&nbparam->coulomb_tab, nbparam->coulomb_tab_texobj);
+        destroyParamLookupTable(&nbparam->coulomb_tab, &nbparam->coulomb_tab_texobj);
     }
 
     if (!useLjCombRule(nb->nbparam->vdwType))
     {
-        destroyParamLookupTable(&nbparam->nbfp, nbparam->nbfp_texobj);
+        destroyParamLookupTable(&nbparam->nbfp, &nbparam->nbfp_texobj);
     }
 
     if (nbparam->vdwType == VdwType::EwaldGeom || nbparam->vdwType == VdwType::EwaldLB)
     {
-        destroyParamLookupTable(&nbparam->nbfp_comb, nbparam->nbfp_comb_texobj);
+        destroyParamLookupTable(&nbparam->nbfp_comb, &nbparam->nbfp_comb_texobj);
     }
 
     /* Free plist */

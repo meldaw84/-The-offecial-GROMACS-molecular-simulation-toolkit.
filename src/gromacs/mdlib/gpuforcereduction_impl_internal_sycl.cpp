@@ -51,14 +51,19 @@
 #include "gromacs/gpu_utils/gmxsycl.h"
 #include "gromacs/gpu_utils/devicebuffer.h"
 #include "gromacs/gpu_utils/gpu_utils.h"
-#include "gromacs/gpu_utils/gpueventsynchronizer_sycl.h"
+#include "gromacs/gpu_utils/gpueventsynchronizer.h"
 #include "gromacs/utility/template_mp.h"
+
+//! \brief Class name for reduction kernel
+template<bool addRvecForce, bool accumulateForce>
+class ReduceKernel;
 
 namespace gmx
 {
 
 using cl::sycl::access::mode;
 
+//! \brief Function returning the force reduction kernel lambda.
 template<bool addRvecForce, bool accumulateForce>
 static auto reduceKernel(cl::sycl::handler&                                 cgh,
                          DeviceAccessor<Float3, mode::read>                 a_nbnxmForce,
@@ -67,13 +72,13 @@ static auto reduceKernel(cl::sycl::handler&                                 cgh,
                          DeviceAccessor<int, cl::sycl::access::mode::read> a_cell,
                          const int                                         atomStart)
 {
-    cgh.require(a_nbnxmForce);
+    a_nbnxmForce.bind(cgh);
     if constexpr (addRvecForce)
     {
-        cgh.require(a_rvecForceToAdd);
+        a_rvecForceToAdd.bind(cgh);
     }
-    cgh.require(a_forceTotal);
-    cgh.require(a_cell);
+    a_forceTotal.bind(cgh);
+    a_cell.bind(cgh);
 
     return [=](cl::sycl::id<1> itemIdx) {
         // Set to nbnxnm force, then perhaps accumulate further to it
@@ -93,9 +98,7 @@ static auto reduceKernel(cl::sycl::handler&                                 cgh,
     };
 }
 
-template<bool addRvecForce, bool accumulateForce>
-class ReduceKernelName;
-
+//! \brief Force reduction SYCL kernel launch code.
 template<bool addRvecForce, bool accumulateForce>
 static void launchReductionKernel_(const int                   numAtoms,
                                    const int                   atomStart,
@@ -114,11 +117,11 @@ static void launchReductionKernel_(const int                   numAtoms,
     queue.submit([&](cl::sycl::handler& cgh) {
         auto kernel = reduceKernel<addRvecForce, accumulateForce>(
                 cgh, b_nbnxmForce, b_rvecForceToAdd, b_forceTotal, b_cell, atomStart);
-        cgh.parallel_for<ReduceKernelName<addRvecForce, accumulateForce>>(rangeNumAtoms, kernel);
+        cgh.parallel_for<ReduceKernel<addRvecForce, accumulateForce>>(rangeNumAtoms, kernel);
     });
 }
 
-/*! \brief Select templated kernel and launch it. */
+/*! \brief Select templated Force reduction kernel and launch it. */
 void launchForceReductionKernel(int                  numAtoms,
                                 int                  atomStart,
                                 bool                 addRvecForce,

@@ -47,10 +47,13 @@
 #include <string>
 #include <vector>
 
+#include "gromacs/math/arrayrefwithpadding.h"
+#include "gromacs/math/vectypes.h"
 #include "gromacs/utility/mdmodulesnotifier.h"
 
 struct t_commrec;
 struct gmx_mtop_t;
+struct warninp;
 enum class PbcType : int;
 
 namespace gmx
@@ -59,6 +62,7 @@ namespace gmx
 class KeyValueTreeObject;
 class KeyValueTreeObjectBuilder;
 class LocalAtomSetManager;
+class MDLogger;
 class IndexGroupsAndNames;
 class SeparatePmeRanksPermitted;
 struct MDModulesCheckpointReadingDataOnMaster;
@@ -73,6 +77,16 @@ struct MDModulesEnergyOutputToDensityFittingRequestChecker
 {
     //! Trigger output to density fitting energy field
     bool energyOutputToDensityFitting_ = false;
+};
+
+/*! \libinternal \brief Check if QMMM module outputs energy to a specific field.
+ *
+ * Ensures that energy is output for QMMM module.
+ */
+struct MDModulesEnergyOutputToQMMMRequestChecker
+{
+    //! Trigger output to density fitting energy field
+    bool energyOutputToQMMM_ = false;
 };
 
 /*! \libinternal
@@ -116,6 +130,34 @@ struct SimulationTimeStep
 {
     //! Time step (ps)
     const double delta_t;
+};
+
+/*! \libinternal \brief Provides coordinates and simulation box.
+ */
+struct CoordinatesAndBoxPreprocessed
+{
+    ArrayRefWithPadding<RVec> coordinates_;
+    matrix                    box_;
+    PbcType                   pbc_;
+};
+
+/*! \libinternal \brief Mdrun input filename.
+ */
+struct MdRunInputFilename
+{
+    //! The name of the run input file (.tpr) as output by grompp
+    std::string mdRunFilename_;
+};
+
+/*! \libinternal \brief Notification for QM program input filename
+ *  provided by user as command-line argument for grompp
+ */
+struct QMInputFileName
+{
+    //! Flag if QM Input File has been provided by user
+    bool hasQMInputFileName_ = false;
+    //! The name of the QM Input file (.inp)
+    std::string qmInputFileName_;
 };
 
 /*! \libinternal
@@ -210,17 +252,29 @@ notifier =>> moduleC [label="returns"];
  */
 struct MDModulesNotifiers
 {
-    /*! \brief Handles subscribing and calling pre-processing callback functions.
-     *
+    /*! \brief Pre-processing callback functions.
+     * CoordinatesAndBoxPreprocessed Allows modules to access coordinates,
+     *                                box and pbc during grompp
+     * MDLogger Allows MdModule to use standard logging class for messages output
+     * warninp* Allows modules to make grompp warnings, notes and errors
      * EnergyCalculationFrequencyErrors* allows modules to check if they match
      *                                   their required calculation frequency
      *                                   and add their error message if needed
      *                                   to the collected error messages
+     * gmx_mtop_t* Allows modules to modify the topology during pre-processing
      * IndexGroupsAndNames provides modules with atom indices and their names
      * KeyValueTreeObjectBuilder enables writing of module internal data to
      *                           .tpr files.
+     * QMInputFileName Allows QMMM module to know if user provided external QM input file
      */
-    BuildMDModulesNotifier<EnergyCalculationFrequencyErrors*, const IndexGroupsAndNames&, KeyValueTreeObjectBuilder>::type preProcessingNotifier_;
+    BuildMDModulesNotifier<const CoordinatesAndBoxPreprocessed&,
+                           const MDLogger&,
+                           warninp*,
+                           EnergyCalculationFrequencyErrors*,
+                           gmx_mtop_t*,
+                           const IndexGroupsAndNames&,
+                           KeyValueTreeObjectBuilder,
+                           const QMInputFileName&>::type preProcessingNotifier_;
 
     /*! \brief Handles subscribing and calling checkpointing callback functions.
      *
@@ -243,10 +297,14 @@ struct MDModulesNotifiers
      *                           wrote to .tpr files
      * LocalAtomSetManager* enables modules to add atom indices to local atom sets
      *                      to be managed
+     * const MDLogger& Allows MdModule to use standard logging class for messages output
      * const gmx_mtop_t& provides the topology of the system to the modules
      * MDModulesEnergyOutputToDensityFittingRequestChecker* enables modules to
      *                      report if they want to write their energy output
      *                      to the density fitting field in the energy files
+     * MDModulesEnergyOutputToQMMMRequestChecker* enables QMMM module to
+     *                      report if it want to write their energy output
+     *                      to the "Quantum En." field in the energy files
      * SeparatePmeRanksPermitted* enables modules to report if they want
      *                      to disable dedicated PME ranks
      * const PbcType& provides modules with the periodic boundary condition type
@@ -256,15 +314,19 @@ struct MDModulesNotifiers
      *                           time information
      * const t_commrec& provides a communicator to the modules during simulation
      *                  setup
+     * const MdRunInputFilename& Allows modules to know .tpr filename during mdrun
      */
     BuildMDModulesNotifier<const KeyValueTreeObject&,
                            LocalAtomSetManager*,
+                           const MDLogger&,
                            const gmx_mtop_t&,
                            MDModulesEnergyOutputToDensityFittingRequestChecker*,
+                           MDModulesEnergyOutputToQMMMRequestChecker*,
                            SeparatePmeRanksPermitted*,
                            const PbcType&,
                            const SimulationTimeStep&,
-                           const t_commrec&>::type simulationSetupNotifier_;
+                           const t_commrec&,
+                           const MdRunInputFilename&>::type simulationSetupNotifier_;
 };
 
 } // namespace gmx

@@ -137,6 +137,7 @@ bool decideWhetherToUseGpusForNonbondedWithThreadMpi(TaskTarget              non
  * \param[in]  useGpuForNonbonded        Whether GPUs will be used for nonbonded interactions.
  * \param[in]  pmeTarget                 The user's choice for mdrun -pme for where to assign
  *                                       long-ranged PME nonbonded interaction tasks.
+ * \param[in]  pmeFftTarget              The user's choice for mdrun -pmefft for where to run FFT.
  * \param[in]  numDevicesToUse           The number of compatible GPUs that the user permitted us to use.
  * \param[in]  userGpuTaskAssignment     The user-specified assignment of GPU tasks to device IDs.
  * \param[in]  hardwareInfo              Hardware information
@@ -150,6 +151,7 @@ bool decideWhetherToUseGpusForNonbondedWithThreadMpi(TaskTarget              non
  *             InconsistentInputError  If the user requirements are inconsistent. */
 bool decideWhetherToUseGpusForPmeWithThreadMpi(bool                    useGpuForNonbonded,
                                                TaskTarget              pmeTarget,
+                                               TaskTarget              pmeFftTarget,
                                                int                     numDevicesToUse,
                                                const std::vector<int>& userGpuTaskAssignment,
                                                const gmx_hw_info_t&    hardwareInfo,
@@ -209,6 +211,7 @@ bool decideWhetherToUseGpusForNonbonded(TaskTarget              nonbondedTarget,
  *
  * \param[in]  useGpuForNonbonded        Whether GPUs will be used for nonbonded interactions.
  * \param[in]  pmeTarget                 The user's choice for mdrun -pme for where to assign long-ranged PME nonbonded interaction tasks.
+ * \param[in]  pmeFftTarget              The user's choice for mdrun -pmefft for where to do FFT for PME.
  * \param[in]  userGpuTaskAssignment     The user-specified assignment of GPU tasks to device IDs.
  * \param[in]  hardwareInfo              Hardware information
  * \param[in]  inputrec                  The user input
@@ -222,6 +225,7 @@ bool decideWhetherToUseGpusForNonbonded(TaskTarget              nonbondedTarget,
  *             InconsistentInputError  If the user requirements are inconsistent. */
 bool decideWhetherToUseGpusForPme(bool                    useGpuForNonbonded,
                                   TaskTarget              pmeTarget,
+                                  TaskTarget              pmeFftTarget,
                                   const std::vector<int>& userGpuTaskAssignment,
                                   const gmx_hw_info_t&    hardwareInfo,
                                   const t_inputrec&       inputrec,
@@ -239,7 +243,8 @@ bool decideWhetherToUseGpusForPme(bool                    useGpuForNonbonded,
  *
  * \param[in]  useGpuForPme              PME task assignment, true if PME task is mapped to the GPU.
  * \param[in]  pmeFftTarget              The user's choice for -pmefft for where to assign the FFT
- * work of the PME task. \param[in]  inputrec                  The user input record
+ *                                       work of the PME task.
+ * \param[in]  inputrec                  The user input record
  * */
 PmeRunMode determinePmeRunMode(bool useGpuForPme, const TaskTarget& pmeFftTarget, const t_inputrec& inputrec);
 
@@ -278,7 +283,6 @@ bool decideWhetherToUseGpusForBonded(bool              useGpuForNonbonded,
  * \param[in]  mtop                         The global topology.
  * \param[in]  useEssentialDynamics         If essential dynamics is active.
  * \param[in]  doOrientationRestraints      If orientation restraints are enabled.
- * \param[in]  useReplicaExchange           If this is a REMD simulation.
  * \param[in]  haveFrozenAtoms              If this simulation has frozen atoms (see Issue #3920).
  * \param[in]  doRerun                      It this is a rerun.
  * \param[in]  devFlags                     GPU development / experimental feature flags.
@@ -299,7 +303,6 @@ bool decideWhetherToUseGpuForUpdate(bool                           isDomainDecom
                                     const gmx_mtop_t&              mtop,
                                     bool                           useEssentialDynamics,
                                     bool                           doOrientationRestraints,
-                                    bool                           useReplicaExchange,
                                     bool                           haveFrozenAtoms,
                                     bool                           doRerun,
                                     const DevelopmentFeatureFlags& devFlags,

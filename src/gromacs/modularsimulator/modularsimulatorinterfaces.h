@@ -78,6 +78,7 @@ class EnergySignaller;
 class LastStepSignaller;
 class LoggingSignaller;
 class NeighborSearchSignaller;
+enum class ReferenceTemperatureChangeAlgorithm;
 enum class ScaleVelocities;
 template<class Signaller>
 class SignallerBuilder;
@@ -97,6 +98,8 @@ typedef std::function<void()> SimulatorRunFunction;
 
 //! The function type that allows to register run functions
 typedef std::function<void(SimulatorRunFunction)> RegisterRunFunction;
+//! The function type scheduling run functions for a step / time using a RegisterRunFunction reference
+typedef std::function<void(Step, Time, const RegisterRunFunction&)> SchedulingFunction;
 
 /*! \internal
  * \brief The general interface for elements of the modular simulator
@@ -552,6 +555,41 @@ struct PropagatorConnection
     //! Function object to request callback allowing to signal a Parrinello-Rahman scaling step
     std::function<PropagatorCallback()> getPRScalingCallback;
 };
+
+//! Enum describing whether an element is reporting conserved energy from the previous step
+enum class ReportPreviousStepConservedEnergy
+{
+    Yes,
+    No,
+    Count
+};
+
+//! Callback used by the DomDecHelper object to inform clients about system re-partitioning
+typedef std::function<void()> DomDecCallback;
+
+/*! \internal
+ * \brief Client interface of the DomDecHelper class
+ *
+ * Classes implementing this interface will register with the DomDecHelper
+ * builder object.
+ * Before the simulation, the DomDecHelper builder will call the clients'
+ * registerDomDecCallback() function and build a list of callbacks to be
+ * passed to the DomDecHelper. After every time the DomDecHelper object
+ * performed system partitioning, it will use the callbacks to inform the
+ * clients that a re-partitioning has happened.
+ */
+class IDomDecHelperClient
+{
+public:
+    //! Standard virtual destructor
+    virtual ~IDomDecHelperClient() = default;
+    //! Register function to be informed about system re-partitioning
+    virtual DomDecCallback registerDomDecCallback() = 0;
+};
+
+//! Callback updating the reference temperature
+using ReferenceTemperatureCallback =
+        std::function<void(ArrayRef<const real>, ReferenceTemperatureChangeAlgorithm algorithm)>;
 
 //! /}
 } // namespace gmx

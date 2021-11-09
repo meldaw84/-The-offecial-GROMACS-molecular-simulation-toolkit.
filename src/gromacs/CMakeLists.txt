@@ -185,6 +185,15 @@ if (GMX_GPU_CUDA)
 else()
     add_library(libgromacs ${LIBGROMACS_SOURCES})
 endif()
+
+if (TARGET Heffte::Heffte)
+    target_link_libraries(libgromacs PRIVATE Heffte::Heffte)
+endif()
+
+if (GMX_SYCL_HIPSYCL AND GMX_HIPSYCL_HAVE_HIP_TARGET)
+    target_link_libraries(libgromacs PUBLIC roc::rocfft)
+endif()
+
 target_link_libraries(libgromacs PRIVATE $<BUILD_INTERFACE:common>)
 # As long as the libgromacs target has source files that reference headers from
 # modules that don't provide CMake targets, libgromacs needs to use `src/`
@@ -198,9 +207,6 @@ target_link_libraries(libgromacs PRIVATE $<BUILD_INTERFACE:legacy_modules>)
 # linking starts.
 add_subdirectory(fileio)
 add_subdirectory(selection)
-
-# Suppress a warning about our abuse of t_inputrec
-gmx_source_file_warning_suppression(mdtypes/inputrec.cpp -Wno-class-memaccess HAS_NO_CLASS_MEMACCESS)
 
 # Handle the object libraries that contain the source file
 # dependencies that need special handling because they are generated
@@ -279,11 +285,6 @@ endif()
 # Do any special handling needed for .cpp files that use
 # CUDA runtime headers
 if (GMX_GPU_CUDA AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    # CUDA header cuda_runtime_api.h in at least CUDA 10.1 uses 0
-    # where nullptr would be preferable. GROMACS can't fix these, so
-    # must suppress them.
-    GMX_TEST_CXXFLAG(CXXFLAGS_NO_ZERO_AS_NULL_POINTER_CONSTANT "-Wno-zero-as-null-pointer-constant" NVCC_CLANG_SUPPRESSIONS_CXXFLAGS)
-
     foreach(_compile_flag ${NVCC_CLANG_SUPPRESSIONS_CXXFLAGS})
         set(GMX_CUDA_CLANG_FLAGS "${GMX_CUDA_CLANG_FLAGS} ${_compile_flag}")
     endforeach()
@@ -391,11 +392,11 @@ set_target_properties(libgromacs PROPERTIES
 
 gmx_manage_lmfit()
 target_link_libraries(libgromacs PRIVATE lmfit)
+gmx_manage_muparser()
+target_link_libraries(libgromacs PRIVATE muparser)
 
-# Make sure we fix "everything" found by more recent versions of clang.
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER "7")
-   target_compile_options(libgromacs PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Weverything ${IGNORED_CLANG_ALL_WARNINGS}>)
-endif()
+# Make sure we fix "everything" found by compilers that support that
+gmx_warn_on_everything(libgromacs)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
    target_compile_options(libgromacs PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/analyze /analyze:stacksize 70000
      #Control flow warnings are disabled because the commond line output is insufficient. There is no tool

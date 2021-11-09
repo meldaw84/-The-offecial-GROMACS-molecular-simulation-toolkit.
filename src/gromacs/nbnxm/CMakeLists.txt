@@ -38,9 +38,10 @@ add_library(nbnxm INTERFACE)
 add_subdirectory(kernels_simd_4xm)
 add_subdirectory(kernels_simd_2xmm)
 
-file (GLOB NBNXM_SOURCES
+file(GLOB NBNXM_SOURCES
     # Source files
     atomdata.cpp
+    freeenergydispatch.cpp
     grid.cpp
     gridset.cpp
     kernel_common.cpp
@@ -111,3 +112,7 @@ target_link_libraries(nbnxm INTERFACE
 target_link_libraries(nbnxm INTERFACE
         utility
         )
+
+if (BUILD_TESTING)
+    add_subdirectory(tests)
+endif()

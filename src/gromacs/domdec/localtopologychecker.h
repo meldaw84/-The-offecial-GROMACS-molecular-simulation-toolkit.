@@ -44,41 +44,77 @@
 #ifndef GMX_DOMDEC_LOCALTOPOLOGYCHECKER_H
 #define GMX_DOMDEC_LOCALTOPOLOGYCHECKER_H
 
-#include <optional>
+#include <memory>
+
+#include "gromacs/math/vectypes.h"
+
+struct gmx_localtop_t;
+struct gmx_mtop_t;
+struct t_commrec;
+struct t_inputrec;
+class t_state;
+
+namespace gmx
+{
+class MDLogger;
+class ObservablesReducerBuilder;
+} // namespace gmx
 
 namespace gmx
 {
 
-struct LocalTopologyChecker
+/*! \libinternal
+ * \brief Has responsibility for checking that the local topology distributed
+ * across domains describes a total number of bonded interactions that matches
+ * the system topology
+ *
+ * This uses the ObservablesReducer framework to check that the count
+ * of bonded interactions in the local topology made for each domain
+ * sums to the expected value. Because this check is not urgent, the
+ * communication that it requires is done at the next opportunity,
+ * rather than requiring extra communication. If the check fails, a
+ * fatal error stops execution. In principle, if there was a bug,
+ * GROMACS might crash in the meantime because of the wrong
+ * forces. However as a bug is unlikely we optimize by avoiding
+ * creating extra overhead from communication.
+ */
+class LocalTopologyChecker
 {
-    /*! \brief Data to help check local topology construction
-     *
-     * Partitioning could incorrectly miss a bonded interaction.
-     * However, checking for that requires a global communication
-     * stage, which does not otherwise happen during partitioning. So,
-     * for performance, we do that alongside the first global energy
-     * reduction after a new DD is made. These variables handle
-     * whether the check happens, its input for this domain, output
-     * across all domains, and the expected value it should match. */
-    /*! \{ */
-    /*! \brief Number of bonded interactions found in the local
-     * topology for this domain. */
-    int numBondedInteractionsToReduce = 0;
-    /*! \brief Whether to check at the next global communication
-     * stage the total number of bonded interactions found.
-     *
-     * Cleared after that number is found. */
-    bool shouldCheckNumberOfBondedInteractions = false;
-    /*! \brief The total number of bonded interactions found in
-     * the local topology across all domains.
-     *
-     * Only has a value after reduction across all ranks, which is
-     * removed when it is again time to check after a new
-     * partition. */
-    std::optional<int> numBondedInteractionsOverAllDomains;
-    /*! \} */
+public:
+    /*! \brief Constructor
+     * \param[in]    mdlog            Logger
+     * \param[in]    cr               Communication object
+     * \param[in]    mtop             Global system topology
+     * \param[in]    localTopology    The local topology
+     * \param[in]    localState       The local state
+     * \param[in]    useUpdateGroups  Whether update groups are in use
+     * \param[in]    observablesReducerBuilder  Handle to builder for ObservablesReducer
+     */
+    LocalTopologyChecker(const MDLogger&            mdlog,
+                         const t_commrec*           cr,
+                         const gmx_mtop_t&          mtop,
+                         const gmx_localtop_t&      localTopology,
+                         const t_state&             localState,
+                         bool                       useUpdateGroups,
+                         ObservablesReducerBuilder* observablesReducerBuilder);
+    //! Destructor
+    ~LocalTopologyChecker();
+    //! Move constructor
+    LocalTopologyChecker(LocalTopologyChecker&& other) noexcept;
+    //! Move assignment
+    LocalTopologyChecker& operator=(LocalTopologyChecker&& other) noexcept;
+
+    /*! \brief Set that the local topology should be checked via
+     * observables reduction whenever that reduction is required by
+     * another module. In case of a single domain a direct assertion
+     * is performed instead.
+     */
+    void scheduleCheckOfLocalTopology(int numBondedInteractionsToReduce);
+
+private:
+    class Impl;
+    std::unique_ptr<Impl> impl_;
 };
 
 } // namespace gmx
-
 #endif

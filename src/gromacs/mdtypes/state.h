@@ -88,7 +88,7 @@ using PaddedHostVector = gmx::PaddedHostVector<T>;
  * Currently the random seeds for SD and BD are missing.
  */
 
-/* \brief Enum for all entries in \p t_state
+/*! \brief Enum for all entries in \p t_state
  *
  * These enums are used in flags as (1<<est...).
  * The order of these enums should not be changed,
@@ -202,7 +202,7 @@ public:
  *
  * \todo Split out into microstate and observables history.
  */
-typedef struct df_history_t
+struct df_history_t
 {
     int nlambda; //!< total number of lambda states - for history
 
@@ -224,7 +224,15 @@ typedef struct df_history_t
     real** Tij;           //!< transition matrix
     real** Tij_empirical; //!< Empirical transition matrix
 
-} df_history_t;
+    /*! \brief Allows to read and write checkpoint within modular simulator
+     *
+     * \tparam operation  Whether we're reading or writing
+     * \param checkpointData  The CheckpointData object
+     * \param elamstats  How the lambda weights are calculated
+     */
+    template<gmx::CheckpointDataOperation operation>
+    void doCheckpoint(gmx::CheckpointData<operation> checkpointData, LambdaWeightCalculation elamstats);
+};
 
 
 /*! \brief The microstate of the system

@@ -156,7 +156,9 @@ public:
         // initialize correction tables
         interaction_const_t tmp;
         tmp.ewaldcoeff_q       = calc_ewaldcoeff_q(1.0, 1.0e-5);
+        coulEwaldCoeff_        = tmp.ewaldcoeff_q;
         tmp.ewaldcoeff_lj      = calc_ewaldcoeff_lj(1.0, 1.0e-5);
+        vdwEwaldCoeff_         = tmp.ewaldcoeff_lj;
         tmp.eeltype            = coulType;
         tmp.vdwtype            = vdwType;
         tmp.coulombEwaldTables = std::make_unique<EwaldCorrectionTables>();
@@ -192,6 +194,8 @@ public:
         ic->epsfac                   = gmx::c_one4PiEps0 * 0.25;
         ic->reactionFieldCoefficient = 0.0; // former k_rf
         ic->reactionFieldShift       = 1.0; // former c_rf
+        ic->ewaldcoeff_q             = coulEwaldCoeff_;
+        ic->ewaldcoeff_lj            = vdwEwaldCoeff_;
         ic->sh_ewald                 = 1.0e-5;
         ic->sh_lj_ewald              = -1.0;
         ic->dispersion_shift.cpot    = -1.0;
@@ -205,8 +209,10 @@ private:
 
     //! coulomb and vdw type specifiers
     CoulombInteractionType coulType_;
+    real                   coulEwaldCoeff_;
     VanDerWaalsType        vdwType_;
     InteractionModifiers   vdwMod_;
+    real                   vdwEwaldCoeff_;
 };
 
 
@@ -223,12 +229,16 @@ class ForcerecHelper
 public:
     ForcerecHelper()
     {
-        fepVals_.sc_alpha     = 0.3;
-        fepVals_.sc_power     = 1;
-        fepVals_.sc_r_power   = 6.0;
-        fepVals_.sc_sigma     = 0.3;
-        fepVals_.sc_sigma_min = 0.3;
-        fepVals_.bScCoul      = true;
+        fepVals_.sc_alpha                = 0.3;
+        fepVals_.sc_power                = 1;
+        fepVals_.sc_r_power              = 6.0;
+        fepVals_.sc_sigma                = 0.3;
+        fepVals_.sc_sigma_min            = 0.3;
+        fepVals_.bScCoul                 = true;
+        fepVals_.scGapsysScaleLinpointLJ = 0.85;
+        fepVals_.scGapsysScaleLinpointQ  = 0.3;
+        fepVals_.scGapsysSigmaLJ         = 0.3;
+        fepVals_.softcoreFunction        = SoftcoreType::Beutler;
     }
 
     //! initialize data structure to construct forcerec
@@ -238,13 +248,22 @@ public:
                       InteractionModifiers   vdwMod)
     {
         icHelper_.initInteractionConst(coulType, vdwType, vdwMod);
-        nbfp_ = makeNonBondedParameterLists(idef, false);
-        t_forcerec frTmp;
-        ljPmeC6Grid_ = makeLJPmeC6GridCorrectionParameters(idef, frTmp);
+        nbfp_        = makeNonBondedParameterLists(idef.atnr, idef.iparams, false);
+        ljPmeC6Grid_ = makeLJPmeC6GridCorrectionParameters(idef.atnr, idef.iparams, LongRangeVdW::Geom);
     }
 
-    void setSoftcoreAlpha(const real scAlpha) { fepVals_.sc_alpha = scAlpha; }
+    void setSoftcoreAlpha(const real scBeutlerAlphaOrGapsysLinpointScaling)
+    {
+        fepVals_.sc_alpha                = scBeutlerAlphaOrGapsysLinpointScaling;
+        fepVals_.scGapsysScaleLinpointLJ = scBeutlerAlphaOrGapsysLinpointScaling;
+        fepVals_.scGapsysScaleLinpointQ  = scBeutlerAlphaOrGapsysLinpointScaling;
+    }
     void setSoftcoreCoulomb(const bool scCoulomb) { fepVals_.bScCoul = scCoulomb; }
+    void setSoftcoreType(const SoftcoreType softcoreType)
+    {
+        fepVals_.softcoreFunction = softcoreType;
+    }
+
 
     //! get forcerec data as wanted by the nonbonded kernel
     void getForcerec(t_forcerec* fr)
@@ -387,7 +406,7 @@ public:
 };
 
 class NonbondedFepTest :
-    public ::testing::TestWithParam<std::tuple<ListInput, PaddedVector<RVec>, real, real, bool>>
+    public ::testing::TestWithParam<std::tuple<SoftcoreType, ListInput, PaddedVector<RVec>, real, real, bool>>
 {
 protected:
     PaddedVector<RVec>   x_;
@@ -395,19 +414,25 @@ protected:
     real                 lambda_;
     real                 softcoreAlpha_;
     bool                 softcoreCoulomb_;
+    SoftcoreType         softcoreType_;
     TestReferenceData    refData_;
     TestReferenceChecker checker_;
 
     NonbondedFepTest() : checker_(refData_.rootChecker())
     {
-        input_           = std::get<0>(GetParam());
-        x_               = std::get<1>(GetParam());
-        lambda_          = std::get<2>(GetParam());
-        softcoreAlpha_   = std::get<3>(GetParam());
-        softcoreCoulomb_ = std::get<4>(GetParam());
+        softcoreType_    = std::get<0>(GetParam());
+        input_           = std::get<1>(GetParam());
+        x_               = std::get<2>(GetParam());
+        lambda_          = std::get<3>(GetParam());
+        softcoreAlpha_   = std::get<4>(GetParam());
+        softcoreCoulomb_ = std::get<5>(GetParam());
 
+        // Note that the reference data for Ewald type interactions has been generated
+        // with accurate analytical approximations for the long-range corrections.
+        // When the free-energy kernel switches from tabulated to analytical corrections,
+        // the double precision tolerance can be tightend to 1e-11.
         test::FloatingPointTolerance tolerance(
-                input_.floatToler, input_.doubleToler, 1.0e-6, 1.0e-12, 10000, 100, false);
+                input_.floatToler, input_.doubleToler, 1.0e-6, 1.0e-11, 10000, 100, false);
         checker_.setDefaultTolerance(tolerance);
     }
 
@@ -415,6 +440,7 @@ protected:
     {
         input_.frHelper.setSoftcoreAlpha(softcoreAlpha_);
         input_.frHelper.setSoftcoreCoulomb(softcoreCoulomb_);
+        input_.frHelper.setSoftcoreType(softcoreType_);
 
         // get forcerec and interaction_const
         t_forcerec fr;
@@ -445,8 +471,7 @@ protected:
 
         // run fep kernel
         gmx_nb_free_energy_kernel(nbl,
-                                  x_.arrayRefWithPadding().unpaddedArrayRef(),
-                                  &forces,
+                                  x_.arrayRefWithPadding(),
                                   fr.use_simd_kernels,
                                   fr.ntype,
                                   fr.rlist,
@@ -460,10 +485,12 @@ protected:
                                   input_.atoms.typeB,
                                   doNBFlags,
                                   lambdas,
-                                  output.dvdLambda,
+                                  &nrnb,
+                                  output.f.arrayRefWithPadding(),
+                                  as_rvec_array(output.fShift.data()),
                                   output.energy.energyGroupPairTerms[NonBondedEnergyTerms::CoulombSR],
                                   output.energy.energyGroupPairTerms[NonBondedEnergyTerms::LJSR],
-                                  &nrnb);
+                                  output.dvdLambda);
 
         checkOutput(&checker_, output);
     }
@@ -482,22 +509,24 @@ std::vector<ListInput> c_interaction = {
 };
 
 //! test parameters
-std::vector<real> c_fepLambdas      = { 0.0, 0.5, 1.0 };
-std::vector<real> c_softcoreAlphas  = { 0.0, 0.3 };
-std::vector<bool> c_softcoreCoulomb = { true, false };
+std::vector<real>         c_fepLambdas                                  = { 0.0, 0.5, 1.0 };
+std::vector<real>         c_softcoreBeutlerAlphaOrGapsysLinpointScaling = { 0.0, 0.3 };
+std::vector<bool>         c_softcoreCoulomb                             = { true, false };
+std::vector<SoftcoreType> c_softcoreType = { SoftcoreType::Beutler, SoftcoreType::Gapsys };
 
 //! Coordinates for testing
 std::vector<PaddedVector<RVec>> c_coordinates = {
     { { 1.0, 1.0, 1.0 }, { 1.1, 1.15, 1.2 }, { 0.9, 0.85, 0.8 }, { 1.1, 1.15, 0.8 } }
 };
 
-INSTANTIATE_TEST_CASE_P(NBInteraction,
-                        NonbondedFepTest,
-                        ::testing::Combine(::testing::ValuesIn(c_interaction),
-                                           ::testing::ValuesIn(c_coordinates),
-                                           ::testing::ValuesIn(c_fepLambdas),
-                                           ::testing::ValuesIn(c_softcoreAlphas),
-                                           ::testing::ValuesIn(c_softcoreCoulomb)));
+INSTANTIATE_TEST_SUITE_P(NBInteraction,
+                         NonbondedFepTest,
+                         ::testing::Combine(::testing::ValuesIn(c_softcoreType),
+                                            ::testing::ValuesIn(c_interaction),
+                                            ::testing::ValuesIn(c_coordinates),
+                                            ::testing::ValuesIn(c_fepLambdas),
+                                            ::testing::ValuesIn(c_softcoreBeutlerAlphaOrGapsysLinpointScaling),
+                                            ::testing::ValuesIn(c_softcoreCoulomb)));
 
 } // namespace
 

@@ -43,10 +43,20 @@
 #ifndef GMX_PMEFORCESENDERGPU_IMPL_H
 #define GMX_PMEFORCESENDERGPU_IMPL_H
 
+#include <atomic>
+#include <new>
+
 #include "gromacs/ewald/pme_force_sender_gpu.h"
 #include "gromacs/gpu_utils/devicebuffer_datatype.h"
 #include "gromacs/gpu_utils/gputraits.h"
 #include "gromacs/utility/arrayref.h"
+
+// Portable definition of cache line size
+#ifdef __cpp_lib_hardware_interference_size
+using std::hardware_destructive_interference_size;
+#else
+constexpr std::size_t hardware_destructive_interference_size = 64;
+#endif
 
 class GpuEventSynchronizer;
 
@@ -55,6 +65,11 @@ namespace gmx
 
 /*! \internal \brief Class with interfaces and data for CUDA version of PME Force sending functionality*/
 
+typedef struct CacheLineAlignedFlag
+{
+    alignas(hardware_destructive_interference_size) bool flag;
+} CacheLineAlignedFlag;
+
 class PmeForceSenderGpu::Impl
 {
 
@@ -62,22 +77,29 @@ public:
     /*! \brief Creates PME GPU Force sender object
      * \param[in] pmeForcesReady  Event synchronizer marked when PME forces are ready on the GPU
      * \param[in] comm            Communicator used for simulation
+     * \param[in] deviceContext   GPU context
      * \param[in] ppRanks         List of PP ranks
      */
-    Impl(GpuEventSynchronizer* pmeForcesReady, MPI_Comm comm, gmx::ArrayRef<PpRanks> ppRanks);
+    Impl(GpuEventSynchronizer*  pmeForcesReady,
+         MPI_Comm               comm,
+         const DeviceContext&   deviceContext,
+         gmx::ArrayRef<PpRanks> ppRanks);
+    // NOLINTNEXTLINE(performance-trivially-destructible)
     ~Impl();
 
     /*! \brief
-     * sends force buffer address to PP rank
+     * Sets location of force to be sent to each PP rank
      * \param[in] d_f   force buffer in GPU memory
      */
-    void sendForceBufferAddressToPpRanks(DeviceBuffer<Float3> d_f);
+    void setForceSendBuffer(DeviceBuffer<Float3> d_f);
 
     /*! \brief
-     * Send force synchronizer to PP rank (used with Thread-MPI)
-     * \param[in] ppRank           PP rank to receive data
+     * Send force to PP rank (used with Thread-MPI)
+     * \param[in] ppRank                   PP rank to receive data
+     * \param[in] numAtoms                 number of atoms to send
+     * \param[in] sendForcesDirectToPpGpu  whether forces are transferred direct to remote GPU memory
      */
-    void sendFSynchronizerToPpCudaDirect(int ppRank);
+    void sendFToPpCudaDirect(int ppRank, int numAtoms, bool sendForcesDirectToPpGpu);
 
     /*! \brief
      * Send force to PP rank (used with Lib-MPI)
@@ -96,6 +118,20 @@ private:
     MPI_Comm comm_;
     //! list of PP ranks
     gmx::ArrayRef<PpRanks> ppRanks_;
+    //! Streams used for pushing force to remote PP ranks
+    std::vector<std::unique_ptr<DeviceStream>> ppCommStream_;
+    //! Events used for manging sync with remote PP ranks
+    std::vector<std::unique_ptr<GpuEventSynchronizer>> ppCommEvent_;
+    //! Vector of flags to track when PP transfer events have been recorded
+    std::vector<std::atomic<CacheLineAlignedFlag>> ppCommEventRecorded_;
+    //! Addresses of local force buffers to send to remote PP ranks
+    std::vector<DeviceBuffer<RVec>> localForcePtr_;
+    //! GPU context handle (not used in CUDA)
+    const DeviceContext& deviceContext_;
+    //! Vector of CPU force buffer pointers for multiple remote PP tasks
+    std::vector<float3*> pmeRemoteCpuForcePtr_;
+    //! Vector of GPU force buffer pointers for multiple remote PP tasks
+    std::vector<float3*> pmeRemoteGpuForcePtr_;
 };
 
 } // namespace gmx

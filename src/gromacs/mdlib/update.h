@@ -97,10 +97,12 @@ public:
      * \param[in] numAtoms  Updated number of atoms.
      * \param[in] cFREEZE   Group index for freezing
      * \param[in] cTC       Group index for center of mass motion removal
+     * \param[in] cAcceleration  Group index for constant acceleration groups
      */
     void updateAfterPartition(int                                 numAtoms,
                               gmx::ArrayRef<const unsigned short> cFREEZE,
-                              gmx::ArrayRef<const unsigned short> cTC);
+                              gmx::ArrayRef<const unsigned short> cTC,
+                              gmx::ArrayRef<const unsigned short> cAcceleration);
 
     /*! \brief Perform numerical integration step.
      *
@@ -131,7 +133,7 @@ public:
                        gmx::ArrayRef<const rvec>                        invMassPerDim,
                        t_state*                                         state,
                        const gmx::ArrayRefWithPadding<const gmx::RVec>& f,
-                       const t_fcdata&                                  fcdata,
+                       t_fcdata*                                        fcdata,
                        const gmx_ekindata_t*                            ekind,
                        const matrix                                     M,
                        int                                              updatePart,

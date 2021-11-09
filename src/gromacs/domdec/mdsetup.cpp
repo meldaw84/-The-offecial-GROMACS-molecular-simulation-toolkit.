@@ -38,11 +38,13 @@
 
 #include "gromacs/domdec/domdec.h"
 #include "gromacs/domdec/domdec_struct.h"
+#include "gromacs/domdec/localtopology.h"
 #include "gromacs/ewald/pme.h"
 #include "gromacs/listed_forces/listed_forces.h"
 #include "gromacs/mdlib/constr.h"
 #include "gromacs/mdlib/mdatoms.h"
 #include "gromacs/mdlib/vsite.h"
+#include "gromacs/mdlib/wholemoleculetransform.h"
 #include "gromacs/mdtypes/commrec.h"
 #include "gromacs/mdtypes/forcebuffers.h"
 #include "gromacs/mdtypes/forcerec.h"
@@ -75,7 +77,7 @@ void mdAlgorithmsSetupAtomData(const t_commrec*     cr,
                                VirtualSitesHandler* vsite,
                                gmx_shellfc_t*       shellfc)
 {
-    bool usingDomDec = DOMAINDECOMP(cr);
+    bool usingDomDec = haveDDAtomOrdering(*cr);
 
     int numAtomIndex;
     int numHomeAtoms;
@@ -107,13 +109,14 @@ void mdAlgorithmsSetupAtomData(const t_commrec*     cr,
              mdAtoms);
 
     t_mdatoms* mdatoms = mdAtoms->mdatoms();
-    if (usingDomDec)
-    {
-        dd_sort_local_top(*cr->dd, mdatoms, top);
-    }
-    else
+    if (!usingDomDec)
     {
         gmx_mtop_generate_local_top(top_global, top, inputrec.efep != FreeEnergyPerturbationType::No);
+    }
+
+    if (fr->wholeMoleculeTransform && usingDomDec)
+    {
+        fr->wholeMoleculeTransform->updateAtomOrder(cr->dd->globalAtomIndices, *cr->dd->ga2la);
     }
 
     if (vsite)
@@ -137,7 +140,7 @@ void mdAlgorithmsSetupAtomData(const t_commrec*     cr,
 
     for (auto& listedForces : fr->listedForces)
     {
-        listedForces.setup(top->idef, fr->natoms_force, fr->gpuBonded != nullptr);
+        listedForces.setup(top->idef, fr->natoms_force, fr->listedForcesGpu != nullptr);
     }
 
     if (EEL_PME(fr->ic->eeltype) && (cr->duty & DUTY_PME))

@@ -140,9 +140,6 @@ public:
     //! Gets the interaction list for the given molecule type
     const reverse_ilist_t& interactionListForMoleculeType(int moleculeType) const;
 
-    //! Returns the total count of bonded interactions, used for checking partitioning
-    int expectedNumGlobalBondedInteractions() const;
-
     //! Returns the molecule block indices
     gmx::ArrayRef<const MolblockIndices> molblockIndices() const;
     //! Returns whether the reverse topology describes intermolecular interactions
@@ -155,13 +152,51 @@ public:
     bool hasPositionRestraints() const;
     //! Returns the per-thread working structures for making the local topology
     gmx::ArrayRef<thread_work_t> threadWorkObjects() const;
-    //! Returns whether the local topology interactions should be sorted
-    bool doSorting() const;
+    //! Returns whether the local topology listed-forces interactions should be sorted
+    bool doListedForcesSorting() const;
 
     //! Private implementation definition
     struct Impl;
     //! Private implementation declaration
     std::unique_ptr<Impl> impl_;
 };
+
+/*! \brief Returns the number of atom entries for il in gmx_reverse_top_t */
+int nral_rt(int ftype);
+
+/*! \brief Return whether interactions of type \p ftype need to be assigned exactly once */
+bool dd_check_ftype(int ftype, const ReverseTopOptions& rtOptions);
+
+//! Molecular topology indices of a global molecule a global atom belongs to
+struct MolecularTopologyAtomIndices
+{
+    //! The index of the molecule block
+    int blockIndex;
+    //! The molecule type
+    int moleculeType;
+    //! The index of the molecule in the block
+    int moleculeIndex;
+    //! The index of the atom in the molecule
+    int atomIndex;
+};
+
+//! Return global topology molecule information for global atom index \p globalAtomIndex
+MolecularTopologyAtomIndices globalAtomIndexToMoltypeIndices(gmx::ArrayRef<const MolblockIndices> molblockIndices,
+                                                             int globalAtomIndex);
+
+/*! \brief Make the reverse ilist: a list of bonded interactions linked to atoms */
+void make_reverse_ilist(const InteractionLists&  ilist,
+                        const t_atoms*           atoms,
+                        const ReverseTopOptions& rtOptions,
+                        AtomLinkRule             atomLinkRule,
+                        reverse_ilist_t*         ril_mt);
+
+/*! \brief Generate and store the reverse topology */
+void dd_make_reverse_top(FILE*                           fplog,
+                         gmx_domdec_t*                   dd,
+                         const gmx_mtop_t&               mtop,
+                         const gmx::VirtualSitesHandler* vsite,
+                         const t_inputrec&               inputrec,
+                         gmx::DDBondedChecking           ddBondedChecking);
 
 #endif

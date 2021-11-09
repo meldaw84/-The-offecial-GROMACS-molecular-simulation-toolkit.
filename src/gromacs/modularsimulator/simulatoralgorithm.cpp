@@ -59,6 +59,7 @@
 #include "gromacs/mdlib/stat.h"
 #include "gromacs/mdrun/replicaexchange.h"
 #include "gromacs/mdrun/shellfc.h"
+#include "gromacs/mdrunutility/freeenergy.h"
 #include "gromacs/mdrunutility/handlerestart.h"
 #include "gromacs/mdrunutility/printtime.h"
 #include "gromacs/mdtypes/commrec.h"
@@ -77,10 +78,12 @@
 #include "checkpointhelper.h"
 #include "domdechelper.h"
 #include "energydata.h"
+#include "firstorderpressurecoupling.h"
 #include "freeenergyperturbationdata.h"
 #include "modularsimulator.h"
 #include "pmeloadbalancehelper.h"
 #include "propagator.h"
+#include "referencetemperaturemanager.h"
 #include "statepropagatordata.h"
 
 namespace gmx
@@ -127,7 +130,7 @@ void ModularSimulatorAlgorithm::setup()
         domDecHelper_->setup();
     }
 
-    for (auto& element : elementsOwnershipList_)
+    for (auto& element : elementSetupTeardownList_)
     {
         element->elementSetup();
     }
@@ -168,7 +171,7 @@ void ModularSimulatorAlgorithm::updateTaskQueue()
 
 void ModularSimulatorAlgorithm::teardown()
 {
-    for (auto& element : elementsOwnershipList_)
+    for (auto& element : elementSetupTeardownList_)
     {
         element->elementTeardown();
     }
@@ -300,7 +303,7 @@ void ModularSimulatorAlgorithm::postStep(Step step, Time gmx_unused time)
     }
 
     double cycles = wallcycle_stop(wcycle, WallCycleCounter::Step);
-    if (DOMAINDECOMP(cr) && wcycle)
+    if (haveDDAtomOrdering(*cr) && wcycle)
     {
         dd_cycles_add(cr->dd, static_cast<float>(cycles), ddCyclStep);
     }
@@ -362,10 +365,20 @@ void ModularSimulatorAlgorithm::populateTaskQueue()
 
         // register pre-step (task queue is local, so no problem with `this`)
         registerRunFunction([this, step, time, isNSStep]() { preStep(step, time, isNSStep); });
+        // register pre step functions
+        for (const auto& schedulingFunction : preStepScheduling_)
+        {
+            schedulingFunction(step_, time, registerRunFunction);
+        }
         // register elements for step
         for (auto& element : elementCallList_)
         {
             element->scheduleTask(step_, time, registerRunFunction);
+        }
+        // register post step functions
+        for (const auto& schedulingFunction : postStepScheduling_)
+        {
+            schedulingFunction(step_, time, registerRunFunction);
         }
         // register post-step (task queue is local, so no problem with `this`)
         registerRunFunction([this, step, time]() { postStep(step, time); });
@@ -398,6 +411,7 @@ ModularSimulatorAlgorithmBuilder::ModularSimulatorAlgorithmBuilder(
                                                                 legacySimulatorData->inputrec,
                                                                 legacySimulatorData->cr),
                                signals_.get()),
+    observablesReducer_(legacySimulatorData->observablesReducerBuilder->build()),
     checkpointHelperBuilder_(std::move(checkpointDataHolder),
                              legacySimulatorData->startingBehavior,
                              legacySimulatorData->cr)
@@ -406,6 +420,7 @@ ModularSimulatorAlgorithmBuilder::ModularSimulatorAlgorithmBuilder(
     {
         freeEnergyPerturbationData_ = std::make_unique<FreeEnergyPerturbationData>(
                 legacySimulatorData->fplog, *legacySimulatorData->inputrec, legacySimulatorData->mdAtoms);
+        registerExistingElement(freeEnergyPerturbationData_->element());
     }
 
     statePropagatorData_ = std::make_unique<StatePropagatorData>(
@@ -413,6 +428,7 @@ ModularSimulatorAlgorithmBuilder::ModularSimulatorAlgorithmBuilder(
             legacySimulatorData->fplog,
             legacySimulatorData->cr,
             legacySimulatorData->state_global,
+            legacySimulatorData->state,
             legacySimulatorData->fr->nbv->useGpu(),
             legacySimulatorData->fr->bMolPBC,
             legacySimulatorData->mdrunOptions.writeConfout,
@@ -420,6 +436,7 @@ ModularSimulatorAlgorithmBuilder::ModularSimulatorAlgorithmBuilder(
             legacySimulatorData->inputrec,
             legacySimulatorData->mdAtoms->mdatoms(),
             legacySimulatorData->top_global);
+    registerExistingElement(statePropagatorData_->element());
 
     // Multi sim is turned off
     const bool simulationsShareState = false;
@@ -438,15 +455,33 @@ ModularSimulatorAlgorithmBuilder::ModularSimulatorAlgorithmBuilder(
                                                MASTER(legacySimulatorData->cr),
                                                legacySimulatorData->observablesHistory,
                                                legacySimulatorData->startingBehavior,
-                                               simulationsShareState);
+                                               simulationsShareState,
+                                               legacySimulatorData->pull_work);
+    registerExistingElement(energyData_->element());
+
+    // This is the only modular simulator object which changes the inputrec
+    // TODO: Avoid changing inputrec (#3854)
+    storeSimulationData(
+            "ReferenceTemperatureManager",
+            ReferenceTemperatureManager(const_cast<t_inputrec*>(legacySimulatorData->inputrec)));
+    auto* referenceTemperatureManager =
+            simulationData<ReferenceTemperatureManager>("ReferenceTemperatureManager").value();
+
+    // State propagator data is scaling velocities if reference temperature is updated
+    auto* statePropagatorDataPtr = statePropagatorData_.get();
+    referenceTemperatureManager->registerUpdateCallback(
+            [statePropagatorDataPtr](ArrayRef<const real>                temperatures,
+                                     ReferenceTemperatureChangeAlgorithm algorithm) {
+                statePropagatorDataPtr->updateReferenceTemperature(temperatures, algorithm);
+            });
 }
 
 ModularSimulatorAlgorithm ModularSimulatorAlgorithmBuilder::build()
 {
     if (algorithmHasBeenBuilt_)
     {
-        throw SimulationAlgorithmSetupError(
-                "Tried to build ModularSimulationAlgorithm more than once.");
+        GMX_THROW(SimulationAlgorithmSetupError(
+                "Tried to build ModularSimulationAlgorithm more than once."));
     }
     algorithmHasBeenBuilt_ = true;
 
@@ -511,12 +546,14 @@ ModularSimulatorAlgorithm ModularSimulatorAlgorithmBuilder::build()
 
     // Build topology holder
     algorithm.topologyHolder_ = topologyHolderBuilder_.build(legacySimulatorData_->top_global,
+                                                             legacySimulatorData_->top,
                                                              legacySimulatorData_->cr,
                                                              legacySimulatorData_->inputrec,
                                                              legacySimulatorData_->fr,
                                                              legacySimulatorData_->mdAtoms,
                                                              legacySimulatorData_->constr,
                                                              legacySimulatorData_->vsite);
+    registerWithInfrastructureAndSignallers(algorithm.topologyHolder_.get());
 
     // Build PME load balance helper
     if (PmeLoadBalanceHelper::doPmeLoadBalancing(legacySimulatorData_->mdrunOptions,
@@ -533,30 +570,6 @@ ModularSimulatorAlgorithm ModularSimulatorAlgorithmBuilder::build()
                                                        legacySimulatorData_->wcycle,
                                                        legacySimulatorData_->fr);
         registerWithInfrastructureAndSignallers(algorithm.pmeLoadBalanceHelper_.get());
-    }
-    // Build domdec helper
-    if (DOMAINDECOMP(legacySimulatorData_->cr))
-    {
-        algorithm.domDecHelper_ = std::make_unique<DomDecHelper>(
-                legacySimulatorData_->mdrunOptions.verbose,
-                legacySimulatorData_->mdrunOptions.verboseStepPrintInterval,
-                algorithm.statePropagatorData_.get(),
-                algorithm.freeEnergyPerturbationData_.get(),
-                algorithm.topologyHolder_.get(),
-                globalCommunicationHelper_.nstglobalcomm(),
-                legacySimulatorData_->fplog,
-                legacySimulatorData_->cr,
-                legacySimulatorData_->mdlog,
-                legacySimulatorData_->constr,
-                legacySimulatorData_->inputrec,
-                legacySimulatorData_->mdAtoms,
-                legacySimulatorData_->nrnb,
-                legacySimulatorData_->wcycle,
-                legacySimulatorData_->fr,
-                legacySimulatorData_->vsite,
-                legacySimulatorData_->imdSession,
-                legacySimulatorData_->pull_work);
-        registerWithInfrastructureAndSignallers(algorithm.domDecHelper_.get());
     }
 
     // Build trajectory element
@@ -575,16 +588,29 @@ ModularSimulatorAlgorithm ModularSimulatorAlgorithmBuilder::build()
                                                              simulationsShareState);
     registerWithInfrastructureAndSignallers(trajectoryElement.get());
 
-    // Build free energy element
-    std::unique_ptr<FreeEnergyPerturbationData::Element> freeEnergyPerturbationElement = nullptr;
-    if (algorithm.freeEnergyPerturbationData_)
+    // Build domdec helper (free energy element is a client, so keep this after it is built)
+    if (haveDDAtomOrdering(*legacySimulatorData_->cr))
     {
-        freeEnergyPerturbationElement = std::make_unique<FreeEnergyPerturbationData::Element>(
-                algorithm.freeEnergyPerturbationData_.get(),
-                legacySimulatorData_->inputrec->fepvals->delta_lambda);
-        registerWithInfrastructureAndSignallers(freeEnergyPerturbationElement.get());
+        algorithm.domDecHelper_ =
+                domDecHelperBuilder_.build(legacySimulatorData_->mdrunOptions.verbose,
+                                           legacySimulatorData_->mdrunOptions.verboseStepPrintInterval,
+                                           algorithm.statePropagatorData_.get(),
+                                           algorithm.topologyHolder_.get(),
+                                           globalCommunicationHelper_.nstglobalcomm(),
+                                           legacySimulatorData_->fplog,
+                                           legacySimulatorData_->cr,
+                                           legacySimulatorData_->mdlog,
+                                           legacySimulatorData_->constr,
+                                           legacySimulatorData_->inputrec,
+                                           legacySimulatorData_->mdAtoms,
+                                           legacySimulatorData_->nrnb,
+                                           legacySimulatorData_->wcycle,
+                                           legacySimulatorData_->fr,
+                                           legacySimulatorData_->vsite,
+                                           legacySimulatorData_->imdSession,
+                                           legacySimulatorData_->pull_work);
+        registerWithInfrastructureAndSignallers(algorithm.domDecHelper_.get());
     }
-
     // Build checkpoint helper (do this last so everyone else can be a checkpoint client!)
     {
         checkpointHelperBuilder_.setCheckpointHandler(std::make_unique<CheckpointHandler>(
@@ -641,7 +667,10 @@ ModularSimulatorAlgorithm ModularSimulatorAlgorithmBuilder::build()
             }
         }
         addSignaller(energySignallerBuilder_.build(
-                inputrec->nstcalcenergy, inputrec->fepvals->nstdhdl, inputrec->nstpcouple, virialMode));
+                inputrec->nstcalcenergy,
+                computeFepPeriod(*inputrec, legacySimulatorData_->replExParams),
+                inputrec->nstpcouple,
+                virialMode));
         addSignaller(trajectorySignallerBuilder_.build(inputrec->nstxout,
                                                        inputrec->nstvout,
                                                        inputrec->nstfout,
@@ -659,14 +688,19 @@ ModularSimulatorAlgorithm ModularSimulatorAlgorithmBuilder::build()
                 inputrec->nstlist, inputrec->init_step, inputrec->init_t));
     }
 
+    // Move setup / teardown list
+    algorithm.elementSetupTeardownList_ = std::move(setupAndTeardownList_);
+    // Move pre- / post-step scheduling lists
+    algorithm.preStepScheduling_  = std::move(preStepScheduling_);
+    algorithm.postStepScheduling_ = std::move(postStepScheduling_);
+
     // Create element list
     // Checkpoint helper needs to be in the call list (as first element!) to react to last step
     algorithm.elementCallList_.emplace_back(algorithm.checkpointHelper_.get());
     // Next, update the free energy lambda vector if needed
-    if (freeEnergyPerturbationElement)
+    if (algorithm.freeEnergyPerturbationData_)
     {
-        algorithm.elementsOwnershipList_.emplace_back(std::move(freeEnergyPerturbationElement));
-        algorithm.elementCallList_.emplace_back(algorithm.elementsOwnershipList_.back().get());
+        algorithm.elementCallList_.emplace_back(algorithm.freeEnergyPerturbationData_->element());
     }
     // Then, move the built algorithm
     algorithm.elementsOwnershipList_.insert(algorithm.elementsOwnershipList_.end(),
@@ -679,16 +713,10 @@ ModularSimulatorAlgorithm ModularSimulatorAlgorithmBuilder::build()
     // (relevant data was stored by elements through energy signaller)
     algorithm.elementsOwnershipList_.emplace_back(std::move(trajectoryElement));
     algorithm.elementCallList_.emplace_back(algorithm.elementsOwnershipList_.back().get());
+    algorithm.elementSetupTeardownList_.emplace_back(algorithm.elementsOwnershipList_.back().get());
 
     algorithm.setup();
     return algorithm;
-}
-
-ISimulatorElement* ModularSimulatorAlgorithmBuilder::addElementToSimulatorAlgorithm(
-        std::unique_ptr<ISimulatorElement> element)
-{
-    elements_.emplace_back(std::move(element));
-    return elements_.back().get();
 }
 
 bool ModularSimulatorAlgorithmBuilder::elementExists(const ISimulatorElement* element) const
@@ -701,18 +729,9 @@ bool ModularSimulatorAlgorithmBuilder::elementExists(const ISimulatorElement* el
         return true;
     }
     // Check whether element exists in other places controlled by *this
-    return (statePropagatorData_->element() == element || energyData_->element() == element
+    return ((statePropagatorData_ && statePropagatorData_->element() == element)
+            || (energyData_ && energyData_->element() == element)
             || (freeEnergyPerturbationData_ && freeEnergyPerturbationData_->element() == element));
-}
-
-void ModularSimulatorAlgorithmBuilder::addElementToSetupTeardownList(ISimulatorElement* element)
-{
-    // Add element if it's not already in the list
-    if (std::find(setupAndTeardownList_.begin(), setupAndTeardownList_.end(), element)
-        == setupAndTeardownList_.end())
-    {
-        setupAndTeardownList_.emplace_back(element);
-    }
 }
 
 std::optional<SignallerCallback> ModularSimulatorAlgorithm::SignalHelper::registerLastStepCallback()
@@ -746,14 +765,19 @@ ModularSimulatorAlgorithmBuilderHelper::ModularSimulatorAlgorithmBuilderHelper(
 {
 }
 
-ISimulatorElement* ModularSimulatorAlgorithmBuilderHelper::storeElement(std::unique_ptr<ISimulatorElement> element)
-{
-    return builder_->addElementToSimulatorAlgorithm(std::move(element));
-}
-
 bool ModularSimulatorAlgorithmBuilderHelper::elementIsStored(const ISimulatorElement* element) const
 {
     return builder_->elementExists(element);
+}
+
+[[maybe_unused]] void ModularSimulatorAlgorithmBuilderHelper::registerPreStepScheduling(SchedulingFunction schedulingFunction)
+{
+    builder_->preStepScheduling_.emplace_back(std::move(schedulingFunction));
+}
+
+[[maybe_unused]] void ModularSimulatorAlgorithmBuilderHelper::registerPostStepScheduling(SchedulingFunction schedulingFunction)
+{
+    builder_->postStepScheduling_.emplace_back(std::move(schedulingFunction));
 }
 
 std::optional<std::any> ModularSimulatorAlgorithmBuilderHelper::builderData(const std::string& key) const
@@ -778,6 +802,26 @@ void ModularSimulatorAlgorithmBuilderHelper::registerTemperaturePressureControl(
 void ModularSimulatorAlgorithmBuilderHelper::registerPropagator(PropagatorConnection connectionData)
 {
     builder_->propagatorConnections_.emplace_back(std::move(connectionData));
+}
+
+void ModularSimulatorAlgorithmBuilderHelper::registerReferenceTemperatureUpdate(
+        ReferenceTemperatureCallback referenceTemperatureCallback)
+{
+    auto* referenceTemperatureManager =
+            simulationData<ReferenceTemperatureManager>("ReferenceTemperatureManager").value();
+    referenceTemperatureManager->registerUpdateCallback(std::move(referenceTemperatureCallback));
+}
+
+ReferenceTemperatureCallback ModularSimulatorAlgorithmBuilderHelper::changeReferenceTemperatureCallback()
+{
+    // Capture is safe because SimulatorAlgorithm will manage life time of both the
+    // recipient of the callback and the reference temperature manager
+    auto* referenceTemperatureManager =
+            simulationData<ReferenceTemperatureManager>("ReferenceTemperatureManager").value();
+    return [referenceTemperatureManager](ArrayRef<const real>                temperatures,
+                                         ReferenceTemperatureChangeAlgorithm algorithm) {
+        referenceTemperatureManager->setReferenceTemperature(temperatures, algorithm);
+    };
 }
 
 } // namespace gmx

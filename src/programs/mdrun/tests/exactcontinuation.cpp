@@ -252,6 +252,8 @@ void runTest(TestFileManager*            fileManager,
         EXPECT_EQ(0, runner->callGrompp(caller));
     }
 
+    const std::string splitPoint = std::to_string(std::stoi(mdpFieldValues.at("nsteps")) / 2);
+
     // prepare the .tpr file for the first part of the two-part run
     {
         // TODO evolve grompp to report the number of warnings issued, so
@@ -261,7 +263,7 @@ void runTest(TestFileManager*            fileManager,
         caller.addOption("-maxwarn", maxWarningsTolerated);
         runner->useTopGroAndNdxFromDatabase(simulationName);
         auto firstPartMdpFieldValues      = mdpFieldValues;
-        firstPartMdpFieldValues["nsteps"] = std::to_string(std::stoi(mdpFieldValues.at("nsteps")) / 2);
+        firstPartMdpFieldValues["nsteps"] = splitPoint;
         runner->useStringAsMdpFile(prepareMdpFileContents(firstPartMdpFieldValues));
         runner->tprFileName_ = firstPartRunTprFileName;
         EXPECT_EQ(0, runner->callGrompp(caller));
@@ -273,6 +275,9 @@ void runTest(TestFileManager*            fileManager,
         runner->edrFileName_ = fullRunEdrFileName;
         CommandLine fullRunCaller;
         fullRunCaller.append("mdrun");
+        /* Force neighborlist update at the beginning of the second half of the trajectory.
+         * Doing so through CLI options prevents pairlist tuning from changing it. */
+        fullRunCaller.addOption("-nstlist", splitPoint);
         ASSERT_EQ(0, runner->callMdrun(fullRunCaller));
     }
 
@@ -332,7 +337,7 @@ void runTest(TestFileManager*            fileManager,
  * \todo Add FEP case. */
 class MdrunNoAppendContinuationIsExact :
     public MdrunTestFixture,
-    public ::testing::WithParamInterface<std::tuple<std::string, std::string, std::string, std::string>>
+    public ::testing::WithParamInterface<std::tuple<std::string, std::string, std::string, std::string, MdpParameterDatabase>>
 {
 public:
     //! Constructor
@@ -350,11 +355,12 @@ public:
 
 TEST_P(MdrunNoAppendContinuationIsExact, WithinTolerances)
 {
-    auto params              = GetParam();
-    auto simulationName      = std::get<0>(params);
-    auto integrator          = std::get<1>(params);
-    auto temperatureCoupling = std::get<2>(params);
-    auto pressureCoupling    = std::get<3>(params);
+    auto params                  = GetParam();
+    auto simulationName          = std::get<0>(params);
+    auto integrator              = std::get<1>(params);
+    auto temperatureCoupling     = std::get<2>(params);
+    auto pressureCoupling        = std::get<3>(params);
+    auto additionalMdpParameters = std::get<4>(params);
 
     // Check for unimplemented functionality
     // TODO: Update this as modular simulator gains functionality
@@ -387,20 +393,21 @@ TEST_P(MdrunNoAppendContinuationIsExact, WithinTolerances)
     auto mdpFieldValues = prepareMdpFieldValues(simulationName.c_str(),
                                                 integrator.c_str(),
                                                 temperatureCoupling.c_str(),
-                                                pressureCoupling.c_str());
+                                                pressureCoupling.c_str(),
+                                                additionalMdpParameters);
     // The exact lambda state choice is unimportant, so long as there
     // is one when using an FEP input.
     mdpFieldValues["init-lambda-state"] = "3";
     mdpFieldValues["nsteps"]            = "16";
 
-    // Forces on GPUs are generally not reproducible enough for a tight
-    // tolerance. Similarly, the propagation of sd and bd are not as
+    // Forces and update on GPUs are generally not reproducible enough for a tight
+    // tolerance. Similarly, the propagation of bd is not as
     // reproducible as the others. So we use several ULP tolerance
     // in all cases. This is looser than needed e.g. for md and md-vv
     // with forces on CPUs, but there is no real risk of a bug with
     // those propagators that would only be caught with a tighter
     // tolerance in this particular test.
-    int ulpToleranceInMixed  = 32;
+    int ulpToleranceInMixed  = 128;
     int ulpToleranceInDouble = 64;
     if (integrator == "bd")
     {
@@ -417,9 +424,19 @@ TEST_P(MdrunNoAppendContinuationIsExact, WithinTolerances)
 
     if (temperatureCoupling != "no" || pressureCoupling != "no")
     {
-        energyTermsToCompare.insert({ interaction_function[F_ECONSERVED].longname,
-                                      relativeToleranceAsPrecisionDependentUlp(
-                                              10.0, ulpToleranceInMixed, ulpToleranceInDouble) });
+        if (simulationName == "alanine_vacuo")
+        {
+            // This is slightly less reproducible
+            energyTermsToCompare.insert({ interaction_function[F_ECONSERVED].longname,
+                                          relativeToleranceAsPrecisionDependentUlp(
+                                                  10.0, ulpToleranceInMixed * 2, ulpToleranceInDouble) });
+        }
+        else
+        {
+            energyTermsToCompare.insert({ interaction_function[F_ECONSERVED].longname,
+                                          relativeToleranceAsPrecisionDependentUlp(
+                                                  10.0, ulpToleranceInMixed, ulpToleranceInDouble) });
+        }
     }
 
     if (pressureCoupling == "parrinello-rahman")
@@ -444,52 +461,76 @@ TEST_P(MdrunNoAppendContinuationIsExact, WithinTolerances)
 // tests can run in such configurations.
 #if !GMX_GPU_OPENCL
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
         NormalIntegrators,
         MdrunNoAppendContinuationIsExact,
         ::testing::Combine(::testing::Values("argon12", "spc2", "alanine_vsite_vacuo"),
                            ::testing::Values("md", "md-vv", "bd", "sd"),
                            ::testing::Values("no"),
-                           ::testing::Values("no")));
+                           ::testing::Values("no"),
+                           ::testing::Values(MdpParameterDatabase::Default)));
 
-INSTANTIATE_TEST_CASE_P(NormalIntegratorsWithFEP,
-                        MdrunNoAppendContinuationIsExact,
-                        ::testing::Combine(::testing::Values("nonanol_vacuo"),
-                                           ::testing::Values("md", "md-vv", "bd", "sd"),
-                                           ::testing::Values("no"),
-                                           ::testing::Values("no")));
+INSTANTIATE_TEST_SUITE_P(NormalIntegratorsWithFEP,
+                         MdrunNoAppendContinuationIsExact,
+                         ::testing::Combine(::testing::Values("nonanol_vacuo"),
+                                            ::testing::Values("md", "md-vv", "bd", "sd"),
+                                            ::testing::Values("no"),
+                                            ::testing::Values("no"),
+                                            ::testing::Values(MdpParameterDatabase::Default)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
         NVT,
         MdrunNoAppendContinuationIsExact,
         ::testing::Combine(::testing::Values("argon12"),
                            ::testing::Values("md", "md-vv"),
                            ::testing::Values("berendsen", "v-rescale", "nose-hoover"),
-                           ::testing::Values("no")));
+                           ::testing::Values("no"),
+                           ::testing::Values(MdpParameterDatabase::Default)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
         NPH,
         MdrunNoAppendContinuationIsExact,
         ::testing::Combine(::testing::Values("argon12"),
                            ::testing::Values("md", "md-vv"),
                            ::testing::Values("no"),
-                           ::testing::Values("berendsen", "parrinello-rahman", "C-rescale")));
+                           ::testing::Values("berendsen", "parrinello-rahman", "C-rescale"),
+                           ::testing::Values(MdpParameterDatabase::Default)));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
         NPT,
         MdrunNoAppendContinuationIsExact,
         ::testing::Combine(::testing::Values("argon12"),
                            ::testing::Values("md", "md-vv"),
                            ::testing::Values("berendsen", "v-rescale", "nose-hoover"),
-                           ::testing::Values("berendsen", "parrinello-rahman", "C-rescale")));
+                           ::testing::Values("berendsen", "parrinello-rahman", "C-rescale"),
+                           ::testing::Values(MdpParameterDatabase::Default)));
 
-INSTANTIATE_TEST_CASE_P(MTTK,
-                        MdrunNoAppendContinuationIsExact,
-                        ::testing::Combine(::testing::Values("argon12"),
-                                           ::testing::Values("md-vv"),
-                                           ::testing::Values("nose-hoover"),
-                                           ::testing::Values("mttk")));
+INSTANTIATE_TEST_SUITE_P(MTTK,
+                         MdrunNoAppendContinuationIsExact,
+                         ::testing::Combine(::testing::Values("argon12"),
+                                            ::testing::Values("md-vv"),
+                                            ::testing::Values("nose-hoover"),
+                                            ::testing::Values("mttk"),
+                                            ::testing::Values(MdpParameterDatabase::Default)));
 
+INSTANTIATE_TEST_SUITE_P(Pull,
+                         MdrunNoAppendContinuationIsExact,
+                         ::testing::Combine(::testing::Values("spc2"),
+                                            ::testing::Values("md", "md-vv"),
+                                            ::testing::Values("no"),
+                                            ::testing::Values("no"),
+                                            ::testing::Values(MdpParameterDatabase::Pull)));
+
+INSTANTIATE_TEST_SUITE_P(Awh,
+                         MdrunNoAppendContinuationIsExact,
+                         ::testing::Combine(::testing::Values("alanine_vacuo"),
+                                            ::testing::Values("md", "md-vv"),
+                                            ::testing::Values("v-rescale"),
+                                            ::testing::Values("no"),
+                                            ::testing::Values(MdpParameterDatabase::Awh)));
+
+#else
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(MdrunNoAppendContinuationIsExact);
 #endif
 
 } // namespace

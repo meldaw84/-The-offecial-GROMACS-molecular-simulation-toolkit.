@@ -2,7 +2,7 @@
  * This file is part of the GROMACS molecular simulation package.
  *
  * Copyright (c) 2012,2013,2014,2015,2016 by the GROMACS development team.
- * Copyright (c) 2017,2018,2019,2020, by the GROMACS development team, led by
+ * Copyright (c) 2017,2018,2019,2020,2021, by the GROMACS development team, led by
  * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
  * and including many others, as listed in the AUTHORS file in the
  * top-level source directory and at http://www.gromacs.org.
@@ -80,7 +80,7 @@ static bool useBuildCache = getenv("GMX_OCL_GENCACHE") != nullptr;
 
 /*! \brief Handles writing the OpenCL JIT compilation log to \c fplog.
  *
- * If \c fplog is non-null and either the GMX_OCL_DUMP_LOG environment
+ * If \c fplog is non-null and either the \c GMX_OCL_DUMP_LOG environment
  * variable is set or the compilation failed, then the OpenCL
  * compilation log is written.
  *
@@ -89,7 +89,8 @@ static bool useBuildCache = getenv("GMX_OCL_GENCACHE") != nullptr;
  * \param deviceId            Id of the device for which compilation took place
  * \param kernelFilename      File name containing the kernel
  * \param preprocessorOptions String containing the preprocessor command-line options used for the
- * build \param buildFailed         Whether the OpenCL build succeeded
+ *                            build
+ * \param buildFailed         Whether the OpenCL build succeeded
  *
  * \throws std::bad_alloc if out of memory */
 static void writeOclBuildLog(FILE*              fplog,
@@ -168,8 +169,9 @@ static std::string selectCompilerOptions(DeviceVendor deviceVendor)
         compilerOptions += " -cl-opt-disable";
     }
 
-    /* Fastmath imprves performance on all supported arch */
-    if (getenv("GMX_OCL_DISABLE_FASTMATH") == nullptr)
+    /* Fastmath improves performance on all supported arch,
+     * but is tends to cause problems on Intel (Issue #3898) */
+    if ((deviceVendor != DeviceVendor::Intel) && (getenv("GMX_OCL_DISABLE_FASTMATH") == nullptr))
     {
         compilerOptions += " -cl-fast-relaxed-math";
 

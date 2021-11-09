@@ -43,7 +43,7 @@
 
 #include <algorithm>
 
-#include "gromacs/domdec/domdec.h"
+#include "gromacs/domdec/localtopologychecker.h"
 #include "gromacs/gmxlib/nrnb.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/mdlib/constr.h"
@@ -78,12 +78,11 @@ void integrateVVFirstStep(int64_t                   step,
                           t_commrec*                cr,
                           t_state*                  state,
                           t_mdatoms*                mdatoms,
-                          const t_fcdata&           fcdata,
+                          t_fcdata*                 fcdata,
                           t_extmass*                MassQ,
                           t_vcm*                    vcm,
-                          const gmx_mtop_t&         top_global,
-                          const gmx_localtop_t&     top,
                           gmx_enerdata_t*           enerd,
+                          gmx::ObservablesReducer*  observablesReducer,
                           gmx_ekindata_t*           ekind,
                           gmx_global_stat*          gstat,
                           real*                     last_ekin,
@@ -108,7 +107,6 @@ void integrateVVFirstStep(int64_t                   step,
                           gmx::SimulationSignaller* nullSignaller,
                           gmx::EnumerationArray<TrotterSequence, std::vector<int>> trotter_seq,
                           t_nrnb*                                                  nrnb,
-                          const gmx::MDLogger&                                     mdlog,
                           FILE*                                                    fplog,
                           gmx_wallcycle*                                           wcycle)
 {
@@ -191,10 +189,6 @@ void integrateVVFirstStep(int64_t                   step,
                     ((bGStat ? CGLO_GSTAT : 0) | (bCalcEner ? CGLO_ENERGY : 0)
                      | (bTemp ? CGLO_TEMPERATURE : 0) | (bPres ? CGLO_PRESSURE : 0)
                      | (bPres ? CGLO_CONSTRAINT : 0) | (bStopCM ? CGLO_STOPCM : 0) | CGLO_SCALEEKIN);
-            if (DOMAINDECOMP(cr) && shouldCheckNumberOfBondedInteractions(*cr->dd))
-            {
-                cglo_flags |= CGLO_CHECK_NUMBER_OF_BONDED_INTERACTIONS;
-            }
             compute_globals(gstat,
                             cr,
                             ir,
@@ -212,11 +206,12 @@ void integrateVVFirstStep(int64_t                   step,
                             shake_vir,
                             total_vir,
                             pres,
-                            (bCalcEner && constr != nullptr) ? constr->rmsdData() : gmx::ArrayRef<real>{},
                             nullSignaller,
                             state->box,
                             bSumEkinhOld,
-                            cglo_flags);
+                            cglo_flags,
+                            step,
+                            observablesReducer);
             /* explanation of above:
                 a) We compute Ekin at the full time step
                 if 1) we are using the AveVel Ekin, and it's not the
@@ -224,11 +219,6 @@ void integrateVVFirstStep(int64_t                   step,
                 time step kinetic energy for the pressure (always true now, since we want accurate statistics).
                 b) If we are using EkinAveEkin for the kinetic energy for the temperature control, we still feed in
                 EkinAveVel because it's needed for the pressure */
-            if (DOMAINDECOMP(cr))
-            {
-                checkNumberOfBondedInteractions(
-                        mdlog, cr, top_global, &top, makeConstArrayRef(state->x), state->box);
-            }
             if (bStopCM)
             {
                 process_and_stopcm_grp(
@@ -297,11 +287,12 @@ void integrateVVFirstStep(int64_t                   step,
                                 nullptr,
                                 nullptr,
                                 nullptr,
-                                gmx::ArrayRef<real>{},
                                 nullSignaller,
                                 state->box,
                                 bSumEkinhOld,
-                                CGLO_GSTAT | CGLO_TEMPERATURE);
+                                CGLO_GSTAT | CGLO_TEMPERATURE,
+                                step,
+                                observablesReducer);
                 wallcycle_start(wcycle, WallCycleCounter::Update);
             }
         }
@@ -332,36 +323,37 @@ void integrateVVFirstStep(int64_t                   step,
     }
 }
 
-void integrateVVSecondStep(int64_t                                                  step,
-                           const t_inputrec*                                        ir,
-                           t_forcerec*                                              fr,
-                           t_commrec*                                               cr,
-                           t_state*                                                 state,
-                           t_mdatoms*                                               mdatoms,
-                           const t_fcdata&                                          fcdata,
-                           t_extmass*                                               MassQ,
-                           t_vcm*                                                   vcm,
-                           pull_t*                                                  pull_work,
-                           gmx_enerdata_t*                                          enerd,
-                           gmx_ekindata_t*                                          ekind,
-                           gmx_global_stat*                                         gstat,
-                           real*                                                    dvdl_constr,
-                           bool                                                     bCalcVir,
-                           tensor                                                   total_vir,
-                           tensor                                                   shake_vir,
-                           tensor                                                   force_vir,
-                           tensor                                                   pres,
-                           matrix                                                   M,
-                           matrix                                                   lastbox,
-                           bool                                                     do_log,
-                           bool                                                     do_ene,
-                           bool                                                     bGStat,
-                           bool*                                                    bSumEkinhOld,
-                           gmx::ForceBuffers*                                       f,
-                           std::vector<gmx::RVec>*                                  cbuf,
-                           gmx::Update*                                             upd,
-                           gmx::Constraints*                                        constr,
-                           gmx::SimulationSignaller*                                nullSignaller,
+void integrateVVSecondStep(int64_t                   step,
+                           const t_inputrec*         ir,
+                           t_forcerec*               fr,
+                           t_commrec*                cr,
+                           t_state*                  state,
+                           t_mdatoms*                mdatoms,
+                           t_fcdata*                 fcdata,
+                           t_extmass*                MassQ,
+                           t_vcm*                    vcm,
+                           pull_t*                   pull_work,
+                           gmx_enerdata_t*           enerd,
+                           gmx::ObservablesReducer*  observablesReducer,
+                           gmx_ekindata_t*           ekind,
+                           gmx_global_stat*          gstat,
+                           real*                     dvdl_constr,
+                           bool                      bCalcVir,
+                           tensor                    total_vir,
+                           tensor                    shake_vir,
+                           tensor                    force_vir,
+                           tensor                    pres,
+                           matrix                    M,
+                           matrix                    lastbox,
+                           bool                      do_log,
+                           bool                      do_ene,
+                           bool                      bGStat,
+                           bool*                     bSumEkinhOld,
+                           gmx::ForceBuffers*        f,
+                           std::vector<gmx::RVec>*   cbuf,
+                           gmx::Update*              upd,
+                           gmx::Constraints*         constr,
+                           gmx::SimulationSignaller* nullSignaller,
                            gmx::EnumerationArray<TrotterSequence, std::vector<int>> trotter_seq,
                            t_nrnb*                                                  nrnb,
                            gmx_wallcycle*                                           wcycle)
@@ -397,7 +389,7 @@ void integrateVVSecondStep(int64_t                                              
 
     if (ir->bPull && ir->pull->bSetPbcRefToPrevStepCOM)
     {
-        updatePrevStepPullCom(pull_work, state);
+        updatePrevStepPullCom(pull_work, state->pull_com_prev_step);
     }
 
     upd->update_coords(*ir,
@@ -458,11 +450,12 @@ void integrateVVSecondStep(int64_t                                              
                         shake_vir,
                         total_vir,
                         pres,
-                        gmx::ArrayRef<real>{},
                         nullSignaller,
                         lastbox,
                         bSumEkinhOld,
-                        (bGStat ? CGLO_GSTAT : 0) | CGLO_TEMPERATURE);
+                        (bGStat ? CGLO_GSTAT : 0) | CGLO_TEMPERATURE,
+                        step,
+                        observablesReducer);
         wallcycle_start(wcycle, WallCycleCounter::Update);
         trotter_update(ir,
                        step,

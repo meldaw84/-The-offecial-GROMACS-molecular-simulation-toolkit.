@@ -44,13 +44,7 @@
 #include "config.h"
 
 #include "gromacs/gpu_utils/device_stream.h"
-#if GMX_GPU_CUDA
-#    include "gromacs/gpu_utils/gpueventsynchronizer.cuh"
-#elif GMX_GPU_OPENCL
-#    include "gromacs/gpu_utils/gpueventsynchronizer_ocl.h"
-#elif GMX_GPU_SYCL
-#    include "gromacs/gpu_utils/gpueventsynchronizer_sycl.h"
-#endif
+#include "gromacs/gpu_utils/gpueventsynchronizer.h"
 #include "gromacs/mdtypes/locality.h"
 #include "gromacs/nbnxm/gridset.h"
 #include "gromacs/nbnxm/nbnxm_gpu.h"
@@ -76,7 +70,7 @@ void nbnxn_gpu_x_to_nbat_x(const Nbnxm::Grid&      grid,
                            int                     numColumnsMax,
                            bool                    mustInsertNonLocalDependency)
 {
-    GMX_ASSERT((bool)GMX_GPU_CUDA || (bool)GMX_GPU_SYCL,
+    GMX_ASSERT(bool(GMX_GPU_CUDA) || bool(GMX_GPU_SYCL),
                "NBNXM X buffer operations only supported in CUDA and SYCL");
     GMX_ASSERT(nb, "Need a valid nbnxn_gpu object");
     gmx::InteractionLocality interactionLoc = gmx::atomToInteractionLocality(locality);

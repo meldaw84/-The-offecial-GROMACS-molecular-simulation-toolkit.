@@ -127,7 +127,7 @@ public:
                                        params_->dimParams,
                                        params_->beta,
                                        mdTimeStep,
-                                       1,
+                                       nullptr,
                                        "",
                                        Bias::ThisRankWillDoIO::No,
                                        disableUpdateSkips);
@@ -177,8 +177,6 @@ TEST_P(BiasFepLambdaStateTest, ForcesBiasPmf)
                                                                             neighborLambdaDhdl,
                                                                             &potential,
                                                                             &potentialJump,
-                                                                            nullptr,
-                                                                            nullptr,
                                                                             step * mdTimeStep,
                                                                             step,
                                                                             seed_,
@@ -219,13 +217,13 @@ TEST_P(BiasFepLambdaStateTest, ForcesBiasPmf)
  * It would be nice if the test would explicitly check for this.
  * Currently this is tested through identical reference data.
  */
-INSTANTIATE_TEST_CASE_P(WithParameters,
-                        BiasFepLambdaStateTest,
-                        ::testing::Combine(::testing::Values(AwhHistogramGrowthType::Linear,
-                                                             AwhHistogramGrowthType::ExponentialLinear),
-                                           ::testing::Values(AwhPotentialType::Umbrella),
-                                           ::testing::Values(BiasParams::DisableUpdateSkips::yes,
-                                                             BiasParams::DisableUpdateSkips::no)));
+INSTANTIATE_TEST_SUITE_P(WithParameters,
+                         BiasFepLambdaStateTest,
+                         ::testing::Combine(::testing::Values(AwhHistogramGrowthType::Linear,
+                                                              AwhHistogramGrowthType::ExponentialLinear),
+                                            ::testing::Values(AwhPotentialType::Umbrella),
+                                            ::testing::Values(BiasParams::DisableUpdateSkips::yes,
+                                                              BiasParams::DisableUpdateSkips::no)));
 
 // Test that we detect coverings and exit the initial stage at the correct step
 TEST(BiasFepLambdaStateTest, DetectsCovering)
@@ -256,7 +254,7 @@ TEST(BiasFepLambdaStateTest, DetectsCovering)
               params.dimParams,
               params.beta,
               mdTimeStep,
-              1,
+              nullptr,
               "",
               Bias::ThisRankWillDoIO::No);
 
@@ -288,8 +286,6 @@ TEST(BiasFepLambdaStateTest, DetectsCovering)
                                     neighborLambdaDhdl,
                                     &potential,
                                     &potentialJump,
-                                    nullptr,
-                                    nullptr,
                                     step,
                                     step,
                                     params.awhParams.seed(),

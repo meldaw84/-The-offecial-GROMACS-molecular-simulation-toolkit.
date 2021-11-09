@@ -230,14 +230,23 @@
 /* Define if hipSYCL is used for SYCL support (otherwise DPCPP is assumed) */
 #cmakedefine01 GMX_SYCL_HIPSYCL
 
+// Define if hipSYCL has HIP target(s)
+#cmakedefine01 GMX_HIPSYCL_HAVE_HIP_TARGET
+
+// Define if hipSYCL has CUDA target(s)
+#cmakedefine01 GMX_HIPSYCL_HAVE_CUDA_TARGET
+
 /* Define if Intel's DPCPP is used (default unless hipSYCL is chosen) */
-#define GMX_SYCL_DPCPP (!GMX_SYCL_HIPSYCL)
+#define GMX_SYCL_DPCPP (!GMX_SYCL_HIPSYCL && GMX_GPU_SYCL)
 
 /* Use a single compilation unit when compiling the CUDA (non-bonded) kernels.  */
 #cmakedefine01 GMX_CUDA_NB_SINGLE_COMPILATION_UNIT
 
 /* Use CUDA-aware MPI.  */
 #cmakedefine01 HAVE_CUDA_AWARE_MPI
+
+/* Define if HeFFTe library found */
+#cmakedefine01 Heffte_FOUND
 
 /* Cluster size used by nonbonded kernel. Should be 8 for NVIDIA/AMD and 4 for Intel */
 #define GMX_GPU_NB_CLUSTER_SIZE @GMX_GPU_NB_CLUSTER_SIZE@
@@ -389,14 +398,17 @@
 /* Define if we have fedisableexcept */
 #cmakedefine01 HAVE_FEDISABLEEXCEPT
 
+/* Define if we have MKL available */
+#cmakedefine01 HAVE_LIBMKL
+
 /* Define if we have lmfit support */
 #cmakedefine01 HAVE_LMFIT
 
+/* Define if we have muparser support */
+#cmakedefine01 HAVE_MUPARSER
+
 /* Build using clang analyzer */
 #cmakedefine01 GMX_CLANG_ANALYZER
-
-/* Use MiMiC QM/MM interface */
-#cmakedefine01 GMX_MIMIC
 
 /* Use Interactive Molecular Dynamics */
 #cmakedefine01 GMX_IMD

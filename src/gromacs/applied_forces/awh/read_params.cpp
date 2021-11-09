@@ -1223,7 +1223,7 @@ static void setStateDependentAwhPullDimParams(AwhDimParams*        dimParams,
     }
 
     /* The initial coordinate value, converted to external user units. */
-    double initialCoordinate = get_pull_coord_value(pull_work, dimParams->coordinateIndex(), &pbc);
+    double initialCoordinate = get_pull_coord_value(pull_work, dimParams->coordinateIndex(), pbc);
     initialCoordinate *= pull_conversion_factor_internal2userinput(pullCoordParams);
     dimParams->setInitialCoordinate(initialCoordinate);
 }
@@ -1355,6 +1355,22 @@ void checkAwhParams(const AwhParams& awhParams, const t_inputrec& ir, warninp_t 
     {
         warning_error(wi, "With AWH init-step should be 0");
     }
+}
+
+bool awhHasFepLambdaDimension(const AwhParams& awhParams)
+{
+    for (const auto& biasParams : awhParams.awhBiasParams())
+    {
+        for (const auto& dimParams : biasParams.dimParams())
+        {
+            if (dimParams.coordinateProvider() == AwhCoordinateProviderType::FreeEnergyLambda)
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 } // namespace gmx

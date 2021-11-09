@@ -49,11 +49,13 @@ namespace Nbnxm
 {
 
 #ifndef GMX_NBNXN_PRUNE_KERNEL_J4_CONCURRENCY
+//! \brief Default for the prune kernel's j4 processing concurrency.
 #    define GMX_NBNXN_PRUNE_KERNEL_J4_CONCURRENCY 4
 #endif
-/*! \brief Macro defining default for the prune kernel's j4 processing concurrency.
+
+/*! \brief Prune kernel's j4 processing concurrency.
  *
- *  The GMX_NBNXN_PRUNE_KERNEL_J4_CONCURRENCY macro allows compile-time override.
+ *  The \c GMX_NBNXN_PRUNE_KERNEL_J4_CONCURRENCY macro allows compile-time override.
  */
 static constexpr int c_syclPruneKernelJ4Concurrency = GMX_NBNXN_PRUNE_KERNEL_J4_CONCURRENCY;
 
@@ -61,6 +63,8 @@ static constexpr int c_syclPruneKernelJ4Concurrency = GMX_NBNXN_PRUNE_KERNEL_J4_
 /*! \cond */
 // cluster size = number of atoms per cluster.
 static constexpr int c_clSize = c_nbnxnGpuClusterSize;
+// Square of cluster size.
+static constexpr int c_clSizeSq = c_clSize * c_clSize;
 // j-cluster size after split (4 in the current implementation).
 static constexpr int c_splitClSize = c_clSize / c_nbnxnGpuClusterpairSplit;
 // i-cluster interaction mask for a super-cluster with all c_nbnxnGpuNumClusterPerSupercluster=8 bits set.
@@ -73,33 +77,6 @@ static constexpr float c_oneSixth = 0.16666667F;
 // 1/12, same value as in other NB kernels.
 static constexpr float c_oneTwelfth = 0.08333333F;
 /*! \endcond */
-
-/* The following functions are necessary because on some versions of Intel OpenCL RT, subgroups
- * do not properly work (segfault or create subgroups of size 1) if used in kernels
- * with non-1-dimensional workgroup. */
-//! \brief Convert 3D range to 1D
-static inline cl::sycl::range<1> flattenRange(cl::sycl::range<3> range3d)
-{
-    return cl::sycl::range<1>(range3d.size());
-}
-
-//! \brief Convert 3D nd_range to 1D
-static inline cl::sycl::nd_range<1> flattenNDRange(cl::sycl::nd_range<3> nd_range3d)
-{
-    return cl::sycl::nd_range<1>(flattenRange(nd_range3d.get_global_range()),
-                                 flattenRange(nd_range3d.get_local_range()));
-}
-
-//! \brief Convert flattened 1D index to 3D
-template<int rangeX, int rangeY>
-static inline cl::sycl::id<3> unflattenId(cl::sycl::id<1> id1d)
-{
-    constexpr unsigned rangeXY = rangeX * rangeY;
-    const unsigned     id      = id1d[0];
-    const unsigned     z       = id / rangeXY;
-    const unsigned     xy      = id % rangeXY;
-    return cl::sycl::id<3>(xy % rangeX, xy / rangeX, z);
-}
 
 } // namespace Nbnxm
 

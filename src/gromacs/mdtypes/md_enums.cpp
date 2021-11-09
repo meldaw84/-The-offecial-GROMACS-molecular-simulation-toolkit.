@@ -288,6 +288,22 @@ const char* enumValueToString(SeparateDhdlFile enumValue)
     return separateDhdlFileNames[enumValue];
 }
 
+const char* enumValueToString(SoftcoreType enumValue)
+{
+    static constexpr gmx::EnumerationArray<SoftcoreType, const char*> softcoreTypeNames = {
+        "beutler", "gapsys"
+    };
+    return softcoreTypeNames[enumValue];
+}
+
+const char* enumValueToString(KernelSoftcoreType enumValue)
+{
+    static constexpr gmx::EnumerationArray<KernelSoftcoreType, const char*> softcoreTypeNames = {
+        "beutler", "gapsys", "none"
+    };
+    return softcoreTypeNames[enumValue];
+}
+
 const char* enumValueToString(DhDlDerivativeCalculation enumValue)
 {
     static constexpr gmx::EnumerationArray<DhDlDerivativeCalculation, const char*> dhdlDerivativeCalculationNames = {
@@ -340,8 +356,8 @@ const char* enumValueToString(PullingAlgorithm enumValue)
 const char* enumValueToString(PullGroupGeometry enumValue)
 {
     static constexpr gmx::EnumerationArray<PullGroupGeometry, const char*> pullGroupControlNames = {
-        "distance",           "direction", "cylinder", "direction-periodic",
-        "direction-relative", "angle",     "dihedral", "angle-axis"
+        "distance", "direction", "cylinder",   "direction-periodic", "direction-relative",
+        "angle",    "dihedral",  "angle-axis", "transformation"
     };
     return pullGroupControlNames[enumValue];
 }

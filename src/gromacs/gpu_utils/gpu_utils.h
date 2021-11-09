@@ -80,13 +80,6 @@ enum class GpuTaskCompletion
     Check /*<< Only check whether the task has completed */
 };
 
-/*! \brief Check if GROMACS has been built with GPU support.
- *
- * \param[in] error Pointer to error string or nullptr.
- * \todo Move this to NB module once it exists.
- */
-bool buildSupportsNonbondedOnGpu(std::string* error);
-
 /*! \brief Starts the GPU profiler if mdrun is being profiled.
  *
  *  When a profiler run is in progress (based on the presence of the NVPROF_ID
@@ -135,5 +128,13 @@ bool isHostMemoryPinned(const void* CUDA_FUNC_ARGUMENT(h_ptr)) CUDA_FUNC_TERM_WI
 CUDA_FUNC_QUALIFIER
 void setupGpuDevicePeerAccess(const std::vector<int>& CUDA_FUNC_ARGUMENT(gpuIdsToUse),
                               const gmx::MDLogger&    CUDA_FUNC_ARGUMENT(mdlog)) CUDA_FUNC_TERM;
+
+/*! \brief Check the platform-defaults and environment variable to decide whether GPU timings
+ * should be enabled.
+ *
+ * Currently, timings are enabled for OpenCL, but disabled for CUDA and SYCL. This can be overridden
+ * by \c GMX_ENABLE_GPU_TIMING and \c GMX_DISABLE_GPU_TIMING environment variables.
+ */
+bool decideGpuTimingsUsage();
 
 #endif

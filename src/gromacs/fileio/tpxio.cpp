@@ -137,6 +137,10 @@ enum tpxv
     tpxv_VSite1,                                  /**< Added 1 type virtual site */
     tpxv_MTS,                                     /**< Added multiple time stepping */
     tpxv_RemovedConstantAcceleration, /**< Removed support for constant acceleration NEMD. */
+    tpxv_TransformationPullCoord,     /**< Support for transformation pull coordinates */
+    tpxv_SoftcoreGapsys,              /**< Added gapsys softcore function */
+    tpxv_ReaddedConstantAcceleration, /**< Re-added support for constant acceleration NEMD. */
+    tpxv_RemoveTholeRfac,             /**< Remove unused rfac parameter from thole listed force */
     tpxv_Count                        /**< the total number of tpxv versions */
 };
 
@@ -247,9 +251,6 @@ static const t_ftupd ftupd[] = {
 };
 #define NFTUPD asize(ftupd)
 
-/* Needed for backward compatibility */
-#define MAXNODES 256
-
 /**************************************************************
  *
  * Now the higer level routines that do io of the structures and arrays
@@ -304,17 +305,7 @@ static void do_pull_coord(gmx::ISerializer* serializer,
         {
             if (pcrd->eType == PullingAlgorithm::External)
             {
-                std::string buf;
-                if (serializer->reading())
-                {
-                    serializer->doString(&buf);
-                    pcrd->externalPotentialProvider = gmx_strdup(buf.c_str());
-                }
-                else
-                {
-                    buf = pcrd->externalPotentialProvider;
-                    serializer->doString(&buf);
-                }
+                serializer->doString(&pcrd->externalPotentialProvider);
             }
             else
             {
@@ -353,6 +344,17 @@ static void do_pull_coord(gmx::ISerializer* serializer,
             pcrd->ngroup = 0;
         }
         serializer->doIvec(&pcrd->dim.as_vec());
+        if (file_version >= tpxv_TransformationPullCoord)
+        {
+            serializer->doString(&pcrd->expression);
+        }
+        else
+        {
+            if (serializer->reading())
+            {
+                pcrd->expression.clear();
+            }
+        }
     }
     else
     {
@@ -622,6 +624,20 @@ static void do_fepvals(gmx::ISerializer* serializer, t_lambda* fepvals, int file
     else
     {
         fepvals->edHdLPrintEnergy = FreeEnergyPrintEnergy::No;
+    }
+    if (file_version >= tpxv_SoftcoreGapsys)
+    {
+        serializer->doInt(reinterpret_cast<int*>(&fepvals->softcoreFunction));
+        serializer->doReal(&fepvals->scGapsysScaleLinpointLJ);
+        serializer->doReal(&fepvals->scGapsysScaleLinpointQ);
+        serializer->doReal(&fepvals->scGapsysSigmaLJ);
+    }
+    else
+    {
+        fepvals->softcoreFunction        = SoftcoreType::Beutler;
+        fepvals->scGapsysScaleLinpointLJ = 0.85;
+        fepvals->scGapsysScaleLinpointQ  = 0.3;
+        fepvals->scGapsysSigmaLJ         = 0.3;
     }
 
     /* handle lambda_neighbors */
@@ -1565,10 +1581,14 @@ static void do_inputrec(gmx::ISerializer* serializer, t_inputrec* ir, int file_v
     {
         ir->opts.nhchainlength = 1;
     }
-    int removedOptsNgacc = 0;
-    if (serializer->reading() && file_version < tpxv_RemovedConstantAcceleration)
+    if (serializer->reading() && file_version >= tpxv_RemovedConstantAcceleration
+        && file_version < tpxv_ReaddedConstantAcceleration)
     {
-        serializer->doInt(&removedOptsNgacc);
+        ir->opts.ngacc = 0;
+    }
+    else
+    {
+        serializer->doInt(&ir->opts.ngacc);
     }
     serializer->doInt(&ir->opts.ngfrz);
     serializer->doInt(&ir->opts.ngener);
@@ -1583,6 +1603,7 @@ static void do_inputrec(gmx::ISerializer* serializer, t_inputrec* ir, int file_v
         snew(ir->opts.anneal_temp, ir->opts.ngtc);
         snew(ir->opts.tau_t, ir->opts.ngtc);
         snew(ir->opts.nFreeze, ir->opts.ngfrz);
+        snew(ir->opts.acceleration, ir->opts.ngacc);
         snew(ir->opts.egp_flags, ir->opts.ngener * ir->opts.ngener);
     }
     if (ir->opts.ngtc > 0)
@@ -1595,18 +1616,20 @@ static void do_inputrec(gmx::ISerializer* serializer, t_inputrec* ir, int file_v
     {
         serializer->doIvecArray(ir->opts.nFreeze, ir->opts.ngfrz);
     }
-    if (serializer->reading() && file_version < tpxv_RemovedConstantAcceleration && removedOptsNgacc > 0)
+    if (ir->opts.ngacc > 0)
     {
-        std::vector<gmx::RVec> dummy;
-        dummy.resize(removedOptsNgacc);
-        serializer->doRvecArray(reinterpret_cast<rvec*>(dummy.data()), removedOptsNgacc);
-        ir->useConstantAcceleration = std::any_of(dummy.begin(), dummy.end(), [](const gmx::RVec& vec) {
-            return vec[XX] != 0.0 || vec[YY] != 0.0 || vec[ZZ] != 0.0;
-        });
+        serializer->doRvecArray(ir->opts.acceleration, ir->opts.ngacc);
     }
-    else
+    if (serializer->reading())
     {
         ir->useConstantAcceleration = false;
+        for (int g = 0; g < ir->opts.ngacc; g++)
+        {
+            if (norm2(ir->opts.acceleration[g]) != 0)
+            {
+                ir->useConstantAcceleration = true;
+            }
+        }
     }
     serializer->doIntArray(ir->opts.egp_flags, ir->opts.ngener * ir->opts.ngener);
 
@@ -1877,7 +1900,12 @@ static void do_iparams(gmx::ISerializer* serializer, t_functype ftype, t_iparams
             serializer->doReal(&iparams->thole.a);
             serializer->doReal(&iparams->thole.alpha1);
             serializer->doReal(&iparams->thole.alpha2);
-            serializer->doReal(&iparams->thole.rfac);
+            if (file_version < tpxv_RemoveTholeRfac)
+            {
+                real noRfac = 0;
+                serializer->doReal(&noRfac);
+            }
+
             break;
         case F_LJ:
             serializer->doReal(&iparams->lj.c6);
@@ -2618,11 +2646,6 @@ static void do_mtop(gmx::ISerializer* serializer, gmx_mtop_t* mtop, int file_ver
     }
 
     do_groups(serializer, &mtop->groups, &(mtop->symtab));
-    if (file_version < tpxv_RemovedConstantAcceleration)
-    {
-        mtop->groups.groups[SimulationAtomGroupType::AccelerationUnused].clear();
-        mtop->groups.groupNumbers[SimulationAtomGroupType::AccelerationUnused].clear();
-    }
 
     mtop->haveMoleculeIndices = true;
 

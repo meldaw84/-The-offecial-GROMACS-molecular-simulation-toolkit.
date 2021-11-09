@@ -37,6 +37,34 @@
 include(CMakeParseArguments)
 include(gmxClangCudaUtils)
 
+set(GMX_CAN_RUN_MPI_TESTS 1)
+if (GMX_MPI)
+    set(_an_mpi_variable_had_content 0)
+    foreach(VARNAME MPIEXEC MPIEXEC_NUMPROC_FLAG MPIEXEC_PREFLAGS MPIEXEC_POSTFLAGS)
+        # These variables need a valid value for the test to run
+        # and pass, but conceivably any of them might be valid
+        # with arbitrary (including empty) content. They can't be
+        # valid if they've been populated with the CMake
+        # find_package magic suffix/value "NOTFOUND", though.
+        if (${VARNAME} MATCHES ".*NOTFOUND")
+            gmx_add_missing_tests_notice("CMake variable ${VARNAME} was not detected to be a valid value. "
+                                         "To test GROMACS correctly, check the advice in the install guide.")
+            set(GMX_CAN_RUN_MPI_TESTS 0)
+        endif()
+        if (NOT VARNAME STREQUAL MPIEXEC AND ${VARNAME})
+            set(_an_mpi_variable_had_content 1)
+        endif()
+    endforeach()
+    if(_an_mpi_variable_had_content AND NOT MPIEXEC)
+        gmx_add_missing_tests_notice("CMake variable MPIEXEC must have a valid value if one of the other related "
+                                     "MPIEXEC variables does. To test GROMACS correctly, check the advice in the "
+                                     "install guide.")
+        set(GMX_CAN_RUN_MPI_TESTS 0)
+    endif()
+elseif (NOT GMX_THREAD_MPI)
+    set(GMX_CAN_RUN_MPI_TESTS 0)
+endif()
+
 function (gmx_add_unit_test_library NAME)
     if (GMX_BUILD_UNITTESTS AND BUILD_TESTING)
         add_library(${NAME} STATIC ${UNITTEST_TARGET_OPTIONS} ${ARGN})
@@ -48,10 +76,19 @@ function (gmx_add_unit_test_library NAME)
             set_target_properties(${NAME} PROPERTIES CXX_CLANG_TIDY
                 "${CLANG_TIDY_EXE};-warnings-as-errors=*;-header-filter=.*")
         endif()
-        if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER "7")
-            target_compile_options(${NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Weverything ${IGNORED_CLANG_ALL_WARNINGS} -Wno-gnu-zero-variadic-macro-arguments -Wno-zero-as-null-pointer-constant -Wno-missing-variable-declarations>)
+        gmx_warn_on_everything(${NAME})
+        if (HAS_WARNING_EVERYTHING)
+            # Some false positives exist produced by GoogleTest implementation
+            gmx_target_warning_suppression(${NAME} "-Wno-zero-as-null-pointer-constant" HAS_WARNING_NO_ZERO_AS_NULL_POINTER_CONSTANT)
+            gmx_target_warning_suppression(${NAME} "-Wno-gnu-zero-variadic-macro-arguments" HAS_WARNING_NO_GNU_ZERO_VARIADIC_MACRO_ARGUMENTS)
+            # Use of GoogleMock can generate mock member functions that are unused
+            gmx_target_warning_suppression(${NAME} "-Wno-unused-member-function" HAS_WARNING_NO_UNUSED_MEMBER_FUNCTION)
+            if(GMX_GPU_CUDA)
+                # CUDA headers target C, so use old-style casts that clang
+                # warns about when it is the host compiler
+                gmx_target_warning_suppression(${NAME} "-Wno-old-style-cast" HAS_NO_OLD_STYLE_CAST)
+            endif()
         endif()
-
     endif()
 endfunction ()
 
@@ -163,6 +200,7 @@ function (gmx_add_gtest_executable EXENAME)
         # use for gmx::compat::optional. These are included as system
         # headers so that no warnings are issued from them.
         target_include_directories(${EXENAME} SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/src/external)
+        target_include_directories(${EXENAME} SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/src/external/muparser)
         if(CYGWIN)
             # Ensure GoogleTest headers can find POSIX things needed
             target_compile_definitions(${EXENAME} PRIVATE _POSIX_C_SOURCE=200809L)
@@ -176,14 +214,18 @@ function (gmx_add_gtest_executable EXENAME)
             set_target_properties(${EXENAME} PROPERTIES CXX_CLANG_TIDY
                 "${CLANG_TIDY_EXE};-warnings-as-errors=*;-header-filter=.*")
         endif()
-        if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER "7")
-            target_compile_options(${EXENAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Weverything ${IGNORED_CLANG_ALL_WARNINGS} -Wno-gnu-zero-variadic-macro-arguments -Wno-zero-as-null-pointer-constant -Wno-missing-variable-declarations>)
-        endif()
-        # clang-3.6 warns about a number of issues that are not reported by more modern compilers
-        # and we know they are not real issues. So we only check that it can compile without error
-        # but ignore all warnings.
-        if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION MATCHES "^3\.6")
-            target_compile_options(${EXENAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-w>)
+        gmx_warn_on_everything(${EXENAME})
+        if (HAS_WARNING_EVERYTHING)
+            # Some false positives exist produced by GoogleTest implementation
+            gmx_target_warning_suppression(${EXENAME} "-Wno-zero-as-null-pointer-constant" HAS_WARNING_NO_ZERO_AS_NULL_POINTER_CONSTANT)
+            gmx_target_warning_suppression(${EXENAME} "-Wno-gnu-zero-variadic-macro-arguments" HAS_WARNING_NO_GNU_ZERO_VARIADIC_MACRO_ARGUMENTS)
+            # Use of GoogleMock can generate mock member functions that are unused
+            gmx_target_warning_suppression(${EXENAME} "-Wno-unused-member-function" HAS_WARNING_NO_UNUSED_MEMBER_FUNCTION)
+            if(GMX_GPU_CUDA)
+                # CUDA headers target C, so use old-style casts that clang
+                # warns about when it is the host compiler
+                gmx_target_warning_suppression(${EXENAME} "-Wno-old-style-cast" HAS_NO_OLD_STYLE_CAST)
+            endif()
         endif()
     endif()
 endfunction()
@@ -239,6 +281,7 @@ function (gmx_register_gtest_test NAME EXENAME)
         endif()
         if (ARG_MPI_RANKS)
             if (NOT GMX_CAN_RUN_MPI_TESTS)
+                gmx_add_missing_tests_notice("Skipping ${NAME} because MPI tests are not available.")
                 return()
             endif()
             list(APPEND _labels MpiTest)

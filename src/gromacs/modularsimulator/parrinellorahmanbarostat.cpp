@@ -303,7 +303,7 @@ void ParrinelloRahmanBarostat::restoreCheckpointState(std::optional<ReadCheckpoi
     {
         doCheckpointData<CheckpointDataOperation::Read>(&checkpointData.value());
     }
-    if (DOMAINDECOMP(cr))
+    if (haveDDAtomOrdering(*cr))
     {
         dd_bcast(cr->dd, sizeof(boxVelocity_), boxVelocity_);
         dd_bcast(cr->dd, sizeof(boxRel_), boxRel_);
@@ -331,8 +331,9 @@ ISimulatorElement* ParrinelloRahmanBarostat::getElementPointerImpl(
         EnergyData*                             energyData,
         FreeEnergyPerturbationData gmx_unused* freeEnergyPerturbationData,
         GlobalCommunicationHelper gmx_unused* globalCommunicationHelper,
-        Offset                                offset,
-        const PropagatorTag&                  propagatorTag)
+        ObservablesReducer* /*observablesReducer*/,
+        Offset               offset,
+        const PropagatorTag& propagatorTag)
 {
     auto* element  = builderHelper->storeElement(std::make_unique<ParrinelloRahmanBarostat>(
             legacySimulatorData->inputrec->nstpcouple,

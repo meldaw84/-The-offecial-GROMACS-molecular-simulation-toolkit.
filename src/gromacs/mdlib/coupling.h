@@ -175,6 +175,16 @@ void rescale_velocities(const gmx_ekindata_t*               ekind,
                         gmx::ArrayRef<gmx::RVec>            v);
 /* Rescale the velocities with the scaling factor in ekind */
 
+/*!
+ * \brief Compute the new annealing temperature for a temperature group
+ *
+ * \param inputrec          The input record
+ * \param temperatureGroup  The temperature group
+ * \param time              The current time
+ * \return  The new reference temperature for the group
+ */
+real computeAnnealingTargetTemperature(const t_inputrec& inputrec, int temperatureGroup, real time);
+
 //! Check whether we do simulated annealing.
 bool doSimulatedAnnealing(const t_inputrec* ir);
 
@@ -256,11 +266,15 @@ void pleaseCiteCouplingAlgorithms(FILE* fplog, const t_inputrec& ir);
  *       the default code path.
  *
  * \param[in] kk     present value of the kinetic energy of the atoms to be thermalized (in
- * arbitrary units) \param[in] sigma  target average value of the kinetic energy (ndeg k_b T/2)  (in
- * the same units as kk) \param[in] ndeg   number of degrees of freedom of the atoms to be
- * thermalized \param[in] taut   relaxation time of the thermostat, in units of 'how often this
- * routine is called' \param[in] step   the time step this routine is called on \param[in] seed the
- * random number generator seed \return  the new kinetic energy
+ *                   arbitrary units)
+ * \param[in] sigma  target average value of the kinetic energy (ndeg k_b T/2)  (in
+ *                   the same units as kk)
+ * \param[in] ndeg   number of degrees of freedom of the atoms to be thermalized
+ * \param[in] taut   relaxation time of the thermostat, in units of 'how often this
+ *                   routine is called'
+ * \param[in] step   the time step this routine is called on
+ * \param[in] seed   the random number generator seed
+ * \return  the new kinetic energy
  */
 real vrescale_resamplekin(real kk, real sigma, real ndeg, real taut, int64_t step, int64_t seed);
 

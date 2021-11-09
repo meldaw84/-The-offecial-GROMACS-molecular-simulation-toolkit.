@@ -52,6 +52,7 @@ class gmx_ekindata_t;
 struct gmx_enerdata_t;
 struct gmx_mtop_t;
 struct ObservablesHistory;
+struct pull_t;
 struct t_fcdata;
 struct t_inputrec;
 struct SimulationGroups;
@@ -66,6 +67,7 @@ class GlobalCommunicationHelper;
 class LegacySimulatorData;
 class MDAtoms;
 class ModularSimulatorAlgorithmBuilderHelper;
+class ObservablesReducer;
 class ParrinelloRahmanBarostat;
 class StatePropagatorData;
 class VelocityScalingTemperatureCoupling;
@@ -110,7 +112,8 @@ public:
                bool                        isMasterRank,
                ObservablesHistory*         observablesHistory,
                StartingBehavior            startingBehavior,
-               bool                        simulationsShareState);
+               bool                        simulationsShareState,
+               pull_t*                     pullWork);
 
     /*! \brief Final output
      *
@@ -172,6 +175,11 @@ public:
      *
      */
     gmx_enerdata_t* enerdata();
+
+    /*! \brief Get const pointer to energy structure
+     *
+     */
+    const gmx_enerdata_t* enerdata() const;
 
     /*! \brief Get pointer to kinetic energy structure
      *
@@ -325,6 +333,8 @@ private:
     ObservablesHistory* observablesHistory_;
     //! Whether simulations share the state
     bool simulationsShareState_;
+    //! The pull work object.
+    pull_t* pullWork_;
 };
 
 /*! \internal
@@ -387,7 +397,8 @@ public:
      * \param statePropagatorData  Pointer to the \c StatePropagatorData object
      * \param energyData  Pointer to the \c EnergyData object
      * \param freeEnergyPerturbationData  Pointer to the \c FreeEnergyPerturbationData object
-     * \param globalCommunicationHelper  Pointer to the \c GlobalCommunicationHelper object
+     * \param globalCommunicationHelper   Pointer to the \c GlobalCommunicationHelper object
+     * \param observablesReducer          Pointer to the \c ObservablesReducer object
      *
      * \return  Pointer to the element to be added. Element needs to have been stored using \c storeElement
      */
@@ -396,7 +407,8 @@ public:
                                                     StatePropagatorData*        statePropagatorData,
                                                     EnergyData*                 energyData,
                                                     FreeEnergyPerturbationData* freeEnergyPerturbationData,
-                                                    GlobalCommunicationHelper* globalCommunicationHelper);
+                                                    GlobalCommunicationHelper* globalCommunicationHelper,
+                                                    ObservablesReducer*        observablesReducer);
 
 private:
     EnergyData* energyData_;

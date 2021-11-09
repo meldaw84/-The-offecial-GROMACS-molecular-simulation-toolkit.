@@ -451,17 +451,15 @@ public:
      * \param[in] a      Thole factor
      * \param[in] alpha1 Polarizability 1 (nm^3)
      * \param[in] alpha2 Polarizability 2 (nm^3)
-     * \param[in] rfac   Distance factor
      * \return The structure itself.
      */
-    iListInput setTholePolarization(real a, real alpha1, real alpha2, real rfac)
+    iListInput setTholePolarization(real a, real alpha1, real alpha2)
     {
         ftype                = F_THOLE_POL;
         fep                  = false;
         iparams.thole.a      = a;
         iparams.thole.alpha1 = alpha1;
         iparams.thole.alpha2 = alpha2;
-        iparams.thole.rfac   = rfac;
         return *this;
     }
     /*! \brief Set parameters for Water Polarization
@@ -708,7 +706,7 @@ std::vector<iListInput> c_InputDihs = {
 std::vector<iListInput> c_InputPols = {
     { iListInput(2e-5, 1e-8).setPolarization(0.12) },
     { iListInput(2e-3, 1e-8).setAnharmPolarization(0.0013, 0.02, 1235.6) },
-    { iListInput(1.4e-3, 1e-8).setTholePolarization(0.26, 0.07, 0.09, 1.6) },
+    { iListInput(1.4e-3, 1e-8).setTholePolarization(0.26, 0.07, 0.09) },
     { iListInput(2e-3, 1e-8).setWaterPolarization(0.001, 0.0012, 0.0016, 0.095, 0.15, 0.02) },
 };
 
@@ -783,47 +781,47 @@ std::vector<PaddedVector<RVec>> c_coordinatesForTestsZeroAngle = {
 //! PBC values for testing
 std::vector<PbcType> c_pbcForTests = { PbcType::No, PbcType::XY, PbcType::Xyz };
 
-INSTANTIATE_TEST_CASE_P(Bond,
-                        ListedForcesTest,
-                        ::testing::Combine(::testing::ValuesIn(c_InputBonds),
-                                           ::testing::ValuesIn(c_coordinatesForTests),
-                                           ::testing::ValuesIn(c_pbcForTests)));
+INSTANTIATE_TEST_SUITE_P(Bond,
+                         ListedForcesTest,
+                         ::testing::Combine(::testing::ValuesIn(c_InputBonds),
+                                            ::testing::ValuesIn(c_coordinatesForTests),
+                                            ::testing::ValuesIn(c_pbcForTests)));
 
-INSTANTIATE_TEST_CASE_P(Angle,
-                        ListedForcesTest,
-                        ::testing::Combine(::testing::ValuesIn(c_InputAngles),
-                                           ::testing::ValuesIn(c_coordinatesForTests),
-                                           ::testing::ValuesIn(c_pbcForTests)));
+INSTANTIATE_TEST_SUITE_P(Angle,
+                         ListedForcesTest,
+                         ::testing::Combine(::testing::ValuesIn(c_InputAngles),
+                                            ::testing::ValuesIn(c_coordinatesForTests),
+                                            ::testing::ValuesIn(c_pbcForTests)));
 
-INSTANTIATE_TEST_CASE_P(Dihedral,
-                        ListedForcesTest,
-                        ::testing::Combine(::testing::ValuesIn(c_InputDihs),
-                                           ::testing::ValuesIn(c_coordinatesForTests),
-                                           ::testing::ValuesIn(c_pbcForTests)));
+INSTANTIATE_TEST_SUITE_P(Dihedral,
+                         ListedForcesTest,
+                         ::testing::Combine(::testing::ValuesIn(c_InputDihs),
+                                            ::testing::ValuesIn(c_coordinatesForTests),
+                                            ::testing::ValuesIn(c_pbcForTests)));
 
-INSTANTIATE_TEST_CASE_P(Polarize,
-                        ListedForcesTest,
-                        ::testing::Combine(::testing::ValuesIn(c_InputPols),
-                                           ::testing::ValuesIn(c_coordinatesForTests),
-                                           ::testing::ValuesIn(c_pbcForTests)));
+INSTANTIATE_TEST_SUITE_P(Polarize,
+                         ListedForcesTest,
+                         ::testing::Combine(::testing::ValuesIn(c_InputPols),
+                                            ::testing::ValuesIn(c_coordinatesForTests),
+                                            ::testing::ValuesIn(c_pbcForTests)));
 
-INSTANTIATE_TEST_CASE_P(Restraints,
-                        ListedForcesTest,
-                        ::testing::Combine(::testing::ValuesIn(c_InputRestraints),
-                                           ::testing::ValuesIn(c_coordinatesForTests),
-                                           ::testing::ValuesIn(c_pbcForTests)));
+INSTANTIATE_TEST_SUITE_P(Restraints,
+                         ListedForcesTest,
+                         ::testing::Combine(::testing::ValuesIn(c_InputRestraints),
+                                            ::testing::ValuesIn(c_coordinatesForTests),
+                                            ::testing::ValuesIn(c_pbcForTests)));
 
-INSTANTIATE_TEST_CASE_P(BondZeroLength,
-                        ListedForcesTest,
-                        ::testing::Combine(::testing::ValuesIn(c_InputBondsZeroLength),
-                                           ::testing::ValuesIn(c_coordinatesForTestsZeroBondLength),
-                                           ::testing::ValuesIn(c_pbcForTests)));
+INSTANTIATE_TEST_SUITE_P(BondZeroLength,
+                         ListedForcesTest,
+                         ::testing::Combine(::testing::ValuesIn(c_InputBondsZeroLength),
+                                            ::testing::ValuesIn(c_coordinatesForTestsZeroBondLength),
+                                            ::testing::ValuesIn(c_pbcForTests)));
 
-INSTANTIATE_TEST_CASE_P(AngleZero,
-                        ListedForcesTest,
-                        ::testing::Combine(::testing::ValuesIn(c_InputAnglesZeroAngle),
-                                           ::testing::ValuesIn(c_coordinatesForTestsZeroAngle),
-                                           ::testing::ValuesIn(c_pbcForTests)));
+INSTANTIATE_TEST_SUITE_P(AngleZero,
+                         ListedForcesTest,
+                         ::testing::Combine(::testing::ValuesIn(c_InputAnglesZeroAngle),
+                                            ::testing::ValuesIn(c_coordinatesForTestsZeroAngle),
+                                            ::testing::ValuesIn(c_pbcForTests)));
 
 } // namespace
 

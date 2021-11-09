@@ -60,31 +60,25 @@ const char* enumValueToString(GpuApiCallBehavior enumValue)
     return s_gpuApiCallBehaviorNames[enumValue];
 }
 
-/*! \brief Help build a descriptive message in \c error if there are
- * \c errorReasons why nonbondeds on a GPU are not supported.
- *
- * \returns Whether the lack of errorReasons indicate there is support. */
-static bool addMessageIfNotSupported(gmx::ArrayRef<const std::string> errorReasons, std::string* error)
+bool decideGpuTimingsUsage()
 {
-    bool isSupported = errorReasons.empty();
-    if (!isSupported && error)
+    if (GMX_GPU_CUDA || GMX_GPU_SYCL)
     {
-        *error = "Nonbonded interactions cannot run on GPUs: ";
-        *error += joinStrings(errorReasons, "; ") + ".";
+        /* CUDA: timings are incorrect with multiple streams.
+         * This is the main reason why they are disabled by default.
+         * TODO: Consider turning on by default when we can detect nr of streams.
+         *
+         * SYCL: compilers and runtimes change rapidly, so we disable timings by default
+         * to avoid any possible overhead. */
+        return (getenv("GMX_ENABLE_GPU_TIMING") != nullptr);
     }
-    return isSupported;
-}
-
-bool buildSupportsNonbondedOnGpu(std::string* error)
-{
-    std::vector<std::string> errorReasons;
-    if (GMX_DOUBLE)
+    else if (GMX_GPU_OPENCL)
     {
-        errorReasons.emplace_back("double precision");
+        return (getenv("GMX_DISABLE_GPU_TIMING") == nullptr);
     }
-    if (!GMX_GPU)
+    else
     {
-        errorReasons.emplace_back("non-GPU build of GROMACS");
+        // CPU-only build
+        return false;
     }
-    return addMessageIfNotSupported(errorReasons, error);
 }

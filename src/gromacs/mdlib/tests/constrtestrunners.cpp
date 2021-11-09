@@ -138,7 +138,8 @@ void LincsConstraintsRunner::applyConstraints(ConstraintsTestData* testData, t_p
                         at2con_mt,
                         false,
                         testData->ir_.nLincsIter,
-                        testData->ir_.nProjOrder);
+                        testData->ir_.nProjOrder,
+                        nullptr);
     set_lincs(*testData->idef_,
               testData->numAtoms_,
               testData->invmass_,
@@ -175,14 +176,6 @@ void LincsConstraintsRunner::applyConstraints(ConstraintsTestData* testData, t_p
     EXPECT_EQ(warncount_lincs, 0) << "There were warnings in LINCS.";
     done_lincs(lincsd);
 }
-
-#if !GMX_GPU_CUDA
-void LincsDeviceConstraintsRunner::applyConstraints(ConstraintsTestData* /* testData */, t_pbc /* pbc */)
-{
-    GMX_UNUSED_VALUE(testDevice_);
-    FAIL() << "Dummy LINCS CUDA function was called instead of the real one.";
-}
-#endif // !GMX_GPU_CUDA
 
 } // namespace test
 } // namespace gmx

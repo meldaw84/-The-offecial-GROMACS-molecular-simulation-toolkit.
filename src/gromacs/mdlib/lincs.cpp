@@ -53,6 +53,7 @@
 #include <cstdlib>
 
 #include <algorithm>
+#include <optional>
 #include <vector>
 
 #include "gromacs/domdec/domdec.h"
@@ -68,6 +69,7 @@
 #include "gromacs/mdtypes/commrec.h"
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/md_enums.h"
+#include "gromacs/mdtypes/observablesreducer.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/pbcutil/pbc_simd.h"
 #include "gromacs/simd/simd.h"
@@ -84,8 +86,6 @@
 #include "gromacs/utility/gmxomp.h"
 #include "gromacs/utility/listoflists.h"
 #include "gromacs/utility/pleasecite.h"
-
-using namespace gmx; // TODO: Remove when this file is moved into gmx namespace
 
 namespace gmx
 {
@@ -115,10 +115,12 @@ struct Task
     std::vector<int> triangle;
     //! The bits tell if the matrix element should be used.
     std::vector<int> tri_bits;
-    //! Constraint index for updating atom data.
-    std::vector<int> ind;
-    //! Constraint index for updating atom data.
-    std::vector<int> ind_r;
+    //! Constraint indices for updating atom data.
+    std::vector<int> updateConstraintIndices1;
+    //! Constraint indices for updating atom data, second group.
+    std::vector<int> updateConstraintIndices2;
+    //! Temporay constraint indices for setting up updating of atom data.
+    std::vector<int> updateConstraintIndicesRest;
     //! Temporary variable for virial calculation.
     tensor vir_r_m_dr = { { 0 } };
     //! Temporary variable for lambda derivative.
@@ -198,6 +200,8 @@ public:
     bool bTaskDep = false;
     //! Are there triangle constraints that cross task borders?
     bool bTaskDepTri = false;
+    //! Whether any task has constraints in the second update list.
+    bool haveSecondUpdateTask = false;
     //! Arrays for temporary storage in the LINCS algorithm.
     /*! @{ */
     PaddedVector<gmx::RVec>                   tmpv;
@@ -209,8 +213,24 @@ public:
     /*! @} */
     //! The Lagrange multipliers times -1.
     std::vector<real, AlignedAllocator<real>> mlambda;
-    //! Storage for the constraint RMS relative deviation output.
-    std::array<real, 2> rmsdData = { { 0 } };
+    /*! \brief Callback used after constraining to require reduction
+     * of values later used to compute the constraint RMS relative
+     * deviation, so the latter can be output. */
+    std::optional<ObservablesReducerBuilder::CallbackToRequireReduction> callbackToRequireReduction;
+    /*! \brief View used for reducing the components of the global
+     * relative RMS constraint deviation.
+     *
+     * Can be written any time, but that is only useful when followed
+     * by a call of the callbackToRequireReduction. Useful to read
+     * only from the callback that the ObservablesReducer will later
+     * make after reduction. */
+    ArrayRef<double> rmsdReductionBuffer;
+    /*! \brief The value of the constraint RMS deviation after it has
+     * been computed.
+     *
+     * When DD is active, filled by the ObservablesReducer, otherwise
+     * filled directly here. */
+    std::optional<double> constraintRmsDeviation;
 };
 
 /*! \brief Define simd_width for memory allocation used for SIMD code */
@@ -220,16 +240,11 @@ static const int simd_width = GMX_SIMD_REAL_WIDTH;
 static const int simd_width = 1;
 #endif
 
-ArrayRef<real> lincs_rmsdData(Lincs* lincsd)
-{
-    return lincsd->rmsdData;
-}
-
 real lincs_rmsd(const Lincs* lincsd)
 {
-    if (lincsd->rmsdData[0] > 0)
+    if (lincsd->constraintRmsDeviation.has_value())
     {
-        return std::sqrt(lincsd->rmsdData[1] / lincsd->rmsdData[0]);
+        return real(lincsd->constraintRmsDeviation.value());
     }
     else
     {
@@ -461,9 +476,18 @@ static void lincs_update_atoms(Lincs*                         li,
          * constraints that only access our local atom range.
          * This can be done without a barrier.
          */
-        lincs_update_atoms_ind(li->task[th].ind, li->atoms, preFactor, fac, r, invmass, x);
+        lincs_update_atoms_ind(
+                li->task[th].updateConstraintIndices1, li->atoms, preFactor, fac, r, invmass, x);
 
-        if (!li->task[li->ntask].ind.empty())
+        if (li->haveSecondUpdateTask)
+        {
+            /* Second round of update, we need a barrier for cross-task access of x */
+#pragma omp barrier
+            lincs_update_atoms_ind(
+                    li->task[th].updateConstraintIndices2, li->atoms, preFactor, fac, r, invmass, x);
+        }
+
+        if (!li->task[li->ntask].updateConstraintIndices1.empty())
         {
             /* Update the constraints that operate on atoms
              * in multiple thread atom blocks on the master thread.
@@ -471,7 +495,8 @@ static void lincs_update_atoms(Lincs*                         li,
 #pragma omp barrier
 #pragma omp master
             {
-                lincs_update_atoms_ind(li->task[li->ntask].ind, li->atoms, preFactor, fac, r, invmass, x);
+                lincs_update_atoms_ind(
+                        li->task[li->ntask].updateConstraintIndices1, li->atoms, preFactor, fac, r, invmass, x);
             }
         }
     }
@@ -1101,13 +1126,13 @@ static void do_lincs(ArrayRefWithPadding<const RVec> xPadded,
 
     for (int iter = 0; iter < lincsd->nIter; iter++)
     {
-        if ((lincsd->bCommIter && DOMAINDECOMP(cr) && cr->dd->constraints))
+        if ((lincsd->bCommIter && haveDDAtomOrdering(*cr) && cr->dd->constraints))
         {
 #pragma omp barrier
 #pragma omp master
             {
                 /* Communicate the corrected non-local coordinates */
-                if (DOMAINDECOMP(cr))
+                if (haveDDAtomOrdering(*cr))
                 {
                     dd_move_x_constraints(cr->dd, box, xpPadded.unpaddedArrayRef(), ArrayRef<RVec>(), FALSE);
                 }
@@ -1441,7 +1466,8 @@ Lincs* init_lincs(FILE*                            fplog,
                   ArrayRef<const ListOfLists<int>> atomToConstraintsPerMolType,
                   bool                             bPLINCS,
                   int                              nIter,
-                  int                              nProjOrder)
+                  int                              nProjOrder,
+                  ObservablesReducerBuilder*       observablesReducerBuilder)
 {
     // TODO this should become a unique_ptr
     Lincs* li;
@@ -1550,6 +1576,29 @@ Lincs* init_lincs(FILE*                            fplog,
         }
     }
 
+    if (observablesReducerBuilder)
+    {
+        ObservablesReducerBuilder::CallbackFromBuilder callbackFromBuilder =
+                [li](ObservablesReducerBuilder::CallbackToRequireReduction c, gmx::ArrayRef<double> v) {
+                    li->callbackToRequireReduction = std::move(c);
+                    li->rmsdReductionBuffer        = v;
+                };
+
+        // Make the callback that runs afer reduction.
+        ObservablesReducerBuilder::CallbackAfterReduction callbackAfterReduction = [li](gmx::Step /*step*/) {
+            if (li->rmsdReductionBuffer[0] > 0)
+            {
+                li->constraintRmsDeviation =
+                        std::sqrt(li->rmsdReductionBuffer[1] / li->rmsdReductionBuffer[0]);
+            }
+        };
+
+        const int reductionValuesRequired = 2;
+        observablesReducerBuilder->addSubscriber(reductionValuesRequired,
+                                                 std::move(callbackFromBuilder),
+                                                 std::move(callbackAfterReduction));
+    }
+
     return li;
 }
 
@@ -1601,8 +1650,9 @@ static void lincs_thread_setup(Lincs* li, int natoms)
 
             bitmask_init_low_bits(&mask, th);
 
-            li_task->ind.clear();
-            li_task->ind_r.clear();
+            li_task->updateConstraintIndices1.clear();
+            li_task->updateConstraintIndices2.clear();
+            li_task->updateConstraintIndicesRest.clear();
             for (b = li_task->b0; b < li_task->b1; b++)
             {
                 /* We let the constraint with the lowest thread index
@@ -1612,42 +1662,104 @@ static void lincs_thread_setup(Lincs* li, int natoms)
                     && bitmask_is_disjoint(atf[li->atoms[b].index2], mask))
                 {
                     /* Add the constraint to the local atom update index */
-                    li_task->ind.push_back(b);
+                    li_task->updateConstraintIndices1.push_back(b);
                 }
                 else
                 {
-                    /* Add the constraint to the rest block */
-                    li_task->ind_r.push_back(b);
+                    /* Store the constraint to the rest block */
+                    li_task->updateConstraintIndicesRest.push_back(b);
                 }
             }
         }
         GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR
     }
 
-    /* We need to copy all constraints which have not be assigned
-     * to a thread to a separate list which will be handled by one thread.
-     */
-    Task* li_m = &li->task[li->ntask];
-
-    li_m->ind.clear();
-    for (int th = 0; th < li->ntask; th++)
+    if (li->bTaskDep)
     {
-        const Task& li_task = li->task[th];
+        /* Assign the rest constraint to a second thread task or a master test task */
 
-        for (int ind_r : li_task.ind_r)
+        /* Clear the atom flags */
+        for (gmx_bitmask_t& mask : atf)
         {
-            li_m->ind.push_back(ind_r);
+            bitmask_clear(&mask);
+        }
+
+        for (int th = 0; th < li->ntask; th++)
+        {
+            const Task* li_task = &li->task[th];
+
+            /* For each atom set a flag for constraints from each */
+            for (int b : li_task->updateConstraintIndicesRest)
+            {
+                bitmask_set_bit(&atf[li->atoms[b].index1], th);
+                bitmask_set_bit(&atf[li->atoms[b].index2], th);
+            }
+        }
+
+#pragma omp parallel for num_threads(li->ntask) schedule(static)
+        for (int th = 0; th < li->ntask; th++)
+        {
+            try
+            {
+                Task& li_task = li->task[th];
+
+                gmx_bitmask_t mask;
+                bitmask_init_low_bits(&mask, th);
+
+                for (int& b : li_task.updateConstraintIndicesRest)
+                {
+                    /* We let the constraint with the highest thread index
+                     * operate on atoms with constraints from multiple threads.
+                     */
+                    if (bitmask_is_disjoint(atf[li->atoms[b].index1], mask)
+                        && bitmask_is_disjoint(atf[li->atoms[b].index2], mask))
+                    {
+                        li_task.updateConstraintIndices2.push_back(b);
+                        // mark the entry in updateConstraintIndicesRest as invalid, so we do not assign it again
+                        b = -1;
+                    }
+                }
+            }
+            GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR
+        }
+
+        /* We need to copy all constraints which have not been assigned
+         * to a thread to a separate list which will be handled by one thread.
+         */
+        Task* li_m = &li->task[li->ntask];
+
+        li->haveSecondUpdateTask = false;
+        li_m->updateConstraintIndices1.clear();
+        for (int th = 0; th < li->ntask; th++)
+        {
+            const Task& li_task = li->task[th];
+
+            for (int constraint : li_task.updateConstraintIndicesRest)
+            {
+                if (constraint >= 0)
+                {
+                    li_m->updateConstraintIndices1.push_back(constraint);
+                }
+                else
+                {
+                    li->haveSecondUpdateTask = true;
+                }
+            }
+
+            if (debug)
+            {
+                fprintf(debug,
+                        "LINCS thread %d: %zu constraints, %zu constraints\n",
+                        th,
+                        li_task.updateConstraintIndices1.size(),
+                        li_task.updateConstraintIndices2.size());
+            }
         }
 
         if (debug)
         {
-            fprintf(debug, "LINCS thread %d: %zu constraints\n", th, li_task.ind.size());
+            fprintf(debug, "LINCS thread r: %zu constraints\n", li_m->updateConstraintIndices1.size());
         }
-    }
-
-    if (debug)
-    {
-        fprintf(debug, "LINCS thread r: %zu constraints\n", li_m->ind.size());
     }
 }
 
@@ -1874,11 +1986,11 @@ void set_lincs(const InteractionDefinitions& idef,
     {
         li->task[i].b0 = 0;
         li->task[i].b1 = 0;
-        li->task[i].ind.clear();
+        li->task[i].updateConstraintIndices1.clear();
     }
     if (li->ntask > 1)
     {
-        li->task[li->ntask].ind.clear();
+        li->task[li->ntask].updateConstraintIndices1.clear();
     }
 
     /* This is the local topology, so there are only F_CONSTR constraints */
@@ -1896,7 +2008,7 @@ void set_lincs(const InteractionDefinitions& idef,
     }
 
     int natoms;
-    if (DOMAINDECOMP(cr))
+    if (haveDDAtomOrdering(*cr))
     {
         if (cr->dd->constraints)
         {
@@ -1930,7 +2042,7 @@ void set_lincs(const InteractionDefinitions& idef,
     li->blnr.resize(numEntries + 1);
     li->bllen.resize(numEntries);
     li->tmpv.resizeWithPadding(numEntries);
-    if (DOMAINDECOMP(cr))
+    if (haveDDAtomOrdering(*cr))
     {
         li->nlocat.resize(numEntries);
     }
@@ -2080,7 +2192,7 @@ void set_lincs(const InteractionDefinitions& idef,
     /* Without DD we order the blbnb matrix to optimize memory access.
      * With DD the overhead of sorting is more than the gain during access.
      */
-    bSortMatrix = !DOMAINDECOMP(cr);
+    bSortMatrix = !haveDDAtomOrdering(*cr);
 
     li->blbnb.resize(li->ncc);
 
@@ -2138,9 +2250,6 @@ void set_lincs(const InteractionDefinitions& idef,
     }
 
     set_lincs_matrix(li, invmass, lambda);
-
-    li->rmsdData[0] = 0.0;
-    li->rmsdData[1] = 0.0;
 }
 
 //! Issues a warning when LINCS constraints cannot be satisfied.
@@ -2302,11 +2411,6 @@ bool constrain_lincs(bool                            computeRmsd,
 
     if (lincsd->nc == 0 && cr->dd == nullptr)
     {
-        if (computeRmsd)
-        {
-            lincsd->rmsdData = { { 0 } };
-        }
-
         return bOK;
     }
 
@@ -2412,15 +2516,27 @@ bool constrain_lincs(bool                            computeRmsd,
 
             if (computeRmsd)
             {
-                // This is reduced across domains in compute_globals and
-                // reported to the log file.
-                lincsd->rmsdData[0] = deviations.numConstraints;
-                lincsd->rmsdData[1] = deviations.sumSquaredDeviation;
-            }
-            else
-            {
-                // This is never read
-                lincsd->rmsdData = { { 0 } };
+                if (lincsd->callbackToRequireReduction.has_value())
+                {
+                    // This is reduced across domains in compute_globals and
+                    // reported to the log file.
+                    lincsd->rmsdReductionBuffer[0] = deviations.numConstraints;
+                    lincsd->rmsdReductionBuffer[1] = deviations.sumSquaredDeviation;
+
+                    // Call the ObservablesReducer via the callback it
+                    // gave us for the purpose.
+                    ObservablesReducerStatus status =
+                            lincsd->callbackToRequireReduction.value()(ReductionRequirement::Soon);
+                    GMX_RELEASE_ASSERT(status == ObservablesReducerStatus::ReadyToReduce,
+                                       "The LINCS RMSD is computed after observables have been "
+                                       "reduced, please reorder them.");
+                }
+                else
+                {
+                    // Compute the deviation directly
+                    lincsd->constraintRmsDeviation =
+                            std::sqrt(deviations.sumSquaredDeviation / deviations.numConstraints);
+                }
             }
             if (printDebugOutput)
             {

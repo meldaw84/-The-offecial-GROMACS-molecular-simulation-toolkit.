@@ -235,7 +235,7 @@ gmx_mdoutf_t init_mdoutf(FILE*                          fplog,
             }
         }
 
-        if (ir->nstfout && DOMAINDECOMP(cr))
+        if (ir->nstfout && haveDDAtomOrdering(*cr))
         {
             snew(of->f_global, top_global.natoms);
         }
@@ -306,7 +306,7 @@ static void write_checkpoint(const char*                     fn,
     char      buf[1024], suffix[5 + STEPSTRSIZE], sbuf[STEPSTRSIZE];
     t_fileio* ret;
 
-    if (DOMAINDECOMP(cr))
+    if (haveDDAtomOrdering(*cr))
     {
         npmenodes = cr->npmenodes;
     }
@@ -355,7 +355,7 @@ static void write_checkpoint(const char*                     fn,
     swaphistory_t* swaphist    = observablesHistory->swapHistory.get();
     SwapType       eSwapCoords = (swaphist ? swaphist->eSwapCoords : SwapType::No);
 
-    CheckpointHeaderContents headerContents = { 0,
+    CheckpointHeaderContents headerContents = { CheckPointVersion::UnknownVersion0,
                                                 { 0 },
                                                 { 0 },
                                                 { 0 },
@@ -387,7 +387,7 @@ static void write_checkpoint(const char*                     fn,
     std::strcpy(headerContents.version, gmx_version());
     std::strcpy(headerContents.fprog, gmx::getProgramContext().fullBinaryPath());
     std::strcpy(headerContents.ftime, timebuf.c_str());
-    if (DOMAINDECOMP(cr))
+    if (haveDDAtomOrdering(*cr))
     {
         copy_ivec(domdecCells, headerContents.dd_nc);
     }
@@ -464,9 +464,15 @@ static void write_checkpoint(const char*                     fn,
         /* Rename the checkpoint file from the temporary to the final name */
         mpiBarrierBeforeRename(applyMpiBarrierBeforeRename, mpiBarrierCommunicator);
 
-        if (gmx_file_rename(fntemp, fn) != 0)
+        try
         {
-            gmx_file("Cannot rename checkpoint file; maybe you are out of disk space?");
+            gmx_file_rename(fntemp, fn);
+        }
+        catch (gmx::FileIOError const&)
+        {
+            // In this case we can be more helpful than the generic message from gmx_file_rename
+            GMX_THROW(gmx::FileIOError(
+                    "Cannot rename checkpoint file; maybe you are out of disk space?"));
         }
     }
 #endif /* GMX_NO_RENAME */
@@ -512,8 +518,8 @@ void mdoutf_write_checkpoint(gmx_mdoutf_t                    of,
                      of->bKeepAndNumCPT,
                      fplog,
                      cr,
-                     DOMAINDECOMP(cr) ? cr->dd->numCells : one_ivec,
-                     DOMAINDECOMP(cr) ? cr->dd->nnodes : cr->nnodes,
+                     haveDDAtomOrdering(*cr) ? cr->dd->numCells : one_ivec,
+                     haveDDAtomOrdering(*cr) ? cr->dd->nnodes : cr->nnodes,
                      of->eIntegrator,
                      of->simulation_part,
                      of->bExpanded,
@@ -543,7 +549,7 @@ void mdoutf_write_to_trajectory_files(FILE*                           fplog,
 {
     const rvec* f_global;
 
-    if (DOMAINDECOMP(cr))
+    if (haveDDAtomOrdering(*cr))
     {
         if (mdof_flags & MDOF_CPT)
         {

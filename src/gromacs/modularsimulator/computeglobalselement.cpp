@@ -69,18 +69,19 @@ template<ComputeGlobalsAlgorithm algorithm>
 ComputeGlobalsElement<algorithm>::ComputeGlobalsElement(StatePropagatorData* statePropagatorData,
                                                         EnergyData*          energyData,
                                                         FreeEnergyPerturbationData* freeEnergyPerturbationData,
-                                                        SimulationSignals* signals,
-                                                        int                nstglobalcomm,
-                                                        FILE*              fplog,
-                                                        const MDLogger&    mdlog,
-                                                        t_commrec*         cr,
-                                                        const t_inputrec*  inputrec,
-                                                        const MDAtoms*     mdAtoms,
-                                                        t_nrnb*            nrnb,
-                                                        gmx_wallcycle*     wcycle,
-                                                        t_forcerec*        fr,
-                                                        const gmx_mtop_t&  global_top,
-                                                        Constraints*       constr) :
+                                                        SimulationSignals*  signals,
+                                                        int                 nstglobalcomm,
+                                                        FILE*               fplog,
+                                                        const MDLogger&     mdlog,
+                                                        t_commrec*          cr,
+                                                        const t_inputrec*   inputrec,
+                                                        const MDAtoms*      mdAtoms,
+                                                        t_nrnb*             nrnb,
+                                                        gmx_wallcycle*      wcycle,
+                                                        t_forcerec*         fr,
+                                                        const gmx_mtop_t&   global_top,
+                                                        Constraints*        constr,
+                                                        ObservablesReducer* observablesReducer) :
     energyReductionStep_(-1),
     virialReductionStep_(-1),
     vvSchedulingStep_(-1),
@@ -92,7 +93,6 @@ ComputeGlobalsElement<algorithm>::ComputeGlobalsElement(StatePropagatorData* sta
     nullSignaller_(std::make_unique<SimulationSignaller>(nullptr, nullptr, nullptr, false, false)),
     statePropagatorData_(statePropagatorData),
     energyData_(energyData),
-    localTopology_(nullptr),
     freeEnergyPerturbationData_(freeEnergyPerturbationData),
     vcm_(global_top.groups, *inputrec),
     signals_(signals),
@@ -105,7 +105,8 @@ ComputeGlobalsElement<algorithm>::ComputeGlobalsElement(StatePropagatorData* sta
     constr_(constr),
     nrnb_(nrnb),
     wcycle_(wcycle),
-    fr_(fr)
+    fr_(fr),
+    observablesReducer_(observablesReducer)
 {
     reportComRemovalInfo(fplog, vcm_);
     gstat_ = global_stat_init(inputrec_);
@@ -120,8 +121,6 @@ ComputeGlobalsElement<algorithm>::~ComputeGlobalsElement()
 template<ComputeGlobalsAlgorithm algorithm>
 void ComputeGlobalsElement<algorithm>::elementSetup()
 {
-    GMX_ASSERT(localTopology_, "Setup called before local topology was set.");
-
     if (doStopCM_ && !inputrec_->bContinuation)
     {
         // To minimize communication, compute_globals computes the COM velocity
@@ -130,6 +129,8 @@ void ComputeGlobalsElement<algorithm>::elementSetup()
         // to call compute_globals twice.
 
         compute(-1, CGLO_GSTAT | CGLO_STOPCM, nullSignaller_.get(), false, true);
+        // Clean up after pre-step use of compute()
+        observablesReducer_->markAsReadyToReduce();
 
         auto v = statePropagatorData_->velocitiesView();
         // At initialization, do not pass x with acceleration-correction mode
@@ -157,6 +158,9 @@ void ComputeGlobalsElement<algorithm>::elementSetup()
     {
         copy_mat(energyData_->ekindata()->tcstat[i].ekinh, energyData_->ekindata()->tcstat[i].ekinh_old);
     }
+
+    // Clean up after pre-step use of compute()
+    observablesReducer_->markAsReadyToReduce();
 }
 
 template<ComputeGlobalsAlgorithm algorithm>
@@ -166,7 +170,9 @@ void ComputeGlobalsElement<algorithm>::scheduleTask(Step                       s
 {
     const bool needComReduction    = doStopCM_ && do_per_step(step, nstcomm_);
     const bool needGlobalReduction = step == energyReductionStep_ || step == virialReductionStep_
-                                     || needComReduction || do_per_step(step, nstglobalcomm_);
+                                     || needComReduction || do_per_step(step, nstglobalcomm_)
+                                     || (EI_VV(inputrec_->eI) && inputrecNvtTrotter(inputrec_)
+                                         && do_per_step(step - 1, nstglobalcomm_));
 
     // TODO: CGLO_GSTAT is only used for needToSumEkinhOld_, i.e. to signal that we do or do not
     //       sum the previous kinetic energy. We should simplify / clarify this.
@@ -281,10 +287,6 @@ void ComputeGlobalsElement<algorithm>::compute(gmx::Step            step,
     const auto* lastbox = useLastBox ? statePropagatorData_->constPreviousBox()
                                      : statePropagatorData_->constBox();
 
-    if (DOMAINDECOMP(cr_) && shouldCheckNumberOfBondedInteractions(*cr_->dd))
-    {
-        flags |= CGLO_CHECK_NUMBER_OF_BONDED_INTERACTIONS;
-    }
     compute_globals(gstat_,
                     cr_,
                     inputrec_,
@@ -302,27 +304,17 @@ void ComputeGlobalsElement<algorithm>::compute(gmx::Step            step,
                     energyData_->constraintVirial(step),
                     energyData_->totalVirial(step),
                     energyData_->pressure(step),
-                    (((flags & CGLO_ENERGY) != 0) && constr_ != nullptr) ? constr_->rmsdData()
-                                                                         : gmx::ArrayRef<real>{},
                     signaller,
                     lastbox,
                     energyData_->needToSumEkinhOld(),
-                    flags);
-    if (DOMAINDECOMP(cr_))
-    {
-        checkNumberOfBondedInteractions(mdlog_, cr_, top_global_, localTopology_, x, box);
-    }
+                    flags,
+                    step,
+                    observablesReducer_);
     if (flags & CGLO_STOPCM && !isInit)
     {
         process_and_stopcm_grp(fplog_, &vcm_, *mdAtoms_->mdatoms(), x, v);
         inc_nrnb(nrnb_, eNR_STOPCM, mdAtoms_->mdatoms()->homenr);
     }
-}
-
-template<ComputeGlobalsAlgorithm algorithm>
-void ComputeGlobalsElement<algorithm>::setTopology(const gmx_localtop_t* top)
-{
-    localTopology_ = top;
 }
 
 template<ComputeGlobalsAlgorithm algorithm>
@@ -350,6 +342,32 @@ ComputeGlobalsElement<algorithm>::registerTrajectorySignallerCallback(Trajectory
     return std::nullopt;
 }
 
+namespace
+{
+
+/*! \brief Schedule a function for actions that must happen at the end of each step
+ *
+ * After reduction, an ObservablesReducer is marked as unavailable for
+ * further reduction this step. This needs to be reset in order to be
+ * used on the next step.
+ *
+ * \param[in]  observablesReducer The ObservablesReducer to mark as ready for use
+ */
+SchedulingFunction registerPostStepSchedulingFunction(ObservablesReducer* observablesReducer)
+{
+    SchedulingFunction postStepSchedulingFunction =
+            [observablesReducer](
+                    Step /*step*/, Time /*time*/, const RegisterRunFunction& registerRunFunction) {
+                SimulatorRunFunction completeObservablesReducerStep = [&observablesReducer]() {
+                    observablesReducer->markAsReadyToReduce();
+                };
+                registerRunFunction(completeObservablesReducerStep);
+            };
+    return postStepSchedulingFunction;
+}
+
+} // namespace
+
 //! Explicit template instantiation
 //! \{
 template class ComputeGlobalsElement<ComputeGlobalsAlgorithm::LeapFrog>;
@@ -363,9 +381,10 @@ ISimulatorElement* ComputeGlobalsElement<ComputeGlobalsAlgorithm::LeapFrog>::get
         StatePropagatorData*                    statePropagatorData,
         EnergyData*                             energyData,
         FreeEnergyPerturbationData*             freeEnergyPerturbationData,
-        GlobalCommunicationHelper*              globalCommunicationHelper)
+        GlobalCommunicationHelper*              globalCommunicationHelper,
+        ObservablesReducer*                     observablesReducer)
 {
-    auto* element = builderHelper->storeElement(
+    ComputeGlobalsElement* element = builderHelper->storeElement(
             std::make_unique<ComputeGlobalsElement<ComputeGlobalsAlgorithm::LeapFrog>>(
                     statePropagatorData,
                     energyData,
@@ -381,7 +400,10 @@ ISimulatorElement* ComputeGlobalsElement<ComputeGlobalsAlgorithm::LeapFrog>::get
                     legacySimulatorData->wcycle,
                     legacySimulatorData->fr,
                     legacySimulatorData->top_global,
-                    legacySimulatorData->constr));
+                    legacySimulatorData->constr,
+                    observablesReducer));
+    builderHelper->registerPostStepScheduling(
+            registerPostStepSchedulingFunction(element->observablesReducer_));
 
     return element;
 }
@@ -393,7 +415,8 @@ ISimulatorElement* ComputeGlobalsElement<ComputeGlobalsAlgorithm::VelocityVerlet
         StatePropagatorData*                    statePropagatorData,
         EnergyData*                             energyData,
         FreeEnergyPerturbationData*             freeEnergyPerturbationData,
-        GlobalCommunicationHelper*              globalCommunicationHelper)
+        GlobalCommunicationHelper*              globalCommunicationHelper,
+        ObservablesReducer*                     observablesReducer)
 {
     // We allow this element to be added multiple times to the call list, but we only want one
     // actual element built
@@ -403,11 +426,11 @@ ISimulatorElement* ComputeGlobalsElement<ComputeGlobalsAlgorithm::VelocityVerlet
 
     if (cachedValue)
     {
-        return std::any_cast<ISimulatorElement*>(cachedValue.value());
+        return std::any_cast<ComputeGlobalsElement*>(cachedValue.value());
     }
     else
     {
-        ISimulatorElement* vvComputeGlobalsElement = builderHelper->storeElement(
+        ComputeGlobalsElement* vvComputeGlobalsElement = builderHelper->storeElement(
                 std::make_unique<ComputeGlobalsElement<ComputeGlobalsAlgorithm::VelocityVerlet>>(
                         statePropagatorData,
                         energyData,
@@ -423,8 +446,11 @@ ISimulatorElement* ComputeGlobalsElement<ComputeGlobalsAlgorithm::VelocityVerlet
                         simulator->wcycle,
                         simulator->fr,
                         simulator->top_global,
-                        simulator->constr));
+                        simulator->constr,
+                        observablesReducer));
         builderHelper->storeBuilderData(key, vvComputeGlobalsElement);
+        builderHelper->registerPostStepScheduling(
+                registerPostStepSchedulingFunction(vvComputeGlobalsElement->observablesReducer_));
         return vvComputeGlobalsElement;
     }
 }

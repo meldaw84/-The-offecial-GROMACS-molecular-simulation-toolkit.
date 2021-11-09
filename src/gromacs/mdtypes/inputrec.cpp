@@ -87,14 +87,11 @@ const int nstmin_harmonic          = 20;
 constexpr int c_defaultNstTCouple = 10;
 constexpr int c_defaultNstPCouple = 10;
 
-t_inputrec::t_inputrec()
+t_inputrec::t_inputrec() :
+    fepvals(std::make_unique<t_lambda>()),
+    simtempvals(std::make_unique<t_simtemp>()),
+    expandedvals(std::make_unique<t_expanded>())
 {
-    // TODO When this memset is removed, remove the suppression of
-    // gcc -Wno-class-memaccess in a CMakeLists.txt file.
-    std::memset(this, 0, sizeof(*this)); // NOLINT(bugprone-undefined-memory-manipulation)
-    fepvals      = std::make_unique<t_lambda>();
-    expandedvals = std::make_unique<t_expanded>();
-    simtempvals  = std::make_unique<t_simtemp>();
 }
 
 t_inputrec::~t_inputrec()
@@ -333,6 +330,7 @@ void done_inputrec(t_inputrec* ir)
     sfree(ir->opts.anneal_time);
     sfree(ir->opts.anneal_temp);
     sfree(ir->opts.tau_t);
+    sfree(ir->opts.acceleration);
     sfree(ir->opts.nFreeze);
     sfree(ir->opts.egp_flags);
 
@@ -409,6 +407,17 @@ static void pr_grp_opts(FILE* out, int indent, const char* title, const t_grpopt
     }
 
     pr_indent(out, indent);
+    fprintf(out, "acc:\t");
+    for (i = 0; (i < opts->ngacc); i++)
+    {
+        for (m = 0; (m < DIM); m++)
+        {
+            fprintf(out, "  %10g", opts->acceleration[i][m]);
+        }
+    }
+    fprintf(out, "\n");
+
+    pr_indent(out, indent);
     fprintf(out, "nfreeze:");
     for (i = 0; (i < opts->ngfrz); i++)
     {
@@ -472,8 +481,6 @@ static void pr_pull_group(FILE* fp, int indent, int g, const t_pull_group* pgrp)
 
 static void pr_pull_coord(FILE* fp, int indent, int c, const t_pull_coord* pcrd)
 {
-    int g;
-
     pr_indent(fp, indent);
     fprintf(fp, "pull-coord %d:\n", c);
     PS("type", enumValueToString(pcrd->eType));
@@ -482,12 +489,10 @@ static void pr_pull_coord(FILE* fp, int indent, int c, const t_pull_coord* pcrd)
         PS("potential-provider", pcrd->externalPotentialProvider.c_str());
     }
     PS("geometry", enumValueToString(pcrd->eGeom));
-    for (g = 0; g < pcrd->ngroup; g++)
+    for (int g = 0; g < pcrd->ngroup; g++)
     {
-        char buf[STRLEN];
-
-        sprintf(buf, "group[%d]", g);
-        PI(buf, pcrd->group[g]);
+        std::string buffer = gmx::formatString("group[%d]", g);
+        PI(buffer.c_str(), pcrd->group[g]);
     }
     pr_ivec(fp, indent, "dim", pcrd->dim, DIM, TRUE);
     pr_rvec(fp, indent, "origin", pcrd->origin, DIM, TRUE);
@@ -607,6 +612,10 @@ static void pr_fepvals(FILE* fp, int indent, const t_lambda* fep, gmx_bool bMDPf
     PD("dh-hist-spacing", fep->dh_hist_spacing);
     PS("separate-dhdl-file", enumValueToString(fep->separate_dhdl_file));
     PS("dhdl-derivatives", enumValueToString(fep->dhdl_derivatives));
+    PS("sc-function", enumValueToString(fep->softcoreFunction));
+    PR("sc-gapsys-scale-linpoint-lj", fep->scGapsysScaleLinpointLJ);
+    PR("sc-gapsys-scale-linpoint-q", fep->scGapsysScaleLinpointQ);
+    PR("sc-gapsys-sigma-lj", fep->scGapsysSigmaLJ);
 };
 
 static void pr_pull(FILE* fp, int indent, const pull_params_t& pull)
@@ -1080,6 +1089,7 @@ static void cmp_grpopts(FILE* fp, const t_grpopts* opt1, const t_grpopts* opt2, 
     char buf1[256], buf2[256];
 
     cmp_int(fp, "inputrec->grpopts.ngtc", -1, opt1->ngtc, opt2->ngtc);
+    cmp_int(fp, "inputrec->grpopts.ngacc", -1, opt1->ngacc, opt2->ngacc);
     cmp_int(fp, "inputrec->grpopts.ngfrz", -1, opt1->ngfrz, opt2->ngfrz);
     cmp_int(fp, "inputrec->grpopts.ngener", -1, opt1->ngener, opt2->ngener);
     for (i = 0; (i < std::min(opt1->ngtc, opt2->ngtc)); i++)
@@ -1110,6 +1120,10 @@ static void cmp_grpopts(FILE* fp, const t_grpopts* opt1, const t_grpopts* opt2, 
                 cmp_int(fp, buf1, j, opt1->egp_flags[opt1->ngener * i + j], opt2->egp_flags[opt1->ngener * i + j]);
             }
         }
+    }
+    for (i = 0; (i < std::min(opt1->ngacc, opt2->ngacc)); i++)
+    {
+        cmp_rvec(fp, "inputrec->grpopts.acceleration", i, opt1->acceleration[i], opt2->acceleration[i], ftol, abstol);
     }
     for (i = 0; (i < std::min(opt1->ngfrz, opt2->ngfrz)); i++)
     {
@@ -1355,6 +1369,22 @@ static void cmp_fepvals(FILE* fp, const t_lambda* fep1, const t_lambda* fep2, re
     cmpEnum(fp, "inputrec->dhdl_derivatives", fep1->dhdl_derivatives, fep2->dhdl_derivatives);
     cmp_int(fp, "inputrec->dh_hist_size", -1, fep1->dh_hist_size, fep2->dh_hist_size);
     cmp_double(fp, "inputrec->dh_hist_spacing", -1, fep1->dh_hist_spacing, fep2->dh_hist_spacing, ftol, abstol);
+    cmpEnum(fp, "inputrec->fepvals->softcoreFunction", fep1->softcoreFunction, fep2->softcoreFunction);
+    cmp_real(fp,
+             "inputrec->fepvals->scGapsysScaleLinpointLJ",
+             -1,
+             fep1->scGapsysScaleLinpointLJ,
+             fep2->scGapsysScaleLinpointLJ,
+             ftol,
+             abstol);
+    cmp_real(fp,
+             "inputrec->fepvals->scGapsysScaleLinpointQ",
+             -1,
+             fep1->scGapsysScaleLinpointQ,
+             fep2->scGapsysScaleLinpointQ,
+             ftol,
+             abstol);
+    cmp_real(fp, "inputrec->fepvals->scGapsysSigmaLJ", -1, fep1->scGapsysSigmaLJ, fep2->scGapsysSigmaLJ, ftol, abstol);
 }
 
 void cmp_inputrec(FILE* fp, const t_inputrec* ir1, const t_inputrec* ir2, real ftol, real abstol)

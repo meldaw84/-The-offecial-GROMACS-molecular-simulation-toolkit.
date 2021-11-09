@@ -60,6 +60,13 @@ struct t_commrec;
 
 struct BalanceRegion;
 
+namespace gmx
+{
+enum class DdRankOrder : int;
+}
+// namespace
+
+
 //! Indices to communicate in a dimension
 struct gmx_domdec_ind_t
 {
@@ -189,6 +196,8 @@ typedef struct gmx_domdec_sort
     std::vector<gmx_cgsort_t> moved;
     /**< Integer buffer for sorting */
     std::vector<int> intBuffer;
+    /**< Int64 buffer for sorting */
+    std::vector<int64_t> int64Buffer;
 } gmx_domdec_sort_t;
 
 /*! \brief Manages atom ranges and order for the local state atom vectors */
@@ -497,6 +506,9 @@ struct DDSettings
 /*! \brief Information on how the DD ranks are set up */
 struct DDRankSetup
 {
+    /**< The rank ordering */
+    gmx::DdRankOrder rankOrder;
+
     /**< The number of particle-particle (non PME-only) ranks */
     int numPPRanks = 0;
     /**< The DD PP grid */

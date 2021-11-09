@@ -94,7 +94,6 @@
 #include "gromacs/utility/stringutil.h"
 #include "gromacs/utility/textwriter.h"
 
-#define MAXPTR 254
 #define NOGID 255
 
 using gmx::BasicVector;
@@ -108,10 +107,11 @@ using gmx::BasicVector;
 
 struct gmx_inputrec_strings
 {
-    char tcgrps[STRLEN], tau_t[STRLEN], ref_t[STRLEN], freeze[STRLEN], frdim[STRLEN],
-            energy[STRLEN], user1[STRLEN], user2[STRLEN], vcm[STRLEN], x_compressed_groups[STRLEN],
-            couple_moltype[STRLEN], orirefitgrp[STRLEN], egptable[STRLEN], egpexcl[STRLEN],
-            wall_atomtype[STRLEN], wall_density[STRLEN], deform[STRLEN], QMMM[STRLEN], imd_grp[STRLEN];
+    char tcgrps[STRLEN], tau_t[STRLEN], ref_t[STRLEN], accelerationGroups[STRLEN],
+            acceleration[STRLEN], freeze[STRLEN], frdim[STRLEN], energy[STRLEN], user1[STRLEN],
+            user2[STRLEN], vcm[STRLEN], x_compressed_groups[STRLEN], couple_moltype[STRLEN],
+            orirefitgrp[STRLEN], egptable[STRLEN], egpexcl[STRLEN], wall_atomtype[STRLEN],
+            wall_density[STRLEN], deform[STRLEN], QMMM[STRLEN], imd_grp[STRLEN];
     gmx::EnumerationArray<FreeEnergyPerturbationCouplingType, std::string> fep_lambda;
     char                                                                   lambda_weights[STRLEN];
     std::vector<std::string>                                               pullGroupNames;
@@ -140,15 +140,13 @@ void done_inputrec_strings()
 }
 
 
-enum
+//! How to treat coverage of the whole system for a set of atom groupsx
+enum class GroupCoverage
 {
-    egrptpALL,         /* All particles have to be a member of a group.     */
-    egrptpALL_GENREST, /* A rest group with name is generated for particles *
-                        * that are not part of any group.                   */
-    egrptpPART,        /* As egrptpALL_GENREST, but no name is generated    *
-                        * for the rest group.                               */
-    egrptpONE          /* Merge all selected groups into one group,         *
-                        * make a rest group for the remaining particles.    */
+    All,             //!< All particles have to be a member of a group
+    AllGenerateRest, //<! A rest group with name is generated for particles not part of any group
+    Partial,         //<! As \p AllGenerateRest, but no name for the rest group is generated
+    OneGroup //<! Merge all selected groups into one group, make a rest group for the remaining particles
 };
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
@@ -851,6 +849,27 @@ void check_ir(const char*                    mdparin,
                 CHECK((fep->all_lambda[i][j] < 0) || (fep->all_lambda[i][j] > 1));
             }
         }
+
+        if (fep->softcoreFunction == SoftcoreType::Gapsys)
+        {
+            if (fep->scGapsysScaleLinpointQ < 0.0)
+            {
+                sprintf(warn_buf,
+                        "sc_scale_linpoint_Q_gapsys is equal %g but must be >= 0",
+                        fep->scGapsysScaleLinpointQ);
+                warning_note(wi, warn_buf);
+            }
+
+            if ((fep->scGapsysScaleLinpointLJ < 0.0) || (fep->scGapsysScaleLinpointLJ >= 1.0))
+            {
+                sprintf(warn_buf,
+                        "sc_scale_linpoint_LJ_gapsys is equal %g but must be in [0,1) when used "
+                        "with "
+                        "sc_function=gapsys.",
+                        fep->scGapsysScaleLinpointLJ);
+                warning_note(wi, warn_buf);
+            }
+        }
     }
 
     if ((ir->bSimTemp) || (ir->efep == FreeEnergyPerturbationType::Expanded))
@@ -1060,12 +1079,12 @@ void check_ir(const char*                    mdparin,
             ir->nstcomm = abs(ir->nstcomm);
         }
 
-        if (ir->nstcalcenergy > 0 && ir->nstcomm < ir->nstcalcenergy)
+        if (ir->nstcalcenergy > 0 && ir->nstcomm < ir->nstcalcenergy
+            && ir->comm_mode != ComRemovalAlgorithm::LinearAccelerationCorrection)
         {
             warning_note(wi,
-                         "nstcomm < nstcalcenergy defeats the purpose of nstcalcenergy, setting "
-                         "nstcomm to nstcalcenergy");
-            ir->nstcomm = ir->nstcalcenergy;
+                         "nstcomm < nstcalcenergy defeats the purpose of nstcalcenergy, consider "
+                         "setting nstcomm equal to nstcalcenergy for less overhead");
         }
 
         if (ir->comm_mode == ComRemovalAlgorithm::Angular)
@@ -1753,6 +1772,33 @@ static void convertReals(warninp_t wi, gmx::ArrayRef<const std::string> inputs, 
     }
 }
 
+static void convertRvecs(warninp_t wi, gmx::ArrayRef<const std::string> inputs, const char* name, rvec* outputs)
+{
+    int i = 0, d = 0;
+    for (const auto& input : inputs)
+    {
+        try
+        {
+            outputs[i][d] = gmx::fromString<real>(input);
+        }
+        catch (gmx::GromacsException&)
+        {
+            auto message = gmx::formatString(
+                    "Invalid value for mdp option %s. %s should only consist of real numbers "
+                    "separated by spaces.",
+                    name,
+                    name);
+            warning_error(wi, message);
+        }
+        ++d;
+        if (d == DIM)
+        {
+            d = 0;
+            ++i;
+        }
+    }
+}
+
 static void do_wall_params(t_inputrec* ir, char* wall_atomtype, char* wall_density, t_gromppopts* opts, warninp_t wi)
 {
     opts->wall_atomtype[0] = nullptr;
@@ -2303,21 +2349,27 @@ void get_ir(const char*     mdparin,
             setStringEntry(&inp, "temperature-lambdas", "");
     fep->lambda_neighbors = get_eint(&inp, "calc-lambda-neighbors", 1, wi);
     setStringEntry(&inp, "init-lambda-weights", inputrecStrings->lambda_weights, nullptr);
-    fep->edHdLPrintEnergy   = getEnum<FreeEnergyPrintEnergy>(&inp, "dhdl-print-energy", wi);
-    fep->sc_alpha           = get_ereal(&inp, "sc-alpha", 0.0, wi);
-    fep->sc_power           = get_eint(&inp, "sc-power", 1, wi);
-    fep->sc_r_power         = get_ereal(&inp, "sc-r-power", 6.0, wi);
-    fep->sc_sigma           = get_ereal(&inp, "sc-sigma", 0.3, wi);
-    fep->bScCoul            = (getEnum<Boolean>(&inp, "sc-coul", wi) != Boolean::No);
-    fep->dh_hist_size       = get_eint(&inp, "dh_hist_size", 0, wi);
-    fep->dh_hist_spacing    = get_ereal(&inp, "dh_hist_spacing", 0.1, wi);
-    fep->separate_dhdl_file = getEnum<SeparateDhdlFile>(&inp, "separate-dhdl-file", wi);
-    fep->dhdl_derivatives   = getEnum<DhDlDerivativeCalculation>(&inp, "dhdl-derivatives", wi);
-    fep->dh_hist_size       = get_eint(&inp, "dh_hist_size", 0, wi);
-    fep->dh_hist_spacing    = get_ereal(&inp, "dh_hist_spacing", 0.1, wi);
+    fep->edHdLPrintEnergy        = getEnum<FreeEnergyPrintEnergy>(&inp, "dhdl-print-energy", wi);
+    fep->softcoreFunction        = getEnum<SoftcoreType>(&inp, "sc-function", wi);
+    fep->sc_alpha                = get_ereal(&inp, "sc-alpha", 0.0, wi);
+    fep->sc_power                = get_eint(&inp, "sc-power", 1, wi);
+    fep->sc_r_power              = get_ereal(&inp, "sc-r-power", 6.0, wi);
+    fep->sc_sigma                = get_ereal(&inp, "sc-sigma", 0.3, wi);
+    fep->bScCoul                 = (getEnum<Boolean>(&inp, "sc-coul", wi) != Boolean::No);
+    fep->scGapsysScaleLinpointLJ = get_ereal(&inp, "sc-gapsys-scale-linpoint-lj", 0.85, wi);
+    fep->scGapsysScaleLinpointQ  = get_ereal(&inp, "sc-gapsys-scale-linpoint-q", 0.3, wi);
+    fep->scGapsysSigmaLJ         = get_ereal(&inp, "sc-gapsys-sigma-lj", 0.3, wi);
+    fep->dh_hist_size            = get_eint(&inp, "dh_hist_size", 0, wi);
+    fep->dh_hist_spacing         = get_ereal(&inp, "dh_hist_spacing", 0.1, wi);
+    fep->separate_dhdl_file      = getEnum<SeparateDhdlFile>(&inp, "separate-dhdl-file", wi);
+    fep->dhdl_derivatives        = getEnum<DhDlDerivativeCalculation>(&inp, "dhdl-derivatives", wi);
+    fep->dh_hist_size            = get_eint(&inp, "dh_hist_size", 0, wi);
+    fep->dh_hist_spacing         = get_ereal(&inp, "dh_hist_spacing", 0.1, wi);
 
     /* Non-equilibrium MD stuff */
     printStringNewline(&inp, "Non-equilibrium MD stuff");
+    setStringEntry(&inp, "acc-grps", inputrecStrings->accelerationGroups, nullptr);
+    setStringEntry(&inp, "accelerate", inputrecStrings->acceleration, nullptr);
     setStringEntry(&inp, "freezegrps", inputrecStrings->freeze, nullptr);
     setStringEntry(&inp, "freezedim", inputrecStrings->frdim, nullptr);
     ir->cos_accel = get_ereal(&inp, "cos-acceleration", 0, wi);
@@ -2483,6 +2535,7 @@ void get_ir(const char*     mdparin,
     ir->userreal4 = get_ereal(&inp, "userreal4", 0, wi);
 #undef CTYPE
 
+    if (mdparout)
     {
         gmx::TextOutputFile stream(mdparout);
         write_inpfile(&stream, mdparout, &inp, FALSE, writeMdpHeader, wi);
@@ -2796,11 +2849,7 @@ void get_ir(const char*     mdparin,
     sfree(dumstr[1]);
 }
 
-/* We would like gn to be const as well, but C doesn't allow this */
-/* TODO this is utility functionality (search for the index of a
-   string in a collection), so should be refactored and located more
-   centrally. */
-int search_string(const char* s, int ng, char* gn[])
+int search_string(const char* s, int ng, char* const gn[])
 {
     int i;
 
@@ -2835,16 +2884,29 @@ static void atomGroupRangeValidation(int natoms, int groupIndex, const t_blocka&
     }
 }
 
-static void do_numbering(int                        natoms,
-                         SimulationGroups*          groups,
-                         gmx::ArrayRef<std::string> groupsFromMdpFile,
-                         t_blocka*                  block,
-                         char*                      gnames[],
-                         SimulationAtomGroupType    gtype,
-                         int                        restnm,
-                         int                        grptp,
-                         bool                       bVerbose,
-                         warninp_t                  wi)
+/*! Creates the groups of atom indices for group type \p gtype
+ *
+ * \param[in] natoms  The total number of atoms in the system
+ * \param[in,out] groups  Index \p gtype in this list of list of groups will be set
+ * \param[in] groupsFromMdpFile  The list of group names set for \p gtype in the mdp file
+ * \param[in] block       The list of atom indices for all available index groups
+ * \param[in] gnames      The list of names for all available index groups
+ * \param[in] gtype       The group type to creates groups for
+ * \param[in] restnm      The index of rest group name in \p gnames
+ * \param[in] coverage    How to treat coverage of all atoms in the system
+ * \param[in] bVerbose    Whether to print when we make a rest group
+ * \param[in,out] wi      List of warnings
+ */
+static void do_numbering(const int                        natoms,
+                         SimulationGroups*                groups,
+                         gmx::ArrayRef<const std::string> groupsFromMdpFile,
+                         const t_blocka*                  block,
+                         char* const                      gnames[],
+                         const SimulationAtomGroupType    gtype,
+                         const int                        restnm,
+                         const GroupCoverage              coverage,
+                         const bool                       bVerbose,
+                         warninp_t                        wi)
 {
     unsigned short*   cbuf;
     AtomGroupIndices* grps = &(groups->groups[gtype]);
@@ -2865,7 +2927,7 @@ static void do_numbering(int                        natoms,
     {
         /* Lookup the group name in the block structure */
         const int gid = search_string(groupsFromMdpFile[i].c_str(), block->nr, gnames);
-        if ((grptp != egrptpONE) || (i == 0))
+        if ((coverage != GroupCoverage::OneGroup) || (i == 0))
         {
             grps->emplace_back(gid);
         }
@@ -2884,7 +2946,7 @@ static void do_numbering(int                        natoms,
             else
             {
                 /* Store the group number in buffer */
-                if (grptp == egrptpONE)
+                if (coverage == GroupCoverage::OneGroup)
                 {
                     cbuf[aj] = 0;
                 }
@@ -2900,11 +2962,11 @@ static void do_numbering(int                        natoms,
     /* Now check whether we have done all atoms */
     if (ntot != natoms)
     {
-        if (grptp == egrptpALL)
+        if (coverage == GroupCoverage::All)
         {
             gmx_fatal(FARGS, "%d atoms are not part of any of the %s groups", natoms - ntot, title);
         }
-        else if (grptp == egrptpPART)
+        else if (coverage == GroupCoverage::Partial)
         {
             sprintf(warn_buf, "%d atoms are not part of any of the %s groups", natoms - ntot, title);
             warning_note(wi, warn_buf);
@@ -2917,7 +2979,7 @@ static void do_numbering(int                        natoms,
                 cbuf[j] = grps->size();
             }
         }
-        if (grptp != egrptpPART)
+        if (coverage != GroupCoverage::Partial)
         {
             if (bVerbose)
             {
@@ -3254,7 +3316,6 @@ static bool do_egp_flag(t_inputrec* ir, SimulationGroups* groups, const char* op
      * But since this is much larger than STRLEN, such a line can not be parsed.
      * The real maximum is the number of names that fit in a string: STRLEN/2.
      */
-#define EGP_MAX (STRLEN / 2)
     int  j, k, nr;
     bool bSet;
 
@@ -3531,7 +3592,7 @@ void do_index(const char*                    mdparin,
                  gnames,
                  SimulationAtomGroupType::TemperatureCoupling,
                  restnm,
-                 useReferenceTemperature ? egrptpALL : egrptpALL_GENREST,
+                 useReferenceTemperature ? GroupCoverage::All : GroupCoverage::AllGenerateRest,
                  bVerbose,
                  wi);
     nr            = groups->groups[SimulationAtomGroupType::TemperatureCoupling].size();
@@ -3876,6 +3937,31 @@ void do_index(const char*                    mdparin,
             *defaultIndexGroups, gmx::arrayRefFromArray(gnames, defaultIndexGroups->nr));
     mdModulesNotifiers.preProcessingNotifier_.notify(defaultIndexGroupsAndNames);
 
+    auto accelerations          = gmx::splitString(inputrecStrings->acceleration);
+    auto accelerationGroupNames = gmx::splitString(inputrecStrings->accelerationGroups);
+    if (accelerationGroupNames.size() * DIM != accelerations.size())
+    {
+        gmx_fatal(FARGS,
+                  "Invalid Acceleration input: %zu groups and %zu acc. values",
+                  accelerationGroupNames.size(),
+                  accelerations.size());
+    }
+    do_numbering(natoms,
+                 groups,
+                 accelerationGroupNames,
+                 defaultIndexGroups,
+                 gnames,
+                 SimulationAtomGroupType::Acceleration,
+                 restnm,
+                 GroupCoverage::AllGenerateRest,
+                 bVerbose,
+                 wi);
+    nr = groups->groups[SimulationAtomGroupType::Acceleration].size();
+    snew(ir->opts.acceleration, nr);
+    ir->opts.ngacc = nr;
+
+    convertRvecs(wi, accelerations, "accelerations", ir->opts.acceleration);
+
     auto freezeDims       = gmx::splitString(inputrecStrings->frdim);
     auto freezeGroupNames = gmx::splitString(inputrecStrings->freeze);
     if (freezeDims.size() != DIM * freezeGroupNames.size())
@@ -3892,7 +3978,7 @@ void do_index(const char*                    mdparin,
                  gnames,
                  SimulationAtomGroupType::Freeze,
                  restnm,
-                 egrptpALL_GENREST,
+                 GroupCoverage::AllGenerateRest,
                  bVerbose,
                  wi);
     nr             = groups->groups[SimulationAtomGroupType::Freeze].size();
@@ -3932,7 +4018,7 @@ void do_index(const char*                    mdparin,
                  gnames,
                  SimulationAtomGroupType::EnergyOutput,
                  restnm,
-                 egrptpALL_GENREST,
+                 GroupCoverage::AllGenerateRest,
                  bVerbose,
                  wi);
     add_wall_energrps(groups, ir->nwall, symtab);
@@ -3945,7 +4031,7 @@ void do_index(const char*                    mdparin,
                  gnames,
                  SimulationAtomGroupType::MassCenterVelocityRemoval,
                  restnm,
-                 vcmGroupNames.empty() ? egrptpALL_GENREST : egrptpPART,
+                 vcmGroupNames.empty() ? GroupCoverage::AllGenerateRest : GroupCoverage::Partial,
                  bVerbose,
                  wi);
 
@@ -3965,7 +4051,7 @@ void do_index(const char*                    mdparin,
                  gnames,
                  SimulationAtomGroupType::User1,
                  restnm,
-                 egrptpALL_GENREST,
+                 GroupCoverage::AllGenerateRest,
                  bVerbose,
                  wi);
     auto user2GroupNames = gmx::splitString(inputrecStrings->user2);
@@ -3976,7 +4062,7 @@ void do_index(const char*                    mdparin,
                  gnames,
                  SimulationAtomGroupType::User2,
                  restnm,
-                 egrptpALL_GENREST,
+                 GroupCoverage::AllGenerateRest,
                  bVerbose,
                  wi);
     auto compressedXGroupNames = gmx::splitString(inputrecStrings->x_compressed_groups);
@@ -3987,7 +4073,7 @@ void do_index(const char*                    mdparin,
                  gnames,
                  SimulationAtomGroupType::CompressedPositionOutput,
                  restnm,
-                 egrptpONE,
+                 GroupCoverage::OneGroup,
                  bVerbose,
                  wi);
     auto orirefFitGroupNames = gmx::splitString(inputrecStrings->orirefitgrp);
@@ -3998,7 +4084,7 @@ void do_index(const char*                    mdparin,
                  gnames,
                  SimulationAtomGroupType::OrientationRestraintsFit,
                  restnm,
-                 egrptpALL_GENREST,
+                 GroupCoverage::AllGenerateRest,
                  bVerbose,
                  wi);
 
@@ -4016,7 +4102,7 @@ void do_index(const char*                    mdparin,
                  gnames,
                  SimulationAtomGroupType::QuantumMechanics,
                  restnm,
-                 egrptpALL_GENREST,
+                 GroupCoverage::AllGenerateRest,
                  bVerbose,
                  wi);
     ir->opts.ngQM = qmGroupNames.size();
@@ -4339,12 +4425,13 @@ void triple_check(const char* mdparin, t_inputrec* ir, gmx_mtop_t* sys, warninp_
     char                      err_buf[STRLEN];
     int                       i, m, c, nmol;
     bool                      bCharge;
+    real *                    mgrp, mt;
     gmx_mtop_atomloop_block_t aloopb;
     char                      warn_buf[STRLEN];
 
     set_warning_line(wi, mdparin, -1);
 
-    if (allTrue(haveAbsoluteReference(*ir)) && allTrue(havePositionRestraints(*sys)))
+    if (ir->comm_mode != ComRemovalAlgorithm::No && allTrue(havePositionRestraints(*sys)))
     {
         warning_note(wi,
                      "Removing center of mass motion in the presence of position restraints might "
@@ -4540,6 +4627,57 @@ void triple_check(const char* mdparin, t_inputrec* ir, gmx_mtop_t* sys, warninp_
                       "constant by hand.");
     }
 
+    ir->useConstantAcceleration = false;
+    for (int i = 0; (i < gmx::ssize(sys->groups.groups[SimulationAtomGroupType::Acceleration])); i++)
+    {
+        if (norm2(ir->opts.acceleration[i]) != 0)
+        {
+            ir->useConstantAcceleration = true;
+        }
+    }
+    if (ir->useConstantAcceleration)
+    {
+        gmx::RVec acceleration = { 0.0_real, 0.0_real, 0.0_real };
+        snew(mgrp, sys->groups.groups[SimulationAtomGroupType::Acceleration].size());
+        for (const AtomProxy atomP : AtomRange(*sys))
+        {
+            const t_atom& local = atomP.atom();
+            int           i     = atomP.globalAtomNumber();
+            mgrp[getGroupType(sys->groups, SimulationAtomGroupType::Acceleration, i)] += local.m;
+        }
+        mt = 0.0;
+        for (i = 0; (i < gmx::ssize(sys->groups.groups[SimulationAtomGroupType::Acceleration])); i++)
+        {
+            for (m = 0; (m < DIM); m++)
+            {
+                acceleration[m] += ir->opts.acceleration[i][m] * mgrp[i];
+            }
+            mt += mgrp[i];
+        }
+        for (m = 0; (m < DIM); m++)
+        {
+            if (fabs(acceleration[m]) > 1e-6)
+            {
+                const char* dim[DIM] = { "X", "Y", "Z" };
+                fprintf(stderr,
+                        "Net Acceleration in %s direction, will %s be corrected\n",
+                        dim[m],
+                        ir->nstcomm != 0 ? "" : "not");
+                if (ir->nstcomm != 0 && m < ndof_com(ir))
+                {
+                    acceleration[m] /= mt;
+                    for (i = 0;
+                         (i < gmx::ssize(sys->groups.groups[SimulationAtomGroupType::Acceleration]));
+                         i++)
+                    {
+                        ir->opts.acceleration[i][m] -= acceleration[m];
+                    }
+                }
+            }
+        }
+        sfree(mgrp);
+    }
+
     if (ir->efep != FreeEnergyPerturbationType::No && ir->fepvals->sc_alpha != 0
         && !gmx_within_tol(sys->ffparams.reppow, 12.0, 10 * GMX_DOUBLE_EPS))
     {
@@ -4553,7 +4691,8 @@ void triple_check(const char* mdparin, t_inputrec* ir, gmx_mtop_t* sys, warninp_
         bWarned = FALSE;
         for (i = 0; i < ir->pull->ncoord && !bWarned; i++)
         {
-            if (ir->pull->coord[i].group[0] == 0 || ir->pull->coord[i].group[1] == 0)
+            if (ir->pull->coord[i].eGeom != PullGroupGeometry::Transformation
+                && (ir->pull->coord[i].group[0] == 0 || ir->pull->coord[i].group[1] == 0))
             {
                 const auto absRef     = haveAbsoluteReference(*ir);
                 const auto havePosres = havePositionRestraints(*sys);

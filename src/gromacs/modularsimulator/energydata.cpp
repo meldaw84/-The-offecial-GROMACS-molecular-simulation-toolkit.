@@ -89,7 +89,8 @@ EnergyData::EnergyData(StatePropagatorData*        statePropagatorData,
                        bool                        isMasterRank,
                        ObservablesHistory*         observablesHistory,
                        StartingBehavior            startingBehavior,
-                       bool                        simulationsShareState) :
+                       bool                        simulationsShareState,
+                       pull_t*                     pullWork) :
     element_(std::make_unique<Element>(this, isMasterRank)),
     isMasterRank_(isMasterRank),
     forceVirialStep_(-1),
@@ -112,7 +113,8 @@ EnergyData::EnergyData(StatePropagatorData*        statePropagatorData,
     mdModulesNotifiers_(mdModulesNotifiers),
     groups_(&globalTopology.groups),
     observablesHistory_(observablesHistory),
-    simulationsShareState_(simulationsShareState)
+    simulationsShareState_(simulationsShareState),
+    pullWork_(pullWork)
 {
     clear_mat(forceVirial_);
     clear_mat(shakeVirial_);
@@ -161,11 +163,10 @@ void EnergyData::Element::trajectoryWriterSetup(gmx_mdoutf* outf)
 
 void EnergyData::setup(gmx_mdoutf* outf)
 {
-    pull_t* pull_work = nullptr;
-    energyOutput_     = std::make_unique<EnergyOutput>(mdoutf_get_fp_ene(outf),
+    energyOutput_ = std::make_unique<EnergyOutput>(mdoutf_get_fp_ene(outf),
                                                    top_global_,
                                                    *inputrec_,
-                                                   pull_work,
+                                                   pullWork_,
                                                    mdoutf_get_fp_dhdl(outf),
                                                    false,
                                                    startingBehavior_,
@@ -258,7 +259,6 @@ void EnergyData::doStep(Step step, Time time, bool isEnergyCalculationStep, bool
             mdAtoms_->mdatoms()->tmass,
             enerd_,
             inputrec_->fepvals.get(),
-            inputrec_->expandedvals.get(),
             statePropagatorData_->constPreviousBox(),
             PTCouplingArrays({ parrinelloRahmanBoxVelocities_ ? parrinelloRahmanBoxVelocities_() : nullMatrix,
                                {},
@@ -266,8 +266,6 @@ void EnergyData::doStep(Step step, Time time, bool isEnergyCalculationStep, bool
                                {},
                                {} }),
             freeEnergyPerturbationData_ ? freeEnergyPerturbationData_->currentFEPState() : 0,
-            shakeVirial_,
-            forceVirial_,
             totalVirial_,
             pressure_,
             ekind_,
@@ -364,6 +362,11 @@ real* EnergyData::muTot()
 }
 
 gmx_enerdata_t* EnergyData::enerdata()
+{
+    return enerd_;
+}
+
+const gmx_enerdata_t* EnergyData::enerdata() const
 {
     return enerd_;
 }
@@ -549,7 +552,8 @@ ISimulatorElement* EnergyData::Element::getElementPointerImpl(
         StatePropagatorData gmx_unused* statePropagatorData,
         EnergyData*                     energyData,
         FreeEnergyPerturbationData gmx_unused* freeEnergyPerturbationData,
-        GlobalCommunicationHelper gmx_unused* globalCommunicationHelper)
+        GlobalCommunicationHelper gmx_unused* globalCommunicationHelper,
+        ObservablesReducer* /*observablesReducer*/)
 {
     return energyData->element();
 }

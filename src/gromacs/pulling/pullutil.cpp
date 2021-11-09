@@ -174,7 +174,7 @@ static void pull_set_pbcatoms(const t_commrec* cr, struct pull_t* pull, ArrayRef
 static void make_cyl_refgrps(const t_commrec*     cr,
                              pull_t*              pull,
                              ArrayRef<const real> masses,
-                             t_pbc*               pbc,
+                             const t_pbc&         pbc,
                              double               t,
                              ArrayRef<const RVec> x)
 {
@@ -238,7 +238,7 @@ static void make_cyl_refgrps(const t_commrec*     cr,
             {
                 int  atomIndex = localAtomIndices[indexInSet];
                 rvec dx;
-                pbc_dx_aiuc(pbc, x[atomIndex], reference, dx);
+                pbc_dx_aiuc(&pbc, x[atomIndex], reference, dx);
                 double axialLocation = iprod(direction, dx);
                 dvec   radialLocation;
                 double dr2 = 0;
@@ -391,7 +391,7 @@ static void sum_com_part(const pull_group_work_t* pgrp,
                          ArrayRef<const RVec>     x,
                          ArrayRef<const RVec>     xp,
                          ArrayRef<const real>     mass,
-                         const t_pbc*             pbc,
+                         const t_pbc&             pbc,
                          const rvec               x_pbc,
                          ComSums*                 sum_com)
 {
@@ -439,7 +439,7 @@ static void sum_com_part(const pull_group_work_t* pgrp,
             rvec dx;
 
             /* Sum the difference with the reference atom */
-            pbc_dx(pbc, x[ii], x_pbc, dx);
+            pbc_dx(&pbc, x[ii], x_pbc, dx);
             for (int d = 0; d < DIM; d++)
             {
                 sum_wmx[d] += wm * dx[d];
@@ -523,7 +523,7 @@ static void sum_com_part_cosweight(const pull_group_work_t* pgrp,
 void pull_calc_coms(const t_commrec*     cr,
                     pull_t*              pull,
                     ArrayRef<const real> masses,
-                    t_pbc*               pbc,
+                    const t_pbc&         pbc,
                     double               t,
                     ArrayRef<const RVec> x,
                     ArrayRef<RVec>       xp)
@@ -542,7 +542,7 @@ void pull_calc_coms(const t_commrec*     cr,
     {
         pull_set_pbcatoms(cr, pull, x, comm->pbcAtomBuffer);
 
-        if (cr != nullptr && DOMAINDECOMP(cr))
+        if (cr != nullptr && haveDDAtomOrdering(*cr))
         {
             /* We can keep these PBC reference coordinates fixed for nstlist
              * steps, since atoms won't jump over PBC.
@@ -563,12 +563,12 @@ void pull_calc_coms(const t_commrec*     cr,
 
         for (m = pull->cosdim + 1; m < pull->npbcdim; m++)
         {
-            if (pbc->box[m][pull->cosdim] != 0)
+            if (pbc.box[m][pull->cosdim] != 0)
             {
                 gmx_fatal(FARGS, "Can not do cosine weighting for trilinic dimensions");
             }
         }
-        twopi_box = 2.0 * M_PI / pbc->box[pull->cosdim][pull->cosdim];
+        twopi_box = 2.0 * M_PI / pbc.box[pull->cosdim][pull->cosdim];
     }
 
     for (size_t g = 0; g < pull->group.size(); g++)
@@ -999,17 +999,77 @@ void setPrevStepPullComFromState(struct pull_t* pull, const t_state* state)
     }
 }
 
-void updatePrevStepPullCom(struct pull_t* pull, t_state* state)
+/*! \brief Whether pull functions save a backup to the t_state object
+ *
+ * Saving to the state object is only used for checkpointing in the legacy simulator.
+ * Modular simulator doesn't use the t_state object for checkpointing.
+ */
+enum class PullBackupCOM
 {
-    for (size_t g = 0; g < pull->group.size(); g++)
+    Yes, //<! Save a copy of the previous step COM to state
+    No,  //<! Don't save a copy of the previous step COM to state
+};
+
+/*! \brief Sets the previous step COM in pull to the current COM and optionally
+ *         stores it in the provided ArrayRef
+ *
+ * \tparam     pullBackupToState  Whether we're storing the previous COM to state
+ * \param[in]  pull  The COM pull force calculation data structure
+ * \param[in]   comPreviousStep  The COM of the previous step of each pull group
+ */
+template<PullBackupCOM pullBackupToState>
+static void updatePrevStepPullComImpl(pull_t* pull, gmx::ArrayRef<double> comPreviousStep)
+{
+    for (gmx::index g = 0; g < gmx::ssize(pull->group); g++)
     {
         if (pull->group[g].needToCalcCom)
         {
             for (int j = 0; j < DIM; j++)
             {
-                pull->group[g].x_prev_step[j]          = pull->group[g].x[j];
-                state->pull_com_prev_step[g * DIM + j] = pull->group[g].x[j];
+                pull->group[g].x_prev_step[j] = pull->group[g].x[j];
+                if (pullBackupToState == PullBackupCOM::Yes)
+                {
+                    comPreviousStep[g * DIM + j] = pull->group[g].x[j];
+                }
             }
+        }
+    }
+}
+
+void updatePrevStepPullCom(pull_t* pull, std::optional<gmx::ArrayRef<double>> comPreviousStep)
+{
+    if (comPreviousStep.has_value())
+    {
+        updatePrevStepPullComImpl<PullBackupCOM::Yes>(pull, comPreviousStep.value());
+    }
+    else
+    {
+        updatePrevStepPullComImpl<PullBackupCOM::No>(pull, gmx::ArrayRef<double>());
+    }
+}
+
+std::vector<double> prevStepPullCom(const pull_t* pull)
+{
+    std::vector<double> pullCom(pull->group.size() * DIM, 0.0);
+    for (gmx::index g = 0; g < gmx::ssize(pull->group); g++)
+    {
+        for (int j = 0; j < DIM; j++)
+        {
+            pullCom[g * DIM + j] = pull->group[g].x_prev_step[j];
+        }
+    }
+    return pullCom;
+}
+
+void setPrevStepPullCom(pull_t* pull, gmx::ArrayRef<const double> prevStepPullCom)
+{
+    GMX_RELEASE_ASSERT(prevStepPullCom.size() >= pull->group.size() * DIM,
+                       "Pull COM vector size mismatch.");
+    for (gmx::index g = 0; g < gmx::ssize(pull->group); g++)
+    {
+        for (int j = 0; j < DIM; j++)
+        {
+            pull->group[g].x_prev_step[j] = prevStepPullCom[g * DIM + j];
         }
     }
 }
@@ -1031,7 +1091,7 @@ void allocStatePrevStepPullCom(t_state* state, const pull_t* pull)
 void initPullComFromPrevStep(const t_commrec*     cr,
                              pull_t*              pull,
                              ArrayRef<const real> masses,
-                             t_pbc*               pbc,
+                             const t_pbc&         pbc,
                              ArrayRef<const RVec> x)
 {
     pull_comm_t* comm   = &pull->comm;

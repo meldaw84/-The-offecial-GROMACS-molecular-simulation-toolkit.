@@ -52,9 +52,6 @@
 
 using namespace nblib;
 
-// Main function to write the MD program.
-int main(); // Keep the compiler happy
-
 int main()
 {
     // Create the particles
@@ -96,8 +93,8 @@ int main()
     HarmonicBondType ohHarmonicBond(1, 1);
     HarmonicBondType hcHarmonicBond(2, 1);
 
-    HarmonicAngleType hohAngle(Degrees(120), 1);
-    HarmonicAngleType hchAngle(Degrees(109.5), 1);
+    HarmonicAngle hohAngle(1, Degrees(120));
+    HarmonicAngle hchAngle(1, Degrees(109.5));
 
     // add harmonic bonds for water
     water.addInteraction(ParticleName("O"), ParticleName("H1"), ohHarmonicBond);
@@ -177,7 +174,10 @@ int main()
     SimulationState simulationState(coordinates, velocities, forces, box, topology);
 
     // The non-bonded force calculator contains all the data needed to compute forces
-    ForceCalculator forceCalculator(simulationState, options);
+    auto forceCalculator = setupGmxForceCalculatorCpu(simulationState.topology(), options);
+
+    // build the pair list
+    forceCalculator->updatePairlist(simulationState.coordinates(), simulationState.box());
 
     // The listed force calculator is also initialized with the required arguments
     ListedForceCalculator listedForceCalculator(
@@ -185,7 +185,7 @@ int main()
 
     // Integrator is initialized with an array of inverse masses (constructed from topology) and
     // the bounding box
-    LeapFrog integrator(topology, box);
+    LeapFrog integrator(simulationState.topology(), simulationState.box());
 
     // Print some diagnostic info
     printf("initial position of particle 0: x %4f y %4f z %4f\n",
@@ -200,9 +200,11 @@ int main()
     {
         zeroCartesianArray(simulationState.forces());
 
-        forceCalculator.compute(simulationState.coordinates(), simulationState.forces());
+        forceCalculator->compute(
+                simulationState.coordinates(), simulationState.box(), simulationState.forces());
 
-        listedForceCalculator.compute(simulationState.coordinates(), simulationState.forces());
+        listedForceCalculator.compute(
+                simulationState.coordinates(), simulationState.forces(), gmx::ArrayRef<real>{});
 
         // Integrate with a time step of 1 fs, positions, velocities and forces
         integrator.integrate(

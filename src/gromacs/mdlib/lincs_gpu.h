@@ -96,6 +96,13 @@ struct LincsGpuKernelParameters
     DeviceBuffer<AtomPair> d_constraints;
     //! Equilibrium distances for the constraints (GPU)
     DeviceBuffer<float> d_constraintsTargetLengths;
+    /*! \brief Whether there are coupled constraints.
+     *
+     * In SYCL, the accessors can not be initialized with an empty buffer.
+     * In case there are no coupled constraints, the respective buffers below are
+     * empty. So we need to inform the kernel launcher that these are optional.
+     */
+    bool haveCoupledConstraints = false;
     //! Number of constraints, coupled with the current one (GPU)
     DeviceBuffer<int> d_coupledConstraintsCounts;
     //! List of coupled with the current one (GPU)
@@ -144,14 +151,14 @@ public:
      * \param[in,out] virialScaled      Scaled virial tensor to be updated.
      * \param[in]     pbcAiuc           PBC data.
      */
-    void apply(const DeviceBuffer<Float3> d_x,
-               DeviceBuffer<Float3>       d_xp,
-               const bool                 updateVelocities,
-               DeviceBuffer<Float3>       d_v,
-               const real                 invdt,
-               const bool                 computeVirial,
-               tensor                     virialScaled,
-               const PbcAiuc              pbcAiuc);
+    void apply(const DeviceBuffer<Float3>& d_x,
+               DeviceBuffer<Float3>        d_xp,
+               bool                        updateVelocities,
+               DeviceBuffer<Float3>        d_v,
+               real                        invdt,
+               bool                        computeVirial,
+               tensor                      virialScaled,
+               const PbcAiuc&              pbcAiuc);
 
     /*! \brief
      * Update data-structures (e.g. after NB search step).

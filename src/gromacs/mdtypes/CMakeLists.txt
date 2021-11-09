@@ -1,7 +1,7 @@
 #
 # This file is part of the GROMACS molecular simulation package.
 #
-# Copyright (c) 2015,2019,2020, by the GROMACS development team, led by
+# Copyright (c) 2015,2019,2020,2021, by the GROMACS development team, led by
 # Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
 # and including many others, as listed in the AUTHORS file in the
 # top-level source directory and at http://www.gromacs.org.
@@ -36,6 +36,7 @@
 add_library(mdtypes INTERFACE)
 
 file(GLOB MDTYPES_SOURCES
+    awh_history.cpp
     checkpointdata.cpp
     df_history.cpp
     energyhistory.cpp
@@ -47,7 +48,9 @@ file(GLOB MDTYPES_SOURCES
     md_enums.cpp
     multipletimestepping.cpp
     observableshistory.cpp
-    state.cpp)
+    observablesreducer.cpp
+    state.cpp
+    threaded_force_buffer.cpp)
 
 if(GMX_GPU)
     gmx_add_libgromacs_sources(

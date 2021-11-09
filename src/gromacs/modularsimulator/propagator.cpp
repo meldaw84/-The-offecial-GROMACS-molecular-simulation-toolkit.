@@ -905,13 +905,8 @@ static PropagatorConnection getConnection(Propagator<integrationStage> gmx_unuse
 
     PropagatorConnection propagatorConnection{ propagatorTag };
 
-    // The clang-tidy version on our current CI throws 3 different warnings
-    // for the if constexpr lines, so disable linting for now. Also, this only
-    // works if the brace is on the same line, so turn off clang-format as well
-    // clang-format off
-    // NOLINTNEXTLINE
-    if constexpr (hasStartVelocityScaling<integrationStage>() || hasEndVelocityScaling<integrationStage>()) {
-        // clang-format on
+    if constexpr (hasStartVelocityScaling<integrationStage>() || hasEndVelocityScaling<integrationStage>())
+    {
         propagatorConnection.setNumVelocityScalingVariables =
                 [propagator](int num, ScaleVelocities scaleVelocities) {
                     propagator->setNumVelocityScalingVariables(num, scaleVelocities);
@@ -920,26 +915,20 @@ static PropagatorConnection getConnection(Propagator<integrationStage> gmx_unuse
             return propagator->velocityScalingCallback();
         };
     }
-    // clang-format off
-    // NOLINTNEXTLINE
-    if constexpr (hasStartVelocityScaling<integrationStage>()) {
-        // clang-format on
+    if constexpr (hasStartVelocityScaling<integrationStage>()) // NOLINT(readability-misleading-indentation)
+    {
         propagatorConnection.getViewOnStartVelocityScaling = [propagator]() {
             return propagator->viewOnStartVelocityScaling();
         };
     }
-    // clang-format off
-    // NOLINTNEXTLINE
-    if constexpr (hasEndVelocityScaling<integrationStage>()) {
-        // clang-format on
+    if constexpr (hasEndVelocityScaling<integrationStage>()) // NOLINT(readability-misleading-indentation)
+    {
         propagatorConnection.getViewOnEndVelocityScaling = [propagator]() {
             return propagator->viewOnEndVelocityScaling();
         };
     }
-    // clang-format off
-    // NOLINTNEXTLINE
-    if constexpr (hasPositionScaling<integrationStage>()) {
-        // clang-format on
+    if constexpr (hasPositionScaling<integrationStage>()) // NOLINT(readability-misleading-indentation)
+    {
         propagatorConnection.setNumPositionScalingVariables = [propagator](int num) {
             propagator->setNumPositionScalingVariables(num);
         };
@@ -950,10 +939,8 @@ static PropagatorConnection getConnection(Propagator<integrationStage> gmx_unuse
             return propagator->positionScalingCallback();
         };
     }
-    // clang-format off
-    // NOLINTNEXTLINE
-    if constexpr (hasParrinelloRahmanScaling<integrationStage>()) {
-        // clang-format on
+    if constexpr (hasParrinelloRahmanScaling<integrationStage>()) // NOLINT(readability-misleading-indentation)
+    {
         propagatorConnection.getViewOnPRScalingMatrix = [propagator]() {
             return propagator->viewOnPRScalingMatrix();
         };
@@ -962,8 +949,7 @@ static PropagatorConnection getConnection(Propagator<integrationStage> gmx_unuse
         };
     }
 
-    // NOLINTNEXTLINE(readability-misleading-indentation)
-    return propagatorConnection;
+    return propagatorConnection; // NOLINT(readability-misleading-indentation)
 }
 
 // doxygen is confused by the two definitions
@@ -976,8 +962,9 @@ ISimulatorElement* Propagator<integrationStage>::getElementPointerImpl(
         EnergyData gmx_unused*     energyData,
         FreeEnergyPerturbationData gmx_unused* freeEnergyPerturbationData,
         GlobalCommunicationHelper gmx_unused* globalCommunicationHelper,
-        const PropagatorTag&                  propagatorTag,
-        TimeStep                              timestep)
+        ObservablesReducer* /* observablesReducer */,
+        const PropagatorTag& propagatorTag,
+        TimeStep             timestep)
 {
     GMX_RELEASE_ASSERT(!(integrationStage == IntegrationStage::ScaleVelocities
                          || integrationStage == IntegrationStage::ScalePositions)
@@ -998,6 +985,7 @@ ISimulatorElement* Propagator<integrationStage>::getElementPointerImpl(
         EnergyData*                             energyData,
         FreeEnergyPerturbationData*             freeEnergyPerturbationData,
         GlobalCommunicationHelper*              globalCommunicationHelper,
+        ObservablesReducer*                     observablesReducer,
         const PropagatorTag&                    propagatorTag)
 {
     GMX_RELEASE_ASSERT(
@@ -1010,6 +998,7 @@ ISimulatorElement* Propagator<integrationStage>::getElementPointerImpl(
                                  energyData,
                                  freeEnergyPerturbationData,
                                  globalCommunicationHelper,
+                                 observablesReducer,
                                  propagatorTag,
                                  TimeStep(0.0));
 }

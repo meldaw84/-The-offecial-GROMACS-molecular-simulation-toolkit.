@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2016,2017,2018,2019,2020, by the GROMACS development team.
+ * Copyright (c) 2016,2017,2018,2019,2020 by the GROMACS development team.
  * Copyright (c) 2021, by the GROMACS development team, led by
  * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
  * and including many others, as listed in the AUTHORS file in the
@@ -57,6 +57,7 @@
 #include <string>
 
 #include "gromacs/ewald/ewald_utils.h"
+#include "gromacs/fft/gpu_3dfft.h"
 #include "gromacs/gpu_utils/device_context.h"
 #include "gromacs/gpu_utils/device_stream.h"
 #include "gromacs/gpu_utils/gpu_utils.h"
@@ -74,12 +75,12 @@
 #include "gromacs/utility/logger.h"
 #include "gromacs/utility/stringutil.h"
 #include "gromacs/ewald/pme.h"
+#include "gromacs/ewald/pme_coordinate_receiver_gpu.h"
 
 #if GMX_GPU_CUDA
 #    include "pme.cuh"
 #endif
 
-#include "pme_gpu_3dfft.h"
 #include "pme_gpu_calculate_splines.h"
 #include "pme_gpu_constants.h"
 #include "pme_gpu_program_impl.h"
@@ -463,9 +464,9 @@ void pme_gpu_free_fract_shifts(const PmeGpu* pmeGpu)
     auto* kernelParamsPtr = pmeGpu->kernelParams.get();
 #if GMX_GPU_CUDA
     destroyParamLookupTable(&kernelParamsPtr->grid.d_fractShiftsTable,
-                            kernelParamsPtr->fractShiftsTableTexture);
+                            &kernelParamsPtr->fractShiftsTableTexture);
     destroyParamLookupTable(&kernelParamsPtr->grid.d_gridlineIndicesTable,
-                            kernelParamsPtr->gridlineIndicesTableTexture);
+                            &kernelParamsPtr->gridlineIndicesTableTexture);
 #elif GMX_GPU_OPENCL || GMX_GPU_SYCL
     freeDeviceBuffer(&kernelParamsPtr->grid.d_fractShiftsTable);
     freeDeviceBuffer(&kernelParamsPtr->grid.d_gridlineIndicesTable);
@@ -593,7 +594,10 @@ static void pme_gpu_init_internal(PmeGpu* pmeGpu, const DeviceContext& deviceCon
      */
 
 #if GMX_GPU_CUDA
-    pmeGpu->maxGridWidthX = deviceContext.deviceInfo().prop.maxGridSize[0];
+    pmeGpu->kernelParams->usePipeline       = char(false);
+    pmeGpu->kernelParams->pipelineAtomStart = 0;
+    pmeGpu->kernelParams->pipelineAtomEnd   = 0;
+    pmeGpu->maxGridWidthX                   = deviceContext.deviceInfo().prop.maxGridSize[0];
 #else
     // Use this path for any non-CUDA GPU acceleration
     // TODO: is there no really global work size limit in OpenCL?
@@ -606,9 +610,46 @@ void pme_gpu_reinit_3dfft(const PmeGpu* pmeGpu)
     if (pme_gpu_settings(pmeGpu).performGPUFFT)
     {
         pmeGpu->archSpecific->fftSetup.resize(0);
+        const bool         performOutOfPlaceFFT      = pmeGpu->archSpecific->performOutOfPlaceFFT;
+        const bool         allocateGrid              = false;
+        MPI_Comm           comm                      = MPI_COMM_NULL;
+        std::array<int, 1> gridOffsetsInXForEachRank = { 0 };
+        std::array<int, 1> gridOffsetsInYForEachRank = { 0 };
+#if GMX_GPU_CUDA
+        const gmx::FftBackend backend = gmx::FftBackend::Cufft;
+#elif GMX_GPU_OPENCL
+        const gmx::FftBackend backend = gmx::FftBackend::Ocl;
+#elif GMX_GPU_SYCL
+#    if GMX_SYCL_DPCPP && GMX_FFT_MKL
+        const gmx::FftBackend backend = gmx::FftBackend::SyclMkl;
+#    elif GMX_SYCL_HIPSYCL
+        const gmx::FftBackend backend = gmx::FftBackend::SyclRocfft;
+#    else
+        const gmx::FftBackend backend = gmx::FftBackend::Sycl;
+#    endif
+#else
+        GMX_RELEASE_ASSERT(false, "Unknown GPU backend");
+        const gmx::FftBackend backend = gmx::FftBackend::Count;
+#endif
+
+        PmeGpuGridParams& grid = pme_gpu_get_kernel_params_base_ptr(pmeGpu)->grid;
         for (int gridIndex = 0; gridIndex < pmeGpu->common->ngrids; gridIndex++)
         {
-            pmeGpu->archSpecific->fftSetup.push_back(std::make_unique<GpuParallel3dFft>(pmeGpu, gridIndex));
+            pmeGpu->archSpecific->fftSetup.push_back(
+                    std::make_unique<gmx::Gpu3dFft>(backend,
+                                                    allocateGrid,
+                                                    comm,
+                                                    gridOffsetsInXForEachRank,
+                                                    gridOffsetsInYForEachRank,
+                                                    grid.realGridSize[ZZ],
+                                                    performOutOfPlaceFFT,
+                                                    pmeGpu->archSpecific->deviceContext_,
+                                                    pmeGpu->archSpecific->pmeStream_,
+                                                    grid.realGridSize,
+                                                    grid.realGridSizePadded,
+                                                    grid.complexGridSizePadded,
+                                                    &(grid.d_realGrid[gridIndex]),
+                                                    &(grid.d_fourierGrid[gridIndex])));
         }
     }
 }
@@ -828,7 +869,7 @@ static void pme_gpu_copy_common_data_from(const gmx_pme_t* pme)
     pmeGpu->common->nn.insert(pmeGpu->common->nn.end(), pme->nnz, pme->nnz + cellCount * pme->nkz);
     pmeGpu->common->runMode       = pme->runMode;
     pmeGpu->common->isRankPmeOnly = !pme->bPPnode;
-    pmeGpu->common->boxScaler     = pme->boxScaler;
+    pmeGpu->common->boxScaler     = pme->boxScaler.get();
 }
 
 /*! \libinternal \brief
@@ -1192,6 +1233,7 @@ static auto selectSpreadKernelPtr(const PmeGpu*  pmeGpu,
             {
                 kernelPtr = pmeGpu->programHandle_->impl_->spreadKernelThPerAtom4Dual;
             }
+            else
             {
                 kernelPtr = pmeGpu->programHandle_->impl_->spreadKernelThPerAtom4Single;
             }
@@ -1238,12 +1280,14 @@ static auto selectSpreadKernelPtr(const PmeGpu*  pmeGpu,
     return kernelPtr;
 }
 
-void pme_gpu_spread(const PmeGpu*         pmeGpu,
-                    GpuEventSynchronizer* xReadyOnDevice,
-                    real**                h_grids,
-                    bool                  computeSplines,
-                    bool                  spreadCharges,
-                    const real            lambda)
+void pme_gpu_spread(const PmeGpu*                  pmeGpu,
+                    GpuEventSynchronizer*          xReadyOnDevice,
+                    real**                         h_grids,
+                    bool                           computeSplines,
+                    bool                           spreadCharges,
+                    const real                     lambda,
+                    const bool                     useGpuDirectComm,
+                    gmx::PmeCoordinateReceiverGpu* pmeCoordinateReceiverGpu)
 {
     GMX_ASSERT(
             pmeGpu->common->ngrids == 1 || pmeGpu->common->ngrids == 2,
@@ -1280,9 +1324,9 @@ void pme_gpu_spread(const PmeGpu*         pmeGpu,
                "inconsistent atom data padding vs. spreading block size");
 
     // Ensure that coordinates are ready on the device before launching spread;
-    // only needed with CUDA on PP+PME ranks, not on separate PME ranks, in unit tests
-    // nor in OpenCL as these cases use a single stream (hence xReadyOnDevice == nullptr).
-    GMX_ASSERT(!GMX_GPU_CUDA || xReadyOnDevice != nullptr || pmeGpu->common->isRankPmeOnly
+    // only needed on PP+PME ranks, not on separate PME ranks, in unit tests
+    // as these cases use a single stream (hence xReadyOnDevice == nullptr).
+    GMX_ASSERT(xReadyOnDevice != nullptr || pmeGpu->common->isRankPmeOnly
                        || pme_gpu_settings(pmeGpu).copyAllOutputs,
                "Need a valid coordinate synchronizer on PP+PME ranks with CUDA.");
 
@@ -1312,6 +1356,7 @@ void pme_gpu_spread(const PmeGpu*         pmeGpu,
 
     PmeStage                           timingId;
     PmeGpuProgramImpl::PmeKernelHandle kernelPtr = nullptr;
+    const bool writeGlobalOrSaveSplines          = writeGlobal || (!recalculateSplines);
     if (computeSplines)
     {
         if (spreadCharges)
@@ -1319,7 +1364,7 @@ void pme_gpu_spread(const PmeGpu*         pmeGpu,
             timingId  = PmeStage::SplineAndSpread;
             kernelPtr = selectSplineAndSpreadKernelPtr(pmeGpu,
                                                        pmeGpu->settings.threadsPerAtom,
-                                                       writeGlobal || (!recalculateSplines),
+                                                       writeGlobalOrSaveSplines,
                                                        pmeGpu->common->ngrids);
         }
         else
@@ -1327,43 +1372,116 @@ void pme_gpu_spread(const PmeGpu*         pmeGpu,
             timingId  = PmeStage::Spline;
             kernelPtr = selectSplineKernelPtr(pmeGpu,
                                               pmeGpu->settings.threadsPerAtom,
-                                              writeGlobal || (!recalculateSplines),
+                                              writeGlobalOrSaveSplines,
                                               pmeGpu->common->ngrids);
         }
     }
     else
     {
         timingId  = PmeStage::Spread;
-        kernelPtr = selectSpreadKernelPtr(pmeGpu,
-                                          pmeGpu->settings.threadsPerAtom,
-                                          writeGlobal || (!recalculateSplines),
-                                          pmeGpu->common->ngrids);
+        kernelPtr = selectSpreadKernelPtr(
+                pmeGpu, pmeGpu->settings.threadsPerAtom, writeGlobalOrSaveSplines, pmeGpu->common->ngrids);
     }
 
 
     pme_gpu_start_timing(pmeGpu, timingId);
     auto* timingEvent = pme_gpu_fetch_timing_event(pmeGpu, timingId);
+
+    kernelParamsPtr->usePipeline = char(computeSplines && spreadCharges && useGpuDirectComm
+                                        && (pmeCoordinateReceiverGpu->ppCommNumSenderRanks() > 1)
+                                        && !writeGlobalOrSaveSplines);
+    if (kernelParamsPtr->usePipeline != 0)
+    {
+        int numStagesInPipeline = pmeCoordinateReceiverGpu->ppCommNumSenderRanks();
+
+        for (int i = 0; i < numStagesInPipeline; i++)
+        {
+            int senderRank;
+            if (useGpuDirectComm)
+            {
+                senderRank = pmeCoordinateReceiverGpu->synchronizeOnCoordinatesFromPpRank(
+                        i, *(pmeCoordinateReceiverGpu->ppCommStream(i)));
+            }
+            else
+            {
+                senderRank = i;
+            }
+
+            // set kernel configuration options specific to this stage of the pipeline
+            std::tie(kernelParamsPtr->pipelineAtomStart, kernelParamsPtr->pipelineAtomEnd) =
+                    pmeCoordinateReceiverGpu->ppCommAtomRange(senderRank);
+            const int blockCount       = static_cast<int>(std::ceil(
+                    static_cast<float>(kernelParamsPtr->pipelineAtomEnd - kernelParamsPtr->pipelineAtomStart)
+                    / atomsPerBlock));
+            auto      dimGrid          = pmeGpuCreateGrid(pmeGpu, blockCount);
+            config.gridSize[0]         = dimGrid.first;
+            config.gridSize[1]         = dimGrid.second;
+            DeviceStream* launchStream = pmeCoordinateReceiverGpu->ppCommStream(senderRank);
+
+
 #if c_canEmbedBuffers
-    const auto kernelArgs = prepareGpuKernelArguments(kernelPtr, config, kernelParamsPtr);
+            const auto kernelArgs = prepareGpuKernelArguments(kernelPtr, config, kernelParamsPtr);
 #else
-    const auto kernelArgs =
-            prepareGpuKernelArguments(kernelPtr,
-                                      config,
-                                      kernelParamsPtr,
-                                      &kernelParamsPtr->atoms.d_theta,
-                                      &kernelParamsPtr->atoms.d_dtheta,
-                                      &kernelParamsPtr->atoms.d_gridlineIndices,
-                                      &kernelParamsPtr->grid.d_realGrid[FEP_STATE_A],
-                                      &kernelParamsPtr->grid.d_realGrid[FEP_STATE_B],
-                                      &kernelParamsPtr->grid.d_fractShiftsTable,
-                                      &kernelParamsPtr->grid.d_gridlineIndicesTable,
-                                      &kernelParamsPtr->atoms.d_coefficients[FEP_STATE_A],
-                                      &kernelParamsPtr->atoms.d_coefficients[FEP_STATE_B],
-                                      &kernelParamsPtr->atoms.d_coordinates);
+            const auto kernelArgs =
+                    prepareGpuKernelArguments(kernelPtr,
+                                              config,
+                                              kernelParamsPtr,
+                                              &kernelParamsPtr->atoms.d_theta,
+                                              &kernelParamsPtr->atoms.d_dtheta,
+                                              &kernelParamsPtr->atoms.d_gridlineIndices,
+                                              &kernelParamsPtr->grid.d_realGrid[FEP_STATE_A],
+                                              &kernelParamsPtr->grid.d_realGrid[FEP_STATE_B],
+                                              &kernelParamsPtr->grid.d_fractShiftsTable,
+                                              &kernelParamsPtr->grid.d_gridlineIndicesTable,
+                                              &kernelParamsPtr->atoms.d_coefficients[FEP_STATE_A],
+                                              &kernelParamsPtr->atoms.d_coefficients[FEP_STATE_B],
+                                              &kernelParamsPtr->atoms.d_coordinates);
 #endif
 
-    launchGpuKernel(
-            kernelPtr, config, pmeGpu->archSpecific->pmeStream_, timingEvent, "PME spline/spread", kernelArgs);
+            launchGpuKernel(kernelPtr, config, *launchStream, timingEvent, "PME spline/spread", kernelArgs);
+        }
+        // Set dependencies for PME stream on all pipeline streams
+        for (int i = 0; i < pmeCoordinateReceiverGpu->ppCommNumSenderRanks(); i++)
+        {
+            GpuEventSynchronizer event;
+            event.markEvent(*(pmeCoordinateReceiverGpu->ppCommStream(i)));
+            event.enqueueWaitEvent(pmeGpu->archSpecific->pmeStream_);
+        }
+    }
+    else // pipelining is not in use
+    {
+        if (useGpuDirectComm) // Sync all PME-PP communications to PME stream
+        {
+            pmeCoordinateReceiverGpu->synchronizeOnCoordinatesFromAllPpRanks(pmeGpu->archSpecific->pmeStream_);
+        }
+
+#if c_canEmbedBuffers
+        const auto kernelArgs = prepareGpuKernelArguments(kernelPtr, config, kernelParamsPtr);
+#else
+        const auto kernelArgs =
+                prepareGpuKernelArguments(kernelPtr,
+                                          config,
+                                          kernelParamsPtr,
+                                          &kernelParamsPtr->atoms.d_theta,
+                                          &kernelParamsPtr->atoms.d_dtheta,
+                                          &kernelParamsPtr->atoms.d_gridlineIndices,
+                                          &kernelParamsPtr->grid.d_realGrid[FEP_STATE_A],
+                                          &kernelParamsPtr->grid.d_realGrid[FEP_STATE_B],
+                                          &kernelParamsPtr->grid.d_fractShiftsTable,
+                                          &kernelParamsPtr->grid.d_gridlineIndicesTable,
+                                          &kernelParamsPtr->atoms.d_coefficients[FEP_STATE_A],
+                                          &kernelParamsPtr->atoms.d_coefficients[FEP_STATE_B],
+                                          &kernelParamsPtr->atoms.d_coordinates);
+#endif
+
+        launchGpuKernel(kernelPtr,
+                        config,
+                        pmeGpu->archSpecific->pmeStream_,
+                        timingEvent,
+                        "PME spline/spread",
+                        kernelArgs);
+    }
+
     pme_gpu_stop_timing(pmeGpu, timingId);
 
     const auto& settings    = pmeGpu->settings;

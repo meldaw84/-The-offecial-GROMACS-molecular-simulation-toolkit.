@@ -60,6 +60,7 @@
 struct gmx_enfrot;
 struct gmx_shellfc_t;
 struct gmx_wallcycle;
+class CpuPpLongRangeNonbondeds;
 struct pull_t;
 struct t_nrnb;
 
@@ -74,6 +75,7 @@ class LegacySimulatorData;
 class MDAtoms;
 class MdrunScheduleWorkload;
 class ModularSimulatorAlgorithmBuilderHelper;
+class ObservablesReducer;
 class StatePropagatorData;
 class VirtualSitesHandler;
 
@@ -88,7 +90,8 @@ class ForceElement final :
     public ISimulatorElement,
     public ITopologyHolderClient,
     public INeighborSearchSignallerClient,
-    public IEnergySignallerClient
+    public IEnergySignallerClient,
+    public IDomDecHelperClient
 {
 public:
     //! Constructor
@@ -132,7 +135,8 @@ public:
      * \param statePropagatorData  Pointer to the \c StatePropagatorData object
      * \param energyData  Pointer to the \c EnergyData object
      * \param freeEnergyPerturbationData  Pointer to the \c FreeEnergyPerturbationData object
-     * \param globalCommunicationHelper  Pointer to the \c GlobalCommunicationHelper object
+     * \param globalCommunicationHelper   Pointer to the \c GlobalCommunicationHelper object
+     * \param observablesReducer          Pointer to the \c ObservablesReducer object
      *
      * \return  Pointer to the element to be added. Element needs to have been stored using \c storeElement
      */
@@ -141,7 +145,11 @@ public:
                                                     StatePropagatorData*        statePropagatorData,
                                                     EnergyData*                 energyData,
                                                     FreeEnergyPerturbationData* freeEnergyPerturbationData,
-                                                    GlobalCommunicationHelper* globalCommunicationHelper);
+                                                    GlobalCommunicationHelper* globalCommunicationHelper,
+                                                    ObservablesReducer*        observablesReducer);
+
+    //! Callback on domain decomposition repartitioning
+    DomDecCallback registerDomDecCallback() override;
 
 private:
     //! ITopologyHolderClient implementation
@@ -188,6 +196,8 @@ private:
 
     //! DD / DLB helper object
     const DDBalanceRegionHandler ddBalanceRegionHandler_;
+    //! Long range force calculator
+    std::unique_ptr<CpuPpLongRangeNonbondeds> longRangeNonbondeds_;
 
     /* \brief The FEP lambda vector
      *

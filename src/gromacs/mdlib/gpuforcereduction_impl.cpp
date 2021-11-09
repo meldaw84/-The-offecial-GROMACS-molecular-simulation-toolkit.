@@ -47,11 +47,7 @@
 
 #include "gromacs/gpu_utils/device_stream.h"
 #include "gromacs/gpu_utils/devicebuffer.h"
-#if GMX_GPU_CUDA
-#    include "gromacs/gpu_utils/gpueventsynchronizer.cuh"
-#elif GMX_GPU_SYCL
-#    include "gromacs/gpu_utils/gpueventsynchronizer_sycl.h"
-#endif
+#include "gromacs/gpu_utils/gpueventsynchronizer.h"
 #include "gromacs/mdlib/gpuforcereduction_impl_internal.h"
 #include "gromacs/utility/gmxassert.h"
 
@@ -81,7 +77,7 @@ void GpuForceReduction::Impl::reinit(DeviceBuffer<Float3>  baseForcePtr,
     baseForce_        = baseForcePtr;
     numAtoms_         = numAtoms;
     atomStart_        = atomStart;
-    accumulate_       = static_cast<int>(accumulate);
+    accumulate_       = accumulate;
     completionMarker_ = completionMarker;
     cellInfo_.cell    = cell.data();
 
@@ -112,8 +108,9 @@ void GpuForceReduction::Impl::registerRvecForce(DeviceBuffer<RVec> forcePtr)
     rvecForceToAdd_ = forcePtr;
 };
 
-void GpuForceReduction::Impl::addDependency(GpuEventSynchronizer* const dependency)
+void GpuForceReduction::Impl::addDependency(GpuEventSynchronizer* dependency)
 {
+    GMX_ASSERT(dependency != nullptr, "Force reduction dependency synchronizer should not be NULL");
     dependencyList_.push_back(dependency);
 }
 
@@ -122,32 +119,43 @@ void GpuForceReduction::Impl::execute()
     wallcycle_start_nocount(wcycle_, WallCycleCounter::LaunchGpu);
     wallcycle_sub_start(wcycle_, WallCycleSubCounter::LaunchGpuNBFBufOps);
 
-    if (numAtoms_ == 0)
+    if (numAtoms_ != 0)
     {
-        return;
+        GMX_ASSERT(nbnxmForceToAdd_, "Nbnxm force for reduction has no data");
+
+        // Enqueue wait on all dependencies passed
+        for (auto* synchronizer : dependencyList_)
+        {
+            synchronizer->enqueueWaitEvent(deviceStream_);
+        }
+
+        const bool addRvecForce = static_cast<bool>(rvecForceToAdd_); // True iff initialized
+
+        launchForceReductionKernel(numAtoms_,
+                                   atomStart_,
+                                   addRvecForce,
+                                   accumulate_,
+                                   nbnxmForceToAdd_,
+                                   rvecForceToAdd_,
+                                   baseForce_,
+                                   cellInfo_.d_cell,
+                                   deviceStream_);
+    }
+    else
+    {
+        /* In case we have nothing to do, but still have dependencies, we need
+         * to consume them and mark our own event.
+         * Happens sometimes in MdrunVsitesTest.
+         * Issue #3988, #4227. */
+        for (auto* synchronizer : dependencyList_)
+        {
+            synchronizer->consume();
+        }
     }
 
-    GMX_ASSERT(nbnxmForceToAdd_, "Nbnxm force for reduction has no data");
-
-    // Enqueue wait on all dependencies passed
-    for (auto* synchronizer : dependencyList_)
-    {
-        synchronizer->enqueueWaitEvent(deviceStream_);
-    }
-
-    const bool addRvecForce = static_cast<bool>(rvecForceToAdd_); // True iff initialized
-
-    launchForceReductionKernel(numAtoms_,
-                               atomStart_,
-                               addRvecForce,
-                               accumulate_,
-                               nbnxmForceToAdd_,
-                               rvecForceToAdd_,
-                               baseForce_,
-                               cellInfo_.d_cell,
-                               deviceStream_);
-
-    // Mark that kernel has been launched
+    /* Mark that kernel has been launched.
+     * Even if we have no work to do and have not launched the kernel, we still mark the event
+     * in order to ensure proper marking/consumption balance, see Issue #3988, #4227. */
     if (completionMarker_ != nullptr)
     {
         completionMarker_->markEvent(deviceStream_);
@@ -156,8 +164,6 @@ void GpuForceReduction::Impl::execute()
     wallcycle_sub_stop(wcycle_, WallCycleSubCounter::LaunchGpuNBFBufOps);
     wallcycle_stop(wcycle_, WallCycleCounter::LaunchGpu);
 }
-
-GpuForceReduction::Impl::~Impl() = default;
 
 GpuForceReduction::GpuForceReduction(const DeviceContext& deviceContext,
                                      const DeviceStream&  deviceStream,
@@ -176,7 +182,7 @@ void GpuForceReduction::registerRvecForce(DeviceBuffer<RVec> forcePtr)
     impl_->registerRvecForce(forcePtr);
 }
 
-void GpuForceReduction::addDependency(GpuEventSynchronizer* const dependency)
+void GpuForceReduction::addDependency(GpuEventSynchronizer* dependency)
 {
     impl_->addDependency(dependency);
 }

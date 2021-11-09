@@ -41,7 +41,7 @@ CI pipeline jobs.
 Example::
 
     $ python3 -m utility --llvm --doxygen
-    gromacs/ci-ubuntu-18.04-llvm-7-docs
+    gromacs/ci-ubuntu-20.04-llvm-7-docs
 
 See Also:
     :file:`buildall.sh`
@@ -69,6 +69,7 @@ Authors:
     * Eric Irrgang <ericirrgang@gmail.com>
     * Joe Jordan <e.jjordan12@gmail.com>
     * Mark Abraham <mark.j.abraham@gmail.com>
+    * Gaurav Garg <gaugarg@nvidia.com>
 
 """
 
@@ -86,7 +87,7 @@ parsers for tools.
     Instead, inherit from it with the *parents* argument to :py:class:`argparse.ArgumentParser`
 """
 
-parser.add_argument('--cmake', nargs='*', type=str, default=['3.16.3', '3.17.2', '3.18.4'], # new minimum required versions
+parser.add_argument('--cmake', nargs='*', type=str, default=['3.16.3', '3.17.2', '3.18.4', '3.21.2'], # new minimum required versions
                     help='Selection of CMake version to provide to base image')
 
 compiler_group = parser.add_mutually_exclusive_group()
@@ -105,13 +106,12 @@ compiler_group.add_argument('--oneapi', type=str, nargs='?', const="2021.1.1", d
                             help='Select Intel oneAPI package version.')
 
 linux_group = parser.add_mutually_exclusive_group()
-# Ubuntu 20+ is not yet tested. See issue #3680
-linux_group.add_argument('--ubuntu', type=str, nargs='?', const='18.04', default='18.04',
-                         help='Select Ubuntu Linux base image. (default: ubuntu 18.04)')
+linux_group.add_argument('--ubuntu', type=str, nargs='?', const='20.04', default='20.04',
+                         help='Select Ubuntu Linux base image. (default: ubuntu 20.04)')
 linux_group.add_argument('--centos', type=str, nargs='?', const='7', default=None,
                          help='Select Centos Linux base image.')
 
-parser.add_argument('--cuda', type=str, nargs='?', const='10.2', default=None,
+parser.add_argument('--cuda', type=str, nargs='?', const='11.0', default=None,
                     help='Select a CUDA version for a base Linux image from NVIDIA.')
 
 parser.add_argument('--mpi', type=str, nargs='?', const='openmpi', default=None,
@@ -123,14 +123,23 @@ parser.add_argument('--tsan', type=str, nargs='?', const='llvm', default=None,
 parser.add_argument('--hipsycl', type=str, nargs='?', default=None,
                     help='Select hipSYCL repository tag/commit/branch.')
 
+parser.add_argument('--rocm', type=str, nargs='?', const='debian', default=None,
+                    help='Select AMD compute engine version.')
+
+parser.add_argument('--intel-compute-runtime', action='store_true', default=False,
+                    help='Include Intel Compute Runtime.')
+
 parser.add_argument('--clfft', type=str, nargs='?', const='master', default=None,
                     help='Add external clFFT libraries to the build image')
+
+parser.add_argument('--heffte', type=str, nargs='?', default=None,
+                    help='Select heffte repository tag/commit/branch.')
 
 parser.add_argument('--doxygen', type=str, nargs='?', const='1.8.5', default=None,
                     help='Add doxygen environment for documentation builds. Also adds other requirements needed for final docs images.')
 
 # Supported Python versions for maintained branches.
-_python_versions = ['3.6.10', '3.7.7', '3.8.2', '3.9.1']
+_python_versions = ['3.7.7', '3.8.2', '3.9.1']
 parser.add_argument('--venvs', nargs='*', type=str, default=_python_versions,
                     help='List of Python versions ("major.minor.patch") for which to install venvs. '
                          'Default: {}'.format(' '.join(_python_versions)))
@@ -166,6 +175,11 @@ def image_name(configuration: argparse.Namespace) -> str:
             elements.append(gpusdk + '-' + version)
     if configuration.oneapi is not None:
         elements.append('oneapi-' + configuration.oneapi)
+    if configuration.intel_compute_runtime:
+        elements.append('intel-compute-runtime')
+    if configuration.rocm is not None:
+        if (configuration.rocm != 'debian'):
+            elements.append('rocm-' + configuration.rocm)
 
     # Check for special cases
     # The following attribute keys indicate the image is built for the named

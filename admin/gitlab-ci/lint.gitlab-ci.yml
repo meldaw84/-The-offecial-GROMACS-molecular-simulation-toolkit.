@@ -5,7 +5,7 @@ clang-tidy:configure-push:
     - .gromacs:base:configure
     - .use-clang:base
     - .rules:basic-push
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-18.04-llvm-11-tsan
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-llvm-11-cuda-11.4.1
   variables:
     CMAKE: /usr/local/cmake-3.16.3/bin/cmake
     COMPILER_MAJOR_VERSION: 11
@@ -17,12 +17,25 @@ clang-tidy:configure-schedule:
     - .gromacs:base:configure
     - .use-clang:base
     - .rules:nightly-not-for-release
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-18.04-llvm-11-tsan
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-llvm-11-cuda-11.4.1
   variables:
     CMAKE: /usr/local/cmake-3.16.3/bin/cmake
     COMPILER_MAJOR_VERSION: 11
     BUILD_DIR: build-clang-tidy
     CMAKE_EXTRA_OPTIONS: -DCLANG_TIDY=clang-tidy-$COMPILER_MAJOR_VERSION -DGMX_CLANG_TIDY=ON -DGMX_COMPILER_WARNINGS=ON
+
+clang-tidy:configure-schedule-cuda:
+  extends:
+    - .gromacs:base:configure
+    - .use-clang:base
+    - .use-cuda
+    - .rules:nightly-not-for-release
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-llvm-11-cuda-11.4.1
+  variables:
+    CMAKE: cmake
+    COMPILER_MAJOR_VERSION: 11
+    BUILD_DIR: build-clang-tidy
+    CMAKE_EXTRA_OPTIONS: -DCLANG_TIDY=clang-tidy-$COMPILER_MAJOR_VERSION -DGMX_CLANG_TIDY=ON -DGMX_COMPILER_WARNINGS=ON -DGMX_CLANG_CUDA=ON
 
 clang-tidy:build:
   extends:
@@ -31,11 +44,25 @@ clang-tidy:build:
     - .variables:default
     - .rules:nightly-not-for-release
   stage: source-check
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-18.04-llvm-11-tsan
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-llvm-11-cuda-11.4.1
   needs:
     - job: clang-tidy:configure-schedule
   variables:
     CMAKE: /usr/local/cmake-3.16.3/bin/cmake
+    BUILD_DIR: build-clang-tidy
+
+clang-tidy:build-cuda:
+  extends:
+    - .gromacs:base:build
+    - .use-ccache
+    - .variables:default
+    - .rules:nightly-not-for-release
+  stage: source-check
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-llvm-11-cuda-11.4.1
+  needs:
+    - job: clang-tidy:configure-schedule-cuda
+  variables:
+    CMAKE: cmake
     BUILD_DIR: build-clang-tidy
 
 clang-tidy:test:
@@ -44,7 +71,7 @@ clang-tidy:test:
     - .variables:default
     - .rules:basic-push
   stage: source-check
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-18.04-llvm-11-tsan
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-llvm-11-cuda-11.4.1
   needs:
     - job: clang-tidy:configure-push
   variables:
@@ -81,7 +108,7 @@ clang-format:
     - .rules:basic-push
   cache: {}
   stage: pre-build
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-18.04-llvm-11-tsan
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-llvm-11-cuda-11.4.1
   variables:
     COMPILER_MAJOR_VERSION: 11
     KUBERNETES_CPU_LIMIT: 1
@@ -112,7 +139,7 @@ copyright-check:
     - .rules:basic-push
   cache: {}
   stage: pre-build
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-18.04-llvm-11-tsan
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-llvm-11-cuda-11.4.1
   variables:
     KUBERNETES_CPU_LIMIT: 1
     KUBERNETES_CPU_REQUEST: 1
@@ -158,6 +185,8 @@ check-source:
   script:
     - CMAKE=${CMAKE:-$(which cmake)}
     - cd $BUILD_DIR
+    - which $CMAKE
+    - $CMAKE --version
     - $CMAKE --build . --target check-source
     - awk '/warning.*include style.*order/,/You can use.*rst|^$/' docs/doxygen/check-source.log | tee doxygenError.txt || true
     - awk '/warning:.*includes/,/unnecessarily|^$/' docs/doxygen/check-source.log | tee -a doxygenError.txt || true

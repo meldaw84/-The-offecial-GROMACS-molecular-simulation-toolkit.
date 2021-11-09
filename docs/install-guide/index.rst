@@ -109,12 +109,12 @@ compiler. We recommend gcc, because it is free, widely available and
 frequently provides the best performance.
 
 You should strive to use the most recent version of your
-compiler. Since we require full C++17 support the minimum supported
-compiler versions are
+compiler. Since we require full C++17 support the minimum
+compiler versions supported by the GROMACS team are
 
 * GNU (gcc/libstdc++) 7
-* LLVM (clang/libc++) 5
-* Microsoft (MSVC) 2017 15.7
+* LLVM (clang/libc++) 7
+* Microsoft (MSVC) 2019
 
 Other compilers may work (Cray, Pathscale, older clang) but do
 not offer competitive performance. We recommend against PGI because
@@ -876,6 +876,54 @@ double-precision version of |Gromacs| compiled with MPI support:
 
 * ``-DGMX_DOUBLE=ON -DGMX_MPI -DGMX_MIMIC=ON``
 
+.. _installing with CP2K:
+
+Building with CP2K QM/MM support
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+CP2K QM/MM interface integration will require linking against libcp2k
+library, that incorporates CP2K functionality into |Gromacs|. 
+
+1. Download, compile and install CP2K (version 8.1 or higher is required).
+CP2K latest distribution can be downloaded `here <https://github.com/cp2k/cp2k/releases/>`_.
+For CP2K specific instructions please `follow <https://github.com/cp2k/cp2k/blob/master/INSTALL.md>`_.
+You can also check instructions on the `oficial CP2K web-page <https://www.cp2k.org/howto>`_.
+
+2. Make :file:`libcp2k.a` library by executing the following command::
+    make ARCH=<your arch file> VERSION=<your version like psmp> libcp2k
+
+The library archive (*e.g.* :file:`libcp2k.a`) should appear in the :file:`{<cp2k dir>}/lib/{<arch>}/{<version>}/` directory.
+
+3. Configure |Gromacs| with :command:`cmake`, adding the following flags.
+
+Build should be static:
+* ``-DBUILD_SHARED_LIBS=OFF -DGMXAPI=OFF -DGMX_INSTALL_NBLIB_API=OFF``
+
+Double precision in general is better than single for QM/MM 
+(however both options are viable):
+* ``-DGMX_DOUBLE=ON``
+
+FFT, BLAS and LAPACK libraries should be the same between CP2K and |Gromacs|.
+Use the following flags to do so:
+
+* ``-DGMX_FFT_LIBRARY=<your library like fftw3> -DFFTWF_LIBRARY=<path to library> -DFFTWF_INCLUDE_DIR=<path to directory with headers>``
+* ``-DGMX_BLAS_USER=<path to your BLAS>`` 
+* ``-DGMX_LAPACK_USER=<path to your LAPACK>``
+
+4. Compilation of QM/MM interface is controled by the following flags.
+
+``-DGMX_CP2K=ON``
+    Activates QM/MM interface compilation
+``-DCP2K_DIR="<path to cp2k>/lib/local/psmp``
+    Directory with libcp2k.a library
+``-DCP2K_LINKER_FLAGS="<combination of LDFLAGS and LIBS>"``
+    Other libraries used by CP2K. Typically that should be combination 
+    of LDFLAGS and LIBS from the ARCH file used for CP2K compilation.
+    Sometimes ARCH file could have several lines defining LDFLAGS and LIBS
+    or even split one line into several using "\". In that case all of them
+    should be concatenated into one long string without any extra slashes 
+    or quotes.
+
 .. _suffixes:
 
 Changing the names of |Gromacs| binaries and libraries
@@ -1234,11 +1282,12 @@ much everywhere, it is important that we tell you where we really know
 it works because we have tested it.
 Every commit in our git source code repository
 is currently tested with a range of configuration options on x86 with
-gcc versions 7 and 8,
-clang versions 8 and 9,
+gcc versions including 7 and 11,
+clang versions including 7 and 13,
+CUDA versions 11.0 and 11.4.2,
 and
 a version of oneAPI containing Intel's clang-based compiler.
-For this testing, we use Ubuntu 18.04 or 20.04 operating system.
+For this testing, we use Ubuntu 20.04 operating system.
 Other compiler, library, and OS versions are tested less frequently.
 For details, you can have a look at the
 `continuous integration server used by GROMACS <https://gitlab.com/gromacs/gromacs/>`_,

@@ -78,7 +78,7 @@ namespace gmx
 template<typename T>
 class HashedMap;
 class LocalAtomSetManager;
-struct LocalTopologyChecker;
+class LocalTopologyChecker;
 class GpuHaloExchange;
 } // namespace gmx
 
@@ -170,7 +170,7 @@ struct gmx_domdec_t
     /* The communication setup within the communicator all
      * defined in dd->comm in domdec.c
      */
-    int      nnodes       = 0;
+    int      nnodes       = 1;
     MPI_Comm mpi_comm_all = MPI_COMM_NULL;
     /* The local DD cell index and rank */
     gmx::IVec ci         = { 0, 0, 0 };
@@ -214,8 +214,8 @@ struct gmx_domdec_t
     gmx_domdec_constraints_t* constraints     = nullptr;
     gmx_domdec_specat_comm_t* constraint_comm = nullptr;
 
-    /* The number of home atom groups */
-    int ncg_home = 0;
+    /* The number of home atoms */
+    int numHomeAtoms = 0;
     /* Global atom group indices for the home and all non-home groups */
     std::vector<int> globalAtomGroupIndices;
 
