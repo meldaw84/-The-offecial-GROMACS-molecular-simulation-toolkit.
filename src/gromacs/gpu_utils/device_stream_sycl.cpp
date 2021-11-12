@@ -71,7 +71,13 @@ DeviceStream::DeviceStream(const DeviceContext& deviceContext,
     stream_ = cl::sycl::queue(deviceContext.context(), device, propertyList);
 }
 
-DeviceStream::~DeviceStream() = default;
+DeviceStream::~DeviceStream()
+{
+#if GMX_SYCL_HIPSYCL
+    // Prevents use-after-free errors in hipSYCL's CUDA backend during unit tests
+    synchronize();
+#endif
+};
 
 // NOLINTNEXTLINE readability-convert-member-functions-to-static
 bool DeviceStream::isValid() const
