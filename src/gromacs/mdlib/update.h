@@ -145,14 +145,12 @@ public:
      * Copy the updated coordinates to the main coordinates buffer for the atoms that are not frozen.
      *
      * \param[in]  inputRecord      Input record.
-     * \param[in]  havePartiallyFrozenAtoms  Whether atoms are frozen along 1 or 2 (not 3) dimensions?
      * \param[in]  homenr                    The number of atoms on this processor.
      * \param[in]  state            System state object.
      * \param[in]  wcycle           Wall-clock cycle counter.
      * \param[in]  haveConstraints  If the system has constraints.
      */
     void finish_update(const t_inputrec& inputRecord,
-                       bool              havePartiallyFrozenAtoms,
                        int               homenr,
                        t_state*          state,
                        gmx_wallcycle*    wcycle,

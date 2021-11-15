@@ -1619,8 +1619,7 @@ void gmx::LegacySimulator::do_md()
                                           constr,
                                           do_log,
                                           do_ene);
-                upd.finish_update(
-                        *ir, md->havePartiallyFrozenAtoms, md->homenr, state, wcycle, constr != nullptr);
+                upd.finish_update(*ir, md->homenr, state, wcycle, constr != nullptr);
             }
 
             if (ir->bPull && ir->pull->bSetPbcRefToPrevStepCOM)

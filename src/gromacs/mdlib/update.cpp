@@ -130,7 +130,6 @@ public:
                        bool                                             haveConstraints);
 
     void finish_update(const t_inputrec&                   inputRecord,
-                       bool                                havePartiallyFrozenAtoms,
                        int                                 homenr,
                        gmx::ArrayRef<const unsigned short> cFREEZE,
                        t_state*                            state,
@@ -245,14 +244,12 @@ void Update::update_coords(const t_inputrec&                 inputRecord,
 }
 
 void Update::finish_update(const t_inputrec& inputRecord,
-                           const bool        havePartiallyFrozenAtoms,
                            const int         homenr,
                            t_state*          state,
                            gmx_wallcycle*    wcycle,
                            const bool        haveConstraints)
 {
-    return impl_->finish_update(
-            inputRecord, havePartiallyFrozenAtoms, homenr, impl_->cFREEZE_, state, wcycle, haveConstraints);
+    return impl_->finish_update(inputRecord, homenr, impl_->cFREEZE_, state, wcycle, haveConstraints);
 }
 
 void Update::update_sd_second_half(const t_inputrec&                 inputRecord,
@@ -1530,7 +1527,6 @@ void Update::Impl::update_sd_second_half(const t_inputrec&                 input
 }
 
 void Update::Impl::finish_update(const t_inputrec&                   inputRecord,
-                                 const bool                          havePartiallyFrozenAtoms,
                                  const int                           homenr,
                                  gmx::ArrayRef<const unsigned short> cFREEZE,
                                  t_state*                            state,
@@ -1546,7 +1542,7 @@ void Update::Impl::finish_update(const t_inputrec&                   inputRecord
     auto xp = makeConstArrayRef(xp_).subArray(0, homenr);
     auto x  = makeArrayRef(state->x).subArray(0, homenr);
 
-    if (havePartiallyFrozenAtoms && haveConstraints)
+    if (!cFREEZE.empty() && haveConstraints)
     {
         /* We have atoms that are frozen along some, but not all dimensions,
          * then constraints will have moved them also along the frozen dimensions.

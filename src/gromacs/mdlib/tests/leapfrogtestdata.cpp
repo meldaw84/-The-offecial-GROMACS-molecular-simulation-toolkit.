@@ -166,11 +166,10 @@ LeapFrogTestData::LeapFrogTestData(int        numAtoms,
     state_.box[ZZ][YY] = 0.0;
     state_.box[ZZ][ZZ] = 10.0;
 
-    mdAtoms_.homenr                   = numAtoms_;
-    mdAtoms_.haveVsites               = false;
-    mdAtoms_.havePartiallyFrozenAtoms = false;
-    mdAtoms_.cFREEZE                  = nullptr;
-    mdAtoms_.ptype                    = nullptr;
+    mdAtoms_.homenr     = numAtoms_;
+    mdAtoms_.haveVsites = false;
+    mdAtoms_.cFREEZE    = nullptr;
+    mdAtoms_.ptype      = nullptr;
 
     update_ = std::make_unique<Update>(inputRecord_, nullptr);
     update_->updateAfterPartition(numAtoms,
