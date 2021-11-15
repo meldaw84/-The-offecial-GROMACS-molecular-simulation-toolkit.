@@ -41,18 +41,20 @@
  * \author Prashanth Kanduri <kanduri@cscs.ch>
  * \author Sebastian Keller <keller@cscs.ch>
  */
+#include "config.h"
+
+#if GMX_GPU_CUDA
+#    include "nblib/gmxcalculatorgpu.h"
+#endif
+
 #include <gtest/gtest.h>
 
-#include "nblib/gmxcalculatorcpu.h"
 #include "nblib/kerneloptions.h"
 #include "nblib/simulationstate.h"
 #include "nblib/tests/testhelpers.h"
 #include "nblib/tests/testsystems.h"
 #include "gromacs/hardware/device_management.h"
 #include "gromacs/utility/arrayref.h"
-#if GMX_GPU_CUDA
-#    include "nblib/gmxcalculatorgpu.h"
-#endif
 
 #include "testutils/test_hardware_environment.h"
 
@@ -62,80 +64,8 @@ namespace test
 {
 namespace
 {
-TEST(NBlibTest, GmxForceCalculatorCanCompute)
-{
-    ArgonSimulationStateBuilder argonSystemBuilder(fftypes::GROMOS43A1);
-    SimulationState             simState = argonSystemBuilder.setupSimulationState();
-    NBKernelOptions             options  = NBKernelOptions();
-    options.nbnxmSimd                    = SimdKernels::SimdNo;
-    std::unique_ptr<GmxNBForceCalculatorCpu> gmxForceCalculator =
-            setupGmxForceCalculatorCpu(simState.topology(), options);
-    gmxForceCalculator->updatePairlist(simState.coordinates(), simState.box());
 
-    EXPECT_NO_THROW(gmxForceCalculator->compute(simState.coordinates(), simState.box(), simState.forces()));
-}
-
-TEST(NBlibTest, ArgonVirialsAreCorrect)
-{
-    ArgonSimulationStateBuilder argonSystemBuilder(fftypes::OPLSA);
-    SimulationState             simState = argonSystemBuilder.setupSimulationState();
-    NBKernelOptions             options  = NBKernelOptions();
-    options.nbnxmSimd                    = SimdKernels::SimdNo;
-    std::unique_ptr<GmxNBForceCalculatorCpu> gmxForceCalculator =
-            setupGmxForceCalculatorCpu(simState.topology(), options);
-    gmxForceCalculator->updatePairlist(simState.coordinates(), simState.box());
-
-    std::vector<real> virialArray(9, 0.0);
-
-    gmxForceCalculator->compute(simState.coordinates(), simState.box(), simState.forces(), virialArray);
-
-    RefDataChecker virialsOutputTest(1e-7);
-    virialsOutputTest.testArrays<real>(virialArray, "Virials");
-}
-
-TEST(NBlibTest, ArgonEnergiesAreCorrect)
-{
-    ArgonSimulationStateBuilder argonSystemBuilder(fftypes::OPLSA);
-    SimulationState             simState = argonSystemBuilder.setupSimulationState();
-    NBKernelOptions             options  = NBKernelOptions();
-    options.nbnxmSimd                    = SimdKernels::SimdNo;
-    std::unique_ptr<GmxNBForceCalculatorCpu> gmxForceCalculator =
-            setupGmxForceCalculatorCpu(simState.topology(), options);
-    gmxForceCalculator->updatePairlist(simState.coordinates(), simState.box());
-
-    // number of energy kinds is 5: COULSR, LJSR, BHAMSR, COUL14, LJ14,
-    std::vector<real> energies(5, 0.0);
-
-    gmxForceCalculator->compute(
-            simState.coordinates(), simState.box(), simState.forces(), gmx::ArrayRef<real>{}, energies);
-
-    RefDataChecker energiesOutputTest(5e-5);
-    energiesOutputTest.testArrays<real>(energies, "Argon energies");
-}
-
-TEST(NBlibTest, SpcMethanolEnergiesAreCorrect)
-{
-    SpcMethanolSimulationStateBuilder spcMethanolSystemBuilder;
-    SimulationState                   simState = spcMethanolSystemBuilder.setupSimulationState();
-    NBKernelOptions                   options  = NBKernelOptions();
-    options.nbnxmSimd                          = SimdKernels::SimdNo;
-    std::unique_ptr<GmxNBForceCalculatorCpu> gmxForceCalculator =
-            setupGmxForceCalculatorCpu(simState.topology(), options);
-    gmxForceCalculator->updatePairlist(simState.coordinates(), simState.box());
-
-    // number of energy kinds is 5: COULSR, LJSR, BHAMSR, COUL14, LJ14,
-    std::vector<real> energies(5, 0.0);
-
-    gmxForceCalculator->compute(
-            simState.coordinates(), simState.box(), simState.forces(), gmx::ArrayRef<real>{}, energies);
-
-    RefDataChecker energiesOutputTest(5e-5);
-    energiesOutputTest.testArrays<real>(energies, "SPC-methanol energies");
-}
-
-#if GMX_GPU_CUDA
-
-TEST(NBlibTest, canCreateGPUfc)
+TEST(NBlibTest, CanCreateGPUfc)
 {
     const auto& testDeviceList = gmx::test::getTestHardwareEnvironment()->getTestDeviceList();
     for (const auto& testDevice : testDeviceList)
@@ -145,11 +75,11 @@ TEST(NBlibTest, canCreateGPUfc)
 
         SpcMethanolSimulationStateBuilder spcMethanolSimulationStateBuilder;
         SimulationState simState = spcMethanolSimulationStateBuilder.setupSimulationState();
-        NBKernelOptions options  = NBKernelOptions();
+        NBKernelOptions options;
         options.useGpu           = true;
         options.nbnxmSimd        = SimdKernels::SimdNo;
         options.coulombType      = CoulombType::Cutoff;
-        EXPECT_NO_THROW(std::unique_ptr<GmxNBForceCalculatorGpu> gmxForceCalculator =
+        EXPECT_NO_THROW(GmxNBForceCalculatorGpu gmxForceCalculator =
                                 setupGmxForceCalculatorGpu(simState.topology(), options, deviceInfo));
     }
 }
@@ -164,13 +94,13 @@ TEST(NBlibTest, SpcMethanolForcesAreCorrectOnGpu)
 
         SpcMethanolSimulationStateBuilder spcMethanolSimulationStateBuilder;
         SimulationState simState = spcMethanolSimulationStateBuilder.setupSimulationState();
-        NBKernelOptions options  = NBKernelOptions();
+        NBKernelOptions options;
         options.coulombType      = CoulombType::Cutoff;
         auto gmxForceCalculator = setupGmxForceCalculatorGpu(simState.topology(), options, deviceInfo);
-        gmxForceCalculator->updatePairlist(simState.coordinates(), simState.box());
+        gmxForceCalculator.updatePairlist(simState.coordinates(), simState.box());
 
         gmx::ArrayRef<Vec3> forces(simState.forces());
-        ASSERT_NO_THROW(gmxForceCalculator->compute(simState.coordinates(), simState.box(), forces));
+        ASSERT_NO_THROW(gmxForceCalculator.compute(simState.coordinates(), simState.box(), forces));
 
         RefDataChecker forcesOutputTest;
         forcesOutputTest.testArrays<Vec3>(forces, "SPC-methanol forces on GPU");
@@ -199,7 +129,7 @@ TEST(NBlibTest, ReorderIsInvertible)
         NBKernelOptions options = NBKernelOptions();
         options.coulombType     = CoulombType::Cutoff;
         auto gmxForceCalculator = setupGmxForceCalculatorGpu(simState.topology(), options, deviceInfo);
-        gmxForceCalculator->updatePairlist(simState.coordinates(), simState.box());
+        gmxForceCalculator.updatePairlist(simState.coordinates(), simState.box());
 
         int numParticles = simState.topology().numParticles();
 
@@ -211,7 +141,7 @@ TEST(NBlibTest, ReorderIsInvertible)
         }
 
         std::vector<real> nbnxmOrderXQ(4 * numParticles);
-        gmxForceCalculator->reorder(defaultOrder, nbnxmOrderXQ);
+        gmxForceCalculator.reorder(defaultOrder, nbnxmOrderXQ);
 
         // throw away Q
         std::vector<gmx::RVec> nbnxmOrderX(numParticles);
@@ -221,7 +151,7 @@ TEST(NBlibTest, ReorderIsInvertible)
         }
 
         std::vector<gmx::RVec> defaultOrderRecovered(numParticles, { -1, -1, -1 });
-        gmxForceCalculator->undoReorder(nbnxmOrderX, defaultOrderRecovered);
+        gmxForceCalculator.undoReorder(nbnxmOrderX, defaultOrderRecovered);
 
         // original defaultOrder should be identical to defaultOrderRecovered
         for (int i = 0; i < numParticles; ++i)
@@ -238,8 +168,10 @@ TEST(NBlibTest, ReorderIsInvertible)
  * We do:   X -> (reorder) -> XqNbnxm -> (copyToDevice) -> deviceXq -> (compute) -> deviceForces
  *          -> (copyFromDevice) -> forcesNbnxm -> (undoReorder) -> forcesDefaultOrder
  *
- * Then we test that   forcesDefaultOrder == forces from CPU buffer interface which are tested
- *                                                           against reference values
+ * Then we test that forcesDefaultOrder == forces from CPU buffer interface of the gpu caluculator
+ * which are tested against reference values.
+ *
+ * Note that the reference values are also coming from a gpu force calculator.
  */
 TEST(NBlibTest, SpcMethanolForcesDeviceInterface)
 {
@@ -251,40 +183,41 @@ TEST(NBlibTest, SpcMethanolForcesDeviceInterface)
 
         SpcMethanolSimulationStateBuilder spcMethanolSimulationStateBuilder;
         SimulationState simState = spcMethanolSimulationStateBuilder.setupSimulationState();
-        NBKernelOptions options  = NBKernelOptions();
+        NBKernelOptions options;
         options.coulombType      = CoulombType::Cutoff;
         auto forceCalculator = setupGmxForceCalculatorGpu(simState.topology(), options, deviceInfo);
-        forceCalculator->updatePairlist(simState.coordinates(), simState.box());
+        forceCalculator.updatePairlist(simState.coordinates(), simState.box());
 
-        gmx::ArrayRef<Vec3> forcesReference(simState.forces());
+        std::vector<Vec3> forcesReference(simState.forces().size());
+        std::copy(simState.forces().begin(), simState.forces().end(), forcesReference.begin());
 
-        // we know these forces to be correct from a different test
-        forceCalculator->compute(simState.coordinates(), simState.box(), forcesReference);
+        // we know these forces to be correct from SpcMethanolForcesAreCorrectOnGpu test
+        forceCalculator.compute(simState.coordinates(), simState.box(), forcesReference);
 
         int                  numParticles = simState.topology().numParticles();
-        const DeviceContext& context      = forceCalculator->deviceContext();
+        const DeviceContext& context      = forceCalculator.deviceContext();
 
         // reorder coordinates into nbnxm ordering on the CPU
         std::vector<real> coordinatesNbnxm(4 * numParticles);
-        forceCalculator->reorder(simState.coordinates(), coordinatesNbnxm);
+        forceCalculator.reorder(simState.coordinates(), coordinatesNbnxm);
 
         // device coordinates
-        DeviceBuffer<Float4> deviceXq;
-        allocateDeviceBuffer(&deviceXq, numParticles, context);
-        copyToDeviceBuffer(&deviceXq,
+        DeviceBuffer<Float4> deviceXYZQ;
+        allocateDeviceBuffer(&deviceXYZQ, numParticles, context);
+        copyToDeviceBuffer(&deviceXYZQ,
                            reinterpret_cast<const Float4*>(coordinatesNbnxm.data()),
                            0,
                            numParticles,
-                           forceCalculator->deviceStream(),
+                           forceCalculator.deviceStream(),
                            GpuApiCallBehavior::Sync,
                            nullptr);
 
         DeviceBuffer<Float3> deviceForces;
         allocateDeviceBuffer(&deviceForces, numParticles, context);
-        clearDeviceBufferAsync(&deviceForces, 0, numParticles, forceCalculator->deviceStream());
+        clearDeviceBufferAsync(&deviceForces, 0, numParticles, forceCalculator.deviceStream());
 
         // launch compute directly with device buffers
-        forceCalculator->compute(deviceXq, simState.box(), deviceForces);
+        forceCalculator.compute(deviceXYZQ, simState.box(), deviceForces);
 
         // download forces from the GPU
         std::vector<gmx::RVec> forcesNbnxm(numParticles, { 0, 0, 0 });
@@ -292,13 +225,13 @@ TEST(NBlibTest, SpcMethanolForcesDeviceInterface)
                              &deviceForces,
                              0,
                              numParticles,
-                             forceCalculator->deviceStream(),
+                             forceCalculator.deviceStream(),
                              GpuApiCallBehavior::Sync,
                              nullptr);
 
         // reorder downloaded forces from nbnxm into default ordering
         std::vector<gmx::RVec> forcesDefaultOrder(numParticles, gmx::RVec{ 0, 0, 0 });
-        forceCalculator->undoReorder(forcesNbnxm, forcesDefaultOrder);
+        forceCalculator.undoReorder(forcesNbnxm, forcesDefaultOrder);
 
         // forcesDefaultOrder should be equal to the reference
         for (int i = 0; i < numParticles; ++i)
@@ -308,12 +241,10 @@ TEST(NBlibTest, SpcMethanolForcesDeviceInterface)
             EXPECT_EQ(forcesDefaultOrder[i][2], forcesReference[i][2]);
         }
 
-        freeDeviceBuffer(&deviceXq);
+        freeDeviceBuffer(&deviceXYZQ);
         freeDeviceBuffer(&deviceForces);
     }
 }
-
-#endif
 
 } // namespace
 } // namespace test

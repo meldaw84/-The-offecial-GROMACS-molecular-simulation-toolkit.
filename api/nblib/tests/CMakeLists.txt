@@ -85,13 +85,17 @@ add_dependencies(nblib-tests ${exename})
 
 set(testname "NbLibIntegrationTests")
 set(exename "nblib-integration-test")
-
+set(GpuCalculatorTestName "")
+if (GMX_GPU_CUDA)
+    set(GpuCalculatorTestName "gmxcalculatorgpu.cpp")
+endif()
 gmx_add_gtest_executable(
     ${exename}
     HARDWARE_DETECTION
     CPP_SOURCE_FILES
     # files with code for tests
-        gmxcalculator.cpp
+        gmxcalculatorcpu.cpp
+        ${GpuCalculatorTestName}
         nbkernelsystem.cpp
         simstate.cpp
     )

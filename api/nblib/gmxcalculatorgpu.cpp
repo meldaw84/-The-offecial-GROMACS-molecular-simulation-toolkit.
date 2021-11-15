@@ -414,7 +414,7 @@ void reorderScalarArray(GmxNBForceCalculatorGpu&  calculator,
 }
 
 
-std::unique_ptr<GmxNBForceCalculatorGpu> setupGmxForceCalculatorGpu(const Topology&        topology,
+GmxNBForceCalculatorGpu setupGmxForceCalculatorGpu(const Topology&        topology,
                                                                     const NBKernelOptions& options,
                                                                     const DeviceInformation& deviceInfo)
 {
@@ -423,7 +423,7 @@ std::unique_ptr<GmxNBForceCalculatorGpu> setupGmxForceCalculatorGpu(const Topolo
 
     std::vector<int64_t> particleInteractionFlags = createParticleInfoAllVdw(topology.numParticles());
 
-    return std::make_unique<GmxNBForceCalculatorGpu>(topology.getParticleTypeIdOfAllParticles(),
+    return GmxNBForceCalculatorGpu(topology.getParticleTypeIdOfAllParticles(),
                                                      nonBondedParameters,
                                                      topology.getCharges(),
                                                      particleInteractionFlags,

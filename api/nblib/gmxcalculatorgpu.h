@@ -148,7 +148,7 @@ void reorderScalarArray(GmxNBForceCalculatorGpu&  calculator,
  * GROMACS internal data structures, such as mtop.
  *
  */
-std::unique_ptr<GmxNBForceCalculatorGpu> setupGmxForceCalculatorGpu(const Topology&        topology,
+GmxNBForceCalculatorGpu setupGmxForceCalculatorGpu(const Topology&        topology,
                                                                     const NBKernelOptions& options,
                                                                     const DeviceInformation& deviceInfo);
 
