@@ -173,8 +173,8 @@ add_subdirectory(src)
 add_subdirectory(docs)
 
 # Process CMake configuration for Python and C++ tests.
-include(CTest)
-if(BUILD_TESTING)
-    include(GoogleTest)
-    add_subdirectory(tests)
-endif()
+#include(CTest)
+#if(BUILD_TESTING)
+#    include(GoogleTest)
+#    add_subdirectory(tests)
+#endif()
