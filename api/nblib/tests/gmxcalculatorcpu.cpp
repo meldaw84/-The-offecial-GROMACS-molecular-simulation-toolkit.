@@ -61,8 +61,8 @@ TEST(NBlibTest, GmxForceCalculatorCanCompute)
 {
     ArgonSimulationStateBuilder argonSystemBuilder(fftypes::GROMOS43A1);
     SimulationState             simState = argonSystemBuilder.setupSimulationState();
-    NBKernelOptions options;
-    options.nbnxmSimd                    = SimdKernels::SimdNo;
+    NBKernelOptions             options;
+    options.nbnxmSimd = SimdKernels::SimdNo;
     std::unique_ptr<GmxNBForceCalculatorCpu> gmxForceCalculator =
             setupGmxForceCalculatorCpu(simState.topology(), options);
     gmxForceCalculator->updatePairlist(simState.coordinates(), simState.box());
@@ -74,8 +74,8 @@ TEST(NBlibTest, ArgonVirialsAreCorrect)
 {
     ArgonSimulationStateBuilder argonSystemBuilder(fftypes::OPLSA);
     SimulationState             simState = argonSystemBuilder.setupSimulationState();
-    NBKernelOptions options;
-    options.nbnxmSimd                    = SimdKernels::SimdNo;
+    NBKernelOptions             options;
+    options.nbnxmSimd = SimdKernels::SimdNo;
     std::unique_ptr<GmxNBForceCalculatorCpu> gmxForceCalculator =
             setupGmxForceCalculatorCpu(simState.topology(), options);
     gmxForceCalculator->updatePairlist(simState.coordinates(), simState.box());
@@ -92,8 +92,8 @@ TEST(NBlibTest, ArgonEnergiesAreCorrect)
 {
     ArgonSimulationStateBuilder argonSystemBuilder(fftypes::OPLSA);
     SimulationState             simState = argonSystemBuilder.setupSimulationState();
-    NBKernelOptions options;
-    options.nbnxmSimd                    = SimdKernels::SimdNo;
+    NBKernelOptions             options;
+    options.nbnxmSimd = SimdKernels::SimdNo;
     std::unique_ptr<GmxNBForceCalculatorCpu> gmxForceCalculator =
             setupGmxForceCalculatorCpu(simState.topology(), options);
     gmxForceCalculator->updatePairlist(simState.coordinates(), simState.box());

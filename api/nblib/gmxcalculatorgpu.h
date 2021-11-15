@@ -148,9 +148,9 @@ void reorderScalarArray(GmxNBForceCalculatorGpu&  calculator,
  * GROMACS internal data structures, such as mtop.
  *
  */
-GmxNBForceCalculatorGpu setupGmxForceCalculatorGpu(const Topology&        topology,
-                                                                    const NBKernelOptions& options,
-                                                                    const DeviceInformation& deviceInfo);
+GmxNBForceCalculatorGpu setupGmxForceCalculatorGpu(const Topology&          topology,
+                                                   const NBKernelOptions&   options,
+                                                   const DeviceInformation& deviceInfo);
 
 } // namespace nblib
 

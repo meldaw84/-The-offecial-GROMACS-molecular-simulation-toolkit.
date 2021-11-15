@@ -76,9 +76,9 @@ TEST(NBlibTest, CanCreateGPUfc)
         SpcMethanolSimulationStateBuilder spcMethanolSimulationStateBuilder;
         SimulationState simState = spcMethanolSimulationStateBuilder.setupSimulationState();
         NBKernelOptions options;
-        options.useGpu           = true;
-        options.nbnxmSimd        = SimdKernels::SimdNo;
-        options.coulombType      = CoulombType::Cutoff;
+        options.useGpu      = true;
+        options.nbnxmSimd   = SimdKernels::SimdNo;
+        options.coulombType = CoulombType::Cutoff;
         EXPECT_NO_THROW(GmxNBForceCalculatorGpu gmxForceCalculator =
                                 setupGmxForceCalculatorGpu(simState.topology(), options, deviceInfo));
     }
@@ -95,7 +95,7 @@ TEST(NBlibTest, SpcMethanolForcesAreCorrectOnGpu)
         SpcMethanolSimulationStateBuilder spcMethanolSimulationStateBuilder;
         SimulationState simState = spcMethanolSimulationStateBuilder.setupSimulationState();
         NBKernelOptions options;
-        options.coulombType      = CoulombType::Cutoff;
+        options.coulombType     = CoulombType::Cutoff;
         auto gmxForceCalculator = setupGmxForceCalculatorGpu(simState.topology(), options, deviceInfo);
         gmxForceCalculator.updatePairlist(simState.coordinates(), simState.box());
 
@@ -184,7 +184,7 @@ TEST(NBlibTest, SpcMethanolForcesDeviceInterface)
         SpcMethanolSimulationStateBuilder spcMethanolSimulationStateBuilder;
         SimulationState simState = spcMethanolSimulationStateBuilder.setupSimulationState();
         NBKernelOptions options;
-        options.coulombType      = CoulombType::Cutoff;
+        options.coulombType  = CoulombType::Cutoff;
         auto forceCalculator = setupGmxForceCalculatorGpu(simState.topology(), options, deviceInfo);
         forceCalculator.updatePairlist(simState.coordinates(), simState.box());
 

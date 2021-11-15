@@ -414,9 +414,9 @@ void reorderScalarArray(GmxNBForceCalculatorGpu&  calculator,
 }
 
 
-GmxNBForceCalculatorGpu setupGmxForceCalculatorGpu(const Topology&        topology,
-                                                                    const NBKernelOptions& options,
-                                                                    const DeviceInformation& deviceInfo)
+GmxNBForceCalculatorGpu setupGmxForceCalculatorGpu(const Topology&          topology,
+                                                   const NBKernelOptions&   options,
+                                                   const DeviceInformation& deviceInfo)
 {
     std::vector<real> nonBondedParameters = createNonBondedParameters(
             topology.getParticleTypes(), topology.getNonBondedInteractionMap());
@@ -424,13 +424,13 @@ GmxNBForceCalculatorGpu setupGmxForceCalculatorGpu(const Topology&        topolo
     std::vector<int64_t> particleInteractionFlags = createParticleInfoAllVdw(topology.numParticles());
 
     return GmxNBForceCalculatorGpu(topology.getParticleTypeIdOfAllParticles(),
-                                                     nonBondedParameters,
-                                                     topology.getCharges(),
-                                                     particleInteractionFlags,
-                                                     topology.exclusionLists().ListRanges,
-                                                     topology.exclusionLists().ListElements,
-                                                     options,
-                                                     deviceInfo);
+                                   nonBondedParameters,
+                                   topology.getCharges(),
+                                   particleInteractionFlags,
+                                   topology.exclusionLists().ListRanges,
+                                   topology.exclusionLists().ListElements,
+                                   options,
+                                   deviceInfo);
 }
 
 } // namespace nblib
