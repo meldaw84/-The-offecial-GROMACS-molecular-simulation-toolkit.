@@ -3,7 +3,7 @@
  *
  * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
  * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2011,2014,2015,2018,2019,2020, by the GROMACS development team, led by
+ * Copyright (c) 2011,2014,2015,2018,2019,2020,2021, by the GROMACS development team, led by
  * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
  * and including many others, as listed in the AUTHORS file in the
  * top-level source directory and at http://www.gromacs.org.
@@ -49,28 +49,6 @@
 #include "gromacs/utility/smalloc.h"
 
 /* #define DEBUG_NNB */
-
-typedef struct
-{
-    int ai, aj;
-} sortable;
-
-static int bond_sort(const void* a, const void* b)
-{
-    const sortable *sa, *sb;
-
-    sa = reinterpret_cast<const sortable*>(a);
-    sb = reinterpret_cast<const sortable*>(b);
-
-    if (sa->ai == sb->ai)
-    {
-        return (sa->aj - sb->aj);
-    }
-    else
-    {
-        return (sa->ai - sb->ai);
-    }
-}
 
 static int compare_int(const void* a, const void* b)
 {
@@ -174,9 +152,8 @@ void __print_nnb(t_nextnb* nnb, char* s)
 
 static void nnb2excl(t_nextnb* nnb, gmx::ListOfLists<int>* excls)
 {
-    int       i, j, j_index;
-    int       nre, nrx, nrs, nr_of_sortables;
-    sortable* s;
+    int i, j, j_index;
+    int nre, nrx, nrs, nr_of_sortables;
 
     excls->clear();
 
@@ -190,7 +167,7 @@ static void nnb2excl(t_nextnb* nnb, gmx::ListOfLists<int>* excls)
         }
 
         /* make space for sortable array */
-        snew(s, nr_of_sortables);
+        std::vector<std::tuple<int, int>> s(nr_of_sortables);
 
         /* fill the sortable array and sort it */
         nrs = 0;
@@ -198,8 +175,8 @@ static void nnb2excl(t_nextnb* nnb, gmx::ListOfLists<int>* excls)
         {
             for (nrx = 0; (nrx < nnb->nrexcl[i][nre]); nrx++)
             {
-                s[nrs].ai = i;
-                s[nrs].aj = nnb->a[i][nre][nrx];
+                std::get<0>(s[nrs]) = i;
+                std::get<1>(s[nrs]) = nnb->a[i][nre][nrx];
                 nrs++;
             }
         }
@@ -207,11 +184,16 @@ static void nnb2excl(t_nextnb* nnb, gmx::ListOfLists<int>* excls)
         {
             gmx_incons("Generating exclusions");
         }
-        prints("nnb2excl before qsort", nr_of_sortables, s);
+        prints("nnb2excl before sort", nr_of_sortables, s);
         if (nr_of_sortables > 1)
         {
-            qsort(s, nr_of_sortables, static_cast<size_t>(sizeof(s[0])), bond_sort);
-            prints("nnb2excl after qsort", nr_of_sortables, s);
+            auto sortKey = [](const auto& t1, const auto& t2) {
+                return std::get<0>(t1) < std::get<0>(t2);
+            };
+            // sort w.r.t bonds. the result will contain contiguous segments of identical bond instances
+            // the associated int indicates the original index of each BondType instance in the input vector
+            std::sort(begin(s), end(s), sortKey);
+            prints("nnb2excl after sort", nr_of_sortables, s);
         }
 
         /* remove duplicate entries from the list */
@@ -220,7 +202,8 @@ static void nnb2excl(t_nextnb* nnb, gmx::ListOfLists<int>* excls)
         {
             for (j = 1; (j < nr_of_sortables); j++)
             {
-                if ((s[j].ai != s[j - 1].ai) || (s[j].aj != s[j - 1].aj))
+                if ((std::get<0>(s[j]) != std::get<0>(s[j - 1]))
+                    || (std::get<1>(s[j]) != std::get<1>(s[j - 1])))
                 {
                     s[j_index++] = s[j - 1];
                 }
@@ -235,11 +218,8 @@ static void nnb2excl(t_nextnb* nnb, gmx::ListOfLists<int>* excls)
         gmx::ArrayRef<int> exclusionsForAtom = excls->back();
         for (nrs = 0; (nrs < nr_of_sortables); nrs++)
         {
-            exclusionsForAtom[nrs] = s[nrs].aj;
+            exclusionsForAtom[nrs] = std::get<1>(s[nrs]);
         }
-
-        /* cleanup temporary space */
-        sfree(s);
     }
 }
 
@@ -277,9 +257,9 @@ static bool atom_is_present_in_nnb(const t_nextnb* nnb, int atom, int highest_or
     return false;
 }
 
-static void do_gen(int       nrbonds, /* total number of bonds in s	*/
-                   sortable* s,       /* bidirectional list of bonds    */
-                   t_nextnb* nnb)     /* the tmp storage for excl     */
+static void do_gen(int                                 nrbonds, /* total number of bonds in s	*/
+                   gmx::ArrayRef<std::tuple<int, int>> s,       /* bidirectional list of bonds    */
+                   t_nextnb*                           nnb)                               /* the tmp storage for excl     */
 /* Assume excl is initalised and s[] contains all bonds bidirectional */
 {
     int i, j, k, n, nb;
@@ -296,7 +276,7 @@ static void do_gen(int       nrbonds, /* total number of bonds in s	*/
     {
         for (i = 0; (i < nrbonds); i++)
         {
-            add_nnb(nnb, 1, s[i].ai, s[i].aj);
+            add_nnb(nnb, 1, std::get<0>(s[i]), std::get<1>(s[i]));
         }
     }
     print_nnb(nnb, "After exclude bonds");
@@ -331,7 +311,7 @@ static void do_gen(int       nrbonds, /* total number of bonds in s	*/
     print_nnb(nnb, "After exclude rest");
 }
 
-static void add_b(InteractionsOfType* bonds, int* nrf, sortable* s)
+static void add_b(InteractionsOfType* bonds, int* nrf, gmx::ArrayRef<std::tuple<int, int>> s)
 {
     int i = 0;
     for (const auto& bond : bonds->interactionTypes)
@@ -343,18 +323,17 @@ static void add_b(InteractionsOfType* bonds, int* nrf, sortable* s)
             gmx_fatal(FARGS, "Impossible atom numbers in bond %d: ai=%d, aj=%d", i, ai, aj);
         }
         /* Add every bond twice */
-        s[(*nrf)].ai   = ai;
-        s[(*nrf)++].aj = aj;
-        s[(*nrf)].aj   = ai;
-        s[(*nrf)++].ai = aj;
+        std::get<0>(s[(*nrf)])   = ai;
+        std::get<1>(s[(*nrf)++]) = aj;
+        std::get<1>(s[(*nrf)])   = ai;
+        std::get<0>(s[(*nrf)++]) = aj;
         i++;
     }
 }
 
 void gen_nnb(t_nextnb* nnb, gmx::ArrayRef<InteractionsOfType> plist)
 {
-    sortable* s;
-    int       nrbonds, nrf;
+    int nrbonds, nrf;
 
     nrbonds = 0;
     for (int i = 0; (i < F_NRE); i++)
@@ -366,7 +345,7 @@ void gen_nnb(t_nextnb* nnb, gmx::ArrayRef<InteractionsOfType> plist)
         }
     }
 
-    snew(s, nrbonds);
+    std::vector<std::tuple<int, int>> s(nrbonds);
 
     nrf = 0;
     for (int i = 0; (i < F_NRE); i++)
@@ -378,15 +357,19 @@ void gen_nnb(t_nextnb* nnb, gmx::ArrayRef<InteractionsOfType> plist)
     }
 
     /* now sort the bonds */
-    prints("gen_excl before qsort", nrbonds, s);
+    prints("gen_excl before sort", nrbonds, s);
     if (nrbonds > 1)
     {
-        qsort(s, nrbonds, static_cast<size_t>(sizeof(sortable)), bond_sort);
-        prints("gen_excl after qsort", nrbonds, s);
+        auto sortKey = [](const auto& t1, const auto& t2) {
+            return std::get<0>(t1) < std::get<0>(t2);
+        };
+        // sort w.r.t bonds. the result will contain contiguous segments of identical bond instances
+        // the associated int indicates the original index of each BondType instance in the input vector
+        std::sort(begin(s), end(s), sortKey);
+        prints("gen_excl after sort", nrbonds, s);
     }
 
     do_gen(nrbonds, s, nnb);
-    sfree(s);
 }
 
 static void sort_and_purge_nnb(t_nextnb* nnb)
