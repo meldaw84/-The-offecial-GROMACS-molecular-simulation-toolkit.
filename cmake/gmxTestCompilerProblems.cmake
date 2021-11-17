@@ -78,13 +78,16 @@ macro(gmx_test_compiler_problems)
     # Intel LLVM 2021.2 defaults to no-finite-math which isn't OK for GROMACS and its dependencies (muParser and GTest).
     # This is why we set the flags globally via CMAKE_CXX_FLAGS
     if(GMX_INTEL_LLVM AND GMX_INTEL_LLVM_VERSION GREATER_EQUAL 2021020)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-finite-math-only")
+        check_cxx_compiler_flag("-fno-finite-math-only" CXXFLAGS_NO_FINITE_MATH_ONLY)
+        if(${CXXFLAGS_NO_FINITE_MATH_ONLY})
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-finite-math-only")
+        endif()
     endif()
 
 
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "XL")
         check_cxx_source_compiles(
-"// Test in-class array initalizers used with constructor initializer lists
+"// Test in-class array initializers used with constructor initializer lists
 struct TestStruct
 {
     float a[3][3] = {{0}}; // in-class initializer

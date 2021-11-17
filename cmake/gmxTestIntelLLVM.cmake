@@ -42,5 +42,8 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "Inte
     else()
       message(WARNING "Intel LLVM version detection failed. Output: ${GMX_INTEL_LLVM_VERSION}")
     endif()
+    if (WIN32 AND ${CMAKE_VERSION} VERSION_LESS "3.21.0")
+      message(WARNING "IntelLLVM on Windows is not fully supported by CMake 3.20 and earlier")
+    endif()
   endif()
 endif()
