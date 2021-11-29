@@ -54,6 +54,7 @@
 #include "modules/extract_cluster.h"
 #include "modules/freevolume.h"
 #include "modules/msd.h"
+#include "modules/msm.h"
 #include "modules/pairdist.h"
 #include "modules/rdf.h"
 #include "modules/sasa.h"
@@ -100,6 +101,7 @@ void registerTrajectoryAnalysisModules(CommandLineModuleManager* manager)
     registerModule<ExtractClusterInfo>(manager, group);
     registerModule<FreeVolumeInfo>(manager, group);
     registerModule<MsdInfo>(manager, group);
+    registerModule<MsmInfo>(manager, group);
     registerModule<PairDistanceInfo>(manager, group);
     registerModule<RdfInfo>(manager, group);
     registerModule<SasaInfo>(manager, group);

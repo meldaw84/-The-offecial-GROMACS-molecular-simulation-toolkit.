@@ -114,8 +114,8 @@ void MarkovModel::writeOutput()
 
 } // namespace
 
-const char MsmInfo::name[]                 = "cluster-rewrite";
-const char MsmInfo::shortDescription[]     = "Clusters structures from trajectory";
+const char MsmInfo::name[]                 = "msm";
+const char MsmInfo::shortDescription[]     = "Estimates MSM from TCM";
 
 TrajectoryAnalysisModulePointer MsmInfo::create()
 {
