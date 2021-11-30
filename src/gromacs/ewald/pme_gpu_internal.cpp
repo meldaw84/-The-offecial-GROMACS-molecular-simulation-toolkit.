@@ -167,6 +167,12 @@ void pme_gpu_clear_energy_virial(const PmeGpu* pmeGpu)
                                c_virialAndEnergyCount,
                                pmeGpu->archSpecific->pmeStream_);
     }
+    // Mark forces ready event after this clearing, otherwise CUDA graph capture fails due to unjoined work
+    // TODO do this properly
+    if (pmeGpu->settings.useGpuForceReduction && (getenv("GMX_CUDA_GRAPH") != nullptr))
+    {
+        pmeGpu->archSpecific->pmeForcesReady.markEvent(pmeGpu->archSpecific->pmeStream_);
+    }
 }
 
 void pme_gpu_realloc_and_copy_bspline_values(PmeGpu* pmeGpu, const int gridIndex)

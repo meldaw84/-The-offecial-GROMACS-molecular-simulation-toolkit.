@@ -600,6 +600,12 @@ if(GMX_GPU)
 
     string(TOUPPER "${GMX_GPU}" _gmx_gpu_uppercase)
     if(${_gmx_gpu_uppercase} STREQUAL "CUDA")
+        enable_language(CUDA)
+        set(CMAKE_CUDA_STANDARD 14)
+        set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+        if(${CMAKE_CUDA_COMPILER_VERSION} GREATER_EQUAL 11.1)
+            add_definitions(-DHAVECUDAGRAPHSUPPORT)
+        endif()
         include(gmxManageCuda)
     elseif(${_gmx_gpu_uppercase} STREQUAL "OPENCL")
         message(STATUS "GPU support with OpenCL is deprecated. It is still fully supported (and " 
