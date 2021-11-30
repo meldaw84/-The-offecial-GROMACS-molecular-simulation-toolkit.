@@ -100,6 +100,7 @@
 #include "gromacs/mdlib/makeconstraints.h"
 #include "gromacs/mdlib/md_support.h"
 #include "gromacs/mdlib/mdatoms.h"
+#include "gromacs/mdlib/mdgraph_gpu.h"
 #include "gromacs/mdlib/sighandler.h"
 #include "gromacs/mdlib/stophandler.h"
 #include "gromacs/mdlib/tgroup.h"
@@ -2106,6 +2107,25 @@ int Mdrunner::mdrunner()
                     deviceStreamManager->context(),
                     deviceStreamManager->stream(gmx::DeviceStreamType::NonBondedNonLocal),
                     wcycle.get());
+
+            fr->mdGraph[MdGraphEvenOrOddStep::EvenStep] =
+                    std::make_unique<gmx::MdGpuGraph>(*fr->deviceStreamManager,
+                                                      runScheduleWork.simulationWork,
+                                                      cr->mpi_comm_mygroup,
+                                                      MdGraphEvenOrOddStep::EvenStep,
+                                                      wcycle.get());
+
+            fr->mdGraph[MdGraphEvenOrOddStep::OddStep] =
+                    std::make_unique<gmx::MdGpuGraph>(*fr->deviceStreamManager,
+                                                      runScheduleWork.simulationWork,
+                                                      cr->mpi_comm_mygroup,
+                                                      MdGraphEvenOrOddStep::OddStep,
+                                                      wcycle.get());
+
+            fr->mdGraph[MdGraphEvenOrOddStep::EvenStep]->setAlternateStepPpTaskCompletionEvent(
+                    fr->mdGraph[MdGraphEvenOrOddStep::OddStep]->getPpTaskCompletionEvent());
+            fr->mdGraph[MdGraphEvenOrOddStep::OddStep]->setAlternateStepPpTaskCompletionEvent(
+                    fr->mdGraph[MdGraphEvenOrOddStep::EvenStep]->getPpTaskCompletionEvent());
         }
 
         std::unique_ptr<gmx::StatePropagatorDataGpu> stateGpu;
