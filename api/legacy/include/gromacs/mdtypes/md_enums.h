@@ -866,4 +866,11 @@ enum class PbcType : int
     Default = Xyz
 };
 
+enum class MdGraphEvenOrOddStep : int
+{
+    EvenStep,
+    OddStep,
+    Count
+};
+
 #endif /* GMX_MDTYPES_MD_ENUMS_H */

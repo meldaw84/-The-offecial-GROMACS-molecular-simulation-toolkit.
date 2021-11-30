@@ -47,6 +47,7 @@ gmx_add_unit_test(MdlibUnitTest mdlib-test HARDWARE_DETECTION
         leapfrogtestdata.cpp
         leapfrogtestrunners.cpp
         parrinellorahman.cpp
+	mdgpugraph.cpp
         settle.cpp
         settletestdata.cpp
         settletestrunners.cpp
