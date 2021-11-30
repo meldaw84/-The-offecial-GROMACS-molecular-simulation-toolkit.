@@ -99,6 +99,7 @@
 #include "gromacs/mdlib/makeconstraints.h"
 #include "gromacs/mdlib/md_support.h"
 #include "gromacs/mdlib/mdatoms.h"
+#include "gromacs/mdlib/mdgraph_gpu.h"
 #include "gromacs/mdlib/sighandler.h"
 #include "gromacs/mdlib/stophandler.h"
 #include "gromacs/mdlib/tgroup.h"
@@ -2067,6 +2068,10 @@ int Mdrunner::mdrunner()
                     deviceStreamManager->context(),
                     deviceStreamManager->stream(gmx::DeviceStreamType::NonBondedNonLocal),
                     wcycle.get());
+            fr->mdGraph = std::make_unique<gmx::MdGpuGraph>(*fr->deviceStreamManager,
+                                                            runScheduleWork.simulationWork,
+                                                            cr->mpi_comm_mygroup,
+                                                            wcycle.get());
         }
 
         std::unique_ptr<gmx::StatePropagatorDataGpu> stateGpu;

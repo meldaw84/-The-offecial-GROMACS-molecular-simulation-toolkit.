@@ -159,6 +159,10 @@ static const char* enumValuetoString(WallCycleSubCounter enumValue)
         "Launch GPU Comm. coord.",
         "Launch GPU Comm. force.",
         "Launch GPU update",
+        "MD Graph Capture",
+        "MD Graph Instantiate",
+        "MD Graph Update",
+        "MD Graph Launch",
         "Test subcounter"
     };
     return wallCycleSubCounterNames[enumValue];

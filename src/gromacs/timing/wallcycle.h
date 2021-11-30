@@ -152,6 +152,10 @@ enum class WallCycleSubCounter : int
     LaunchGpuMoveX,
     LaunchGpuMoveF,
     LaunchGpuUpdateConstrain,
+    MdGpuGraphCapture,
+    MdGpuGraphInstantiate,
+    MdGpuGraphUpdate,
+    MdGpuGraphLaunch,
     Test,
     Count
 };
