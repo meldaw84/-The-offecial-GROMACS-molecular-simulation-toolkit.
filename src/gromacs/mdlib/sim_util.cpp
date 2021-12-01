@@ -2395,7 +2395,7 @@ void do_force(FILE*                               fplog,
                 stateGpu->copyForcesToGpu(forceWithShift, AtomLocality::Local);
             }
 
-            if (stepWork.computeNonbondedForces)
+            if (stepWork.computeForces)
             {
                 fr->gpuForceReduction[gmx::AtomLocality::Local]->execute();
             }
@@ -2410,7 +2410,7 @@ void do_force(FILE*                               fplog,
                 || (simulationWork.useGpuUpdate && haveDDAtomOrdering(*cr) && simulationWork.useCpuPmePpCommunication)
                 || vsite)
             {
-                if (stepWork.computeNonbondedForces)
+                if (stepWork.computeForces)
                 {
                     /* We have previously issued force reduction on the GPU, but we will
                      * not use this event, instead relying on the stream being in-order.
