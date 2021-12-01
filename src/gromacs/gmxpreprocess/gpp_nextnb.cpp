@@ -187,12 +187,7 @@ static void nnb2excl(t_nextnb* nnb, gmx::ListOfLists<int>* excls)
         prints("nnb2excl before sort", nr_of_sortables, s);
         if (nr_of_sortables > 1)
         {
-            auto sortKey = [](const auto& t1, const auto& t2) {
-                return std::get<0>(t1) < std::get<0>(t2);
-            };
-            // sort w.r.t bonds. the result will contain contiguous segments of identical bond instances
-            // the associated int indicates the original index of each BondType instance in the input vector
-            std::sort(begin(s), end(s), sortKey);
+            std::sort(begin(s), end(s), std::less<>{});
             prints("nnb2excl after sort", nr_of_sortables, s);
         }
 
@@ -360,12 +355,7 @@ void gen_nnb(t_nextnb* nnb, gmx::ArrayRef<InteractionsOfType> plist)
     prints("gen_excl before sort", nrbonds, s);
     if (nrbonds > 1)
     {
-        auto sortKey = [](const auto& t1, const auto& t2) {
-            return std::get<0>(t1) < std::get<0>(t2);
-        };
-        // sort w.r.t bonds. the result will contain contiguous segments of identical bond instances
-        // the associated int indicates the original index of each BondType instance in the input vector
-        std::sort(begin(s), end(s), sortKey);
+        std::sort(begin(s), end(s), std::less<>{});
         prints("gen_excl after sort", nrbonds, s);
     }
 
