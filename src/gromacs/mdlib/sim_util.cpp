@@ -1436,7 +1436,7 @@ void do_force(FILE*                               fplog,
     // The local coordinates can be copied right away.
     // NOTE: Consider moving this copy to right after they are updated and constrained,
     //       if the later is not offloaded.
-    if (stepWork.haveGpuPmeOnThisRank || stepWork.useGpuXBufferOps)
+    if (stepWork.haveGpuPmeOnThisRank || simulationWork.useGpuXBufferOps)
     {
         GMX_ASSERT(stateGpu != nullptr, "stateGpu should not be null");
         const int expectedLocalXReadyOnDeviceConsumptionCount =
