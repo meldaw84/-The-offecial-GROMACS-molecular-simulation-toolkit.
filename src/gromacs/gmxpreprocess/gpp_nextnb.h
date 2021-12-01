@@ -40,8 +40,6 @@
 
 #include <vector>
 
-#include "gromacs/utility/listoflists.h"
-
 struct InteractionsOfType;
 
 namespace gmx
