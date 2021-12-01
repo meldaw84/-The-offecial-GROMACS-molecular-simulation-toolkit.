@@ -1615,13 +1615,8 @@ void do_force(FILE*                               fplog,
         }
         else
         {
-            if (simulationWork.useGpuUpdate)
-            {
-                GMX_ASSERT(stateGpu, "need a valid stateGpu object");
-                GMX_ASSERT(haveCopiedXFromGpu,
-                           "a wait should only be triggered if copy has been scheduled");
-                stateGpu->waitCoordinatesReadyOnHost(AtomLocality::Local);
-            }
+            GMX_ASSERT(!simulationWork.useGpuUpdate,
+                       "With GPU update we should be using GPU x buffer ops");
             nbv->convertCoordinates(AtomLocality::Local, x.unpaddedArrayRef());
         }
     }
