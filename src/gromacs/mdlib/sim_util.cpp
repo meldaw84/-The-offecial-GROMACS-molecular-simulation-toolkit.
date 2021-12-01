@@ -1606,7 +1606,9 @@ void do_force(FILE*                               fplog,
             }
         }
     }
-    else if (!EI_TPI(inputrec.eI) && stepWork.computeNonbondedForces)
+    else if (!EI_TPI(inputrec.eI)
+             && (stepWork.computeNonbondedForces
+                 || (stepWork.computeListedForces && domainWork.haveGpuBondedWork)))
     {
         if (stepWork.useGpuXBufferOps)
         {
