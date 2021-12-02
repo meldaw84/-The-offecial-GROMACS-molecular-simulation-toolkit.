@@ -47,6 +47,7 @@
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/smalloc.h"
+#include "gromacs/utility/strongtype.h"
 
 /* #define DEBUG_NNB */
 
@@ -77,6 +78,9 @@ static void __prints(char* str, int n, sortable* s)
 #else
 #    define prints(str, n, s)
 #endif
+
+using First  = gmx::StrongType<int, struct FirstParameter>;
+using Second = gmx::StrongType<int, struct SecondParameter>;
 
 void init_nnb(t_nextnb* nnb, int nr, int nrex)
 {
@@ -167,7 +171,7 @@ static void nnb2excl(t_nextnb* nnb, gmx::ListOfLists<int>* excls)
         }
 
         /* make space for sortable array */
-        std::vector<std::tuple<int, int>> s(nr_of_sortables);
+        std::vector<std::tuple<First, Second>> s(nr_of_sortables);
 
         /* fill the sortable array and sort it */
         nrs = 0;
@@ -175,8 +179,8 @@ static void nnb2excl(t_nextnb* nnb, gmx::ListOfLists<int>* excls)
         {
             for (nrx = 0; (nrx < nnb->nrexcl[i][nre]); nrx++)
             {
-                std::get<0>(s[nrs]) = i;
-                std::get<1>(s[nrs]) = nnb->a[i][nre][nrx];
+                std::get<First>(s[nrs])  = i;
+                std::get<Second>(s[nrs]) = nnb->a[i][nre][nrx];
                 nrs++;
             }
         }
@@ -197,8 +201,8 @@ static void nnb2excl(t_nextnb* nnb, gmx::ListOfLists<int>* excls)
         {
             for (j = 1; (j < nr_of_sortables); j++)
             {
-                if ((std::get<0>(s[j]) != std::get<0>(s[j - 1]))
-                    || (std::get<1>(s[j]) != std::get<1>(s[j - 1])))
+                if ((std::get<First>(s[j]) != std::get<First>(s[j - 1]))
+                    || (std::get<Second>(s[j]) != std::get<Second>(s[j - 1])))
                 {
                     s[j_index++] = s[j - 1];
                 }
@@ -213,7 +217,7 @@ static void nnb2excl(t_nextnb* nnb, gmx::ListOfLists<int>* excls)
         gmx::ArrayRef<int> exclusionsForAtom = excls->back();
         for (nrs = 0; (nrs < nr_of_sortables); nrs++)
         {
-            exclusionsForAtom[nrs] = std::get<1>(s[nrs]);
+            exclusionsForAtom[nrs] = std::get<Second>(s[nrs]);
         }
     }
 }
@@ -252,9 +256,9 @@ static bool atom_is_present_in_nnb(const t_nextnb* nnb, int atom, int highest_or
     return false;
 }
 
-static void do_gen(int                                 nrbonds, /* total number of bonds in s	*/
-                   gmx::ArrayRef<std::tuple<int, int>> s,       /* bidirectional list of bonds    */
-                   t_nextnb*                           nnb)                               /* the tmp storage for excl     */
+static void do_gen(int nrbonds,                                /* total number of bonds in s	*/
+                   gmx::ArrayRef<std::tuple<First, Second>> s, /* bidirectional list of bonds    */
+                   t_nextnb*                                nnb)                              /* the tmp storage for excl     */
 /* Assume excl is initalised and s[] contains all bonds bidirectional */
 {
     int i, j, k, n, nb;
@@ -271,7 +275,7 @@ static void do_gen(int                                 nrbonds, /* total number 
     {
         for (i = 0; (i < nrbonds); i++)
         {
-            add_nnb(nnb, 1, std::get<0>(s[i]), std::get<1>(s[i]));
+            add_nnb(nnb, 1, std::get<First>(s[i]), std::get<Second>(s[i]));
         }
     }
     print_nnb(nnb, "After exclude bonds");
@@ -306,7 +310,7 @@ static void do_gen(int                                 nrbonds, /* total number 
     print_nnb(nnb, "After exclude rest");
 }
 
-static void add_b(InteractionsOfType* bonds, int* nrf, gmx::ArrayRef<std::tuple<int, int>> s)
+static void add_b(InteractionsOfType* bonds, int* nrf, gmx::ArrayRef<std::tuple<First, Second>> s)
 {
     int i = 0;
     for (const auto& bond : bonds->interactionTypes)
@@ -318,10 +322,10 @@ static void add_b(InteractionsOfType* bonds, int* nrf, gmx::ArrayRef<std::tuple<
             gmx_fatal(FARGS, "Impossible atom numbers in bond %d: ai=%d, aj=%d", i, ai, aj);
         }
         /* Add every bond twice */
-        std::get<0>(s[(*nrf)])   = ai;
-        std::get<1>(s[(*nrf)++]) = aj;
-        std::get<1>(s[(*nrf)])   = ai;
-        std::get<0>(s[(*nrf)++]) = aj;
+        std::get<First>(s[(*nrf)])    = ai;
+        std::get<Second>(s[(*nrf)++]) = aj;
+        std::get<Second>(s[(*nrf)])   = ai;
+        std::get<First>(s[(*nrf)++])  = aj;
         i++;
     }
 }
@@ -340,7 +344,7 @@ void gen_nnb(t_nextnb* nnb, gmx::ArrayRef<InteractionsOfType> plist)
         }
     }
 
-    std::vector<std::tuple<int, int>> s(nrbonds);
+    std::vector<std::tuple<First, Second>> s(nrbonds);
 
     nrf = 0;
     for (int i = 0; (i < F_NRE); i++)
