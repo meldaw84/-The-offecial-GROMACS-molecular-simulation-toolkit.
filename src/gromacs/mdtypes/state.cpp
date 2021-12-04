@@ -65,10 +65,6 @@ history_t::history_t() : disre_initf(0), orire_initf(0) {}
 
 ekinstate_t::ekinstate_t() :
     bUpToDate(FALSE),
-    ekin_n(0),
-    ekinh(nullptr),
-    ekinf(nullptr),
-    ekinh_old(nullptr),
     ekin_total(),
 
     dekindl(0),
@@ -103,23 +99,23 @@ void ekinstate_t::doCheckpoint(gmx::CheckpointData<operation> checkpointData)
     {
         return;
     }
-    auto numOfTensors = ekin_n;
-    checkpointData.scalar("ekin_n", &numOfTensors);
+    gmx::index numOfCouplingGroups = tcstat.size();
+    checkpointData.scalar("ekin_n", &numOfCouplingGroups);
     if (operation == gmx::CheckpointDataOperation::Read)
     {
         // If this isn't matching, we haven't allocated the right amount of data
-        GMX_RELEASE_ASSERT(numOfTensors == ekin_n,
-                           "ekinstate_t checkpoint reading: Tensor size mismatch.");
+        GMX_RELEASE_ASSERT(numOfCouplingGroups == gmx::ssize(tcstat),
+                           "ekinstate_t checkpoint reading: Coupling group count mismatch.");
     }
-    for (int idx = 0; idx < numOfTensors; ++idx)
+    for (auto& tcstatElement : tcstat)
     {
-        checkpointData.tensor(gmx::formatString("ekinh %d", idx), ekinh[idx]);
-        checkpointData.tensor(gmx::formatString("ekinf %d", idx), ekinf[idx]);
-        checkpointData.tensor(gmx::formatString("ekinh_old %d", idx), ekinh_old[idx]);
+        checkpointData.tensor("ekinh", tcstatElement.ekinh);
+        checkpointData.tensor("ekinf", tcstatElement.ekinf);
+        checkpointData.tensor("ekinh_old", tcstatElement.ekinh_old);
+        checkpointData.scalar("ekinscalef_nhc", &tcstatElement.ekinscalef_nhc);
+        checkpointData.scalar("ekinscaleh_nhc", &tcstatElement.ekinscaleh_nhc);
+        checkpointData.scalar("vscale_nhc", &tcstatElement.vscale_nhc);
     }
-    checkpointData.arrayRef("ekinscalef_nhc", gmx::makeCheckpointArrayRef<operation>(ekinscalef_nhc));
-    checkpointData.arrayRef("ekinscaleh_nhc", gmx::makeCheckpointArrayRef<operation>(ekinscaleh_nhc));
-    checkpointData.arrayRef("vscale_nhc", gmx::makeCheckpointArrayRef<operation>(vscale_nhc));
     checkpointData.scalar("dekindl", &dekindl);
     checkpointData.scalar("mvcos", &mvcos);
 

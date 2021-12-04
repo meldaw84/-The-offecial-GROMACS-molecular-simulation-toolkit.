@@ -62,6 +62,8 @@
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/real.h"
 
+#include "group.h"
+
 struct t_inputrec;
 struct t_lambda;
 struct PressureCouplingOptions;
@@ -168,17 +170,18 @@ class ekinstate_t
 public:
     ekinstate_t();
 
-    bool                bUpToDate;      //!< Test if all data is up to date
-    int                 ekin_n;         //!< The number of tensors
-    tensor*             ekinh;          //!< Half step Ekin, size \p ekin_n
-    tensor*             ekinf;          //!< Full step Ekin, size \p ekin_n
-    tensor*             ekinh_old;      //!< Half step Ekin of the previous step, size \p ekin_n
-    tensor              ekin_total;     //!< Total kinetic energy
-    std::vector<double> ekinscalef_nhc; //!< Nose-Hoover Ekin scaling factors for full step Ekin
-    std::vector<double> ekinscaleh_nhc; //!< Nose-Hoover Ekin scaling factors for half step Ekin
-    std::vector<double> vscale_nhc;     //!< Nose-Hoover velocity scaling factors
-    real                dekindl;        //!< dEkin/dlambda, with free-energy
-    real                mvcos; //!< Cosine(z) component of the momentum, for viscosity calculations
+    //!< Test if all data is up to date
+    bool bUpToDate;
+    /*! \brief Full- and half-step kinetic energy quantities
+     *
+     * Note that lambda, Th, and T should not be checkpointed. */
+    std::vector<t_grp_tcstat> tcstat;
+    //!< Total kinetic energy
+    tensor ekin_total;
+    //!< dEkin/dlambda, with free-energy
+    real dekindl;
+    //!< Cosine(z) component of the momentum, for viscosity calculations
+    real mvcos;
     /*! \brief Whether KE terms have been read from the checkpoint.
      *
      * Only used for managing whether the call to compute_globals
@@ -272,7 +275,7 @@ public:
     PaddedHostVector<gmx::RVec> v;    //!< The velocities (natoms)
     PaddedHostVector<gmx::RVec> cg_p; //!< p vector for conjugate gradient minimization
 
-    ekinstate_t ekinstate; //!< The state of the kinetic energy
+    ekinstate_t ekinstate; //!< The state of the kinetic energy, used only for checkpointing
 
     /* History for special algorithms, should be moved to a history struct */
     history_t                        hist;       //!< Time history for restraints

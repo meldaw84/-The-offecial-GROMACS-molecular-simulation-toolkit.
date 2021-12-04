@@ -1015,82 +1015,6 @@ static int do_cpte_nmatrix(XDR* xd, Enum ecpt, int sflags, int n, real** v, FILE
     return ret;
 }
 
-template<typename Enum>
-static int do_cpte_matrices(XDR* xd, Enum ecpt, int sflags, int n, matrix** v, FILE* list)
-{
-    bool_t  res = 0;
-    matrix *vp, *va = nullptr;
-    real*   vr;
-    int     nf, i, j, k;
-    int     ret;
-
-    nf  = n;
-    res = xdr_int(xd, &nf);
-    if (res == 0)
-    {
-        return -1;
-    }
-    if (list == nullptr && nf != n)
-    {
-        gmx_fatal(FARGS,
-                  "Count mismatch for state entry %s, code count is %d, file count is %d\n",
-                  enumValueToString(ecpt),
-                  n,
-                  nf);
-    }
-    if (list || !(sflags & enumValueToBitMask(ecpt)))
-    {
-        snew(va, nf);
-        vp = va;
-    }
-    else
-    {
-        if (*v == nullptr)
-        {
-            snew(*v, nf);
-        }
-        vp = *v;
-    }
-    snew(vr, nf * DIM * DIM);
-    for (i = 0; i < nf; i++)
-    {
-        for (j = 0; j < DIM; j++)
-        {
-            for (k = 0; k < DIM; k++)
-            {
-                vr[(i * DIM + j) * DIM + k] = vp[i][j][k];
-            }
-        }
-    }
-    ret = doVectorLow<real, std::allocator<real>>(
-            xd, ecpt, sflags, nf * DIM * DIM, nullptr, &vr, nullptr, nullptr, CptElementType::matrix3x3);
-    for (i = 0; i < nf; i++)
-    {
-        for (j = 0; j < DIM; j++)
-        {
-            for (k = 0; k < DIM; k++)
-            {
-                vp[i][j][k] = vr[(i * DIM + j) * DIM + k];
-            }
-        }
-    }
-    sfree(vr);
-
-    if (list && ret == 0)
-    {
-        for (i = 0; i < nf; i++)
-        {
-            pr_rvecs(list, 0, enumValueToString(ecpt), vp[i], DIM);
-        }
-    }
-    if (va)
-    {
-        sfree(va);
-    }
-
-    return ret;
-}
-
 static void do_cpt_header(XDR* xd, gmx_bool bRead, FILE* list, CheckpointHeaderContents* contents)
 {
     bool_t res = 0;
@@ -1416,57 +1340,79 @@ static int do_cpt_state(XDR* xd, int fflags, t_state* state, FILE* list)
     return ret;
 }
 
-static int do_cpt_ekinstate(XDR* xd, int fflags, ekinstate_t* ekins, FILE* list)
+static int do_cpt_tcstat(XDR* xd, int fflags, t_grp_tcstat* tcstat, FILE* list)
 {
     int ret = 0;
 
-    using StateFlags = gmx::EnumerationArray<StateKineticEntry, bool>;
-    for (auto i = StateFlags::keys().begin(); (i != StateFlags::keys().end() && ret == 0); i++)
+    StateKineticEntry stateFlag = StateKineticEntry::EkinHalfStep;
+    if (!ret && fflags & enumValueToBitMask(stateFlag))
     {
-        if (fflags & enumValueToBitMask(*i))
-        {
-            switch (*i)
-            {
+        ret = do_cpte_matrix(xd, stateFlag, fflags, tcstat->ekinh, list);
+    }
+    stateFlag = StateKineticEntry::EkinFullStep;
+    if (!ret && fflags & enumValueToBitMask(stateFlag))
+    {
+        ret = do_cpte_matrix(xd, stateFlag, fflags, tcstat->ekinf, list);
+    }
+    stateFlag = StateKineticEntry::EkinHalfStepOld;
+    if (!ret && fflags & enumValueToBitMask(stateFlag))
+    {
+        ret = do_cpte_matrix(xd, stateFlag, fflags, tcstat->ekinh_old, list);
+    }
+    stateFlag = StateKineticEntry::EkinNoseHooverScaleFullStep;
+    if (!ret && fflags & enumValueToBitMask(stateFlag))
+    {
+        ret = do_cpte_double(xd, stateFlag, fflags, &tcstat->ekinscalef_nhc, list);
+    }
+    stateFlag = StateKineticEntry::VelocityScale;
+    if (!ret && fflags & enumValueToBitMask(stateFlag))
+    {
+        ret = do_cpte_double(xd, stateFlag, fflags, &tcstat->vscale_nhc, list);
+    }
+    stateFlag = StateKineticEntry::EkinNoseHooverScaleHalfStep;
+    if (!ret && fflags & enumValueToBitMask(stateFlag))
+    {
+        ret = do_cpte_double(xd, stateFlag, fflags, &tcstat->ekinscaleh_nhc, list);
+    }
+    return ret;
+}
 
-                case StateKineticEntry::EkinNumber:
-                    ret = do_cpte_int(xd, *i, fflags, &ekins->ekin_n, list);
-                    break;
-                case StateKineticEntry::EkinHalfStep:
-                    ret = do_cpte_matrices(xd, *i, fflags, ekins->ekin_n, &ekins->ekinh, list);
-                    break;
-                case StateKineticEntry::EkinFullStep:
-                    ret = do_cpte_matrices(xd, *i, fflags, ekins->ekin_n, &ekins->ekinf, list);
-                    break;
-                case StateKineticEntry::EkinHalfStepOld:
-                    ret = do_cpte_matrices(xd, *i, fflags, ekins->ekin_n, &ekins->ekinh_old, list);
-                    break;
-                case StateKineticEntry::EkinTotal:
-                    ret = do_cpte_matrix(xd, *i, fflags, ekins->ekin_total, list);
-                    break;
-                case StateKineticEntry::EkinNoseHooverScaleFullStep:
-                    ret = doVector<double>(xd, *i, fflags, &ekins->ekinscalef_nhc, list);
-                    break;
-                case StateKineticEntry::VelocityScale:
-                    ret = doVector<double>(xd, *i, fflags, &ekins->vscale_nhc, list);
-                    break;
-                case StateKineticEntry::EkinNoseHooverScaleHalfStep:
-                    ret = doVector<double>(xd, *i, fflags, &ekins->ekinscaleh_nhc, list);
-                    break;
-                case StateKineticEntry::DEkinDLambda:
-                    ret = do_cpte_real(xd, *i, fflags, &ekins->dekindl, list);
-                    break;
-                case StateKineticEntry::Mvcos:
-                    ret = do_cpte_real(xd, *i, fflags, &ekins->mvcos, list);
-                    break;
-                default:
-                    gmx_fatal(FARGS,
-                              "Unknown ekin data state entry %d\n"
-                              "You are probably reading a new checkpoint file with old code",
-                              enumValueToBitMask(*i));
-            }
+static int do_cpt_ekinstate(XDR* xd, bool bRead, int fflags, ekinstate_t* ekins, FILE* list)
+{
+    int               ret                          = 0;
+    int               numTemperatureCouplingGroups = gmx::ssize(ekins->tcstat);
+    StateKineticEntry stateFlag                    = StateKineticEntry::EkinNumber;
+    if (!ret && fflags & enumValueToBitMask(stateFlag))
+    {
+        ret = do_cpte_int(xd, stateFlag, fflags, &numTemperatureCouplingGroups, list);
+        if (bRead)
+        {
+            ekins->tcstat.resize(numTemperatureCouplingGroups);
         }
     }
-
+    for (t_grp_tcstat& tcstat : ekins->tcstat)
+    {
+        if (ret)
+        {
+            break;
+        }
+        ret = do_cpt_tcstat(xd, fflags, &tcstat, list);
+    }
+    stateFlag = StateKineticEntry::EkinTotal;
+    if (!ret && fflags & enumValueToBitMask(stateFlag))
+    {
+        ret = do_cpte_matrix(xd, stateFlag, fflags, ekins->ekin_total, list);
+    }
+    stateFlag = StateKineticEntry::DEkinDLambda;
+    if (!ret && fflags & enumValueToBitMask(stateFlag))
+    {
+        ret = do_cpte_real(xd, stateFlag, fflags, &ekins->dekindl, list);
+    }
+    stateFlag = StateKineticEntry::Mvcos;
+    if (!ret && fflags & enumValueToBitMask(stateFlag))
+    {
+        ret = do_cpte_real(xd, stateFlag, fflags, &ekins->mvcos, list);
+    }
     return ret;
 }
 
@@ -2417,7 +2363,7 @@ void write_checkpoint_data(t_fileio*                         fp,
     do_cpt_header(gmx_fio_getxdr(fp), FALSE, nullptr, &headerContents);
 
     if ((do_cpt_state(gmx_fio_getxdr(fp), state->flags, state, nullptr) < 0)
-        || (do_cpt_ekinstate(gmx_fio_getxdr(fp), headerContents.flags_eks, &state->ekinstate, nullptr) < 0)
+        || (do_cpt_ekinstate(gmx_fio_getxdr(fp), false, headerContents.flags_eks, &state->ekinstate, nullptr) < 0)
         || (do_cpt_enerhist(gmx_fio_getxdr(fp), FALSE, headerContents.flags_enh, enerhist, nullptr) < 0)
         || (doCptPullHist(gmx_fio_getxdr(fp), FALSE, headerContents.flagsPullHistory, pullHist, nullptr) < 0)
         || (do_cpt_df_hist(gmx_fio_getxdr(fp), headerContents.flags_dfh, headerContents.nlambda, &state->dfhist, nullptr)
@@ -2738,7 +2684,7 @@ static void read_checkpoint(const char*                    fn,
     {
         cp_error();
     }
-    ret = do_cpt_ekinstate(gmx_fio_getxdr(fp), headerContents->flags_eks, &state->ekinstate, nullptr);
+    ret = do_cpt_ekinstate(gmx_fio_getxdr(fp), true, headerContents->flags_eks, &state->ekinstate, nullptr);
     if (ret)
     {
         cp_error();
@@ -2954,7 +2900,7 @@ static CheckpointHeaderContents read_checkpoint_data(t_fileio*                  
     {
         cp_error();
     }
-    ret = do_cpt_ekinstate(gmx_fio_getxdr(fp), headerContents.flags_eks, &state->ekinstate, nullptr);
+    ret = do_cpt_ekinstate(gmx_fio_getxdr(fp), true, headerContents.flags_eks, &state->ekinstate, nullptr);
     if (ret)
     {
         cp_error();
@@ -3082,7 +3028,7 @@ void list_checkpoint(const char* fn, FILE* out)
     {
         cp_error();
     }
-    ret = do_cpt_ekinstate(gmx_fio_getxdr(fp), headerContents.flags_eks, &state.ekinstate, out);
+    ret = do_cpt_ekinstate(gmx_fio_getxdr(fp), true, headerContents.flags_eks, &state.ekinstate, out);
     if (ret)
     {
         cp_error();

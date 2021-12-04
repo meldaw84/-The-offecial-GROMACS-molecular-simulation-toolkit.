@@ -1365,13 +1365,7 @@ static void do_update_bd(int                                 start,
 
 extern void init_ekinstate(ekinstate_t* ekinstate, const t_inputrec* ir)
 {
-    ekinstate->ekin_n = ir->opts.ngtc;
-    snew(ekinstate->ekinh, ekinstate->ekin_n);
-    snew(ekinstate->ekinf, ekinstate->ekin_n);
-    snew(ekinstate->ekinh_old, ekinstate->ekin_n);
-    ekinstate->ekinscalef_nhc.resize(ekinstate->ekin_n);
-    ekinstate->ekinscaleh_nhc.resize(ekinstate->ekin_n);
-    ekinstate->vscale_nhc.resize(ekinstate->ekin_n);
+    ekinstate->tcstat.resize(ir->opts.ngtc);
     ekinstate->dekindl          = 0;
     ekinstate->mvcos            = 0;
     ekinstate->hasReadEkinState = false;
@@ -1422,20 +1416,20 @@ void update_ekinstate(ekinstate_t* ekinstate, const gmx_ekindata_t* ekind, const
         if (MASTER(cr))
         {
             bufIndex = 0;
-            for (int g = 0; g < ekinstate->ekin_n; g++)
+            for (auto& field : ekinstate->tcstat)
             {
                 for (int i = 0; i < DIM; i++)
                 {
                     for (int j = 0; j < DIM; j++)
                     {
-                        ekinstate->ekinh[g][i][j] = buffer[bufIndex++];
+                        field.ekinh[i][j] = buffer[bufIndex++];
                     }
                 }
                 for (int i = 0; i < DIM; i++)
                 {
                     for (int j = 0; j < DIM; j++)
                     {
-                        ekinstate->ekinf[g][i][j] = buffer[bufIndex++];
+                        field.ekinf[i][j] = buffer[bufIndex++];
                     }
                 }
             }
@@ -1447,22 +1441,8 @@ void update_ekinstate(ekinstate_t* ekinstate, const gmx_ekindata_t* ekind, const
     {
         if (!reduceEkin)
         {
-            for (int g = 0; g < ekinstate->ekin_n; g++)
-            {
-                copy_mat(ekind->tcstat[g].ekinh, ekinstate->ekinh[g]);
-                copy_mat(ekind->tcstat[g].ekinf, ekinstate->ekinf[g]);
-            }
+            std::copy(ekind->tcstat.begin(), ekind->tcstat.end(), ekinstate->tcstat.begin());
             ekinstate->dekindl = ekind->dekindl;
-        }
-
-        /* These terms are likely not part of the state at all and can be removed
-         * as they are (re)computed when restarting from a checkpoint.
-         */
-        for (int g = 0; g < ekinstate->ekin_n; g++)
-        {
-            ekinstate->ekinscalef_nhc[g] = ekind->tcstat[g].ekinscalef_nhc;
-            ekinstate->ekinscaleh_nhc[g] = ekind->tcstat[g].ekinscaleh_nhc;
-            ekinstate->vscale_nhc[g]     = ekind->tcstat[g].vscale_nhc;
         }
         ekinstate->mvcos = ekind->cosacc.mvcos;
     }
@@ -1470,43 +1450,26 @@ void update_ekinstate(ekinstate_t* ekinstate, const gmx_ekindata_t* ekind, const
 
 void restore_ekinstate_from_state(const t_commrec* cr, gmx_ekindata_t* ekind, const ekinstate_t* ekinstate)
 {
-    int i, n;
-
     if (MASTER(cr))
     {
-        for (i = 0; i < ekinstate->ekin_n; i++)
-        {
-            copy_mat(ekinstate->ekinh[i], ekind->tcstat[i].ekinh);
-            copy_mat(ekinstate->ekinf[i], ekind->tcstat[i].ekinf);
-            ekind->tcstat[i].ekinscalef_nhc = ekinstate->ekinscalef_nhc[i];
-            ekind->tcstat[i].ekinscaleh_nhc = ekinstate->ekinscaleh_nhc[i];
-            ekind->tcstat[i].vscale_nhc     = ekinstate->vscale_nhc[i];
-        }
+        std::copy(ekinstate->tcstat.begin(), ekinstate->tcstat.end(), ekind->tcstat.begin());
+        copy_mat(ekinstate->ekin_total, ekind->ekin);
 
         ekind->dekindl      = ekinstate->dekindl;
         ekind->cosacc.mvcos = ekinstate->mvcos;
-        n                   = ekinstate->ekin_n;
     }
 
     if (PAR(cr))
     {
-        gmx_bcast(sizeof(n), &n, cr->mpi_comm_mygroup);
-        for (i = 0; i < n; i++)
+        for (auto& tcstat : ekind->tcstat)
         {
-            gmx_bcast(DIM * DIM * sizeof(ekind->tcstat[i].ekinh[0][0]),
-                      ekind->tcstat[i].ekinh[0],
-                      cr->mpi_comm_mygroup);
-            gmx_bcast(DIM * DIM * sizeof(ekind->tcstat[i].ekinf[0][0]),
-                      ekind->tcstat[i].ekinf[0],
-                      cr->mpi_comm_mygroup);
+            gmx_bcast(DIM * DIM * sizeof(tcstat.ekinh[0][0]), tcstat.ekinh[0], cr->mpi_comm_mygroup);
+            gmx_bcast(DIM * DIM * sizeof(tcstat.ekinf[0][0]), tcstat.ekinf[0], cr->mpi_comm_mygroup);
+            gmx_bcast(DIM * DIM * sizeof(tcstat.ekinh_old[0][0]), tcstat.ekinh_old[0], cr->mpi_comm_mygroup);
 
-            gmx_bcast(sizeof(ekind->tcstat[i].ekinscalef_nhc),
-                      &(ekind->tcstat[i].ekinscalef_nhc),
-                      cr->mpi_comm_mygroup);
-            gmx_bcast(sizeof(ekind->tcstat[i].ekinscaleh_nhc),
-                      &(ekind->tcstat[i].ekinscaleh_nhc),
-                      cr->mpi_comm_mygroup);
-            gmx_bcast(sizeof(ekind->tcstat[i].vscale_nhc), &(ekind->tcstat[i].vscale_nhc), cr->mpi_comm_mygroup);
+            gmx_bcast(sizeof(tcstat.ekinscalef_nhc), &(tcstat.ekinscalef_nhc), cr->mpi_comm_mygroup);
+            gmx_bcast(sizeof(tcstat.ekinscaleh_nhc), &(tcstat.ekinscaleh_nhc), cr->mpi_comm_mygroup);
+            gmx_bcast(sizeof(tcstat.vscale_nhc), &(tcstat.vscale_nhc), cr->mpi_comm_mygroup);
         }
 
         gmx_bcast(sizeof(ekind->dekindl), &ekind->dekindl, cr->mpi_comm_mygroup);
