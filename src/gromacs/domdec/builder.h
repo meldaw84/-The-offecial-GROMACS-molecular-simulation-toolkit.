@@ -96,7 +96,7 @@ public:
                                bool                              useGpuForNonbonded,
                                bool                              useGpuForPme,
                                bool                              directGpuCommUsedWithGpuUpdate,
-                               bool                              canUseGpuPmeDecomposition);
+                               bool                              usingGpuPmeDecomposition);
     //! Destructor
     ~DomainDecompositionBuilder();
     //! Build the resulting DD manager

@@ -758,7 +758,7 @@ gmx::SeparatePmeRanksPermitted checkForSeparatePmeRanks(const gmx::MDModulesNoti
                                                         int  numRanksRequested,
                                                         bool useGpuForNonbonded,
                                                         bool useGpuForPme,
-                                                        bool canUseGpuPmeDecomposition)
+                                                        bool usingGpuPmeDecomposition)
 {
     gmx::SeparatePmeRanksPermitted separatePmeRanksPermitted;
 
@@ -777,7 +777,7 @@ gmx::SeparatePmeRanksPermitted checkForSeparatePmeRanks(const gmx::MDModulesNoti
     }
 
     /* If more than one PME ranks requested, check if PME decomposition is supported */
-    if (useGpuForPme && !canUseGpuPmeDecomposition && (options.numPmeRanks < 0 || options.numPmeRanks > 1))
+    if (useGpuForPme && !usingGpuPmeDecomposition && (options.numPmeRanks < 0 || options.numPmeRanks > 1))
     {
         separatePmeRanksPermitted.disablePmeRanks(
                 "PME GPU decomposition is not supported for current build configuration, only one "

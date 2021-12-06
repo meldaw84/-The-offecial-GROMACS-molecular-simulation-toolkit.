@@ -1822,7 +1822,7 @@ static DlbState forceDlbOffOrBail(DlbState             cmdlineDlbState,
  * \param [in] inputrec             Pointer mdrun to input parameters.
  * \param [in] directGpuCommUsedWithGpuUpdate Direct GPU comm with update used. Disables DLB.
  * \param [in] useGpuForPme         PME offloaded to GPU
- * \param [in] canUseGpuPmeDecomposition         GPU pme decomposition supported
+ * \param [in] usingGpuPmeDecomposition Using GPU based pme decomposition
  * \returns                         DLB initial/startup state.
  */
 static DlbState determineInitialDlbState(const gmx::MDLogger&     mdlog,
@@ -1832,7 +1832,7 @@ static DlbState determineInitialDlbState(const gmx::MDLogger&     mdlog,
                                          const t_inputrec&        inputrec,
                                          const bool               directGpuCommUsedWithGpuUpdate,
                                          const bool               useGpuForPme,
-                                         const bool               canUseGpuPmeDecomposition)
+                                         const bool               usingGpuPmeDecomposition)
 {
     DlbState dlbState = DlbState::offCanTurnOn;
 
@@ -1847,11 +1847,10 @@ static DlbState determineInitialDlbState(const gmx::MDLogger&     mdlog,
     // Disable DLB when GPU PME decomposition is used
     // GPU PME decomposition uses an extended halo exchange algorithm without any X/F-redistribution
     // DLB causes changes in PP domain which doesn't work well with new PME decomposition algorithm
-
-    // ToDo: This code has an assumption that options.numPmeRanks < 0 results in no separate PME rank (which is true currently),
-    // if in future "-npme -1" option results in single separate PME rank, we shouldn't disable DLB in that case
-    if (useGpuForPme && canUseGpuPmeDecomposition && (options.numPmeRanks == 0 || options.numPmeRanks > 1))
+    if (usingGpuPmeDecomposition)
     {
+        GMX_RELEASE_ASSERT(useGpuForPme && (options.numPmeRanks == 0 || options.numPmeRanks > 1),
+                           "Invalid value of numPmeRanks");
         std::string reasonStr = "it is not supported with GPU PME decomposition.";
         return forceDlbOffOrBail(dlbState, reasonStr, mdlog);
     }
@@ -2817,7 +2816,7 @@ static DDSettings getDDSettings(const gmx::MDLogger&     mdlog,
                                 const t_inputrec&        ir,
                                 const bool               directGpuCommUsedWithGpuUpdate,
                                 const bool               useGpuForPme,
-                                const bool               canUseGpuPmeDecomposition)
+                                const bool               usingGpuPmeDecomposition)
 {
     DDSettings ddSettings;
 
@@ -2857,7 +2856,7 @@ static DDSettings getDDSettings(const gmx::MDLogger&     mdlog,
                                                           ir,
                                                           directGpuCommUsedWithGpuUpdate,
                                                           useGpuForPme,
-                                                          canUseGpuPmeDecomposition);
+                                                          usingGpuPmeDecomposition);
     GMX_LOG(mdlog.info)
             .appendTextFormatted("Dynamic load balancing: %s",
                                  enumValueToString(ddSettings.initialDlbState));
@@ -2894,7 +2893,7 @@ public:
          bool                              useGpuForNonbonded,
          bool                              useGpuForPme,
          bool                              directGpuCommUsedWithGpuUpdate,
-         bool                              canUseGpuPmeDecomposition);
+         bool                              usingGpuPmeDecomposition);
 
     //! Build the resulting DD manager
     gmx_domdec_t* build(LocalAtomSetManager*       atomSets,
@@ -2954,13 +2953,13 @@ DomainDecompositionBuilder::Impl::Impl(const MDLogger&                   mdlog,
                                        bool                              useGpuForNonbonded,
                                        bool                              useGpuForPme,
                                        bool directGpuCommUsedWithGpuUpdate,
-                                       bool canUseGpuPmeDecomposition) :
+                                       bool usingGpuPmeDecomposition) :
     mdlog_(mdlog), cr_(cr), options_(options), mtop_(mtop), ir_(ir), notifiers_(notifiers)
 {
     GMX_LOG(mdlog_.info).appendTextFormatted("\nInitializing Domain Decomposition on %d ranks", cr_->sizeOfDefaultCommunicator);
 
     ddSettings_ = getDDSettings(
-            mdlog_, options_, mdrunOptions, ir_, directGpuCommUsedWithGpuUpdate, useGpuForPme, canUseGpuPmeDecomposition);
+            mdlog_, options_, mdrunOptions, ir_, directGpuCommUsedWithGpuUpdate, useGpuForPme, usingGpuPmeDecomposition);
 
     if (ddSettings_.eFlop > 1)
     {
@@ -2986,7 +2985,7 @@ DomainDecompositionBuilder::Impl::Impl(const MDLogger&                   mdlog,
 
     /* Checks for ability to use PME-only ranks */
     auto separatePmeRanksPermitted = checkForSeparatePmeRanks(
-            notifiers_, options_, numRanksRequested, useGpuForNonbonded, useGpuForPme, canUseGpuPmeDecomposition);
+            notifiers_, options_, numRanksRequested, useGpuForNonbonded, useGpuForPme, usingGpuPmeDecomposition);
 
     /* Checks for validity of requested Ranks setup */
     checkForValidRankCountRequests(numRanksRequested,
@@ -3100,7 +3099,7 @@ DomainDecompositionBuilder::DomainDecompositionBuilder(const MDLogger&          
                                                        const bool           useGpuForNonbonded,
                                                        const bool           useGpuForPme,
                                                        const bool directGpuCommUsedWithGpuUpdate,
-                                                       const bool canUseGpuPmeDecomposition) :
+                                                       const bool usingGpuPmeDecomposition) :
     impl_(new Impl(mdlog,
                    cr,
                    options,
@@ -3116,7 +3115,7 @@ DomainDecompositionBuilder::DomainDecompositionBuilder(const MDLogger&          
                    useGpuForNonbonded,
                    useGpuForPme,
                    directGpuCommUsedWithGpuUpdate,
-                   canUseGpuPmeDecomposition))
+                   usingGpuPmeDecomposition))
 {
 }
 
