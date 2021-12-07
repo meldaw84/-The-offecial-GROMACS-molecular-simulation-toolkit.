@@ -27,6 +27,40 @@ can be found on the `issue tracker`_ at that issue number.
 
 .. todolist::
 
+Patch releases
+^^^^^^^^^^^^^^
+
+.. toctree::
+   :maxdepth: 1
+
+   2021/2021.5
+   2021/2021.4
+   2021/2021.3
+   2021/2021.2
+   2021/2021.1
+
+
+Major release
+^^^^^^^^^^^^^
+
+.. toctree::
+   :maxdepth: 1
+
+   2023/major/highlights
+   2023/major/features
+   2023/major/performance
+   2023/major/api
+   2023/major/tools
+   2023/major/bugs-fixed
+   2023/major/deprecated-functionality
+   2023/major/removed-functionality
+   2023/major/portability
+   2023/major/miscellaneous
+
+
+|Gromacs| 2022 series
+---------------------
+
 Major release
 ^^^^^^^^^^^^^
 
@@ -83,7 +117,6 @@ Patch releases
    2021/2021.3
    2021/2021.2
    2021/2021.1
-
 
 Major release
 ^^^^^^^^^^^^^
