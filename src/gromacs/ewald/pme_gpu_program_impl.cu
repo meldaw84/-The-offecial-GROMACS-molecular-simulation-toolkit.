@@ -134,10 +134,10 @@ PmeGpuProgramImpl::PmeGpuProgramImpl(const DeviceContext& deviceContext) :
     deviceContext_(deviceContext)
 {
     // kernel parameters
-    warpSize_             = warp_size;
-    spreadWorkGroupSize   = c_spreadMaxThreadsPerBlock;
-    solveMaxWorkGroupSize = c_solveMaxThreadsPerBlock;
-    gatherWorkGroupSize   = c_gatherMaxThreadsPerBlock;
+    spreadSubGroupSize = solveSubGroupSize = gatherSubGroupSize = warp_size;
+    spreadWorkGroupSize                                         = c_spreadMaxThreadsPerBlock;
+    solveMaxWorkGroupSize                                       = c_solveMaxThreadsPerBlock;
+    gatherWorkGroupSize                                         = c_gatherMaxThreadsPerBlock;
 
     /* Not all combinations of the splineAndSpread, spline and Spread kernels are required
      * If only the spline (without the spread) then it does not make sense not to write the data to global memory

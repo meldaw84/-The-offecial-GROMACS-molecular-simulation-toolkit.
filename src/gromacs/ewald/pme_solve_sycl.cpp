@@ -59,15 +59,17 @@ using mode = sycl::access_mode;
  * \tparam     gridOrdering             Specifies the dimension ordering of the complex grid.
  * \tparam     computeEnergyAndVirial   Tells if the reciprocal energy and virial should be
  *                                        computed.
+ * \tparam     workGroupSize            Describes the width of a SYCL workgroup
  * \tparam     subGroupSize             Describes the width of a SYCL subgroup
  */
-template<GridOrdering gridOrdering, bool computeEnergyAndVirial, int subGroupSize>
+template<GridOrdering gridOrdering, bool computeEnergyAndVirial, int workGroupSize, int subGroupSize>
 auto makeSolveKernel(sycl::handler&                    cgh,
                      DeviceAccessor<float, mode::read> a_splineModuli,
                      SolveKernelParams                 solveKernelParams,
                      OptionalAccessor<float, mode::read_write, computeEnergyAndVirial> a_virialAndEnergy,
                      DeviceAccessor<float, mode::read_write> a_fourierGrid)
 {
+    static_assert(workGroupSize % subGroupSize == 0);
     a_splineModuli.bind(cgh);
     if constexpr (computeEnergyAndVirial)
     {
@@ -75,11 +77,11 @@ auto makeSolveKernel(sycl::handler&                    cgh,
     }
     a_fourierGrid.bind(cgh);
 
-    /* Reduce 7 outputs per warp in the shared memory */
-    const int stride =
-            8; // this is c_virialAndEnergyCount==7 rounded up to power of 2 for convenience, hence the assert
+    /* Reduce 7 outputs per warp in the shared memory.
+     * This is c_virialAndEnergyCount==7 rounded up to power of 2 for convenience, hence the assert */
+    constexpr int stride = 8;
     static_assert(c_virialAndEnergyCount == 7);
-    const int                           reductionBufferSize = c_solveMaxWarpsPerBlock * stride;
+    constexpr int reductionBufferSize = (workGroupSize / subGroupSize) * stride;
     sycl_2020::local_accessor<float, 1> sm_virialAndEnergy(sycl::range<1>(reductionBufferSize), cgh);
 
     /* Each thread works on one cell of the Fourier space complex 3D grid (gm_grid).
@@ -385,15 +387,16 @@ auto makeSolveKernel(sycl::handler&                    cgh,
     };
 }
 
-template<GridOrdering gridOrdering, bool computeEnergyAndVirial, int gridIndex, int subGroupSize>
-PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, subGroupSize>::PmeSolveKernel()
+template<GridOrdering gridOrdering, bool computeEnergyAndVirial, int gridIndex, int workGroupSize, int subGroupSize>
+PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, workGroupSize, subGroupSize>::PmeSolveKernel()
 {
     reset();
 }
 
-template<GridOrdering gridOrdering, bool computeEnergyAndVirial, int gridIndex, int subGroupSize>
-void PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, subGroupSize>::setArg(size_t argIndex,
-                                                                                           void* arg)
+template<GridOrdering gridOrdering, bool computeEnergyAndVirial, int gridIndex, int workGroupSize, int subGroupSize>
+void PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, workGroupSize, subGroupSize>::setArg(
+        size_t argIndex,
+        void*  arg)
 {
     if (argIndex == 0)
     {
@@ -418,25 +421,27 @@ void PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, subGroupSiz
     }
 }
 
-template<GridOrdering gridOrdering, bool computeEnergyAndVirial, int gridIndex, int subGroupSize>
-sycl::event PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, subGroupSize>::launch(
+template<GridOrdering gridOrdering, bool computeEnergyAndVirial, int gridIndex, int workGroupSize, int subGroupSize>
+sycl::event PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, workGroupSize, subGroupSize>::launch(
         const KernelLaunchConfig& config,
         const DeviceStream&       deviceStream)
 {
     GMX_RELEASE_ASSERT(gridParams_, "Can not launch the kernel before setting its args");
     GMX_RELEASE_ASSERT(constParams_, "Can not launch the kernel before setting its args");
 
-    using KernelNameType = PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, subGroupSize>;
+    using KernelNameType =
+            PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, workGroupSize, subGroupSize>;
 
     // SYCL has different multidimensional layout than OpenCL/CUDA.
     const sycl::range<3> localSize{ config.blockSize[2], config.blockSize[1], config.blockSize[0] };
+    GMX_RELEASE_ASSERT(localSize.size() == workGroupSize, "Incompatible work group size");
     const sycl::range<3> groupRange{ config.gridSize[2], config.gridSize[1], config.gridSize[0] };
     const sycl::nd_range<3> range{ groupRange * localSize, localSize };
 
     sycl::queue q = deviceStream.stream();
 
     sycl::event e = q.submit([&](sycl::handler& cgh) {
-        auto kernel = makeSolveKernel<gridOrdering, computeEnergyAndVirial, subGroupSize>(
+        auto kernel = makeSolveKernel<gridOrdering, computeEnergyAndVirial, workGroupSize, subGroupSize>(
                 cgh,
                 gridParams_->d_splineModuli[gridIndex],
                 solveKernelParams_,
@@ -451,8 +456,8 @@ sycl::event PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, subG
     return e;
 }
 
-template<GridOrdering gridOrdering, bool computeEnergyAndVirial, int gridIndex, int subGroupSize>
-void PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, subGroupSize>::reset()
+template<GridOrdering gridOrdering, bool computeEnergyAndVirial, int gridIndex, int workGroupSize, int subGroupSize>
+void PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, workGroupSize, subGroupSize>::reset()
 {
     gridParams_  = nullptr;
     constParams_ = nullptr;
@@ -468,22 +473,22 @@ void PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, subGroupSiz
 #    pragma clang diagnostic ignored "-Wweak-template-vtables"
 #endif
 
-#define INSTANTIATE(subGroupSize)                                             \
-    template class PmeSolveKernel<GridOrdering::XYZ, false, 0, subGroupSize>; \
-    template class PmeSolveKernel<GridOrdering::XYZ, true, 0, subGroupSize>;  \
-    template class PmeSolveKernel<GridOrdering::YZX, false, 0, subGroupSize>; \
-    template class PmeSolveKernel<GridOrdering::YZX, true, 0, subGroupSize>;  \
-    template class PmeSolveKernel<GridOrdering::XYZ, false, 1, subGroupSize>; \
-    template class PmeSolveKernel<GridOrdering::XYZ, true, 1, subGroupSize>;  \
-    template class PmeSolveKernel<GridOrdering::YZX, false, 1, subGroupSize>; \
-    template class PmeSolveKernel<GridOrdering::YZX, true, 1, subGroupSize>;
+#define INSTANTIATE(workGroupSize, subGroupSize)                                             \
+    template class PmeSolveKernel<GridOrdering::XYZ, false, 0, workGroupSize, subGroupSize>; \
+    template class PmeSolveKernel<GridOrdering::XYZ, true, 0, workGroupSize, subGroupSize>;  \
+    template class PmeSolveKernel<GridOrdering::YZX, false, 0, workGroupSize, subGroupSize>; \
+    template class PmeSolveKernel<GridOrdering::YZX, true, 0, workGroupSize, subGroupSize>;  \
+    template class PmeSolveKernel<GridOrdering::XYZ, false, 1, workGroupSize, subGroupSize>; \
+    template class PmeSolveKernel<GridOrdering::XYZ, true, 1, workGroupSize, subGroupSize>;  \
+    template class PmeSolveKernel<GridOrdering::YZX, false, 1, workGroupSize, subGroupSize>; \
+    template class PmeSolveKernel<GridOrdering::YZX, true, 1, workGroupSize, subGroupSize>;
 
 #if GMX_SYCL_DPCPP
-INSTANTIATE(16);
-INSTANTIATE(32);
+INSTANTIATE(128, 16); // Intel. Same as in OpenCL.
+INSTANTIATE(256, 32); // Nvidia. Same as in CUDA, 8 warps per block.
 #elif GMX_SYCL_HIPSYCL
-INSTANTIATE(32);
-INSTANTIATE(64);
+INSTANTIATE(256, 32); // Nvidia. Same as in CUDA, 8 warps per block.
+INSTANTIATE(512, 64); // Amd. Same as in OpenCL, 8 warps per block.
 #endif
 
 #ifdef __clang__

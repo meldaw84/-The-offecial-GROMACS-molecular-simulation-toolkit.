@@ -90,14 +90,6 @@ struct PmeGpuProgramImpl
     using PmeKernelHandle = ISyclKernelFunctor*;
 #endif
 
-    /*! \brief
-     * Maximum synchronous GPU thread group execution width.
-     * "Warp" is a CUDA term which we end up reusing in OpenCL kernels as well.
-     * For CUDA, this is a static value that comes from gromacs/gpu_utils/cuda_arch_utils.cuh;
-     * for OpenCL, we have to query it dynamically.
-     */
-    size_t warpSize_;
-
     //@{
     /**
      * Spread/spline kernels are compiled only for order of 4.
@@ -111,6 +103,7 @@ struct PmeGpuProgramImpl
      * two sets of coefficients) or on two grids (required for energy and virial
      * calculations).
      */
+    size_t spreadSubGroupSize;
     size_t spreadWorkGroupSize;
 
     PmeKernelHandle splineKernelSingle;
@@ -139,6 +132,7 @@ struct PmeGpuProgramImpl
      * The kernels are templated separately for using one or two grids (required for
      * calculating energies and virial).
      */
+    size_t gatherSubGroupSize;
     size_t gatherWorkGroupSize;
 
     PmeKernelHandle gatherKernelSingle;
@@ -156,6 +150,7 @@ struct PmeGpuProgramImpl
      * compute energy and virial, and supports XYZ and YZX grid orderings.
      * The kernels are templated separately for grids in state A and B.
      */
+    size_t solveSubGroupSize;
     size_t solveMaxWorkGroupSize;
 
     PmeKernelHandle solveYZXKernelA;
@@ -175,8 +170,8 @@ struct PmeGpuProgramImpl
     ~PmeGpuProgramImpl();
     GMX_DISALLOW_COPY_AND_ASSIGN(PmeGpuProgramImpl);
 
-    //! Return the warp size for which the kernels were compiled
-    int warpSize() const { return warpSize_; }
+    //! Return the warp size for which the solve kernels were compiled
+    int solveKernelWarpSize() const { return solveSubGroupSize; }
 
 private:
     // Compiles kernels, if supported. Called by the constructor.

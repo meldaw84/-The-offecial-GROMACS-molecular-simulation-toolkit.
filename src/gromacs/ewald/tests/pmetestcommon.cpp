@@ -595,7 +595,7 @@ static int pme_gpu_get_atoms_per_warp(const PmeGpu* pmeGpu)
     const int order = pmeGpu->common->pme_order;
     const int threadsPerAtom =
             (pmeGpu->settings.threadsPerAtom == ThreadsPerAtom::Order ? order : order * order);
-    return pmeGpu->programHandle_->warpSize() / threadsPerAtom;
+    return pmeGpu->programHandle_->solveKernelWarpSize() / threadsPerAtom;
 }
 
 /*! \brief Rearranges the atom spline data between the GPU and host layouts.

@@ -1513,6 +1513,7 @@ void pme_gpu_spread(const PmeGpu*                  pmeGpu,
                 pmeGpu, pmeGpu->settings.threadsPerAtom, writeGlobalOrSaveSplines, pmeGpu->common->ngrids);
     }
 
+    GMX_RELEASE_ASSERT(kernelPtr != nullptr, "Invalid PME Spline&Spread kernel choice");
 
     pme_gpu_start_timing(pmeGpu, timingId);
     auto* timingEvent = pme_gpu_fetch_timing_event(pmeGpu, timingId);
@@ -1714,12 +1715,14 @@ void pme_gpu_solve(const PmeGpu* pmeGpu,
     {
         cellsPerBlock = (gridLineSize + blocksPerGridLine - 1) / blocksPerGridLine;
     }
-    const int warpSize  = pmeGpu->programHandle_->warpSize();
+    const int warpSize  = pmeGpu->programHandle_->solveKernelWarpSize();
     const int blockSize = (cellsPerBlock + warpSize - 1) / warpSize * warpSize;
 
-    static_assert(!GMX_GPU_CUDA || c_solveMaxWarpsPerBlock / 2 >= 4,
+#if GMX_GPU_CUDA
+    static_assert(c_solveMaxWarpsPerBlock / 2 >= 4,
                   "The CUDA solve energy kernels needs at least 4 warps. "
                   "Here we launch at least half of the max warps.");
+#endif
 
     KernelLaunchConfig config;
     config.blockSize[0] = blockSize;
@@ -1945,6 +1948,7 @@ void pme_gpu_gather(PmeGpu* pmeGpu, real** h_grids, gmx_parallel_3dfft_t* fftSet
                                   pmeGpu->settings.threadsPerAtom,
                                   readGlobal || (!recalculateSplines),
                                   pmeGpu->common->ngrids);
+    GMX_RELEASE_ASSERT(kernelPtr != nullptr, "Invalid PME Gather kernel choice");
     // TODO design kernel selection getters and make PmeGpu a friend of PmeGpuProgramImpl
 
     pme_gpu_start_timing(pmeGpu, timingId);

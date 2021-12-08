@@ -81,8 +81,8 @@ inline void spread_charges(const float                  atomCharge,
                            const sycl::nd_item<3>&      itemIdx)
 {
     // Number of atoms processed by a single warp in spread and gather
-    const int threadsPerAtomValue = (threadsPerAtom == ThreadsPerAtom::Order) ? order : order * order;
-    const int atomsPerWarp        = subGroupSize / threadsPerAtomValue;
+    constexpr int threadsPerAtomValue = (threadsPerAtom == ThreadsPerAtom::Order) ? order : order * order;
+    constexpr int atomsPerWarp        = subGroupSize / threadsPerAtomValue;
 
     const int nx  = realGridSize[XX];
     const int ny  = realGridSize[YY];
@@ -174,7 +174,7 @@ inline void spread_charges(const float                  atomCharge,
  * \tparam threadsPerAtom How many threads work on each atom.
  * \tparam subGroupSize   Size of the sub-group.
  */
-template<int order, bool computeSplines, bool spreadCharges, bool wrapX, bool wrapY, int numGrids, bool writeGlobal, ThreadsPerAtom threadsPerAtom, int subGroupSize>
+template<int order, bool computeSplines, bool spreadCharges, bool wrapX, bool wrapY, int numGrids, bool writeGlobal, ThreadsPerAtom threadsPerAtom, int workGroupSize, int subGroupSize>
 auto pmeSplineAndSpreadKernel(
         sycl::handler&                                                            cgh,
         const int                                                                 nAtoms,
@@ -196,9 +196,9 @@ auto pmeSplineAndSpreadKernel(
         const gmx::RVec                                                     currentRecipBox1,
         const gmx::RVec                                                     currentRecipBox2)
 {
+    static_assert(workGroupSize % subGroupSize == 0);
     constexpr int threadsPerAtomValue = (threadsPerAtom == ThreadsPerAtom::Order) ? order : order * order;
-    constexpr int spreadMaxThreadsPerBlock = c_spreadMaxWarpsPerBlock * subGroupSize;
-    constexpr int atomsPerBlock            = spreadMaxThreadsPerBlock / threadsPerAtomValue;
+    constexpr int atomsPerBlock       = workGroupSize / threadsPerAtomValue;
     // Number of atoms processed by a single warp in spread and gather
     static_assert(subGroupSize >= threadsPerAtomValue);
     constexpr int atomsPerWarp = subGroupSize / threadsPerAtomValue;
@@ -238,7 +238,8 @@ auto pmeSplineAndSpreadKernel(
     sycl_2020::local_accessor<float, 1> sm_coefficients(sycl::range<1>(atomsPerBlock), cgh);
     // Spline values
     sycl_2020::local_accessor<float, 1> sm_theta(sycl::range<1>(atomsPerBlock * DIM * order), cgh);
-    auto                                sm_fractCoords = [&]() {
+    // Fractional coordinates
+    auto sm_fractCoords = [&]() {
         if constexpr (computeSplines)
         {
             return sycl_2020::local_accessor<float, 1>(sycl::range<1>(atomsPerBlock * DIM), cgh);
@@ -352,14 +353,14 @@ auto pmeSplineAndSpreadKernel(
     };
 }
 
-template<int order, bool computeSplines, bool spreadCharges, bool wrapX, bool wrapY, int numGrids, bool writeGlobal, ThreadsPerAtom threadsPerAtom, int subGroupSize>
-PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, numGrids, writeGlobal, threadsPerAtom, subGroupSize>::PmeSplineAndSpreadKernel()
+template<int order, bool computeSplines, bool spreadCharges, bool wrapX, bool wrapY, int numGrids, bool writeGlobal, ThreadsPerAtom threadsPerAtom, int workGroupSize, int subGroupSize>
+PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, numGrids, writeGlobal, threadsPerAtom, workGroupSize, subGroupSize>::PmeSplineAndSpreadKernel()
 {
     reset();
 }
 
-template<int order, bool computeSplines, bool spreadCharges, bool wrapX, bool wrapY, int numGrids, bool writeGlobal, ThreadsPerAtom threadsPerAtom, int subGroupSize>
-void PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, numGrids, writeGlobal, threadsPerAtom, subGroupSize>::setArg(
+template<int order, bool computeSplines, bool spreadCharges, bool wrapX, bool wrapY, int numGrids, bool writeGlobal, ThreadsPerAtom threadsPerAtom, int workGroupSize, int subGroupSize>
+void PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, numGrids, writeGlobal, threadsPerAtom, workGroupSize, subGroupSize>::setArg(
         size_t argIndex,
         void*  arg)
 {
@@ -377,9 +378,9 @@ void PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY
 }
 
 
-template<int order, bool computeSplines, bool spreadCharges, bool wrapX, bool wrapY, int numGrids, bool writeGlobal, ThreadsPerAtom threadsPerAtom, int subGroupSize>
+template<int order, bool computeSplines, bool spreadCharges, bool wrapX, bool wrapY, int numGrids, bool writeGlobal, ThreadsPerAtom threadsPerAtom, int workGroupSize, int subGroupSize>
 sycl::event
-PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, numGrids, writeGlobal, threadsPerAtom, subGroupSize>::launch(
+PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, numGrids, writeGlobal, threadsPerAtom, workGroupSize, subGroupSize>::launch(
         const KernelLaunchConfig& config,
         const DeviceStream&       deviceStream)
 {
@@ -388,10 +389,11 @@ PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, num
     GMX_RELEASE_ASSERT(dynamicParams_, "Can not launch the kernel before setting its args");
 
     using kernelNameType =
-            PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, numGrids, writeGlobal, threadsPerAtom, subGroupSize>;
+            PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, numGrids, writeGlobal, threadsPerAtom, workGroupSize, subGroupSize>;
 
     // SYCL has different multidimensional layout than OpenCL/CUDA.
     const sycl::range<3> localSize{ config.blockSize[2], config.blockSize[1], config.blockSize[0] };
+    GMX_RELEASE_ASSERT(localSize.size() == workGroupSize, "Incompatible work group size");
     const sycl::range<3> groupRange{ config.gridSize[2], config.gridSize[1], config.gridSize[0] };
     const sycl::nd_range<3> range{ groupRange * localSize, localSize };
 
@@ -400,7 +402,7 @@ PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, num
 
     sycl::event e = q.submit([&](sycl::handler& cgh) {
         auto kernel =
-                pmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, numGrids, writeGlobal, threadsPerAtom, subGroupSize>(
+                pmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, numGrids, writeGlobal, threadsPerAtom, workGroupSize, subGroupSize>(
                         cgh,
                         atomParams_->nAtoms,
                         gridParams_->d_realGrid[0],
@@ -430,8 +432,8 @@ PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, num
 }
 
 
-template<int order, bool computeSplines, bool spreadCharges, bool wrapX, bool wrapY, int numGrids, bool writeGlobal, ThreadsPerAtom threadsPerAtom, int subGroupSize>
-void PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, numGrids, writeGlobal, threadsPerAtom, subGroupSize>::reset()
+template<int order, bool computeSplines, bool spreadCharges, bool wrapX, bool wrapY, int numGrids, bool writeGlobal, ThreadsPerAtom threadsPerAtom, int workGroupSize, int subGroupSize>
+void PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, numGrids, writeGlobal, threadsPerAtom, workGroupSize, subGroupSize>::reset()
 {
     gridParams_    = nullptr;
     atomParams_    = nullptr;
@@ -449,27 +451,26 @@ void PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY
 #    pragma clang diagnostic ignored "-Wweak-template-vtables"
 #endif
 
-#define INSTANTIATE_3(order, computeSplines, spreadCharges, numGrids, writeGlobal, threadsPerAtom, subGroupSize) \
-    template class PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, true, true, numGrids, writeGlobal, threadsPerAtom, subGroupSize>;
+#define INSTANTIATE_3(                                                                                            \
+        order, computeSplines, spreadCharges, numGrids, writeGlobal, threadsPerAtom, workGroupSize, subGroupSize) \
+    template class PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, true, true, numGrids, writeGlobal, threadsPerAtom, workGroupSize, subGroupSize>;
 
-#define INSTANTIATE_2(order, numGrids, threadsPerAtom, subGroupSize)                 \
-    INSTANTIATE_3(order, true, true, numGrids, true, threadsPerAtom, subGroupSize);  \
-    INSTANTIATE_3(order, true, false, numGrids, true, threadsPerAtom, subGroupSize); \
-    INSTANTIATE_3(order, false, true, numGrids, true, threadsPerAtom, subGroupSize); \
-    INSTANTIATE_3(order, true, true, numGrids, false, threadsPerAtom, subGroupSize);
+#define INSTANTIATE_2(order, numGrids, threadsPerAtom, workGroupSize, subGroupSize)                 \
+    INSTANTIATE_3(order, true, true, numGrids, true, threadsPerAtom, workGroupSize, subGroupSize);  \
+    INSTANTIATE_3(order, true, false, numGrids, true, threadsPerAtom, workGroupSize, subGroupSize); \
+    INSTANTIATE_3(order, false, true, numGrids, true, threadsPerAtom, workGroupSize, subGroupSize); \
+    INSTANTIATE_3(order, true, true, numGrids, false, threadsPerAtom, workGroupSize, subGroupSize);
 
-#define INSTANTIATE(order, subGroupSize)                                 \
-    INSTANTIATE_2(order, 1, ThreadsPerAtom::Order, subGroupSize);        \
-    INSTANTIATE_2(order, 1, ThreadsPerAtom::OrderSquared, subGroupSize); \
-    INSTANTIATE_2(order, 2, ThreadsPerAtom::Order, subGroupSize);        \
-    INSTANTIATE_2(order, 2, ThreadsPerAtom::OrderSquared, subGroupSize);
+#define INSTANTIATE(order, workGroupSize, subGroupSize)                                 \
+    INSTANTIATE_2(order, 1, ThreadsPerAtom::OrderSquared, workGroupSize, subGroupSize); \
+    INSTANTIATE_2(order, 2, ThreadsPerAtom::OrderSquared, workGroupSize, subGroupSize);
 
 #if GMX_SYCL_DPCPP
-INSTANTIATE(4, 16); // TODO: Choose best value, Issue #4153.
-INSTANTIATE(4, 32);
+INSTANTIATE(4, 128, 16); // Intel. Same as in OpenCL. TODO: Choose best value, Issue #4153.
+INSTANTIATE(4, 256, 32); // Nvidia. Same as in CUDA, 8 warps per block.
 #elif GMX_SYCL_HIPSYCL
-INSTANTIATE(4, 32);
-INSTANTIATE(4, 64);
+INSTANTIATE(4, 256, 32); // Nvidia. Same as in CUDA, 8 warps per block.
+INSTANTIATE(4, 512, 64); // Nvidia. Same as in OpenCL, 8 warps per block.
 #endif
 
 #ifdef __clang__

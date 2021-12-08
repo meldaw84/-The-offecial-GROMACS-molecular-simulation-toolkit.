@@ -66,156 +66,167 @@ constexpr bool c_wrapY = true;
 constexpr int c_stateA = 0;
 constexpr int c_stateB = 1;
 
-static int subGroupSizeFromVendor(const DeviceInformation& deviceInfo)
-{
-    switch (deviceInfo.deviceVendor)
-    {
-        case DeviceVendor::Amd: return 64;   // Handle RDNA2 devices, Issue #3972.
-        case DeviceVendor::Intel: return 16; // TODO: Choose best value, Issue #4153.
-        case DeviceVendor::Nvidia: return 32;
-        default: GMX_RELEASE_ASSERT(false, "Unknown device vendor"); return 0;
-    }
-}
+#define INSTANTIATE_SPREAD_2(                                                                                     \
+        order, computeSplines, spreadCharges, numGrids, writeGlobal, threadsPerAtom, workGroupSize, subGroupSize) \
+    extern template class PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, true, true, numGrids, writeGlobal, threadsPerAtom, workGroupSize, subGroupSize>;
 
-#define INSTANTIATE_SPREAD_2(                                                                      \
-        order, computeSplines, spreadCharges, numGrids, writeGlobal, threadsPerAtom, subGroupSize) \
-    extern template class PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, true, true, numGrids, writeGlobal, threadsPerAtom, subGroupSize>;
+#define INSTANTIATE_SPREAD(order, numGrids, threadsPerAtom, workGroupSize, subGroupSize)                   \
+    INSTANTIATE_SPREAD_2(order, true, true, numGrids, true, threadsPerAtom, workGroupSize, subGroupSize);  \
+    INSTANTIATE_SPREAD_2(order, true, false, numGrids, true, threadsPerAtom, workGroupSize, subGroupSize); \
+    INSTANTIATE_SPREAD_2(order, false, true, numGrids, true, threadsPerAtom, workGroupSize, subGroupSize); \
+    INSTANTIATE_SPREAD_2(order, true, true, numGrids, false, threadsPerAtom, workGroupSize, subGroupSize);
 
-#define INSTANTIATE_SPREAD(order, numGrids, threadsPerAtom, subGroupSize)                   \
-    INSTANTIATE_SPREAD_2(order, true, true, numGrids, true, threadsPerAtom, subGroupSize);  \
-    INSTANTIATE_SPREAD_2(order, true, false, numGrids, true, threadsPerAtom, subGroupSize); \
-    INSTANTIATE_SPREAD_2(order, false, true, numGrids, true, threadsPerAtom, subGroupSize); \
-    INSTANTIATE_SPREAD_2(order, true, true, numGrids, false, threadsPerAtom, subGroupSize);
+#define INSTANTIATE_GATHER_2(order, numGrids, readGlobal, threadsPerAtom, workGroupSize, subGroupSize) \
+    extern template class PmeGatherKernel<order, true, true, numGrids, readGlobal, threadsPerAtom, workGroupSize, subGroupSize>;
 
-#define INSTANTIATE_GATHER_2(order, numGrids, readGlobal, threadsPerAtom, subGroupSize) \
-    extern template class PmeGatherKernel<order, true, true, numGrids, readGlobal, threadsPerAtom, subGroupSize>;
+#define INSTANTIATE_GATHER(order, numGrids, threadsPerAtom, workGroupSize, subGroupSize)      \
+    INSTANTIATE_GATHER_2(order, numGrids, true, threadsPerAtom, workGroupSize, subGroupSize); \
+    INSTANTIATE_GATHER_2(order, numGrids, false, threadsPerAtom, workGroupSize, subGroupSize);
 
-#define INSTANTIATE_GATHER(order, numGrids, threadsPerAtom, subGroupSize)      \
-    INSTANTIATE_GATHER_2(order, numGrids, true, threadsPerAtom, subGroupSize); \
-    INSTANTIATE_GATHER_2(order, numGrids, false, threadsPerAtom, subGroupSize);
+#define INSTANTIATE_X(x, order, workGroupSize, subGroupSize)                              \
+    INSTANTIATE_##x(order, 1, ThreadsPerAtom::OrderSquared, workGroupSize, subGroupSize); \
+    INSTANTIATE_##x(order, 2, ThreadsPerAtom::OrderSquared, workGroupSize, subGroupSize);
 
-#define INSTANTIATE_X(x, order, subGroupSize)                              \
-    INSTANTIATE_##x(order, 1, ThreadsPerAtom::Order, subGroupSize);        \
-    INSTANTIATE_##x(order, 1, ThreadsPerAtom::OrderSquared, subGroupSize); \
-    INSTANTIATE_##x(order, 2, ThreadsPerAtom::Order, subGroupSize);        \
-    INSTANTIATE_##x(order, 2, ThreadsPerAtom::OrderSquared, subGroupSize);
+#define INSTANTIATE_SOLVE(workGroupSize, subGroupSize)                                                     \
+    extern template class PmeSolveKernel<GridOrdering::XYZ, false, c_stateA, workGroupSize, subGroupSize>; \
+    extern template class PmeSolveKernel<GridOrdering::XYZ, true, c_stateA, workGroupSize, subGroupSize>;  \
+    extern template class PmeSolveKernel<GridOrdering::YZX, false, c_stateA, workGroupSize, subGroupSize>; \
+    extern template class PmeSolveKernel<GridOrdering::YZX, true, c_stateA, workGroupSize, subGroupSize>;  \
+    extern template class PmeSolveKernel<GridOrdering::XYZ, false, c_stateB, workGroupSize, subGroupSize>; \
+    extern template class PmeSolveKernel<GridOrdering::XYZ, true, c_stateB, workGroupSize, subGroupSize>;  \
+    extern template class PmeSolveKernel<GridOrdering::YZX, false, c_stateB, workGroupSize, subGroupSize>; \
+    extern template class PmeSolveKernel<GridOrdering::YZX, true, c_stateB, workGroupSize, subGroupSize>;
 
-#define INSTANTIATE_SOLVE(subGroupSize)                                                     \
-    extern template class PmeSolveKernel<GridOrdering::XYZ, false, c_stateA, subGroupSize>; \
-    extern template class PmeSolveKernel<GridOrdering::XYZ, true, c_stateA, subGroupSize>;  \
-    extern template class PmeSolveKernel<GridOrdering::YZX, false, c_stateA, subGroupSize>; \
-    extern template class PmeSolveKernel<GridOrdering::YZX, true, c_stateA, subGroupSize>;  \
-    extern template class PmeSolveKernel<GridOrdering::XYZ, false, c_stateB, subGroupSize>; \
-    extern template class PmeSolveKernel<GridOrdering::XYZ, true, c_stateB, subGroupSize>;  \
-    extern template class PmeSolveKernel<GridOrdering::YZX, false, c_stateB, subGroupSize>; \
-    extern template class PmeSolveKernel<GridOrdering::YZX, true, c_stateB, subGroupSize>;
-
-#define INSTANTIATE(order, subGroupSize)        \
-    INSTANTIATE_X(SPREAD, order, subGroupSize); \
-    INSTANTIATE_X(GATHER, order, subGroupSize); \
-    INSTANTIATE_SOLVE(subGroupSize);
+#define INSTANTIATE_ALL(order, workGroupSize, subGroupSize)    \
+    INSTANTIATE_X(SPREAD, order, workGroupSize, subGroupSize); \
+    INSTANTIATE_X(GATHER, order, workGroupSize, subGroupSize); \
+    INSTANTIATE_SOLVE(workGroupSize, subGroupSize);
 
 #if GMX_SYCL_DPCPP
-INSTANTIATE(4, 16);
-INSTANTIATE(4, 32);
+INSTANTIATE_X(SPREAD, 4, 128, 16); // Intel
+INSTANTIATE_X(SPREAD, 4, 256, 32); // Nvidia
+INSTANTIATE_SOLVE(128, 16);        // Intel
+INSTANTIATE_SOLVE(256, 32);        // Nvidia
+INSTANTIATE_X(GATHER, 4, 64, 16);  // Intel
+INSTANTIATE_X(GATHER, 4, 128, 32); // Nvidia
 #elif GMX_SYCL_HIPSYCL
-INSTANTIATE(4, 32);
-INSTANTIATE(4, 64);
+INSTANTIATE_X(SPREAD, 4, 256, 32); // Nvidia
+INSTANTIATE_X(SPREAD, 4, 512, 64); // Amd
+INSTANTIATE_SOLVE(256, 32);        // Nvidia
+INSTANTIATE_SOLVE(512, 64);        // Amd
+INSTANTIATE_ALL(4, 128, 32);       // NVIDIA
+INSTANTIATE_ALL(4, 256, 64);       // Amd
 #endif
 
 //! Helper function to set proper kernel functor pointers
-template<int subGroupSize>
-static void setKernelPointers(struct PmeGpuProgramImpl* pmeGpuProgram)
+template<int workGroupSize, int subGroupSize>
+static void setKernelPointersSpread(struct PmeGpuProgramImpl* pmeGpuProgram)
 {
+    pmeGpuProgram->spreadWorkGroupSize = workGroupSize;
+    pmeGpuProgram->spreadSubGroupSize  = subGroupSize;
+
     /* Not all combinations of the splineAndSpread, spline and Spread kernels are required
      * If only the spline (without the spread) then it does not make sense not to write the data to global memory
      * Similarly the spread kernel (without the spline) implies that we should read the spline data from global memory
      */
     pmeGpuProgram->splineAndSpreadKernelSingle =
-            new PmeSplineAndSpreadKernel<c_pmeOrder, true, true, c_wrapX, c_wrapY, 1, false, ThreadsPerAtom::OrderSquared, subGroupSize>();
-    pmeGpuProgram->splineAndSpreadKernelThPerAtom4Single =
-            new PmeSplineAndSpreadKernel<c_pmeOrder, true, true, c_wrapX, c_wrapY, 1, false, ThreadsPerAtom::Order, subGroupSize>();
+            new PmeSplineAndSpreadKernel<c_pmeOrder, true, true, c_wrapX, c_wrapY, 1, false, ThreadsPerAtom::OrderSquared, workGroupSize, subGroupSize>();
+    pmeGpuProgram->splineAndSpreadKernelThPerAtom4Single = nullptr;
     pmeGpuProgram->splineAndSpreadKernelWriteSplinesSingle =
-            new PmeSplineAndSpreadKernel<c_pmeOrder, true, true, c_wrapX, c_wrapY, 1, true, ThreadsPerAtom::OrderSquared, subGroupSize>();
-    pmeGpuProgram->splineAndSpreadKernelWriteSplinesThPerAtom4Single =
-            new PmeSplineAndSpreadKernel<c_pmeOrder, true, true, c_wrapX, c_wrapY, 1, true, ThreadsPerAtom::Order, subGroupSize>();
+            new PmeSplineAndSpreadKernel<c_pmeOrder, true, true, c_wrapX, c_wrapY, 1, true, ThreadsPerAtom::OrderSquared, workGroupSize, subGroupSize>();
+    pmeGpuProgram->splineAndSpreadKernelWriteSplinesThPerAtom4Single = nullptr;
     pmeGpuProgram->splineKernelSingle =
-            new PmeSplineAndSpreadKernel<c_pmeOrder, true, false, c_wrapX, c_wrapY, 1, true, ThreadsPerAtom::OrderSquared, subGroupSize>();
-    pmeGpuProgram->splineKernelThPerAtom4Single =
-            new PmeSplineAndSpreadKernel<c_pmeOrder, true, false, c_wrapX, c_wrapY, 1, true, ThreadsPerAtom::Order, subGroupSize>();
+            new PmeSplineAndSpreadKernel<c_pmeOrder, true, false, c_wrapX, c_wrapY, 1, true, ThreadsPerAtom::OrderSquared, workGroupSize, subGroupSize>();
+    pmeGpuProgram->splineKernelThPerAtom4Single = nullptr;
     pmeGpuProgram->spreadKernelSingle =
-            new PmeSplineAndSpreadKernel<c_pmeOrder, false, true, c_wrapX, c_wrapY, 1, true, ThreadsPerAtom::OrderSquared, subGroupSize>();
-    pmeGpuProgram->spreadKernelThPerAtom4Single =
-            new PmeSplineAndSpreadKernel<c_pmeOrder, false, true, c_wrapX, c_wrapY, 1, true, ThreadsPerAtom::Order, subGroupSize>();
+            new PmeSplineAndSpreadKernel<c_pmeOrder, false, true, c_wrapX, c_wrapY, 1, true, ThreadsPerAtom::OrderSquared, workGroupSize, subGroupSize>();
+    pmeGpuProgram->spreadKernelThPerAtom4Single = nullptr;
     pmeGpuProgram->splineAndSpreadKernelDual =
-            new PmeSplineAndSpreadKernel<c_pmeOrder, true, true, c_wrapX, c_wrapY, 2, false, ThreadsPerAtom::OrderSquared, subGroupSize>();
-    pmeGpuProgram->splineAndSpreadKernelThPerAtom4Dual =
-            new PmeSplineAndSpreadKernel<c_pmeOrder, true, true, c_wrapX, c_wrapY, 2, false, ThreadsPerAtom::Order, subGroupSize>();
+            new PmeSplineAndSpreadKernel<c_pmeOrder, true, true, c_wrapX, c_wrapY, 2, false, ThreadsPerAtom::OrderSquared, workGroupSize, subGroupSize>();
+    pmeGpuProgram->splineAndSpreadKernelThPerAtom4Dual = nullptr;
     pmeGpuProgram->splineAndSpreadKernelWriteSplinesDual =
-            new PmeSplineAndSpreadKernel<c_pmeOrder, true, true, c_wrapX, c_wrapY, 2, true, ThreadsPerAtom::OrderSquared, subGroupSize>();
-    pmeGpuProgram->splineAndSpreadKernelWriteSplinesThPerAtom4Dual =
-            new PmeSplineAndSpreadKernel<c_pmeOrder, true, true, c_wrapX, c_wrapY, 2, true, ThreadsPerAtom::Order, subGroupSize>();
+            new PmeSplineAndSpreadKernel<c_pmeOrder, true, true, c_wrapX, c_wrapY, 2, true, ThreadsPerAtom::OrderSquared, workGroupSize, subGroupSize>();
+    pmeGpuProgram->splineAndSpreadKernelWriteSplinesThPerAtom4Dual = nullptr;
     pmeGpuProgram->splineKernelDual =
-            new PmeSplineAndSpreadKernel<c_pmeOrder, true, false, c_wrapX, c_wrapY, 2, true, ThreadsPerAtom::OrderSquared, subGroupSize>();
-    pmeGpuProgram->splineKernelThPerAtom4Dual =
-            new PmeSplineAndSpreadKernel<c_pmeOrder, true, false, c_wrapX, c_wrapY, 2, true, ThreadsPerAtom::Order, subGroupSize>();
+            new PmeSplineAndSpreadKernel<c_pmeOrder, true, false, c_wrapX, c_wrapY, 2, true, ThreadsPerAtom::OrderSquared, workGroupSize, subGroupSize>();
+    pmeGpuProgram->splineKernelThPerAtom4Dual = nullptr;
     pmeGpuProgram->spreadKernelDual =
-            new PmeSplineAndSpreadKernel<c_pmeOrder, false, true, c_wrapX, c_wrapY, 2, true, ThreadsPerAtom::OrderSquared, subGroupSize>();
-    pmeGpuProgram->spreadKernelThPerAtom4Dual =
-            new PmeSplineAndSpreadKernel<c_pmeOrder, false, true, c_wrapX, c_wrapY, 2, true, ThreadsPerAtom::Order, subGroupSize>();
+            new PmeSplineAndSpreadKernel<c_pmeOrder, false, true, c_wrapX, c_wrapY, 2, true, ThreadsPerAtom::OrderSquared, workGroupSize, subGroupSize>();
+    pmeGpuProgram->spreadKernelThPerAtom4Dual = nullptr;
+}
+//! Helper function to set proper kernel functor pointers
+template<int workGroupSize, int subGroupSize>
+static void setKernelPointersGather(struct PmeGpuProgramImpl* pmeGpuProgram)
+{
+    pmeGpuProgram->gatherWorkGroupSize = workGroupSize;
+    pmeGpuProgram->gatherSubGroupSize  = subGroupSize;
+
     pmeGpuProgram->gatherKernelSingle =
-            new PmeGatherKernel<c_pmeOrder, c_wrapX, c_wrapY, 1, false, ThreadsPerAtom::OrderSquared, subGroupSize>();
-    pmeGpuProgram->gatherKernelThPerAtom4Single =
-            new PmeGatherKernel<c_pmeOrder, c_wrapX, c_wrapY, 1, false, ThreadsPerAtom::Order, subGroupSize>();
+            new PmeGatherKernel<c_pmeOrder, c_wrapX, c_wrapY, 1, false, ThreadsPerAtom::OrderSquared, workGroupSize, subGroupSize>();
+    pmeGpuProgram->gatherKernelThPerAtom4Single = nullptr;
     pmeGpuProgram->gatherKernelReadSplinesSingle =
-            new PmeGatherKernel<c_pmeOrder, c_wrapX, c_wrapY, 1, true, ThreadsPerAtom::OrderSquared, subGroupSize>();
-    pmeGpuProgram->gatherKernelReadSplinesThPerAtom4Single =
-            new PmeGatherKernel<c_pmeOrder, c_wrapX, c_wrapY, 1, true, ThreadsPerAtom::Order, subGroupSize>();
+            new PmeGatherKernel<c_pmeOrder, c_wrapX, c_wrapY, 1, true, ThreadsPerAtom::OrderSquared, workGroupSize, subGroupSize>();
+    pmeGpuProgram->gatherKernelReadSplinesThPerAtom4Single = nullptr;
     pmeGpuProgram->gatherKernelDual =
-            new PmeGatherKernel<c_pmeOrder, c_wrapX, c_wrapY, 2, false, ThreadsPerAtom::OrderSquared, subGroupSize>();
-    pmeGpuProgram->gatherKernelThPerAtom4Dual =
-            new PmeGatherKernel<c_pmeOrder, c_wrapX, c_wrapY, 2, false, ThreadsPerAtom::Order, subGroupSize>();
+            new PmeGatherKernel<c_pmeOrder, c_wrapX, c_wrapY, 2, false, ThreadsPerAtom::OrderSquared, workGroupSize, subGroupSize>();
+    pmeGpuProgram->gatherKernelThPerAtom4Dual = nullptr;
     pmeGpuProgram->gatherKernelReadSplinesDual =
-            new PmeGatherKernel<c_pmeOrder, c_wrapX, c_wrapY, 2, true, ThreadsPerAtom::OrderSquared, subGroupSize>();
-    pmeGpuProgram->gatherKernelReadSplinesThPerAtom4Dual =
-            new PmeGatherKernel<c_pmeOrder, c_wrapX, c_wrapY, 2, true, ThreadsPerAtom::Order, subGroupSize>();
+            new PmeGatherKernel<c_pmeOrder, c_wrapX, c_wrapY, 2, true, ThreadsPerAtom::OrderSquared, workGroupSize, subGroupSize>();
+    pmeGpuProgram->gatherKernelReadSplinesThPerAtom4Dual = nullptr;
+}
+
+//! Helper function to set proper kernel functor pointers
+template<int workGroupSize, int subGroupSize>
+static void setKernelPointersSolve(struct PmeGpuProgramImpl* pmeGpuProgram)
+{
+    pmeGpuProgram->solveMaxWorkGroupSize = workGroupSize;
+    pmeGpuProgram->solveSubGroupSize     = subGroupSize;
+
     pmeGpuProgram->solveXYZKernelA =
-            new PmeSolveKernel<GridOrdering::XYZ, false, c_stateA, subGroupSize>();
+            new PmeSolveKernel<GridOrdering::XYZ, false, c_stateA, workGroupSize, subGroupSize>();
     pmeGpuProgram->solveXYZEnergyKernelA =
-            new PmeSolveKernel<GridOrdering::XYZ, true, c_stateA, subGroupSize>();
+            new PmeSolveKernel<GridOrdering::XYZ, true, c_stateA, workGroupSize, subGroupSize>();
     pmeGpuProgram->solveYZXKernelA =
-            new PmeSolveKernel<GridOrdering::YZX, false, c_stateA, subGroupSize>();
+            new PmeSolveKernel<GridOrdering::YZX, false, c_stateA, workGroupSize, subGroupSize>();
     pmeGpuProgram->solveYZXEnergyKernelA =
-            new PmeSolveKernel<GridOrdering::YZX, true, c_stateA, subGroupSize>();
+            new PmeSolveKernel<GridOrdering::YZX, true, c_stateA, workGroupSize, subGroupSize>();
     pmeGpuProgram->solveXYZKernelB =
-            new PmeSolveKernel<GridOrdering::XYZ, false, c_stateB, subGroupSize>();
+            new PmeSolveKernel<GridOrdering::XYZ, false, c_stateB, workGroupSize, subGroupSize>();
     pmeGpuProgram->solveXYZEnergyKernelB =
-            new PmeSolveKernel<GridOrdering::XYZ, true, c_stateB, subGroupSize>();
+            new PmeSolveKernel<GridOrdering::XYZ, true, c_stateB, workGroupSize, subGroupSize>();
     pmeGpuProgram->solveYZXKernelB =
-            new PmeSolveKernel<GridOrdering::YZX, false, c_stateB, subGroupSize>();
+            new PmeSolveKernel<GridOrdering::YZX, false, c_stateB, workGroupSize, subGroupSize>();
     pmeGpuProgram->solveYZXEnergyKernelB =
-            new PmeSolveKernel<GridOrdering::YZX, true, c_stateB, subGroupSize>();
+            new PmeSolveKernel<GridOrdering::YZX, true, c_stateB, workGroupSize, subGroupSize>();
 }
 
 PmeGpuProgramImpl::PmeGpuProgramImpl(const DeviceContext& deviceContext) :
     deviceContext_(deviceContext)
 {
-    // kernel parameters
-    warpSize_             = subGroupSizeFromVendor(deviceContext.deviceInfo());
-    spreadWorkGroupSize   = c_spreadMaxWarpsPerBlock * warpSize_;
-    solveMaxWorkGroupSize = c_solveMaxWarpsPerBlock * warpSize_;
-    gatherWorkGroupSize   = c_gatherMaxWarpsPerBlock * warpSize_;
+    const DeviceInformation& deviceInfo = deviceContext.deviceInfo();
 
-    switch (warpSize_)
+    switch (deviceInfo.deviceVendor)
     {
 #if GMX_SYCL_DPCPP
-        case 16: setKernelPointers<16>(this); break;
-        case 32: setKernelPointers<32>(this); break;
-#elif GMX_SYCL_HIPSYCL
-        case 32: setKernelPointers<32>(this); break;
-        case 64: setKernelPointers<64>(this); break;
+        case DeviceVendor::Intel:
+            setKernelPointersSpread<128, 16>(this);
+            setKernelPointersSolve<128, 16>(this);
+            setKernelPointersGather<64, 16>(this);
+            break;
 #endif
-        default: GMX_RELEASE_ASSERT(false, "Invalid sub group size");
+        case DeviceVendor::Nvidia:
+            setKernelPointersSpread<256, 32>(this);
+            setKernelPointersSolve<256, 32>(this);
+            setKernelPointersGather<128, 32>(this);
+            break;
+#if GMX_SYCL_HIPSYCL
+        case DeviceVendor::Amd:
+            setKernelPointersSpread<512, 64>(this);
+            setKernelPointersSolve<512, 64>(this);
+            setKernelPointersGather<256, 64>(this);
+            break;
+#endif
+        default: GMX_RELEASE_ASSERT(false, "Device vendor not supported");
     }
 }
 

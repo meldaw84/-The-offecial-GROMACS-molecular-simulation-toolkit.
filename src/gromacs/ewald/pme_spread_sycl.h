@@ -51,7 +51,7 @@ struct PmeGpuGridParams;
 struct PmeGpuAtomParams;
 struct PmeGpuDynamicParams;
 
-template<int order, bool computeSplines, bool spreadCharges, bool wrapX, bool wrapY, int numGrids, bool writeGlobal, ThreadsPerAtom threadsPerAtom, int subGroupSize>
+template<int order, bool computeSplines, bool spreadCharges, bool wrapX, bool wrapY, int numGrids, bool writeGlobal, ThreadsPerAtom threadsPerAtom, int workGroupSize, int subGroupSize>
 class PmeSplineAndSpreadKernel : public ISyclKernelFunctor
 {
 public:

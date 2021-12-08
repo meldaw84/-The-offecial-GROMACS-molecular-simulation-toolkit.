@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2018,2019,2020, by the GROMACS development team, led by
+ * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
  * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
  * and including many others, as listed in the AUTHORS file in the
  * top-level source directory and at http://www.gromacs.org.
@@ -125,13 +125,8 @@ enum class ThreadsPerAtom : int
     Count
 };
 
-/*
- * The execution widths for PME GPU kernels, used both on host and device for correct scheduling.
- * TODO: those were tuned for CUDA with assumption of warp size 32; specialize those for OpenCL
- * (Issue #2528).
- * As noted below, these are very approximate maximum sizes; in run time we might have to use
- * smaller block/workgroup sizes, depending on device capabilities.
- */
+
+#if GMX_GPU_CUDA
 
 //! Spreading max block width in warps picked among powers of 2 (2, 4, 8, 16) for max. occupancy and min. runtime in most cases
 constexpr int c_spreadMaxWarpsPerBlock = 8;
@@ -142,16 +137,6 @@ constexpr int c_solveMaxWarpsPerBlock = 8;
 
 //! Gathering max block width in warps - picked empirically among 2, 4, 8, 16 for max. occupancy and min. runtime
 constexpr int c_gatherMaxWarpsPerBlock = 4;
-
-#if GMX_GPU_CUDA
-/* All the fields below are dependent on warp_size and should
- * ideally be removed from the device-side code, as we have to
- * do that for OpenCL already.
- *
- * They also express maximum desired block/workgroup sizes,
- * while both with CUDA and OpenCL we have to treat the device
- * runtime limitations gracefully as well.
- */
 
 //! Spreading max block size in threads
 static constexpr int c_spreadMaxThreadsPerBlock = c_spreadMaxWarpsPerBlock * warp_size;

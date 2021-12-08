@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2018,2019,2020, by the GROMACS development team, led by
+ * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
  * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
  * and including many others, as listed in the AUTHORS file in the
  * top-level source directory and at http://www.gromacs.org.
@@ -58,12 +58,31 @@ PmeGpuProgramImpl::PmeGpuProgramImpl(const DeviceContext& deviceContext) :
 {
     const DeviceInformation& deviceInfo = deviceContext.deviceInfo();
     // kernel parameters
-    warpSize_ = gmx::ocl::getDeviceWarpSize(deviceContext_.context(), deviceInfo.oclDeviceId);
-    // TODO: for Intel ideally we'd want to set these based on the compiler warp size
-    // but given that we've done no tuning for Intel iGPU, this is as good as anything.
-    spreadWorkGroupSize = std::min(c_spreadMaxWarpsPerBlock * warpSize_, deviceInfo.maxWorkGroupSize);
-    solveMaxWorkGroupSize = std::min(c_solveMaxWarpsPerBlock * warpSize_, deviceInfo.maxWorkGroupSize);
-    gatherWorkGroupSize = std::min(c_gatherMaxWarpsPerBlock * warpSize_, deviceInfo.maxWorkGroupSize);
+
+    /* Note: on Intel, it returns the largest warp size supported by the device, not the
+     * one used for compiling kernels. But that tends to be okay. */
+    const size_t warpSize = gmx::ocl::getDeviceWarpSize(deviceContext_.context(), deviceInfo.oclDeviceId);
+
+    /* Note: those were tuned for CUDA with assumption of warp size 32.
+     * These are very approximate maximum sizes; in run time we might have to use
+     * smaller block/workgroup sizes, depending on device capabilities. */
+
+    // Spreading max block width in warps picked among powers of 2 (2, 4, 8, 16) for max. occupancy
+    // and min. runtime in most cases
+    constexpr int c_spreadMaxWarpsPerBlock = 8;
+
+    // Solving kernel max block width in warps picked among powers of 2 (2, 4, 8, 16) for max.
+    // occupancy and min. runtime (560Ti (CC2.1), 660Ti (CC3.0) and 750 (CC5.0)))
+    constexpr int c_solveMaxWarpsPerBlock = 8;
+
+    // Gathering max block width in warps - picked empirically among 2, 4, 8, 16 for max. occupancy
+    // and min. runtime
+    constexpr int c_gatherMaxWarpsPerBlock = 4;
+
+    spreadSubGroupSize = solveSubGroupSize = gatherSubGroupSize = warpSize;
+    spreadWorkGroupSize = std::min(c_spreadMaxWarpsPerBlock * warpSize, deviceInfo.maxWorkGroupSize);
+    solveMaxWorkGroupSize = std::min(c_solveMaxWarpsPerBlock * warpSize, deviceInfo.maxWorkGroupSize);
+    gatherWorkGroupSize = std::min(c_gatherMaxWarpsPerBlock * warpSize, deviceInfo.maxWorkGroupSize);
 
     compileKernels(deviceInfo);
 }
@@ -130,6 +149,11 @@ void PmeGpuProgramImpl::compileKernels(const DeviceInformation& deviceInfo)
 {
     // We might consider storing program as a member variable if it's needed later
     cl_program program = nullptr;
+    GMX_RELEASE_ASSERT(solveSubGroupSize == spreadSubGroupSize,
+                       "In OpenCL, all subgroup sizes must match");
+    GMX_RELEASE_ASSERT(solveSubGroupSize == gatherSubGroupSize,
+                       "In OpenCL, all subgroup sizes must match");
+    const size_t warpSize = solveSubGroupSize;
     /* Need to catch std::bad_alloc here and during compilation string handling. */
     try
     {
@@ -154,7 +178,7 @@ void PmeGpuProgramImpl::compileKernels(const DeviceInformation& deviceInfo)
                 "-DDIM=%d -DXX=%d -DYY=%d -DZZ=%d "
                 // decomposition parameter placeholders
                 "-DwrapX=true -DwrapY=true ",
-                warpSize_,
+                warpSize,
                 c_pmeGpuOrder,
                 c_pmeGpuOrder * c_pmeGpuOrder,
                 static_cast<float>(c_pmeMaxUnitcellShift),

@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2018,2019,2020, by the GROMACS development team, led by
+ * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
  * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
  * and including many others, as listed in the AUTHORS file in the
  * top-level source directory and at http://www.gromacs.org.
@@ -73,7 +73,7 @@ public:
     ~PmeGpuProgram();
 
     //! Return the warp size for which the kernels were compiled
-    int warpSize() const;
+    int solveKernelWarpSize() const;
 
     // TODO: design more getters for information inside, if needed for PME, and make this private?
     //! Private impl class

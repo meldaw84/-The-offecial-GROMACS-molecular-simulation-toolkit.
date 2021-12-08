@@ -275,7 +275,7 @@ inline void calculateAndStoreGridForces(sycl::local_ptr<Float3>             sm_f
  * \tparam threadsPerAtom How many threads work on each atom.
  * \tparam subGroupSize   Size of the sub-group.
  */
-template<int order, bool wrapX, bool wrapY, int numGrids, bool readGlobal, ThreadsPerAtom threadsPerAtom, int subGroupSize>
+template<int order, bool wrapX, bool wrapY, int numGrids, bool readGlobal, ThreadsPerAtom threadsPerAtom, int workGroupSize, int subGroupSize>
 auto pmeGatherKernel(sycl::handler&                                     cgh,
                      const int                                          nAtoms,
                      DeviceAccessor<float, mode::read>                  a_gridA,
@@ -302,7 +302,7 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
 
     constexpr int threadsPerAtomValue = (threadsPerAtom == ThreadsPerAtom::Order) ? order : order * order;
     constexpr int atomDataSize        = threadsPerAtomValue;
-    constexpr int atomsPerBlock       = (c_gatherMaxWarpsPerBlock * subGroupSize) / atomDataSize;
+    constexpr int atomsPerBlock       = workGroupSize / atomDataSize;
     // Number of atoms processed by a single warp in spread and gather
     static_assert(subGroupSize >= atomDataSize);
     constexpr int atomsPerWarp        = subGroupSize / atomDataSize;
@@ -619,14 +619,14 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
     };
 }
 
-template<int order, bool wrapX, bool wrapY, int numGrids, bool readGlobal, ThreadsPerAtom threadsPerAtom, int subGroupSize>
-PmeGatherKernel<order, wrapX, wrapY, numGrids, readGlobal, threadsPerAtom, subGroupSize>::PmeGatherKernel()
+template<int order, bool wrapX, bool wrapY, int numGrids, bool readGlobal, ThreadsPerAtom threadsPerAtom, int workGroupSize, int subGroupSize>
+PmeGatherKernel<order, wrapX, wrapY, numGrids, readGlobal, threadsPerAtom, workGroupSize, subGroupSize>::PmeGatherKernel()
 {
     reset();
 }
 
-template<int order, bool wrapX, bool wrapY, int numGrids, bool readGlobal, ThreadsPerAtom threadsPerAtom, int subGroupSize>
-void PmeGatherKernel<order, wrapX, wrapY, numGrids, readGlobal, threadsPerAtom, subGroupSize>::setArg(
+template<int order, bool wrapX, bool wrapY, int numGrids, bool readGlobal, ThreadsPerAtom threadsPerAtom, int workGroupSize, int subGroupSize>
+void PmeGatherKernel<order, wrapX, wrapY, numGrids, readGlobal, threadsPerAtom, workGroupSize, subGroupSize>::setArg(
         size_t argIndex,
         void*  arg)
 {
@@ -644,8 +644,9 @@ void PmeGatherKernel<order, wrapX, wrapY, numGrids, readGlobal, threadsPerAtom, 
 }
 
 
-template<int order, bool wrapX, bool wrapY, int numGrids, bool readGlobal, ThreadsPerAtom threadsPerAtom, int subGroupSize>
-sycl::event PmeGatherKernel<order, wrapX, wrapY, numGrids, readGlobal, threadsPerAtom, subGroupSize>::launch(
+template<int order, bool wrapX, bool wrapY, int numGrids, bool readGlobal, ThreadsPerAtom threadsPerAtom, int workGroupSize, int subGroupSize>
+sycl::event
+PmeGatherKernel<order, wrapX, wrapY, numGrids, readGlobal, threadsPerAtom, workGroupSize, subGroupSize>::launch(
         const KernelLaunchConfig& config,
         const DeviceStream&       deviceStream)
 {
@@ -654,38 +655,40 @@ sycl::event PmeGatherKernel<order, wrapX, wrapY, numGrids, readGlobal, threadsPe
     GMX_RELEASE_ASSERT(dynamicParams_, "Can not launch the kernel before setting its args");
 
     using kernelNameType =
-            PmeGatherKernel<order, wrapX, wrapY, numGrids, readGlobal, threadsPerAtom, subGroupSize>;
+            PmeGatherKernel<order, wrapX, wrapY, numGrids, readGlobal, threadsPerAtom, workGroupSize, subGroupSize>;
 
     // SYCL has different multidimensional layout than OpenCL/CUDA.
     const sycl::range<3> localSize{ config.blockSize[2], config.blockSize[1], config.blockSize[0] };
+    GMX_RELEASE_ASSERT(localSize.size() == workGroupSize, "Incompatible work group size");
     const sycl::range<3> groupRange{ config.gridSize[2], config.gridSize[1], config.gridSize[0] };
     const sycl::nd_range<3> range{ groupRange * localSize, localSize };
 
     sycl::queue q = deviceStream.stream();
 
     sycl::event e = q.submit([&](sycl::handler& cgh) {
-        auto kernel = pmeGatherKernel<order, wrapX, wrapY, numGrids, readGlobal, threadsPerAtom, subGroupSize>(
-                cgh,
-                atomParams_->nAtoms,
-                gridParams_->d_realGrid[0],
-                gridParams_->d_realGrid[1],
-                atomParams_->d_coefficients[0],
-                atomParams_->d_coefficients[1],
-                atomParams_->d_coordinates,
-                atomParams_->d_forces,
-                atomParams_->d_theta,
-                atomParams_->d_dtheta,
-                atomParams_->d_gridlineIndices,
-                gridParams_->d_fractShiftsTable,
-                gridParams_->d_gridlineIndicesTable,
-                gridParams_->tablesOffsets,
-                gridParams_->realGridSize,
-                gridParams_->realGridSizeFP,
-                gridParams_->realGridSizePadded,
-                dynamicParams_->recipBox[0],
-                dynamicParams_->recipBox[1],
-                dynamicParams_->recipBox[2],
-                dynamicParams_->scale);
+        auto kernel =
+                pmeGatherKernel<order, wrapX, wrapY, numGrids, readGlobal, threadsPerAtom, workGroupSize, subGroupSize>(
+                        cgh,
+                        atomParams_->nAtoms,
+                        gridParams_->d_realGrid[0],
+                        gridParams_->d_realGrid[1],
+                        atomParams_->d_coefficients[0],
+                        atomParams_->d_coefficients[1],
+                        atomParams_->d_coordinates,
+                        atomParams_->d_forces,
+                        atomParams_->d_theta,
+                        atomParams_->d_dtheta,
+                        atomParams_->d_gridlineIndices,
+                        gridParams_->d_fractShiftsTable,
+                        gridParams_->d_gridlineIndicesTable,
+                        gridParams_->tablesOffsets,
+                        gridParams_->realGridSize,
+                        gridParams_->realGridSizeFP,
+                        gridParams_->realGridSizePadded,
+                        dynamicParams_->recipBox[0],
+                        dynamicParams_->recipBox[1],
+                        dynamicParams_->recipBox[2],
+                        dynamicParams_->scale);
         cgh.parallel_for<kernelNameType>(range, kernel);
     });
 
@@ -696,8 +699,8 @@ sycl::event PmeGatherKernel<order, wrapX, wrapY, numGrids, readGlobal, threadsPe
 }
 
 
-template<int order, bool wrapX, bool wrapY, int numGrids, bool readGlobal, ThreadsPerAtom threadsPerAtom, int subGroupSize>
-void PmeGatherKernel<order, wrapX, wrapY, numGrids, readGlobal, threadsPerAtom, subGroupSize>::reset()
+template<int order, bool wrapX, bool wrapY, int numGrids, bool readGlobal, ThreadsPerAtom threadsPerAtom, int workGroupSize, int subGroupSize>
+void PmeGatherKernel<order, wrapX, wrapY, numGrids, readGlobal, threadsPerAtom, workGroupSize, subGroupSize>::reset()
 {
     gridParams_    = nullptr;
     atomParams_    = nullptr;
@@ -715,25 +718,23 @@ void PmeGatherKernel<order, wrapX, wrapY, numGrids, readGlobal, threadsPerAtom, 
 #    pragma clang diagnostic ignored "-Wweak-template-vtables"
 #endif
 
-#define INSTANTIATE_3(order, numGrids, readGlobal, threadsPerAtom, subGroupSize) \
-    template class PmeGatherKernel<order, true, true, numGrids, readGlobal, threadsPerAtom, subGroupSize>;
+#define INSTANTIATE_3(order, numGrids, readGlobal, threadsPerAtom, workGroupSize, subGroupSize) \
+    template class PmeGatherKernel<order, true, true, numGrids, readGlobal, threadsPerAtom, workGroupSize, subGroupSize>;
 
-#define INSTANTIATE_2(order, numGrids, threadsPerAtom, subGroupSize)    \
-    INSTANTIATE_3(order, numGrids, true, threadsPerAtom, subGroupSize); \
-    INSTANTIATE_3(order, numGrids, false, threadsPerAtom, subGroupSize);
+#define INSTANTIATE_2(order, numGrids, threadsPerAtom, workGroupSize, subGroupSize)    \
+    INSTANTIATE_3(order, numGrids, true, threadsPerAtom, workGroupSize, subGroupSize); \
+    INSTANTIATE_3(order, numGrids, false, threadsPerAtom, workGroupSize, subGroupSize);
 
-#define INSTANTIATE(order, subGroupSize)                                 \
-    INSTANTIATE_2(order, 1, ThreadsPerAtom::Order, subGroupSize);        \
-    INSTANTIATE_2(order, 1, ThreadsPerAtom::OrderSquared, subGroupSize); \
-    INSTANTIATE_2(order, 2, ThreadsPerAtom::Order, subGroupSize);        \
-    INSTANTIATE_2(order, 2, ThreadsPerAtom::OrderSquared, subGroupSize);
+#define INSTANTIATE(order, workGroupSize, subGroupSize)                                 \
+    INSTANTIATE_2(order, 1, ThreadsPerAtom::OrderSquared, workGroupSize, subGroupSize); \
+    INSTANTIATE_2(order, 2, ThreadsPerAtom::OrderSquared, workGroupSize, subGroupSize);
 
 #if GMX_SYCL_DPCPP
-INSTANTIATE(4, 16); // TODO: Choose best value, Issue #4153.
-INSTANTIATE(4, 32);
+INSTANTIATE(4, 64, 16);  // Intel. TODO: Choose best value, Issue #4153.
+INSTANTIATE(4, 128, 32); // Nvidia. Same as in CUDA, 4 warps per block.
 #elif GMX_SYCL_HIPSYCL
-INSTANTIATE(4, 32);
-INSTANTIATE(4, 64);
+INSTANTIATE(4, 128, 32); // Nvidia. Same as in CUDA, 4 warps per block.
+INSTANTIATE(4, 256, 64); // Amd. Same as in OpenCL, 4 warps per block.
 #endif
 
 #ifdef __clang__

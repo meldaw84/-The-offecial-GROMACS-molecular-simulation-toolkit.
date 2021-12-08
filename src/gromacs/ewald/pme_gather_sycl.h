@@ -42,6 +42,7 @@
 #include "gromacs/gpu_utils/gmxsycl.h"
 
 #include "gromacs/gpu_utils/syclutils.h"
+#include "gromacs/hardware/device_information.h"
 
 #include "pme_grid.h"
 #include "pme_gpu_types_host.h"
@@ -50,7 +51,7 @@ struct PmeGpuGridParams;
 struct PmeGpuAtomParams;
 struct PmeGpuDynamicParams;
 
-template<int order, bool wrapX, bool wrapY, int numGrids, bool readGlobal, ThreadsPerAtom threadsPerAtom, int subGroupSize>
+template<int order, bool wrapX, bool wrapY, int numGrids, bool readGlobal, ThreadsPerAtom threadsPerAtom, int workGroupSize, int subGroupSize>
 class PmeGatherKernel : public ISyclKernelFunctor
 {
 public:

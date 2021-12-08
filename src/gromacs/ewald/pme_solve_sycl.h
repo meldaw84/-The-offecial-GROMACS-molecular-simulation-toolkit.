@@ -72,7 +72,7 @@ struct SolveKernelParams
 };
 
 //! \internal \brief The kernel for PME solve
-template<GridOrdering gridOrdering, bool computeEnergyAndVirial, int gridIndex, int subGroupSize>
+template<GridOrdering gridOrdering, bool computeEnergyAndVirial, int gridIndex, int workGroupSize, int subGroupSize>
 class PmeSolveKernel : public ISyclKernelFunctor
 {
 public:
