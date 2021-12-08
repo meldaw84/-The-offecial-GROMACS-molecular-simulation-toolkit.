@@ -47,9 +47,11 @@
 
 PmeGpuProgramImpl::PmeGpuProgramImpl(const DeviceContext& deviceContext) :
     deviceContext_(deviceContext),
-    warpSize_(0),
+    spreadSubGroupSize(0),
     spreadWorkGroupSize(0),
+    gatherSubGroupSize(0),
     gatherWorkGroupSize(0),
+    solveSubGroupSize(0),
     solveMaxWorkGroupSize(0)
 {
 }
