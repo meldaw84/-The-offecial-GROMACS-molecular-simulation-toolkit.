@@ -156,7 +156,7 @@ void printCopyright(gmx::TextWriter* writer)
         "Eliane Briand",
         "Kevin Boyd",
         "Oliver Fleetwood",
-        "Stefan Fleischman",
++        "Stefan Fleischmann",
         "Gaurav Garg",
         "Gilles Gouaillardet",
         "Alan Gray",
