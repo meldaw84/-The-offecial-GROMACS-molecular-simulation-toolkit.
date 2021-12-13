@@ -153,14 +153,16 @@ void printCopyright(gmx::TextWriter* writer)
     // the above work (or whose impact has been felt) since the last
     // major release.
     static const char* const activeContributors[] = {
-        "Mark Abraham",    "Andrey Alekseenko",   "Cathrine Bergh",     "Christian Blau",
-        "Eliane Briand",   "Kevin Boyd",          "Oliver Fleetwood",   "Stefan Fleischmann",
-        "Gaurav Garg",     "Gilles Gouaillardet", "Alan Gray",          "Victor Holanda",
-        "M. Eric Irrgang", "Joe Jordan",          "Christoph Junghans", "Prashanth Kanduri",
-        "Sebastian Kehl",  "Sebastian Keller",    "Carsten Kutzner",    "Magnus Lundborg",
-        "Pascal Merz",     "Dmitry Morozov",      "Szilard Pall",       "Roland Schulz",
-        "Michael Shirts",  "David van der Spoel", "Alessandra Villa",   "Sebastian Wingbermuehle",
-        "Artem Zhmurov",
+        "Mark Abraham",       "Andrey Alekseenko",       "Cathrine Bergh",
+        "Christian Blau",     "Eliane Briand",           "Kevin Boyd",
+        "Oliver Fleetwood",   "Stefan Fleischmann",      "Vytautas Gapsys",
+        "Gaurav Garg",        "Gilles Gouaillardet",     "Alan Gray",
+        "Victor Holanda",     "M. Eric Irrgang",         "Joe Jordan",
+        "Christoph Junghans", "Prashanth Kanduri",       "Sebastian Kehl",
+        "Sebastian Keller",   "Carsten Kutzner",         "Magnus Lundborg",
+        "Pascal Merz",        "Dmitry Morozov",          "Szilard Pall",
+        "Roland Schulz",      "Michael Shirts",          "David van der Spoel",
+        "Alessandra Villa",   "Sebastian Wingbermuehle", "Artem Zhmurov",
     };
     // These people have made valued contributions less recently.
     static const char* const pastContributors[] = {
