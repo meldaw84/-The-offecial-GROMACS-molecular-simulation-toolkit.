@@ -145,6 +145,10 @@ void printCopyright(gmx::TextWriter* writer)
     //
     // Contributors are sorted alphabetically by last name.
     //
+    // We apologise for some incorrect spelling of names. Characters
+    // that need non-ASCII encoding don't always work well when written
+    // to terminals, so we decided to only use regular English letters.
+    //
     // Active contributors have done a significant amount of some of
     // the above work (or whose impact has been felt) since the last
     // major release.
@@ -156,15 +160,17 @@ void printCopyright(gmx::TextWriter* writer)
         "Eliane Briand",
         "Kevin Boyd",
         "Oliver Fleetwood",
-+        "Stefan Fleischmann",
++       "Stefan Fleischmann",
         "Gaurav Garg",
         "Gilles Gouaillardet",
         "Alan Gray",
+        "Victor Holanda"
         "M. Eric Irrgang",
         "Joe Jordan",
         "Christoph Junghans",
         "Prashanth Kanduri",
         "Sebastian Kehl",
+        "Sebastian Keller"
         "Carsten Kutzner",
         "Magnus Lundborg",
         "Pascal Merz",
