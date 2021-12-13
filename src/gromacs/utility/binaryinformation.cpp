@@ -106,92 +106,110 @@ std::string formatCentered(int width, const char* text)
     return formatString("%*s%s", offset, "", text);
 }
 
+//! A function object to pretty-print contributor lists
+class ContributorPrintHelper
+{
+public:
+    ContributorPrintHelper(gmx::TextWriter* writer) : writer_(writer) {}
+    //! Writer object
+    gmx::TextWriter* writer_;
+    //! Counter to ensure at most 3 names per row
+    int numPrintedThisRow_ = 0;
+    //! Function operator
+    void operator()(const char* contributor)
+    {
+        const int            width = 26;
+        std::array<char, 99> buf;
+        const int            offset = centeringOffset(width, strlen(contributor));
+        GMX_RELEASE_ASSERT(static_cast<int>(strlen(contributor)) + offset < gmx::ssize(buf),
+                           "Formatting buffer is not long enough");
+        std::fill(buf.begin(), buf.begin() + offset, ' ');
+        std::strncpy(buf.data() + offset, contributor, gmx::ssize(buf) - offset);
+        writer_->writeString(formatString(" %-*s", width, buf.data()));
+        ++numPrintedThisRow_;
+        if (numPrintedThisRow_ == 3)
+        {
+            writer_->ensureLineBreak();
+            numPrintedThisRow_ = 0;
+        }
+    }
+};
+
 void printCopyright(gmx::TextWriter* writer)
 {
-    // Contributors sorted alphabetically by last name
-    static const char* const Contributors[]  = { "Andrey Alekseenko",
-                                                "Emile Apol",
-                                                "Rossen Apostolov",
-                                                "Paul Bauer",
-                                                "Herman J.C. Berendsen",
-                                                "Par Bjelkmar",
-                                                "Christian Blau",
-                                                "Viacheslav Bolnykh",
-                                                "Kevin Boyd",
-                                                "Aldert van Buuren",
-                                                "Rudi van Drunen",
-                                                "Anton Feenstra",
-                                                "Oliver Fleetwood",
-                                                "Gaurav Garg",
-                                                "Gilles Gouaillardet",
-                                                "Alan Gray",
-                                                "Gerrit Groenhof",
-                                                "Anca Hamuraru",
-                                                "Vincent Hindriksen",
-                                                "M. Eric Irrgang",
-                                                "Aleksei Iupinov",
-                                                "Christoph Junghans",
-                                                "Joe Jordan",
-                                                "Dimitrios Karkoulis",
-                                                "Peter Kasson",
-                                                "Jiri Kraus",
-                                                "Carsten Kutzner",
-                                                "Per Larsson",
-                                                "Justin A. Lemkul",
-                                                "Viveca Lindahl",
-                                                "Magnus Lundborg",
-                                                "Erik Marklund",
-                                                "Pascal Merz",
-                                                "Pieter Meulenhoff",
-                                                "Teemu Murtola",
-                                                "Szilard Pall",
-                                                "Sander Pronk",
-                                                "Roland Schulz",
-                                                "Michael Shirts",
-                                                "Alexey Shvetsov",
-                                                "Alfons Sijbers",
-                                                "Peter Tieleman",
-                                                "Jon Vincent",
-                                                "Teemu Virolainen",
-                                                "Christian Wennberg",
-                                                "Maarten Wolf",
-                                                "Artem Zhmurov" };
-    static const char* const CopyrightText[] = {
+    // GROMACS project contributors can have done many things,
+    // including code, testing, writing tutorials, documentation,
+    // system administration, paper writing, grant writing, project
+    // management, etc. Do get in touch if you feel your name belongs
+    // here!
+    //
+    // Contributors are sorted alphabetically by last name.
+    //
+    // Active contributors have done a significant amount of some of
+    // the above work (or whose impact has been felt) since the last
+    // major release.
+    static const char* const activeContributors[] = {
+        "Mark Abraham",
+        "Andrey Alekseenko",
+        "Cathrine Bergh",
+        "Christian Blau",
+        "Eliane Briand",
+        "Kevin Boyd",
+        "Oliver Fleetwood",
+        "Stefan Fleischman",
+        "Gaurav Garg",
+        "Gilles Gouaillardet",
+        "Alan Gray",
+        "M. Eric Irrgang",
+        "Joe Jordan",
+        "Christoph Junghans",
+        "Prashanth Kanduri",
+        "Sebastian Kehl",
+        "Carsten Kutzner",
+        "Magnus Lundborg",
+        "Pascal Merz",
+        "Dmitry Morozov",
+        "Szilard Pall",
+        "Roland Schulz",
+        "David van der Spoel",
+        "Alessandra Villa",
+        "Sebastian Wingbermuehle",
+        "Artem Zhmurov",
+    };
+    // These people have made valued contributions less recently.
+    static const char* const pastContributors[] = {
+        "Emile Apol",         "Rossen Apostolov",   "James Barnett",       "Herman J.C. Berendsen",
+        "Par Bjelkmar",       "Viacheslav Bolnykh", "Aldert van Buuren",   "Carlo Camilloni",
+        "Rudi van Drunen",    "Anton Feenstra",     "Gerrit Groenhof",     "Anca Hamuraru",
+        "Vincent Hindriksen", "Aleksei Iupinov",    "Dimitrios Karkoulis", "Peter Kasson",
+        "Jiri Kraus",         "Per Larsson",        "Justin A. Lemkul",    "Viveca Lindahl",
+        "Erik Marklund",      "Pieter Meulenhoff",  "Vedran Miletic",      "Teemu Murtola",
+        "Sander Pronk",       "Michael Shirts",     "Alexey Shvetsov",     "Alfons Sijbers",
+        "Peter Tieleman",     "Jon Vincent",        "Teemu Virolainen",    "Christian Wennberg",
+        "Maarten Wolf",
+    };
+    static const char* const copyrightText[] = {
         "Copyright (c) 1991-2000, University of Groningen, The Netherlands.",
-        "Copyright (c) 2001-2019, The GROMACS development team at",
+        "Copyright (c) 2001-2022, The GROMACS development team at",
         "Uppsala University, Stockholm University and",
         "the Royal Institute of Technology, Sweden.",
-        "check out http://www.gromacs.org for more information."
+        "Check out http://www.gromacs.org for more information."
     };
 
-#define NCONTRIBUTORS static_cast<int>(asize(Contributors))
-#define NCR static_cast<int>(asize(CopyrightText))
-
     // TODO a centering behaviour of TextWriter could be useful here
-    writer->writeLine(formatCentered(78, "GROMACS is written by:"));
-    for (int i = 0; i < NCONTRIBUTORS;)
-    {
-        for (int j = 0; j < 3 && i < NCONTRIBUTORS; ++j, ++i)
-        {
-            const int            width = 26;
-            std::array<char, 30> buf;
-            const int            offset = centeringOffset(width, strlen(Contributors[i]));
-            GMX_RELEASE_ASSERT(static_cast<int>(strlen(Contributors[i])) + offset < gmx::ssize(buf),
-                               "Formatting buffer is not long enough");
-            std::fill(buf.begin(), buf.begin() + offset, ' ');
-            std::strncpy(buf.data() + offset, Contributors[i], gmx::ssize(buf) - offset);
-            writer->writeString(formatString(" %-*s", width, buf.data()));
-        }
-        writer->ensureLineBreak();
-    }
-    writer->writeLine(formatCentered(78, "and the project leaders:"));
-    writer->writeLine(
-            formatCentered(78, "Mark Abraham, Berk Hess, Erik Lindahl, and David van der Spoel"));
+    writer->writeLine(formatCentered(78, "GROMACS contributions currently come from:"));
+    std::for_each(
+            std::begin(activeContributors), std::end(activeContributors), ContributorPrintHelper(writer));
+    writer->ensureLineBreak();
+    writer->writeLine(formatCentered(78, "GROMACS contributions have also come from:"));
+    std::for_each(std::begin(pastContributors), std::end(pastContributors), ContributorPrintHelper(writer));
+    writer->ensureLineBreak();
+    writer->writeLine(formatCentered(78, "and the current project leaders are:"));
+    writer->writeLine(formatCentered(78, "Paul Bauer, Berk Hess, and Erik Lindahl."));
     writer->ensureEmptyLine();
-    for (int i = 0; i < NCR; ++i)
-    {
-        writer->writeLine(CopyrightText[i]);
-    }
+    std::for_each(std::begin(copyrightText), std::end(copyrightText), [&writer](const auto* text) {
+        writer->writeLine(text);
+    });
     writer->ensureEmptyLine();
 
     // Folding At Home has different licence to allow digital
