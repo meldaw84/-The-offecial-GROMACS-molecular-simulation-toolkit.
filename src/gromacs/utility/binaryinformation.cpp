@@ -121,7 +121,7 @@ public:
         const int            width = 26;
         std::array<char, 99> buf;
         const int            offset = centeringOffset(width, strlen(contributor));
-        GMX_RELEASE_ASSERT(static_cast<int>(strlen(contributor)) + offset < gmx::ssize(buf),
+        GMX_RELEASE_ASSERT(static_cast<int>(strlen(contributor)) + offset + 1 < gmx::ssize(buf),
                            "Formatting buffer is not long enough");
         std::fill(buf.begin(), buf.begin() + offset, ' ');
         std::strncpy(buf.data() + offset, contributor, gmx::ssize(buf) - offset);
