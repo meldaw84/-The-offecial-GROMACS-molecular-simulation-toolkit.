@@ -191,9 +191,8 @@ void printCopyright(gmx::TextWriter* writer)
         "Vincent Hindriksen", "Aleksei Iupinov",    "Dimitrios Karkoulis", "Peter Kasson",
         "Jiri Kraus",         "Per Larsson",        "Justin A. Lemkul",    "Viveca Lindahl",
         "Erik Marklund",      "Pieter Meulenhoff",  "Vedran Miletic",      "Teemu Murtola",
-        "Sander Pronk",       "Michael Shirts",     "Alexey Shvetsov",     "Alfons Sijbers",
-        "Peter Tieleman",     "Jon Vincent",        "Teemu Virolainen",    "Christian Wennberg",
-        "Maarten Wolf",
+        "Sander Pronk",       "Alexey Shvetsov",     "Alfons Sijbers",     "Peter Tieleman",
+        "Jon Vincent",        "Teemu Virolainen",    "Christian Wennberg", "Maarten Wolf",
     };
     static const char* const copyrightText[] = {
         "Copyright (c) 1991-2000, University of Groningen, The Netherlands.",
