@@ -70,10 +70,15 @@ using MdpFieldValues = std::map<std::string, std::string>;
 enum class MdpParameterDatabase
 {
     Default,
+    SemiisotropicPressureCoupling,
+    AnisotropicPressureCoupling,
     Pull,
     Awh,
     Count
 };
+
+//! Help pretty-print test case names
+const char* enumValueToString(MdpParameterDatabase enumValue);
 
 /*! \brief Set up values for an .mdp file that permits a highly
  * reproducible simulation.

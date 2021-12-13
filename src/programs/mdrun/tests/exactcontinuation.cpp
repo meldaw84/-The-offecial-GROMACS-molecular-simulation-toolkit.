@@ -221,13 +221,12 @@ void runTest(TestFileManager*            fileManager,
     int numRanksAvailable = getNumberOfTestMpiRanks();
     if (!isNumberOfPpRanksSupported(simulationName, numRanksAvailable))
     {
-        fprintf(stdout,
+        GTEST_SKIP() << formatString(
                 "Test system '%s' cannot run with %d ranks.\n"
                 "The supported numbers are: %s\n",
                 simulationName.c_str(),
                 numRanksAvailable,
                 reportNumbersOfPpRanksSupported(simulationName).c_str());
-        return;
     }
 
     // prepare some names for files to use with the two mdrun calls
@@ -324,6 +323,30 @@ void runTest(TestFileManager*            fileManager,
     energyManager.compareAllFramePairs<EnergyFrame>(energyComparison);
 }
 
+using MdrunNoAppendContinuationIsExactParameters =
+        std::tuple<std::string, std::string, std::string, std::string, MdpParameterDatabase>;
+
+/*! \brief Help GoogleTest name our tests */
+std::string nameOfTest(const testing::TestParamInfo<MdrunNoAppendContinuationIsExactParameters>& info)
+{
+    std::string testName = formatString("%s_%s_%s_%s_%s",
+                                        std::get<0>(info.param).c_str(),
+                                        std::get<1>(info.param).c_str(),
+                                        std::get<2>(info.param).c_str(),
+                                        std::get<3>(info.param).c_str(),
+                                        enumValueToString(std::get<4>(info.param)));
+
+    // Note that the returned names must be unique and may use only
+    // alphanumeric ASCII characters. It's not supposed to contain
+    // underscores (see the GoogleTest FAQ
+    // why-should-test-suite-names-and-test-names-not-contain-underscore),
+    // but doing so works for now, is likely to remain so, and makes
+    // such test names much more readable.
+    testName = replaceAll(testName, "-", "");
+    testName = replaceAll(testName, " ", "_");
+    return testName;
+}
+
 /*! \brief Test fixture for mdrun exact continuations
  *
  * This test ensures mdrun can run a simulation, writing a trajectory
@@ -337,7 +360,7 @@ void runTest(TestFileManager*            fileManager,
  * \todo Add FEP case. */
 class MdrunNoAppendContinuationIsExact :
     public MdrunTestFixture,
-    public ::testing::WithParamInterface<std::tuple<std::string, std::string, std::string, std::string, MdpParameterDatabase>>
+    public ::testing::WithParamInterface<MdrunNoAppendContinuationIsExactParameters>
 {
 public:
     //! Constructor
@@ -374,14 +397,19 @@ TEST_P(MdrunNoAppendContinuationIsExact, WithinTolerances)
         && (isModularSimulatorExplicitlyDisabled || !isTCouplingCompatibleWithModularSimulator
             || isGpuUpdateRequested))
     {
-        // Under md-vv, Parrinello-Rahman is only implemented for the modular simulator
-        return;
+        GTEST_SKIP()
+                << "Under md-vv, Parrinello-Rahman is only implemented for the modular simulator";
     }
     if (integrator == "md-vv" && temperatureCoupling == "nose-hoover"
         && pressureCoupling == "berendsen")
     {
-        // This combination is not implemented in either legacy or modular simulator
-        return;
+        GTEST_SKIP()
+                << "md-vv does not support Nose-Hoover together with Berendsen pressure coupling";
+    }
+    if (pressureCoupling == "C-rescale"
+        && additionalMdpParameters == MdpParameterDatabase::AnisotropicPressureCoupling)
+    {
+        GTEST_SKIP() << "C-rescale does not yet support anisotropic pressure coupling";
     }
 
     SCOPED_TRACE(
@@ -433,9 +461,14 @@ TEST_P(MdrunNoAppendContinuationIsExact, WithinTolerances)
         }
         else
         {
-            energyTermsToCompare.insert({ interaction_function[F_ECONSERVED].longname,
-                                          relativeToleranceAsPrecisionDependentUlp(
-                                                  10.0, ulpToleranceInMixed, ulpToleranceInDouble) });
+            // Avoid one unsupported case (see integratorHasConservedEnergyQuantity() for details)
+            if (pressureCoupling != "parrinello-rahman"
+                || additionalMdpParameters != MdpParameterDatabase::AnisotropicPressureCoupling)
+            {
+                energyTermsToCompare.insert({ interaction_function[F_ECONSERVED].longname,
+                                              relativeToleranceAsPrecisionDependentUlp(
+                                                      10.0, ulpToleranceInMixed, ulpToleranceInDouble) });
+            }
         }
     }
 
@@ -468,7 +501,8 @@ INSTANTIATE_TEST_SUITE_P(
                            ::testing::Values("md", "md-vv", "bd", "sd"),
                            ::testing::Values("no"),
                            ::testing::Values("no"),
-                           ::testing::Values(MdpParameterDatabase::Default)));
+                           ::testing::Values(MdpParameterDatabase::Default)),
+        nameOfTest);
 
 INSTANTIATE_TEST_SUITE_P(NormalIntegratorsWithFEP,
                          MdrunNoAppendContinuationIsExact,
@@ -476,7 +510,8 @@ INSTANTIATE_TEST_SUITE_P(NormalIntegratorsWithFEP,
                                             ::testing::Values("md", "md-vv", "bd", "sd"),
                                             ::testing::Values("no"),
                                             ::testing::Values("no"),
-                                            ::testing::Values(MdpParameterDatabase::Default)));
+                                            ::testing::Values(MdpParameterDatabase::Default)),
+                         nameOfTest);
 
 INSTANTIATE_TEST_SUITE_P(
         NVT,
@@ -485,7 +520,8 @@ INSTANTIATE_TEST_SUITE_P(
                            ::testing::Values("md", "md-vv"),
                            ::testing::Values("berendsen", "v-rescale", "nose-hoover"),
                            ::testing::Values("no"),
-                           ::testing::Values(MdpParameterDatabase::Default)));
+                           ::testing::Values(MdpParameterDatabase::Default)),
+        nameOfTest);
 
 INSTANTIATE_TEST_SUITE_P(
         NPH,
@@ -494,7 +530,8 @@ INSTANTIATE_TEST_SUITE_P(
                            ::testing::Values("md", "md-vv"),
                            ::testing::Values("no"),
                            ::testing::Values("berendsen", "parrinello-rahman", "C-rescale"),
-                           ::testing::Values(MdpParameterDatabase::Default)));
+                           ::testing::Values(MdpParameterDatabase::Default)),
+        nameOfTest);
 
 INSTANTIATE_TEST_SUITE_P(
         NPT,
@@ -503,7 +540,19 @@ INSTANTIATE_TEST_SUITE_P(
                            ::testing::Values("md", "md-vv"),
                            ::testing::Values("berendsen", "v-rescale", "nose-hoover"),
                            ::testing::Values("berendsen", "parrinello-rahman", "C-rescale"),
-                           ::testing::Values(MdpParameterDatabase::Default)));
+                           ::testing::Values(MdpParameterDatabase::Default)),
+        nameOfTest);
+
+INSTANTIATE_TEST_SUITE_P(
+        NonIsotropicNPT,
+        MdrunNoAppendContinuationIsExact,
+        ::testing::Combine(::testing::Values("argon12"),
+                           ::testing::Values("md"),
+                           ::testing::Values("v-rescale"),
+                           ::testing::Values("berendsen", "parrinello-rahman", "C-rescale"),
+                           ::testing::Values(MdpParameterDatabase::SemiisotropicPressureCoupling,
+                                             MdpParameterDatabase::AnisotropicPressureCoupling)),
+        nameOfTest);
 
 INSTANTIATE_TEST_SUITE_P(MTTK,
                          MdrunNoAppendContinuationIsExact,
@@ -511,7 +560,8 @@ INSTANTIATE_TEST_SUITE_P(MTTK,
                                             ::testing::Values("md-vv"),
                                             ::testing::Values("nose-hoover"),
                                             ::testing::Values("mttk"),
-                                            ::testing::Values(MdpParameterDatabase::Default)));
+                                            ::testing::Values(MdpParameterDatabase::Default)),
+                         nameOfTest);
 
 INSTANTIATE_TEST_SUITE_P(Pull,
                          MdrunNoAppendContinuationIsExact,
@@ -519,7 +569,8 @@ INSTANTIATE_TEST_SUITE_P(Pull,
                                             ::testing::Values("md", "md-vv"),
                                             ::testing::Values("no"),
                                             ::testing::Values("no"),
-                                            ::testing::Values(MdpParameterDatabase::Pull)));
+                                            ::testing::Values(MdpParameterDatabase::Pull)),
+                         nameOfTest);
 
 INSTANTIATE_TEST_SUITE_P(Awh,
                          MdrunNoAppendContinuationIsExact,
@@ -527,7 +578,8 @@ INSTANTIATE_TEST_SUITE_P(Awh,
                                             ::testing::Values("md", "md-vv"),
                                             ::testing::Values("v-rescale"),
                                             ::testing::Values("no"),
-                                            ::testing::Values(MdpParameterDatabase::Awh)));
+                                            ::testing::Values(MdpParameterDatabase::Awh)),
+                         nameOfTest);
 
 #else
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(MdrunNoAppendContinuationIsExact);
