@@ -164,13 +164,13 @@ void printCopyright(gmx::TextWriter* writer)
         "Gaurav Garg",
         "Gilles Gouaillardet",
         "Alan Gray",
-        "Victor Holanda"
+        "Victor Holanda",
         "M. Eric Irrgang",
         "Joe Jordan",
         "Christoph Junghans",
         "Prashanth Kanduri",
         "Sebastian Kehl",
-        "Sebastian Keller"
+        "Sebastian Keller",
         "Carsten Kutzner",
         "Magnus Lundborg",
         "Pascal Merz",
