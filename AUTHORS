@@ -1,8 +1,99 @@
-Current lead developers:
+AUTHORS
+=======
 
-Mark Abraham <mark.j.abraham@gmail.com>
-David van der Spoel <spoel@gromacs.org>
-Berk Hess <hess@gromacs.org>
-Erik Lindahl <lindahl@gromacs.org>
+GROMACS project contributors can have done many things, including
+fixing bugs, adding new features, participating in design discussions,
+testing, writing tutorials, improving documentation, system
+administration, paper writing, participating in forum discussions,
+grant writing, project management, maintaining downstream
+distributions, etc. Please do get in touch if you feel your name
+belongs here!
 
-A full list of GROMACS contributors is available at http://www.gromacs.org/About_Gromacs/People
+Please note that this list applies to the release that contained the
+file you are reading. A current list may be found on the master branch
+of the GROMACS repository, or on its webpage.
+
+Contributors are sorted alphabetically by last name.
+
+Project leaders
+---------------
+
+* Paul Bauer
+* Berk Hess
+* Erik Lindahl
+
+Active contributors
+-------------------
+
+These are people who have done a significant amount of some of the
+above kinds of work (or whose impact has been felt) since the last
+major release.
+
+* Mark Abraham
+* Andrey Alekseenko
+* Cathrine Bergh
+* Christian Blau
+* Eliane Briand
+* Kevin Boyd
+* Oliver Fleetwood
+* Stefan Fleischmann
+* Vytautas Gapsys
+* Gaurav Garg
+* Gilles Gouaillardet
+* Alan Gray
+* Victor Holanda
+* M. Eric Irrgang
+* Joe Jordan
+* Christoph Junghans
+* Justin A. Lemkul
+* Prashanth Kanduri
+* Peter Kasson
+* Sebastian Kehl
+* Sebastian Keller
+* Carsten Kutzner
+* Magnus Lundborg
+* Pascal Merz
+* Dmitry Morozov
+* Szilárd Páll
+* Roland Schulz
+* Michael Shirts
+* David van der Spoel
+* Alessandra Villa
+* Sebastian Wingbermühle
+* Artem Zhmurov
+
+Other contributors
+------------------
+
+These people have made valued contributions less recently.
+
+* Emile Apol
+* Rossen Apostolov
+* James Barnett
+* Herman J.C. Berendsen
+* Pär Bjelkmar
+* Viacheslav Bolnykh
+* Aldert van Buuren
+* Carlo Camilloni
+* Rudi van Drunen
+* Anton Feenstra
+* Gerrit Groenhof
+* Anca Hamuraru
+* Vincent Hindriksen
+* Aleksei Iupinov
+* Dimitrios Karkoulis
+* Jiri Kraus
+* Per Larsson
+* Viveca Lindahl
+* Erik Marklund
+* Pieter Meulenhoff
+* Vedran Miletic
+* Teemu Murtola
+* Sander Pronk
+* Alexey Shvetsov
+* Alfons Sijbers
+* Peter Tieleman
+* Jon Vincent
+* Teemu Virolainen
+* Christian Wennberg
+* Maarten Wolf

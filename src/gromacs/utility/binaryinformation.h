@@ -71,12 +71,6 @@ public:
         bExtendedInfo_ = bEnabled;
         return *this;
     }
-    //! Set whether to print copyright and license information.
-    BinaryInformationSettings& copyright(bool bEnabled)
-    {
-        bCopyright_ = bEnabled;
-        return *this;
-    }
     //! Set whether to print the process ID.
     BinaryInformationSettings& processId(bool bEnabled)
     {
@@ -104,7 +98,6 @@ public:
 
 private:
     bool        bExtendedInfo_;
-    bool        bCopyright_;
     bool        bProcessId_;
     bool        bGeneratedByHeader_;
     const char* prefix_;

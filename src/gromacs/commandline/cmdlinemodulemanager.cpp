@@ -159,7 +159,6 @@ CommandLineCommonOptionsHolder::CommandLineCommonOptionsHolder() :
     bFpexcept_(false),
     debugLevel_(0)
 {
-    binaryInfoSettings_.copyright(true);
 }
 
 CommandLineCommonOptionsHolder::~CommandLineCommonOptionsHolder() {}
@@ -195,9 +194,6 @@ bool CommandLineCommonOptionsHolder::finishOptions()
 {
     options_.finish();
     binaryInfoSettings_.extendedInfo(bVersion_);
-    // The latter condition suppresses the copyright with
-    // -quiet -version.
-    binaryInfoSettings_.copyright(bCopyright_ && !bQuiet_);
     return !bVersion_;
 }
 

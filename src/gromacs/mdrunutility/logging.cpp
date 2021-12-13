@@ -97,7 +97,6 @@ LogFilePtr openLogFile(const char* lognm, bool appendFiles)
     {
         FILE*                          fplog = gmx_fio_getfp(logfio.get());
         gmx::BinaryInformationSettings settings;
-        settings.copyright(true);
         prepareLogFile(settings, fplog);
     }
     return logfio;
@@ -113,7 +112,6 @@ void prepareLogAppending(FILE* fplog)
             "Restarting from checkpoint, appending to previous log file.\n"
             "\n");
     gmx::BinaryInformationSettings settings;
-    settings.copyright(false);
     prepareLogFile(settings, fplog);
 }
 

@@ -106,106 +106,6 @@ std::string formatCentered(int width, const char* text)
     return formatString("%*s%s", offset, "", text);
 }
 
-void printCopyright(gmx::TextWriter* writer)
-{
-    // Contributors sorted alphabetically by last name
-    static const char* const Contributors[]  = { "Andrey Alekseenko",
-                                                "Emile Apol",
-                                                "Rossen Apostolov",
-                                                "Paul Bauer",
-                                                "Herman J.C. Berendsen",
-                                                "Par Bjelkmar",
-                                                "Christian Blau",
-                                                "Viacheslav Bolnykh",
-                                                "Kevin Boyd",
-                                                "Aldert van Buuren",
-                                                "Rudi van Drunen",
-                                                "Anton Feenstra",
-                                                "Oliver Fleetwood",
-                                                "Gaurav Garg",
-                                                "Gilles Gouaillardet",
-                                                "Alan Gray",
-                                                "Gerrit Groenhof",
-                                                "Anca Hamuraru",
-                                                "Vincent Hindriksen",
-                                                "M. Eric Irrgang",
-                                                "Aleksei Iupinov",
-                                                "Christoph Junghans",
-                                                "Joe Jordan",
-                                                "Dimitrios Karkoulis",
-                                                "Peter Kasson",
-                                                "Jiri Kraus",
-                                                "Carsten Kutzner",
-                                                "Per Larsson",
-                                                "Justin A. Lemkul",
-                                                "Viveca Lindahl",
-                                                "Magnus Lundborg",
-                                                "Erik Marklund",
-                                                "Pascal Merz",
-                                                "Pieter Meulenhoff",
-                                                "Teemu Murtola",
-                                                "Szilard Pall",
-                                                "Sander Pronk",
-                                                "Roland Schulz",
-                                                "Michael Shirts",
-                                                "Alexey Shvetsov",
-                                                "Alfons Sijbers",
-                                                "Peter Tieleman",
-                                                "Jon Vincent",
-                                                "Teemu Virolainen",
-                                                "Christian Wennberg",
-                                                "Maarten Wolf",
-                                                "Artem Zhmurov" };
-    static const char* const CopyrightText[] = {
-        "Copyright (c) 1991-2000, University of Groningen, The Netherlands.",
-        "Copyright (c) 2001-2019, The GROMACS development team at",
-        "Uppsala University, Stockholm University and",
-        "the Royal Institute of Technology, Sweden.",
-        "check out http://www.gromacs.org for more information."
-    };
-
-#define NCONTRIBUTORS static_cast<int>(asize(Contributors))
-#define NCR static_cast<int>(asize(CopyrightText))
-
-    // TODO a centering behaviour of TextWriter could be useful here
-    writer->writeLine(formatCentered(78, "GROMACS is written by:"));
-    for (int i = 0; i < NCONTRIBUTORS;)
-    {
-        for (int j = 0; j < 3 && i < NCONTRIBUTORS; ++j, ++i)
-        {
-            const int            width = 26;
-            std::array<char, 30> buf;
-            const int            offset = centeringOffset(width, strlen(Contributors[i]));
-            GMX_RELEASE_ASSERT(static_cast<int>(strlen(Contributors[i])) + offset < gmx::ssize(buf),
-                               "Formatting buffer is not long enough");
-            std::fill(buf.begin(), buf.begin() + offset, ' ');
-            std::strncpy(buf.data() + offset, Contributors[i], gmx::ssize(buf) - offset);
-            writer->writeString(formatString(" %-*s", width, buf.data()));
-        }
-        writer->ensureLineBreak();
-    }
-    writer->writeLine(formatCentered(78, "and the project leaders:"));
-    writer->writeLine(
-            formatCentered(78, "Mark Abraham, Berk Hess, Erik Lindahl, and David van der Spoel"));
-    writer->ensureEmptyLine();
-    for (int i = 0; i < NCR; ++i)
-    {
-        writer->writeLine(CopyrightText[i]);
-    }
-    writer->ensureEmptyLine();
-
-    // Folding At Home has different licence to allow digital
-    // signatures in GROMACS, so does not need to show the normal
-    // license statement.
-    if (!GMX_FAHCORE)
-    {
-        writer->writeLine("GROMACS is free software; you can redistribute it and/or modify it");
-        writer->writeLine("under the terms of the GNU Lesser General Public License");
-        writer->writeLine("as published by the Free Software Foundation; either version 2.1");
-        writer->writeLine("of the License, or (at your option) any later version.");
-    }
-}
-
 //! Construct a string that describes the library that provides CPU FFT support to this build
 const char* getCpuFftDescriptionString()
 {
@@ -372,12 +272,7 @@ namespace gmx
 {
 
 BinaryInformationSettings::BinaryInformationSettings() :
-    bExtendedInfo_(false),
-    bCopyright_(false),
-    bProcessId_(false),
-    bGeneratedByHeader_(false),
-    prefix_(""),
-    suffix_("")
+    bExtendedInfo_(false), bProcessId_(false), bGeneratedByHeader_(false), prefix_(""), suffix_("")
 {
 }
 
@@ -424,20 +319,6 @@ void printBinaryInformation(TextWriter*                      writer,
             centeringOffset(78 - std::strlen(prefix) - std::strlen(suffix), title.length()) + 1;
     writer->writeLine(formatString("%s%*c%s%s", prefix, indent, ' ', title.c_str(), suffix));
     writer->writeLine(formatString("%s%s", prefix, suffix));
-    if (settings.bCopyright_)
-    {
-        GMX_RELEASE_ASSERT(prefix[0] == '\0' && suffix[0] == '\0',
-                           "Prefix/suffix not supported with copyright");
-        printCopyright(writer);
-        writer->ensureEmptyLine();
-        // This line is printed again after the copyright notice to make it
-        // appear together with all the other information, so that it is not
-        // necessary to read stuff above the copyright notice.
-        // The line above the copyright notice puts the copyright notice is
-        // context, though.
-        writer->writeLine(formatString(
-                "%sGROMACS:      %s, version %s%s%s", prefix, name, gmx_version(), precisionString, suffix));
-    }
     const char* const binaryPath = programContext.fullBinaryPath();
     if (!gmx::isNullOrEmpty(binaryPath))
     {
