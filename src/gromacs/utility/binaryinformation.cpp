@@ -153,16 +153,17 @@ void printCopyright(gmx::TextWriter* writer)
     // the above work (or whose impact has been felt) since the last
     // major release.
     static const char* const activeContributors[] = {
-        "Mark Abraham",       "Andrey Alekseenko",       "Cathrine Bergh",
-        "Christian Blau",     "Eliane Briand",           "Kevin Boyd",
-        "Oliver Fleetwood",   "Stefan Fleischmann",      "Vytautas Gapsys",
-        "Gaurav Garg",        "Gilles Gouaillardet",     "Alan Gray",
-        "Victor Holanda",     "M. Eric Irrgang",         "Joe Jordan",
-        "Christoph Junghans", "Prashanth Kanduri",       "Sebastian Kehl",
-        "Sebastian Keller",   "Carsten Kutzner",         "Magnus Lundborg",
-        "Pascal Merz",        "Dmitry Morozov",          "Szilard Pall",
-        "Roland Schulz",      "Michael Shirts",          "David van der Spoel",
-        "Alessandra Villa",   "Sebastian Wingbermuehle", "Artem Zhmurov",
+        "Mark Abraham",        "Andrey Alekseenko",   "Cathrine Bergh",
+        "Christian Blau",      "Eliane Briand",       "Kevin Boyd",
+        "Oliver Fleetwood",    "Stefan Fleischmann",  "Vytautas Gapsys",
+        "Gaurav Garg",         "Gilles Gouaillardet", "Alan Gray",
+        "Victor Holanda",      "M. Eric Irrgang",     "Joe Jordan",
+        "Christoph Junghans",  "Justin A. Lemkul",    "Prashanth Kanduri",
+        "Sebastian Kehl",      "Sebastian Keller",    "Carsten Kutzner",
+        "Magnus Lundborg",     "Pascal Merz",         "Dmitry Morozov",
+        "Szilard Pall",        "Roland Schulz",       "Michael Shirts",
+        "David van der Spoel", "Alessandra Villa",    "Sebastian Wingbermuehle",
+        "Artem Zhmurov",
     };
     // These people have made valued contributions less recently.
     static const char* const pastContributors[] = {
@@ -170,10 +171,10 @@ void printCopyright(gmx::TextWriter* writer)
         "Par Bjelkmar",       "Viacheslav Bolnykh", "Aldert van Buuren",   "Carlo Camilloni",
         "Rudi van Drunen",    "Anton Feenstra",     "Gerrit Groenhof",     "Anca Hamuraru",
         "Vincent Hindriksen", "Aleksei Iupinov",    "Dimitrios Karkoulis", "Peter Kasson",
-        "Jiri Kraus",         "Per Larsson",        "Justin A. Lemkul",    "Viveca Lindahl",
-        "Erik Marklund",      "Pieter Meulenhoff",  "Vedran Miletic",      "Teemu Murtola",
-        "Sander Pronk",       "Alexey Shvetsov",    "Alfons Sijbers",      "Peter Tieleman",
-        "Jon Vincent",        "Teemu Virolainen",   "Christian Wennberg",  "Maarten Wolf",
+        "Jiri Kraus",         "Per Larsson",        "Viveca Lindahl",      "Erik Marklund",
+        "Pieter Meulenhoff",  "Vedran Miletic",     "Teemu Murtola",       "Sander Pronk",
+        "Alexey Shvetsov",    "Alfons Sijbers",     "Peter Tieleman",      "Jon Vincent",
+        "Teemu Virolainen",   "Christian Wennberg", "Maarten Wolf",
     };
     static const char* const copyrightText[] = {
         "Copyright (c) 1991-2000, University of Groningen, The Netherlands.",
