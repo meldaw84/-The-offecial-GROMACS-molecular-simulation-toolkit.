@@ -72,8 +72,14 @@ public:
     //! Destructor
     ~PmeGpuProgram();
 
-    //! Return the warp size for which the kernels were compiled
+    //! Return the warp size for which the Spline&Spread kernels were compiled
+    int spreadKernelWarpSize() const;
+
+    //! Return the warp size for which the Solve kernels were compiled
     int solveKernelWarpSize() const;
+
+    //! Return the warp size for which the Gather kernels were compiled
+    int gatherKernelWarpSize() const;
 
     // TODO: design more getters for information inside, if needed for PME, and make this private?
     //! Private impl class

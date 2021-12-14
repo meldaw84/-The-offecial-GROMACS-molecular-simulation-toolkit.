@@ -60,9 +60,19 @@ PmeGpuProgram::PmeGpuProgram(const DeviceContext& deviceContext) :
 
 PmeGpuProgram::~PmeGpuProgram() = default;
 
+int PmeGpuProgram::spreadKernelWarpSize() const
+{
+    return impl_->spreadSubGroupSize;
+}
+
 int PmeGpuProgram::solveKernelWarpSize() const
 {
-    return impl_->solveKernelWarpSize();
+    return impl_->solveSubGroupSize;
+}
+
+int PmeGpuProgram::gatherKernelWarpSize() const
+{
+    return impl_->gatherSubGroupSize;
 }
 
 PmeGpuProgramStorage buildPmeGpuProgram(const DeviceContext& deviceContext)

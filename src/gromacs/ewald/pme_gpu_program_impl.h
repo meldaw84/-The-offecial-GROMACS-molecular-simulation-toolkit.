@@ -170,9 +170,6 @@ struct PmeGpuProgramImpl
     ~PmeGpuProgramImpl();
     GMX_DISALLOW_COPY_AND_ASSIGN(PmeGpuProgramImpl);
 
-    //! Return the warp size for which the solve kernels were compiled
-    int solveKernelWarpSize() const { return solveSubGroupSize; }
-
 private:
     // Compiles kernels, if supported. Called by the constructor.
     void compileKernels(const DeviceInformation& deviceInfo);

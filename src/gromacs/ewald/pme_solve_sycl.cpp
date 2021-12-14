@@ -434,7 +434,7 @@ sycl::event PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, work
 
     // SYCL has different multidimensional layout than OpenCL/CUDA.
     const sycl::range<3> localSize{ config.blockSize[2], config.blockSize[1], config.blockSize[0] };
-    GMX_RELEASE_ASSERT(localSize.size() == workGroupSize, "Incompatible work group size");
+    GMX_RELEASE_ASSERT(localSize.size() <= workGroupSize, "Incompatible work group size");
     const sycl::range<3> groupRange{ config.gridSize[2], config.gridSize[1], config.gridSize[0] };
     const sycl::nd_range<3> range{ groupRange * localSize, localSize };
 
