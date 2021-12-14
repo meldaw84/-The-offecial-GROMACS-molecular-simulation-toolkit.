@@ -38,11 +38,6 @@
 
 #include "genhydro.h"
 
-#include <cstring>
-#include <ctime>
-
-#include "gromacs/fileio/confio.h"
-#include "gromacs/gmxlib/network.h"
 #include "gromacs/gmxpreprocess/calch.h"
 #include "gromacs/gmxpreprocess/h_db.h"
 #include "gromacs/gmxpreprocess/notset.h"
@@ -50,20 +45,18 @@
 #include "gromacs/gmxpreprocess/ter_db.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/topology/atoms.h"
-#include "gromacs/topology/symtab.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
-#include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
 
 #include "hackblock.h"
 #include "resall.h"
 
-static void copy_atom(const t_atoms* atoms1, int a1, t_atoms* atoms2, int a2, t_symtab* symtab)
+static void copy_atom(const t_atoms* atoms1, int a1, t_atoms* atoms2, int a2)
 {
     atoms2->atom[a2]     = atoms1->atom[a1];
-    atoms2->atomname[a2] = put_symtab(symtab, *atoms1->atomname[a1]);
+    atoms2->atomname[a2] = atoms1->atomname[a1];
 }
 
 static int pdbasearch_atom(const char*              name,
@@ -447,7 +440,6 @@ static int add_h_low(t_atoms**                                   initialAtoms,
                      t_atoms**                                   modifiedAtoms,
                      std::vector<gmx::RVec>*                     xptr,
                      gmx::ArrayRef<const MoleculePatchDatabase>  globalPatches,
-                     t_symtab*                                   symtab,
                      const int                                   nterpairs,
                      gmx::ArrayRef<MoleculePatchDatabase* const> ntdb,
                      gmx::ArrayRef<MoleculePatchDatabase* const> ctdb,
@@ -513,7 +505,7 @@ static int add_h_low(t_atoms**                                   initialAtoms,
                 srenew((*modifiedAtoms)->atom, natoms + nadd);
                 srenew((*modifiedAtoms)->atomname, natoms + nadd);
             }
-            copy_atom(pdba, i, (*modifiedAtoms), newi, symtab);
+            copy_atom(pdba, i, (*modifiedAtoms), newi);
             copy_rvec((*xptr)[i], xn[newi]);
             /* process the hacks for this atom */
             nalreadypresent = 0;
@@ -540,7 +532,7 @@ static int add_h_low(t_atoms**                                   initialAtoms,
                     {
                         /* This atom is already present, copy it from the input. */
                         nalreadypresent++;
-                        copy_atom(pdba, i + nalreadypresent, (*modifiedAtoms), newi, symtab);
+                        copy_atom(pdba, i + nalreadypresent, (*modifiedAtoms), newi);
                         copy_rvec((*xptr)[i + nalreadypresent], xn[newi]);
                     }
                     else
@@ -556,7 +548,10 @@ static int add_h_low(t_atoms**                                   initialAtoms,
                                     patch->oname.empty() ? "" : patch->oname.c_str(),
                                     patch->nname.c_str());
                         }
-                        (*modifiedAtoms)->atomname[newi] = put_symtab(symtab, patch->nname.c_str());
+                        char** atomName;
+                        snew(atomName, 1);
+                        atomName[0]                      = gmx_strdup(patch->nname.data());
+                        (*modifiedAtoms)->atomname[newi] = atomName;
                         if (patch->bXSet)
                         {
                             copy_rvec(patch->newx, xn[newi]);
@@ -590,7 +585,6 @@ int add_h(t_atoms**                                   initialAtoms,
           t_atoms**                                   localAtoms,
           std::vector<gmx::RVec>*                     xptr,
           gmx::ArrayRef<const MoleculePatchDatabase>  globalPatches,
-          t_symtab*                                   symtab,
           const int                                   nterpairs,
           gmx::ArrayRef<MoleculePatchDatabase* const> ntdb,
           gmx::ArrayRef<MoleculePatchDatabase* const> ctdb,
@@ -610,7 +604,7 @@ int add_h(t_atoms**                                   initialAtoms,
     {
         nold = nnew;
         nnew = add_h_low(
-                initialAtoms, localAtoms, xptr, globalPatches, symtab, nterpairs, ntdb, ctdb, rN, rC, FALSE, cyclicBondsIndex);
+                initialAtoms, localAtoms, xptr, globalPatches, nterpairs, ntdb, ctdb, rN, rC, FALSE, cyclicBondsIndex);
         niter++;
         if (niter > 100)
         {
@@ -623,7 +617,7 @@ int add_h(t_atoms**                                   initialAtoms,
     if (!bAllowMissing)
     {
         /* Call add_h_low once more, now only for the missing atoms check */
-        add_h_low(initialAtoms, localAtoms, xptr, globalPatches, symtab, nterpairs, ntdb, ctdb, rN, rC, TRUE, cyclicBondsIndex);
+        add_h_low(initialAtoms, localAtoms, xptr, globalPatches, nterpairs, ntdb, ctdb, rN, rC, TRUE, cyclicBondsIndex);
     }
 
     return nnew;

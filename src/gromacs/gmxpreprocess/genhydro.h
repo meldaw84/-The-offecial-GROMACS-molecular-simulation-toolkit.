@@ -3,7 +3,7 @@
  *
  * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
  * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2018,2019,2020, by the GROMACS development team, led by
+ * Copyright (c) 2013,2014,2015,2018,2019,2020,2021, by the GROMACS development team, led by
  * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
  * and including many others, as listed in the AUTHORS file in the
  * top-level source directory and at http://www.gromacs.org.
@@ -43,7 +43,6 @@
 #include "gromacs/math/vectypes.h"
 
 struct t_atoms;
-struct t_symtab;
 struct MoleculePatchDatabase;
 
 namespace gmx
@@ -59,7 +58,6 @@ class ArrayRef;
  * \param[inout] localAtoms The extra atoms for reassigning the new entries.
  * \param[inout] xptr Coordinates to be updated with those for new atoms.
  * \param[in] globalPatches The atom modifications to use.
- * \param[inout] symtab Global symbol table for atom names.
  * \param[in] nterpairs Number of termini pairs in the molecule.
  * \param[in] ntdb Entries for N-terminus in each chain, each entry can be valid or nullptr.
  * \param[in] ctdb Entries for C-terminus in each cahin, each entry can be valid or nullptr.
@@ -73,7 +71,6 @@ int add_h(t_atoms**                                   initialAtoms,
           t_atoms**                                   localAtoms,
           std::vector<gmx::RVec>*                     xptr,
           gmx::ArrayRef<const MoleculePatchDatabase>  globalPatches,
-          t_symtab*                                   symtab,
           int                                         nterpairs,
           gmx::ArrayRef<MoleculePatchDatabase* const> ntdb,
           gmx::ArrayRef<MoleculePatchDatabase* const> ctdb,

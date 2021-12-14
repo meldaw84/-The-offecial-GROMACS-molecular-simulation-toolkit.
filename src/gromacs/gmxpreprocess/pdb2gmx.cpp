@@ -2639,7 +2639,6 @@ int pdb2gmx::run()
               &localAtoms[chain],
               &x,
               ah,
-              &symtab,
               cc->nterpairs,
               cc->ntdb,
               cc->ctdb,
