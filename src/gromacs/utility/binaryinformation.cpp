@@ -100,12 +100,6 @@ int centeringOffset(int width, int length)
     return std::max(width - length, 0) / 2;
 }
 
-std::string formatCentered(int width, const char* text)
-{
-    const int offset = centeringOffset(width, std::strlen(text));
-    return formatString("%*s%s", offset, "", text);
-}
-
 //! Construct a string that describes the library that provides CPU FFT support to this build
 const char* getCpuFftDescriptionString()
 {
