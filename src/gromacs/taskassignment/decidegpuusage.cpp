@@ -114,7 +114,7 @@ const char* const g_specifyEverythingFormatString =
         ;
 
 // The conditions below must be in sync with modeTargetsFftOnGpus check in src/programs/mdrun/tests/pmetest.cpp
-constexpr bool sc_gpuBuildOnlySupportsMixedModePme = (GMX_GPU_SYCL != 0) && (GMX_SYCL_DPCPP != 0); // Issue #4219
+constexpr bool sc_gpuBuildOnlySupportsMixedModePme = false;
 
 } // namespace
 

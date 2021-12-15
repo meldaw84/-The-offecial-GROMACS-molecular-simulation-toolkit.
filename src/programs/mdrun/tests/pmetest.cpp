@@ -269,8 +269,7 @@ MessageStringCollector PmeTest::getSkipMessagesIfNecessary(const CommandLine& co
         std::optional<std::string_view> pmeFftOptionArgument = commandLine.argumentOf("-pmefft");
         const bool                      commandLineTargetsPmeFftOnGpu =
                 !pmeFftOptionArgument.has_value() || pmeFftOptionArgument.value() == "gpu";
-        constexpr bool gpuBuildOnlySupportsMixedModePme =
-                (GMX_GPU_SYCL != 0) && (GMX_SYCL_DPCPP != 0); // Issue #4219
+        constexpr bool gpuBuildOnlySupportsMixedModePme = false; // Issue #4219
         messages.appendIf(
                 commandLineTargetsPmeFftOnGpu && gpuBuildOnlySupportsMixedModePme,
                 "it targets GPU execution of FFT work, which is not supported with DPC++");

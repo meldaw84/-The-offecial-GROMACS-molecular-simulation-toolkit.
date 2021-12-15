@@ -404,11 +404,8 @@ TEST_P(ParameterizedFFTTest3D, RunsOnHost)
 
 #if GMX_GPU
 
-/*! \brief Whether the FFT is in- or out-of-place
- *
- *  DPCPP uses oneMKL, which seems to have troubles with out-of-place
- *  transforms. */
-constexpr bool sc_performOutOfPlaceFFT = !((GMX_SYCL_DPCPP == 1) && (GMX_FFT_MKL == 1));
+/*! \brief Whether the FFT is in- or out-of-place. */
+constexpr bool sc_performOutOfPlaceFFT = true;
 
 /*! \brief Return the output grid depending on whether in- or out-of
  * place FFT is used
@@ -421,24 +418,11 @@ constexpr bool sc_performOutOfPlaceFFT = !((GMX_SYCL_DPCPP == 1) && (GMX_FFT_MKL
 template<bool performOutOfPlaceFFT>
 DeviceBuffer<float>* actualOutputGrid(DeviceBuffer<float>* realGrid, DeviceBuffer<float>* complexGrid);
 
-#    if GMX_SYCL_DPCPP && GMX_FFT_MKL
-
-template<>
-DeviceBuffer<float>* actualOutputGrid<false>(DeviceBuffer<float>* realGrid,
-                                             DeviceBuffer<float>* /* complexGrid */)
-{
-    return realGrid;
-};
-
-#    else
-
 template<>
 DeviceBuffer<float>* actualOutputGrid<true>(DeviceBuffer<float>* /* realGrid */, DeviceBuffer<float>* complexGrid)
 {
     return complexGrid;
 }
-
-#    endif
 
 // This is not the same test case as RunsOnHost because the
 // dimension ordering of the complex grid differs for solve

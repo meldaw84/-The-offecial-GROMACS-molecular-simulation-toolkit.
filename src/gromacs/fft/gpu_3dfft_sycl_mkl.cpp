@@ -75,7 +75,7 @@ class DeviceContext;
 #include <mkl_version.h>
 
 // oneAPI 2021.2.0 to 2021.4.0 have issues with backward out-of-place transform
-static constexpr bool sc_mklHasBuggyOutOfPlaceFFT = (INTEL_MKL_VERSION <= 20210004);
+static constexpr bool sc_mklHasBuggyOutOfPlaceFFT = false;
 
 namespace gmx
 {
