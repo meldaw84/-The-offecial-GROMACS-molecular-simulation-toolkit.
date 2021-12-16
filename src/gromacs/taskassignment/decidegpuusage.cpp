@@ -790,15 +790,41 @@ bool decideWhetherDirectGpuCommunicationCanBeUsed(const DevelopmentFeatureFlags&
     return canUseDirectGpuCommWithThreadMpi || canUseDirectGpuCommWithMpi;
 }
 
-bool decideWhetherToUseGpuForHalo(bool havePPDomainDecomposition,
-                                  bool useGpuForNonbonded,
-                                  bool canUseDirectGpuComm,
-                                  bool useModularSimulator,
-                                  bool doRerun,
-                                  bool haveEnergyMinimization)
+bool decideWhetherToUseGpuForHalo(bool                 havePPDomainDecomposition,
+                                  bool                 useGpuForNonbonded,
+                                  bool                 canUseDirectGpuComm,
+                                  bool                 useModularSimulator,
+                                  bool                 doRerun,
+                                  bool                 haveEnergyMinimization,
+                                  const gmx::MDLogger& mdlog)
 {
-    return canUseDirectGpuComm && havePPDomainDecomposition && useGpuForNonbonded
-           && !useModularSimulator && !doRerun && !haveEnergyMinimization;
+
+    // First check those flags that may cause, from the user perspective, an unexpected
+    // fallback to CPU halo, and report accordingly
+    bool useGpuForHalo = !useModularSimulator && !doRerun && !haveEnergyMinimization;
+
+    if (!useGpuForHalo)
+    {
+        std::string warning = "GPU halo exchange will not be activated because ";
+        if (useModularSimulator)
+        {
+            warning += "modular simulator runs are not supported.";
+        }
+        else if (doRerun)
+        {
+            warning += "re-runs are not supported.";
+        }
+        else if (haveEnergyMinimization)
+        {
+            warning += "energy minimization is not supported.";
+        }
+        GMX_LOG(mdlog.warning).asParagraph().appendText(warning);
+    }
+
+    // Now update the decision based on the remaining flags (which don't reed reporting)
+    useGpuForHalo = useGpuForHalo && canUseDirectGpuComm && havePPDomainDecomposition && useGpuForNonbonded;
+
+    return useGpuForHalo;
 }
 
 } // namespace gmx

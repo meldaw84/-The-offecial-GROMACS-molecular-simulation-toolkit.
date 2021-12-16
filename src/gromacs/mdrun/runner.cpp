@@ -1345,7 +1345,8 @@ int Mdrunner::mdrunner()
                                                         canUseDirectGpuComm,
                                                         useModularSimulator,
                                                         doRerun,
-                                                        EI_ENERGY_MINIMIZATION(inputrec->eI));
+                                                        EI_ENERGY_MINIMIZATION(inputrec->eI),
+                                                        mdlog);
     }
 
     // This builder is necessary while we have multi-part construction

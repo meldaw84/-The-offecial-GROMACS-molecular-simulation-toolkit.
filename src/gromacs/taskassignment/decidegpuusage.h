@@ -329,15 +329,17 @@ bool decideWhetherDirectGpuCommunicationCanBeUsed(const DevelopmentFeatureFlags&
  * \param[in]  useModularSimulator          Whether modularsimulator is in use.
  * \param[in]  doRerun                      Whether this is a rerun.
  * \param[in]  haveEnergyMinimization       Whether energy minimization is in use.
+ * \param[in]  mdlog                        MD logger.
  *
  * \returns    Whether halo exchange can be run on GPU.
  */
-bool decideWhetherToUseGpuForHalo(bool havePPDomainDecomposition,
-                                  bool useGpuForNonbonded,
-                                  bool canUseDirectGpuComm,
-                                  bool useModularSimulator,
-                                  bool doRerun,
-                                  bool haveEnergyMinimization);
+bool decideWhetherToUseGpuForHalo(bool                 havePPDomainDecomposition,
+                                  bool                 useGpuForNonbonded,
+                                  bool                 canUseDirectGpuComm,
+                                  bool                 useModularSimulator,
+                                  bool                 doRerun,
+                                  bool                 haveEnergyMinimization,
+                                  const gmx::MDLogger& mdlog);
 
 } // namespace gmx
 
