@@ -316,7 +316,8 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
             && ((numRanksPerSimulation > 1 && numPmeRanksPerSimulation == 0)
                 || numPmeRanksPerSimulation > 1);
     const bool pmeGpuDecompositionSupported =
-            (devFlags.canUseCudaAwareMpi && pmeRunMode == PmeRunMode::Mixed);
+            (devFlags.canUseCudaAwareMpi
+             && (pmeRunMode == PmeRunMode::GPU || pmeRunMode == PmeRunMode::Mixed));
 
     const bool forcePmeGpuDecomposition = getenv("GMX_GPU_PME_DECOMPOSITION") != nullptr;
 

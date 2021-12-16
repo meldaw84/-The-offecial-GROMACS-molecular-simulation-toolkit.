@@ -49,11 +49,14 @@
 
 #include "gromacs/fft/fft.h"
 #include "gromacs/gpu_utils/devicebuffer_datatype.h"
+#include "gromacs/gpu_utils/hostallocator.h"
 #include "gromacs/gpu_utils/gputraits.h"
 #include "gromacs/utility/gmxmpi.h"
 #include "gpu_3dfft_impl.h"
 
 #include <cufft.h>
+
+#define UCX_MPIALLTOALLV_BUG_HACK 1
 
 class DeviceContext;
 class DeviceStream;
@@ -93,6 +96,110 @@ private:
     cufftHandle   planC2R_;
     cufftReal*    realGrid_;
     cufftComplex* complexGrid_;
+    cufftComplex* complexGrid2_;
+    ivec complexGridSizePadded_;
+
+    std::vector<int> _gridSizesInX;
+
+    /*! \brief
+     * CUDA stream used for PME computation
+     */
+    const DeviceStream& stream_;
+
+    /*! \brief
+     * 2D and 1D cufft plans used for distributed fft implementation
+     */
+    cufftHandle planR2C2D_;
+    cufftHandle planC2R2D_;
+    cufftHandle planC2C1D_;
+
+    /*! \brief
+     * MPI complex type
+     */
+    MPI_Datatype complexType_;
+
+    /*! \brief
+     * MPI communicator for PME ranks
+     */
+    MPI_Comm mpi_comm_;
+
+    /*! \brief
+     * total ranks within PME group
+     */
+    int mpiSize_;
+
+    /*! \brief
+     * current local mpi rank within PME group
+     */
+    int mpiRank_;
+
+    /*! \brief
+     * Max local grid size in X-dim (used during transposes in forward pass)
+     */
+    int xMax_;
+
+    /*! \brief
+     * Max local grid size in Y-dim (used during transposes in reverse pass)
+     */
+    int yMax_;
+
+    /*! \brief
+     * device array containing 1D decomposition size in X-dim (forwarad pass)
+     */
+    DeviceBuffer<int> d_xBlockSizes_;
+
+    /*! \brief
+     * device array containing 1D decomposition size in Y-dim (reverse pass)
+     */
+    DeviceBuffer<int> d_yBlockSizes_;
+
+    /*! \brief
+     * device arrays for local interpolation grid start values in X-dim
+     * (used during transposes in forward pass)
+     */
+    DeviceBuffer<int> d_s2g0x_;
+
+    /*! \brief
+     * device arrays for local interpolation grid start values in Y-dim
+     * (used during transposes in reverse pass)
+     */
+    DeviceBuffer<int> d_s2g0y_;
+
+    /*! \brief
+     * host array containing 1D decomposition size in X-dim (forwarad pass)
+     */
+    gmx::HostVector<int> h_xBlockSizes_;
+
+    /*! \brief
+     * host array containing 1D decomposition size in Y-dim (reverse pass)
+     */
+    gmx::HostVector<int> h_yBlockSizes_;
+
+    /*! \brief
+     * host array for local interpolation grid start values in Y-dim
+     */
+    gmx::HostVector<int> h_s2g0y_;
+
+    /*! \brief
+     * device array big enough to hold grid overlapping region
+     * used during grid halo exchange
+     */
+    DeviceBuffer<float> d_transferGrid_;
+
+    /*! \brief
+     * count and displacement arrays used in MPI_Alltoall call
+     *
+     */
+    int *sendCount_, *sendDisp_;
+    int *recvCount_, *recvDisp_;
+
+#        if UCX_MPIALLTOALLV_BUG_HACK
+    /*! \brief
+     * count arrays used in MPI_Alltoall call which has no self copies
+     *
+     */
+    int *sendCountTemp_, *recvCountTemp_;
+#        endif
 };
 
 } // namespace gmx
