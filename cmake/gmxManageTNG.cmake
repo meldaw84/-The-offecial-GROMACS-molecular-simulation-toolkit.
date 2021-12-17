@@ -52,6 +52,7 @@ if(GMX_USE_TNG)
             message(FATAL_ERROR "TNG >= ${GMX_TNG_MINIMUM_REQUIRED_VERSION} not found. You can set GMX_EXTERNAL_TNG=OFF to compile the TNG bundled with GROMACS.")
         endif()
     else()
+        enable_language(C)
         # Detect zlib if the user requires us to use an external
         # version. If found, it can be used by TNG.
         if(GMX_EXTERNAL_ZLIB)

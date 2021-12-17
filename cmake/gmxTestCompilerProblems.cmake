@@ -37,14 +37,6 @@ include(CheckCXXSourceCompiles)
 # versions, or other potential problems.
 macro(gmx_test_compiler_problems)
 
-    # Warn if C and C++ compilers do not match
-    if(NOT CMAKE_C_COMPILER_ID STREQUAL CMAKE_CXX_COMPILER_ID)
-        message(WARNING "The ids of the C and C++ compilers do not match (${CMAKE_C_COMPILER_ID} and ${CMAKE_CXX_COMPILER_ID}, respectively). Mixing different C/C++ compilers can cause problems.")
-    endif()
-    if(NOT CMAKE_C_COMPILER_VERSION STREQUAL CMAKE_CXX_COMPILER_VERSION)
-        message(WARNING "The versions of the C and C++ compilers do not match (${CMAKE_C_COMPILER_VERSION} and ${CMAKE_CXX_COMPILER_VERSION}, respectively). Mixing different C/C++ compilers can cause problems.")
-    endif()
-
     # Error if compiler doesn't support required C++17 features.
     # cmake feature detection is currently inconsistent: gitlab.kitware.com/cmake/cmake/issues/18869
     # We might want to switch to using feature test macros some time.

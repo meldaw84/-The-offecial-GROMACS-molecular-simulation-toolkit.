@@ -38,14 +38,6 @@
  * Used for log and version output.
  */
 
-/** C compiler used to build */
-#define BUILD_C_COMPILER        "@BUILD_C_COMPILER@"
-
-/** C compiler flags for this build configuration */
-#define CMAKE_BUILD_CONFIGURATION_C_FLAGS "@CMAKE_BUILD_CONFIGURATION_C_FLAGS@"
-
-#include "compilerflaginfo-@CMAKE_BUILD_TYPE@-C.h"
-
 /** C++ compiler used to build */
 #define BUILD_CXX_COMPILER      "@BUILD_CXX_COMPILER@"
 

@@ -34,9 +34,7 @@
 # Helper function to call the correct language version of the CMake
 # check_*_compiler_flag function.
 function(gmx_check_compiler_flag FLAGS LANGUAGE RESULT_VARIABLE)
-    if (LANGUAGE STREQUAL "C")
-        check_c_compiler_flag("${FLAGS}" ${RESULT_VARIABLE})
-    elseif (LANGUAGE STREQUAL "CXX")
+    if (LANGUAGE STREQUAL "CXX")
         check_cxx_compiler_flag("${FLAGS}" ${RESULT_VARIABLE})
     else()
         message(FATAL_ERROR "Language '${LANGUAGE}' is not supported by gmx_check_compiler_flag")
@@ -47,9 +45,7 @@ endfunction()
 # check_*_source_compiles function.
 function(gmx_check_source_compiles_with_flags SOURCE FLAGS LANGUAGE RESULT_VARIABLE)
    set(CMAKE_REQUIRED_FLAGS "${FLAGS}")
-   if (LANGUAGE STREQUAL "C")
-       check_c_source_compiles("${SOURCE}" ${RESULT_VARIABLE})
-   elseif (LANGUAGE STREQUAL "CXX")
+   if (LANGUAGE STREQUAL "CXX")
        check_cxx_source_compiles("${SOURCE}" ${RESULT_VARIABLE})
    else()
        message(FATAL_ERROR "Language '${LANGUAGE}' is not supported by gmx_check_source_compiles_with_flags")
@@ -119,24 +115,18 @@ FUNCTION(GMX_FIND_FLAG_FOR_SOURCE RESULT_VARIABLE SOURCE LANGUAGE TOOLCHAIN_FLAG
     # will be interpreted by CMake as false.
 ENDFUNCTION()
 
-# Helper routine to find a flag (from a list) that will compile a specific source (in both C and C++).
-# C_RESULT_VARIABLE             Names a variable that will be set true if a way
-#                               to compile the source as C was found
+# Helper routine to find a flag (from a list) that will compile a specific source.
 # CXX_RESULT_VARIABLE           Names a variable that will be set true if a way
 #                               to compile the source as C++ was found
 # SOURCE                        Source code to test
-# TOOLCHAIN_C_FLAGS_VARIABLE    As input, names a variable that contains flags needed
-#                               by the C toolchain.
 # TOOLCHAIN_CXX_FLAGS_VARIABLE  As input, names a variable that contains flags needed
 #                               by the C++ toolchain.
-# NEW_C_FLAGS_VARIABLE          The first working C flag will be set to this variable
 # NEW_CXX_FLAGS_VARIABLE        The first working C++ flag will be set to this variable
 # Args 8 through N              Multiple strings with compiler flags to test
 #
 # If a compile flag is found, but the project in check_c/cxx_source_compiles
 # fails to build, sets SUGGEST_BINUTILS_UPDATE in parent scope to suggest
 # that the calling code tell the user about this issue if needed.
-macro(gmx_find_flags C_RESULT_VARIABLE CXX_RESULT_VARIABLE SOURCE TOOLCHAIN_C_FLAGS_VARIABLE TOOLCHAIN_CXX_FLAGS_VARIABLE C_FLAGS_VARIABLE CXX_FLAGS_VARIABLE)
-    gmx_find_flag_for_source(${C_RESULT_VARIABLE} "${SOURCE}" "C" ${TOOLCHAIN_C_FLAGS_VARIABLE} ${C_FLAGS_VARIABLE} ${ARGN})
-    gmx_find_flag_for_source(${CXX_RESULT_VARIABLE} "${SOURCE}" "CXX" ${TOOLCHAIN_CXX_FLAGS_VARIABLE} ${CXX_FLAGS_VARIABLE} ${ARGN})
+macro(gmx_find_flags CXX_RESULT_VARIABLE SOURCE TOOLCHAIN_CXX_FLAGS_VARIABLE CXX_FLAGS_VARIABLE)
+        gmx_find_flag_for_source(${CXX_RESULT_VARIABLE} "${SOURCE}" "CXX" ${TOOLCHAIN_CXX_FLAGS_VARIABLE} ${CXX_FLAGS_VARIABLE} ${ARGN})
 endmacro()

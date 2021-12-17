@@ -39,7 +39,6 @@ endif()
 # Output compiler and CFLAGS used
 ######################################
 include(GetCompilerInfo.cmake)
-get_compiler_info(C BUILD_C_COMPILER)
 get_compiler_info(CXX BUILD_CXX_COMPILER)
 if(GMX_GPU_CUDA)
     if(NOT GMX_CLANG_CUDA)
@@ -122,7 +121,6 @@ string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
 configure_file(config.h.cmakein include/config.h)
 configure_file(gmxpre-config.h.cmakein include/gmxpre-config.h)
 
-set(CMAKE_BUILD_CONFIGURATION_C_FLAGS   ${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE_UPPER}})
 set(CMAKE_BUILD_CONFIGURATION_CXX_FLAGS ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE_UPPER}})
 configure_file(buildinfo.h.cmakein include/buildinfo.h ESCAPE_QUOTES)
 configure_file(contributors.h.cmakein include/contributors.h)

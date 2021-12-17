@@ -53,7 +53,7 @@ endif()
 
 # The GROMACS convention is that these are the version number of the next
 # release that is going to be made from this branch.
-project(Gromacs VERSION 2023.0)
+project(Gromacs VERSION 2023.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -312,7 +312,6 @@ gmx_c_flags()
 # EXTRA_COMPILER_FLAGS so that we we don't perpetrate bugs where
 # things that work in C compilation (e.g. merging from old branches)
 # might not also work for C++ compilation.
-set(EXTRA_C_FLAGS "")
 set(EXTRA_CXX_FLAGS "")
 
 # Run through a number of tests for buggy compilers and other issues
@@ -796,10 +795,6 @@ if (NOT GMX_SKIP_DEFAULT_CFLAGS)
     set(CMAKE_SHARED_LINKER_FLAGS "${FFT_LINKER_FLAGS} ${MPI_CXX_LINK_FLAGS} ${CMAKE_SHARED_LINKER_FLAGS} ${DISABLE_SYCL_CXX_FLAGS}")
 else()
     message("Recommended flags which are not added because GMX_SKIP_DEFAULT_CFLAGS=yes:")
-    message("CMAKE_C_FLAGS: ${SIMD_C_FLAGS};${MPI_COMPILE_FLAGS};${EXTRA_C_FLAGS};${GMXC_CFLAGS}")
-    foreach(build_type ${build_types_with_explicit_flags})
-        message("CMAKE_C_FLAGS_${build_type}: ${GMXC_CFLAGS_${build_type}}")
-    endforeach()
     message("CMAKE_CXX_FLAGS: ${SIMD_CXX_FLAGS};${MPI_COMPILE_FLAGS};${EXTRA_CXX_FLAGS};${GMXC_CXXFLAGS}")
     foreach(build_type ${build_types_with_explicit_flags})
         message("CMAKE_CXX_FLAGS_${build_type}: ${GMXC_CXXFLAGS_${build_type}}")

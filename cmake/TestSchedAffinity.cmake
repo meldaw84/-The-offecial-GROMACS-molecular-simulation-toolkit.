@@ -49,7 +49,7 @@ MACRO(test_sched_affinity VARIABLE)
   if(NOT DEFINED sched_affinity_compile)
     MESSAGE(STATUS "Checking for sched.h GNU affinity API")
 
-    check_c_source_compiles(
+    check_cxx_source_compiles(
       "#ifndef _GNU_SOURCE
 #define _GNU_SOURCE 1
 #endif

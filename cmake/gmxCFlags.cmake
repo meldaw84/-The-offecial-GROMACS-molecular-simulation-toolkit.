@@ -31,19 +31,7 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out https://www.gromacs.org.
 
-include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
-
-# Test C flags FLAGS, and set VARIABLE to true if the work. Also add the
-# flags to CFLAGSVAR.
-MACRO(GMX_TEST_CFLAG VARIABLE FLAGS CFLAGSVAR)
-    IF(NOT DEFINED ${VARIABLE})
-        CHECK_C_COMPILER_FLAG("${FLAGS}" ${VARIABLE})
-    ENDIF()
-    IF (${VARIABLE})
-        list(APPEND ${CFLAGSVAR} "${FLAGS}")
-    ENDIF ()
-ENDMACRO(GMX_TEST_CFLAG VARIABLE FLAGS CFLAGSVAR)
 
 # Test C++ flags FLAGS, and set VARIABLE to true if the work. Also add the
 # flags to CXXFLAGSVAR.
@@ -59,13 +47,6 @@ ENDMACRO(GMX_TEST_CXXFLAG VARIABLE FLAGS CXXFLAGSVAR)
 # Prepare some local variables so CUDA and non-CUDA code in targets
 # works the same way.
 function(gmx_target_compile_options_inner)
-    set(CFLAGS
-            ${SIMD_C_FLAGS}
-            ${MPI_C_COMPILE_OPTIONS}
-            ${EXTRA_C_FLAGS}
-            ${GMXC_CFLAGS}
-         PARENT_SCOPE)
-
     # When SYCL support has been enabled (so the flag is non-empty), we still *disable* things
     # by default to avoid running each file three passes through the compiler. Then we'll explicitly
     # enable SYCL for the few files using it, as well as the linker.
@@ -100,14 +81,12 @@ function(gmx_target_compile_options TARGET)
     gmx_target_compile_options_inner()
     target_compile_options(${TARGET}
         PRIVATE
-        $<$<COMPILE_LANGUAGE:C>:${CFLAGS}>
         $<$<COMPILE_LANGUAGE:CXX>:${CXXFLAGS}>
         )
     # Add compiler options for the build types
     foreach(build_type ${build_types_with_explicit_flags})
         target_compile_options(${TARGET}
             BEFORE PRIVATE
-            $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:${build_type}>>:${GMXC_CFLAGS_${build_type}}>
             $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:${build_type}>>:${GMXC_CXXFLAGS_${build_type}}>
             )
     endforeach()
@@ -116,7 +95,6 @@ function(gmx_target_compile_options TARGET)
     foreach(build_type RELWITHDEBINFO RELWITHASSERT MINSIZEREL PROFILE)
         target_compile_options(${TARGET}
             BEFORE PRIVATE
-            $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:${build_type}>>:${GMXC_CFLAGS_RELEASE}>
             $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:${build_type}>>:${GMXC_CXXFLAGS_RELEASE}>
             )
     endforeach()
@@ -124,7 +102,6 @@ function(gmx_target_compile_options TARGET)
     # configuration.
     target_compile_options(${TARGET}
         BEFORE PRIVATE
-        $<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:RELEASE>>:${GMXC_CFLAGS_RELEASE_ONLY}>
         $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:RELEASE>>:${GMXC_CXXFLAGS_RELEASE_ONLY}>
         )
 endfunction()
@@ -217,32 +194,8 @@ endfunction()
 # This is the actual exported function to be called
 macro (gmx_c_flags)
 
-    include(CheckCCompilerFlag)
     include(CheckCXXCompilerFlag)
 
-    # gcc
-    if(CMAKE_COMPILER_IS_GNUCC)
-        #flags are added in reverse order and -Wno* need to appear after -Wall
-        if(NOT GMX_OPENMP)
-            GMX_TEST_CFLAG(CFLAGS_PRAGMA "-Wno-unknown-pragmas" GMXC_CFLAGS)
-        endif()
-        if (GMX_COMPILER_WARNINGS)
-            GMX_TEST_CFLAG(CFLAGS_WARN "-Wall;-Wno-unused;-Wunused-value;-Wunused-parameter" GMXC_CFLAGS)
-            GMX_TEST_CFLAG(CFLAGS_WARN_EXTRA "-Wextra;-Wno-sign-compare;-Wpointer-arith" GMXC_CFLAGS)
-            GMX_TEST_CFLAG(CFLAGS_WARN_UNDEF "-Wundef" GMXC_CFLAGS)
-            GMX_TEST_CFLAG(CFLAGS_WARN_REL "-Wno-array-bounds" GMXC_CFLAGS_RELEASE_ONLY)
-            if(CYGWIN)
-                GMX_TEST_CFLAG(CFLAGS_WARN_SUBSCRIPT "-Wno-char-subscripts" GMXC_CFLAGS)
-            endif()
-            GMX_TEST_CFLAG(CFLAGS_STRINGOP_TRUNCATION "-Werror=stringop-truncation" GMXC_CFLAGS)
-        endif()
-        GMX_TEST_CFLAG(CFLAGS_WARN_NO_MISSING_FIELD_INITIALIZERS "-Wno-missing-field-initializers" GMXC_CFLAGS)
-        # new in gcc 4.5
-        GMX_TEST_CFLAG(CFLAGS_EXCESS_PREC "-fexcess-precision=fast" GMXC_CFLAGS_RELEASE)
-        GMX_TEST_CFLAG(CFLAGS_COPT "-funroll-all-loops"
-                       GMXC_CFLAGS_RELEASE)
-        GMX_TEST_CFLAG(CFLAGS_NOINLINE "-fno-inline" GMXC_CFLAGS_DEBUG)
-    endif()
     # g++
     if(CMAKE_COMPILER_IS_GNUCXX)
         if(NOT GMX_OPENMP)
@@ -254,7 +207,7 @@ macro (gmx_c_flags)
             # GMX_TEST_CXXFLAG(CXXFLAGS_WARN_EFFCXX "-Wnon-virtual-dtor" GMXC_CXXFLAGS)
             GMX_TEST_CXXFLAG(CXXFLAGS_WARN_EXTRA "-Wextra;-Wpointer-arith;-Wmissing-declarations" GMXC_CXXFLAGS)
             GMX_TEST_CXXFLAG(CXXFLAGS_WARN_UNDEF "-Wundef" GMXC_CXXFLAGS)
-            GMX_TEST_CFLAG(CXXFLAGS_WARN_REL "-Wno-array-bounds" GMXC_CXXFLAGS_RELEASE_ONLY)
+            GMX_TEST_CXXFLAG(CXXFLAGS_WARN_REL "-Wno-array-bounds" GMXC_CXXFLAGS_RELEASE_ONLY)
             GMX_TEST_CXXFLAG(CXXFLAGS_STRINGOP_TRUNCATION "-Wstringop-truncation" GMXC_CXXFLAGS)
             if (CXXFLAGS_STRINGOP_TRUNCATION)
                 set(CXXFLAGS_NO_STRINGOP_TRUNCATION "-Wno-stringop-truncation")
@@ -270,9 +223,6 @@ macro (gmx_c_flags)
 
     # PGI
     # Inter-procedural analysis causes pgcc/pgc++ to crash when linking the library with PGI release 15.7.
-    if (CMAKE_C_COMPILER_ID MATCHES "PGI")
-        GMX_TEST_CFLAG(CFLAGS_OPT "-Mnoipa" GMXC_CFLAGS_RELEASE)
-    endif()
     if (CMAKE_CXX_COMPILER_ID MATCHES "PGI")
         # Using ipa exposes internal PGI-15.7 compiler bugs at compile time
         GMX_TEST_CXXFLAG(CXXFLAGS_OPT "-Mnoipa" GMXC_CXXFLAGS_RELEASE)
@@ -283,17 +233,6 @@ macro (gmx_c_flags)
     endif()
 
     # Pathscale
-    if (CMAKE_C_COMPILER_ID MATCHES "PathScale")
-        if(NOT GMX_OPENMP)
-            GMX_TEST_CFLAG(CFLAGS_PRAGMA "-Wno-unknown-pragmas" GMXC_CFLAGS)
-        endif()
-        if (GMX_COMPILER_WARNINGS)
-            GMX_TEST_CFLAG(CFLAGS_WARN "-Wall;-Wno-unused;-Wunused-value" GMXC_CFLAGS)
-        endif()
-        GMX_TEST_CFLAG(CFLAGS_OPT "-OPT:Ofast;-fno-math-errno;-ffast-math"
-                         GMXC_CFLAGS_RELEASE)
-        GMX_TEST_CFLAG(CFLAGS_LANG "-std=gnu99" GMXC_CFLAGS)
-    endif()
     if (CMAKE_CXX_COMPILER_ID MATCHES "PathScale")
         if(NOT GMX_OPENMP)
             GMX_TEST_CXXFLAG(CXXFLAGS_PRAGMA "-Wno-unknown-pragmas" GMXC_CXXFLAGS)
@@ -310,12 +249,6 @@ macro (gmx_c_flags)
     # 1500-036: (I) about -O3 causing non-strict IEEE compliance that changes the semantics of the program (duh)
     # 1500-010: (W) about correct PBC-related use of maximum array indices of DIM-sized C arrays
     # 1500-030: (I) Additional optimization may be attained by recompiling and specifying MAXMEM option with a value greater than 8192.
-    if (CMAKE_C_COMPILER_ID MATCHES "XL")
-        GMX_TEST_CFLAG(CFLAGS_ARCH "-qarch=auto;-qtune=auto" GMXC_CFLAGS)
-        GMX_TEST_CFLAG(CFLAGS_OPT  "-O3" GMXC_CFLAGS_RELEASE)
-        GMX_TEST_CFLAG(CFLAGS_LANG "-qlanglvl=extc99" GMXC_CFLAGS)
-        GMX_TEST_CFLAG(CFLAGS_LANG "-qsuppress=1500-036;-qsuppress=1500-010;-qsuppress=1500-030" GMXC_CFLAGS)
-    endif()
     if (CMAKE_CXX_COMPILER_ID MATCHES "XL")
         GMX_TEST_CXXFLAG(CXXFLAGS_ARCH "-qarch=auto;-qtune=auto" GMXC_CXXFLAGS)
         GMX_TEST_CXXFLAG(CXXFLAGS_OPT "-O3" GMXC_CXXFLAGS_RELEASE)
@@ -336,23 +269,11 @@ macro (gmx_c_flags)
         #      unknown pragma (4068)
         #      remark #280: selector expression is constant
         if(NOT CMAKE_CONFIGURATION_TYPES)
-            GMX_TEST_CFLAG(CFLAGS_WARN "/wd4800;/wd4355;/wd4996;/wd4305;/wd4244;/wd4101;/wd4267;/wd4090;/wd4068;" GMXC_CFLAGS)
             GMX_TEST_CXXFLAG(CXXFLAGS_WARN "/wd4800;/wd4355;/wd4996;/wd4305;/wd4244;/wd4267;/wd4068;" GMXC_CXXFLAGS)
         else() # MSVC projects only use the C++ flags
             GMX_TEST_CXXFLAG(CXXFLAGS_WARN "/wd4800;/wd4355;/wd4996;/wd4305;/wd4244;/wd4101;/wd4267;/wd4090;/wd4068;" GMXC_CXXFLAGS)
         endif()
         GMX_TEST_CXXFLAG(CXXFLAGS_LANG "/permissive-" GMXC_CXXFLAGS)
-    endif()
-
-    if (CMAKE_C_COMPILER_ID MATCHES "Clang" OR CMAKE_C_COMPILER_ID MATCHES "IntelLLVM")
-        if(NOT GMX_OPENMP)
-            GMX_TEST_CFLAG(CFLAGS_PRAGMA "-Wno-unknown-pragmas" GMXC_CFLAGS)
-        endif()
-        if (GMX_COMPILER_WARNINGS)
-            GMX_TEST_CFLAG(CFLAGS_WARN "-Wall;-Wno-unused;-Wunused-value;-Wunused-parameter" GMXC_CFLAGS)
-            GMX_TEST_CFLAG(CFLAGS_WARN_EXTRA "-Wpointer-arith" GMXC_CFLAGS_EXTRA)
-        endif()
-        GMX_TEST_CFLAG(CFLAGS_WARN_NO_MISSING_FIELD_INITIALIZERS "-Wno-missing-field-initializers" GMXC_CFLAGS)
     endif()
 
     if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
@@ -385,15 +306,6 @@ macro (gmx_c_flags)
     endif()
 
     # Apple bastardized version of Clang
-    if(${CMAKE_C_COMPILER_ID} MATCHES "AppleClang")
-        if(${CMAKE_C_COMPILER_VERSION} VERSION_GREATER 11.0)
-            # Mac OS Catalina ships with a horribly broken compiler (version 11.0.0.11000033)
-            # that checks stack alignment by default, but their own C library
-            # does not align the stack properly. Embarrassing, Apple...
-            GMX_TEST_CFLAG(CFLAG_NO_STACK_CHECK "-fno-stack-check" GMXC_CFLAGS)
-        endif()
-    endif()
-
     if(${CMAKE_CXX_COMPILER_ID} MATCHES "AppleClang")
         if(${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER 11.0)
             # Mac OS Catalina ships with a horribly broken compiler (version 11.0.0.11000033)
@@ -404,15 +316,6 @@ macro (gmx_c_flags)
     endif()
 
     # Apple bastardized version of Clang
-    if(${CMAKE_C_COMPILER_ID} MATCHES "AppleClang")
-        if(${CMAKE_C_COMPILER_VERSION} VERSION_GREATER 11.0)
-            # Mac OS Catalina ships with a horribly broken compiler (version 11.0.0.11000033)
-            # that checks stack alignment by default, but their own C library
-            # does not align the stack properly. Embarrassing, Apple...
-            GMX_TEST_CFLAG(CFLAG_NO_STACK_CHECK "-fno-stack-check" GMXC_CFLAGS)
-        endif()
-    endif()
-
     if(${CMAKE_CXX_COMPILER_ID} MATCHES "AppleClang")
         if(${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER 11.0)
             # Mac OS Catalina ships with a horribly broken compiler (version 11.0.0.11000033)

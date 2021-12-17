@@ -47,7 +47,7 @@ MACRO(GMX_TEST_DLOPEN VARIABLE)
     # dlfcn.h. The CMake variable CMAKE_DL_LIBS works magically
     # for the library, however.
     set(CMAKE_REQUIRED_LIBRARIES "dl")
-    check_c_source_compiles(
+    check_cxx_source_compiles(
       "#include <dlfcn.h>
 int main(void) {
   dlopen(0,0);
