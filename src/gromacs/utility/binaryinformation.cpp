@@ -318,9 +318,6 @@ void gmx_print_version_info(gmx::TextWriter* writer)
     /* TODO: The below strings can be quite long, so it would be nice to wrap
      * them. Can wait for later, as the master branch has ready code to do all
      * that. */
-    writer->writeLine(formatString("C compiler:         %s", BUILD_C_COMPILER));
-    writer->writeLine(formatString(
-            "C compiler flags:   %s %s", BUILD_CFLAGS, CMAKE_BUILD_CONFIGURATION_C_FLAGS));
     writer->writeLine(formatString("C++ compiler:       %s", BUILD_CXX_COMPILER));
     writer->writeLine(formatString(
             "C++ compiler flags: %s %s", BUILD_CXXFLAGS, CMAKE_BUILD_CONFIGURATION_CXX_FLAGS));
