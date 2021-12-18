@@ -49,8 +49,7 @@ function(gmx_detect_avx_512_fma_units RESULT)
         if(NOT AVX_512_FMA_UNIT_DETECTION_COMPILED)
 
             # Find flags required for AVX-512
-            gmx_find_simd_avx_512_flags(SIMD_AVX_512_C_SUPPORTED SIMD_AVX_512_CXX_SUPPORTED
-                                        SIMD_AVX_512_C_FLAGS SIMD_AVX_512_CXX_FLAGS)
+            gmx_find_simd_avx_512_flags(SIMD_AVX_512_CXX_SUPPORTED SIMD_AVX_512_CXX_FLAGS)
             # Find flag for GCC inline assembly
             gmx_test_inline_asm_gcc_x86(GMX_X86_GCC_INLINE_ASM)
 

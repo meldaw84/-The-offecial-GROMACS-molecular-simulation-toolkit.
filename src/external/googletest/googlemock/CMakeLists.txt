@@ -40,7 +40,7 @@ if (CMAKE_VERSION VERSION_LESS 3.0)
   project(gmock CXX C)
 else()
   cmake_policy(SET CMP0048 NEW)
-  project(gmock VERSION ${GOOGLETEST_VERSION} LANGUAGES CXX C)
+  project(gmock VERSION ${GOOGLETEST_VERSION} LANGUAGES CXX)
 endif()
 cmake_minimum_required(VERSION 2.8.12)
 

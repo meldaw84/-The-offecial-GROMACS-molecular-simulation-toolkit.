@@ -60,41 +60,6 @@ endif()
 # Clang is reported to work with some caveats. See https://pspdfkit.com/blog/2015/ccache-for-fun-and-profit/
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
-    # Check whether C compiler wrapper has been set up.
-    if(NOT DEFINED GMX_CCACHE_C_COMPILER)
-        # Determine whether we have a cacheable compiler.
-        set(_cacheable OFF)
-        if (CMAKE_C_COMPILER_ID MATCHES "GNU"
-            OR CMAKE_C_COMPILER_ID MATCHES "AppleClang"
-            OR CMAKE_C_COMPILER_ID MATCHES "Clang")
-            message(STATUS "Setting up ccache wrapper for ${CMAKE_C_COMPILER_ID} C compiler ${CMAKE_C_COMPILER}")
-            configure_file(${CMAKE_CURRENT_SOURCE_DIR}/admin/ccache-wrapper-c.in ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/ccache-wrapper-c)
-            file(COPY ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/ccache-wrapper-c
-                 DESTINATION ${CMAKE_BINARY_DIR}
-                 FILE_PERMISSIONS
-                 OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-                 )
-            set(_cacheable ON)
-        else()
-            message(FATAL_ERROR "Cannot set up ccache, as it is not confirmed to "
-                "work with compiler ID ${CMAKE_C_COMPILER_ID}.")
-        endif()
-        set(GMX_CCACHE_C_COMPILER ${_cacheable} CACHE INTERNAL "Whether the C compiler will be wrapped for caching.")
-        unset(_cacheable)
-    endif() # defined
-    # Check whether we should use the wrapper. If so, set CMAKE variables.
-    if(GMX_CCACHE_C_COMPILER)
-        if(CMAKE_GENERATOR STREQUAL "Xcode")
-            # Set Xcode project attributes to route compilation and linking
-            # through our scripts
-            set(CMAKE_XCODE_ATTRIBUTE_CC "${CMAKE_BINARY_DIR}/ccache-wrapper-c")
-            set(CMAKE_XCODE_ATTRIBUTE_LD "${CMAKE_BINARY_DIR}/ccache-wrapper-c")
-        else()
-            # Support Unix Makefiles and Ninja
-            set(CMAKE_C_COMPILER_LAUNCHER "${CMAKE_BINARY_DIR}/ccache-wrapper-c")
-        endif()
-    endif()
-
     # Check whether CXX compiler wrapper has been set up
     if(NOT DEFINED GMX_CCACHE_CXX_COMPILER)
         # Determine whether we have a cacheable compiler.

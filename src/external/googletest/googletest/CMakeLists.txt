@@ -47,11 +47,11 @@ endif()
 # Project version:
 
 if (CMAKE_VERSION VERSION_LESS 3.0)
-  project(gtest CXX C)
+  project(gtest CXX)
   set(PROJECT_VERSION ${GOOGLETEST_VERSION})
 else()
   cmake_policy(SET CMP0048 NEW)
-  project(gtest VERSION ${GOOGLETEST_VERSION} LANGUAGES CXX C)
+  project(gtest VERSION ${GOOGLETEST_VERSION} LANGUAGES CXX)
 endif()
 cmake_minimum_required(VERSION 2.8.12)
 
