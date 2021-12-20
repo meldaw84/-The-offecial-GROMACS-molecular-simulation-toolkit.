@@ -806,39 +806,19 @@ bool decideWhetherToUseGpuForHalo(bool                 havePPDomainDecomposition
 
     // Now check those flags that may cause, from the user perspective, an unexpected
     // fallback to CPU halo, and report accordingly
-    bool useGpuForHalo = !useModularSimulator && !doRerun && !haveEnergyMinimization;
+    gmx::MessageStringCollector errorReasons;
+    errorReasons.startContext("GPU halo exchange will not be activated because:");
+    errorReasons.appendIf(useModularSimulator, "Modular simulator runs are not supported.");
+    errorReasons.appendIf(doRerun, "Re-runs are not supported.");
+    errorReasons.appendIf(haveEnergyMinimization, "Energy minimization is not supported.");
+    errorReasons.finishContext();
 
-    if (!useGpuForHalo)
+    if (!errorReasons.isEmpty())
     {
-        std::string warning = "GPU halo exchange will not be activated because ";
-        bool        append  = false;
-        if (useModularSimulator)
-        {
-            warning += "modular simulator runs are not supported";
-            append = true;
-        }
-        if (doRerun)
-        {
-            if (append)
-            {
-                warning += ", and ";
-            }
-            warning += "re-runs are not supported";
-            append = true;
-        }
-        if (haveEnergyMinimization)
-        {
-            if (append)
-            {
-                warning += ", and ";
-            }
-            warning += "energy minimization is not supported";
-        }
-        warning += ".";
-        GMX_LOG(mdlog.warning).asParagraph().appendText(warning);
+        GMX_LOG(mdlog.warning).asParagraph().appendText(errorReasons.toString());
     }
 
-    return useGpuForHalo;
+    return errorReasons.isEmpty();
 }
 
 } // namespace gmx
