@@ -798,31 +798,45 @@ bool decideWhetherToUseGpuForHalo(bool                 havePPDomainDecomposition
                                   bool                 haveEnergyMinimization,
                                   const gmx::MDLogger& mdlog)
 {
+    if (!canUseDirectGpuComm || !havePPDomainDecomposition || !useGpuForNonbonded)
+    {
+        // return false without warning
+        return false;
+    }
 
-    // First check those flags that may cause, from the user perspective, an unexpected
+    // Now check those flags that may cause, from the user perspective, an unexpected
     // fallback to CPU halo, and report accordingly
     bool useGpuForHalo = !useModularSimulator && !doRerun && !haveEnergyMinimization;
 
     if (!useGpuForHalo)
     {
         std::string warning = "GPU halo exchange will not be activated because ";
+        bool        append  = false;
         if (useModularSimulator)
         {
-            warning += "modular simulator runs are not supported.";
+            warning += "modular simulator runs are not supported";
+            append = true;
         }
-        else if (doRerun)
+        if (doRerun)
         {
-            warning += "re-runs are not supported.";
+            if (append)
+            {
+                warning += ", and ";
+            }
+            warning += "re-runs are not supported";
+            append = true;
         }
-        else if (haveEnergyMinimization)
+        if (haveEnergyMinimization)
         {
-            warning += "energy minimization is not supported.";
+            if (append)
+            {
+                warning += ", and ";
+            }
+            warning += "energy minimization is not supported";
         }
+        warning += ".";
         GMX_LOG(mdlog.warning).asParagraph().appendText(warning);
     }
-
-    // Now update the decision based on the remaining flags (which don't reed reporting)
-    useGpuForHalo = useGpuForHalo && canUseDirectGpuComm && havePPDomainDecomposition && useGpuForNonbonded;
 
     return useGpuForHalo;
 }
