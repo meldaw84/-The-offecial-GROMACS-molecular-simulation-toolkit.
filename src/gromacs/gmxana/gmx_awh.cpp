@@ -224,6 +224,52 @@ public:
     const real kT_; /**< kB*T in kJ/mol. */
 };
 
+/*! \brief Searches for frames in the energy file that should be processed */
+class AwhFrameSearcher
+{
+public:
+    /*! \brief Constructor
+     *
+     * \param[in] fp      Energy file to be processed.
+     * \param[in] skip    Step between valid frames that will be considered for writing.
+     */
+    AwhFrameSearcher(ener_file_t fp, int skip);
+
+    //! Destructor
+    ~AwhFrameSearcher();
+
+    //! Attempts to return next AWH frame from the energy file that statisfies all conditions
+    t_enxframe* nextAwhFrame();
+
+    /*! \brief Checks whether currentFrame_ or previousFrame_ should be dumped
+     *
+     * \param[in] dump    Timestep for dumping a frame.
+     * \returns Pointer to the frame that should be dumped or nullptr if no suitable frame found.
+     */
+    t_enxframe* checkDump(double dump);
+
+private:
+    //! Check if currentFrame_ has AWH block of data
+    bool checkAwhBlock();
+    //! Check if currentFrame_ is allowed by the -skip option
+    bool checkSkip();
+
+    //! Energy file to process
+    ener_file_t fp_;
+    //! Number of frames to skip until the next one
+    int skip_;
+    //! Latest frame read from energy file
+    t_enxframe* currentFrame_ = nullptr;
+    //! Flag for prescence of the valid currentFrame_
+    bool hasCurrentFrame_ = false;
+    //! Previous frame read from energy file
+    t_enxframe* previousFrame_ = nullptr;
+    //! Flag for prescence of the valid previousFrame_
+    bool hasPreviousFrame_ = false;
+    //! Counter of frames with AWH data that have been read
+    int awhFrameCounter_ = 0;
+};
+
 namespace
 {
 
@@ -455,13 +501,13 @@ void OutputFile::writeData(const t_enxblock& block, int subBlockStart, FILE* fp)
         /* Print the coordinates for numDim dimensions */
         for (int d = 0; d < numDim_; d++)
         {
-            fprintf(fp, "  %8.4f", block.sub[subBlockStart + 1 + d].fval[j]);
+            fprintf(fp, "\t%8.4f", block.sub[subBlockStart + 1 + d].fval[j]);
         }
 
         /* Print numGraph observables */
         for (int i = 0; i < numGraph_; i++)
         {
-            fprintf(fp, "  %g", block.sub[firstGraphSubBlock_ + i].fval[j] * scaleFactor_[i]);
+            fprintf(fp, "\t%g", block.sub[firstGraphSubBlock_ + i].fval[j] * scaleFactor_[i]);
         }
 
         fprintf(fp, "\n");
@@ -507,6 +553,122 @@ void AwhReader::processAwhFrame(const t_enxblock& block, double time, const gmx_
     }
 }
 
+AwhFrameSearcher::AwhFrameSearcher(ener_file_t fp, int skip) : fp_(fp), skip_(skip)
+{
+    snew(currentFrame_, 1);
+    snew(previousFrame_, 1);
+}
+
+AwhFrameSearcher::~AwhFrameSearcher()
+{
+    sfree(currentFrame_);
+    sfree(previousFrame_);
+}
+
+bool AwhFrameSearcher::checkAwhBlock()
+{
+    GMX_ASSERT(currentFrame_ != nullptr, "currentFrame_ should be valid");
+    return find_block_id_enxframe(currentFrame_, enxAWH, nullptr) != nullptr;
+}
+
+bool AwhFrameSearcher::checkSkip()
+{
+    GMX_ASSERT(currentFrame_ != nullptr, "currentFrame_ should be valid");
+    return (skip_ == 0) || (awhFrameCounter_ % skip_ == 0);
+}
+
+t_enxframe* AwhFrameSearcher::checkDump(double dump)
+{
+    // Return value
+    t_enxframe* resultFrame = nullptr;
+
+    if (hasCurrentFrame_)
+    {
+        // Case 1: currentFrame_ timestep is above dump and previousFrame_ is valid
+        if (currentFrame_->t >= dump && hasPreviousFrame_)
+        {
+            // Decide which frame timestep is closer to dump
+            if (std::abs(previousFrame_->t - dump) > std::abs(currentFrame_->t - dump))
+            {
+                resultFrame = currentFrame_;
+            }
+            else
+            {
+                resultFrame = previousFrame_;
+            }
+        }
+
+        // Case 2: currentFrame_ timestep is above dump and previousFrame_ is not valid
+        if (currentFrame_->t >= dump && !hasPreviousFrame_)
+        {
+            // Suggest to dump currentFrame_
+            resultFrame = currentFrame_;
+        }
+    }
+    else
+    {
+        // Case 3: currentFrame_ is not valid check for previousFrame_ and suggest to dump it
+        if (hasPreviousFrame_)
+        {
+            resultFrame = previousFrame_;
+        }
+    }
+
+    return resultFrame;
+}
+
+t_enxframe* AwhFrameSearcher::nextAwhFrame()
+{
+    // Return value
+    t_enxframe* resultFrame = nullptr;
+
+    // Swap current and previous frames
+    std::swap(currentFrame_, previousFrame_);
+    hasPreviousFrame_ = hasCurrentFrame_;
+    hasCurrentFrame_  = false;
+
+    // Initialize loop variable
+    bool foundNextFrame = false;
+
+    do
+    {
+        // If currentFrame_ exists
+        if (do_enx(fp_, currentFrame_))
+        {
+            int withinTimeRange = check_times(currentFrame_->t);
+
+            // Check if currentFrame_ contains AWH block of data and within time range
+            if (checkAwhBlock() && (withinTimeRange == 0))
+            {
+                // Check for skip condition
+                if (checkSkip())
+                {
+
+                    resultFrame      = currentFrame_;
+                    hasCurrentFrame_ = true;
+                    foundNextFrame   = true;
+                }
+
+                awhFrameCounter_++;
+            }
+
+            // If currentFrame_ timestep larger than -e option then stop search
+            if (withinTimeRange > 0)
+            {
+                foundNextFrame = true;
+            }
+        }
+        else
+        {
+            // We are at the end of file so should exit the loop and return nullptr
+            foundNextFrame = true;
+        }
+
+    } while (!foundNextFrame);
+
+    return resultFrame;
+}
+
 /*! \brief The main function for the AWH tool */
 int gmx_awh(int argc, char* argv[])
 {
@@ -523,8 +685,12 @@ int gmx_awh(int argc, char* argv[])
                            "to an additional set of files." };
     static gmx_bool moreGraphs = FALSE;
     static int      skip       = 0;
+    static real     tDump      = -1;
+    static bool     doDump     = false;
     static gmx_bool kTUnit     = FALSE;
-    t_pargs         pa[]       = {
+
+    t_pargs pa[] = {
+        { "-dump", FALSE, etTIME, { &tDump }, "Dump frame nearest specified time (%t)" },
         { "-skip", FALSE, etINT, { &skip }, "Skip number of frames between data points" },
         { "-more", FALSE, etBOOL, { &moreGraphs }, "Print more output" },
         { "-kt",
@@ -537,7 +703,6 @@ int gmx_awh(int argc, char* argv[])
     ener_file_t       fp;
     t_inputrec        ir;
     gmx_enxnm_t*      enm = nullptr;
-    t_enxframe*       frame;
     int               nre;
     gmx_output_env_t* oenv;
 
@@ -562,7 +727,8 @@ int gmx_awh(int argc, char* argv[])
         return 0;
     }
 
-    snew(frame, 1);
+    doDump = opt2parg_bSet("-dump", asize(pa), pa);
+
     fp = open_enx(ftp2fn(efEDR, nfile, fnm), "r");
     do_enxnms(fp, &nre, &enm);
 
@@ -579,63 +745,60 @@ int gmx_awh(int argc, char* argv[])
     }
 
     std::unique_ptr<AwhReader> awhReader;
+    auto                       awhFrameSearcher = std::make_unique<AwhFrameSearcher>(fp, skip);
+    t_enxframe*                frame            = awhFrameSearcher->nextAwhFrame();
+    t_enxblock*                block            = nullptr;
 
-    /* Initiate counters */
-    gmx_bool haveFrame;
-    int      awhFrameCounter = 0;
-    int      timeCheck       = 0;
-    do
+    while (frame != nullptr)
     {
-        haveFrame = do_enx(fp, frame);
+        // Extract AWH block of data from the frame
+        block = find_block_id_enxframe(frame, enxAWH, nullptr);
 
-        bool useFrame = false;
+        /* Currently we have the number of subblocks per AWH stored
+         * in the first subblock (we cannot get this directly from the tpr),
+         * so we have to read an AWH block before making the legends.
+         */
 
-        t_enxblock* block = nullptr;
-
-        if (haveFrame)
+        if (awhReader == nullptr)
         {
-            timeCheck = check_times(frame->t);
-
-            if (timeCheck == 0)
-            {
-                block = find_block_id_enxframe(frame, enxAWH, nullptr);
-
-                if (block != nullptr)
-                {
-                    if ((skip == 0) || (awhFrameCounter % skip == 0))
-                    {
-                        useFrame = true;
-                    }
-                    awhFrameCounter++;
-                }
-            }
+            AwhGraphSelection awhGraphSelection =
+                    (moreGraphs ? AwhGraphSelection::All : AwhGraphSelection::Pmf);
+            EnergyUnit energyUnit = (kTUnit ? EnergyUnit::KT : EnergyUnit::KJPerMol);
+            awhReader             = std::make_unique<AwhReader>(
+                    *ir.awhParams, nfile, fnm, awhGraphSelection, energyUnit, gmx::c_boltz * ir.opts.ref_t[0], block);
         }
 
-        if (useFrame)
+        if (doDump)
         {
-            /* We read a valid frame with an AWH block, so we can use it */
-
-            /* Currently we have the number of subblocks per AWH stored
-             * in the first subblock (we cannot get this directly from the tpr),
-             * so we have to read an AWH block before making the legends.
-             */
-            if (awhReader == nullptr)
+            // Exit the loop if dumping timestep has been reached
+            if (awhFrameSearcher->checkDump(tDump) != nullptr)
             {
-                AwhGraphSelection awhGraphSelection =
-                        (moreGraphs ? AwhGraphSelection::All : AwhGraphSelection::Pmf);
-                EnergyUnit energyUnit = (kTUnit ? EnergyUnit::KT : EnergyUnit::KJPerMol);
-                awhReader             = std::make_unique<AwhReader>(*ir.awhParams,
-                                                        nfile,
-                                                        fnm,
-                                                        awhGraphSelection,
-                                                        energyUnit,
-                                                        gmx::c_boltz * ir.opts.ref_t[0],
-                                                        block);
+                break;
             }
-
+        }
+        else
+        {
             awhReader->processAwhFrame(*block, frame->t, oenv);
         }
-    } while (haveFrame && (timeCheck <= 0));
+
+        // Search for the next valid frame
+        frame = awhFrameSearcher->nextAwhFrame();
+    }
+
+    // If we have frame to dump then write it
+    if (doDump)
+    {
+        frame = awhFrameSearcher->checkDump(tDump);
+        if (frame != nullptr)
+        {
+            fprintf(stderr,
+                    "\nDumping frame at t= %g %s\n",
+                    output_env_conv_time(oenv, frame->t),
+                    output_env_get_time_unit(oenv).c_str());
+            block = find_block_id_enxframe(frame, enxAWH, nullptr);
+            awhReader->processAwhFrame(*block, frame->t, oenv);
+        }
+    }
 
     fprintf(stderr, "\n");
 
