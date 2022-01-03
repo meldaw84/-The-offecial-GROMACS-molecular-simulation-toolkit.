@@ -84,6 +84,7 @@
 
 # Only run this job manual, never automatic
 .rules-element:manual-only: &manual-only
+  if: '$GROMACS_RELEASE'
   when: manual
 
 # When composing a rule set, note that the first matching rule is applied.
