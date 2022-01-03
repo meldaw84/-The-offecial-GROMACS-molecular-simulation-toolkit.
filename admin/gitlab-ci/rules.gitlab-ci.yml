@@ -164,8 +164,8 @@
     - *if-not-release-then-never
     - *if-post-merge-acceptance-then-never
     - *manual-only
-    - *if-web-then-always
-    - *if-schedule-then-always
+    - *if-web-then-on-success
+    - *if-schedule-then-on-success
 
 # Jobs that run on schedules, but not for merge requests or when GROMACS_RELEASE
 # is set. Excludes non-gromacs projects.
