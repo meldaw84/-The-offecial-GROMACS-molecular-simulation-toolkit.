@@ -249,8 +249,8 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
                         .asParagraph()
                         .appendTextFormatted(
                                 "This run has forced use of 'CUDA-aware MPI'. "
-                                "But, GROMACS cannot determine if underlying MPI "
-                                "is CUDA-aware. GROMACS recommends use of latest openMPI version "
+                                "GROMACS can not determine if the underlying MPI "
+                                "is CUDA-aware. We recommend using the latest OpenMPI version "
                                 "for CUDA-aware support. "
                                 "If you observe failures at runtime, try unsetting "
                                 "GMX_FORCE_CUDA_AWARE_MPI environment variable.");
@@ -261,8 +261,8 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
                 GMX_LOG(mdlog.warning)
                         .asParagraph()
                         .appendTextFormatted(
-                                "GMX_ENABLE_DIRECT_GPU_COMM environment variable detected, enabling"
-                                "direct GPU communication using CUDA-aware MPI. ");
+                                "GMX_ENABLE_DIRECT_GPU_COMM environment variable detected, enabling "
+                                "direct GPU communication using CUDA-aware MPI.");
             }
             else
             {
@@ -285,7 +285,7 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
                     .asParagraph()
                     .appendTextFormatted(
                             "CUDA-aware MPI detected, but by default GROMACS will not "
-                            "make use the direct GPU communication capabilities of MPI."
+                            "make use of the direct GPU communication capabilities of MPI. "
                             "For improved performance try enabling the feature by setting "
                             "the GMX_ENABLE_DIRECT_GPU_COMM environment variable.");
         }
