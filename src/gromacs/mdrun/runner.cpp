@@ -261,7 +261,8 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
                 GMX_LOG(mdlog.warning)
                         .asParagraph()
                         .appendTextFormatted(
-                                "GMX_ENABLE_DIRECT_GPU_COMM environment variable detected, enabling "
+                                "GMX_ENABLE_DIRECT_GPU_COMM environment variable detected, "
+                                "enabling "
                                 "direct GPU communication using CUDA-aware MPI.");
             }
             else
