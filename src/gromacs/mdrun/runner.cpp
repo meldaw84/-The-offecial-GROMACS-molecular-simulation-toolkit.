@@ -249,7 +249,7 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
                         .asParagraph()
                         .appendTextFormatted(
                                 "This run has forced use of 'CUDA-aware MPI'. "
-                                "GROMACS can not determine if the underlying MPI "
+                                "GROMACS cannot determine if the underlying MPI "
                                 "is CUDA-aware. We recommend using the latest OpenMPI version "
                                 "for CUDA-aware support. "
                                 "If you observe failures at runtime, try unsetting "
