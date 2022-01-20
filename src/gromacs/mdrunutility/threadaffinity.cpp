@@ -2,7 +2,7 @@
  * This file is part of the GROMACS molecular simulation package.
  *
  * Copyright (c) 2012,2013,2014,2015,2016 by the GROMACS development team.
- * Copyright (c) 2017,2018,2019,2020,2021, by the GROMACS development team, led by
+ * Copyright (c) 2017,2018,2019,2020,2021,2022 by the GROMACS development team, led by
  * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
  * and including many others, as listed in the AUTHORS file in the
  * top-level source directory and at http://www.gromacs.org.
@@ -370,7 +370,9 @@ static bool set_affinity(const t_commrec*            cr,
                     nthread_local > 1 ? "s" : "");
         }
 
-        // TODO: This output should also go through mdlog.
+        // TODO: This output should also go to the mdlog, but
+        // as we do not have error collection and the failures may
+        // appear on ranks other than the master rank, this is currently not possible.
         fprintf(stderr, "NOTE: %sAffinity setting %sfailed.\n", sbuf1, sbuf2);
     }
     return allAffinitiesSet;
@@ -481,7 +483,27 @@ void gmx_set_thread_affinity(const gmx::MDLogger&         mdlog,
     }
     if (invalidWithinSimulation(cr, !allAffinitiesSet) && !issuedWarning)
     {
-        GMX_LOG(mdlog.warning).asParagraph().appendText("NOTE: Thread affinity was not set.");
+        if (hw_opt->threadAffinity == ThreadAffinity::On)
+        {
+            gmx_fatal(FARGS,
+                      "Thread pinning was requested (\"-pin on\"), but setting affinities was not "
+                      "possible or failed (see the console notes). "
+                      "Not setting affinities will lead to performance loss, so it is advised to "
+                      "fix the issue.");
+        }
+        else
+        {
+            GMX_LOG(mdlog.warning)
+                    .asParagraph()
+                    .appendText(
+                            "NOTE: mdrun defaulted to setting thread affinities but it failed to "
+                            "do so (see the console notes).\n"
+                            "      This will likely lead to performance loss, so it is advised to "
+                            "fix the issue. \n"
+                            "      Make sure the correct amount of resources are requested through "
+                            "the cluster job \n"
+                            "      scheduler.");
+        }
     }
 }
 

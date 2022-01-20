@@ -125,10 +125,11 @@ public:
     {
         expectLogMessageMatchingRegexIf(MDLogger::LogLevel::Info, re, condition);
     }
-    void expectGenericFailureMessage() { expectGenericFailureMessageIf(true); }
+    void expectGenericFailureMessageWithAutoAffinity() { expectGenericFailureMessageIf(true); }
     void expectGenericFailureMessageIf(bool condition)
     {
-        expectWarningMatchingRegexIf("NOTE: Thread affinity was not set.", condition);
+        expectWarningMatchingRegexIf(
+                "NOTE: mdrun defaulted to setting thread affinities but it failed to", condition);
     }
     void expectPinningMessage(bool userSpecifiedStride, int stride)
     {

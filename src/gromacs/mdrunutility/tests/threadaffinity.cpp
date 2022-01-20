@@ -187,15 +187,26 @@ TEST_F(ThreadAffinityTest, PinsWithAutoAndFewerAutoSetThreads)
     helper_.setAffinity(2);
 }
 
-TEST_F(ThreadAffinityTest, HandlesPinningFailureWithOneThreadFailing)
+TEST_F(ThreadAffinityTest, HandlesPinningFailureWithOneThreadFailingOptionAuto)
+{
+    helper_.setAffinityOption(ThreadAffinity::Auto);
+    helper_.setLogicalProcessorCount(2);
+    helper_.expectPinningMessage(false, 1);
+    helper_.expectGenericFailureMessageWithAutoAffinity();
+    helper_.expectAffinitySet(0);
+    helper_.expectAffinitySetThatFails(1);
+    helper_.setAffinity(2);
+}
+TEST_F(ThreadAffinityTest, HandlesPinningFailureWithOneThreadFailingOptionOn)
 {
     helper_.setAffinityOption(ThreadAffinity::On);
     helper_.setLogicalProcessorCount(2);
     helper_.expectPinningMessage(false, 1);
-    helper_.expectGenericFailureMessage();
+    //  helper_.expectGenericFailureMessage("Thread pinning was requested");
     helper_.expectAffinitySet(0);
     helper_.expectAffinitySetThatFails(1);
-    helper_.setAffinity(2);
+    // FIXME: the follwowing can't work as setAffinity forks
+    EXPECT_DEATH_IF_SUPPORTED(helper_.setAffinity(2), "Thread pinning was requested");
 }
 #endif
 
