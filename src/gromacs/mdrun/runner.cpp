@@ -248,12 +248,13 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
                 GMX_LOG(mdlog.warning)
                         .asParagraph()
                         .appendTextFormatted(
-                                "This run has forced use of 'CUDA-aware MPI'. "
-                                "GROMACS cannot determine if the underlying MPI "
-                                "is CUDA-aware. We recommend using the latest OpenMPI version "
-                                "for CUDA-aware support. "
-                                "If you observe failures at runtime, try unsetting "
-                                "GMX_FORCE_CUDA_AWARE_MPI environment variable.");
+                                "NOTE: This run has forced use of 'CUDA-aware MPI'. "
+                                "      GROMACS cannot determine if the underlying MPI is "
+                                "CUDA-aware. We recommend \n"
+                                "      using the latest OpenMPI version for CUDA-aware support. \n"
+                                "      If you observe runtime failures, try unsetting the "
+                                "GMX_FORCE_CUDA_AWARE_MPI \n"
+                                "      environment variable.\n");
             }
 
             if (devFlags.canUseCudaAwareMpi)
@@ -261,22 +262,24 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
                 GMX_LOG(mdlog.warning)
                         .asParagraph()
                         .appendTextFormatted(
-                                "GMX_ENABLE_DIRECT_GPU_COMM environment variable detected, "
+                                "NOTE: GMX_ENABLE_DIRECT_GPU_COMM environment variable detected, "
                                 "enabling "
-                                "direct GPU communication using CUDA-aware MPI.");
+                                "direct GPU communication using CUDA-aware MPI.\n");
             }
             else
             {
                 GMX_LOG(mdlog.warning)
                         .asParagraph()
                         .appendTextFormatted(
-                                "CUDA-aware MPI was not detected, will not use direct GPU "
-                                "communication. "
-                                "GROMACS recommends use of latest OpenMPI version for CUDA-aware "
-                                "support. "
-                                "If you are certain about CUDA-aware support in your MPI library, "
-                                "you can force its use by setting the GMX_FORCE_CUDA_AWARE_MPI "
-                                "environment variable.");
+                                "NOTE: CUDA-aware MPI was not detected, will not use direct GPU "
+                                "communication. \n"
+                                "      GROMACS recommends use of latest OpenMPI version for "
+                                "CUDA-aware support. \n"
+                                "      If you are certain about CUDA-aware support in your MPI "
+                                "library, \n"
+                                "      you can force its use by setting the "
+                                "GMX_FORCE_CUDA_AWARE_MPI "
+                                "environment variable.\n");
             }
         }
         else if (haveDetectedCudaAwareMpi)
@@ -285,10 +288,10 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
             GMX_LOG(mdlog.warning)
                     .asParagraph()
                     .appendTextFormatted(
-                            "CUDA-aware MPI detected, but by default GROMACS will not "
-                            "make use of the direct GPU communication capabilities of MPI. "
-                            "For improved performance try enabling the feature by setting "
-                            "the GMX_ENABLE_DIRECT_GPU_COMM environment variable.");
+                            "NOTE: CUDA-aware MPI detected, but by default GROMACS will not "
+                            "make use of the direct GPU communication capabilities of MPI. \n"
+                            "      For improved performance try enabling the feature by setting "
+                            "the GMX_ENABLE_DIRECT_GPU_COMM environment variable. \n");
         }
     }
 
@@ -297,8 +300,8 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
         GMX_LOG(mdlog.warning)
                 .asParagraph()
                 .appendTextFormatted(
-                        "This run uses the 'GPU buffer ops' feature, enabled by the "
-                        "GMX_USE_GPU_BUFFER_OPS environment variable.");
+                        "NOTE: This run uses the 'GPU buffer ops' feature, enabled by the "
+                        "GMX_USE_GPU_BUFFER_OPS environment variable. \n");
     }
 
     if (devFlags.forceGpuUpdateDefault)
@@ -306,9 +309,10 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
         GMX_LOG(mdlog.warning)
                 .asParagraph()
                 .appendTextFormatted(
-                        "This run will default to '-update gpu' as requested by the "
+                        "NOTE: This run will default to '-update gpu' as requested by the "
                         "GMX_FORCE_UPDATE_DEFAULT_GPU environment variable. GPU update with domain "
-                        "decomposition lacks substantial testing and should be used with caution.");
+                        "decomposition lacks substantial testing and should be used with caution. "
+                        "\n");
     }
 
     // PME decomposition is supported only with CUDA-backend in mixed mode
@@ -330,10 +334,11 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
             GMX_LOG(mdlog.warning)
                     .asParagraph()
                     .appendTextFormatted(
-                            "This run has requested the 'GPU PME decomposition' feature, enabled "
+                            "NOTE: This run has requested the 'GPU PME decomposition' feature, "
+                            "enabled "
                             "by the GMX_GPU_PME_DECOMPOSITION environment variable. "
                             "PME decomposition lacks substantial testing "
-                            "and should be used with caution.");
+                            "and should be used with caution."\n);
         }
         else
         {
