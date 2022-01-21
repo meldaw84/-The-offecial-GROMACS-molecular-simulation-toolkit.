@@ -34,6 +34,8 @@
  */
 #include "gmxpre.h"
 
+#include "gromacs/utility/exceptions.h"
+
 #include "gromacs/mdrunutility/threadaffinity.h"
 
 #include "config.h"
@@ -197,16 +199,15 @@ TEST_F(ThreadAffinityTest, HandlesPinningFailureWithOneThreadFailingOptionAuto)
     helper_.expectAffinitySetThatFails(1);
     helper_.setAffinity(2);
 }
+
 TEST_F(ThreadAffinityTest, HandlesPinningFailureWithOneThreadFailingOptionOn)
 {
     helper_.setAffinityOption(ThreadAffinity::On);
     helper_.setLogicalProcessorCount(2);
     helper_.expectPinningMessage(false, 1);
-    //  helper_.expectGenericFailureMessage("Thread pinning was requested");
     helper_.expectAffinitySet(0);
     helper_.expectAffinitySetThatFails(1);
-    // FIXME: the follwowing can't work as setAffinity forks
-    EXPECT_DEATH_IF_SUPPORTED(helper_.setAffinity(2), "Thread pinning was requested");
+    EXPECT_THROW(helper_.setAffinity(2), gmx::InternalError);
 }
 #endif
 

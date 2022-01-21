@@ -91,6 +91,8 @@ void analyzeThreadsOnThisNode(const gmx::PhysicalNodeCommunicator& physicalNodeC
  * \param[in]  intraNodeThreadOffset  The index of the first hardware thread of this rank
  *   in the set of all the threads of all MPI ranks within a node (ordered by MPI rank ID).
  * \param[in]  affinityAccess         Interface for low-level access to affinity details.
+ *
+ * \throws InternalError  If setting affinities failed and pinning was explicitly requested.
  */
 void gmx_set_thread_affinity(const gmx::MDLogger&         mdlog,
                              const t_commrec*             cr,
