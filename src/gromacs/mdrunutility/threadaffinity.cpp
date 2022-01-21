@@ -486,10 +486,10 @@ void gmx_set_thread_affinity(const gmx::MDLogger&         mdlog,
         if (hw_opt->threadAffinity == ThreadAffinity::On)
         {
             GMX_THROW(gmx::InternalError(
-                      "Thread pinning was requested (\"-pin on\"), but setting affinities was not "
-                      "possible or failed (see the console notes). "
-                      "Not setting affinities will lead to performance loss, so it is advised to "
-                      "fix the issue."));
+                    "Thread pinning was requested (\"-pin on\"), but setting affinities was not "
+                    "possible or failed (see the console notes). "
+                    "Not setting affinities will lead to performance loss, so it is advised to "
+                    "fix the issue."));
         }
         else
         {
