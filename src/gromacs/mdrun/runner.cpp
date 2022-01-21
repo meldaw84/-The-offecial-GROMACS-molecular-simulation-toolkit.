@@ -338,7 +338,7 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
                             "enabled "
                             "by the GMX_GPU_PME_DECOMPOSITION environment variable. "
                             "PME decomposition lacks substantial testing "
-                            "and should be used with caution."\n);
+                            "and should be used with caution. \n");
         }
         else
         {
