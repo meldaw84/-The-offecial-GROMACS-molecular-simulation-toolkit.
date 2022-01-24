@@ -580,7 +580,7 @@ include(gmxManageMuparser)
 include(gmxManageSimd)
 gmx_manage_simd()
 
-# The earliest version of the CUDA toolkit that supports c++14 is 9.0
+# The earliest version of the CUDA toolkit that supports c++17 is 11.0
 set(REQUIRED_CUDA_VERSION 11.0)
 set(REQUIRED_CUDA_COMPUTE_CAPABILITY 3.5)
 
@@ -818,7 +818,6 @@ else()
     # binaries relocatable.
     if(CMAKE_SYSTEM_NAME STREQUAL "Darwin") #Assume OS X >=10.5
         set(CMAKE_INSTALL_RPATH "@loader_path/../${CMAKE_INSTALL_LIBDIR}")
-        set(CMAKE_INSTALL_NAME_DIR ${CMAKE_INSTALL_RPATH})
     else()
         set(CMAKE_INSTALL_RPATH "\$ORIGIN/../${CMAKE_INSTALL_LIBDIR}")
     endif()
