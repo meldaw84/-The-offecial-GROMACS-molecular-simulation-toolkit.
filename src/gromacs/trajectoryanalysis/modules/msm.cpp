@@ -56,7 +56,12 @@ namespace
 {
 
 
-// WRITE STUFF HERE!
+// WRITE MSM ESTIMATION STUFF HERE!
+// INPUT: Trajectory with states
+// Make TCM
+// Make TPM
+// Diagonalize
+// OUTPUT: eigenvalues, eigenvectors
 
 /*
  * MarkovModel
@@ -103,14 +108,15 @@ void MarkovModel::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* /* pbc */,
 {
 }
 
-void MarkovModel::finishAnalysis(int nframes){
+void MarkovModel::finishAnalysis(int nframes)
+{
+// RUN ANALYSIS HERE
 }
 
 void MarkovModel::writeOutput()
 {
+// ALL FILE WRITING HERE
 }
-
-// WRITE UNTIL HERE
 
 } // namespace
 
