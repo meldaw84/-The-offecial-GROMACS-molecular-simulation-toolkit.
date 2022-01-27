@@ -45,6 +45,7 @@
 
 #include "gromacs/utility/filestream.h"
 #include "gromacs/utility/loggerbuilder.h"
+#include "gromacs/math/multidimarray.h"
 
 namespace gmx
 {
@@ -56,12 +57,28 @@ namespace
 {
 
 
-// WRITE MSM ESTIMATION STUFF HERE!
+// WRITE MSM ESTIMATION STUFF HERE FOR NOW...
 // INPUT: Trajectory with states
 // Make TCM
 // Make TPM
 // Diagonalize
 // OUTPUT: eigenvalues, eigenvectors
+
+// WIP
+void count_transitions()
+{
+    // Create state-assigned trajectory vector for initial tesing
+    std::vector<int> traj = {0, 1, 3, 2, 3, 3, 3, 2};
+
+    // Initialize TCM as MultiDimArray
+    // TODO: Move to initAnalysis
+    MultiDimArray<std::array<int, 9>, extents<3,3>> tcm;
+
+    for (int i = 0; i < traj.size(); i++)
+    {
+        printf("%d ", traj[i]);
+    }
+}
 
 /*
  * MarkovModel
@@ -106,11 +123,14 @@ void MarkovModel::initAnalysis(const TrajectoryAnalysisSettings& settings, const
 
 void MarkovModel::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* /* pbc */, TrajectoryAnalysisModuleData* /*pdata*/)
 {
+// COLLECT TRANSITIONS INTO TPM HERE?
+    printf("Doing stuff for every frame!\n");
 }
 
 void MarkovModel::finishAnalysis(int nframes)
 {
 // RUN ANALYSIS HERE
+    count_transitions();
 }
 
 void MarkovModel::writeOutput()
