@@ -3,7 +3,7 @@
 #   OS: Ubuntu newest supported
 #   GPU: Clang CUDA
 #   HW: NVIDIA GPU
-#   Features: GPU direct communication off (manual)
+#   Features: GPU direct communication on (default) and off (manual)
 #   Scope: configure, build, unit tests, regression tests
 # Test implementation choices (free to change as needed):
 #   OS: Ubuntu 20.04
@@ -14,7 +14,7 @@
 #   SIMD: AVX2_256, no kernels
 #   FFT: FFTW3
 #   Parallelism nt/ntomp: 4/2 (unit tests)
-#   Parallelism nt/ntomp: 2/1 (regression tests)
+#   Parallelism nt/ntomp: 2/1 and 4/1 (regression tests)
 
 gromacs:clang-12-cuda-11.4.3:configure:
   extends:
@@ -75,4 +75,23 @@ gromacs:clang-12-cuda-11.4.3:regressiontest:
     - k8s-scilifelab
   needs:
     - job: gromacs:clang-12-cuda-11.4.3:build
+    - job: regressiontests:prepare
+
+gromacs:clang-12-cuda-11.4.2:regressiontest:
+  extends:
+    - .gromacs:base:regressiontest
+    - .rules:post-merge-acceptance
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-llvm-12-cuda-11.4.2-hipsycl-8756087-rocm-4.5
+  variables:
+    CMAKE: /usr/local/cmake-3.17.2/bin/cmake
+    KUBERNETES_EXTENDED_RESOURCE_NAME: "nvidia.com/gpu"
+    KUBERNETES_EXTENDED_RESOURCE_LIMIT: 1
+    REGRESSIONTEST_PME_RANK_NUMBER: 1
+    REGRESSIONTEST_TOTAL_RANK_NUMBER: 4
+    REGRESSIONTEST_OMP_RANK_NUMBER: 1
+    GMX_DISABLE_DIRECT_GPU_COMM: 1
+  tags:
+    - k8s-scilifelab
+  needs:
+    - job: gromacs:clang-12-cuda-11.4.2:build
     - job: regressiontests:prepare
