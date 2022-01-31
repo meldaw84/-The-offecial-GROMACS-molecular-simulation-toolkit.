@@ -57,7 +57,7 @@ gromacs:clang-12-cuda-11.4.3:test:
   needs:
     - job: gromacs:clang-12-cuda-11.4.3:build
 
-gromacs:clang-12-cuda-11.4.3:regressiontest:
+gromacs:clang-12-cuda-11.4.3:regressiontest-no-direct-comm:
   extends:
     - .gromacs:base:regressiontest
     - .rules:post-merge-acceptance
@@ -75,11 +75,11 @@ gromacs:clang-12-cuda-11.4.3:regressiontest:
     - job: gromacs:clang-12-cuda-11.4.3:build
     - job: regressiontests:prepare
 
-gromacs:clang-12-cuda-11.4.2:regressiontest:
+gromacs:clang-12-cuda-11.4.3:regressiontest:
   extends:
     - .gromacs:base:regressiontest
     - .rules:post-merge-acceptance
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-llvm-12-cuda-11.4.2-hipsycl-8756087-rocm-4.5
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-llvm-12-cuda-11.4.3-hipsycl-c1246fd-rocm-5.0
   variables:
     CMAKE: /usr/local/cmake-3.17.2/bin/cmake
     KUBERNETES_EXTENDED_RESOURCE_NAME: "nvidia.com/gpu"
@@ -90,5 +90,5 @@ gromacs:clang-12-cuda-11.4.2:regressiontest:
   tags:
     - k8s-scilifelab
   needs:
-    - job: gromacs:clang-12-cuda-11.4.2:build
+    - job: gromacs:clang-12-cuda-11.4.3:build
     - job: regressiontests:prepare
