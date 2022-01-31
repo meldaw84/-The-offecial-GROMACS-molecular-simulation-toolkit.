@@ -89,7 +89,6 @@ gromacs:clang-12-cuda-11.4.2:regressiontest:
     REGRESSIONTEST_PME_RANK_NUMBER: 1
     REGRESSIONTEST_TOTAL_RANK_NUMBER: 4
     REGRESSIONTEST_OMP_RANK_NUMBER: 1
-    GMX_DISABLE_DIRECT_GPU_COMM: 1
   tags:
     - k8s-scilifelab
   needs:
