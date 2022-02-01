@@ -3,6 +3,7 @@
 #   OS: Ubuntu oldest supported
 #   GPU: CUDA oldest supported
 #   HW: NVIDIA GPU
+#   Features: GPU direct communication on (default)
 #   Scope: configure, build, unit tests, regression tests
 # Test implementation choices (free to change as needed):
 #   OS: Ubuntu 20.04
