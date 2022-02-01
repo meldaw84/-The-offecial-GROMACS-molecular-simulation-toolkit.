@@ -7,7 +7,7 @@
 #   MPI: thread_MPI
 #   Features: GPU direct communications + update (unit tests)
 #   Features: GPU direct communications + seprate PME rank + update (regression tests with dual GPU)
-#   Features: No GPU direct communications + update (regression tests with dual GPU)
+#   Features: No GPU direct communications + GPU update (regression tests with dual GPU)
 #   Scope: configure, build, unit tests, regression tests
 # Test implementation choices (free to change as needed):
 #   OS: Ubuntu 20.04
