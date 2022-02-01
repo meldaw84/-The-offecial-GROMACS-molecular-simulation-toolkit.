@@ -3,7 +3,7 @@
 #   OS: Ubuntu newest supported
 #   GPU: Clang CUDA
 #   HW: NVIDIA GPU
-#   Features: GPU direct communication on (default) and off (manual)
+#   Features: GPU direct communication off (manual)
 #   Scope: configure, build, unit tests, regression tests
 # Test implementation choices (free to change as needed):
 #   OS: Ubuntu 20.04
