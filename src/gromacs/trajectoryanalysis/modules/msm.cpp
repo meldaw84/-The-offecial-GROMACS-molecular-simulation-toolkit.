@@ -43,9 +43,9 @@
 #include "gmxpre.h"
 #include "msm.h"
 
+#include "gromacs/math/multidimarray.h"
 #include "gromacs/utility/filestream.h"
 #include "gromacs/utility/loggerbuilder.h"
-#include "gromacs/math/multidimarray.h"
 
 namespace gmx
 {
@@ -69,10 +69,15 @@ void count_transitions()
 {
     // Create state-assigned trajectory vector for initial tesing
     std::vector<int> traj = {0, 1, 3, 2, 3, 3, 3, 2};
+    
+    //using static_extents = extents<3, 3>;
+    //const double dynamicExtents2D extents<3,3>;
 
     // Initialize TCM as MultiDimArray
     // TODO: Move to initAnalysis
-    MultiDimArray<std::array<int, 9>, extents<3,3>> tcm;
+    // TODO: Make matrix unique?
+    MultiDimArray<std::array<int, 64>, extents<8, 8>> transitionCountsMatrix = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } };
+
 
     for (int i = 0; i < traj.size(); i++)
     {
