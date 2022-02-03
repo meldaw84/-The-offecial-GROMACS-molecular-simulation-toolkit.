@@ -168,8 +168,7 @@ list(APPEND LIBGROMACS_SOURCES ${GENERATED_VERSION_FILE})
 
 # Same for author information as above
 set(GENERATED_AUTHOR_FILE utility/contributors-gen.cpp)
-gmx_configure_version_file(
-    utility/contributors-gen.cpp.cmakein ${GENERATED_AUTHOR_FILE})
+configure_file(utility/contributors-gen.cpp.cmakein ${GENERATED_AUTHOR_FILE})
 list(APPEND LIBGROMACS_SOURCES ${GENERATED_AUTHOR_FILE})
 
 # Mark some shared GPU implementation files to compile with CUDA if needed

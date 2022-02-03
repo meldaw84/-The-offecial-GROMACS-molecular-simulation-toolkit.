@@ -42,18 +42,25 @@
 #define GMX_CONTRIBUTORS_H
 
 #include <string>
-#include <vector>
+
+namespace gmx
+{
+
+template<typename T>
+class ArrayRef;
 
 //! Get list of current active contributors.
-std::vector<std::string> getCurrentContributors();
+ArrayRef<const std::string> getCurrentContributors();
 
 //! Get list of previously active contributors.
-std::vector<std::string> getPreviousContributors();
+ArrayRef<const std::string> getPreviousContributors();
 
 //! Get list of project leads-
-std::vector<std::string> getCurrentProjectLeaders();
+ArrayRef<const std::string> getCurrentProjectLeaders();
 
 //! Get copyright text.
-std::string getCopyrightText();
+const std::string& getCopyrightText();
+
+} // namespace gmx
 
 #endif

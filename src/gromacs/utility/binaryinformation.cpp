@@ -77,6 +77,7 @@
 
 #include "buildinfo.h"
 #include "gromacs/utility/contributors.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/baseversion.h"
 #include "gromacs/utility/exceptions.h"
@@ -108,10 +109,10 @@ std::string formatCentered(int width, const char* text)
     return formatString("%*s%s", offset, "", text);
 }
 
-void writeVectorAsColumns(gmx::TextWriter*                writer,
-                          const std::string&              header,
-                          const std::vector<std::string>& v,
-                          std::size_t                     outputWidth = 80)
+void writeVectorAsColumns(gmx::TextWriter*                 writer,
+                          const std::string&               header,
+                          gmx::ArrayRef<const std::string> v,
+                          std::size_t                      outputWidth = 80)
 {
     if (v.empty())
     {
@@ -143,10 +144,10 @@ void writeVectorAsColumns(gmx::TextWriter*                writer,
     writer->ensureEmptyLine();
 }
 
-void writeVectorAsSingleLine(gmx::TextWriter*                writer,
-                             const std::string&              header,
-                             const std::vector<std::string>& v,
-                             std::size_t                     outputWidth = 80)
+void writeVectorAsSingleLine(gmx::TextWriter*                 writer,
+                             const std::string&               header,
+                             gmx::ArrayRef<const std::string> v,
+                             std::size_t                      outputWidth = 80)
 {
     if (v.empty())
     {
@@ -174,7 +175,7 @@ void writeVectorAsSingleLine(gmx::TextWriter*                writer,
 
 void printCopyright(gmx::TextWriter* writer)
 {
-    writer->writeLine(getCopyrightText());
+    writer->writeLine(gmx::getCopyrightText());
     if (!GMX_FAHCORE)
     {
         // Folding At Home has different licence to allow digital
@@ -187,10 +188,10 @@ void printCopyright(gmx::TextWriter* writer)
     }
     writer->ensureEmptyLine();
 
-    writeVectorAsColumns(writer, "Current GROMACS contributors:", getCurrentContributors());
-    writeVectorAsColumns(writer, "Previous GROMACS contributors:", getPreviousContributors());
+    writeVectorAsColumns(writer, "Current GROMACS contributors:", gmx::getCurrentContributors());
+    writeVectorAsColumns(writer, "Previous GROMACS contributors:", gmx::getPreviousContributors());
     writeVectorAsSingleLine(
-            writer, "Coordinated by the GROMACS project leaders:", getCurrentProjectLeaders());
+            writer, "Coordinated by the GROMACS project leaders:", gmx::getCurrentProjectLeaders());
 }
 
 //! Construct a string that describes the library that provides CPU FFT support to this build

@@ -35,30 +35,35 @@
 #include "gmxpre.h"
 
 #include <string>
-#include <vector>
+#include <string_view>
 
 #include "contributors.h"
 
-#include "gromacs/utility/gmxassert.h"
+#include "gromacs/utility/arrayref.h"
 
 #include "contributors_gen.h"
 
-std::vector<std::string> getCurrentContributors()
+namespace gmx
+{
+
+ArrayRef<const std::string> getCurrentContributors()
 {
     return currentContributors;
 }
 
-std::vector<std::string> getPreviousContributors()
+ArrayRef<const std::string> getPreviousContributors()
 {
     return previousContributors;
 }
 
-std::vector<std::string> getCurrentProjectLeaders()
+ArrayRef<const std::string> getCurrentProjectLeaders()
 {
     return currentProjectLeaders;
 }
 
-std::string getCopyrightText()
+const std::string& getCopyrightText()
 {
     return copyrightText;
 }
+
+} // namespace gmx
