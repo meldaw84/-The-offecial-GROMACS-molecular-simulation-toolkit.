@@ -32,17 +32,7 @@
  * To help us fund GROMACS development, we humbly ask that you cite
  * the research papers on the package. Check out http://www.gromacs.org.
  */
-/*! \internal \file
- * \brief
- * Contributor information from the build system.
- *
- * Used for log output.
- */
-#include <string>
-#include <vector>
-
-namespace
-{
+#include "gromacs/utility/contributors_gen.h"
 
 const std::vector<std::string> currentContributors
 {
@@ -63,6 +53,3 @@ const std::string copyrightText
 {
     "Copyright 1991-@PROJECT_VERSION_MAJOR@ The GROMACS Authors."
 };
-
-} // namespace anonymous
-
