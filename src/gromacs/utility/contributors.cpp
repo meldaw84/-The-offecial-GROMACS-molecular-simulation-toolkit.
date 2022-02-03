@@ -45,7 +45,7 @@
 
 std::vector<std::string> getCurrentContributors()
 {
-    return previousContributors;
+    return currentContributors;
 }
 
 std::vector<std::string> getPreviousContributors()
