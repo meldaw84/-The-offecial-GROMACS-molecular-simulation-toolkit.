@@ -51,5 +51,5 @@ const std::vector<std::string> currentProjectLeaders
 
 const std::string copyrightText
 {
-    "Copyright 1991-@PROJECT_VERSION_MAJOR@ The GROMACS Authors."
+    "Copyright 1991-@GMX_VERSION_MAJOR@ The GROMACS Authors."
 };
