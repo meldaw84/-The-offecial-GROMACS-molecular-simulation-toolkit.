@@ -1,0 +1,40 @@
+# Test goal: Regression testing for Python package support from libgmxapi since release-2021.
+# Test intents (should change rarely and conservatively):
+#   OS: unspecified
+#   GPU: unspecified
+#   GROMACS: releases supporting libgmxapi.0.2 and higher.
+#   gmxapi: C++ API 0.2 and higher; Python package as bundled.
+#   Scope: build
+# Test implementation choices (free to change as needed):
+#   GROMACS branch: release-2021, release-2022
+#   gmxapi Python package: sources from python_packaging/
+
+
+.gmxapi-python-regression:
+  extends:
+    - .variables:default
+    - .use-clang:base
+#  stage: test
+  stage: pre-build
+  variables:
+    KUBERNETES_CPU_LIMIT: 1
+    KUBERNETES_CPU_REQUEST: 1
+    KUBERNETES_MEMORY_LIMIT: 1Gi
+    KUBERNETES_MEMORY_REQUEST: 1Gi
+    PY_UNIT_TEST_XML: $CI_PROJECT_DIR/py-JUnitTestResults.xml
+    PY_MPI_UNIT_TEST_XML: $CI_PROJECT_DIR/py-mpi-JUnitTestResults.xml
+    PY_ACCEPTANCE_TEST_XML: $CI_PROJECT_DIR/gmxapi-acceptance-JUnitTestResults.xml
+    PY_MPI_ACCEPTANCE_TEST_XML: $CI_PROJECT_DIR/gmxapi-acceptance-mpi-JUnitTestResults.xml
+  script:
+    - $VENVPATH/bin/python -m pip install --upgrade build pip setuptools wheel
+    - source /usr/local/gromacs/bin/GMXRC
+    - $VENVPATH/bin/python -m build python_packaging/src
+  dependencies: []
+
+gmxapi-python-regression:2021:
+  extends:
+    - .gmxapi-python-regression
+    - .rules:nightly-not-for-release
+  image: gmxapi/ci-mpich:2021
+  variables:
+    VENVPATH: "/home/testing/venv"
