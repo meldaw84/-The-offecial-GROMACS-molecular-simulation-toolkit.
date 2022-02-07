@@ -138,6 +138,7 @@ class NDArray(collections.abc.Sequence, ABC):
     #             any(is_compatible(base) for base in subclass.__mro__)
     #             return True
     #     return NotImplemented
+NDArray.register(list)
 
 
 # TODO: Define an enumeration.
