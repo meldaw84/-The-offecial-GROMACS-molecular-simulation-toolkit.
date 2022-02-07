@@ -1632,9 +1632,14 @@ void do_force(FILE*                               fplog,
         }
     }
 
-    if (simulationWork.useGpuNonbonded && (stepWork.computeNonbondedForces || domainWork.haveGpuBondedWork))
+    if (simulationWork.useGpuNonbonded
+        && (stepWork.computeNonbondedForces || domainWork.haveGpuBondedWork
+            || simulationWork.havePpDomainDecomposition))
     {
-        ddBalanceRegionHandler.openBeforeForceComputationGpu();
+        if (stepWork.computeNonbondedForces || domainWork.haveGpuBondedWork)
+        {
+            ddBalanceRegionHandler.openBeforeForceComputationGpu();
+        }
 
         wallcycle_start(wcycle, WallCycleCounter::LaunchGpu);
         wallcycle_sub_start(wcycle, WallCycleSubCounter::LaunchGpuNonBonded);
