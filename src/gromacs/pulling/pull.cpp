@@ -1604,9 +1604,20 @@ void apply_external_pull_coord_force(struct pull_t*        pull,
                     pcrd,
                     gmx::ArrayRef<pull_coord_work_t>(pull->coord).subArray(0, pcrd->params.coordIndex),
                     coord_force);
+
+            /* We should apply any forces distributed from Transformation Coordinate onto normal
+             * pull coordinates
+             */
             for (gmx::index i = 0; i < pcrd->params.coordIndex; i++)
             {
-                apply_default_pull_coord_force(pull, i, pull->coord[i].scalarForce, masses, forceWithVirial);
+                /* Forces on all dependent Transformation Coordinates were already distributed
+                 * recursively within gmx::applyTransformationPullCoordForce
+                 */
+                if (pull->coord[i].params.eGeom != PullGroupGeometry::Transformation)
+                {
+                    apply_default_pull_coord_force(
+                            pull, i, pull->coord[i].scalarForce, masses, forceWithVirial);
+                }
             }
         }
         else
@@ -1664,6 +1675,8 @@ real pull_potential(struct pull_t*        pull,
         rvec*      f             = as_rvec_array(force->force_.data());
         matrix     virial        = { { 0 } };
         const bool computeVirial = (force->computeVirial_ && MASTER(cr));
+
+        /* Evaluating coordinates need to loop forward because of the transformation coordinates */
         for (gmx::index i = 0; i < gmx::ssize(pull->coord); i++)
         {
             pull_coord_work_t& pcrd = pull->coord[i];
@@ -1678,6 +1691,7 @@ real pull_potential(struct pull_t*        pull,
             do_pull_pot_coord(*pull, &pcrd, pbc, t, lambda, &V, &dVdl);
         }
 
+        /* Applying forces needs to loop backward to apply transformation coordinate forces */
         for (gmx::index i = gmx::ssize(pull->coord) - 1; i >= 0; i--)
         {
             pull_coord_work_t& pcrd = pull->coord[i];
