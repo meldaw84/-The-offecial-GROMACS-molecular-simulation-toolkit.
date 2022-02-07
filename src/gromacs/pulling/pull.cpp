@@ -4,7 +4,7 @@
  * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
  * Copyright (c) 2001-2004, The GROMACS development team.
  * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
+ * Copyright (c) 2018,2019,2020,2021,2022, by the GROMACS development team, led by
  * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
  * and including many others, as listed in the AUTHORS file in the
  * top-level source directory and at http://www.gromacs.org.
@@ -1604,6 +1604,10 @@ void apply_external_pull_coord_force(struct pull_t*        pull,
                     pcrd,
                     gmx::ArrayRef<pull_coord_work_t>(pull->coord).subArray(0, pcrd->params.coordIndex),
                     coord_force);
+            for (gmx::index i = 0; i < pcrd->params.coordIndex; i++)
+            {
+                apply_default_pull_coord_force(pull, i, pull->coord[i].scalarForce, masses, forceWithVirial);
+            }
         }
         else
         {
@@ -1616,26 +1620,19 @@ void apply_external_pull_coord_force(struct pull_t*        pull,
 /* Calculate the pull potential and scalar force for a pull coordinate.
  * Returns the vector forces for the pull coordinate.
  */
-static PullCoordVectorForces do_pull_pot_coord(const pull_t&      pull,
-                                               pull_coord_work_t* pcrd,
-                                               const t_pbc&       pbc,
-                                               double             t,
-                                               real               lambda,
-                                               real*              V,
-                                               tensor             vir,
-                                               real*              dVdl)
+static void do_pull_pot_coord(const pull_t&      pull,
+                              pull_coord_work_t* pcrd,
+                              const t_pbc&       pbc,
+                              double             t,
+                              real               lambda,
+                              real*              V,
+                              real*              dVdl)
 {
     assert(pcrd->params.eType != PullingAlgorithm::Constraint);
 
     double dev = get_pull_coord_deviation(pull, pcrd, pbc, t);
 
     calc_pull_coord_scalar_force_and_potential(pcrd, dev, lambda, V, dVdl);
-
-    PullCoordVectorForces pullCoordForces = calculateVectorForces(*pcrd);
-
-    add_virial_coord(vir, *pcrd, pullCoordForces);
-
-    return pullCoordForces;
 }
 
 real pull_potential(struct pull_t*        pull,
@@ -1667,8 +1664,10 @@ real pull_potential(struct pull_t*        pull,
         rvec*      f             = as_rvec_array(force->force_.data());
         matrix     virial        = { { 0 } };
         const bool computeVirial = (force->computeVirial_ && MASTER(cr));
-        for (pull_coord_work_t& pcrd : pull->coord)
+        for (gmx::index i = 0; i < gmx::ssize(pull->coord); i++)
         {
+            pull_coord_work_t& pcrd = pull->coord[i];
+
             /* For external potential the force is assumed to be given by an external module by a
                call to apply_pull_coord_external_force */
             if (pcrd.params.eType == PullingAlgorithm::Constraint
@@ -1676,8 +1675,20 @@ real pull_potential(struct pull_t*        pull,
             {
                 continue;
             }
-            PullCoordVectorForces pullCoordForces = do_pull_pot_coord(
-                    *pull, &pcrd, pbc, t, lambda, &V, computeVirial ? virial : nullptr, &dVdl);
+            do_pull_pot_coord(*pull, &pcrd, pbc, t, lambda, &V, &dVdl);
+        }
+
+        for (gmx::index i = gmx::ssize(pull->coord) - 1; i >= 0; i--)
+        {
+            pull_coord_work_t& pcrd = pull->coord[i];
+
+            /* For external potential the force is assumed to be given by an external module by a
+               call to apply_pull_coord_external_force */
+            if (pcrd.params.eType == PullingAlgorithm::Constraint
+                || pcrd.params.eType == PullingAlgorithm::External)
+            {
+                continue;
+            }
 
             if (pcrd.params.eGeom == PullGroupGeometry::Transformation)
             {
@@ -1688,6 +1699,13 @@ real pull_potential(struct pull_t*        pull,
             }
             else
             {
+                PullCoordVectorForces pullCoordForces = calculateVectorForces(pcrd);
+
+                if (computeVirial)
+                {
+                    add_virial_coord(virial, pcrd, pullCoordForces);
+                }
+
                 /* Distribute the force over the atoms in the pulled groups */
                 apply_forces_coord(pcrd, pull->group, pullCoordForces, masses, f);
             }
