@@ -493,16 +493,14 @@ void gmx_set_thread_affinity(const gmx::MDLogger&         mdlog,
         }
         else
         {
-            GMX_LOG(mdlog.warning)
+            GMX_LOG(mdlog.info)
                     .asParagraph()
                     .appendText(
-                            "NOTE: mdrun defaulted to setting thread affinities but it failed to "
-                            "do so (see the console notes).\n"
-                            "      This will likely lead to performance loss, so it is advised to "
-                            "fix the issue. \n"
-                            "      Make sure the correct amount of resources are requested through "
-                            "the cluster job \n"
-                            "      scheduler.");
+                            "NOTE: Not using automatic thread pinning since number of threads is not equal\n"
+                            "to the number of logical cores. This will not influence simulation results.\n"
+                            "If you know your hardware (don't pin to cores you are not permitted to run on)\n"
+                            "and how different jobs interact (don't pin two jobs to the same core) you can\n"
+                            "attempt to set pinning automatically with the advanced options -pin and -pinoffset.\n");```
         }
     }
 }
