@@ -497,7 +497,7 @@ void gmx_set_thread_affinity(const gmx::MDLogger&         mdlog,
                     .asParagraph()
                     .appendText(
                             "NOTE: Not using automatic thread pinning since number of threads is not equal\n"
-                            "to the number of logical cores. This will not influence simulation results.\n"
+                            "to the number of hardware threads. This will not influence simulation results.\n"
                             "If you know your hardware (don't pin to cores you are not permitted to run on)\n"
                             "and how different jobs interact (don't pin two jobs to the same core) you can\n"
                             "attempt to set pinning automatically with the advanced options -pin and -pinoffset.\n");```
