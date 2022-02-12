@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
-set -e
+set -o pipefail
 CMAKE=${CMAKE:-$(which cmake)}
 cd $BUILD_DIR
-$CMAKE --build . -- -j$KUBERNETES_CPU_LIMIT 2>&1 | tee buildLogFile.log
-$CMAKE --build . --target tests -- -j$KUBERNETES_CPU_LIMIT 2>&1 | tee testBuildLogFile.log
+$CMAKE --build . -- -j$KUBERNETES_CPU_LIMIT 2>&1 | tee buildLogFile.log || exit 1
+$CMAKE --build . --target tests -- -j$KUBERNETES_CPU_LIMIT 2>&1
 
 # Find compiler warnings
 awk '/warning/,/warning.*generated|^$/' buildLogFile.log testBuildLogFile.log \
-      | grep -v "CMake" | tee buildErrors.log || true
-grep "cannot be built" buildLogFile.log testBuildLogFile.log | tee -a buildErrors.log || true
-grep "fatal error" buildLogFile.log testBuildLogFile.log | tee -a buildErrors.log || true
-grep "error generated when compiling" buildLogFile.log testBuildLogFile.log | tee -a buildErrors.log || true
-grep "error:" buildLogFile.log testBuildLogFile.log | tee -a buildErrors.log || true
+      | grep -v "CMake" | tee buildErrors.log
+grep "cannot be built" buildLogFile.log testBuildLogFile.log | tee -a buildErrors.log
+grep "fatal error" buildLogFile.log testBuildLogFile.log | tee -a buildErrors.log
+grep "error generated when compiling" buildLogFile.log testBuildLogFile.log | tee -a buildErrors.log
+grep "error:" buildLogFile.log testBuildLogFile.log | tee -a buildErrors.log
 
 # Find linking errors:
-grep "^/usr/bin/ld:" buildLogFile.log testBuildLogFile.log | tee -a buildErrors.log || true
+grep "^/usr/bin/ld:" buildLogFile.log testBuildLogFile.log | tee -a buildErrors.log
 
 # Install GROMACS
 $CMAKE --build . --target install 2>&1 | tee installBuildLogFile.log

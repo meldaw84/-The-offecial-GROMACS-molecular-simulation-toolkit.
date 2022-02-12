@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -o pipefail
 CMAKE=${CMAKE:-$(which cmake)}
 cd $BUILD_DIR
 export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1:suppressions=$CI_PROJECT_DIR/admin/ubsan-suppressions.txt
@@ -15,16 +15,16 @@ if [ -z $GMX_TEST_REQUIRED_NUMBER_OF_DEVICES ] && [ -n $KUBERNETES_EXTENDED_RESO
     fi
 fi
 if grep -qF 'nvidia.com/gpu' <<< "$KUBERNETES_EXTENDED_RESOURCE_NAME"; then
-    nvidia-smi || true;
+    nvidia-smi;
 fi
 if grep -qF 'amd.com/gpu' <<< "$KUBERNETES_EXTENDED_RESOURCE_NAME"; then
-    clinfo -l || true;
+    clinfo -l;
 fi
 if grep -qF 'intel.com/gpu' <<< "$KUBERNETES_EXTENDED_RESOURCE_NAME"; then
-    sycl-ls || true;
+    sycl-ls;
     export SYCL_CACHE_PERSISTENT=1; # Issue #4218
 fi
-ctest -D $CTEST_RUN_MODE --output-on-failure | tee ctestLog.log || true
+ctest -D $CTEST_RUN_MODE --output-on-failure | tee ctestLog.log
 
 EXITCODE=$?
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -o pipefail
 CMAKE=${CMAKE:-$(which cmake)}
 echo $CMAKE_COMPILER_SCRIPT
 echo $CMAKE_EXTRA_OPTIONS
