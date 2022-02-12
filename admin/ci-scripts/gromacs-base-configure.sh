@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -e
+set -o pipefail
+
 CMAKE=${CMAKE:-$(which cmake)}
 echo $CMAKE_COMPILER_SCRIPT
 echo $CMAKE_EXTRA_OPTIONS
@@ -15,7 +16,7 @@ else
       echo "Preparing new build directory" ;
       mkdir $BUILD_DIR
 fi
-cd $BUILD_DIR
+cd $BUILD_DIR || exit 1
 which $CMAKE
 $CMAKE --version
 $CMAKE .. \
@@ -35,5 +36,5 @@ EXITCODE=$?
 
 awk '/CMake Warning/,/^--|^$/' cmakeLog.log | tee cmakeErrors.log
 awk '/CMake Error/,/^--|^$/' cmakeLog.log | tee -a cmakeErrors.log
-if [ -s cmakeErrors.log  ] || [ $EXITCODE != 0 ]; then echo "Found CMake warning or error while processing build"; cat cmakeErrors.log ; exit 1; fi
+if [ -s cmakeErrors.log  ] || [ $EXITCODE -ne 0 ]; then echo "Found CMake warning or error while processing build"; cat cmakeErrors.log ; exit 1; fi
 cd ..
