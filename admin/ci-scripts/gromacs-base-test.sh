@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -e
+set -o pipefail
 CMAKE=${CMAKE:-$(which cmake)}
 cd $BUILD_DIR
 export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1:suppressions=$CI_PROJECT_DIR/admin/ubsan-suppressions.txt
@@ -24,14 +25,8 @@ if grep -qF 'intel.com/gpu' <<< "$KUBERNETES_EXTENDED_RESOURCE_NAME"; then
     sycl-ls || true;
     export SYCL_CACHE_PERSISTENT=1; # Issue #4218
 fi
-ctest -D $CTEST_RUN_MODE --output-on-failure | tee ctestLog.log || true
+ctest -D $CTEST_RUN_MODE --output-on-failure | tee ctestLog.log
 
-EXITCODE=$?
-
-awk '/The following tests FAILED/,/^Errors while running CTest|^$/' ctestLog.log | tee ctestErrors.log
 xsltproc $CI_PROJECT_DIR/scripts/CTest2JUnit.xsl Testing/`head -n 1 < Testing/TAG`/*.xml > JUnitTestResults.xml
-if [ -s ctestErrors.log ] || [ $EXITCODE != 0 ] ; then
-    echo "Error during running ctest";
-    exit 1;
-fi
-cd .
+
+cd ..
