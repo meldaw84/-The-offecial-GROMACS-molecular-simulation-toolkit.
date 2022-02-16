@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2021, by the GROMACS development team, led by
+ * Copyright (c) 2021,2022, by the GROMACS development team, led by
  * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
  * and including many others, as listed in the AUTHORS file in the
  * top-level source directory and at http://www.gromacs.org.
@@ -50,6 +50,7 @@
 #include "gromacs/utility/classhelpers.h"
 #include "gromacs/utility/logger.h"
 
+#include "qmmmcheckpointdata.h"
 #include "qmmmtypes.h"
 
 namespace gmx
@@ -73,7 +74,8 @@ public:
                       const LocalAtomSet&   localQMAtomSet,
                       const LocalAtomSet&   localMMAtomSet,
                       PbcType               pbcType,
-                      const MDLogger&       logger);
+                      const MDLogger&       logger,
+                      QMMMCheckpointData*   data);
 
     //! Destruct force provider for QMMM and finalize libcp2k
     ~QMMMForceProvider();
@@ -106,6 +108,9 @@ private:
 
     //! Internal copy of PBC box
     matrix box_;
+
+    //! Internal data that needs to be saved into checkpoint file
+    QMMMCheckpointData* data_;
 
     //! Flag wether initCP2KForceEnvironment() has been called already
     bool isCp2kLibraryInitialized_ = false;

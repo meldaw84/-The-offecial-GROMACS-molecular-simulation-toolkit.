@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2021, by the GROMACS development team, led by
+ * Copyright (c) 2021,2022, by the GROMACS development team, led by
  * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
  * and including many others, as listed in the AUTHORS file in the
  * top-level source directory and at http://www.gromacs.org.
@@ -61,6 +61,7 @@
 #include "gromacs/utility/logger.h"
 #include "gromacs/utility/mdmodulesnotifiers.h"
 
+#include "qmmmcheckpointdata.h"
 #include "qmmmforceprovider.h"
 #include "qmmmoptions.h"
 
@@ -288,6 +289,9 @@ public:
      *   - Access MDLogger for notifications output
      *   - Disable PME-only ranks for QMMM runs
      *   - Request QM energy output to md.log
+     *   - Writing of checkpoint data
+     *   - Reading of checkpoint data
+     *   - Broadcasting of checkpoint data
      */
     void subscribeToSimulationSetupNotifications(MDModulesNotifiers* notifier) override
     {
@@ -299,6 +303,9 @@ public:
         // Reading internal parameters during simulation setup
         const auto readInternalParametersFunction = [this](const KeyValueTreeObject& tree) {
             qmmmOptions_.readInternalParametersFromKvt(tree);
+
+            // Initialize internal data for checkpointing
+            qmmmCheckpointData_.initData(qmmmOptions_.parameters());
         };
         notifier->simulationSetupNotifier_.subscribe(readInternalParametersFunction);
 
@@ -341,6 +348,24 @@ public:
                     "Separate PME-only ranks are not compatible with QMMM MdModule");
         };
         notifier->simulationSetupNotifier_.subscribe(requestPmeRanks);
+
+        // Writing checkpoint data
+        const auto checkpointDataWriting = [this](MDModulesWriteCheckpointData checkpointData) {
+            qmmmCheckpointData_.writeData(checkpointData.builder_, QMMMModuleInfo::name_);
+        };
+        notifier->checkpointingNotifier_.subscribe(checkpointDataWriting);
+
+        // Reading checkpoint data
+        const auto checkpointDataReading = [this](MDModulesCheckpointReadingDataOnMaster checkpointData) {
+            qmmmCheckpointData_.readData(checkpointData.checkpointedData_, QMMMModuleInfo::name_);
+        };
+        notifier->checkpointingNotifier_.subscribe(checkpointDataReading);
+
+        // Broadcasting checkpoint data
+        const auto checkpointDataBroadcast = [this](MDModulesCheckpointReadingBroadcast checkpointData) {
+            qmmmCheckpointData_.broadcastData(checkpointData.communicator_, checkpointData.isParallelRun_);
+        };
+        notifier->checkpointingNotifier_.subscribe(checkpointDataBroadcast);
     }
 
     //! From IMDModule
@@ -360,7 +385,8 @@ public:
                 qmmmSimulationParameters_.localQMAtomSet(),
                 qmmmSimulationParameters_.localMMAtomSet(),
                 qmmmSimulationParameters_.periodicBoundaryConditionType(),
-                qmmmSimulationParameters_.logger());
+                qmmmSimulationParameters_.logger(),
+                &qmmmCheckpointData_);
         forceProviders->addForceProvider(forceProvider_.get());
     }
 
@@ -378,6 +404,8 @@ private:
      * simulation setup time.
      */
     QMMMSimulationParameterSetup qmmmSimulationParameters_;
+    //! The internal parameters of QMMM that needs to be stored in checkpoint
+    QMMMCheckpointData qmmmCheckpointData_;
 
     GMX_DISALLOW_COPY_AND_ASSIGN(QMMM);
 };

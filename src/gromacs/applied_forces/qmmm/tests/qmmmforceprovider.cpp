@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2021, by the GROMACS development team, led by
+ * Copyright (c) 2021,2022, by the GROMACS development team, led by
  * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
  * and including many others, as listed in the AUTHORS file in the
  * top-level source directory and at http://www.gromacs.org.
@@ -87,6 +87,7 @@ protected:
     std::unique_ptr<LocalAtomSet> mmAtomSet_;
     PbcType                       pbcType_;
     MDLogger                      logger_;
+    QMMMCheckpointData            qmmmCheckpointData_;
 };
 
 TEST_F(QMMMForceProviderTest, CanConstructOrNot)
@@ -98,13 +99,13 @@ TEST_F(QMMMForceProviderTest, CanConstructOrNot)
     {
         // if libcp2k linked then we do not expect throws
         EXPECT_NO_THROW(QMMMForceProvider forceProvider(
-                parameters_, *qmAtomSet_, *mmAtomSet_, pbcType_, logger_));
+                parameters_, *qmAtomSet_, *mmAtomSet_, pbcType_, logger_, &qmmmCheckpointData_));
     }
     else
     {
         // if libcp2k not linked then we expect throw from constructor
         EXPECT_ANY_THROW(QMMMForceProvider forceProvider(
-                parameters_, *qmAtomSet_, *mmAtomSet_, pbcType_, logger_));
+                parameters_, *qmAtomSet_, *mmAtomSet_, pbcType_, logger_, &qmmmCheckpointData_));
     }
 }
 

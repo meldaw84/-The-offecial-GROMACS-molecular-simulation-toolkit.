@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2021, by the GROMACS development team, led by
+ * Copyright (c) 2021,2022, by the GROMACS development team, led by
  * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
  * and including many others, as listed in the AUTHORS file in the
  * top-level source directory and at http://www.gromacs.org.
@@ -83,13 +83,15 @@ QMMMForceProvider::QMMMForceProvider(const QMMMParameters& parameters,
                                      const LocalAtomSet&   localQMAtomSet,
                                      const LocalAtomSet&   localMMAtomSet,
                                      PbcType               pbcType,
-                                     const MDLogger&       logger) :
+                                     const MDLogger&       logger,
+                                     QMMMCheckpointData*   data) :
     parameters_(parameters),
     qmAtoms_(localQMAtomSet),
     mmAtoms_(localMMAtomSet),
     pbcType_(pbcType),
     logger_(logger),
-    box_{ { 0.0, 0.0, 0.0 }, { 0.0, 0.0, 0.0 }, { 0.0, 0.0, 0.0 } }
+    box_{ { 0.0, 0.0, 0.0 }, { 0.0, 0.0, 0.0 }, { 0.0, 0.0, 0.0 } },
+    data_(data)
 {
 }
 
@@ -180,8 +182,7 @@ void QMMMForceProvider::initCP2KForceEnvironment(const t_commrec& cr)
 
     // Set flag of successful initialization
     isCp2kLibraryInitialized_ = true;
-
-} // namespace gmx
+}
 
 void QMMMForceProvider::calculateForces(const ForceProviderInput& fInput, ForceProviderOutput* fOutput)
 {
@@ -220,14 +221,14 @@ void QMMMForceProvider::calculateForces(const ForceProviderInput& fInput, ForceP
     for (size_t i = 0; i < qmAtoms_.numAtomsLocal(); i++)
     {
         x[qmAtoms_.globalIndex()[qmAtoms_.collectiveIndex()[i]]] =
-                fInput.x_[qmAtoms_.localIndex()[i]] + parameters_.qmTrans_;
+                fInput.x_[qmAtoms_.localIndex()[i]] + data_->qmTrans();
     }
 
     // Fill cordinates of local MM atoms and add translation
     for (size_t i = 0; i < mmAtoms_.numAtomsLocal(); i++)
     {
         x[mmAtoms_.globalIndex()[mmAtoms_.collectiveIndex()[i]]] =
-                fInput.x_[mmAtoms_.localIndex()[i]] + parameters_.qmTrans_;
+                fInput.x_[mmAtoms_.localIndex()[i]] + data_->qmTrans();
     }
 
     // If we are in MPI / DD conditions then gather coordinates over nodes
@@ -268,6 +269,14 @@ void QMMMForceProvider::calculateForces(const ForceProviderInput& fInput, ForceP
     // Run CP2K calculation
     cp2k_calc_energy_force(force_env_);
 
+    // Adjust data_.qmTrans_ by adding a shift of the first atom after CP2K call
+    cp2k_get_positions(force_env_, x_d.data(), 3 * numAtoms);
+    RVec shiftTrans;
+    shiftTrans[XX] = static_cast<real>(x_d[0] * c_bohr2Nm) - x[0][XX];
+    shiftTrans[YY] = static_cast<real>(x_d[1] * c_bohr2Nm) - x[0][YY];
+    shiftTrans[ZZ] = static_cast<real>(x_d[2] * c_bohr2Nm) - x[0][ZZ];
+    data_->setQmTrans(data_->qmTrans() + shiftTrans);
+
     /*
      * 4) Get output data
      * We need to fill only local part into fOutput
@@ -280,6 +289,7 @@ void QMMMForceProvider::calculateForces(const ForceProviderInput& fInput, ForceP
         cp2k_get_potential_energy(force_env_, &qmEner);
         fOutput->enerd_.term[F_EQM] += qmEner * c_hartree2Kj * c_avogadro;
     }
+
 
     // Get Forces they are in Hartree/Bohr and will be converted to kJ/mol/nm
     std::vector<double> cp2kForce(3 * numAtoms, 0.0);
@@ -316,6 +326,6 @@ void QMMMForceProvider::calculateForces(const ForceProviderInput& fInput, ForceP
                 static_cast<real>(cp2kForce[3 * mmAtoms_.globalIndex()[mmAtoms_.collectiveIndex()[i]] + 2])
                 * c_hartreeBohr2Md;
     }
-};
+}
 
 } // namespace gmx

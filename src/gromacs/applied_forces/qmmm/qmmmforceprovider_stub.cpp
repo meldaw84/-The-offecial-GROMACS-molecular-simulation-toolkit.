@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2021, by the GROMACS development team, led by
+ * Copyright (c) 2021,2022, by the GROMACS development team, led by
  * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
  * and including many others, as listed in the AUTHORS file in the
  * top-level source directory and at http://www.gromacs.org.
@@ -61,13 +61,15 @@ QMMMForceProvider::QMMMForceProvider(const QMMMParameters& parameters,
                                      const LocalAtomSet&   localQMAtomSet,
                                      const LocalAtomSet&   localMMAtomSet,
                                      PbcType               pbcType,
-                                     const MDLogger&       logger) :
+                                     const MDLogger&       logger,
+                                     QMMMCheckpointData*   data) :
     parameters_(parameters),
     qmAtoms_(localQMAtomSet),
     mmAtoms_(localMMAtomSet),
     pbcType_(pbcType),
     logger_(logger),
-    box_{ { 0.0, 0.0, 0.0 }, { 0.0, 0.0, 0.0 }, { 0.0, 0.0, 0.0 } }
+    box_{ { 0.0, 0.0, 0.0 }, { 0.0, 0.0, 0.0 }, { 0.0, 0.0, 0.0 } },
+    data_(data)
 {
     GMX_THROW(
             InternalError("CP2K has not been linked into GROMACS, QMMM simulation is not "
