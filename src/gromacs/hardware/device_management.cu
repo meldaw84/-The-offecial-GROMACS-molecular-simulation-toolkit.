@@ -54,6 +54,7 @@
 #include "gromacs/gpu_utils/device_stream.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/logger.h"
+#include "gromacs/utility/mpiinfo.h"
 #include "gromacs/utility/programcontext.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringutil.h"
@@ -193,8 +194,13 @@ static DeviceStatus checkDeviceStatus(const DeviceInformation& deviceInfo)
         return DeviceStatus::NonFunctional;
     }
 
-    cu_err = cudaDeviceReset();
-    CU_RET_ERR(cu_err, "cudaDeviceReset failed");
+    // Temporarily disable context teardown as this can interfere with some of the gmxapi tests
+    // when using CUDA-aware MPI.
+    if (gmx::checkMpiCudaAwareSupport() != gmx::GpuAwareMpiStatus::Supported)
+    {
+        cu_err = cudaDeviceReset();
+        CU_RET_ERR(cu_err, "cudaDeviceReset failed");
+    }
 
     return DeviceStatus::Compatible;
 }
