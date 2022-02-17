@@ -2190,10 +2190,7 @@ int Mdrunner::mdrunner()
         physicalNodeComm.barrier();
     }
 
-    const bool usingGpuAwareMpiFeatures = GMX_LIB_MPI && GMX_GPU_CUDA
-                                          && (runScheduleWork.simulationWork.useGpuDirectCommunication
-                                              || runScheduleWork.simulationWork.useGpuPmeDecomposition);
-    if (!usingGpuAwareMpiFeatures)
+    if (gmx::checkMpiCudaAwareSupport() != gmx::GpuAwareMpiStatus::Supported)
     {
         // Don't reset GPU in case of GPU-AWARE MPI
         // UCX creates GPU buffers which are cleaned-up as part of MPI_Finalize()
