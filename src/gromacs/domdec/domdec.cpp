@@ -3151,6 +3151,11 @@ gmx_domdec_t* DomainDecompositionBuilder::build(LocalAtomSetManager*       atomS
 
 DomainDecompositionBuilder::~DomainDecompositionBuilder() = default;
 
+bool DomainDecompositionBuilder::canUseGpuDirectHalo()
+{
+    return impl_->canUseGpuDirectHalo();
+}
+
 } // namespace gmx
 
 static gmx_bool test_dd_cutoff(const t_commrec* cr, const matrix box, gmx::ArrayRef<const gmx::RVec> x, real cutoffRequested)
