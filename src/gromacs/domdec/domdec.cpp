@@ -2883,7 +2883,7 @@ public:
                         ObservablesReducerBuilder* observablesReducerBuilder);
 
     //! Does this DD setup work with GPU direct communication?
-    bool canUseGpuDirectHalo();
+    bool canUseGpuDirectHalo() const;
     //! Objects used in constructing and configuring DD
     //! {
     //! Logging object
@@ -3056,6 +3056,11 @@ DomainDecompositionBuilder::Impl::Impl(const MDLogger&                   mdlog,
     /* Generate the group communicator, also decides the duty of each rank */
     cartSetup_ = makeGroupCommunicators(
             mdlog_, ddSettings_, options_.rankOrder, ddRankSetup_, cr_, ddCellIndex_, &pmeRanks_);
+}
+
+bool DomainDecompositionBuilder::Impl::canUseGpuDirectHalo() const
+{
+    return worksWithGpuDirectHalo_;
 }
 
 gmx_domdec_t* DomainDecompositionBuilder::Impl::build(LocalAtomSetManager*  atomSets,
