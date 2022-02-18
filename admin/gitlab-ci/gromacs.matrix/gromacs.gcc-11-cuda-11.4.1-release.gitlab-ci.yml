@@ -49,7 +49,7 @@ gromacs:gcc-11-cuda-11.4.1:release:build:
   needs:
     - job: gromacs:gcc-11-cuda-11.4.1:release:configure
 
-gromacs:gcc-11-cuda-11.4.1:release:test:
+gromacs:gcc-11-cuda-11.4.1:release:test-nodirectcomm:
   extends:
     - .gromacs:base:test
     - .rules:nightly-only-for-release
