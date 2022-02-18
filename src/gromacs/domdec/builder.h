@@ -94,7 +94,8 @@ public:
                                ArrayRef<const RVec>              xGlobal,
                                bool                              useGpuForNonbonded,
                                bool                              useGpuForPme,
-                               bool                              directGpuCommUsedWithGpuUpdate,
+                               bool                              useGpuForUpdate,
+                               bool                              useGpuDirectHalo,
                                bool                              canUseGpuPmeDecomposition);
     //! Destructor
     ~DomainDecompositionBuilder();
@@ -103,6 +104,9 @@ public:
                         const gmx_localtop_t&      localTopology,
                         const t_state&             localState,
                         ObservablesReducerBuilder* observablesReducerBuilder);
+
+    //! Query for possibility to have GPU direct comms enabled with this flag
+    bool canUseGpuDirectHalo();
 
 private:
     class Impl;

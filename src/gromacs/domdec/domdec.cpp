@@ -60,6 +60,7 @@
 #include "gromacs/domdec/localtopologychecker.h"
 #include "gromacs/domdec/options.h"
 #include "gromacs/domdec/partition.h"
+#include "gromacs/domdec/utility.h"
 #include "gromacs/ewald/pme.h"
 #include "gromacs/domdec/reversetopology.h"
 #include "gromacs/gmxlib/network.h"
@@ -1816,7 +1817,6 @@ static DlbState forceDlbOffOrBail(DlbState             cmdlineDlbState,
  * \param [in] bRecordLoad          True if the load balancer is recording load information.
  * \param [in] mdrunOptions         Options for mdrun.
  * \param [in] inputrec             Pointer mdrun to input parameters.
- * \param [in] directGpuCommUsedWithGpuUpdate Direct GPU comm with update used. Disables DLB.
  * \param [in] useGpuForPme         PME offloaded to GPU
  * \param [in] canUseGpuPmeDecomposition         GPU pme decomposition supported
  * \returns                         DLB initial/startup state.
@@ -1826,7 +1826,6 @@ static DlbState determineInitialDlbState(const gmx::MDLogger&     mdlog,
                                          gmx_bool                 bRecordLoad,
                                          const gmx::MdrunOptions& mdrunOptions,
                                          const t_inputrec&        inputrec,
-                                         const bool               directGpuCommUsedWithGpuUpdate,
                                          const bool               useGpuForPme,
                                          const bool               canUseGpuPmeDecomposition)
 {
@@ -1849,15 +1848,6 @@ static DlbState determineInitialDlbState(const gmx::MDLogger&     mdlog,
     if (useGpuForPme && canUseGpuPmeDecomposition && (options.numPmeRanks == 0 || options.numPmeRanks > 1))
     {
         std::string reasonStr = "it is not supported with GPU PME decomposition.";
-        return forceDlbOffOrBail(dlbState, reasonStr, mdlog);
-    }
-
-    // With GPU update, since reduction is done on the GPU we can not measure any meaningful CPU
-    // force load, hence DLB needs to be disabled in that case
-    if (directGpuCommUsedWithGpuUpdate)
-    {
-        std::string reasonStr =
-                "it is not supported with GPU direct communication + GPU update enabled.";
         return forceDlbOffOrBail(dlbState, reasonStr, mdlog);
     }
 
@@ -2811,7 +2801,6 @@ static DDSettings getDDSettings(const gmx::MDLogger&     mdlog,
                                 const DomdecOptions&     options,
                                 const gmx::MdrunOptions& mdrunOptions,
                                 const t_inputrec&        ir,
-                                const bool               directGpuCommUsedWithGpuUpdate,
                                 const bool               useGpuForPme,
                                 const bool               canUseGpuPmeDecomposition)
 {
@@ -2846,14 +2835,8 @@ static DDSettings getDDSettings(const gmx::MDLogger&     mdlog,
         ddSettings.recordLoad = (wallcycle_have_counter() && recload > 0);
     }
 
-    ddSettings.initialDlbState = determineInitialDlbState(mdlog,
-                                                          options,
-                                                          ddSettings.recordLoad,
-                                                          mdrunOptions,
-                                                          ir,
-                                                          directGpuCommUsedWithGpuUpdate,
-                                                          useGpuForPme,
-                                                          canUseGpuPmeDecomposition);
+    ddSettings.initialDlbState = determineInitialDlbState(
+            mdlog, options, ddSettings.recordLoad, mdrunOptions, ir, useGpuForPme, canUseGpuPmeDecomposition);
     GMX_LOG(mdlog.info)
             .appendTextFormatted("Dynamic load balancing: %s",
                                  enumValueToString(ddSettings.initialDlbState));
@@ -2889,7 +2872,8 @@ public:
          ArrayRef<const RVec>              xGlobal,
          bool                              useGpuForNonbonded,
          bool                              useGpuForPme,
-         bool                              directGpuCommUsedWithGpuUpdate,
+         bool                              useGpuForUpdate,
+         bool                              useGpuDirectHalo,
          bool                              canUseGpuPmeDecomposition);
 
     //! Build the resulting DD manager
@@ -2898,6 +2882,8 @@ public:
                         const t_state&             localState,
                         ObservablesReducerBuilder* observablesReducerBuilder);
 
+    //! Does this DD setup work with GPU direct communication?
+    bool canUseGpuDirectHalo();
     //! Objects used in constructing and configuring DD
     //! {
     //! Logging object
@@ -2932,6 +2918,8 @@ public:
     std::vector<int> pmeRanks_;
     //! Contains a valid Cartesian-communicator-based setup, or defaults.
     CartesianRankSetup cartSetup_;
+    //! Whether setup works wth direct comms.
+    bool worksWithGpuDirectHalo_ = true;
     //! }
 };
 
@@ -2949,14 +2937,14 @@ DomainDecompositionBuilder::Impl::Impl(const MDLogger&                   mdlog,
                                        ArrayRef<const RVec>              xGlobal,
                                        bool                              useGpuForNonbonded,
                                        bool                              useGpuForPme,
-                                       bool directGpuCommUsedWithGpuUpdate,
+                                       bool                              useGpuForUpdate,
+                                       bool                              useGpuDirectHalo,
                                        bool canUseGpuPmeDecomposition) :
     mdlog_(mdlog), cr_(cr), options_(options), mtop_(mtop), ir_(ir), notifiers_(notifiers)
 {
     GMX_LOG(mdlog_.info).appendTextFormatted("\nInitializing Domain Decomposition on %d ranks", cr_->sizeOfDefaultCommunicator);
 
-    ddSettings_ = getDDSettings(
-            mdlog_, options_, mdrunOptions, ir_, directGpuCommUsedWithGpuUpdate, useGpuForPme, canUseGpuPmeDecomposition);
+    ddSettings_ = getDDSettings(mdlog_, options_, mdrunOptions, ir_, useGpuForPme, canUseGpuPmeDecomposition);
 
     if (ddSettings_.eFlop > 1)
     {
@@ -3024,6 +3012,41 @@ DomainDecompositionBuilder::Impl::Impl(const MDLogger&                   mdlog,
                      systemInfo_,
                      gridSetupCellsizeLimit,
                      ddbox_);
+
+    // GPU-direct communication presently only works with a single pulse in the 2nd/3rd dimensions.
+    // Check that the domains are large enough (including a margin for scaling), and disable it otherwise.
+    if (useGpuDirectHalo)
+    {
+        // We don't need to check the first dimension;
+        // there we can have multiple pulses with GPU-direct halos.
+        for (int dimIndex = 1; dimIndex < ddGridSetup_.numDDDimensions; dimIndex++)
+        {
+            const int  dim               = ddGridSetup_.ddDimensions[dimIndex];
+            const real initialDomainSize = box[dim][dim] / ddGridSetup_.numDomains[dim];
+            // The factor 2 is just an arbitrary safeguard here. If we ever get to
+            // the point where the cell is too small, there will be a gmx_fatal() call,
+            // but we want to avoid that happening for any normal simulations, even if
+            // e.g. a lipid bilayer with anisotrospic scaling changes shape a lot.
+            if (initialDomainSize < 2 * systemInfo_.cutoff)
+            {
+                worksWithGpuDirectHalo_ = false;
+                GMX_LOG(mdlog.info)
+                        .appendText(
+                                "Disabling GPU-direct halo communication; domains are too small.");
+            }
+        }
+    }
+
+    // Now that we know whether GPU-direct halos actually will be used, we might have to modify DLB
+    if (!isDlbDisabled(ddSettings_.initialDlbState) && useGpuForUpdate
+        && (useGpuDirectHalo && worksWithGpuDirectHalo_))
+    {
+        ddSettings_.initialDlbState = DlbState::offForever;
+        GMX_LOG(mdlog.info)
+                .appendText(
+                        "Disabling dynamic load balancing; unsupported with GPU communication + "
+                        "update.");
+    }
 
     cr_->npmenodes = ddGridSetup_.numPmeOnlyRanks;
 
@@ -3095,7 +3118,8 @@ DomainDecompositionBuilder::DomainDecompositionBuilder(const MDLogger&          
                                                        ArrayRef<const RVec> xGlobal,
                                                        const bool           useGpuForNonbonded,
                                                        const bool           useGpuForPme,
-                                                       const bool directGpuCommUsedWithGpuUpdate,
+                                                       bool                 useGpuForUpdate,
+                                                       bool                 useGpuDirectHalo,
                                                        const bool canUseGpuPmeDecomposition) :
     impl_(new Impl(mdlog,
                    cr,
@@ -3111,7 +3135,8 @@ DomainDecompositionBuilder::DomainDecompositionBuilder(const MDLogger&          
                    xGlobal,
                    useGpuForNonbonded,
                    useGpuForPme,
-                   directGpuCommUsedWithGpuUpdate,
+                   useGpuForUpdate,
+                   useGpuDirectHalo,
                    canUseGpuPmeDecomposition))
 {
 }
