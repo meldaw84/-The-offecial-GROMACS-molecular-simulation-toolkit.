@@ -2919,7 +2919,7 @@ public:
     //! Contains a valid Cartesian-communicator-based setup, or defaults.
     CartesianRankSetup cartSetup_;
     //! Whether setup works wth direct comms.
-    bool worksWithGpuDirectHalo_ = true;
+    bool worksWithGpuDirectHalo_;
     //! }
 };
 
@@ -2940,7 +2940,13 @@ DomainDecompositionBuilder::Impl::Impl(const MDLogger&                   mdlog,
                                        bool                              useGpuForUpdate,
                                        bool                              useGpuDirectHalo,
                                        bool canUseGpuPmeDecomposition) :
-    mdlog_(mdlog), cr_(cr), options_(options), mtop_(mtop), ir_(ir), notifiers_(notifiers)
+    mdlog_(mdlog),
+    cr_(cr),
+    options_(options),
+    mtop_(mtop),
+    ir_(ir),
+    notifiers_(notifiers),
+    worksWithGpuDirectHalo_(useGpuDirectHalo)
 {
     GMX_LOG(mdlog_.info).appendTextFormatted("\nInitializing Domain Decomposition on %d ranks", cr_->sizeOfDefaultCommunicator);
 
@@ -3015,7 +3021,7 @@ DomainDecompositionBuilder::Impl::Impl(const MDLogger&                   mdlog,
 
     // GPU-direct communication presently only works with a single pulse in the 2nd/3rd dimensions.
     // Check that the domains are large enough (including a margin for scaling), and disable it otherwise.
-    if (useGpuDirectHalo)
+    if (worksWithGpuDirectHalo_)
     {
         // We don't need to check the first dimension;
         // there we can have multiple pulses with GPU-direct halos.
@@ -3038,8 +3044,7 @@ DomainDecompositionBuilder::Impl::Impl(const MDLogger&                   mdlog,
     }
 
     // Now that we know whether GPU-direct halos actually will be used, we might have to modify DLB
-    if (!isDlbDisabled(ddSettings_.initialDlbState) && useGpuForUpdate
-        && (useGpuDirectHalo && worksWithGpuDirectHalo_))
+    if (!isDlbDisabled(ddSettings_.initialDlbState) && useGpuForUpdate && (worksWithGpuDirectHalo_))
     {
         ddSettings_.initialDlbState = DlbState::offForever;
         GMX_LOG(mdlog.info)
