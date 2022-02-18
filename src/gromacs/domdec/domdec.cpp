@@ -127,6 +127,22 @@ using gmx::DlbOption;
 using gmx::DomdecOptions;
 using gmx::RangePartitioning;
 
+/*! \brief Computes and returns the number of halo communication pulses along the three dimensions
+ *
+ * The number of pulses includes some margin on the box for pressure scaling.
+ *
+ * \param[in] numDomains             The number of DD domains along the three Cartesian dimensions
+ * \param[in] ir                     The input record
+ * \param[in] box                    The unit cell
+ * \param[in] xGlobal                The coordinates of the whole system
+ * \param[in] communicationDistance  The halo communication distance
+ */
+static gmx::IVec getNumCommunicationPulses(const ivec&                    numDomains,
+                                           const t_inputrec&              ir,
+                                           const matrix                   box,
+                                           gmx::ArrayRef<const gmx::RVec> x,
+                                           const real                     communicationDistance);
+
 static const char* enumValueToString(DlbState enumValue)
 {
     static constexpr gmx::EnumerationArray<DlbState, const char*> dlbStateNames = {
@@ -3023,17 +3039,16 @@ DomainDecompositionBuilder::Impl::Impl(const MDLogger&                   mdlog,
     // Check that the domains are large enough (including a margin for scaling), and disable it otherwise.
     if (worksWithGpuDirectHalo_)
     {
+        const IVec numPulses = getNumCommunicationPulses(
+                ddGridSetup_.numDomains, ir, box, xGlobal, systemInfo_.cutoff);
+
         // We don't need to check the first dimension;
         // there we can have multiple pulses with GPU-direct halos.
         for (int dimIndex = 1; dimIndex < ddGridSetup_.numDDDimensions; dimIndex++)
         {
-            const int  dim               = ddGridSetup_.ddDimensions[dimIndex];
-            const real initialDomainSize = box[dim][dim] / ddGridSetup_.numDomains[dim];
-            // The factor 2 is just an arbitrary safeguard here. If we ever get to
-            // the point where the cell is too small, there will be a gmx_fatal() call,
-            // but we want to avoid that happening for any normal simulations, even if
-            // e.g. a lipid bilayer with anisotrospic scaling changes shape a lot.
-            if (initialDomainSize < 2 * systemInfo_.cutoff)
+            const int dim = ddGridSetup_.ddDimensions[dimIndex];
+
+            if (numPulses[dim] > 1)
             {
                 worksWithGpuDirectHalo_ = false;
                 GMX_LOG(mdlog.info)
@@ -3168,6 +3183,44 @@ bool DomainDecompositionBuilder::canUseGpuDirectHalo()
 
 } // namespace gmx
 
+//! Returns the number of halo communication pulses along Cartesian dimension \p dim
+static int getNumCommunicationPulses(const gmx_ddbox_t& ddbox,
+                                     const int          dim,
+                                     const int          numDomains,
+                                     const bool         ddBoxIsDynamic,
+                                     const real         communicationDistance)
+{
+    real inverseOfDomainSize = DD_CELL_MARGIN * numDomains / ddbox.box_size[dim];
+
+    if (ddBoxIsDynamic)
+    {
+        inverseOfDomainSize *= DD_PRES_SCALE_MARGIN;
+    }
+
+    return 1 + static_cast<int>(communicationDistance * inverseOfDomainSize * ddbox.skew_fac[dim]);
+}
+
+static gmx::IVec getNumCommunicationPulses(const ivec&                    numDomains,
+                                           const t_inputrec&              ir,
+                                           const matrix                   box,
+                                           gmx::ArrayRef<const gmx::RVec> xGlobal,
+                                           const real                     communicationDistance)
+{
+    const gmx_ddbox_t ddbox = get_ddbox(numDomains, ir, box, xGlobal);
+
+    gmx::IVec numPulses = { 0, 0, 0 };
+    for (int dim = 0; dim < DIM; dim++)
+    {
+        if (numDomains[dim] > 1)
+        {
+            numPulses[dim] = getNumCommunicationPulses(
+                    ddbox, dim, numDomains[dim], inputrecDynamicBox(&ir), communicationDistance);
+        }
+    }
+
+    return numPulses;
+}
+
 static gmx_bool test_dd_cutoff(const t_commrec* cr, const matrix box, gmx::ArrayRef<const gmx::RVec> x, real cutoffRequested)
 {
     gmx_ddbox_t ddbox;
@@ -3183,13 +3236,8 @@ static gmx_bool test_dd_cutoff(const t_commrec* cr, const matrix box, gmx::Array
     {
         const int dim = dd->dim[d];
 
-        real inv_cell_size = DD_CELL_MARGIN * dd->numCells[dim] / ddbox.box_size[dim];
-        if (dd->unitCellInfo.ddBoxIsDynamic)
-        {
-            inv_cell_size *= DD_PRES_SCALE_MARGIN;
-        }
-
-        const int np = 1 + static_cast<int>(cutoffRequested * inv_cell_size * ddbox.skew_fac[dim]);
+        const int np = getNumCommunicationPulses(
+                ddbox, dim, dd->numCells[dim], dd->unitCellInfo.ddBoxIsDynamic, cutoffRequested);
 
         if (!isDlbDisabled(dd->comm) && (dim < ddbox.npbcdim) && (dd->comm->cd[d].np_dlb > 0))
         {
