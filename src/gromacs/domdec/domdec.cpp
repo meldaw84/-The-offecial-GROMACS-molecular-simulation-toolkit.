@@ -134,14 +134,14 @@ using gmx::RangePartitioning;
  * \param[in] numDomains             The number of DD domains along the three Cartesian dimensions
  * \param[in] ir                     The input record
  * \param[in] box                    The unit cell
- * \param[in] xGlobal                The coordinates of the whole system
+ * \param[in] x                      The coordinates of the whole system
  * \param[in] communicationDistance  The halo communication distance
  */
 static gmx::IVec getNumCommunicationPulses(const ivec&                    numDomains,
                                            const t_inputrec&              ir,
                                            const matrix                   box,
                                            gmx::ArrayRef<const gmx::RVec> x,
-                                           const real                     communicationDistance);
+                                           real                           communicationDistance);
 
 static const char* enumValueToString(DlbState enumValue)
 {
