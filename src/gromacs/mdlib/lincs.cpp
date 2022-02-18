@@ -230,11 +230,8 @@ public:
 };
 
 /*! \brief Define simd_width for memory allocation used for SIMD code */
-#if GMX_SIMD_HAVE_REAL
-static const int simd_width = GMX_SIMD_REAL_WIDTH;
-#else
-static const int simd_width = 1;
-#endif
+template<bool useSimd>
+static const int simd_width = useSimd ? GMX_SIMD_REAL_WIDTH : 1;
 
 real lincs_rmsd(const Lincs* lincsd)
 {
@@ -498,7 +495,6 @@ static void lincs_update_atoms(Lincs*                         li,
     }
 }
 
-#if GMX_SIMD_HAVE_REAL
 //! Helper function so that we can run TSAN with SIMD support (where implemented).
 template<int align>
 static inline void gmx_simdcall gatherLoadUTransposeTSANSafe(const real*         base,
@@ -507,12 +503,12 @@ static inline void gmx_simdcall gatherLoadUTransposeTSANSafe(const real*        
                                                              SimdReal*           v1,
                                                              SimdReal*           v2)
 {
-#    if (CMAKE_BUILD_TYPE == CMAKE_BUILD_TYPE_TSAN) && GMX_SIMD_X86_AVX2_256
+#if (CMAKE_BUILD_TYPE == CMAKE_BUILD_TYPE_TSAN) && GMX_SIMD_X86_AVX2_256
     // This function is only implemented in this case
     gatherLoadUTransposeSafe<align>(base, offset, v0, v1, v2);
-#    else
+#else
     gatherLoadUTranspose<align>(base, offset, v0, v1, v2);
-#    endif
+#endif
 }
 
 /*! \brief Calculate the constraint distance vectors r to project on from x.
@@ -531,7 +527,7 @@ static void gmx_simdcall calc_dr_x_f_simd(int                           b0,
                                           real* gmx_restrict            rhs,
                                           real* gmx_restrict            sol)
 {
-    assert(b0 % GMX_SIMD_REAL_WIDTH == 0);
+    GMX_ASSERT(b0 % GMX_SIMD_REAL_WIDTH == 0, "Need to have proper indexing");
 
     alignas(GMX_SIMD_ALIGNMENT) std::int32_t offset2[GMX_SIMD_REAL_WIDTH];
 
@@ -586,9 +582,9 @@ static void gmx_simdcall calc_dr_x_f_simd(int                           b0,
         store(sol + bs, rhs_S);
     }
 }
-#endif // GMX_SIMD_HAVE_REAL
 
 /*! \brief LINCS projection, works on derivatives of the coordinates. */
+template<bool useSimd>
 static void do_lincsp(ArrayRefWithPadding<const RVec> xPadded,
                       ArrayRefWithPadding<RVec>       fPadded,
                       ArrayRef<RVec>                  fp,
@@ -631,59 +627,60 @@ static void do_lincsp(ArrayRefWithPadding<const RVec> xPadded,
     const rvec* x = as_rvec_array(xPadded.paddedArrayRef().data());
     rvec*       f = as_rvec_array(fPadded.paddedArrayRef().data());
 
-#if GMX_SIMD_HAVE_REAL
-    /* This SIMD code does the same as the plain-C code after the #else.
-     * The only difference is that we always call pbc code, as with SIMD
-     * the overhead of pbc computation (when not needed) is small.
-     */
-    alignas(GMX_SIMD_ALIGNMENT) real pbc_simd[9 * GMX_SIMD_REAL_WIDTH];
-
-    /* Convert the pbc struct for SIMD */
-    set_pbc_simd(pbc, pbc_simd);
-
-    /* Compute normalized x i-j vectors, store in r.
-     * Compute the inner product of r and xp i-j and store in rhs1.
-     */
-    calc_dr_x_f_simd(
-            b0, b1, atoms, x, f, blc.data(), pbc_simd, as_rvec_array(r.data()), rhs1.data(), sol.data());
-
-#else // GMX_SIMD_HAVE_REAL
-
-    /* Compute normalized i-j vectors */
-    if (pbc)
+    if constexpr (useSimd)
     {
+        /* This SIMD code does the same as the plain-C code after the #else.
+         * The only difference is that we always call pbc code, as with SIMD
+         * the overhead of pbc computation (when not needed) is small.
+         */
+        alignas(GMX_SIMD_ALIGNMENT) real pbc_simd[9 * GMX_SIMD_REAL_WIDTH];
+
+        /* Convert the pbc struct for SIMD */
+        set_pbc_simd(pbc, pbc_simd);
+
+        /* Compute normalized x i-j vectors, store in r.
+         * Compute the inner product of r and xp i-j and store in rhs1.
+         */
+        calc_dr_x_f_simd(
+                b0, b1, atoms, x, f, blc.data(), pbc_simd, as_rvec_array(r.data()), rhs1.data(), sol.data());
+    }
+    else // useSimd
+    {
+        /* Compute normalized i-j vectors */
+        if (pbc)
+        {
+            for (int b = b0; b < b1; b++)
+            {
+                rvec dx;
+
+                pbc_dx_aiuc(pbc, x[atoms[b].index1], x[atoms[b].index2], dx);
+                unitv(dx, r[b]);
+            }
+        }
+        else
+        {
+            for (int b = b0; b < b1; b++)
+            {
+                rvec dx;
+
+                rvec_sub(x[atoms[b].index1], x[atoms[b].index2], dx);
+                unitv(dx, r[b]);
+            } /* 16 ncons flops */
+        }
+
         for (int b = b0; b < b1; b++)
         {
-            rvec dx;
-
-            pbc_dx_aiuc(pbc, x[atoms[b].index1], x[atoms[b].index2], dx);
-            unitv(dx, r[b]);
+            int  i   = atoms[b].index1;
+            int  j   = atoms[b].index2;
+            real mvb = blc[b]
+                       * (r[b][0] * (f[i][0] - f[j][0]) + r[b][1] * (f[i][1] - f[j][1])
+                          + r[b][2] * (f[i][2] - f[j][2]));
+            rhs1[b] = mvb;
+            sol[b]  = mvb;
+            /* 7 flops */
         }
     }
-    else
-    {
-        for (int b = b0; b < b1; b++)
-        {
-            rvec dx;
 
-            rvec_sub(x[atoms[b].index1], x[atoms[b].index2], dx);
-            unitv(dx, r[b]);
-        } /* 16 ncons flops */
-    }
-
-    for (int b = b0; b < b1; b++)
-    {
-        int  i   = atoms[b].index1;
-        int  j   = atoms[b].index2;
-        real mvb = blc[b]
-                   * (r[b][0] * (f[i][0] - f[j][0]) + r[b][1] * (f[i][1] - f[j][1])
-                      + r[b][2] * (f[i][2] - f[j][2]));
-        rhs1[b] = mvb;
-        sol[b]  = mvb;
-        /* 7 flops */
-    }
-
-#endif // GMX_SIMD_HAVE_REAL
 
     if (lincsd->bTaskDep)
     {
@@ -770,8 +767,6 @@ static void do_lincsp(ArrayRefWithPadding<const RVec> xPadded,
     }
 }
 
-#if GMX_SIMD_HAVE_REAL
-
 /*! \brief Calculate the constraint distance vectors r to project on from x.
  *
  * Determine the right-hand side of the matrix equation using coordinates xp. */
@@ -787,7 +782,7 @@ static void gmx_simdcall calc_dr_x_xp_simd(int                           b0,
                                            real* gmx_restrict            rhs,
                                            real* gmx_restrict            sol)
 {
-    assert(b0 % GMX_SIMD_REAL_WIDTH == 0);
+    GMX_ASSERT(b0 % GMX_SIMD_REAL_WIDTH == 0, "Need have proper indexing");
     alignas(GMX_SIMD_ALIGNMENT) std::int32_t offset2[GMX_SIMD_REAL_WIDTH];
 
     for (int i = 0; i < GMX_SIMD_REAL_WIDTH; i++)
@@ -844,7 +839,6 @@ static void gmx_simdcall calc_dr_x_xp_simd(int                           b0,
         store(sol + bs, rhs_S);
     }
 }
-#endif // GMX_SIMD_HAVE_REAL
 
 /*! \brief Determine the distances and right-hand side for the next iteration. */
 gmx_unused static void calc_dist_iter(int                           b0,
@@ -892,7 +886,6 @@ gmx_unused static void calc_dist_iter(int                           b0,
     } /* 20*ncons flops */
 }
 
-#if GMX_SIMD_HAVE_REAL
 /*! \brief As calc_dist_iter(), but using SIMD intrinsics. */
 static void gmx_simdcall calc_dist_iter_simd(int                           b0,
                                              int                           b1,
@@ -911,7 +904,7 @@ static void gmx_simdcall calc_dist_iter_simd(int                           b0,
     SimdReal wfac_S(wfac);
     SimdBool warn_S;
 
-    assert(b0 % GMX_SIMD_REAL_WIDTH == 0);
+    GMX_ASSERT(b0 % GMX_SIMD_REAL_WIDTH == 0, "Need to have proper indexing");
 
     /* Initialize all to FALSE */
     warn_S = (two_S < setZero());
@@ -970,9 +963,9 @@ static void gmx_simdcall calc_dist_iter_simd(int                           b0,
         *bWarn = TRUE;
     }
 }
-#endif // GMX_SIMD_HAVE_REAL
 
 //! Implements LINCS constraining.
+template<bool useSimd>
 static void do_lincs(ArrayRefWithPadding<const RVec> xPadded,
                      ArrayRefWithPadding<RVec>       xpPadded,
                      const matrix                    box,
@@ -1011,67 +1004,77 @@ static void do_lincs(ArrayRefWithPadding<const RVec> xPadded,
     gmx::ArrayRef<real>           mlambda = lincsd->mlambda;
     gmx::ArrayRef<const int>      nlocat  = lincsd->nlocat;
 
-#if GMX_SIMD_HAVE_REAL
-
     /* This SIMD code does the same as the plain-C code after the #else.
      * The only difference is that we always call pbc code, as with SIMD
      * the overhead of pbc computation (when not needed) is small.
      */
     alignas(GMX_SIMD_ALIGNMENT) real pbc_simd[9 * GMX_SIMD_REAL_WIDTH];
 
-    /* Convert the pbc struct for SIMD */
-    set_pbc_simd(pbc, pbc_simd);
-
-    /* Compute normalized x i-j vectors, store in r.
-     * Compute the inner product of r and xp i-j and store in rhs1.
-     */
-    calc_dr_x_xp_simd(
-            b0, b1, atoms, x, xp, bllen.data(), blc.data(), pbc_simd, as_rvec_array(r.data()), rhs1.data(), sol.data());
-
-#else // GMX_SIMD_HAVE_REAL
-
-    if (pbc)
+    if constexpr (useSimd)
     {
-        /* Compute normalized i-j vectors */
-        for (int b = b0; b < b1; b++)
-        {
-            rvec dx;
-            pbc_dx_aiuc(pbc, x[atoms[b].index1], x[atoms[b].index2], dx);
-            unitv(dx, r[b]);
 
-            pbc_dx_aiuc(pbc, xp[atoms[b].index1], xp[atoms[b].index2], dx);
-            real mvb = blc[b] * (::iprod(r[b], dx) - bllen[b]);
-            rhs1[b]  = mvb;
-            sol[b]   = mvb;
-        }
+        /* Convert the pbc struct for SIMD */
+        set_pbc_simd(pbc, pbc_simd);
+
+        /* Compute normalized x i-j vectors, store in r.
+         * Compute the inner product of r and xp i-j and store in rhs1.
+         */
+        calc_dr_x_xp_simd(b0,
+                          b1,
+                          atoms,
+                          x,
+                          xp,
+                          bllen.data(),
+                          blc.data(),
+                          pbc_simd,
+                          as_rvec_array(r.data()),
+                          rhs1.data(),
+                          sol.data());
     }
     else
     {
-        /* Compute normalized i-j vectors */
-        for (int b = b0; b < b1; b++)
+
+        if (pbc)
         {
-            int  i    = atoms[b].index1;
-            int  j    = atoms[b].index2;
-            real tmp0 = x[i][0] - x[j][0];
-            real tmp1 = x[i][1] - x[j][1];
-            real tmp2 = x[i][2] - x[j][2];
-            real rlen = gmx::invsqrt(tmp0 * tmp0 + tmp1 * tmp1 + tmp2 * tmp2);
-            r[b][0]   = rlen * tmp0;
-            r[b][1]   = rlen * tmp1;
-            r[b][2]   = rlen * tmp2;
-            /* 16 ncons flops */
+            /* Compute normalized i-j vectors */
+            for (int b = b0; b < b1; b++)
+            {
+                rvec dx;
+                pbc_dx_aiuc(pbc, x[atoms[b].index1], x[atoms[b].index2], dx);
+                unitv(dx, r[b]);
 
-            real mvb = blc[b]
-                       * (r[b][0] * (xp[i][0] - xp[j][0]) + r[b][1] * (xp[i][1] - xp[j][1])
-                          + r[b][2] * (xp[i][2] - xp[j][2]) - bllen[b]);
-            rhs1[b] = mvb;
-            sol[b]  = mvb;
-            /* 10 flops */
+                pbc_dx_aiuc(pbc, xp[atoms[b].index1], xp[atoms[b].index2], dx);
+                real mvb = blc[b] * (::iprod(r[b], dx) - bllen[b]);
+                rhs1[b]  = mvb;
+                sol[b]   = mvb;
+            }
         }
-        /* Together: 26*ncons + 6*nrtot flops */
-    }
+        else
+        {
+            /* Compute normalized i-j vectors */
+            for (int b = b0; b < b1; b++)
+            {
+                int  i    = atoms[b].index1;
+                int  j    = atoms[b].index2;
+                real tmp0 = x[i][0] - x[j][0];
+                real tmp1 = x[i][1] - x[j][1];
+                real tmp2 = x[i][2] - x[j][2];
+                real rlen = gmx::invsqrt(tmp0 * tmp0 + tmp1 * tmp1 + tmp2 * tmp2);
+                r[b][0]   = rlen * tmp0;
+                r[b][1]   = rlen * tmp1;
+                r[b][2]   = rlen * tmp2;
+                /* 16 ncons flops */
 
-#endif // GMX_SIMD_HAVE_REAL
+                real mvb = blc[b]
+                           * (r[b][0] * (xp[i][0] - xp[j][0]) + r[b][1] * (xp[i][1] - xp[j][1])
+                              + r[b][2] * (xp[i][2] - xp[j][2]) - bllen[b]);
+                rhs1[b] = mvb;
+                sol[b]  = mvb;
+                /* 10 flops */
+            }
+            /* Together: 26*ncons + 6*nrtot flops */
+        }
+    }
 
     if (lincsd->bTaskDep)
     {
@@ -1094,19 +1097,23 @@ static void do_lincs(ArrayRefWithPadding<const RVec> xPadded,
     lincs_matrix_expand(*lincsd, lincsd->task[th], blcc, rhs1, rhs2, sol);
     /* nrec*(ncons+2*nrtot) flops */
 
-#if GMX_SIMD_HAVE_REAL
-    for (int b = b0; b < b1; b += GMX_SIMD_REAL_WIDTH)
+    if constexpr (useSimd)
     {
-        SimdReal t1 = load<SimdReal>(blc.data() + b);
-        SimdReal t2 = load<SimdReal>(sol.data() + b);
-        store(mlambda.data() + b, t1 * t2);
+        for (int b = b0; b < b1; b += GMX_SIMD_REAL_WIDTH)
+        {
+            SimdReal t1 = load<SimdReal>(blc.data() + b);
+            SimdReal t2 = load<SimdReal>(sol.data() + b);
+            store(mlambda.data() + b, t1 * t2);
+        }
     }
-#else
-    for (int b = b0; b < b1; b++)
+    else
     {
-        mlambda[b] = blc[b] * sol[b];
+        for (int b = b0; b < b1; b++)
+        {
+            mlambda[b] = blc[b] * sol[b];
+        }
     }
-#endif // GMX_SIMD_HAVE_REAL
+
 
     /* Update the coordinates */
     lincs_update_atoms(lincsd, th, 1.0, mlambda, r, invmass, xp);
@@ -1140,34 +1147,43 @@ static void do_lincs(ArrayRefWithPadding<const RVec> xPadded,
 #pragma omp barrier
         }
 
-#if GMX_SIMD_HAVE_REAL
-        calc_dist_iter_simd(
-                b0, b1, atoms, xp, bllen.data(), blc.data(), pbc_simd, wfac, rhs1.data(), sol.data(), bWarn);
-#else
-        calc_dist_iter(b0, b1, atoms, xp, bllen.data(), blc.data(), pbc, wfac, rhs1.data(), sol.data(), bWarn);
-        /* 20*ncons flops */
-#endif // GMX_SIMD_HAVE_REAL
+        if constexpr (useSimd)
+        {
+
+            calc_dist_iter_simd(
+                    b0, b1, atoms, xp, bllen.data(), blc.data(), pbc_simd, wfac, rhs1.data(), sol.data(), bWarn);
+        }
+        else
+        {
+            calc_dist_iter(
+                    b0, b1, atoms, xp, bllen.data(), blc.data(), pbc, wfac, rhs1.data(), sol.data(), bWarn);
+            /* 20*ncons flops */
+        }
+
 
         lincs_matrix_expand(*lincsd, lincsd->task[th], blcc, rhs1, rhs2, sol);
         /* nrec*(ncons+2*nrtot) flops */
 
-#if GMX_SIMD_HAVE_REAL
-        for (int b = b0; b < b1; b += GMX_SIMD_REAL_WIDTH)
+        if constexpr (useSimd)
         {
-            SimdReal t1  = load<SimdReal>(blc.data() + b);
-            SimdReal t2  = load<SimdReal>(sol.data() + b);
-            SimdReal mvb = t1 * t2;
-            store(blc_sol.data() + b, mvb);
-            store(mlambda.data() + b, load<SimdReal>(mlambda.data() + b) + mvb);
+            for (int b = b0; b < b1; b += GMX_SIMD_REAL_WIDTH)
+            {
+                SimdReal t1  = load<SimdReal>(blc.data() + b);
+                SimdReal t2  = load<SimdReal>(sol.data() + b);
+                SimdReal mvb = t1 * t2;
+                store(blc_sol.data() + b, mvb);
+                store(mlambda.data() + b, load<SimdReal>(mlambda.data() + b) + mvb);
+            }
         }
-#else
-        for (int b = b0; b < b1; b++)
+        else
         {
-            real mvb   = blc[b] * sol[b];
-            blc_sol[b] = mvb;
-            mlambda[b] += mvb;
+            for (int b = b0; b < b1; b++)
+            {
+                real mvb   = blc[b] * sol[b];
+                blc_sol[b] = mvb;
+                mlambda[b] += mvb;
+            }
         }
-#endif // GMX_SIMD_HAVE_REAL
 
         /* Update the coordinates */
         lincs_update_atoms(lincsd, th, 1.0, blc_sol, r, invmass, xp);
@@ -1972,9 +1988,10 @@ void set_lincs(const InteractionDefinitions& idef,
                const t_commrec*              cr,
                Lincs*                        li)
 {
-    li->nc_real = 0;
-    li->nc      = 0;
-    li->ncc     = 0;
+    constexpr bool useSimd = GMX_SIMD_HAVE_REAL;
+    li->nc_real            = 0;
+    li->nc                 = 0;
+    li->ncc                = 0;
     /* Zero the thread index ranges.
      * Otherwise without local constraints we could return with old ranges.
      */
@@ -2028,7 +2045,7 @@ void set_lincs(const InteractionDefinitions& idef,
     const int ncon_tot = idef.il[F_CONSTR].size() / 3;
 
     /* Ensure we have enough padding for aligned loads for each thread */
-    const int numEntries = ncon_tot + li->ntask * simd_width;
+    const int numEntries = ncon_tot + li->ntask * simd_width<useSimd>;
     li->con_index.resize(numEntries);
     li->bllen0.resize(numEntries);
     li->ddist.resize(numEntries);
@@ -2087,24 +2104,27 @@ void set_lincs(const InteractionDefinitions& idef,
 
         li_task = &li->task[th];
 
-#if GMX_SIMD_HAVE_REAL
-        /* With indepedent tasks we likely have H-bond constraints or constraint
-         * pairs. The connected constraints will be pulled into the task, so the
-         * constraints per task will often exceed ncon_target.
-         * Triangle constraints can also increase the count, but there are
-         * relatively few of those, so we usually expect to get ncon_target.
-         */
-        if (li->bTaskDep)
+        if constexpr (useSimd)
         {
-            /* We round ncon_target to a multiple of GMX_SIMD_WIDTH,
-             * since otherwise a lot of operations can be wasted.
-             * There are several ways to round here, we choose the one
-             * that alternates block sizes, which helps with Intel HT.
+            /* With indepedent tasks we likely have H-bond constraints or constraint
+             * pairs. The connected constraints will be pulled into the task, so the
+             * constraints per task will often exceed ncon_target.
+             * Triangle constraints can also increase the count, but there are
+             * relatively few of those, so we usually expect to get ncon_target.
              */
-            ncon_target = ((ncon_assign * (th + 1)) / li->ntask - li->nc_real + GMX_SIMD_REAL_WIDTH - 1)
-                          & ~(GMX_SIMD_REAL_WIDTH - 1);
+            if (li->bTaskDep)
+            {
+                /* We round ncon_target to a multiple of GMX_SIMD_WIDTH,
+                 * since otherwise a lot of operations can be wasted.
+                 * There are several ways to round here, we choose the one
+                 * that alternates block sizes, which helps with Intel HT.
+                 */
+                ncon_target =
+                        ((ncon_assign * (th + 1)) / li->ntask - li->nc_real + GMX_SIMD_REAL_WIDTH - 1)
+                        & ~(GMX_SIMD_REAL_WIDTH - 1);
+            }
         }
-#endif // GMX_SIMD==2 && GMX_SIMD_HAVE_REAL
+
 
         /* Continue filling the arrays where we left off with the previous task,
          * including padding for SIMD.
@@ -2152,7 +2172,7 @@ void set_lincs(const InteractionDefinitions& idef,
 
         li_task->b1 = li->nc;
 
-        if (simd_width > 1)
+        if constexpr (useSimd)
         {
             /* Copy the last atom pair indices and lengths for constraints
              * up to a multiple of simd_width, such that we can do all
@@ -2160,8 +2180,8 @@ void set_lincs(const InteractionDefinitions& idef,
              */
             int i, last;
 
-            li->nc = ((li_task->b1 + simd_width - 1) / simd_width) * simd_width;
-            last   = li_task->b1 - 1;
+            li->nc = ((li_task->b1 + simd_width<useSimd> - 1) / simd_width<useSimd>)*simd_width<useSimd>;
+            last = li_task->b1 - 1;
             for (i = li_task->b1; i < li->nc; i++)
             {
                 li->atoms[i]    = li->atoms[last];
@@ -2397,8 +2417,8 @@ bool constrain_lincs(bool                            computeRmsd,
                      int                             maxwarn,
                      int*                            warncount)
 {
-    bool bOK = TRUE;
-
+    bool           bOK     = TRUE;
+    constexpr bool useSimd = GMX_SIMD_HAVE_REAL;
     /* This boolean should be set by a flag passed to this routine.
      * We can also easily check if any constraint length is changed,
      * if not dH/dlambda=0 and we can also set the boolean to FALSE.
@@ -2487,21 +2507,21 @@ bool constrain_lincs(bool                            computeRmsd,
 
                 clear_mat(lincsd->task[th].vir_r_m_dr);
 
-                do_lincs(xPadded,
-                         xprimePadded,
-                         box,
-                         pbc,
-                         lincsd,
-                         th,
-                         invmass,
-                         cr,
-                         bCalcDHDL,
-                         ir.LincsWarnAngle,
-                         &bWarn,
-                         invdt,
-                         v,
-                         bCalcVir,
-                         th == 0 ? vir_r_m_dr : lincsd->task[th].vir_r_m_dr);
+                do_lincs<useSimd>(xPadded,
+                                  xprimePadded,
+                                  box,
+                                  pbc,
+                                  lincsd,
+                                  th,
+                                  invmass,
+                                  cr,
+                                  bCalcDHDL,
+                                  ir.LincsWarnAngle,
+                                  &bWarn,
+                                  invdt,
+                                  v,
+                                  bCalcVir,
+                                  th == 0 ? vir_r_m_dr : lincsd->task[th].vir_r_m_dr);
             }
             GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR
         }
@@ -2593,17 +2613,17 @@ bool constrain_lincs(bool                            computeRmsd,
             {
                 int th = gmx_omp_get_thread_num();
 
-                do_lincsp(xPadded,
-                          xprimePadded,
-                          min_proj,
-                          pbc,
-                          lincsd,
-                          th,
-                          invmass,
-                          econq,
-                          bCalcDHDL,
-                          bCalcVir,
-                          th == 0 ? vir_r_m_dr : lincsd->task[th].vir_r_m_dr);
+                do_lincsp<useSimd>(xPadded,
+                                   xprimePadded,
+                                   min_proj,
+                                   pbc,
+                                   lincsd,
+                                   th,
+                                   invmass,
+                                   econq,
+                                   bCalcDHDL,
+                                   bCalcVir,
+                                   th == 0 ? vir_r_m_dr : lincsd->task[th].vir_r_m_dr);
             }
             GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR
         }
