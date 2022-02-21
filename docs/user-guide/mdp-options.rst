@@ -1412,7 +1412,9 @@ Bonds
    Number of iterations to correct for rotational lengthening in
    LINCS. For normal runs a single step is sufficient, but for NVE
    runs where you want to conserve energy accurately or for accurate
-   energy minimization you might want to increase it to 2.
+   energy minimization you might want to increase it to 2. Note that
+   with higher values there is the possibility of increased rounding
+   error from amplyfying noise.
 
 .. mdp:: lincs-warnangle
 
