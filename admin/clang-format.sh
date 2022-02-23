@@ -134,14 +134,14 @@ cut -f2 <$tmpdir/difflist | \
 cut -f2 <$tmpdir/filtered >$tmpdir/filelist_all
 grep -E '(complete_formatting|clangformat)$' <$tmpdir/filtered | \
     cut -f2 >$tmpdir/filelist_clangformat
-git diff-files --name-only | grep -Ff $tmpdir/filelist_all >$tmpdir/localmods
+git diff-files --name-only | grep -Ff $tmpdir/filelist_clangformat >$tmpdir/localmods
 
 # Extract changed files to a temporary directory
 mkdir $tmpdir/org
 if [[ $action == *-index ]] ; then
-    git checkout-index --prefix=$tmpdir/org/ --stdin <$tmpdir/filelist_all
+    git checkout-index --prefix=$tmpdir/org/ --stdin <$tmpdir/filelist_clangformat
 else
-    rsync --files-from=$tmpdir/filelist_all $srcdir $tmpdir/org
+    rsync --files-from=$tmpdir/filelist_clangformat $srcdir $tmpdir/org
 fi
 # Need to have .clang-format file available somewhere above where we are using it
 rsync $srcdir/.clang-format $tmpdir/

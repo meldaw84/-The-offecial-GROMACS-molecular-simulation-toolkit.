@@ -139,14 +139,14 @@ cut -f2 <$tmpdir/difflist | \
 cut -f2 <$tmpdir/filtered >$tmpdir/filelist_all
 grep -E '(complete_formatting|clangformat)$' <$tmpdir/filtered | \
     cut -f2 >$tmpdir/filelist_clangtidy
-git diff-files --name-only | grep -Ff $tmpdir/filelist_all >$tmpdir/localmods
+git diff-files --name-only | grep -Ff $tmpdir/filelist_clangtidy >$tmpdir/localmods
 
 # Extract changed files to a temporary directory
 mkdir $tmpdir/org
 if [[ $action == *-index ]] ; then
-    git checkout-index --prefix=$tmpdir/org/ --stdin <$tmpdir/filelist_all
+    git checkout-index --prefix=$tmpdir/org/ --stdin <$tmpdir/filelist_clangtidy
 else
-    rsync --files-from=$tmpdir/filelist_all -a $srcdir/ $tmpdir/org/ 
+    rsync --files-from=$tmpdir/filelist_clangtidy -a $srcdir/ $tmpdir/org/ 
 fi
 # check for the existence of the compile_commands.json file and abort
 # if it is not present. If we don't have a build directory, try the

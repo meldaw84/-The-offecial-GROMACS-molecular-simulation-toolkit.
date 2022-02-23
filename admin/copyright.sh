@@ -106,14 +106,14 @@ cut -f2 <$tmpdir/difflist | \
 cut -f2 <$tmpdir/filtered >$tmpdir/filelist_all
 grep -E '(complete_formatting|copyright)$' <$tmpdir/filtered | \
     cut -f2 >$tmpdir/filelist_copyright
-git diff-files --name-only | grep -Ff $tmpdir/filelist_all >$tmpdir/localmods
+git diff-files --name-only | grep -Ff $tmpdir/filelist_copyright >$tmpdir/localmods
 
 # Extract changed files to a temporary directory
 mkdir $tmpdir/org
 if [[ $action == *-index ]] ; then
-    git checkout-index --prefix=$tmpdir/org/ --stdin <$tmpdir/filelist_all
+    git checkout-index --prefix=$tmpdir/org/ --stdin <$tmpdir/filelist_copyright
 else
-    rsync --files-from=$tmpdir/filelist_all $srcdir $tmpdir/org
+    rsync --files-from=$tmpdir/filelist_copyright $srcdir $tmpdir/org
 fi
 # Duplicate the original files to a separate directory, where all changes will
 # be made.
