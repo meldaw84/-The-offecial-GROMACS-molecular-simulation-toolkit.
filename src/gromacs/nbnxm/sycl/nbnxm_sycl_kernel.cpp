@@ -449,6 +449,7 @@ static inline void reduceForceJ(sycl::local_ptr<float>   sm_buf,
  *
  * This implementation works only with power of two array sizes.
  */
+template<int subGroupSize>
 static inline void reduceForceIAndFShift(sycl::local_ptr<float> sm_buf,
                                          const Float3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster],
                                          const bool   calcFShift,
@@ -462,83 +463,137 @@ static inline void reduceForceIAndFShift(sycl::local_ptr<float> sm_buf,
 {
     // must have power of two elements in fCiBuf
     static_assert(gmx::isPowerOfTwo(c_nbnxnGpuNumClusterPerSupercluster));
-
     static constexpr int bufStride  = c_clSize * c_clSize;
     static constexpr int clSizeLog2 = gmx::StaticLog2<c_clSize>::value;
     const int            tidx       = tidxi + tidxj * c_clSize;
     float                fShiftBuf  = 0.0F;
 
-#pragma unroll c_nbnxnGpuNumClusterPerSupercluster
-    for (int ciOffset = 0; ciOffset < c_nbnxnGpuNumClusterPerSupercluster; ciOffset++)
-    {
-        const int aidx = (sci * c_nbnxnGpuNumClusterPerSupercluster + ciOffset) * c_clSize + tidxi;
-        /* store i forces in shmem */
-        sm_buf[tidx]                 = fCiBuf[ciOffset][0];
-        sm_buf[bufStride + tidx]     = fCiBuf[ciOffset][1];
-        sm_buf[2 * bufStride + tidx] = fCiBuf[ciOffset][2];
-        itemIdx.barrier(fence_space::local_space);
+    static constexpr bool sc_useShuffleReduction =
+            (subGroupSize == c_clSize * c_splitClSize) && (c_clSize == 8);
 
-        /* Reduce the initial c_clSize values for each i atom to half
-         * every step by using c_clSize * i threads. */
-        int i = c_clSize / 2;
-        for (int j = clSizeLog2 - 1; j > 0; j--)
-        {
-            if (tidxj < i)
-            {
-                sm_buf[tidxj * c_clSize + tidxi] += sm_buf[(tidxj + i) * c_clSize + tidxi];
-                sm_buf[bufStride + tidxj * c_clSize + tidxi] +=
-                        sm_buf[bufStride + (tidxj + i) * c_clSize + tidxi];
-                sm_buf[2 * bufStride + tidxj * c_clSize + tidxi] +=
-                        sm_buf[2 * bufStride + (tidxj + i) * c_clSize + tidxi];
-            }
-            i >>= 1;
-            itemIdx.barrier(fence_space::local_space);
-        }
-
-        /* i == 1, last reduction step, writing to global mem */
-        /* Split the reduction between the first 3 line threads
-           Threads with line id 0 will do the reduction for (float3).x components
-           Threads with line id 1 will do the reduction for (float3).y components
-           Threads with line id 2 will do the reduction for (float3).z components. */
-        if (tidxj < 3)
-        {
-            const float f =
-                    sm_buf[tidxj * bufStride + tidxi] + sm_buf[tidxj * bufStride + c_clSize + tidxi];
-            atomicFetchAdd(a_f[aidx][tidxj], f);
-            if (calcFShift)
-            {
-                fShiftBuf += f;
-            }
-        }
-        itemIdx.barrier(fence_space::local_space);
-    }
-    /* add up local shift forces into global mem */
-    if (calcFShift)
+    if constexpr (sc_useShuffleReduction)
     {
-        /* Only threads with tidxj < 3 will update fshift.
-           The threads performing the update must be the same as the threads
-           storing the reduction result above. */
-        if (tidxj < 3)
+        const sycl::sub_group sg = itemIdx.get_sub_group();
+        //#pragma unroll c_nbnxnGpuNumClusterPerSupercluster
+        for (int ciOffset = 0; ciOffset < c_nbnxnGpuNumClusterPerSupercluster; ciOffset++)
         {
-            if constexpr (c_clSize == 4)
+            const int aidx = (sci * c_nbnxnGpuNumClusterPerSupercluster + ciOffset) * c_clSize + tidxi;
+            Float3    f    = fCiBuf[ciOffset];
+            f[0] += sycl_2020::shift_left(sg, f[0], c_clSize);
+            f[1] += sycl_2020::shift_right(sg, f[1], c_clSize);
+            f[2] += sycl_2020::shift_left(sg, f[2], c_clSize);
+            if (tidxj & 1)
             {
-                /* Intel Xe (Gen12LP) and earlier GPUs implement floating-point atomics via
-                 * a compare-and-swap (CAS) loop. It has particularly poor performance when
-                 * updating the same memory location from the same work-group.
-                 * Such optimization might be slightly beneficial for NVIDIA and AMD as well,
-                 * but it is unlikely to make a big difference and thus was not evaluated.
-                 */
-                auto sg = itemIdx.get_sub_group();
-                fShiftBuf += sycl_2020::shift_left(sg, fShiftBuf, 1);
-                fShiftBuf += sycl_2020::shift_left(sg, fShiftBuf, 2);
-                if (tidxi == 0)
+                f[0] = f[1];
+            }
+            subGroupBarrier(itemIdx);
+            if constexpr (c_clSize == 8)
+            {
+                f[0] += sycl_2020::shift_left(sg, f[0], 2 * c_clSize);
+                f[2] += sycl_2020::shift_right(sg, f[2], 2 * c_clSize);
+                if (tidxj & 2)
                 {
-                    atomicFetchAdd(a_fShift[shift][tidxj], fShiftBuf);
+                    f[0] = f[2];
+                }
+                subGroupBarrier(itemIdx);
+            }
+            // f[0] += sycl_2020::shift_left(sg, f[0], c_clSize / 2);
+            // subGroupBarrier(itemIdx);
+            /* Threads 0,1,2 and 4,5,6 increment x,y,z for their sub-group */
+            if ((tidxj & 3) < 3)
+            {
+                atomicFetchAdd(a_f[aidx][tidxj & 3], f[0]);
+
+                if (calcFShift)
+                {
+                    fShiftBuf += f[0];
                 }
             }
-            else
+            subGroupBarrier(itemIdx);
+        }
+        /* add up local shift forces into global mem */
+        if (calcFShift)
+        {
+            if ((tidxj & 3) < 3)
             {
-                atomicFetchAdd(a_fShift[shift][tidxj], fShiftBuf);
+                atomicFetchAdd(a_fShift[shift][(tidxj & 3)], fShiftBuf);
+            }
+        }
+    }
+    else
+    {
+#pragma unroll c_nbnxnGpuNumClusterPerSupercluster
+        for (int ciOffset = 0; ciOffset < c_nbnxnGpuNumClusterPerSupercluster; ciOffset++)
+        {
+            const int aidx = (sci * c_nbnxnGpuNumClusterPerSupercluster + ciOffset) * c_clSize + tidxi;
+            /* store i forces in shmem */
+            sm_buf[tidx]                 = fCiBuf[ciOffset][0];
+            sm_buf[bufStride + tidx]     = fCiBuf[ciOffset][1];
+            sm_buf[2 * bufStride + tidx] = fCiBuf[ciOffset][2];
+            itemIdx.barrier(fence_space::local_space);
+
+            /* Reduce the initial c_clSize values for each i atom to half
+             * every step by using c_clSize * i threads. */
+            int i = c_clSize / 2;
+            for (int j = clSizeLog2 - 1; j > 0; j--)
+            {
+                if (tidxj < i)
+                {
+                    sm_buf[tidxj * c_clSize + tidxi] += sm_buf[(tidxj + i) * c_clSize + tidxi];
+                    sm_buf[bufStride + tidxj * c_clSize + tidxi] +=
+                            sm_buf[bufStride + (tidxj + i) * c_clSize + tidxi];
+                    sm_buf[2 * bufStride + tidxj * c_clSize + tidxi] +=
+                            sm_buf[2 * bufStride + (tidxj + i) * c_clSize + tidxi];
+                }
+                i >>= 1;
+                itemIdx.barrier(fence_space::local_space);
+            }
+
+            /* i == 1, last reduction step, writing to global mem */
+            /* Split the reduction between the first 3 line threads
+               Threads with line id 0 will do the reduction for (float3).x components
+               Threads with line id 1 will do the reduction for (float3).y components
+               Threads with line id 2 will do the reduction for (float3).z components. */
+            if (tidxj < 3)
+            {
+                const float f = sm_buf[tidxj * bufStride + tidxi]
+                                + sm_buf[tidxj * bufStride + c_clSize + tidxi];
+                atomicFetchAdd(a_f[aidx][tidxj], f);
+                if (calcFShift)
+                {
+                    fShiftBuf += f;
+                }
+            }
+            itemIdx.barrier(fence_space::local_space);
+        }
+        /* add up local shift forces into global mem */
+        if (calcFShift)
+        {
+            /* Only threads with tidxj < 3 will update fshift.
+               The threads performing the update must be the same as the threads
+               storing the reduction result above. */
+            if ((tidxj & 3) < 3)
+            {
+                if constexpr (c_clSize == 4)
+                {
+                    /* Intel Xe (Gen12LP) and earlier GPUs implement floating-point atomics via
+                     * a compare-and-swap (CAS) loop. It has particularly poor performance when
+                     * updating the same memory location from the same work-group.
+                     * Such optimization might be slightly beneficial for NVIDIA and AMD as well,
+                     * but it is unlikely to make a big difference and thus was not evaluated.
+                     */
+                    auto sg = itemIdx.get_sub_group();
+                    fShiftBuf += sycl_2020::shift_left(sg, fShiftBuf, 1);
+                    fShiftBuf += sycl_2020::shift_left(sg, fShiftBuf, 2);
+                    if (tidxi == 0)
+                    {
+                        atomicFetchAdd(a_fShift[shift][tidxj], fShiftBuf);
+                    }
+                }
+                else
+                {
+                    atomicFetchAdd(a_fShift[shift][(tidxj & 3)], fShiftBuf);
+                }
             }
         }
     }
@@ -1045,16 +1100,16 @@ static auto nbnxmKernel(sycl::handler&                                          
         /* skip central shifts when summing shift forces */
         const bool doCalcShift = (calcShift && nbSci.shift != gmx::c_centralShiftIndex);
 
-        reduceForceIAndFShift(sm_reductionBuffer,
-                              fCiBuf,
-                              doCalcShift,
-                              itemIdx,
-                              tidxi,
-                              tidxj,
-                              sci,
-                              nbSci.shift,
-                              a_f.get_pointer(),
-                              a_fShift.get_pointer());
+        reduceForceIAndFShift<subGroupSize>(sm_reductionBuffer,
+                                            fCiBuf,
+                                            doCalcShift,
+                                            itemIdx,
+                                            tidxi,
+                                            tidxj,
+                                            sci,
+                                            nbSci.shift,
+                                            a_f.get_pointer(),
+                                            a_fShift.get_pointer());
 
         if constexpr (doCalcEnergies)
         {
