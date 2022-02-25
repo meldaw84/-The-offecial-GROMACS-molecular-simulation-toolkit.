@@ -40,7 +40,11 @@
 
 #include "pmalloc.h"
 
-#include "gromacs/utility/smalloc.h"
+
+#include "gromacs/gpu_utils/device_context.h"
+#include "gromacs/utility/gmxassert.h"
+
+const DeviceContext* gDeviceContext;
 
 /*! \brief Allocates \p nbytes of host memory. Use \c pfree to free memory allocated with this function.
  *
@@ -55,13 +59,10 @@
  */
 void pmalloc(void** h_ptr, size_t nbytes)
 {
-    /* Need a temporary type whose size is 1 byte, so that the
-     * implementation of snew_aligned can cope without issuing
-     * warnings. */
-    auto** temporary = reinterpret_cast<std::byte**>(h_ptr);
+    GMX_RELEASE_ASSERT(gDeviceContext != nullptr,
+                       "pmalloc called before gDeviceContext initialized");
 
-    /* 16-byte alignment inherited from OpenCL and does not sound unreasonable */
-    snew_aligned(*temporary, nbytes, 16);
+    *h_ptr = sycl::malloc_host(nbytes, gDeviceContext->context());
 }
 
 /*! \brief Frees memory allocated with pmalloc.
@@ -72,6 +73,6 @@ void pfree(void* h_ptr)
 {
     if (h_ptr)
     {
-        sfree_aligned(h_ptr);
+        sycl::free(h_ptr, gDeviceContext->context());
     }
 }

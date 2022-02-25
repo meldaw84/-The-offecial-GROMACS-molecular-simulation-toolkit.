@@ -57,7 +57,6 @@ elseif(GMX_GPU_CUDA)
         device_context.cpp
         device_stream.cu
         gpu_utils.cu
-        pinning.cu
         pmalloc.cu
         )
     _gmx_add_files_to_property(CUDA_SOURCES

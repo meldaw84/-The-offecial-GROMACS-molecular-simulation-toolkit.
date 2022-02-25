@@ -44,6 +44,8 @@
 
 #include "gromacs/utility/basedefinitions.h"
 
+class DeviceContext;
+
 ///@cond INTERNAL
 
 /*! \brief Allocates nbytes of page-locked memory. */
@@ -51,6 +53,10 @@ void pmalloc(void** h_ptr, size_t nbytes);
 
 /*! \brief Frees page locked memory allocated with pmalloc. */
 void pfree(void* h_ptr);
+
+//! Global device context.
+extern const DeviceContext* gDeviceContext;
+// Plan is to replace this with an argument to pmalloc in a 2nd step
 
 ///@endcond
 
