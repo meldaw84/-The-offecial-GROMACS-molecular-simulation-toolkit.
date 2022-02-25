@@ -42,6 +42,7 @@
  */
 #include "gmxpre.h"
 
+#include "gromacs/gpu_utils/pmalloc.h"
 #include "gromacs/gpu_utils/device_context.h"
 #include "gromacs/gpu_utils/device_stream.h"
 
@@ -81,6 +82,8 @@ DeviceStream::DeviceStream(const DeviceContext& deviceContext,
     }
     const bool inOrder = (GMX_SYCL_USE_USM != 0);
     stream_ = sycl::queue(deviceContext.context(), device, makeQueuePropertyList(inOrder, enableProfiling));
+
+    gDeviceContext = &deviceContext;
 }
 
 DeviceStream::~DeviceStream()

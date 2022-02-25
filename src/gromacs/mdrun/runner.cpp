@@ -2153,7 +2153,6 @@ int Mdrunner::mdrunner()
                EI_DYNAMICS(inputrec->eI) && !isMultiSim(ms));
 
 
-    deviceStreamManager.reset(nullptr);
     // Free PME data
     if (pmedata)
     {
@@ -2172,6 +2171,8 @@ int Mdrunner::mdrunner()
     fr.reset(nullptr);         // destruct forcerec before gpu
     // TODO convert to C++ so we can get rid of these frees
     sfree(disresdata);
+
+    deviceStreamManager.reset(nullptr);
 
     if (!hwinfo_->deviceInfoList.empty())
     {
