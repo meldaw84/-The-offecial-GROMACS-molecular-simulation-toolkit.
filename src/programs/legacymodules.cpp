@@ -302,7 +302,6 @@ void registerLegacyModules(gmx::CommandLineModuleManager* manager)
                    &gmx_hydorder,
                    "hydorder",
                    "Compute tetrahedrality parameters around a given atom");
-    registerModule(manager, &gmx_lie, "lie", "Estimate free energy from linear combinations");
     registerModule(manager, &gmx_mdmat, "mdmat", "Calculate residue contact maps");
     registerModule(
             manager, &gmx_mindist, "mindist", "Calculate the minimum distance between two groups");
