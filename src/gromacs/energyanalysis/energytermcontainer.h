@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2019, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2019- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \libinternal \file
  * \brief
@@ -79,100 +78,98 @@ using EnergyTermIterator = std::vector<EnergyTerm>::iterator;
  */
 class EnergyTermContainer
 {
-    private:
-        //! Should we store the data in memory?
-        bool                    storeData_;
+private:
+    //! Should we store the data in memory?
+    bool storeData_;
 
-        //! Number of molecules
-        int                     nMol_;
+    //! Number of molecules
+    int nMol_;
 
-        //! The energy data should be stored here when bRead_ is set
-        std::vector<EnergyTerm> et_;
+    //! The energy data should be stored here when bRead_ is set
+    std::vector<EnergyTerm> et_;
 
-        //! Number of blocks for error analysis
-        int                     nBlocks_;
+    //! Number of blocks for error analysis
+    int nBlocks_;
 
-    public:
-        //! Constructor
-        EnergyTermContainer()
-            : storeData_(false), nMol_(1), nBlocks_(5)
-        {}
+public:
+    //! Constructor
+    EnergyTermContainer() : storeData_(false), nMol_(1), nBlocks_(5) {}
 
-        //! Additional generic command line options
-        void initOptions(IOptionsContainer *options);
+    //! Additional generic command line options
+    void initOptions(IOptionsContainer* options);
 
-        /*! \brief
-         * Get the numbers of blocks for error estimates
-         * \return Number
-         */
-        unsigned int nBlocks() const { return nBlocks_; }
+    /*! \brief
+     * Get the numbers of blocks for error estimates
+     * \return Number
+     */
+    unsigned int nBlocks() const { return nBlocks_; }
 
-        //! Return the number of molecules
-        int nMol() const { return nMol_; }
+    //! Return the number of molecules
+    int nMol() const { return nMol_; }
 
-        /*! \brief
-         * Tell the class to store or not to store data
-         * \param[in] storeData Boolean
-         */
-        void setStoreData(bool storeData);
+    /*! \brief
+     * Tell the class to store or not to store data
+     * \param[in] storeData Boolean
+     */
+    void setStoreData(bool storeData);
 
-        //! Return the store data variable
-        bool storeData() { return storeData_; }
+    //! Return the store data variable
+    bool storeData() { return storeData_; }
 
-        //! Store all data from one frame
-        void addFrame(t_enxframe *fr);
+    //! Store all data from one frame
+    void addFrame(t_enxframe* fr);
 
-        //! Get start iterator
-        EnergyTermIterator begin() { return et_.begin(); }
+    //! Get start iterator
+    EnergyTermIterator begin() { return et_.begin(); }
 
-        //! Get end iterator
-        EnergyTermIterator end() { return et_.end(); }
+    //! Get end iterator
+    EnergyTermIterator end() { return et_.end(); }
 
-        //! Get start iterator
-        ConstEnergyTermIterator begin() const { return et_.begin(); }
+    //! Get start iterator
+    ConstEnergyTermIterator begin() const { return et_.begin(); }
 
-        //! Get end iterator
-        ConstEnergyTermIterator end() const { return et_.end(); }
+    //! Get end iterator
+    ConstEnergyTermIterator end() const { return et_.end(); }
 
-        /*! \brief
-         * Search a specific iterator
-         * \param[in] findex Index in energy file
-         * \return the iterator or end()
-         */
-        EnergyTermIterator etSearch(unsigned int findex);
+    /*! \brief
+     * Search a specific iterator
+     * \param[in] findex Index in energy file
+     * \return the iterator or end()
+     */
+    EnergyTermIterator etSearch(unsigned int findex);
 
-        /*! \brief
-         * Search a specific iterator
-         * \param[in] eTerm The name of the energy term
-         * \return the iterator or end()
-         */
-        EnergyTermIterator etSearch(const std::string &eTerm);
+    /*! \brief
+     * Search a specific iterator
+     * \param[in] eTerm The name of the energy term
+     * \return the iterator or end()
+     */
+    EnergyTermIterator etSearch(const std::string& eTerm);
 
-        //! Add energy term
-        void addEnergyTerm(const EnergyTerm &et) { et_.push_back(et); }
+    //! Add energy term
+    void addEnergyTerm(const EnergyTerm& et) { et_.push_back(et); }
 
-        //! Return number of energy terms
-        unsigned int nEnergyTerm() { return et_.size(); }
+    //! Return number of energy terms
+    unsigned int nEnergyTerm() { return et_.size(); }
 
-        /*! \brief
-         * Extract a single energy term and its standard deviation.
-         *
-         * \param[in] ftype GROMACS internal function type
-         * \param[out] e  The average energy
-         * \param[out] stddev The standard deviation
-         * \return true if succesfull, false otherwise
-         */
-        bool energyTerm(unsigned int ftype, double *e, double *stddev);
+    /*! \brief
+     * Extract a single energy term and its standard deviation.
+     *
+     * \param[in] ftype GROMACS internal function type
+     * \param[out] e  The average energy
+     * \param[out] stddev The standard deviation
+     * \return true if succesfull, false otherwise
+     */
+    bool energyTerm(unsigned int ftype, double* e, double* stddev);
 
-        /*! \brief
-         * Extract a single energy term and its standard deviation.
-         *
-         * \param[in] term Name of the energy term
-         * \param[out] e  The average energy
-         * \param[out] stddev The standard deviation
-         * \return true if succesfull, false otherwise
-         */
-        bool energyTerm(const std::string &term, double *e, double *stddev);
+    /*! \brief
+     * Extract a single energy term and its standard deviation.
+     *
+     * \param[in] term Name of the energy term
+     * \param[out] e  The average energy
+     * \param[out] stddev The standard deviation
+     * \return true if succesfull, false otherwise
+     */
+    bool energyTerm(const std::string& term, double* e, double* stddev);
 };
 
 
@@ -183,10 +180,7 @@ class EnergyTermContainer
  * \param[in] eEnd    Energy term end iterator
  * \param[in] nBlocks Number of blocks to divide trajectory into
  */
-void printStatistics(FILE                   *fp,
-                     ConstEnergyTermIterator eBegin,
-                     ConstEnergyTermIterator eEnd,
-                     unsigned int            nBlocks);
+void printStatistics(FILE* fp, ConstEnergyTermIterator eBegin, ConstEnergyTermIterator eEnd, unsigned int nBlocks);
 
 /*! \libinternal\brief
  * Print the legend for all the stored energy terms to a file pointer.
@@ -195,10 +189,10 @@ void printStatistics(FILE                   *fp,
  * \param[in] eEnd    Energy term end iterator
  * \param[in] oenv    GROMACS output environment
  */
-void printXvgLegend(FILE                    *fp,
-                    ConstEnergyTermIterator  eBegin,
-                    ConstEnergyTermIterator  eEnd,
-                    const gmx_output_env_t  *oenv);
+void printXvgLegend(FILE*                   fp,
+                    ConstEnergyTermIterator eBegin,
+                    ConstEnergyTermIterator eEnd,
+                    const gmx_output_env_t* oenv);
 
 /*! \libinternal\brief
  * Print the energies to an xvg file. Can only be done if the energies
@@ -210,11 +204,11 @@ void printXvgLegend(FILE                    *fp,
  * \param[in] bDouble    Whether or not to print in double precision
  * \param[in] oenv       GROMACS output environment
  */
-void printEnergies(const std::string      &outputFile,
+void printEnergies(const std::string&      outputFile,
                    ConstEnergyTermIterator eBegin,
                    ConstEnergyTermIterator eEnd,
                    bool                    bDouble,
-                   const gmx_output_env_t *oenv);
+                   const gmx_output_env_t* oenv);
 
 /*! \libinternal\brief
  * Construct an y-axis with units as GROMACS likes it
@@ -222,9 +216,7 @@ void printEnergies(const std::string      &outputFile,
  * \param[in]  eEnd   Energy term end iterator
  * \param[out] yaxis  The string with units
  */
-void yAxis(ConstEnergyTermIterator  eBegin,
-           ConstEnergyTermIterator  eEnd,
-           std::string             *yaxis);
+void yAxis(ConstEnergyTermIterator eBegin, ConstEnergyTermIterator eEnd, std::string* yaxis);
 
 } // namespace gmx
 

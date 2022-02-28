@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2019, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2019- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief
@@ -62,14 +61,12 @@ namespace gmx
 {
 
 //! Structure to compare two characters case-insensitive
-struct my_equal {
+struct my_equal
+{
     //! Constructor
     my_equal() {}
     //! Comparison operator
-    bool operator()(char ch1, char ch2)
-    {
-        return std::toupper(ch1) == std::toupper(ch2);
-    }
+    bool operator()(char ch1, char ch2) { return std::toupper(ch1) == std::toupper(ch2); }
 };
 
 /*! \brief Find substring (case insensitive)
@@ -80,10 +77,9 @@ struct my_equal {
  * \param[in] str2 Needle
  * \return Position of str2 in str1 or -1 if not found
  */
-static int ci_find_substr( const std::string &str1, const std::string &str2)
+static int ci_find_substr(const std::string& str1, const std::string& str2)
 {
-    auto it = std::search(str1.begin(), str1.end(),
-                          str2.begin(), str2.end(), my_equal());
+    auto it = std::search(str1.begin(), str1.end(), str2.begin(), str2.end(), my_equal());
     if (it != str1.end())
     {
         return it - str1.begin();
@@ -93,12 +89,12 @@ static int ci_find_substr( const std::string &str1, const std::string &str2)
 
 void select_energies(ArrayRef<const EnergyNameUnit> eNU,
                      bool                           bVerbose,
-                     TextInputStream               *input,
-                     std::vector<int>              *set)
+                     TextInputStream*               input,
+                     std::vector<int>*              set)
 {
     std::vector<std::string> newnm;
 
-    for (auto &enu : eNU)
+    for (auto& enu : eNU)
     {
         /* Insert dashes in all the names */
         std::string            buf = enu.energyName;
@@ -110,8 +106,7 @@ void select_energies(ArrayRef<const EnergyNameUnit> eNU,
             {
                 buf[index] = '-';
             }
-        }
-        while (index != std::string::npos);
+        } while (index != std::string::npos);
         newnm.push_back(buf);
     }
 
@@ -127,7 +122,7 @@ void select_energies(ArrayRef<const EnergyNameUnit> eNU,
         printf("End your selection with 0, an empty line or Ctrl-D.\n");
         printf("-------------------------------------------------------------------\n");
 
-        for (const auto &nn : newnm)
+        for (const auto& nn : newnm)
         {
             if (nn.size() > 14)
             {
@@ -135,17 +130,17 @@ void select_energies(ArrayRef<const EnergyNameUnit> eNU,
             }
         }
         int mod = bLong ? 2 : 4;
-        for (const auto &nn : newnm)
+        for (const auto& nn : newnm)
         {
             if (!bLong)
             {
-                printf("%3d  %-14s", static_cast<int>(k+1), nn.c_str());
+                printf("%3d  %-14s", static_cast<int>(k + 1), nn.c_str());
             }
             else
             {
-                printf("%3d  %-34s", static_cast<int>(k+1), nn.c_str());
+                printf("%3d  %-34s", static_cast<int>(k + 1), nn.c_str());
             }
-            j = (j+1) % mod;
+            j = (j + 1) % mod;
             k++;
             if (k % mod == 0)
             {
@@ -156,8 +151,8 @@ void select_energies(ArrayRef<const EnergyNameUnit> eNU,
     }
 
     set->clear();
-    bool         done = false;
-    std::string  line;
+    bool        done = false;
+    std::string line;
     while (!done && input->readLine(&line))
     {
         std::vector<std::string> subs = splitString(line);
@@ -167,17 +162,17 @@ void select_energies(ArrayRef<const EnergyNameUnit> eNU,
         }
         else
         {
-            for (auto &sub : subs)
+            for (auto& sub : subs)
             {
-                char *endptr;
+                char* endptr;
                 // First check whether the input is an integer
-                errno = 0;
+                errno            = 0;
                 unsigned long kk = std::strtoul(sub.c_str(), &endptr, 10);
                 if ((errno == ERANGE) || (errno == EINVAL) || (endptr == sub.c_str()))
                 {
                     // Not an integer, now check strings
                     kk = 0;
-                    for (const auto &nn : newnm)
+                    for (const auto& nn : newnm)
                     {
                         if (ci_find_substr(nn, sub) >= 0)
                         {
@@ -208,8 +203,7 @@ void select_energies(ArrayRef<const EnergyNameUnit> eNU,
                     }
                     else
                     {
-                        fprintf(stderr, "Invalid energy selection '%s'\n",
-                                sub.c_str());
+                        fprintf(stderr, "Invalid energy selection '%s'\n", sub.c_str());
                         done = true;
                     }
                 }

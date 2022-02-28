@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2019, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2019- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief
@@ -70,28 +69,26 @@
 namespace gmx
 {
 
-void EnergyTermContainer::initOptions(IOptionsContainer *options)
+void EnergyTermContainer::initOptions(IOptionsContainer* options)
 {
-    options->addOption(IntegerOption("nmol")
-                           .store(&nMol_)
-                           .description("Number of molecules in the system"));
-    options->addOption(IntegerOption("nblocks")
-                           .store(&nBlocks_)
-                           .description("Number of blocks for error analysis"));
+    options->addOption(
+            IntegerOption("nmol").store(&nMol_).description("Number of molecules in the system"));
+    options->addOption(IntegerOption("nblocks").store(&nBlocks_).description(
+            "Number of blocks for error analysis"));
 }
 
 void EnergyTermContainer::setStoreData(bool storeData)
 {
     storeData_ = storeData;
-    for (auto &eti : et_)
+    for (auto& eti : et_)
     {
         eti.setStoreData(storeData);
     }
 }
 
-void EnergyTermContainer::addFrame(t_enxframe *fr)
+void EnergyTermContainer::addFrame(t_enxframe* fr)
 {
-    for (auto &eti : et_)
+    for (auto& eti : et_)
     {
         unsigned int findex = eti.fileIndex();
         if (findex < static_cast<unsigned int>(fr->nre))
@@ -106,7 +103,7 @@ void EnergyTermContainer::addFrame(t_enxframe *fr)
     }
 }
 
-bool EnergyTermContainer::energyTerm(const std::string &term, double *e, double *stddev)
+bool EnergyTermContainer::energyTerm(const std::string& term, double* e, double* stddev)
 {
     auto eti = etSearch(term);
     if (end() != eti)
@@ -130,7 +127,7 @@ EnergyTermIterator EnergyTermContainer::etSearch(unsigned int findex)
     return end();
 }
 
-EnergyTermIterator EnergyTermContainer::etSearch(const std::string &eTerm)
+EnergyTermIterator EnergyTermContainer::etSearch(const std::string& eTerm)
 {
     EnergyTermIterator eti;
     for (eti = begin(); (eti < end()); ++eti)
@@ -143,35 +140,41 @@ EnergyTermIterator EnergyTermContainer::etSearch(const std::string &eTerm)
     return eti;
 }
 
-bool EnergyTermContainer::energyTerm(unsigned int ftype, double *e, double *stddev)
+bool EnergyTermContainer::energyTerm(unsigned int ftype, double* e, double* stddev)
 {
     return energyTerm(interaction_function[ftype].longname, e, stddev);
 }
 
-void printStatistics(FILE                   *fp,
-                     ConstEnergyTermIterator eBegin,
-                     ConstEnergyTermIterator eEnd,
-                     unsigned int            nBlocks)
+void printStatistics(FILE* fp, ConstEnergyTermIterator eBegin, ConstEnergyTermIterator eEnd, unsigned int nBlocks)
 {
     if (eEnd > eBegin)
     {
         char buf[256];
 
-        fprintf(fp, "\nStatistics over %s steps [ %.4f through %.4f ps ], %u data sets\n",
+        fprintf(fp,
+                "\nStatistics over %s steps [ %.4f through %.4f ps ], %u data sets\n",
                 gmx_step_str(eBegin->numSteps(), buf),
-                eBegin->timeBegin(), eBegin->timeEnd(),
+                eBegin->timeBegin(),
+                eBegin->timeEnd(),
                 static_cast<unsigned int>(eEnd - eBegin));
         if (nBlocks > 1)
         {
-            fprintf(fp, "Error estimate based on averaging over %u blocks of %g ps.\n",
-                    nBlocks, eBegin->timeSpan()/nBlocks);
+            fprintf(fp,
+                    "Error estimate based on averaging over %u blocks of %g ps.\n",
+                    nBlocks,
+                    eBegin->timeSpan() / nBlocks);
         }
         else
         {
             fprintf(fp, "Specify number of blocks in order to provide an error estimate.\n");
         }
-        fprintf(fp, "%-24s %10s %10s %10s %10s\n",
-                "Energy", "Average", "Err.Est.", "RMSD", "Tot-Drift");
+        fprintf(fp,
+                "%-24s %10s %10s %10s %10s\n",
+                "Energy",
+                "Average",
+                "Err.Est.",
+                "RMSD",
+                "Tot-Drift");
         fprintf(fp, "--------------------------------------------------------------------\n");
         for (auto eti = eBegin; eti < eEnd; ++eti)
         {
@@ -196,7 +199,8 @@ void printStatistics(FILE                   *fp,
                 snprintf(errorEstimate, sizeof(errorEstimate), "N/A");
             }
 
-            fprintf(fp, "%-24s %10g %10s %10g %10s (%s)\n",
+            fprintf(fp,
+                    "%-24s %10g %10s %10g %10s (%s)\n",
                     eti->name().c_str(),
                     eti->average(),
                     errorEstimate,
@@ -211,16 +215,16 @@ void printStatistics(FILE                   *fp,
     }
 }
 
-void printXvgLegend(FILE                    *fp,
-                    ConstEnergyTermIterator  eBegin,
-                    ConstEnergyTermIterator  eEnd,
-                    const gmx_output_env_t  *oenv)
+void printXvgLegend(FILE*                   fp,
+                    ConstEnergyTermIterator eBegin,
+                    ConstEnergyTermIterator eEnd,
+                    const gmx_output_env_t* oenv)
 {
-    std::vector<std::string>  legtmp;
-    std::vector<const char *> leg;
+    std::vector<std::string> legtmp;
+    std::vector<const char*> leg;
 
-    legtmp.reserve(static_cast<size_t>(eEnd-eBegin));
-    leg.reserve(static_cast<size_t>(eEnd-eBegin));
+    legtmp.reserve(static_cast<size_t>(eEnd - eBegin));
+    leg.reserve(static_cast<size_t>(eEnd - eBegin));
     for (auto eti = eBegin; eti < eEnd; ++eti)
     {
         legtmp.push_back(eti->name());
@@ -229,16 +233,16 @@ void printXvgLegend(FILE                    *fp,
     xvgr_legend(fp, leg.size(), leg.data(), oenv);
 }
 
-void printEnergies(const std::string       &outputFile,
-                   ConstEnergyTermIterator  eBegin,
-                   ConstEnergyTermIterator  eEnd,
-                   bool                     bDouble,
-                   const gmx_output_env_t  *oenv)
+void printEnergies(const std::string&      outputFile,
+                   ConstEnergyTermIterator eBegin,
+                   ConstEnergyTermIterator eEnd,
+                   bool                    bDouble,
+                   const gmx_output_env_t* oenv)
 {
     if (eEnd > eBegin && eBegin->storeData())
     {
-        gmx::unique_cptr<FILE, xvgrclose> fp(xvgropen(outputFile.c_str(), "Energy", "Time (ps)",
-                                                      "Unit", oenv));
+        gmx::unique_cptr<FILE, xvgrclose> fp(
+                xvgropen(outputFile.c_str(), "Energy", "Time (ps)", "Unit", oenv));
         printXvgLegend(fp.get(), eBegin, eEnd, oenv);
         for (auto eti = eBegin; eti < eEnd; ++eti)
         {
@@ -263,23 +267,21 @@ void printEnergies(const std::string       &outputFile,
     }
 }
 
-void yAxis(ConstEnergyTermIterator  eBegin,
-           ConstEnergyTermIterator  eEnd,
-           std::string             *yaxis)
+void yAxis(ConstEnergyTermIterator eBegin, ConstEnergyTermIterator eEnd, std::string* yaxis)
 {
     std::vector<std::string> units;
     for (auto eti = eBegin; eti < eEnd; ++eti)
     {
-        if (std::find_if(units.begin(), units.end(),
-                         [eti](const std::string &str)
-                         { return str == eti->unit(); }) ==
-            units.end())
+        if (std::find_if(units.begin(),
+                         units.end(),
+                         [eti](const std::string& str) { return str == eti->unit(); })
+            == units.end())
         {
             units.push_back(eti->unit());
         }
     }
     yaxis->clear();
-    for (auto &u : units)
+    for (auto& u : units)
     {
         char buf[128];
         snprintf(buf, sizeof(buf), "(%s)", u.c_str());
