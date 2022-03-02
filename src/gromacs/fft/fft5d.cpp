@@ -1314,7 +1314,7 @@ void fft5d_execute(fft5d_plan plan, int thread, fft5d_time times)
 #    else
                 GMX_RELEASE_ASSERT(false, "Invalid call to fft5d_execute");
 #    endif /*GMX_MPI*/
-#endif /*FFT5D_MPI_TRANSPOSE*/
+#endif     /*FFT5D_MPI_TRANSPOSE*/
 #ifdef NOGMX
                 if (times != 0)
                 {

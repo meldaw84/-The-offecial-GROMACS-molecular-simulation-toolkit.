@@ -32,7 +32,7 @@
  * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
- *  \brief Define functions for host-side memory handling when using OpenCL devices.
+ *  \brief Define functions for host-side memory handling when using OpenCL devices or no GPU device.
  *
  *  \author Anca Hamuraru <anca@streamcomputing.eu>
  */
