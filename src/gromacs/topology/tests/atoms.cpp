@@ -45,7 +45,9 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
+#include <gtest/gtest-param-test.h>
 #include <gtest/gtest.h>
 
 #include "gromacs/topology/symtab.h"
@@ -56,6 +58,7 @@
 #include "gromacs/utility/stringutil.h"
 
 #include "testutils/refdata.h"
+#include "testutils/testasserts.h"
 
 namespace gmx
 {
@@ -66,12 +69,219 @@ namespace test
 namespace
 {
 
-class SimulationResidueTest : public ::testing::Test
+TEST(FEPStateValueTest, CanConstructReal)
+{
+    using TestObject        = FEPStateValue<real>;
+    TestObject testOneState = TestObject{ 13.37 };
+    EXPECT_FALSE(testOneState.haveBState_);
+    EXPECT_FLOAT_EQ(testOneState.storage_[0], 13.37);
+    TestObject testTwoState = TestObject{ 13.37, 42.23 };
+    ASSERT_TRUE(testTwoState.haveBState_);
+    EXPECT_FLOAT_EQ(testTwoState.storage_[0], 13.37);
+    EXPECT_FLOAT_EQ(testTwoState.storage_[1], 42.23);
+}
+
+TEST(FEPStateValueTest, CanConstructUnsignedShort)
+{
+    using TestObject        = FEPStateValue<unsigned short>;
+    TestObject testOneState = TestObject{ 1 };
+    EXPECT_FALSE(testOneState.haveBState_);
+    EXPECT_EQ(testOneState.storage_[0], 1);
+    TestObject testTwoState = TestObject{ 1, 2 };
+    ASSERT_TRUE(testTwoState.haveBState_);
+    EXPECT_EQ(testTwoState.storage_[0], 1);
+    EXPECT_EQ(testTwoState.storage_[1], 2);
+}
+
+TEST(FEPStateValueTest, CanConstructNameHolder)
+{
+    using TestObject = FEPStateValue<NameHolder>;
+    StringTableBuilder tableBuilder_;
+    tableBuilder_.addString("Name 1");
+    tableBuilder_.addString("Name 2");
+    const auto table        = tableBuilder_.build();
+    TestObject testOneState = TestObject{ table.at(0) };
+    EXPECT_FALSE(testOneState.haveBState_);
+    EXPECT_EQ(*testOneState.storage_[0], table.at(0));
+    TestObject testTwoState = TestObject{ table.at(0), table.at(1) };
+    ASSERT_TRUE(testTwoState.haveBState_);
+    EXPECT_EQ(*testTwoState.storage_[0], table.at(0));
+    EXPECT_EQ(*testTwoState.storage_[1], table.at(1));
+}
+
+TEST(FEPStateValueTest, CanSerializeReal)
+{
+    using TestObject = FEPStateValue<real>;
+    gmx::InMemorySerializer writer;
+    {
+        TestObject testOneState = TestObject{ 13.37 };
+        TestObject testTwoState = TestObject{ 13.37, 42.23 };
+        testOneState.serialize(&writer);
+        testTwoState.serialize(&writer);
+    }
+    auto buffer         = writer.finishAndGetBuffer();
+    int  expectedResult = GMX_DOUBLE ? 26 : 14;
+    EXPECT_EQ(buffer.size(), expectedResult);
+    gmx::InMemoryDeserializer reader(buffer, GMX_DOUBLE);
+    {
+        TestObject readOneState = TestObject(&reader);
+        TestObject readTwoState = TestObject(&reader);
+        EXPECT_FALSE(readOneState.haveBState_);
+        EXPECT_FLOAT_EQ(readOneState.storage_[0], 13.37);
+        ASSERT_TRUE(readTwoState.haveBState_);
+        EXPECT_FLOAT_EQ(readTwoState.storage_[0], 13.37);
+        EXPECT_FLOAT_EQ(readTwoState.storage_[1], 42.23);
+    }
+}
+
+TEST(FEPStateValueTest, CanSerializeUnsignedShort)
+{
+    using TestObject = FEPStateValue<unsigned short>;
+    gmx::InMemorySerializer writer;
+    {
+        TestObject testOneState = TestObject{ 1 };
+        TestObject testTwoState = TestObject{ 1, 2 };
+        testOneState.serialize(&writer);
+        testTwoState.serialize(&writer);
+    }
+    auto buffer         = writer.finishAndGetBuffer();
+    int  expectedResult = 8;
+    EXPECT_EQ(buffer.size(), expectedResult);
+    gmx::InMemoryDeserializer reader(buffer, GMX_DOUBLE);
+    {
+        TestObject readOneState = TestObject(&reader);
+        TestObject readTwoState = TestObject(&reader);
+        EXPECT_FALSE(readOneState.haveBState_);
+        EXPECT_EQ(readOneState.storage_[0], 1);
+        ASSERT_TRUE(readTwoState.haveBState_);
+        EXPECT_EQ(readTwoState.storage_[0], 1);
+        EXPECT_EQ(readTwoState.storage_[1], 2);
+    }
+}
+
+TEST(FEPStateValueTest, CanSerializeNameHolder)
+{
+    using TestObject = FEPStateValue<NameHolder>;
+    StringTableBuilder tableBuilder_;
+    tableBuilder_.addString("Name 1");
+    tableBuilder_.addString("Name 2");
+    const auto              table = tableBuilder_.build();
+    gmx::InMemorySerializer writer;
+    {
+        TestObject testOneState = TestObject{ table.at(0) };
+        TestObject testTwoState = TestObject{ table.at(0), table.at(1) };
+        testOneState.serialize(&writer);
+        testTwoState.serialize(&writer);
+    }
+    auto buffer         = writer.finishAndGetBuffer();
+    int  expectedResult = 14;
+    EXPECT_EQ(buffer.size(), expectedResult);
+    gmx::InMemoryDeserializer reader(buffer, GMX_DOUBLE);
+    {
+        TestObject readOneState = TestObject(&reader, table);
+        TestObject readTwoState = TestObject(&reader, table);
+        EXPECT_FALSE(readOneState.haveBState_);
+        EXPECT_EQ(*readOneState.storage_[0], table.at(0));
+        ASSERT_TRUE(readTwoState.haveBState_);
+        EXPECT_EQ(*readTwoState.storage_[0], table.at(0));
+        EXPECT_EQ(*readTwoState.storage_[1], table.at(1));
+    }
+}
+
+
+template<typename T>
+void checkParticleValue(TestReferenceChecker* checker,
+                        bool                  haveBState,
+                        const T&              valueA,
+                        const T&              valueB,
+                        const std::string&    fieldName)
+{
+    TestReferenceChecker compound(checker->checkCompound(fieldName.c_str(), fieldName));
+    compound.checkBoolean(haveBState, "HaveBState");
+    compound.checkValue(valueA, "ValueA");
+    compound.checkValue(valueB, "ValueB");
+    EXPECT_EQ(haveBState, valueA != valueB);
+}
+
+void checkParticleMiscInfo(TestReferenceChecker* checker,
+                           ParticleType          type,
+                           gmx::index            resind,
+                           int                   atomnumber,
+                           const std::string&    elem)
+{
+    TestReferenceChecker compound(checker->checkCompound("Misc", "Misc"));
+    compound.checkInteger(static_cast<int>(type), "TypeAsInt");
+    compound.checkInt64(resind, "ResidueIndex");
+    compound.checkInteger(atomnumber, "AtomNumber");
+    compound.checkString(elem, "ElementString");
+}
+
+void checkParticle(TestReferenceChecker* checker, const SimulationParticle& particle)
+{
+    TestReferenceChecker compound(checker->checkCompound("Particle", nullptr));
+    compound.checkBoolean(particle.haveMass(), "HaveMass");
+    compound.checkBoolean(particle.haveCharge(), "HaveCharge");
+    compound.checkBoolean(particle.haveType(), "HaveType");
+    compound.checkBoolean(particle.haveParticleTypeName(), "HaveTypeName");
+    compound.checkBoolean(particle.haveParticleName(), "HaveName");
+    if (particle.haveParticleName())
+    {
+        compound.checkString(particle.name(), "Name");
+    }
+    if (particle.haveMass())
+    {
+        checkParticleValue<real>(
+                &compound, particle.haveBState(), particle.m(), particle.mB(), "Mass");
+    }
+    if (particle.haveCharge())
+    {
+        checkParticleValue<real>(
+                &compound, particle.haveBState(), particle.q(), particle.qB(), "Charge");
+    }
+    if (particle.haveType())
+    {
+        checkParticleValue<unsigned short>(
+                &compound, particle.haveBState(), particle.type(), particle.typeB(), "TypeValue");
+    }
+    if (particle.haveParticleTypeName())
+    {
+        checkParticleValue<std::string>(&compound,
+                                        particle.haveBState(),
+                                        particle.atomTypeNameA(),
+                                        particle.atomTypeNameB(),
+                                        "TypeName");
+    }
+    checkParticleMiscInfo(
+            &compound, particle.ptype(), particle.resind(), particle.atomnumber(), particle.elem());
+}
+
+void checkParticles(TestReferenceChecker* checker, gmx::ArrayRef<const SimulationParticle> particles)
+{
+    TestReferenceChecker compound(checker->checkCompound("Particles", "Collection"));
+    compound.checkSequence(particles.begin(), particles.end(), "SimulationParticleCollection", checkParticle);
+}
+
+using SimulationParticleTestParameters =
+        std::tuple<std::optional<ParticleMass>, std::optional<ParticleCharge>, std::optional<ParticleTypeValue>, bool>;
+
+const ParticleMass      testParticleMassOneState{ 0.1 };
+const ParticleMass      testParticleMassTwoState{ 0.2, 0.3 };
+const ParticleCharge    testParticleChargeOneState{ 0.4 };
+const ParticleCharge    testParticleChargeTwoState{ 0.5, 0.6 };
+const ParticleTypeValue testParticleTypeValueOneState{ 7 };
+const ParticleTypeValue testParticleTypeValueTwoState{ 8, 9 };
+
+
+class SimulationParticleTest :
+    public ::testing::Test,
+    public ::testing::WithParamInterface<SimulationParticleTestParameters>
 {
 public:
-    SimulationResidueTest();
+    SimulationParticleTest();
     //! Access to table builder.
     StringTableBuilder* builder() { return &tableBuilder_; }
+    //! Run tests.
+    void runTest(const SimulationParticle& particle);
 
 private:
     //! Need a string table with test strings, initialized during setup.
@@ -79,135 +289,264 @@ private:
     //! Handler for reference data.
     TestReferenceData data_;
     //! Handler for checking reference data.
-    std::unique_ptr<TestReferenceChecker> checker_;
+    TestReferenceChecker checker_;
 };
 
-SimulationResidueTest::SimulationResidueTest()
+SimulationParticleTest::SimulationParticleTest() : checker_(data_.rootChecker())
 {
-    std::string nameString = "residue name";
-    std::string rtpString  = "rtp name";
+    std::string particleName = "Calpha";
+    std::string typeAName    = "cool";
+    std::string typeBName    = "boring";
+    tableBuilder_.addString(particleName);
+    tableBuilder_.addString(typeAName);
+    tableBuilder_.addString(typeBName);
+}
+
+void SimulationParticleTest::runTest(const SimulationParticle& particle)
+{
+    checkParticle(&checker_, particle);
+}
+
+TEST_P(SimulationParticleTest, CanCreate)
+{
+    const auto params          = GetParam();
+    const auto mass            = std::get<0>(params);
+    const auto charge          = std::get<1>(params);
+    const auto typeValue       = std::get<2>(params);
+    const auto useTwoStateName = std::get<3>(params);
+    const auto table           = builder()->build();
+
+    ParticleTypeName typeName = useTwoStateName ? ParticleTypeName(table.at(1), table.at(2))
+                                                : ParticleTypeName(table.at(1));
+
+    std::string elem("foo\n");
+    runTest(SimulationParticle(
+            mass, charge, typeValue, typeName, table.at(0), ParticleType::Atom, 3, 4, elem));
+}
+
+TEST_P(SimulationParticleTest, CanSerialize)
+{
+    const auto params          = GetParam();
+    const auto mass            = std::get<0>(params);
+    const auto charge          = std::get<1>(params);
+    const auto typeValue       = std::get<2>(params);
+    const auto useTwoStateName = std::get<3>(params);
+
+    const auto         table    = builder()->build();
+    ParticleTypeName   typeName = useTwoStateName ? ParticleTypeName(table.at(1), table.at(2))
+                                                  : ParticleTypeName(table.at(1));
+    std::string        elem("foo\n");
+    SimulationParticle testParticle(
+            mass, charge, typeValue, typeName, table.at(0), ParticleType::Atom, 3, 4, elem);
+
+    gmx::InMemorySerializer writer;
+    testParticle.serializeParticle(&writer);
+    auto                      buffer = writer.finishAndGetBuffer();
+    gmx::InMemoryDeserializer reader(buffer, GMX_DOUBLE);
+    runTest(SimulationParticle(&reader, table));
+}
+
+INSTANTIATE_TEST_SUITE_P(BuildsValidDataStructure,
+                         SimulationParticleTest,
+                         ::testing::Combine(::testing::Values(std::nullopt,
+                                                              std::optional(testParticleMassOneState),
+                                                              std::optional(testParticleMassTwoState)),
+                                            ::testing::Values(std::nullopt,
+                                                              std::optional(testParticleChargeOneState),
+                                                              std::optional(testParticleChargeTwoState)),
+                                            ::testing::Values(std::nullopt,
+                                                              std::optional(testParticleTypeValueOneState),
+                                                              std::optional(testParticleTypeValueTwoState)),
+                                            ::testing::Values(false, true)));
+
+TEST_F(SimulationParticleTest, DeathTestSerialize)
+{
+    const auto         mass      = testParticleMassOneState;
+    const auto         charge    = testParticleChargeOneState;
+    const auto         typeValue = testParticleTypeValueOneState;
+    SimulationParticle testParticle(
+            mass, charge, typeValue, {}, {}, ParticleType::Atom, 3, 4, "foo");
+    gmx::InMemorySerializer writer;
+    GMX_EXPECT_DEATH_IF_SUPPORTED(testParticle.serializeParticle(&writer),
+                                  "Can not access uninitialized element");
+}
+
+
+void checkResidueBuilderValues(TestReferenceChecker*                   checker,
+                               const std::string&                      name,
+                               unsigned char                           insertionCode,
+                               gmx::index                              chainNumber,
+                               char                                    chainId,
+                               const std::string&                      rtp,
+                               gmx::ArrayRef<const SimulationParticle> particles)
+{
+    TestReferenceChecker compound(checker->checkCompound("ResidueBuilder", "ResidueBuilderValues"));
+    compound.checkString(name, "Name");
+    compound.checkInteger(insertionCode, "InsertionCode");
+    compound.checkInt64(chainNumber, "ChainNumber");
+    compound.checkInteger(chainId, "ChainIdentifier");
+    compound.checkString(rtp, "RTP");
+    compound.checkInteger(particles.size(), "NumberOfParticles");
+    checkParticles(&compound, particles);
+}
+
+void checkResidueValues(TestReferenceChecker* checker,
+                        const std::string&    name,
+                        gmx::index            nr,
+                        unsigned char         insertionCode,
+                        gmx::index            begin,
+                        gmx::index            size)
+{
+    TestReferenceChecker compound(checker->checkCompound("ResidueValues", "ResidueValues"));
+    compound.checkString(name, "Name");
+    compound.checkInt64(nr, "Number");
+    compound.checkInteger(insertionCode, "InsertionCode");
+    compound.checkInt64(begin, "Begin");
+    compound.checkInt64(size, "Size");
+}
+
+void checkResidue(TestReferenceChecker* checker, const SimulationResidue& residue)
+{
+    TestReferenceChecker compound(checker->checkCompound("Residue", nullptr));
+    checkResidueValues(
+            &compound, residue.name(), residue.nr(), residue.insertionCode(), residue.begin(), residue.size());
+}
+
+void checkResidues(TestReferenceChecker* checker, gmx::ArrayRef<const SimulationResidue> residues)
+{
+    TestReferenceChecker compound(checker->checkCompound("Residues", "Collection"));
+    compound.checkSequence(residues.begin(), residues.end(), "SimulationResidueCollection", checkResidue);
+}
+
+class SimulationResidueBuilderTest : public ::testing::Test
+{
+public:
+    SimulationResidueBuilderTest();
+    //! Run the test with a single residue still in the builder.
+    void runTest(const SimulationResidueBuilder& residue);
+    //! Run the test with a single residue after finalizing.
+    void runTest(const SimulationResidue& residue);
+    //! Access to particles information for test.'
+    std::vector<SimulationParticle>* particles() { return &particles_; }
+    //! Access to table.
+    const StringTable& table() const { return *table_; }
+
+private:
+    //! Need a string table with test strings, initialized during setup.
+    StringTableBuilder tableBuilder_;
+    //! Table data.
+    std::unique_ptr<StringTable> table_;
+    //! Data for particles used in the residue.
+    std::vector<SimulationParticle> particles_;
+    //! Handler for reference data.
+    TestReferenceData data_;
+    //! Handler for checking reference data.
+    TestReferenceChecker checker_;
+};
+
+SimulationResidueBuilderTest::SimulationResidueBuilderTest() : checker_(data_.rootChecker())
+{
+    std::string nameString   = "residue name";
+    std::string rtpString    = "rtp name";
+    std::string particleName = "Calpha";
+    std::string typeAName    = "cool";
+    std::string typeBName    = "boring";
     tableBuilder_.addString(nameString);
     tableBuilder_.addString(rtpString);
+    tableBuilder_.addString(particleName);
+    tableBuilder_.addString(typeAName);
+    tableBuilder_.addString(typeBName);
+
+    table_ = std::make_unique<StringTable>(tableBuilder_.build());
+
+    ParticleTypeName typeNameOne{ table_->at(3) };
+    ParticleTypeName typeNameTwo{ table_->at(3), table_->at(4) };
+    particles_.emplace_back(SimulationParticle(testParticleMassOneState,
+                                               testParticleChargeOneState,
+                                               testParticleTypeValueOneState,
+                                               typeNameOne,
+                                               table_->at(2),
+                                               ParticleType::Atom,
+                                               3,
+                                               4,
+                                               "Ref\n"));
+    particles_.emplace_back(SimulationParticle(testParticleMassTwoState,
+                                               testParticleChargeTwoState,
+                                               testParticleTypeValueTwoState,
+                                               typeNameTwo,
+                                               table_->at(2),
+                                               ParticleType::Atom,
+                                               3,
+                                               4,
+                                               "Ref\n"));
 }
 
-TEST_F(SimulationResidueTest, CanCreateFullWithConstructor)
+void SimulationResidueBuilderTest::runTest(const SimulationResidueBuilder& residue)
 {
-    auto              table = builder()->build();
-    SimulationResidue testResidue(table.at(0), 0, ' ', 1, ' ', table.at(1));
-    EXPECT_STREQ(testResidue.name().c_str(), "residue name");
-    EXPECT_EQ(testResidue.nr(), 0);
-    EXPECT_EQ(testResidue.insertionCode(), ' ');
-    EXPECT_EQ(testResidue.chainNumber(), 1);
-    EXPECT_EQ(testResidue.chainIdentifier(), ' ');
+    checkResidueBuilderValues(&checker_,
+                              residue.name(),
+                              residue.insertionCode(),
+                              residue.chainNumber(),
+                              residue.chainIdentifier(),
+                              residue.rtp(),
+                              residue.particles());
 }
 
-TEST_F(SimulationResidueTest, CanWriteToSerializer)
+void SimulationResidueBuilderTest::runTest(const SimulationResidue& residue)
 {
-    auto                    table = builder()->build();
-    SimulationResidue       testResidue(table.at(0), 0, ' ', 1, ' ', table.at(1));
+    checkResidue(&checker_, residue);
+}
+
+TEST_F(SimulationResidueBuilderTest, CanCreateFullWithConstructor)
+{
+    runTest(SimulationResidueBuilder(table().at(0), ' ', 0, ' ', table().at(1), particles()));
+}
+
+TEST_F(SimulationResidueBuilderTest, CanUpdateAtoms)
+{
+    auto residueBuilder =
+            SimulationResidueBuilder(table().at(0), ' ', 0, ' ', table().at(1), particles());
+    std::vector<SimulationParticle> newParticles(particles()->begin(), particles()->end());
+    ParticleTypeName                typeNameOne{ table().at(3) };
+    newParticles.emplace_back(SimulationParticle(testParticleMassOneState,
+                                                 testParticleChargeOneState,
+                                                 testParticleTypeValueOneState,
+                                                 typeNameOne,
+                                                 table().at(2),
+                                                 ParticleType::Atom,
+                                                 3,
+                                                 4,
+                                                 "Ref\n"));
+    residueBuilder.updateParticles(&newParticles);
+    runTest(residueBuilder);
+}
+
+TEST_F(SimulationResidueBuilderTest, CanCreateResidueFromBuilder)
+{
+    auto residueBuilder =
+            SimulationResidueBuilder(table().at(0), ' ', 0, ' ', table().at(1), particles());
+    runTest(residueBuilder);
+    auto residue = residueBuilder.finalize(0, 0, residueBuilder.particles().size());
+    runTest(residue);
+
+    EXPECT_EQ(residueBuilder.name(), residue.name());
+    EXPECT_EQ(residueBuilder.insertionCode(), residue.insertionCode());
+}
+
+TEST_F(SimulationResidueBuilderTest, ResidueSerializerWorks)
+{
+    gmx::ArrayRef<const SimulationParticle> simParticles = *(particles());
+    auto                                    residueBuilder =
+            SimulationResidueBuilder(table().at(0), ' ', 0, ' ', table().at(1), particles());
+    auto                    residue = residueBuilder.finalize(0, 0, simParticles.size());
     gmx::InMemorySerializer writer;
-    testResidue.serializeResidue(&writer);
-    auto buffer = writer.finishAndGetBuffer();
-    EXPECT_EQ(buffer.size(), 9); // 4 (index for name) + 4 (residue index) + 1 (insertion code)
-}
+    residue.serializeResidue(&writer);
 
-TEST_F(SimulationResidueTest, RoundTrip)
-{
-    auto                    table = builder()->build();
-    SimulationResidue       testResidue(table.at(0), 0, ' ', 1, ' ', table.at(1));
-    gmx::InMemorySerializer writer;
-    testResidue.serializeResidue(&writer);
-    auto buffer = writer.finishAndGetBuffer();
-    EXPECT_EQ(buffer.size(), 9); // 4 (index for name) + 4 (residue index) + 1 (insertion code)
-
-    gmx::InMemoryDeserializer reader(buffer, false);
-    SimulationResidue         newResidue(&reader, table);
-    EXPECT_STREQ(testResidue.name().c_str(), newResidue.name().c_str());
-    EXPECT_EQ(testResidue.nr(), newResidue.nr());
-    EXPECT_EQ(testResidue.insertionCode(), newResidue.insertionCode());
-}
-
-TEST(SimulationParticleTest, CanCreateWithIdenticalABStates)
-{
-    std::string        elem("foo\n");
-    ParticleMass       mass{ 0.1 };
-    ParticleCharge     charge{ 0.2 };
-    ParticleTypeName   type{ 1 };
-    SimulationParticle testParticle(mass, charge, type, ParticleType::Atom, 3, 4, elem);
-    EXPECT_FLOAT_EQ(testParticle.m(), 0.1);
-    EXPECT_FLOAT_EQ(testParticle.m(), testParticle.mB());
-    EXPECT_FLOAT_EQ(testParticle.q(), 0.2);
-    EXPECT_FLOAT_EQ(testParticle.q(), testParticle.qB());
-    EXPECT_EQ(testParticle.type(), 1);
-    EXPECT_EQ(testParticle.type(), testParticle.typeB());
-    EXPECT_EQ(testParticle.ptype(), ParticleType::Atom);
-    EXPECT_EQ(testParticle.resind(), 3);
-    EXPECT_EQ(testParticle.atomnumber(), 4);
-    EXPECT_STREQ(testParticle.elem().c_str(), elem.c_str());
-}
-
-TEST(SimulationParticleTest, CanCreateWithDifferentABStates)
-{
-    std::string        elem("foo\n");
-    ParticleMass       mass   = { 0.1, 0.3 };
-    ParticleCharge     charge = { 0.2, 0.4 };
-    ParticleTypeName   type   = { 1, 4 };
-    SimulationParticle testParticle(mass, charge, type, ParticleType::Bond, 3, 4, elem);
-    EXPECT_FLOAT_EQ(testParticle.m(), 0.1);
-    EXPECT_NE(testParticle.m(), testParticle.mB());
-    EXPECT_FLOAT_EQ(testParticle.mB(), 0.3);
-    EXPECT_FLOAT_EQ(testParticle.q(), 0.2);
-    EXPECT_NE(testParticle.q(), testParticle.qB());
-    EXPECT_FLOAT_EQ(testParticle.qB(), 0.4);
-    EXPECT_EQ(testParticle.type(), 1);
-    EXPECT_NE(testParticle.type(), testParticle.typeB());
-    EXPECT_EQ(testParticle.typeB(), 4);
-    EXPECT_EQ(testParticle.ptype(), ParticleType::Bond);
-    EXPECT_EQ(testParticle.resind(), 3);
-    EXPECT_EQ(testParticle.atomnumber(), 4);
-    EXPECT_STREQ(testParticle.elem().c_str(), elem.c_str());
-}
-
-TEST(SimulationParticleTest, CanWriteToSerializer)
-{
-    std::string             elem("foo\n");
-    ParticleMass            mass   = { 0.1, 0.3 };
-    ParticleCharge          charge = { 0.2, 0.4 };
-    ParticleTypeName        type   = { 1, 4 };
-    SimulationParticle      testParticle(mass, charge, type, ParticleType::Nucleus, 3, 4, elem);
-    gmx::InMemorySerializer writer;
-    testParticle.serializeParticle(&writer);
-    auto buffer = writer.finishAndGetBuffer();
-    int  expectedResult =
-            GMX_DOUBLE ? 54 : 38; // 2 * (2 * real + bool) + (2 * ushort + bool) + 3 * int + 3 * bool
-    EXPECT_EQ(buffer.size(), expectedResult);
-}
-
-TEST(SimulationParticleTest, RoundTrip)
-{
-    std::string             elem("foo\n");
-    ParticleMass            mass   = { 0.1, 0.3 };
-    ParticleCharge          charge = { 0.2, 0.4 };
-    ParticleTypeName        type   = { 1, 4 };
-    SimulationParticle      testParticle(mass, charge, type, ParticleType::Shell, 3, 4, elem);
-    gmx::InMemorySerializer writer;
-    testParticle.serializeParticle(&writer);
-    auto buffer = writer.finishAndGetBuffer();
-    int  expectedResult =
-            GMX_DOUBLE ? 54 : 38; // 2 * (2 * real + bool) + (2 * ushort + bool) + 3 * int + 3 * bool
-    EXPECT_EQ(buffer.size(), expectedResult);
-
+    auto                      buffer = writer.finishAndGetBuffer();
     gmx::InMemoryDeserializer reader(buffer, GMX_DOUBLE);
-    SimulationParticle        newParticle(&reader);
-    EXPECT_FLOAT_EQ(testParticle.m(), newParticle.m());
-    EXPECT_FLOAT_EQ(testParticle.mB(), newParticle.mB());
-    EXPECT_FLOAT_EQ(testParticle.q(), newParticle.q());
-    EXPECT_FLOAT_EQ(testParticle.qB(), newParticle.qB());
-    EXPECT_EQ(testParticle.type(), newParticle.type());
-    EXPECT_EQ(testParticle.typeB(), newParticle.typeB());
-    EXPECT_EQ(testParticle.ptype(), newParticle.ptype());
-    EXPECT_EQ(testParticle.resind(), newParticle.resind());
-    EXPECT_EQ(testParticle.atomnumber(), newParticle.atomnumber());
+
+    SimulationResidue readResidue(&reader, table());
+    runTest(readResidue);
 }
 
 TEST(PdbEntryTest, CanCreateBasicEntry)
@@ -254,41 +593,89 @@ TEST(PdbEntryTest, CanCreateFullEntry)
     }
 }
 
-using MoleculeBuilderTestParams = std::tuple<bool, bool, bool, bool>;
+/*! \brief
+ * Parameter pack for molecule generation.
+ *
+ * First tuple: Use BState, use BState for all residues, num residues, num particle in residue
+ * Second tuple: Select if BState for mass, charge, type, typeName
+ */
+using MoleculeBuilderTestParams =
+        std::tuple<std::tuple<bool, bool, int, int>, std::tuple<bool, bool, bool, bool>>;
 
 class MoleculeBuilderTest : public ::testing::Test, public ::testing::WithParamInterface<MoleculeBuilderTestParams>
 {
 public:
-    void addParticle(bool addCharge, bool addMass, bool addType, bool addBstate, const char* atomname);
-    void                               addPdbEntry();
-    SimulationMolecule                 finalize();
-    ArrayRef<const SimulationParticle> particles() { return molecule_.particles(); }
-    ArrayRef<const PdbEntry>           pdbAtoms() { return molecule_.pdbAtoms(); }
+    MoleculeBuilderTest();
+    //! Add residues to build up the molecule.
+    void addResidues();
+    //! Finalize the builder to generate the ready object.
+    SimulationMolecule finalize();
+    //! Access to table.
+    const StringTable& table() const { return *table_; }
+    //! Access to checker.
+    TestReferenceChecker* checker() { return &checker_; }
 
 private:
     //! Stored information.
     SimulationMoleculeBuilder molecule_;
+    //! Need a string table with test strings, initialized during setup.
+    StringTableBuilder tableBuilder_;
+    //! Table data.
+    std::unique_ptr<StringTable> table_;
+    //! Data for particles used in the residue.
+    std::vector<SimulationParticle> particles_;
+    //! Handler for reference data.
+    TestReferenceData data_;
+    //! Handler for checking reference data.
+    TestReferenceChecker checker_;
 };
 
-void MoleculeBuilderTest::addParticle(bool addCharge, bool addMass, bool addType, bool addBstate, const char* atomname)
+MoleculeBuilderTest::MoleculeBuilderTest() : checker_(data_.rootChecker())
 {
-    auto               mass   = addBstate ? ParticleMass(1, 2) : ParticleMass(3);
-    auto               charge = addBstate ? ParticleCharge(4, 5) : ParticleCharge(6);
-    auto               type   = addBstate ? ParticleTypeName(7, 8) : ParticleTypeName(9);
-    SimulationParticle particle(addMass ? std::optional(mass) : std::nullopt,
-                                addCharge ? std::optional(charge) : std::nullopt,
-                                addType ? std::optional(type) : std::nullopt,
-                                ParticleType::Atom,
-                                1,
-                                11,
-                                atomname != nullptr ? atomname : "");
-    molecule_.addParticle(particle);
+    std::string nameString   = "residue name";
+    std::string rtpString    = "rtp name";
+    std::string particleName = "Calpha";
+    std::string typeAName    = "cool";
+    std::string typeBName    = "boring";
+    tableBuilder_.addString(nameString);
+    tableBuilder_.addString(rtpString);
+    tableBuilder_.addString(particleName);
+    tableBuilder_.addString(typeAName);
+    tableBuilder_.addString(typeBName);
+    table_ = std::make_unique<StringTable>(tableBuilder_.build());
 }
-
-void MoleculeBuilderTest::addPdbEntry()
+void MoleculeBuilderTest::addResidues()
 {
-    PdbEntry pdbAtom(PdbRecordType::Atom, 1, ' ', "test");
-    molecule_.addPdbatom(pdbAtom);
+    auto params         = GetParam();
+    auto residueParams  = std::get<0>(params);
+    auto particleParams = std::get<1>(params);
+    int  numResidues    = std::get<2>(residueParams);
+    int  numParticles   = std::get<3>(residueParams);
+
+    for (int numRes = 0; numRes < numResidues; ++numRes)
+    {
+        auto useBState = std::get<0>(residueParams) && (std::get<1>(residueParams) || numRes % 2 == 0);
+        std::vector<SimulationParticle> particles;
+        for (int numPar = 0; numPar < numParticles; ++numPar)
+        {
+            bool massBState     = useBState && (std::get<0>(particleParams) || numPar % 2 == 0);
+            bool chargeBState   = useBState && (std::get<1>(particleParams) || numPar % 2 == 0);
+            bool typeBState     = useBState && (std::get<2>(particleParams) || numPar % 2 == 0);
+            bool typeNameBState = useBState && (std::get<3>(particleParams) || numPar % 2 == 0);
+
+            auto mass   = massBState ? testParticleMassTwoState : testParticleMassOneState;
+            auto charge = chargeBState ? testParticleChargeTwoState : testParticleChargeOneState;
+            auto type = typeBState ? testParticleTypeValueTwoState : testParticleTypeValueOneState;
+            auto typeName = typeNameBState
+                                    ? std::optional(ParticleTypeName(table().at(3), table().at(4)))
+                                    : std::optional(ParticleTypeName(table().at(3)));
+            auto name     = table().at(2);
+
+            particles.emplace_back(
+                    mass, charge, type, typeName, name, ParticleType::Atom, 0, 12, "C");
+        }
+        molecule_.addResidue(SimulationResidueBuilder(table().at(0), ' ', 0, ' ', table().at(1), &particles));
+    }
 }
 
 SimulationMolecule MoleculeBuilderTest::finalize()
@@ -296,84 +683,75 @@ SimulationMolecule MoleculeBuilderTest::finalize()
     return molecule_.finalize();
 }
 
-void checkParticles(bool                      haveCharge,
-                    bool                      haveMass,
-                    bool                      haveType,
-                    bool                      haveBstate,
-                    const SimulationMolecule& molecule,
-                    bool                      haveName)
-
+void checkMoleculeSanity(TestReferenceChecker* checker, const SimulationMolecule& molecule)
 {
-    EXPECT_EQ(haveCharge, molecule.allAtomsHaveChargeAndNotEmpty());
-    EXPECT_EQ(haveMass, molecule.allAtomsHaveMassAndNotEmpy());
-    EXPECT_EQ(haveType, molecule.allAtomsHaveTypeAndNotEmpty());
-    EXPECT_EQ(haveBstate, molecule.allAtomsHaveBstateAndNotEmpty());
-    EXPECT_EQ(haveName, molecule.allAtomsHaveAtomNameAndNotEmpty());
-}
-
-void checkPdbAtoms(bool isValid, const SimulationMolecule& molecule)
-{
-    EXPECT_EQ(isValid, molecule.allAtomsHavePdbInfoAndNotEmpty());
+    TestReferenceChecker compound(checker->checkCompound("MoleculeData", "Molecule"));
+    compound.checkBoolean(molecule.allParticlesHaveChargeAndNotEmpty(), "ChargePresentEverywhere");
+    compound.checkBoolean(molecule.allParticlesHaveMassAndNotEmpy(), "MassPresentEverywhere");
+    compound.checkBoolean(molecule.allParticlesHaveTypeAndNotEmpty(), "TypePresentEverywhere");
+    compound.checkBoolean(molecule.allParticlesHaveBstateAndNotEmpty(), "BStatePresentEverywhere");
+    compound.checkBoolean(molecule.allParticlesHaveAtomNameAndNotEmpty(),
+                          "AtomNamePresentEverywhere");
+    compound.checkBoolean(molecule.allParticlesHaveTypeNameAndNotEmpty(),
+                          "AtomTypeNamePresentEverywhere");
+    compound.checkInteger(molecule.numResidues(), "NumberOfResidues");
+    if (molecule.numResidues() > 0)
+    {
+        TestReferenceChecker residueCompound(
+                compound.checkCompound("MoleculeResidues", "ResidueValues"));
+        checkResidues(&residueCompound, molecule.residues());
+    }
+    compound.checkInteger(molecule.numParticles(), "NumberOfParticles");
+    if (molecule.numParticles() > 0)
+    {
+        TestReferenceChecker particleCompound(
+                compound.checkCompound("MoleculeParticles", "ParticleValues"));
+        checkParticles(&particleCompound, molecule.particles());
+    }
 }
 
 TEST_F(MoleculeBuilderTest, EmptyStructureGivesFalseForAll)
 {
-    checkParticles(false, false, false, false, finalize(), false);
+    checkMoleculeSanity(checker(), finalize());
 }
 
 TEST_P(MoleculeBuilderTest, ParticlesCheckValidEntries)
 {
-    const auto params    = GetParam();
-    const bool addCharge = std::get<0>(params);
-    const bool addMass   = std::get<1>(params);
-    const bool addType   = std::get<2>(params);
-    const bool addBState = std::get<3>(params);
-    addParticle(addCharge, addMass, addType, addBState, "CA");
-    addParticle(addCharge, addMass, addType, addBState, "CB");
-    const bool haveBState = addCharge && addMass && addType && addBState;
-    checkParticles(addCharge, addMass, addType, haveBState, finalize(), true);
+    addResidues();
+    checkMoleculeSanity(checker(), finalize());
 }
 
 TEST_P(MoleculeBuilderTest, BuilderIsEmptyAfterFinalize)
 {
-    const auto params    = GetParam();
-    const bool addCharge = std::get<0>(params);
-    const bool addMass   = std::get<1>(params);
-    const bool addType   = std::get<2>(params);
-    const bool addBState = std::get<3>(params);
-    addParticle(addCharge, addMass, addType, addBState, "CA");
-    const bool haveBState = addCharge && addMass && addType && addBState;
-    checkParticles(addCharge, addMass, addType, haveBState, finalize(), true);
-    checkParticles(false, false, false, false, finalize(), false);
+    addResidues();
+    checkMoleculeSanity(checker(), finalize());
+    checkMoleculeSanity(checker(), finalize());
 }
 
-TEST_P(MoleculeBuilderTest, ParticlesCheckSingleInvalidStringEntry)
+TEST_P(MoleculeBuilderTest, SerializerWorks)
 {
-    const auto params    = GetParam();
-    bool       addCharge = std::get<0>(params);
-    bool       addMass   = std::get<1>(params);
-    bool       addType   = std::get<2>(params);
-    bool       addBState = std::get<3>(params);
-    addParticle(addCharge, addMass, addType, addBState, "CA");
-    addParticle(addCharge, addMass, addType, addBState, nullptr);
-    const bool haveBState = addCharge && addMass && addType && addBState;
-    checkParticles(addCharge, addMass, addType, haveBState, finalize(), false);
+    addResidues();
+    gmx::InMemorySerializer writer;
+    auto                    molecule = finalize();
+    molecule.serializeMolecule(&writer);
+
+    auto                      buffer = writer.finishAndGetBuffer();
+    gmx::InMemoryDeserializer reader(buffer, GMX_DOUBLE);
+
+    SimulationMolecule readMolecule(&reader, table());
+    checkMoleculeSanity(checker(), readMolecule);
 }
 
 INSTANTIATE_TEST_SUITE_P(DetectsValidEntries,
                          MoleculeBuilderTest,
-                         ::testing::Combine(::testing::Values(true, false),
-                                            ::testing::Values(true, false),
-                                            ::testing::Values(true, false),
-                                            ::testing::Values(true, false)));
-
-TEST_F(MoleculeBuilderTest, PdbCheckWorks)
-{
-    addPdbEntry();
-    checkPdbAtoms(true, finalize());
-    checkPdbAtoms(false, finalize());
-}
-
+                         ::testing::Combine(::testing::Combine(::testing::Values(true, false),
+                                                               ::testing::Values(true, false),
+                                                               ::testing::Values(1, 2, 3),
+                                                               ::testing::Values(2, 3)),
+                                            ::testing::Combine(::testing::Values(true, false),
+                                                               ::testing::Values(true, false),
+                                                               ::testing::Values(true, false),
+                                                               ::testing::Values(true, false))));
 } // namespace
 
 } // namespace test

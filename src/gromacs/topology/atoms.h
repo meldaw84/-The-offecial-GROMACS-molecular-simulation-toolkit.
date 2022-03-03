@@ -97,11 +97,13 @@ struct FEPStateValue
     //! Empty object.
     FEPStateValue() : storage_({}), haveBState_(false) {}
     //! Construct without FEP state changes.
-    FEPStateValue(T value) : storage_({ value, value }), haveBState_(false) {}
+    explicit FEPStateValue(T value) : storage_({ value, T() }), haveBState_(false) {}
     //! Construct with FEP state changes.
     FEPStateValue(T valueA, T valueB) : storage_({ valueA, valueB }), haveBState_(true) {}
     //! Read from serialized datastructure.
-    FEPStateValue(gmx::ISerializer* serializer);
+    explicit FEPStateValue(gmx::ISerializer* serializer);
+    //! Read from serialized datastructure with table.
+    FEPStateValue(gmx::ISerializer* serializer, const StringTable& table);
     //! Write data to serializer.
     void serialize(gmx::ISerializer* serializer);
     //! Internal storage.
@@ -110,9 +112,10 @@ struct FEPStateValue
     bool haveBState_;
 };
 
-using ParticleMass     = FEPStateValue<real>;
-using ParticleCharge   = FEPStateValue<real>;
-using ParticleTypeName = FEPStateValue<unsigned short>;
+using ParticleMass      = FEPStateValue<real>;
+using ParticleCharge    = FEPStateValue<real>;
+using ParticleTypeValue = FEPStateValue<unsigned short>;
+using ParticleTypeName  = FEPStateValue<NameHolder>;
 
 //! Single particle in a simulation.
 class SimulationParticle
@@ -125,13 +128,37 @@ public:
     //! Access charge. A state.
     real q() const { return charge_.storage_[0]; }
     //! Access atom type. A state.
-    unsigned short type() const { return atomType_.storage_[0]; }
+    unsigned short type() const { return particleTypeValue_.storage_[0]; }
     //! Access mass. B state.
-    real mB() const { return mass_.storage_[1]; }
+    real mB() const { return haveBState() ? mass_.storage_[1] : mass_.storage_[0]; }
     //! Access charge. B state.
-    real qB() const { return charge_.storage_[1]; }
+    real qB() const { return haveBState() ? charge_.storage_[1] : charge_.storage_[0]; }
     //! Access atom type. B state.
-    unsigned short typeB() const { return atomType_.storage_[1]; }
+    unsigned short typeB() const
+    {
+        return haveBState() ? particleTypeValue_.storage_[1] : particleTypeValue_.storage_[0];
+    }
+    //! Access particle name.
+    std::string name() const
+    {
+        GMX_ASSERT(haveParticleName(), "Can not access uninitialized element");
+        return *particleName_.value();
+    }
+    //! Access type name for state A.
+    std::string atomTypeNameA() const
+    {
+        GMX_ASSERT(haveParticleTypeName(), "Can not access uninitialized element");
+        return *particleTypeName_.storage_[0].value();
+    }
+    //! Access type name for state B if it exists.
+    std::string atomTypeNameB() const
+    {
+        GMX_ASSERT(haveParticleTypeName(), "Can not access uninitialized element");
+        const auto entry = haveBState() ? particleTypeName_.storage_[1] : particleTypeName_.storage_[0];
+        GMX_ASSERT(entry.has_value(), "Can not access uninitialized element");
+        return *entry.value();
+    }
+
     //! Access particle type.
     ParticleType ptype() const { return particleType_; }
     //! Access residue index.
@@ -146,33 +173,73 @@ public:
     bool haveCharge() const { return haveCharge_; }
     //! Do we have type?
     bool haveType() const { return haveType_; }
+    //! Do we have particle name set?
+    bool haveParticleName() const { return haveParticleName_; }
+    //! Do we have the particle type name set.
+    bool haveParticleTypeName() const { return haveParticleTypeName_; }
     //! Do we have B state?
     bool haveBState() const { return haveBState_; }
 
     //! Constructor with complete information. A and B states are equivalent.
-    SimulationParticle(const std::optional<ParticleMass>&     mass,
-                       const std::optional<ParticleCharge>&   charge,
-                       const std::optional<ParticleTypeName>& atomType,
+    SimulationParticle(const std::optional<ParticleMass>      mass,
+                       const std::optional<ParticleCharge>    charge,
+                       const std::optional<ParticleTypeValue> particleTypeValue,
+                       const std::optional<ParticleTypeName>  particleTypeName,
+                       NameHolder                             particleName,
                        ParticleType                           particleType,
                        gmx::index                             residueIndex,
                        int                                    atomicNumber,
                        const std::string&                     elementName) :
         mass_(mass.has_value() ? *mass : ParticleMass()),
         charge_(charge.has_value() ? *charge : ParticleCharge()),
-        atomType_(atomType.has_value() ? *atomType : ParticleTypeName()),
+        particleTypeValue_(particleTypeValue.has_value() ? *particleTypeValue : ParticleTypeValue()),
+        particleTypeName_(particleTypeName.has_value() ? *particleTypeName : ParticleTypeName()),
+        particleName_(particleName),
         particleType_(particleType),
         residueIndex_(residueIndex),
         atomicNumber_(atomicNumber),
         elementName_(elementName),
         haveMass_(mass.has_value()),
         haveCharge_(charge.has_value()),
-        haveType_(atomType.has_value()),
-        haveBState_(mass_.haveBState_ && charge_.haveBState_ && atomType_.haveBState_)
+        haveType_(particleTypeValue.has_value()),
+        haveParticleName_(particleName.has_value()),
+        haveParticleTypeName_(particleTypeName.has_value()),
+        haveBState_(mass_.haveBState_ && charge_.haveBState_ && particleTypeValue_.haveBState_
+                    && particleTypeName_.haveBState_)
     {
         GMX_ASSERT(elementName.length() <= 4, "Element name can only be three characters");
     }
+
+    //! Build from existing object with new residue number.
+    SimulationParticle(const SimulationParticle& oldParticle, gmx::index residueNumber) :
+        mass_(oldParticle.mass_),
+        charge_(oldParticle.charge_),
+        particleTypeValue_(oldParticle.particleTypeValue_),
+        particleTypeName_(oldParticle.particleTypeName_),
+        particleName_(oldParticle.particleName_),
+        particleType_(oldParticle.particleType_),
+        residueIndex_(residueNumber),
+        atomicNumber_(oldParticle.atomicNumber_),
+        elementName_(oldParticle.elementName_),
+        haveMass_(oldParticle.haveMass_),
+        haveCharge_(oldParticle.haveCharge_),
+        haveType_(oldParticle.haveType_),
+        haveParticleName_(oldParticle.haveParticleName_),
+        haveParticleTypeName_(oldParticle.haveParticleTypeName_),
+        haveBState_(oldParticle.haveBState_)
+    {
+    }
     //! Construct new datastructure from deserialization.
-    SimulationParticle(gmx::ISerializer* serializer);
+    SimulationParticle(gmx::ISerializer* serializer, const StringTable& table);
+
+    //! Copy constructor.
+    SimulationParticle(const SimulationParticle&) = default;
+    //! Copy assignment.
+    SimulationParticle& operator=(const SimulationParticle&) = default;
+    //! Default move constructor.
+    SimulationParticle(SimulationParticle&&) = default;
+    //! Default move assignment.
+    SimulationParticle& operator=(SimulationParticle&&) = default;
 
 private:
     //! Mass of the particle. A and B state.
@@ -180,7 +247,11 @@ private:
     //! Charge of the particle. A and B state.
     ParticleCharge charge_;
     //! Atom type. A and B state.
-    ParticleTypeName atomType_;
+    ParticleTypeValue particleTypeValue_;
+    //! Atom type name. A and B state.
+    ParticleTypeName particleTypeName_;
+    //! Atom name.
+    NameHolder particleName_;
     //! Type of the particle.
     ParticleType particleType_;
     //! Residue this atoms is part of.
@@ -195,54 +266,122 @@ private:
     bool haveCharge_;
     //! If the particle type is set.
     bool haveType_;
+    //! If the particle name is set.
+    bool haveParticleName_;
+    //! If the particle type name is set.
+    bool haveParticleTypeName_;
     //! If all fields have B state set.
     bool haveBState_;
 };
 
-//! Single amino acid residue in a simulation
+//! Finished single amino acid residue in a simulation topology
 class SimulationResidue
 {
 public:
     //! Construct info from serializer.
     SimulationResidue(gmx::ISerializer* serializer, const StringTable& table);
+    //! Write info to serializer.
+    void serializeResidue(gmx::ISerializer* serializer);
+    //! Access name
+    const std::string& name() const
+    {
+        GMX_ASSERT(residueName_.has_value(), "Can not access uninitialized element");
+        return *residueName_.value();
+    }
+    //! Access residue number.
+    gmx::index nr() const { return nr_; }
+    //! Access insertion code.
+    unsigned char insertionCode() const { return insertionCode_; }
+    //! Begin of particles in global structure.
+    gmx::index begin() const { return begin_; }
+    //! End of particles in global strucutre.
+    gmx::index size() const { return size_; }
 
+    //! Copy constructor.
+    SimulationResidue(const SimulationResidue&) = default;
+    //! Copy assignment.
+    SimulationResidue& operator=(const SimulationResidue&) = default;
+    //! Default move constructor.
+    SimulationResidue(SimulationResidue&&) = default;
+    //! Default move assignment.
+    SimulationResidue& operator=(SimulationResidue&&) = default;
+
+    friend class SimulationResidueBuilder;
+
+private:
+    SimulationResidue(NameHolder name, gmx::index nr, unsigned char insertionCode, gmx::index begin, gmx::index size) :
+        residueName_(name), nr_(nr), insertionCode_(insertionCode), begin_(begin), size_(size)
+    {
+    }
+
+    //! Residue name.
+    NameHolder residueName_;
+    //! Residue number.
+    gmx::index nr_;
+    //! Insertion code, why?
+    unsigned char insertionCode_;
+    //! Begin of particles.
+    gmx::index begin_;
+    //! Size of particles.
+    gmx::index size_;
+};
+
+//! Build single amino acid residue in a simulation
+class SimulationResidueBuilder
+{
+public:
     //! Construct object with complete information.
-    SimulationResidue(NameHolder    name,
-                      gmx::index    nr,
-                      unsigned char insertionCode,
-                      gmx::index    chainNumber,
-                      char          chainIdentifier,
-                      NameHolder    rtp) :
+    SimulationResidueBuilder(NameHolder                       name,
+                             unsigned char                    insertionCode,
+                             gmx::index                       chainNumber,
+                             char                             chainIdentifier,
+                             NameHolder                       rtp,
+                             std::vector<SimulationParticle>* particles) :
         name_(name),
-        nr_(nr),
         insertionCode_(insertionCode),
         chainNumber_(chainNumber),
         chainIdentifier_(chainIdentifier),
         rtp_(rtp)
     {
+        std::swap(*particles, residueParticles_);
     }
-    //! Write info to serializer.
-    void serializeResidue(gmx::ISerializer* serializer);
+
+    SimulationResidueBuilder(const SimulationResidueBuilder&) = default;
+    SimulationResidueBuilder& operator=(const SimulationResidueBuilder&) = default;
+    SimulationResidueBuilder(SimulationResidueBuilder&& old)             = default;
+    SimulationResidueBuilder& operator=(SimulationResidueBuilder&& old) = default;
+
     //! Access name.
     const std::string& name() const
     {
         GMX_ASSERT(name_.has_value(), "Can not access uninitialized element");
         return *name_.value();
     }
-    //! Access residue number.
-    gmx::index nr() const { return nr_; }
+    //! Access RTP code
+    const std::string& rtp() const
+    {
+        GMX_ASSERT(rtp_.has_value(), "Can not access uninitialized element");
+        return *rtp_.value();
+    }
+    //! Make finalized residue.
+    SimulationResidue finalize(gmx::index residueNumber, gmx::index begin, gmx::index size) const;
     //! Access insertion code.
     unsigned char insertionCode() const { return insertionCode_; }
     //! Access chain number.
     gmx::index chainNumber() const { return chainNumber_; }
     //! Access chain indentifier.
     char chainIdentifier() const { return chainIdentifier_; }
+    //! Change particles in this residue.
+    void updateParticles(std::vector<SimulationParticle>* newParticles)
+    {
+        std::swap(*newParticles, residueParticles_);
+    }
+    //! View on residue particles
+    gmx::ArrayRef<const SimulationParticle> particles() const { return residueParticles_; }
 
 private:
     //! Residue name.
     NameHolder name_;
-    //! Residue number.
-    gmx::index nr_;
     //! Code for insertion of residues.
     unsigned char insertionCode_;
     //! Chain number, incremented at TER or new chain identifier.
@@ -251,6 +390,8 @@ private:
     char chainIdentifier_;
     //! Optional rtp building block name.
     NameHolder rtp_;
+    //! Particles that make up this residue.
+    std::vector<SimulationParticle> residueParticles_;
 };
 
 //! Defines a single line in a PDB file, for legacy PDB file handling.
@@ -364,82 +505,89 @@ private:
 class SimulationMolecule
 {
 public:
+    //! Read data from serialized format.
+    SimulationMolecule(gmx::ISerializer* serializer, const StringTable& table);
+
+    //! Copy constructor.
+    SimulationMolecule(const SimulationMolecule&) = default;
+    //! Copy assignment.
+    SimulationMolecule& operator=(const SimulationMolecule&) = default;
+    //! Default move constructor.
+    SimulationMolecule(SimulationMolecule&&) = default;
+    //! Default move assignment.
+    SimulationMolecule& operator=(SimulationMolecule&&) = default;
+
+    //! Write data to serializer.
+    void serializeMolecule(gmx::ISerializer* serializer);
     //! Get number of atoms.
     int numParticles() const { return particles_.size(); }
     //! Get number of residues.
     int numResidues() const { return residues_.size(); }
-    //! Get number of pdbatoms.
-    int numPdbAtoms() const { return pdbAtoms_.size(); }
     //! Const view on particle information.
     gmx::ArrayRef<const SimulationParticle> particles() const { return particles_; }
     //! Const view on residue information.
     gmx::ArrayRef<const SimulationResidue> residues() const { return residues_; }
-    //! Const view on pdbatom information.
-    gmx::ArrayRef<const PdbEntry> pdbAtoms() const { return pdbAtoms_; }
 
 
     //! If all atoms have mass.
-    bool allAtomsHaveMassAndNotEmpy() const
+    bool allParticlesHaveMassAndNotEmpy() const
     {
-        return particles_.empty() ? false : allAtomsHaveMass_;
+        return particles_.empty() ? false : allParticlesHaveMass_;
     }
     //! If all atoms have charge.
-    bool allAtomsHaveChargeAndNotEmpty() const
+    bool allParticlesHaveChargeAndNotEmpty() const
     {
-        return particles_.empty() ? false : allAtomsHaveCharge_;
+        return particles_.empty() ? false : allParticlesHaveCharge_;
     }
     //! If all atoms have atomnames set.
-    bool allAtomsHaveAtomNameAndNotEmpty() const
+    bool allParticlesHaveAtomNameAndNotEmpty() const
     {
-        return particles_.empty() ? false : allAtomsHaveAtomName_;
+        return particles_.empty() ? false : allParticlesHaveAtomName_;
     }
     //! If all atoms have type information.
-    bool allAtomsHaveTypeAndNotEmpty() const
+    bool allParticlesHaveTypeAndNotEmpty() const
     {
-        return particles_.empty() ? false : allAtomsHaveType_;
+        return particles_.empty() ? false : allParticlesHaveType_;
+    }
+    //! If all atoms have type information.
+    bool allParticlesHaveTypeNameAndNotEmpty() const
+    {
+        return particles_.empty() ? false : allParticlesHaveTypeName_;
     }
     //! If all atoms have b state information.
-    bool allAtomsHaveBstateAndNotEmpty() const
+    bool allParticlesHaveBstateAndNotEmpty() const
     {
-        return particles_.empty() ? false : allAtomsHaveBstate_;
-    }
-    //! If pdb information for all atoms has been set.
-    bool allAtomsHavePdbInfoAndNotEmpty() const
-    {
-        return pdbAtoms_.empty() ? false : allAtomsHavePdbInfo_;
+        return particles_.empty() ? false : allParticlesHaveBstate_;
     }
 
     friend class SimulationMoleculeBuilder;
 
 private:
-    SimulationMolecule(std::vector<SimulationParticle>* atoms,
+    SimulationMolecule(std::vector<SimulationParticle>* particles,
                        std::vector<SimulationResidue>*  residues,
-                       std::vector<PdbEntry>*           pdbAtoms,
-                       bool                             allAtomsHaveMass,
-                       bool                             allAtomsHaveCharge,
-                       bool                             allAtomsHaveAtomName,
-                       bool                             allAtomsHaveType,
-                       bool                             allAtomsHaveBstate,
-                       bool                             allAtomsHavePdbInfo);
+                       bool                             allParticlesHaveMass,
+                       bool                             allParticlesHaveCharge,
+                       bool                             allParticlesHaveAtomName,
+                       bool                             allParticlesHaveType,
+                       bool                             allParticlesHaveTypeName,
+                       bool                             allParticlesHaveBstate);
 
     //! Atom information for A state.
     std::vector<SimulationParticle> particles_;
     //! Residue information.
     std::vector<SimulationResidue> residues_;
-    //! PDB information.
-    std::vector<PdbEntry> pdbAtoms_;
     //! Container specific information for atom masses.
-    bool allAtomsHaveMass_ = false;
+    bool allParticlesHaveMass_ = false;
     //! Container specific information for atom charges.
-    bool allAtomsHaveCharge_ = false;
+    bool allParticlesHaveCharge_ = false;
     //! Container specific information for atom names.
-    bool allAtomsHaveAtomName_ = false;
+    bool allParticlesHaveAtomName_ = false;
     //! Container specific information for atom types.
-    bool allAtomsHaveType_ = false;
+    bool allParticlesHaveType_ = false;
+    //! Container specific information for atom type names.
+    bool allParticlesHaveTypeName_ = false;
     //! Container specific information for atom b state.
-    bool allAtomsHaveBstate_ = false;
-    //! Container specific information for pdbatom information.
-    bool allAtomsHavePdbInfo_ = false;
+    bool allParticlesHaveBstate_ = false;
 };
 
 /*! \brief \libinternal
@@ -451,12 +599,8 @@ private:
 class SimulationMoleculeBuilder
 {
 public:
-    //! Function to add new atom.
-    void addParticle(const SimulationParticle& atom);
     //! Function to add new residue.
-    void addResidue(const SimulationResidue& residue);
-    //! Function to add new pdbatom.
-    void addPdbatom(const PdbEntry& pdbatom);
+    void addResidue(const SimulationResidueBuilder& residue);
     /*! \brief
      * Finalize datastructure to store information about validity of the entries.
      *
@@ -468,28 +612,22 @@ public:
     int numParticles() const { return particles_.size(); }
     //! Get number of residues.
     int numResidues() const { return residues_.size(); }
-    //! Get number of pdbatoms.
-    int numPdbAtoms() const { return pdbAtoms_.size(); }
     //! Const view on particles information.
     gmx::ArrayRef<const SimulationParticle> particles() const { return particles_; }
     //! Const view on residue information.
-    gmx::ArrayRef<const SimulationResidue> residues() const { return residues_; }
-    //! Const view on pdbatom information.
-    gmx::ArrayRef<const PdbEntry> pdbAtoms() const { return pdbAtoms_; }
+    gmx::ArrayRef<const SimulationResidueBuilder> residues() const { return residues_; }
     //! View on particles information.
     gmx::ArrayRef<SimulationParticle> particles() { return particles_; }
     //! View on residue information.
-    gmx::ArrayRef<SimulationResidue> residues() { return residues_; }
-    //! View on pdbatom information.
-    gmx::ArrayRef<PdbEntry> pdbAtoms() { return pdbAtoms_; }
+    gmx::ArrayRef<SimulationResidueBuilder> residues() { return residues_; }
 
 private:
+    //! Function to add new atom. Only accessed internally through addResidue.
+    void addParticle(const SimulationParticle& particle, gmx::index residueNumber);
     //! Atom information for state A.
     std::vector<SimulationParticle> particles_;
     //! Residue information.
-    std::vector<SimulationResidue> residues_;
-    //! PDB information.
-    std::vector<PdbEntry> pdbAtoms_;
+    std::vector<SimulationResidueBuilder> residues_;
 };
 
 // Legacy datastructures begin below.

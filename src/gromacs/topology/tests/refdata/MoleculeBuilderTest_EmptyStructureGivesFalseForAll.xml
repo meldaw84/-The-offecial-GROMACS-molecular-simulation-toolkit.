@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="referencedata.xsl"?>
+<ReferenceData>
+  <MoleculeData Name="Molecule">
+    <Bool Name="ChargePresentEverywhere">false</Bool>
+    <Bool Name="MassPresentEverywhere">false</Bool>
+    <Bool Name="TypePresentEverywhere">false</Bool>
+    <Bool Name="BStatePresentEverywhere">false</Bool>
+    <Bool Name="AtomNamePresentEverywhere">false</Bool>
+    <Bool Name="AtomTypeNamePresentEverywhere">false</Bool>
+    <Int Name="NumberOfResidues">0</Int>
+    <Int Name="NumberOfParticles">0</Int>
+  </MoleculeData>
+</ReferenceData>
