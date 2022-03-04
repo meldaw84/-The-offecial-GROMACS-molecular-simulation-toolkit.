@@ -20,13 +20,13 @@
           <String Name="Name">Calpha</String>
           <Mass Name="Mass">
             <Bool Name="HaveBState">false</Bool>
-            <Real Name="ValueA">0.1</Real>
-            <Real Name="ValueB">0.1</Real>
+            <Real Name="ValueA">0.10000000000000001</Real>
+            <Real Name="ValueB">0.10000000000000001</Real>
           </Mass>
           <Charge Name="Charge">
             <Bool Name="HaveBState">false</Bool>
-            <Real Name="ValueA">0.40000001</Real>
-            <Real Name="ValueB">0.40000001</Real>
+            <Real Name="ValueA">0.40000000000000002</Real>
+            <Real Name="ValueB">0.40000000000000002</Real>
           </Charge>
           <TypeValue Name="TypeValue">
             <Bool Name="HaveBState">false</Bool>
