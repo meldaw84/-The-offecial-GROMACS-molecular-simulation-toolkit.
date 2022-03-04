@@ -5,7 +5,7 @@
     <Bool Name="ChargePresentEverywhere">true</Bool>
     <Bool Name="MassPresentEverywhere">true</Bool>
     <Bool Name="TypePresentEverywhere">true</Bool>
-    <Bool Name="BStatePresentEverywhere">false</Bool>
+    <Bool Name="BStatePresentEverywhere">true</Bool>
     <Bool Name="AtomNamePresentEverywhere">true</Bool>
     <Bool Name="AtomTypeNamePresentEverywhere">true</Bool>
     <Int Name="NumberOfResidues">1</Int>
@@ -38,24 +38,24 @@
             <Bool Name="HaveName">true</Bool>
             <String Name="Name">Calpha</String>
             <Mass Name="Mass">
-              <Bool Name="HaveBState">false</Bool>
-              <Real Name="ValueA">0.1</Real>
-              <Real Name="ValueB">0.1</Real>
+              <Bool Name="HaveBState">true</Bool>
+              <Real Name="ValueA">0.20000000000000001</Real>
+              <Real Name="ValueB">0.29999999999999999</Real>
             </Mass>
             <Charge Name="Charge">
-              <Bool Name="HaveBState">false</Bool>
-              <Real Name="ValueA">0.40000001</Real>
-              <Real Name="ValueB">0.40000001</Real>
+              <Bool Name="HaveBState">true</Bool>
+              <Real Name="ValueA">0.5</Real>
+              <Real Name="ValueB">0.59999999999999998</Real>
             </Charge>
             <TypeValue Name="TypeValue">
-              <Bool Name="HaveBState">false</Bool>
-              <Int Name="ValueA">7</Int>
-              <Int Name="ValueB">7</Int>
+              <Bool Name="HaveBState">true</Bool>
+              <Int Name="ValueA">8</Int>
+              <Int Name="ValueB">9</Int>
             </TypeValue>
             <TypeName Name="TypeName">
-              <Bool Name="HaveBState">false</Bool>
+              <Bool Name="HaveBState">true</Bool>
               <String Name="ValueA">cool</String>
-              <String Name="ValueB">cool</String>
+              <String Name="ValueB">boring</String>
             </TypeName>
             <Misc Name="Misc">
               <Int Name="TypeAsInt">0</Int>
@@ -72,24 +72,24 @@
             <Bool Name="HaveName">true</Bool>
             <String Name="Name">Calpha</String>
             <Mass Name="Mass">
-              <Bool Name="HaveBState">false</Bool>
-              <Real Name="ValueA">0.1</Real>
-              <Real Name="ValueB">0.1</Real>
+              <Bool Name="HaveBState">true</Bool>
+              <Real Name="ValueA">0.20000000000000001</Real>
+              <Real Name="ValueB">0.29999999999999999</Real>
             </Mass>
             <Charge Name="Charge">
-              <Bool Name="HaveBState">false</Bool>
-              <Real Name="ValueA">0.40000001</Real>
-              <Real Name="ValueB">0.40000001</Real>
+              <Bool Name="HaveBState">true</Bool>
+              <Real Name="ValueA">0.5</Real>
+              <Real Name="ValueB">0.59999999999999998</Real>
             </Charge>
             <TypeValue Name="TypeValue">
-              <Bool Name="HaveBState">false</Bool>
-              <Int Name="ValueA">7</Int>
-              <Int Name="ValueB">7</Int>
+              <Bool Name="HaveBState">true</Bool>
+              <Int Name="ValueA">8</Int>
+              <Int Name="ValueB">9</Int>
             </TypeValue>
             <TypeName Name="TypeName">
-              <Bool Name="HaveBState">false</Bool>
+              <Bool Name="HaveBState">true</Bool>
               <String Name="ValueA">cool</String>
-              <String Name="ValueB">cool</String>
+              <String Name="ValueB">boring</String>
             </TypeName>
             <Misc Name="Misc">
               <Int Name="TypeAsInt">0</Int>
@@ -106,24 +106,24 @@
             <Bool Name="HaveName">true</Bool>
             <String Name="Name">Calpha</String>
             <Mass Name="Mass">
-              <Bool Name="HaveBState">false</Bool>
-              <Real Name="ValueA">0.1</Real>
-              <Real Name="ValueB">0.1</Real>
+              <Bool Name="HaveBState">true</Bool>
+              <Real Name="ValueA">0.20000000000000001</Real>
+              <Real Name="ValueB">0.29999999999999999</Real>
             </Mass>
             <Charge Name="Charge">
-              <Bool Name="HaveBState">false</Bool>
-              <Real Name="ValueA">0.40000001</Real>
-              <Real Name="ValueB">0.40000001</Real>
+              <Bool Name="HaveBState">true</Bool>
+              <Real Name="ValueA">0.5</Real>
+              <Real Name="ValueB">0.59999999999999998</Real>
             </Charge>
             <TypeValue Name="TypeValue">
-              <Bool Name="HaveBState">false</Bool>
-              <Int Name="ValueA">7</Int>
-              <Int Name="ValueB">7</Int>
+              <Bool Name="HaveBState">true</Bool>
+              <Int Name="ValueA">8</Int>
+              <Int Name="ValueB">9</Int>
             </TypeValue>
             <TypeName Name="TypeName">
-              <Bool Name="HaveBState">false</Bool>
+              <Bool Name="HaveBState">true</Bool>
               <String Name="ValueA">cool</String>
-              <String Name="ValueB">cool</String>
+              <String Name="ValueB">boring</String>
             </TypeName>
             <Misc Name="Misc">
               <Int Name="TypeAsInt">0</Int>

@@ -39,13 +39,13 @@
             <String Name="Name">Calpha</String>
             <Mass Name="Mass">
               <Bool Name="HaveBState">true</Bool>
-              <Real Name="ValueA">0.2</Real>
-              <Real Name="ValueB">0.30000001</Real>
+              <Real Name="ValueA">0.20000000000000001</Real>
+              <Real Name="ValueB">0.29999999999999999</Real>
             </Mass>
             <Charge Name="Charge">
               <Bool Name="HaveBState">true</Bool>
               <Real Name="ValueA">0.5</Real>
-              <Real Name="ValueB">0.60000002</Real>
+              <Real Name="ValueB">0.59999999999999998</Real>
             </Charge>
             <TypeValue Name="TypeValue">
               <Bool Name="HaveBState">true</Bool>
@@ -73,13 +73,13 @@
             <String Name="Name">Calpha</String>
             <Mass Name="Mass">
               <Bool Name="HaveBState">false</Bool>
-              <Real Name="ValueA">0.1</Real>
-              <Real Name="ValueB">0.1</Real>
+              <Real Name="ValueA">0.10000000000000001</Real>
+              <Real Name="ValueB">0.10000000000000001</Real>
             </Mass>
             <Charge Name="Charge">
               <Bool Name="HaveBState">false</Bool>
-              <Real Name="ValueA">0.40000001</Real>
-              <Real Name="ValueB">0.40000001</Real>
+              <Real Name="ValueA">0.40000000000000002</Real>
+              <Real Name="ValueB">0.40000000000000002</Real>
             </Charge>
             <TypeValue Name="TypeValue">
               <Bool Name="HaveBState">false</Bool>
@@ -107,13 +107,13 @@
             <String Name="Name">Calpha</String>
             <Mass Name="Mass">
               <Bool Name="HaveBState">true</Bool>
-              <Real Name="ValueA">0.2</Real>
-              <Real Name="ValueB">0.30000001</Real>
+              <Real Name="ValueA">0.20000000000000001</Real>
+              <Real Name="ValueB">0.29999999999999999</Real>
             </Mass>
             <Charge Name="Charge">
               <Bool Name="HaveBState">true</Bool>
               <Real Name="ValueA">0.5</Real>
-              <Real Name="ValueB">0.60000002</Real>
+              <Real Name="ValueB">0.59999999999999998</Real>
             </Charge>
             <TypeValue Name="TypeValue">
               <Bool Name="HaveBState">true</Bool>
