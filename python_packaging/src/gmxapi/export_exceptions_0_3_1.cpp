@@ -163,6 +163,12 @@ void export_exceptions(pybind11::module& m)
                 py::register_exception<gmxapi::UsageError>(m, "UsageError", baseException.ptr());
         exception.doc() = "Unacceptable API usage.";
     }
+
+    {
+        auto exception =
+                py::register_exception<gmxapi::InternalError>(m, "InternalError", baseException.ptr());
+        exception.doc() = "Unexpected library error.";
+    }
 }
 
 

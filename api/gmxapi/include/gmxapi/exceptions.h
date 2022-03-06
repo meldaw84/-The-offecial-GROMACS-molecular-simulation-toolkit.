@@ -193,6 +193,22 @@ public:
     using BasicException<UsageError>::BasicException;
 };
 
+/*!
+ * \brief Library code could not perform its function for an unanticipated reason.
+ *
+ * Library code had invalid assumptions or insufficient error handling.
+ * If this exception every propagates to user-level code, please report as a bug.
+ *
+ * As opposed to ProtocolError, which gmxapi throws to indicate that calling code is not respecting
+ * the API specification, gmxapi code throws InternalError when it encounters an error that
+ * cannot be avoided or more clearly identified by the authors.
+ */
+class InternalError : public BasicException<InternalError>
+{
+public:
+    using BasicException<InternalError>::BasicException;
+};
+
 } // end namespace gmxapi
 
 #endif // header guard
