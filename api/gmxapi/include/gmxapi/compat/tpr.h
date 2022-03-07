@@ -42,10 +42,13 @@
 #ifndef GMXAPICOMPAT_TPR_H
 #define GMXAPICOMPAT_TPR_H
 
+#include <functional>
 #include <memory>
+#include <type_traits>
 #include <vector>
 
 #include "gmxapi/gmxapicompat.h"
+#include "gmxapi/compat/data.h"
 #include "gmxapi/compat/mdparams.h"
 
 namespace gmxapicompat
@@ -70,6 +73,8 @@ namespace gmxapicompat
  * of the TprContents manager object via shared_ptr.
  */
 class TprContents;
+
+size_t bytesPrecision(TprContents&);
 
 class TprReadHandle
 {
@@ -122,6 +127,122 @@ class SimulationState
 {
 public:
     std::shared_ptr<TprContents> tprContents_;
+};
+
+/*!
+ * \brief Buffer descriptor for GROMACS coordinates data.
+ *
+ * This structure should be sufficient to map a GROMACS managed coordinates buffer to common
+ * buffer protocols for API array data exchange.
+ *
+ * \warning The coordinates may be internally stored as 32-bit floating point numbers, but
+ * GROMACS developers have neither yet agreed to include 32-bit floating point data in the gmxapi
+ * data typing specification, nor agreed on how to pass data ownership across the API boundary.
+ * For GmxapiType::FLOAT64, be sure to check *itemSize* before casting buffer contents.
+ */
+struct CoordinatesBuffer
+{
+    void*               ptr;
+    gmxapi::GmxapiType  itemType;
+    size_t              itemSize;
+    size_t              ndim;
+    std::vector<size_t> shape;
+    std::vector<size_t> strides;
+    bool                writeable;
+};
+
+static_assert(is_gmxapi_data_buffer<CoordinatesBuffer>::value,
+              "Interface cannot support buffer protocols.");
+
+/*!
+ * \brief Get buffer description for coordinates from a source of structure data.
+ *
+ * \param structure
+ * \param tag type tag for dispatching
+ * \return Buffer description.
+ *
+ * Caller is responsible for keeping the source alive while the buffer is in use.
+ *
+ * \throws PrecisionError if tag parameter does not match the available data.
+ */
+/*! \{ */
+BufferDescription positions(const StructureSource& structure, const float& tag);
+BufferDescription positions(const StructureSource& structure, const double& tag);
+BufferDescription velocities(const StructureSource& structure, const float& tag);
+BufferDescription velocities(const StructureSource& structure, const double& tag);
+/*! \} */
+
+// Forward declaration in gmxapicompat.h
+class TprWriter
+{
+public:
+    explicit TprWriter(std::unique_ptr<TprContents> tprFile);
+    explicit TprWriter(TprContents&& tprFile);
+    // Multiple write handles to the same resource is not supported, and we don't have a good way
+    // to copy the resource.
+    TprWriter(const TprWriter&) = delete;
+    TprWriter& operator=(const TprWriter&) = delete;
+    // Move semantics should be straighforward.
+    TprWriter(TprWriter&&) noexcept = default;
+    TprWriter& operator=(TprWriter&&) noexcept = default;
+    ~TprWriter();
+
+    /*!
+     * \brief Get the floating point precision for the TPR contents being edited.
+     *
+     * \return Number of bytes for floating point numbers in fields described as "real".
+     */
+    [[nodiscard]] size_t get_precision() const;
+
+    //    /*!
+    //     * \brief Replace particle positions from the provided array view.
+    //     *
+    //     * \param coordinates
+    //     * \return Reference to the same builder.
+    //     * \throws PrecisionError if provided BufferDescription does not match current contents
+    //     * precision.
+    //     * \throws ProtocolError if BufferDescription contains data that is inconsistent with
+    //     * documented usage.
+    //     */
+    //    TprBuilder& positions(const BufferDescription& coordinates);
+
+    /*!
+     * \brief Replace particle positions from the provided accessor.
+     *
+     * Caller is responsible for ensuring that the dimensions of the source array are sufficient
+     * to fill the system under construction.
+     *
+     * \param func Accessor that produces one scalar positional coordinate from an Nx3 array.
+     * \return Reference to the current builder.
+     *
+     * \todo Allow optimization for contiguous input data.
+     */
+    TprWriter& positions(const std::function<float(size_t, size_t)>& func);
+    TprWriter& positions(const std::function<double(size_t, size_t)>& func);
+
+    /*!
+     * \brief Replace particle velocities from the provided accessor.
+     *
+     * Caller is responsible for ensuring that the dimensions of the source array are sufficient
+     * to fill the system under construction.
+     *
+     * \param func Accessor that produces one scalar velocity coordinate from an Nx3 array.
+     * \return Reference to the current builder.
+     *
+     * \todo Allow optimization for contiguous input data.
+     */
+    TprWriter& velocities(const std::function<float(size_t, size_t)>& func);
+    TprWriter& velocities(const std::function<double(size_t, size_t)>& func);
+
+    /*!
+     * \brief Write contents to the specified filename.
+     *
+     * \param filename
+     */
+    void write(const std::string& filename);
+
+private:
+    std::unique_ptr<TprContents> tprContents_;
 };
 
 /*!

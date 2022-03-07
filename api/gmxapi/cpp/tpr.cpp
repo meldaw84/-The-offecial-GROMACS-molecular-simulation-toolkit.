@@ -42,6 +42,7 @@
 #include "gmxapi/compat/tpr.h"
 
 #include <cassert>
+#include <cstddef>
 
 #include <map>
 #include <memory>
@@ -59,6 +60,7 @@
 
 #include "gmxapi/gmxapi.h"
 #include "gmxapi/gmxapicompat.h"
+#include "gmxapi/compat/data.h"
 #include "gmxapi/compat/mdparams.h"
 
 using gmxapi::GmxapiType;
@@ -137,6 +139,13 @@ public:
         return *state_;
     }
 
+    /*!
+     * \brief Get the number of bytes of precision for variably-sized floating point data.
+     *
+     * \return Number of bytes of floating point precision.
+     */
+    [[nodiscard]] static constexpr size_t bytesPrecision() { return sizeof(real); };
+
 private:
     // These types are not moveable in GROMACS 2019, so we use unique_ptr as a
     // moveable wrapper to let TprContents be moveable.
@@ -144,6 +153,11 @@ private:
     std::unique_ptr<gmx_mtop_t> mtop_;
     std::unique_ptr<t_state>    state_;
 };
+
+size_t bytesPrecision(TprContents&)
+{
+    return TprContents::bytesPrecision();
+}
 
 // Note: This mapping is incomplete. Hopefully we can replace it before more mapping is necessary.
 // TODO: (#2993) Replace with GROMACS library header resources when available.
@@ -661,6 +675,13 @@ std::unique_ptr<TprReadHandle> readTprFile(const std::string& filename)
     return handle;
 }
 
+std::unique_ptr<TprWriter> editTprFile(const std::string& filename)
+{
+    auto tprfile = gmxapicompat::TprContents(filename);
+    auto handle  = std::make_unique<gmxapicompat::TprWriter>(std::move(tprfile));
+    return handle;
+}
+
 std::unique_ptr<GmxMdParams> getMdParams(const TprReadHandle& handle)
 {
     auto tprfile = handle.get();
@@ -700,6 +721,99 @@ TprReadHandle::TprReadHandle(std::shared_ptr<TprContents> tprFile) :
 TprReadHandle getSourceFileHandle(const GmxMdParams& params)
 {
     return params.params_->getSource();
+}
+
+TprWriter::TprWriter(std::unique_ptr<TprContents> tprFile) : tprContents_{ std::move(tprFile) } {}
+TprWriter::TprWriter(TprContents&& tprFile) :
+    TprWriter(std::make_unique<TprContents>(std::move(tprFile)))
+{
+}
+
+size_t TprWriter::get_precision() const
+{
+    // This result currently appears static, and we might need to remind the compiler
+    // that we know this. But we should not expose this detail to the interface by
+    // making this member function static.
+    constexpr auto precision = TprContents::bytesPrecision();
+    return precision;
+}
+
+
+TprWriter& TprWriter::positions(const std::function<float(size_t, size_t)>& func)
+{
+    // If we had a logger handle, we could warn before implicitly converting.
+    for (auto i = 0; i < tprContents_->state().natoms; ++i)
+    {
+        // Currently, the TPR file is written from a t_state object, which has RVec precision
+        // determined at library compile time, regardless of source or destination TPR file
+        // contents.
+        tprContents_->state().x[i] = { static_cast<real>(func(i, 0)),
+                                       static_cast<real>(func(i, 1)),
+                                       static_cast<real>(func(i, 2)) };
+    }
+    return *this;
+}
+
+TprWriter& TprWriter::positions(const std::function<double(size_t, size_t)>& func)
+{
+    using TprReal = std::remove_extent_t<decltype(tprContents_->state().x)::value_type::RawArray>;
+    if constexpr (sizeof(TprReal) < sizeof(double))
+    {
+        throw PrecisionError(
+                "64-bit coordinates provided for 32-bit TPR. See "
+                "https://manual.gromacs.org/current/dev-manual/build-system.html#cmake-GMX_DOUBLE");
+    }
+    for (auto i = 0; i < tprContents_->state().natoms; ++i)
+    {
+        // Currently, the TPR file is written from a t_state object, which has RVec precision
+        // determined at library compile time, regardless of source or destination TPR file
+        // contents.
+        tprContents_->state().x[i] = { static_cast<real>(func(i, 0)),
+                                       static_cast<real>(func(i, 1)),
+                                       static_cast<real>(func(i, 2)) };
+    }
+    return *this;
+}
+
+TprWriter& TprWriter::velocities(const std::function<float(size_t, size_t)>& func)
+{
+    for (auto i = 0; i < tprContents_->state().natoms; ++i)
+    {
+        // Currently, the TPR file is written from a t_state object, which has RVec precision
+        // determined at library compile time, regardless of source or destination TPR file
+        // contents.
+        tprContents_->state().v[i] = { func(i, 0), func(i, 1), func(i, 2) };
+    }
+    return *this;
+}
+
+TprWriter& TprWriter::velocities(const std::function<double(size_t, size_t)>& func)
+{
+    using TprReal = std::remove_extent_t<decltype(tprContents_->state().v)::value_type::RawArray>;
+    if constexpr (sizeof(TprReal) < sizeof(double))
+    {
+        throw PrecisionError(
+                "64-bit coordinates provided for 32-bit TPR. See "
+                "https://manual.gromacs.org/current/dev-manual/build-system.html#cmake-GMX_DOUBLE");
+    }
+    for (auto i = 0; i < tprContents_->state().natoms; ++i)
+    {
+        // Currently, the TPR file is written from a t_state object, which has RVec precision
+        // determined at library compile time, regardless of source or destination TPR file
+        // contents.
+        tprContents_->state().v[i] = { static_cast<real>(func(i, 0)),
+                                       static_cast<real>(func(i, 1)),
+                                       static_cast<real>(func(i, 2)) };
+    }
+    return *this;
+}
+
+void TprWriter::write(const std::string& filename)
+{
+    write_tpx_state(filename.c_str(),
+                    &this->tprContents_->inputRecord(),
+                    &this->tprContents_->state(),
+                    this->tprContents_->molecularTopology());
 }
 
 void writeTprFile(const std::string&     filename,
@@ -742,6 +856,7 @@ std::shared_ptr<TprContents> TprReadHandle::get() const
 
 // defaulted here to delay definition until after member types are defined.
 TprReadHandle::~TprReadHandle() = default;
+TprWriter::~TprWriter()         = default;
 
 GmxMdParams::~GmxMdParams() = default;
 
@@ -801,4 +916,104 @@ bool rewrite_tprfile(const std::string& inFile, const std::string& outFile, doub
     return success;
 }
 
+
+/*
+ * Primary template serves as a fall-back.
+ *
+ * Throws exception if precision of Scalar does not match typedef of `real`.
+ */
+template<class Scalar, std::enable_if_t<std::is_floating_point_v<Scalar>, int> = 0>
+BufferDescription coordinates(const gmx::PaddedHostVector<gmx::BasicVector<Scalar>>& source)
+{
+    constexpr const int requested = sizeof(Scalar);
+    const int           found     = sizeof(real);
+    std::string         message   = "Requested precision of ";
+    message += std::to_string(requested);
+    message += " bytes. StructureSource has ";
+    message += std::to_string(found);
+    message += " bytes precision.";
+    throw PrecisionError(message);
+}
+
+/*
+ * Instead of providing an overload for different FP types, we just support the compiled `real`
+ * type.
+ */
+template<>
+BufferDescription coordinates(const gmx::PaddedHostVector<gmx::BasicVector<real>>& source)
+{
+    if (source.empty())
+    {
+        throw gmxapi::ProtocolError("Source has no data to point at.");
+    };
+
+    // We can check more thoroughly in unit tests, but let's try to establish our assumptions.
+    static_assert(std::is_standard_layout_v<gmx::RVec>,
+                  "Expected gmx 2022 RVec to have standard layout");
+    static_assert(std::is_standard_layout_v<gmx::PaddedVector<gmx::RVec>>,
+                  "Expected gmx 2022 PaddedVector to have standard layout.");
+    static_assert(sizeof(gmx::RVec[2]) == 6 * sizeof(real),
+                  "Array of RVecs is assumed to have compatible stride with array of reals.");
+    static_assert(
+            std::is_same_v<
+                    std::remove_all_extents_t<decltype(std::declval<gmx::PaddedVector<gmx::RVec>>().data())>,
+                    gmx::RVec*>,
+            "PaddedVector can expose an array of RVecs.");
+
+    // These assertions should indicate that PaddedVector<gmx::RVec> contains a contiguous sequence
+    // of real, but we also test these assumptions in the unit tests.
+    //
+    // Dreams for the future:
+    //     let's not rely on dynamic containers (structs managing heap memory) of non-pod types!
+
+    const real* ptr = source.data()->as_vec();
+
+    auto coordinates = BufferDescription{
+        static_cast<void*>(const_cast<real*>(ptr)),
+        gmxapi::GmxapiType::FLOAT64,
+        sizeof(real),
+        2,
+        std::vector<size_t>{ static_cast<size_t>(source.size()), 3 }, // shape
+        std::vector<size_t>{ sizeof(gmx::RVec), sizeof(real) },       // strides
+        false                                                         // writeable
+    };
+    return coordinates;
+}
+
+
+BufferDescription positions(const StructureSource& structure, const float&)
+{
+    if constexpr (!std::is_same_v<std::remove_all_extents_t<decltype(structure.tprContents_->state().x)::value_type::RawArray>, float>)
+    {
+        throw PrecisionError("Structure source does not provide 32-bit float data.");
+    }
+    return coordinates(structure.tprContents_->state().x);
+}
+
+BufferDescription positions(const StructureSource& structure, const double&)
+{
+    if constexpr (!std::is_same_v<std::remove_all_extents_t<decltype(structure.tprContents_->state().x)::value_type::RawArray>, double>)
+    {
+        throw PrecisionError("Structure source does not provide double-precision data.");
+    }
+    return coordinates(structure.tprContents_->state().x);
+}
+
+BufferDescription velocities(const StructureSource& structure, const float&)
+{
+    if constexpr (!std::is_same_v<std::remove_all_extents_t<decltype(structure.tprContents_->state().v)::value_type::RawArray>, float>)
+    {
+        throw PrecisionError("Structure source does not provide 32-bit float data.");
+    }
+    return coordinates(structure.tprContents_->state().v);
+}
+
+BufferDescription velocities(const StructureSource& structure, const double&)
+{
+    if constexpr (!std::is_same_v<std::remove_all_extents_t<decltype(structure.tprContents_->state().v)::value_type::RawArray>, double>)
+    {
+        throw PrecisionError("Structure source does not provide double-precision data.");
+    }
+    return coordinates(structure.tprContents_->state().v);
+}
 } // end namespace gmxapicompat

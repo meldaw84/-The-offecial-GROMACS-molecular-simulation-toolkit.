@@ -36,6 +36,7 @@
 target_sources(gmxapi PRIVATE
                resourceassignment.cpp
                context.cpp
+               data.cpp
                exceptions.cpp
                gmxapi.cpp
                md.cpp

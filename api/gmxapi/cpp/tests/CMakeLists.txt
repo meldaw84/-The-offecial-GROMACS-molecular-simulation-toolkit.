@@ -58,6 +58,7 @@ gmx_add_gtest_executable(gmxapi-test
         status.cpp
         stopsignaler.cpp
         system.cpp
+        tpr.cpp
         version.cpp
         # pseudo-library for code for mdrun
         $<TARGET_OBJECTS:mdrun_objlib>
@@ -90,6 +91,7 @@ if (GMX_MPI)
                              status.cpp
                              stopsignaler.cpp
                              system.cpp
+                             tpr.cpp
                              version.cpp
                              # pseudo-library for code for mdrun
                              $<TARGET_OBJECTS:mdrun_objlib>

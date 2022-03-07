@@ -168,6 +168,21 @@ class TprReadHandle;
 std::unique_ptr<TprReadHandle> readTprFile(const std::string& filename);
 
 /*!
+ * \brief Manage the construction of a TPR file.
+ *
+ * Handles TPR contents in preparation for writing.
+ */
+class TprWriter;
+
+/*!
+ * \brief Prepare TPR file contents for writing by reading and existing file.
+ *
+ * \param filename
+ * \return Handle with unique and writable access to TPR file contents in memory.
+ */
+std::unique_ptr<TprWriter> editTprFile(const std::string& filename);
+
+/*!
  * \brief Write a new TPR file to the filesystem with the provided contents.
  *
  * \param filename output file path
