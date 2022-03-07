@@ -35,6 +35,7 @@
 import os
 import tempfile
 
+import numpy
 import pytest
 import gmxapi
 import gmxapi.simulation.fileio
@@ -114,3 +115,61 @@ def test_core_read_and_write_tpr_file(spc_water_box):
         assert params['nsteps'] == new_nsteps
 
     os.unlink(temp_filename)
+
+
+@pytest.mark.usefixtures('cleandir')
+def test_read_coordinates(spc_water_box_collection):
+    tpr_filename = spc_water_box_collection['tpr_filename']
+
+    x: numpy.array = _gmxapi.read_tprfile(tpr_filename).positions()
+
+    # Confirm that buffer protocol properly manages object lifetimes without
+    # holding explicit references to the results of read_tprfile() or coordinates().
+    import gc
+    gc.collect()
+
+    assert x.shape[1] == 3
+    # We know the box dimensions. If we got the memory layout wrong, the chances of coordinates being in
+    # the box are slim.
+    assert all(x.flat > -1.)
+    assert all(x.flat < 6.)
+    assert not all(x.flat == 0.)
+    # With some trivial parsing of the gro or top files, we could be more thorough...
+
+
+def test_trivial_tprbuilder(spc_water_box, cleandir):
+    tpr_writer = _gmxapi.TprWriter(spc_water_box)
+    tpr_outfile = os.path.join(cleandir, 'new.tpr')
+    tpr_writer.write(tpr_outfile)
+
+    coordinatesA = _gmxapi.read_tprfile(spc_water_box).positions()
+    coordinatesB = _gmxapi.read_tprfile(tpr_outfile).positions()
+
+    assert numpy.all(coordinatesA == coordinatesB)
+
+
+def test_rewrite_coordinates(spc_water_box_collection, cleandir):
+    tpr_filename = spc_water_box_collection['tpr_filename']
+    tpr_filehandle: _gmxapi.TprFile = _gmxapi.read_tprfile(tpr_filename)
+    x = tpr_filehandle.positions()
+
+    # TODO: Optimized No-copy read-only access
+    # Buffer is read-only
+    # with pytest.raises(ValueError):
+    #     x[0][0] += 1.0
+
+    # Copy the source data for editing.
+    y = numpy.array(tpr_filehandle.positions())
+    y[:] += 1.0
+
+    tpr_outfile = os.path.join(cleandir, 'new.tpr')
+    tpr_writer = _gmxapi.TprWriter(tpr_filename)
+
+    tpr_writer.set_positions(y)
+
+    tpr_writer.write(tpr_outfile)
+
+    y = _gmxapi.read_tprfile(tpr_outfile).positions()
+
+    tolerance = 10**-6
+    assert abs(y.mean() - 1 - x.mean()) < tolerance

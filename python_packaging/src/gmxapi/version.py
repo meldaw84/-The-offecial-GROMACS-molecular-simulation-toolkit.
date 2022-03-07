@@ -69,9 +69,9 @@ from .exceptions import FeatureNotAvailableError
 
 # TODO(#3851): Version management policy and procedures.
 _major = 0
-_minor = 3
+_minor = 4
 _micro = 0
-_suffix = ''
+_suffix = 'a1'
 
 # Reference https://www.python.org/dev/peps/pep-0440/
 # and https://packaging.pypa.io/en/latest/version/
@@ -104,6 +104,8 @@ _named_features_0[2] = [
     'mdrun_checkpoint_output',
     'mdrun_runtime_args',
 ]
+
+_named_features_0[3] = ['tpr_numpy_access']
 
 
 def api_is_at_least(major_version, minor_version=0, patch_version=0):

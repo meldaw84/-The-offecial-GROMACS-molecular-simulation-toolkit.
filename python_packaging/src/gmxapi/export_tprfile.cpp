@@ -46,23 +46,156 @@
  * \ingroup module_python
  */
 
-#include "gmxapi/exceptions.h"
+#include "pybind11/numpy.h"
 
+#include "gmxapi/exceptions.h"
 #include "gmxapi/gmxapicompat.h"
+#include "gmxapi/compat/data.h"
 #include "gmxapi/compat/mdparams.h"
 #include "gmxapi/compat/tpr.h"
 
 #include "module.h"
 
 using gmxapi::GmxapiType;
+using gmxapicompat::StructureSource;
+
+namespace py = pybind11;
 
 namespace gmxpy
 {
 
-
-void detail::export_tprfile(pybind11::module& module)
+namespace detail
 {
-    namespace py = pybind11;
+
+template<typename T>
+using accessor_t = gmxapicompat::BufferDescription(const StructureSource&, const T&);
+
+template<typename T>
+py::array coordinates(const StructureSource& source, accessor_t<T>* accessor)
+{
+    auto buffer = accessor(source, T());
+    // Expecting an Nx3 array.
+    if (buffer.shape.size() != 2 || buffer.shape[1] != 3)
+    {
+        throw gmxapi::InternalError("Unexpected coordinates array dimensions.");
+    }
+    auto coordinates = py::array_t<T>({ buffer.shape[0], buffer.shape[1] },
+                                      { buffer.strides[0], buffer.strides[1] });
+    // Copy data from structure source until we can think some more about
+    // no-copy access.
+    auto proxy = coordinates.mutable_unchecked();
+    for (py::ssize_t i = 0; i < proxy.shape(0); i++)
+    {
+        for (py::ssize_t j = 0; j < proxy.shape(1); j++)
+        {
+            proxy(i, j) = reinterpret_cast<T*>(buffer.ptr)[3 * i + j];
+        }
+    }
+    return coordinates;
+}
+
+py::array positions(const StructureSource& source)
+{
+    if (gmxapicompat::bytesPrecision(*source.tprContents_) == sizeof(float))
+    {
+        return coordinates<float>(source, &gmxapicompat::positions);
+    }
+    else if (gmxapicompat::bytesPrecision(*source.tprContents_) == sizeof(double))
+    {
+        return coordinates<double>(source, &gmxapicompat::positions);
+    }
+    else
+    {
+        throw gmxapicompat::PrecisionError("Unknown floating point data type.");
+    }
+}
+
+
+py::array velocities(const StructureSource& source)
+{
+    if (gmxapicompat::bytesPrecision(*source.tprContents_) == sizeof(float))
+    {
+        return coordinates<float>(source, &gmxapicompat::velocities);
+    }
+    else if (gmxapicompat::bytesPrecision(*source.tprContents_) == sizeof(double))
+    {
+        return coordinates<double>(source, &gmxapicompat::velocities);
+    }
+    else
+    {
+        throw gmxapicompat::PrecisionError("Unknown floating point data type.");
+    }
+}
+
+
+void set_positions(gmxapicompat::TprWriter* writer, const py::array& coords)
+{
+    if (coords.ndim() != 2 || coords.shape()[1] != 3)
+    {
+        throw gmxapi::UsageError("Requires a Nx3 coordinates array.");
+    }
+
+    // TODO: Check type and layout to see if we can do a more optimized std::copy() or memcpy().
+    // Alternatively, we could force the input to C array layout of appropriate type.
+    if (coords.dtype().char_() == 'f')
+    {
+        const auto proxy = coords.unchecked<float, 2>();
+
+        const std::function<float(size_t, size_t)> positions_f = [&proxy](size_t i, size_t j) {
+            return proxy(i, j);
+        };
+        writer->positions(positions_f);
+    }
+    else if (coords.dtype().char_() == 'd')
+    {
+        const auto proxy = coords.unchecked<double, 2>();
+
+        const std::function<double(size_t, size_t)> positions_d = [&proxy](size_t i, size_t j) {
+            return proxy(i, j);
+        };
+        writer->positions(positions_d);
+    }
+    else
+    {
+        throw gmxapi::UsageError("Unexpected type. Expected either float32 or float64.");
+    }
+}
+
+void set_velocities(gmxapicompat::TprWriter* writer, const py::array& coords)
+{
+    if (coords.ndim() != 2 || coords.shape()[1] != 3)
+    {
+        throw gmxapi::UsageError("Requires a Nx3 coordinates array.");
+    }
+
+    // TODO: Check type and layout to see if we can do a more optimized std::copy() or memcpy().
+    // Alternatively, we could force the input to C array layout of appropriate type.
+    if (coords.dtype().char_() == 'f')
+    {
+        const auto proxy = coords.unchecked<float, 2>();
+
+        const std::function<float(size_t, size_t)> velocities_f = [&proxy](size_t i, size_t j) {
+            return proxy(i, j);
+        };
+        writer->velocities(velocities_f);
+    }
+    else if (coords.dtype().char_() == 'd')
+    {
+        const auto proxy = coords.unchecked<double, 2>();
+
+        const std::function<double(size_t, size_t)> velocities_d = [&proxy](size_t i, size_t j) {
+            return proxy(i, j);
+        };
+        writer->velocities(velocities_d);
+    }
+    else
+    {
+        throw gmxapi::UsageError("Unexpected type. Expected either float32 or float64.");
+    }
+}
+
+void export_tprfile(pybind11::module& module)
+{
     using gmxapicompat::GmxMdParams;
     using gmxapicompat::readTprFile;
     using gmxapicompat::TprReadHandle;
@@ -128,10 +261,29 @@ void detail::export_tprfile(pybind11::module& module)
             "set",
             [](GmxMdParams* self, const std::string& key, py::none) {
                 // unsetParam(self, key);
+                throw gmxapi::NotImplementedError(
+                        "Un-setting parameters is not currently supported.");
             },
             py::arg("key").none(false),
             py::arg("value"),
             "Use a dictionary to update simulation parameters.");
+
+    py::class_<StructureSource> structureSource(module, "SimulationStructure");
+    // The two options that make the most sense are
+    // 1. Create a array_t and copy the vector into it, or
+    // 2. Define a type with bindings that supports the Python buffer protocol.
+    // A third option might be to use a numpy structured data type...
+    structureSource.def("positions", &positions, "Get a copy of the positions as a numpy array." /*,
+                                       * If we use a no-copy access, we will need to extend the life
+                                       of the exporting object. py::keep_alive<0, 1>()*/
+    );
+    structureSource.def("velocities", &velocities, "Get a copy of the velocities as a numpy array.");
+
+    py::class_<gmxapicompat::TprWriter> tprWriter(module, "TprWriter");
+    tprWriter.def(py::init(&gmxapicompat::editTprFile));
+    tprWriter.def("set_positions", &set_positions);
+    tprWriter.def("set_velocities", &set_velocities);
+    tprWriter.def("write", &gmxapicompat::TprWriter::write);
 
 
     py::class_<TprReadHandle> tprfile(module, "TprFile");
@@ -139,7 +291,18 @@ void detail::export_tprfile(pybind11::module& module)
         auto params = gmxapicompat::getMdParams(self);
         return params;
     });
-
+    //    tprfile.def("coordinates",
+    //                [](const TprReadHandle& self)
+    //                {
+    //                    auto structure = gmxapicompat::getStructureSource(self);
+    //                    return structure;
+    //                });
+    tprfile.def("positions", [](const TprReadHandle& self) {
+        return positions(*gmxapicompat::getStructureSource(self));
+    });
+    tprfile.def("velocities", [](const TprReadHandle& self) {
+        return velocities(*gmxapicompat::getStructureSource(self));
+    });
     module.def("read_tprfile",
                &readTprFile,
                py::arg("filename"),
@@ -179,5 +342,7 @@ void detail::export_tprfile(pybind11::module& module)
             "Copy a TPR file from ``source`` to ``destination``, replacing `nsteps` with "
             "``end_time``.");
 }
+
+} // namespace detail
 
 } // end namespace gmxpy
