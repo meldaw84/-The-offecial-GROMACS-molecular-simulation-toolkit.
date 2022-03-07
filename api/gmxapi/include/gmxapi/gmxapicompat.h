@@ -35,9 +35,7 @@
 /*! \file
  * \brief Compatibility header for functionality differences in gmxapi releases.
  *
- * Also handle the transitioning installed headers from GROMACS 2019 moving forward.
- *
- * \todo Configure for gmxapi 0.0.7, 0.0.8, GROMACS 2019, GROMACS master...
+ * Also provides insulation while installed headers transition from GROMACS 2019 moving forward.
  *
  * \defgroup gmxapi_compat
  * \author M. Eric Irrgang <ericirrgang@gmail.com>
@@ -113,12 +111,14 @@ std::map<std::string, int64_t t_inputrec::*> int64Params();
 gmxapi::GmxapiType mdParamToType(const std::string& name);
 
 /*!
- * \brief Facade for objects that can provide atomic data for a configuration.
+ * \brief Proxy that can provide atomic data for a configuration.
+ *
+ * \todo Refine the categorization of member data and improve naming.
  */
 class StructureSource;
 
 /*!
- * \brief Facade for objects that can provide molecular topology information for a structure.
+ * \brief Proxy that can provide molecular topology information for a structure.
  */
 class TopologySource;
 
@@ -146,7 +146,7 @@ class SimulationState;
 class GmxMdParams;
 
 /*!
- * \brief Handle for a TPR data resource.
+ * \brief Handle for a read-only TPR data resource.
  *
  * Can provide StructureSource, TopologySource, GmxMdParams, and SimulationState.
  *
@@ -191,7 +191,6 @@ void writeTprFile(const std::string&     filename,
  *
  * \todo replace with a helper template on T::topologySource() member function existence.
  */
-
 std::unique_ptr<TopologySource> getTopologySource(const TprReadHandle& handle);
 
 /*!

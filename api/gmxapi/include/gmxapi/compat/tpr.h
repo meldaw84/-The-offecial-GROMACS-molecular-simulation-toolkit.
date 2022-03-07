@@ -91,7 +91,7 @@ public:
      *
      * \return Reference-counted handle to data container.
      */
-    std::shared_ptr<TprContents> get() const;
+    [[nodiscard]] std::shared_ptr<TprContents> get() const;
 
 private:
     std::shared_ptr<TprContents> tprContents_;
@@ -109,19 +109,19 @@ TprReadHandle getSourceFileHandle(const GmxMdParams& params);
 class StructureSource
 {
 public:
-    std::shared_ptr<TprContents> tprFile_;
+    std::shared_ptr<TprContents> tprContents_;
 };
 
 class TopologySource
 {
 public:
-    std::shared_ptr<TprContents> tprFile_;
+    std::shared_ptr<TprContents> tprContents_;
 };
 
 class SimulationState
 {
 public:
-    std::shared_ptr<TprContents> tprFile_;
+    std::shared_ptr<TprContents> tprContents_;
 };
 
 /*!

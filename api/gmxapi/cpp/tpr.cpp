@@ -69,16 +69,38 @@ namespace gmxapicompat
 class TprContents
 {
 public:
+    /*!
+     * \brief Initialize from an input file by name.
+     *
+     * \param infile Local filesystem path to a TPR file.
+     */
     explicit TprContents(const std::string& infile) :
-        irInstance_{ std::make_unique<t_inputrec>() },
-        mtop_{ std::make_unique<gmx_mtop_t>() },
-        state_{ std::make_unique<t_state>() }
+        TprContents{ std::make_unique<t_inputrec>(),
+                     std::make_unique<gmx_mtop_t>(),
+                     std::make_unique<t_state>() }
     {
         read_tpx_state(infile.c_str(), irInstance_.get(), state_.get(), mtop_.get());
     }
     ~TprContents()                             = default;
     TprContents(TprContents&& source) noexcept = default;
     TprContents& operator=(TprContents&&) noexcept = default;
+    // Legacy member structures may not be copyable.
+    TprContents(const TprContents& source) noexcept = delete;
+    TprContents& operator=(const TprContents&) noexcept = delete;
+
+    /*!
+     * \brief Wrap constituent data structures into a new instance.
+     *
+     * \param irInstance
+     * \param mtop
+     * \param state
+     */
+    TprContents(std::unique_ptr<t_inputrec> irInstance,
+                std::unique_ptr<gmx_mtop_t> mtop,
+                std::unique_ptr<t_state>    state) :
+        irInstance_{ std::move(irInstance) }, mtop_{ std::move(mtop) }, state_{ std::move(state) }
+    {
+    }
 
     /*!
      * \brief Get a reference to the input record in the TPR file.
@@ -86,7 +108,7 @@ public:
      * Note that this implementation allows different objects to share ownership
      * of the TprFile and does not provide access restrictions to prevent multiple
      * code blocks writing to the input record. This should be resolved with a
-     * combination of managed access controlled handles and through better
+     * combination of managed access-controlled handles and through better
      * management of the data structures in the TPR file. I.e. the t_inputrec is
      * not copyable, moveable, nor default constructable (at least, to produce a
      * valid record), and it does not necessarily make sense to map the library
@@ -97,19 +119,19 @@ public:
      *
      * \return
      */
-    t_inputrec& inputRecord() const
+    [[nodiscard]] t_inputrec& inputRecord() const
     {
         assert(irInstance_);
         return *irInstance_;
     }
 
-    gmx_mtop_t& molecularTopology() const
+    [[nodiscard]] gmx_mtop_t& molecularTopology() const
     {
         assert(mtop_);
         return *mtop_;
     }
 
-    t_state& state() const
+    [[nodiscard]] t_state& state() const
     {
         assert(state_);
         return *state_;
@@ -328,7 +350,7 @@ public:
      *
      * \return
      */
-    std::vector<std::string> keys() const
+    [[nodiscard]] std::vector<std::string> keys() const
     {
         std::vector<std::string> keyList;
         for (auto&& entry : int64Params_)
@@ -416,7 +438,7 @@ public:
         }
     };
 
-    TprReadHandle getSource() const
+    [[nodiscard]] TprReadHandle getSource() const
     {
         // Note: might return a null handle. Need to decide what that means and how to address it.
         return TprReadHandle(source_);
@@ -651,22 +673,22 @@ std::unique_ptr<GmxMdParams> getMdParams(const TprReadHandle& handle)
 
 std::unique_ptr<TopologySource> getTopologySource(const TprReadHandle& handle)
 {
-    auto source      = std::make_unique<TopologySource>();
-    source->tprFile_ = handle.get();
+    auto source          = std::make_unique<TopologySource>();
+    source->tprContents_ = handle.get();
     return source;
 }
 
 std::unique_ptr<SimulationState> getSimulationState(const TprReadHandle& handle)
 {
-    auto source      = std::make_unique<SimulationState>();
-    source->tprFile_ = handle.get();
+    auto source          = std::make_unique<SimulationState>();
+    source->tprContents_ = handle.get();
     return source;
 }
 
 std::unique_ptr<StructureSource> getStructureSource(const TprReadHandle& handle)
 {
-    auto source      = std::make_unique<StructureSource>();
-    source->tprFile_ = handle.get();
+    auto source          = std::make_unique<StructureSource>();
+    source->tprContents_ = handle.get();
     return source;
 }
 
@@ -689,10 +711,10 @@ void writeTprFile(const std::string&     filename,
     assert(params.params_);
     // The only way we can check for consistent input right now is to make sure
     // it all comes from the same file.
-    if (structure.tprFile_.get() != state.tprFile_.get()
-        || state.tprFile_.get() != topology.tprFile_.get()
-        || topology.tprFile_.get() != params.params_->getSource().get().get()
-        || params.params_->getSource().get().get() != structure.tprFile_.get())
+    if (structure.tprContents_.get() != state.tprContents_.get()
+        || state.tprContents_.get() != topology.tprContents_.get()
+        || topology.tprContents_.get() != params.params_->getSource().get().get()
+        || params.params_->getSource().get().get() != structure.tprContents_.get())
     {
         throw ValueError(
                 "writeTprFile does not yet know how to reconcile data from different TPR file "
