@@ -36,10 +36,17 @@ add_library(domdec INTERFACE)
 file(GLOB DOMDEC_SOURCES *.cpp)
 
 if(GMX_GPU_CUDA)
-  file(GLOB DOMDEC_CUDA_SOURCES gpuhaloexchange_impl.cu)
+  file(GLOB DOMDEC_GPU_SOURCES gpuhaloexchange_impl.cu)
 endif()
 
-set(LIBGROMACS_SOURCES ${LIBGROMACS_SOURCES} ${DOMDEC_SOURCES} ${DOMDEC_CUDA_SOURCES} PARENT_SCOPE)
+if(GMX_GPU_SYCL)
+  file(GLOB DOMDEC_GPU_SOURCES gpuhaloexchange_impl_sycl.cpp)
+  _gmx_add_files_to_property(SYCL_SOURCES gpuhaloexchange_impl_sycl.cpp)
+else()
+  list(REMOVE_ITEM DOMDEC_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/gpuhaloexchange_impl_sycl.cpp)
+endif()
+
+set(LIBGROMACS_SOURCES ${LIBGROMACS_SOURCES} ${DOMDEC_SOURCES} ${DOMDEC_GPU_SOURCES} PARENT_SCOPE)
 
 # Source files have the following dependencies on library infrastructure.
 #target_link_libraries(domdec PRIVATE
