@@ -867,9 +867,21 @@ static auto nbnxmKernel(sycl::handler&                                          
     constexpr bool doExclusionForces =
             (props.elecEwald || props.elecRF || props.vdwEwald || (props.elecCutoff && doCalcEnergies));
 
+    if constexpr(doPruneNBL
+                 || props.vdwEwald || props.vdwPSwitch || !props.vdwComb
+                 || props.elecEwaldTwin)
+    {
+        GMX_RELEASE_ASSERT(false, "doPruneNBL && vdw: Ewald || PSwitch || !Comb && twin cut-off not supported in the prototyping branch.");
+    }
 
     return [=](sycl::nd_item<3> itemIdx) [[intel::reqd_sub_group_size(subGroupSize)]]
     {
+        if constexpr(doPruneNBL
+                     || props.vdwEwald || props.vdwPSwitch || !props.vdwComb
+                     || props.elecEwaldTwin)
+        {
+            return;
+        }
         /* thread/block/warp id-s */
         const unsigned tidxi = itemIdx.get_local_id(2);
         const unsigned tidxj = itemIdx.get_local_id(1);
