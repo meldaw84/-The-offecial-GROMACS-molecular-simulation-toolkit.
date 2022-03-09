@@ -43,6 +43,18 @@
  *  \author Andrey Alekseenko <al42and@gmail.com>
  */
 
+
+static __host__ void atomicAddNoRetX(float*, float)
+{
+    assert(false);
+}
+
+static __device__ void atomicAddNoRetX(float* addr, float val)
+{
+    __ockl_atomic_add_noret_f32(addr, val);
+}
+
+
 //! \brief Full warp active thread mask used in CUDA warp-level primitives.
 static constexpr unsigned int c_cudaFullWarpMask = 0xffffffff;
 
@@ -51,9 +63,7 @@ static constexpr unsigned int c_cudaFullWarpMask = 0xffffffff;
 template<typename T, sycl_2020::memory_scope MemoryScope = sycl_2020::memory_scope::device>
 static inline void atomicFetchAdd(T& val, const T delta)
 {
-    sycl_2020::atomic_ref<T, sycl_2020::memory_order::relaxed, MemoryScope, sycl::access::address_space::global_space> ref(
-            val);
-    ref.fetch_add(delta);
+    atomicAddNoRetX(&val, delta);
 }
 
 /*! \brief Convenience wrapper to do atomic loads from a global buffer.
