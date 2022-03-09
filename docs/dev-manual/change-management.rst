@@ -42,8 +42,8 @@ right top corner and select settings.
 
 Chose SSH keys in the menu on the left and past your key in the text field.
 
-Creating issues
----------------
+Issue tracking
+==============
 
 The meta-level code design and discussions is organised in issues and visible at
 https://gitlab.com/gromacs/gromacs/-/issues. Please check if if your issue or a
@@ -52,40 +52,14 @@ similar issue already exists before creating a new one.
 Note that all Redmine issues have been transferred to gitlab with the same issue
 numbers as used in gitlab. However, comments and discussion are now represented
 by gitlab user @acmnpv - the original authors are found inline at the bottom of
-the comments. 
+the comments.
 
-Uploading code for review - creating a merge request
-----------------------------------------------------
+See :doc:`reportstyle` for more on submitting issues.
 
-Issues are addressed with new code via "merge requests" (MR). Find the current
-MRs at https://gitlab.com/gromacs/gromacs/-/merge_requests. 
-There are two ways of creating a merge request - either via the gitlab graphical
-user interface or via the command line. 
-
-To use the GUI, find the relevant issue or open a new one, then find the 
-"create merge request" button to create a merge request related to that issue in gitlab.
-The default selection is to mark this a work in progress (WIP) merge-request.
-We recommend keeping this setting until you are completely satisfied with the 
-code yourself and all tests are passed.
-
-Select milestone and assignees to make tracking of the progress easier. 
-Keep the requirements for merging as they are set by default.
-
-You can also use ``git push`` on the command line directly and create a merge request 
-following the link that is output on the command line.
-
-Your repository should be in sync with the GROMACS repository. To ensure this,
-use ``git fetch`` to obtain the newest branches, then merge the master branch
-into your branch with ``git merge master`` while on your branch.
-
-Naming branches
----------------
-
-Good names: documentation_UpdateDevelopersDocsTOGitLab, nbnxm_MakeNbnxmGPUIntoClass, pme_FEPPMEGPU. 
-Bad names: branch1234, mybranch, test, etc
+.. Consider merging reportstyle.rst or moving `issue_workflow` from reportstyle to this doc.
 
 Labels
-======
+------
 
 `Labels <https://docs.gitlab.com/ee/user/project/labels.html>`__
 help developers by allowing additional filtering of issues and merge requests.
@@ -111,8 +85,38 @@ In general:
 
 .. Best practices and labeling policies can be proposed as changes to this document. See https://gitlab.com/gromacs/gromacs/-/issues/3949
 
-Code Review
-===========
+Merge requests
+==============
+
+Uploading code for review - creating a merge request
+----------------------------------------------------
+
+Issues are addressed with new code via "merge requests" (MR). Find the current
+MRs at https://gitlab.com/gromacs/gromacs/-/merge_requests.
+There are two ways of creating a merge request - either via the gitlab graphical
+user interface or via the command line.
+
+To use the GUI, find the relevant issue or open a new one, then find the
+"create merge request" button to create a merge request related to that issue in gitlab.
+The default selection is to mark this a work in progress (WIP) merge-request.
+We recommend keeping this setting until you are completely satisfied with the
+code yourself and all tests are passed.
+
+Select milestone and assignees to make tracking of the progress easier.
+Keep the requirements for merging as they are set by default.
+
+You can also use ``git push`` on the command line directly and create a merge request
+following the link that is output on the command line.
+
+Your repository should be in sync with the GROMACS repository. To ensure this,
+use ``git fetch`` to obtain the newest branches, then merge the master branch
+into your branch with ``git merge master`` while on your branch.
+
+Naming branches
+---------------
+
+Good names: documentation_UpdateDevelopersDocsTOGitLab, nbnxm_MakeNbnxmGPUIntoClass, pme_FEPPMEGPU.
+Bad names: branch1234, mybranch, test, etc
 
 Reviewing someone else's uploaded code
 --------------------------------------
