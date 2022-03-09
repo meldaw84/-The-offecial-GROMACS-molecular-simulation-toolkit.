@@ -91,8 +91,36 @@ containing the built documentation. See
 `docs/docs.dockerfile <https://gitlab.com/gromacs/gromacs/-/tree/main/docs/docs.dockerfile>`__
 in the source tree.
 
+Annotations
+-----------
+
+Several features of the GitLab interface help us to understand and track the progress of an issue.
+
+Assignee
+""""""""
+
+The assignee of an issue is someone taking responsibility for coordinating progress on the issue.
+Issues without assignees are most likely to be considered "stale" and may be closed with minimal
+consideration.
+If you are willing to coordinate progress on an issue, assign yourself when opening the issue.
+The assignee is *not necessarily* the person working on code for the issue, but is the person who
+will be the central point of contact when status updates are needed.
+
+Milestone
+"""""""""
+
+Issues should have development target milestones when resources have been assigned (developer and
+reviewers) and when specific effort is planned or underway.
+
+Bug fixes should target milestones for release branches. For example, a bug fix that should be
+applied for the 2022.1 release would be assigned to the ``2022.1`` milestone.
+
+New development is merged into ``master``, and uses milestones named for a part of the development
+cycle leading up to a future release. For example, work planned for the first part of the 2022 calendar
+year would use the ``2023.devcycle1`` milestone.
+
 Labels
-------
+""""""
 
 `Labels <https://docs.gitlab.com/ee/user/project/labels.html>`__
 help developers by allowing additional filtering of issues and merge requests.
