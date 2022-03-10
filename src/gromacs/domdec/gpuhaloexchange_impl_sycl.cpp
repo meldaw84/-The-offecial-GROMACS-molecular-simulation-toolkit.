@@ -480,7 +480,9 @@ void GpuHaloExchange::Impl::communicateHaloDataWithSyclMpi(Float3* sendPtr,
         // before transferring to remote rank
 
         // ToDo: Replace stream synchronize with event synchronize
+        wallcycle_sub_start(wcycle_, WallCycleSubCounter::DDGpuWaitHalo); 
         haloStream_->synchronize();
+        wallcycle_sub_stop(wcycle_, WallCycleSubCounter::DDGpuWaitHalo); 
     }
 
     // perform halo exchange directly in device buffers

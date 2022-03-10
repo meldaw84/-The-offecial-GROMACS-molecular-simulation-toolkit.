@@ -126,6 +126,7 @@ enum class WallCycleSubCounter : int
     DDMakeConstr,
     DDTopOther,
     DDGpu,
+    DDGpuWaitHalo,
     NBSGridLocal,
     NBSGridNonLocal,
     NBSSearchLocal,

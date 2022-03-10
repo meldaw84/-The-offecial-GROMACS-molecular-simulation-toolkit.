@@ -133,6 +133,7 @@ static const char* enumValuetoString(WallCycleSubCounter enumValue)
         "DD make constr.",
         "DD top. other",
         "DD GPU ops.",
+        "DD GPU wait halo",
         "NS grid local",
         "NS grid non-loc.",
         "NS search local",
