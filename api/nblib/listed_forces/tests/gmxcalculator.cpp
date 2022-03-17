@@ -63,7 +63,7 @@ ListedGmxCalculator::ListedGmxCalculator(const ListedInteractionData& interactio
     forceBuffer(2 * numParticles, gmx::RVec{ 0, 0, 0 }),
     shiftProxy(gmx::ArrayRefWithPadding<gmx::RVec>(&forceBuffer[0],
                                                    &forceBuffer[numParticles],
-                                                   &forceBuffer[2 * numParticles]),
+                                                   &forceBuffer[2 * numParticles - 1]),
                true,
                shiftBuffer),
     virialProxy(forceBuffer, true),
