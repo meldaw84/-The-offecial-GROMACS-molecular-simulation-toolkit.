@@ -46,14 +46,47 @@
 //! \brief Full warp active thread mask used in CUDA warp-level primitives.
 static constexpr unsigned int c_cudaFullWarpMask = 0xffffffff;
 
+#if GMX_SYCL_HIPSYCL
+static inline __device__ void atomicAddOptimized(float* ptr, const float delta)
+{
+#    if defined(__gfx908__) // Special function for AMD MI100
+#        pragma clang diagnostic push
+#        pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    atomicAddNoRet(ptr, delta);
+#        pragma clang diagnostic pop
+#    elif defined(__gfx90a__) // Special function for AMD MI200
+    unsafeAtomicAdd(ptr, delta);
+#    else
+    atomicAdd(ptr, delta);
+#    endif
+}
+
+static inline __host__ void atomicAddOptimized(float*, const float)
+{
+    assert(false);
+}
+#else
+static inline void atomicAddOptimized(float*, const float)
+{
+    assert(false);
+}
+#endif
+
 /*! \brief Convenience wrapper to do atomic addition to a global buffer.
  */
 template<typename T, sycl_2020::memory_scope MemoryScope = sycl_2020::memory_scope::device>
 static inline void atomicFetchAdd(T& val, const T delta)
 {
-    sycl_2020::atomic_ref<T, sycl_2020::memory_order::relaxed, MemoryScope, sycl::access::address_space::global_space> ref(
-            val);
-    ref.fetch_add(delta);
+    if constexpr (GMX_SYCL_HIPSYCL && std::is_same_v<T, float>)
+    {
+        atomicAddOptimized(&val, delta);
+    }
+    else
+    {
+        using sycl_2020::memory_order, sycl::access::address_space;
+        sycl_2020::atomic_ref<T, memory_order::relaxed, MemoryScope, address_space::global_space> ref(val);
+        ref.fetch_add(delta);
+    }
 }
 
 /*! \brief Convenience wrapper to do atomic loads from a global buffer.
@@ -222,9 +255,9 @@ static inline void storeFromVec(const sycl::vec<T, NumElements>& v,
  * Can probably be removed when
  * https://github.com/illuhad/hipSYCL/issues/647 is resolved. */
 template<sycl::access::address_space AddressSpace, typename T, int NumElements>
-static inline void loadToVec(size_t offset,
+static inline void loadToVec(size_t                                 offset,
                              sycl::multi_ptr<const T, AddressSpace> ptr,
-                             sycl::vec<T, NumElements>* v)
+                             sycl::vec<T, NumElements>*             v)
 {
     v->load(offset, ptr);
 }
@@ -238,7 +271,7 @@ static inline void loadToVec(size_t offset,
  * https://github.com/illuhad/hipSYCL/issues/647 is resolved. */
 template<sycl::access::address_space AddressSpace, typename T, int NumElements>
 static inline void storeFromVec(const sycl::vec<T, NumElements>& v,
-                                size_t offset,
+                                size_t                           offset,
                                 sycl::multi_ptr<T, AddressSpace> ptr)
 {
     v.store(offset, ptr);
