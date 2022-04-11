@@ -61,12 +61,12 @@ static inline __device__ void atomicAddOptimized(float* ptr, const float delta)
 #    endif
 }
 
-static inline __host__ void atomicAddOptimized(float*, const float)
+[[noreturn]] static inline __host__ void atomicAddOptimized(float*, const float)
 {
     assert(false);
 }
 #else
-static inline void atomicAddOptimized(float*, const float)
+[[noreturn]] static inline void atomicAddOptimized(float*, const float)
 {
     assert(false);
 }
