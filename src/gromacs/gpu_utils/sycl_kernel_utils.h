@@ -55,7 +55,7 @@ static inline __device__ void atomicAddOptimized(float* ptr, const float delta)
     atomicAddNoRet(ptr, delta);
 #        pragma clang diagnostic pop
 #    elif defined(__gfx90a__) // Special function for AMD MI200
-    unsafeAtomicAdd(ptr, delta);
+    unsafeAtomicAdd(ptr, delta); // Not checked on real hardware, see #4465
 #    else
     atomicAdd(ptr, delta);
 #    endif
