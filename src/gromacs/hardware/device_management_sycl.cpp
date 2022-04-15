@@ -116,11 +116,12 @@ static DeviceStatus isDeviceCompatible(const sycl::device& syclDevice)
         return DeviceStatus::Incompatible;
     }
 
+#if 0 // First, the formula is not correct for oneAPI/HIP. Second, https://github.com/intel/llvm/issues/5825
     const std::vector<size_t> supportedSubGroupSizes =
             syclDevice.get_info<sycl::info::device::sub_group_sizes>();
 
     // Ensure any changes stay in sync with subGroupSize in src/gromacs/nbnxm/sycl/nbnxm_sycl_kernel.cpp
-    constexpr size_t requiredSubGroupSizeForNbnxm =
+    constexpr size_t requiredSubGroupSizeForNbnxm = 64; // !!! Nasty hack for AMD support
 #if defined(HIPSYCL_PLATFORM_ROCM)
             GMX_GPU_NB_CLUSTER_SIZE * GMX_GPU_NB_CLUSTER_SIZE;
 #else
@@ -132,6 +133,7 @@ static DeviceStatus isDeviceCompatible(const sycl::device& syclDevice)
     {
         return DeviceStatus::IncompatibleClusterSize;
     }
+#endif
 
     /* Host device can not be used, because NBNXM requires sub-groups, which are not supported.
      * Accelerators (FPGAs and their emulators) are not supported.

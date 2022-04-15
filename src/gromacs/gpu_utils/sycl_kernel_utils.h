@@ -68,7 +68,7 @@ static inline __host__ void atomicAddOptimized(float*, const float)
 #else
 static inline void atomicAddOptimized(float*, const float)
 {
-    assert(false);
+    
 }
 #endif
 
