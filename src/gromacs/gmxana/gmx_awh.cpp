@@ -50,6 +50,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 
 #include "gromacs/applied_forces/awh/read_params.h"
 #include "gromacs/commandline/pargs.h"
@@ -71,6 +72,7 @@
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringutil.h"
+#include "gromacs/utility/unique_cptr.h"
 
 using gmx::AwhBiasParams;
 using gmx::AwhParams;
@@ -231,11 +233,14 @@ class AwhFrameSearcher
 public:
     /*! \brief Constructor
      *
-     * \param[in] fp       Energy file structure pointer created with open_enx().
-     * \param[in] skip     Step between valid frames that will be considered for writing.
-     * \param[in] dumpTime The closest frame to that time will be searched with foundDumpFrame().
+     * \param[in] energyFile Path to energy file which will be processed.
+     * \param[in] skip       Step between AWH-containing energy frames that will be considered for writing.
+     * \param[in] dumpTime   The closest frame to that time will be searched with foundDumpFrame().
      */
-    AwhFrameSearcher(ener_file_t fp, int skip, double dumpTime);
+    AwhFrameSearcher(const std::string& energyFile, int skip, double dumpTime);
+
+    //! Destructor
+    ~AwhFrameSearcher();
 
     //! Attempts to return next AWH frame from the energy file that statisfies all conditions
     std::optional<t_enxframe*> nextAwhFrame();
@@ -244,26 +249,26 @@ public:
      *
      * \returns optional to the frame pointer that should be dumped.
      */
-    std::optional<t_enxframe*> foundDumpFrame();
+    std::optional<t_enxframe*> foundDumpFrame() const;
 
 private:
     //! Check if currentFrame_ has AWH block of data
-    bool checkAwhBlock();
-    //! Check if currentFrame_ is allowed by the -skip option
-    bool checkSkip();
+    bool currentFrameContainsAwhBlock();
+    //! Check if currentFrame_ should be skipped by the -skip option
+    bool shouldSkip();
 
     //! Energy file to process
     ener_file_t fp_;
-    //! Number of frames to skip until the next one
-    int skip_;
+    //! Number of AWH containing frames to skip until the next one
+    int numAwhFramesToSkip_;
     //! Time near which frame to -dump will be searched
     double dumpTime_;
     //! Latest frame read from energy file
-    std::optional<t_enxframe> currentFrame_;
+    std::pair<bool, gmx::unique_cptr<t_enxframe>> currentFrame_;
     //! Previous frame read from energy file
-    std::optional<t_enxframe> previousFrame_;
+    std::pair<bool, gmx::unique_cptr<t_enxframe>> previousFrame_;
     //! Counter of frames with AWH data that have been read
-    int awhFrameCounter_ = 0;
+    int awhFrameCounter_ = -1;
 };
 
 namespace
@@ -549,57 +554,69 @@ void AwhReader::processAwhFrame(const t_enxblock& block, double time, const gmx_
     }
 }
 
-AwhFrameSearcher::AwhFrameSearcher(ener_file_t fp, int skip, double dumpTime) :
-    fp_(fp), skip_(skip), dumpTime_(dumpTime)
+AwhFrameSearcher::AwhFrameSearcher(const std::string& energyFile, int skip, double dumpTime) :
+    numAwhFramesToSkip_(skip),
+    dumpTime_(dumpTime),
+    currentFrame_(false, new t_enxframe()),
+    previousFrame_(false, new t_enxframe())
 {
+    fp_              = open_enx(energyFile.c_str(), "r");
+    gmx_enxnm_t* enm = nullptr;
+    int          nre;
+    do_enxnms(fp_, &nre, &enm);
 }
 
-bool AwhFrameSearcher::checkAwhBlock()
+AwhFrameSearcher::~AwhFrameSearcher()
 {
-    GMX_ASSERT(currentFrame_, "currentFrame_ should be valid");
-    return find_block_id_enxframe(&currentFrame_.value(), enxAWH, nullptr) != nullptr;
+    close_enx(fp_);
 }
 
-bool AwhFrameSearcher::checkSkip()
+bool AwhFrameSearcher::currentFrameContainsAwhBlock()
 {
-    GMX_ASSERT(currentFrame_, "currentFrame_ should be valid");
-    return (skip_ == 0) || (awhFrameCounter_ % skip_ == 0);
+    GMX_ASSERT(currentFrame_.first, "currentFrame_ should be valid");
+    return find_block_id_enxframe(currentFrame_.second.get(), enxAWH, nullptr) != nullptr;
 }
 
-std::optional<t_enxframe*> AwhFrameSearcher::foundDumpFrame()
+bool AwhFrameSearcher::shouldSkip()
+{
+    GMX_ASSERT(currentFrame_.first, "currentFrame_ should be valid");
+    return (numAwhFramesToSkip_ != 0) && (awhFrameCounter_ % numAwhFramesToSkip_ != 0);
+}
+
+std::optional<t_enxframe*> AwhFrameSearcher::foundDumpFrame() const
 {
     // Return value
     std::optional<t_enxframe*> resultFrame;
 
-    if (currentFrame_)
+    if (currentFrame_.first)
     {
         // Case 1: currentFrame_ timestep is above dump and previousFrame_ is valid
-        if (currentFrame_->t >= dumpTime_ && previousFrame_)
+        if (currentFrame_.second->t >= dumpTime_ && previousFrame_.first)
         {
             // Decide which frame timestep is closer to dump
-            if (std::abs(previousFrame_->t - dumpTime_) > std::abs(currentFrame_->t - dumpTime_))
+            if (std::abs(previousFrame_.second->t - dumpTime_) > std::abs(currentFrame_.second->t - dumpTime_))
             {
-                resultFrame = &currentFrame_.value();
+                resultFrame = currentFrame_.second.get();
             }
             else
             {
-                resultFrame = &previousFrame_.value();
+                resultFrame = previousFrame_.second.get();
             }
         }
 
         // Case 2: currentFrame_ timestep is above dump and previousFrame_ is not valid
-        if (currentFrame_->t >= dumpTime_ && !previousFrame_)
+        if (currentFrame_.second->t >= dumpTime_ && !previousFrame_.first)
         {
             // Suggest to dump currentFrame_
-            resultFrame = &currentFrame_.value();
+            resultFrame = currentFrame_.second.get();
         }
     }
     else
     {
         // Case 3: currentFrame_ is not valid check for previousFrame_ and suggest to dump it
-        if (previousFrame_)
+        if (previousFrame_.first)
         {
-            resultFrame = &previousFrame_.value();
+            resultFrame = previousFrame_.second.get();
         }
     }
 
@@ -608,60 +625,41 @@ std::optional<t_enxframe*> AwhFrameSearcher::foundDumpFrame()
 
 std::optional<t_enxframe*> AwhFrameSearcher::nextAwhFrame()
 {
-    // Return value
-    std::optional<t_enxframe*> resultFrame;
 
     // Swap current and previous frames
     std::swap(currentFrame_, previousFrame_);
+    currentFrame_.first = false;
 
-    // Initialize loop variable
-    bool        foundNextFrame = false;
-    t_enxframe* frame;
-    snew(frame, 1);
-
-    do
+    while (do_enx(fp_, currentFrame_.second.get()))
     {
-        currentFrame_.reset();
 
-        // If next frame exists
-        if (do_enx(fp_, frame))
+        currentFrame_.first = true;
+
+        int withinTimeRange = check_times(currentFrame_.second->t);
+
+        // Check if currentFrame_ contains AWH block of data and within time range
+        if (currentFrameContainsAwhBlock() && (withinTimeRange == 0))
         {
-            currentFrame_ = *frame;
+            awhFrameCounter_++;
 
-            int withinTimeRange = check_times(currentFrame_->t);
-
-            // Check if currentFrame_ contains AWH block of data and within time range
-            if (checkAwhBlock() && (withinTimeRange == 0))
+            // Check for skip condition
+            if (!shouldSkip())
             {
-                // Check for skip condition
-                if (checkSkip())
-                {
-
-                    resultFrame    = &currentFrame_.value();
-                    foundNextFrame = true;
-                }
-
-                awhFrameCounter_++;
-            }
-
-            // If currentFrame_ timestep larger than -e option then stop search
-            if (withinTimeRange > 0)
-            {
-                currentFrame_.reset();
-                foundNextFrame = true;
+                return currentFrame_.second.get();
             }
         }
-        else
+
+        // If currentFrame_ timestep larger than -e option then stop search
+        if (withinTimeRange > 0)
         {
-            // We are at the end of file so should exit the loop and return nullptr
-            foundNextFrame = true;
+            currentFrame_.first = false;
+            return std::nullopt;
         }
+    }
 
-    } while (!foundNextFrame);
-
-    sfree(frame);
-
-    return resultFrame;
+    // Return nullopt if no frames found
+    currentFrame_.first = false;
+    return std::nullopt;
 }
 
 /*! \brief The main function for the AWH tool */
@@ -695,10 +693,7 @@ int gmx_awh(int argc, char* argv[])
           "Print free energy output in units of kT instead of kJ/mol" }
     };
 
-    ener_file_t       fp;
     t_inputrec        ir;
-    gmx_enxnm_t*      enm = nullptr;
-    int               nre;
     gmx_output_env_t* oenv;
 
     t_filenm  fnm[] = { { efEDR, "-f", nullptr, ffREAD },
@@ -724,9 +719,6 @@ int gmx_awh(int argc, char* argv[])
 
     doDump = opt2parg_bSet("-dump", asize(pa), pa);
 
-    fp = open_enx(ftp2fn(efEDR, nfile, fnm), "r");
-    do_enxnms(fp, &nre, &enm);
-
     /* We just need the AWH parameters from inputrec. These are used to initialize
        the AWH reader when we have a frame to read later on. */
     gmx_mtop_t mtop;
@@ -740,7 +732,7 @@ int gmx_awh(int argc, char* argv[])
     }
 
     std::unique_ptr<AwhReader> awhReader;
-    AwhFrameSearcher           awhFrameSearcher(fp, skip, tDump);
+    AwhFrameSearcher           awhFrameSearcher(ftp2fn(efEDR, nfile, fnm), skip, tDump);
 
     // Loop over frames in the fp file
     for (auto frame = awhFrameSearcher.nextAwhFrame(); frame; frame = awhFrameSearcher.nextAwhFrame())
@@ -792,8 +784,6 @@ int gmx_awh(int argc, char* argv[])
     }
 
     fprintf(stderr, "\n");
-
-    close_enx(fp);
 
     return 0;
 }
