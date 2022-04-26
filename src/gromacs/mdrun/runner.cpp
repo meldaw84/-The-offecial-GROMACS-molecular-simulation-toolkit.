@@ -1700,6 +1700,7 @@ int Mdrunner::mdrunner()
     {
         setupNotifier.notify(*cr);
         setupNotifier.notify(&atomSets);
+        // setupNotifier.notify(&mdAtoms->chargeSetterManager);
         setupNotifier.notify(mtop);
         setupNotifier.notify(inputrec->pbcType);
         setupNotifier.notify(SimulationTimeStep{ inputrec->delta_t });

@@ -204,6 +204,10 @@ std::unique_ptr<MDAtoms> makeMDAtoms(FILE* fp, const gmx_mtop_t& mtop, const t_i
     return mdAtoms;
 }
 
+// ChargeSetterManager* MDAtoms::chargeSetterManager(){
+//     return &chargeSetterManager_;
+// }
+
 } // namespace gmx
 
 void atoms2md(const gmx_mtop_t&  mtop,

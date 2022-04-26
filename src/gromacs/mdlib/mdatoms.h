@@ -39,6 +39,8 @@
 #include <memory>
 #include <vector>
 
+#include "gromacs/mdlib/chargesettermanager.h"
+
 #include "gromacs/gpu_utils/hostallocator.h"
 #include "gromacs/utility/real.h"
 #include "gromacs/utility/unique_cptr.h"
@@ -60,8 +62,11 @@ namespace gmx
  * removed. */
 class MDAtoms
 {
+    // will require to have constructor to set chargeSetterManager to chargeA / chargeB
     //! C-style mdatoms struct.
     unique_cptr<t_mdatoms> mdatoms_;
+    // //! Provide handles that allow setting charges between A and B states
+    // ChargeSetterManager chargeSetterManager_;
     //! Memory for chargeA that can be set up for efficient GPU transfer.
     gmx::PaddedHostVector<real> chargeA_;
     //! Memory for chargeB that can be set up for efficient GPU transfer.
@@ -95,6 +100,8 @@ public:
      * \throws std::bad_alloc  If out of memory.
      */
     void reserveChargeB(int newCapacity);
+    //! returns handle to object allows to set charges
+    ChargeSetterManager* chargeSetterManager();
     //! Builder function.
     friend std::unique_ptr<MDAtoms>
     makeMDAtoms(FILE* fp, const gmx_mtop_t& mtop, const t_inputrec& ir, bool rankHasPmeGpuTask);

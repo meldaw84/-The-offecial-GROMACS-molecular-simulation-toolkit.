@@ -67,6 +67,7 @@ class SeparatePmeRanksPermitted;
 struct MDModulesCheckpointReadingDataOnMaster;
 struct MDModulesCheckpointReadingBroadcast;
 struct MDModulesWriteCheckpointData;
+class ChargeSetterManager;
 
 /*! \libinternal \brief Check if module outputs energy to a specific field.
  *
@@ -325,7 +326,8 @@ struct MDModulesNotifiers
                            const PbcType&,
                            const SimulationTimeStep&,
                            const t_commrec&,
-                           const MdRunInputFilename&>::type simulationSetupNotifier_;
+                           const MdRunInputFilename&,
+                           ChargeSetterManager*>::type simulationSetupNotifier_;
 };
 
 } // namespace gmx
