@@ -83,7 +83,7 @@ static inline void add_ener_grp(gmx::SimdReal e_S, real* v, const int* offset_jj
     {
         SimdReal v_S;
 
-        v_S = load<SimdReal>(v + offset_jj[jj] + jj * GMX_SIMD_REAL_WIDTH);
+        v_S = load(v + offset_jj[jj] + jj * GMX_SIMD_REAL_WIDTH);
         store(v + offset_jj[jj] + jj * GMX_SIMD_REAL_WIDTH, v_S + e_S);
     }
 }
@@ -136,14 +136,14 @@ static inline void gmx_simdcall gmx_load_simd_4xn_interactions(int              
     // Neither real or integer bitwise logical operations supported.
     // Load masks from memory instead.
     SimdReal zero = setZero();
-    *interact_S0  = (zero < load<SimdReal>(simd_interaction_array
-                                          + GMX_SIMD_REAL_WIDTH * ((excl >> (0 * UNROLLJ)) & 0xF)));
-    *interact_S1  = (zero < load<SimdReal>(simd_interaction_array
-                                          + GMX_SIMD_REAL_WIDTH * ((excl >> (1 * UNROLLJ)) & 0xF)));
-    *interact_S2  = (zero < load<SimdReal>(simd_interaction_array
-                                          + GMX_SIMD_REAL_WIDTH * ((excl >> (2 * UNROLLJ)) & 0xF)));
-    *interact_S3  = (zero < load<SimdReal>(simd_interaction_array
-                                          + GMX_SIMD_REAL_WIDTH * ((excl >> (3 * UNROLLJ)) & 0xF)));
+    *interact_S0 =
+            (zero < load(simd_interaction_array + GMX_SIMD_REAL_WIDTH * ((excl >> (0 * UNROLLJ)) & 0xF)));
+    *interact_S1 =
+            (zero < load(simd_interaction_array + GMX_SIMD_REAL_WIDTH * ((excl >> (1 * UNROLLJ)) & 0xF)));
+    *interact_S2 =
+            (zero < load(simd_interaction_array + GMX_SIMD_REAL_WIDTH * ((excl >> (2 * UNROLLJ)) & 0xF)));
+    *interact_S3 =
+            (zero < load(simd_interaction_array + GMX_SIMD_REAL_WIDTH * ((excl >> (3 * UNROLLJ)) & 0xF)));
 #endif
 }
 

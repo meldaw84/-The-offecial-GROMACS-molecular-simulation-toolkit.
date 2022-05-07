@@ -596,8 +596,8 @@ bonds(int             nbonds,
         // Here we avoid sqrt(0), the force will be zero because rij=0
         const SimdReal invDist = invsqrt(max(dist2, real_eps));
 
-        const SimdReal k  = load<SimdReal>(coeff);
-        const SimdReal r0 = load<SimdReal>(coeff + GMX_SIMD_REAL_WIDTH);
+        const SimdReal k  = load(coeff);
+        const SimdReal r0 = load(coeff + GMX_SIMD_REAL_WIDTH);
 
         // Compute the force divided by the distance
         const SimdReal forceOverR = -k * (dist2 * invDist - r0) * invDist;
@@ -1190,8 +1190,8 @@ angles(int             nbonds,
         rkjy_S = yk_S - yj_S;
         rkjz_S = zk_S - zj_S;
 
-        k_S      = load<SimdReal>(coeff);
-        theta0_S = load<SimdReal>(coeff + GMX_SIMD_REAL_WIDTH) * deg2rad_S;
+        k_S      = load(coeff);
+        theta0_S = load(coeff + GMX_SIMD_REAL_WIDTH) * deg2rad_S;
 
         pbc_correct_dx_simd(&rijx_S, &rijy_S, &rijz_S, pbc_simd);
         pbc_correct_dx_simd(&rkjx_S, &rkjy_S, &rkjz_S, pbc_simd);
@@ -1523,10 +1523,10 @@ urey_bradley(int             nbonds,
         SimdReal riky_S = yi_S - yk_S;
         SimdReal rikz_S = zi_S - zk_S;
 
-        const SimdReal ktheta_S = load<SimdReal>(coeff);
-        const SimdReal theta0_S = load<SimdReal>(coeff + GMX_SIMD_REAL_WIDTH) * gmx::c_deg2Rad;
-        const SimdReal kUB_S    = load<SimdReal>(coeff + 2 * GMX_SIMD_REAL_WIDTH);
-        const SimdReal r13_S    = load<SimdReal>(coeff + 3 * GMX_SIMD_REAL_WIDTH);
+        const SimdReal ktheta_S = load(coeff);
+        const SimdReal theta0_S = load(coeff + GMX_SIMD_REAL_WIDTH) * gmx::c_deg2Rad;
+        const SimdReal kUB_S    = load(coeff + 2 * GMX_SIMD_REAL_WIDTH);
+        const SimdReal r13_S    = load(coeff + 3 * GMX_SIMD_REAL_WIDTH);
 
         pbc_correct_dx_simd(&rijx_S, &rijy_S, &rijz_S, pbc_simd);
         pbc_correct_dx_simd(&rkjx_S, &rkjy_S, &rkjz_S, pbc_simd);
@@ -2101,9 +2101,9 @@ pdihs(int             nbonds,
         dih_angle_simd(
                 x, ai, aj, ak, al, pbc_simd, &phi_S, &mx_S, &my_S, &mz_S, &nx_S, &ny_S, &nz_S, &nrkj_m2_S, &nrkj_n2_S, &p_S, &q_S);
 
-        cp_S   = load<SimdReal>(cp);
-        phi0_S = load<SimdReal>(phi0) * deg2rad_S;
-        mult_S = load<SimdReal>(mult);
+        cp_S   = load(cp);
+        phi0_S = load(phi0) * deg2rad_S;
+        mult_S = load(mult);
 
         mdphi_S = fms(mult_S, phi_S, phi0_S);
 
@@ -2229,7 +2229,7 @@ rbdihs(int             nbonds,
         cosfac_S = one_S;
         for (j = 1; j < NR_RBDIHS; j++)
         {
-            parm_S   = load<SimdReal>(parm + j * GMX_SIMD_REAL_WIDTH);
+            parm_S   = load(parm + j * GMX_SIMD_REAL_WIDTH);
             ddphi_S  = fma(c_S * parm_S, cosfac_S, ddphi_S);
             cosfac_S = cosfac_S * cos_S;
             c_S      = c_S + one_S;

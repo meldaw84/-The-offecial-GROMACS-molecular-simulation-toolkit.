@@ -654,7 +654,7 @@ static void settleTemplate(const SettleData&  settled,
         if (bCalcVirial)
         {
             /* Filter out the non-local settles */
-            T filter = load<T>(settled.virfac() + i);
+            T filter = load(settled.virfac() + i);
             T mOf    = filter * mO;
             T mHf    = filter * mH;
 

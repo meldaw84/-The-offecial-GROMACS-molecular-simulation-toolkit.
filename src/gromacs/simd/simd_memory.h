@@ -60,7 +60,7 @@ public:
     //! \brief Constructor
     explicit SimdReference(pointer m) : m_(m) {}
     //! \brief Conversion method that will execute load
-    operator non_const_T() const { return load<non_const_T>(m_); }
+    operator non_const_T() const { return load(m_); }
     //! \brief Assignment operator that will execute store
     SimdReference operator=(T o) // NOLINT(misc-unconventional-assign-operator,cppcoreguidelines-c-copy-assignment-signature)
     {
@@ -70,19 +70,19 @@ public:
     //! \brief Addition assignment operator that will execute load+store
     SimdReference operator+=(T o)
     {
-        store(m_, load<non_const_T>(m_) + o);
+        store(m_, load(m_) + o);
         return *this;
     }
     //! \brief Subtraction assignment operator that will execute load+store
     SimdReference operator-=(T o)
     {
-        store(m_, load<non_const_T>(m_) - o);
+        store(m_, load(m_) - o);
         return *this;
     }
     //! \brief Multiplication assignment operator that will execute load+store
     SimdReference operator*=(T o)
     {
-        store(m_, load<non_const_T>(m_) * o);
+        store(m_, load(m_) * o);
         return *this;
     }
 

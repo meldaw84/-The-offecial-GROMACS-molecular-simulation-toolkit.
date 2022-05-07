@@ -489,7 +489,7 @@ static void nb_free_energy_kernel(const t_nblist&                               
             preloadIi[i] = ii;
             preloadIs[i] = shift[n];
         }
-        IntType ii_s = gmx::load<IntType>(preloadIi);
+        IntType ii_s = gmx::load(preloadIi);
 
         for (int k = nj0; k < nj1; k += DataTypes::simdRealWidth)
         {
@@ -641,8 +641,8 @@ static void nb_free_energy_kernel(const t_nblist&                               
             RealType jx, jy, jz;
             gmx::gatherLoadUTranspose<3>(reinterpret_cast<const real*>(x), preloadJnr, &jx, &jy, &jz);
 
-            const RealType pairIsValid   = gmx::load<RealType>(preloadPairIsValid);
-            const RealType pairIncluded  = gmx::load<RealType>(preloadPairIncluded);
+            const RealType pairIsValid   = gmx::load(preloadPairIsValid);
+            const RealType pairIncluded  = gmx::load(preloadPairIncluded);
             const BoolType bPairIncluded = (pairIncluded != zero);
             const BoolType bPairExcluded = (pairIncluded == zero && pairIsValid != zero);
 
@@ -679,7 +679,7 @@ static void nb_free_energy_kernel(const t_nblist&                               
                 haveExcludedPairsBeyondRlist = true;
             }
 
-            const IntType  jnr_s    = gmx::load<IntType>(preloadJnr);
+            const IntType  jnr_s    = gmx::load(preloadJnr);
             const BoolType bIiEqJnr = gmx::cvtIB2B(ii_s == jnr_s);
 
             RealType            c6[NSTATES];
@@ -695,26 +695,26 @@ static void nb_free_energy_kernel(const t_nblist&                               
             for (int i = 0; i < NSTATES; i++)
             {
                 gmx::gatherLoadTranspose<2>(nbfp.data(), typeIndices[i], &c6[i], &c12[i]);
-                qq[i]          = gmx::load<RealType>(preloadQq[i]);
-                ljPmeC6Grid[i] = gmx::load<RealType>(preloadLjPmeC6Grid[i]);
+                qq[i]          = gmx::load(preloadQq[i]);
+                ljPmeC6Grid[i] = gmx::load(preloadLjPmeC6Grid[i]);
                 if constexpr (softcoreType == KernelSoftcoreType::Beutler)
                 {
-                    sigma6[i] = gmx::load<RealType>(preloadSigma6[i]);
+                    sigma6[i] = gmx::load(preloadSigma6[i]);
                 }
                 if constexpr (softcoreType == KernelSoftcoreType::Gapsys)
                 {
-                    gapsysSigma6VdWEff[i] = gmx::load<RealType>(preloadGapsysSigma6VdW[i]);
+                    gapsysSigma6VdWEff[i] = gmx::load(preloadGapsysSigma6VdW[i]);
                 }
             }
             if constexpr (softcoreType == KernelSoftcoreType::Beutler)
             {
-                alphaVdwEff  = gmx::load<RealType>(preloadAlphaVdwEff);
-                alphaCoulEff = gmx::load<RealType>(preloadAlphaCoulEff);
+                alphaVdwEff  = gmx::load(preloadAlphaVdwEff);
+                alphaCoulEff = gmx::load(preloadAlphaCoulEff);
             }
             if constexpr (softcoreType == KernelSoftcoreType::Gapsys)
             {
-                gapsysScaleLinpointVdWEff  = gmx::load<RealType>(preloadGapsysScaleLinpointVdW);
-                gapsysScaleLinpointCoulEff = gmx::load<RealType>(preloadGapsysScaleLinpointCoul);
+                gapsysScaleLinpointVdWEff  = gmx::load(preloadGapsysScaleLinpointVdW);
+                gapsysScaleLinpointCoulEff = gmx::load(preloadGapsysScaleLinpointCoul);
             }
 
             // Avoid overflow of r^-12 at distances near zero

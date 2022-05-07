@@ -153,7 +153,7 @@
 #endif
 
     /* Load j-i for the first i */
-    diagonal_jmi_S = load<SimdReal>(nbat->simdMasks.diagonal_4xn_j_minus_i.data());
+    diagonal_jmi_S = load(nbat->simdMasks.diagonal_4xn_j_minus_i.data());
     /* Generate all the diagonal masks as comparison results */
 #if UNROLLI == UNROLLJ
     diagonal_mask_S0 = (zero_S < diagonal_jmi_S);
@@ -176,7 +176,7 @@
 
 #        if UNROLLI == 2 * UNROLLJ
     /* Load j-i for the second half of the j-cluster */
-    diagonal_jmi_S = load<SimdReal>(nbat->simdMasks.diagonal_4xn_j_minus_i.data() + UNROLLJ);
+    diagonal_jmi_S = load(nbat->simdMasks.diagonal_4xn_j_minus_i.data() + UNROLLJ);
 #        endif
 
     diagonal_mask1_S0                                  = (zero_S < diagonal_jmi_S);
@@ -200,15 +200,15 @@
      * matter, as long as both filter and mask data are treated the same way.
      */
 #if GMX_SIMD_HAVE_INT32_LOGICAL
-    filter_S0 = load<SimdBitMask>(reinterpret_cast<const int*>(exclusion_filter + 0 * UNROLLJ));
-    filter_S1 = load<SimdBitMask>(reinterpret_cast<const int*>(exclusion_filter + 1 * UNROLLJ));
-    filter_S2 = load<SimdBitMask>(reinterpret_cast<const int*>(exclusion_filter + 2 * UNROLLJ));
-    filter_S3 = load<SimdBitMask>(reinterpret_cast<const int*>(exclusion_filter + 3 * UNROLLJ));
+    filter_S0 = load(reinterpret_cast<const int*>(exclusion_filter + 0 * UNROLLJ));
+    filter_S1 = load(reinterpret_cast<const int*>(exclusion_filter + 1 * UNROLLJ));
+    filter_S2 = load(reinterpret_cast<const int*>(exclusion_filter + 2 * UNROLLJ));
+    filter_S3 = load(reinterpret_cast<const int*>(exclusion_filter + 3 * UNROLLJ));
 #else
-    filter_S0 = load<SimdBitMask>(reinterpret_cast<const real*>(exclusion_filter + 0 * UNROLLJ));
-    filter_S1 = load<SimdBitMask>(reinterpret_cast<const real*>(exclusion_filter + 1 * UNROLLJ));
-    filter_S2 = load<SimdBitMask>(reinterpret_cast<const real*>(exclusion_filter + 2 * UNROLLJ));
-    filter_S3 = load<SimdBitMask>(reinterpret_cast<const real*>(exclusion_filter + 3 * UNROLLJ));
+    filter_S0 = load(reinterpret_cast<const real*>(exclusion_filter + 0 * UNROLLJ));
+    filter_S1 = load(reinterpret_cast<const real*>(exclusion_filter + 1 * UNROLLJ));
+    filter_S2 = load(reinterpret_cast<const real*>(exclusion_filter + 2 * UNROLLJ));
+    filter_S3 = load(reinterpret_cast<const real*>(exclusion_filter + 3 * UNROLLJ));
 #endif
 
 #ifdef CALC_COUL_RF
@@ -327,15 +327,15 @@
         pvdw_c12[2 * UNROLLJ + jp] = nbat->nbfp[0 * 2 + 1];
         pvdw_c12[3 * UNROLLJ + jp] = nbat->nbfp[0 * 2 + 1];
     }
-    SimdReal c6_S0 = load<SimdReal>(pvdw_c6 + 0 * UNROLLJ);
-    SimdReal c6_S1 = load<SimdReal>(pvdw_c6 + 1 * UNROLLJ);
-    SimdReal c6_S2 = load<SimdReal>(pvdw_c6 + 2 * UNROLLJ);
-    SimdReal c6_S3 = load<SimdReal>(pvdw_c6 + 3 * UNROLLJ);
+    SimdReal c6_S0 = load(pvdw_c6 + 0 * UNROLLJ);
+    SimdReal c6_S1 = load(pvdw_c6 + 1 * UNROLLJ);
+    SimdReal c6_S2 = load(pvdw_c6 + 2 * UNROLLJ);
+    SimdReal c6_S3 = load(pvdw_c6 + 3 * UNROLLJ);
 
-    SimdReal c12_S0 = load<SimdReal>(pvdw_c12 + 0 * UNROLLJ);
-    SimdReal c12_S1 = load<SimdReal>(pvdw_c12 + 1 * UNROLLJ);
-    SimdReal c12_S2 = load<SimdReal>(pvdw_c12 + 2 * UNROLLJ);
-    SimdReal c12_S3 = load<SimdReal>(pvdw_c12 + 3 * UNROLLJ);
+    SimdReal c12_S0 = load(pvdw_c12 + 0 * UNROLLJ);
+    SimdReal c12_S1 = load(pvdw_c12 + 1 * UNROLLJ);
+    SimdReal c12_S2 = load(pvdw_c12 + 2 * UNROLLJ);
+    SimdReal c12_S3 = load(pvdw_c12 + 3 * UNROLLJ);
 #endif /* FIX_LJ_C */
 
 #ifdef ENERGY_GROUPS

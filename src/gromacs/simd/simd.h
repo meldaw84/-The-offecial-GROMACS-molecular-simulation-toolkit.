@@ -428,9 +428,10 @@ namespace internal
 {
 /*! \libinternal \brief Simd traits
  *
- * These traits are used to query data about SIMD types. Currently provided
- * data is useful for SIMD loads (load function and helper classes for
- * ArrayRef<> in simd_memory.h). Provided data:
+ * These traits are used to query data about SIMD types. Currently
+ * provided data is useful for SIMD stores and loads, including for
+ * functions here and helper classes for ArrayRef<> in
+ * simd_memory.h. Provided data:
  *  - type: scalar type corresponding to the SIMD type
  *  - width: SIMD width
  *  - tag: tag used for type dispatch of load function
@@ -487,62 +488,99 @@ struct SimdTraits<const T>
 };
 } // namespace internal
 
-/*! \brief Load function that returns SIMD or scalar
+/*! \brief Load function that returns SIMD from aligned memory
  *
- * Note that a load of T* where T is const returns a value, which is a
- * copy, and the caller cannot be constrained to not change it, so the
- * return type uses std::remove_const_t.
+ * The template type T must be one for which SimdTraits<T>::tag is
+ * defined, ie. SimdReal, or SimdFInt32, etc. rather than real or
+ * int. This is enforced with SFINAE.
  *
- * \tparam T Type to load (type is always mandatory)
+ * That type is used for the return value, which the compiler can use
+ * to deduce T.
+ *
+ * \tparam T SIMD type to load
  * \param  m Pointer to aligned memory
- * \return   Loaded value
- */
+ * \return   Loaded value */
 template<typename T>
-static inline std::remove_const_t<T> load(const internal::SimdTraitsT<T>* m) // disabled by SFINAE for non-SIMD types
+static inline std::enable_if_t<std::is_class_v<typename internal::SimdTraits<T>::tag>, T>
+load(const internal::SimdTraitsT<T>* m)
 {
     return simdLoad(m, typename internal::SimdTraits<T>::tag());
 }
 
+/*! \brief Load function that returns scalar
+ *
+ * This function is used in code that compiles both for SIMD types and
+ * similar scalar types, e.g. SimdReal and real.
+ *
+ * \tparam T Arithmetic type to load
+ * \param  m Pointer to memory
+ * \return   Loaded value */
 template<typename T>
-static inline T
-/* the enable_if serves to prevent two different type of misuse:
- * 1) load<SimdReal>(SimdReal*); should only be called on real* or int*
- * 2) load(real*); template parameter is mandatory because otherwise ambiguity is
- *    created. The dependent type disables type deduction.
- */
-load(const std::enable_if_t<std::is_arithmetic_v<T>, T> *m)
+static inline std::enable_if_t<std::is_arithmetic_v<T>, T> load(const T* m)
 {
     return *m;
 }
 
+/*! \brief Load function that returns SIMD from an AlignedArray
+ *
+ * The template type T must be one for which SimdTraits<T>::tag is
+ * defined, ie. SimdReal, or SimdFInt32, etc. rather than real or
+ * int. This is enforced with SFINAE.
+ *
+ * That type is used for the return value, which the compiler can use
+ * to deduce T. Note that the deduction could produce a const type T.
+ * A load from T* where T is const returns a value, which is a copy,
+ * and the caller cannot be constrained to not change it, so the
+ * return type uses std::remove_const_t.
+ *
+ * \tparam T SIMD type to load
+ * \param  m View of aligned memory
+ * \return   Loaded value */
 template<typename T, size_t N>
-static inline T gmx_simdcall load(const AlignedArray<internal::SimdTraitsT<T>, N>& m)
+static inline std::enable_if_t<std::is_class_v<typename internal::SimdTraits<T>::tag>, T>
+        gmx_simdcall load(const AlignedArray<internal::SimdTraitsT<T>, N>& m)
 {
     return simdLoad(m.data(), typename internal::SimdTraits<T>::tag());
 }
 
-/*! \brief Load function that returns SIMD or scalar based on template argument
+/*! \brief Load function that returns SIMD from unaligned memory
  *
- * \tparam T Type to load (type is always mandatory)
- * \param m Pointer to unaligned memory
- * \return Loaded SimdFloat/Double/Int or basic scalar type
- */
+ * The template type T must be one for which SimdTraits<T>::tag is
+ * defined, ie. SimdReal, or SimdFInt32, etc. rather than real or
+ * int. This is enforced with SFINAE.
+ *
+ * That type is used for the return value, which the compiler can use
+ * to deduce T. Note that the deduction could produce a const type T.
+ * A load from T* where T is const returns a value, which is a copy,
+ * and the caller cannot be constrained to not change it, so the
+ * return type uses std::remove_const_t.
+ *
+ * \tparam T SIMD type to load
+ * \param  m Pointer to memory
+ * \return   Loaded value */
 template<typename T>
-static inline T loadU(const internal::SimdTraitsT<T>* m)
+static inline std::enable_if_t<std::is_class_v<typename internal::SimdTraits<T>::tag>, T>
+loadU(const internal::SimdTraitsT<T>* m)
 {
     return simdLoadU(m, typename internal::SimdTraits<T>::tag());
 }
 
+/*! \brief Load function that returns scalar
+ *
+ * This function is used in code that compiles both for SIMD types and
+ * similar scalar types, e.g. SimdReal and real. For SIMD types, the
+ * alignment can be important, so is reflected in the name of the
+ * function used. It is not important for the non-SIMD types, but we
+ * define such a function so that the same code works for SIMD and
+ * non-SIMD types.
+ *
+ * \tparam T Arithmetic type to load
+ * \param  m Pointer to memory
+ * \return   Loaded value */
 template<typename T>
-static inline T loadU(const std::enable_if_t<std::is_arithmetic_v<T>, T>* m)
+static inline std::enable_if_t<std::is_arithmetic_v<T>, T> loadU(const T* m)
 {
     return *m;
-}
-
-template<typename T, size_t N>
-static inline T gmx_simdcall loadU(const AlignedArray<internal::SimdTraitsT<T>, N>& m)
-{
-    return simdLoadU(m.data(), typename internal::SimdTraits<T>::tag());
 }
 
 /*! \libinternal \brief Proxy object to enable setZero() for SIMD and real types.
@@ -661,7 +699,7 @@ static inline Simd4NFloat gmx_simdcall loadUNDuplicate4(const float* f)
 }
 static inline Simd4NFloat gmx_simdcall load4DuplicateN(const float* f)
 {
-    return load<Simd4NFloat>(f);
+    return load(f);
 }
 static inline Simd4NFloat gmx_simdcall loadU4NOffset(const float* f, int)
 {
@@ -707,7 +745,7 @@ static inline Simd4NDouble gmx_simdcall loadUNDuplicate4(const double* f)
 }
 static inline Simd4NDouble gmx_simdcall load4DuplicateN(const double* f)
 {
-    return load<Simd4NDouble>(f);
+    return load(f);
 }
 static inline Simd4NDouble gmx_simdcall loadU4NOffset(const double* f, int /*unused*/)
 {

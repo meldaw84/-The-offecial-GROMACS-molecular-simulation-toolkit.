@@ -581,7 +581,7 @@ static void gmx_simdcall calc_dr_x_f_simd(int                           b0,
 
         ip_S = iprod(rx_S, ry_S, rz_S, fx_S, fy_S, fz_S);
 
-        rhs_S = load<SimdReal>(blc + bs) * ip_S;
+        rhs_S = load(blc + bs) * ip_S;
 
         store(rhs + bs, rhs_S);
         store(sol + bs, rhs_S);
@@ -839,7 +839,7 @@ static void gmx_simdcall calc_dr_x_xp_simd(int                           b0,
 
         ip_S = iprod(rx_S, ry_S, rz_S, rxp_S, ryp_S, rzp_S);
 
-        rhs_S = load<SimdReal>(blc + bs) * (ip_S - load<SimdReal>(bllen + bs));
+        rhs_S = load(blc + bs) * (ip_S - load(bllen + bs));
 
         store(rhs + bs, rhs_S);
         store(sol + bs, rhs_S);
@@ -943,7 +943,7 @@ static void gmx_simdcall calc_dist_iter_simd(int                           b0,
 
         n2_S = norm2(rx_S, ry_S, rz_S);
 
-        len_S  = load<SimdReal>(bllen + bs);
+        len_S  = load(bllen + bs);
         len2_S = len_S * len_S;
 
         dlen2_S = fms(two_S, len2_S, n2_S);
@@ -958,7 +958,7 @@ static void gmx_simdcall calc_dist_iter_simd(int                           b0,
 
         lc_S = fnma(dlen2_S, invsqrt(dlen2_S), len_S);
 
-        blc_S = load<SimdReal>(blc + bs);
+        blc_S = load(blc + bs);
 
         lc_S = blc_S * lc_S;
 
@@ -1098,8 +1098,8 @@ static void do_lincs(ArrayRefWithPadding<const RVec> xPadded,
 #if GMX_SIMD_HAVE_REAL
     for (int b = b0; b < b1; b += GMX_SIMD_REAL_WIDTH)
     {
-        SimdReal t1 = load<SimdReal>(blc.data() + b);
-        SimdReal t2 = load<SimdReal>(sol.data() + b);
+        SimdReal t1 = load(blc.data() + b);
+        SimdReal t2 = load(sol.data() + b);
         store(mlambda.data() + b, t1 * t2);
     }
 #else
@@ -1155,11 +1155,11 @@ static void do_lincs(ArrayRefWithPadding<const RVec> xPadded,
 #if GMX_SIMD_HAVE_REAL
         for (int b = b0; b < b1; b += GMX_SIMD_REAL_WIDTH)
         {
-            SimdReal t1  = load<SimdReal>(blc.data() + b);
-            SimdReal t2  = load<SimdReal>(sol.data() + b);
+            SimdReal t1  = load(blc.data() + b);
+            SimdReal t2  = load(sol.data() + b);
             SimdReal mvb = t1 * t2;
             store(blc_sol.data() + b, mvb);
-            store(mlambda.data() + b, load<SimdReal>(mlambda.data() + b) + mvb);
+            store(mlambda.data() + b, load(mlambda.data() + b) + mvb);
         }
 #else
         for (int b = b0; b < b1; b++)

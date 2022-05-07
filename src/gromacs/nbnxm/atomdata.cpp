@@ -1105,10 +1105,10 @@ gmx_unused static void nbnxn_atomdata_reduce_reals_simd(real gmx_unused* gmx_res
     {
         for (int i = i0; i < i1; i += GMX_SIMD_REAL_WIDTH)
         {
-            dest_SSE = load<SimdReal>(dest + i);
+            dest_SSE = load(dest + i);
             for (int s = 0; s < nsrc; s++)
             {
-                src_SSE  = load<SimdReal>(src[s] + i);
+                src_SSE  = load(src[s] + i);
                 dest_SSE = dest_SSE + src_SSE;
             }
             store(dest + i, dest_SSE);
@@ -1118,10 +1118,10 @@ gmx_unused static void nbnxn_atomdata_reduce_reals_simd(real gmx_unused* gmx_res
     {
         for (int i = i0; i < i1; i += GMX_SIMD_REAL_WIDTH)
         {
-            dest_SSE = load<SimdReal>(src[0] + i);
+            dest_SSE = load(src[0] + i);
             for (int s = 1; s < nsrc; s++)
             {
-                src_SSE  = load<SimdReal>(src[s] + i);
+                src_SSE  = load(src[s] + i);
                 dest_SSE = dest_SSE + src_SSE;
             }
             store(dest + i, dest_SSE);

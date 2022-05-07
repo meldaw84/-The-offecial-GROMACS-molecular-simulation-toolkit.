@@ -1246,7 +1246,7 @@ double BiasState::updateProbabilityWeightsAndConvolvedBias(ArrayRef<const DimPar
                 (*weight)[n] = detail::c_largeNegativeExponent;
             }
         }
-        PackType weightPack = load<PackType>(weightData + i);
+        PackType weightPack = load(weightData + i);
         weightPack          = gmx::exp(weightPack);
         weightSumPack       = weightSumPack + weightPack;
         store(weightData + i, weightPack);
