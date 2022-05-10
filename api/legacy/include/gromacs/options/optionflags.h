@@ -101,7 +101,15 @@ enum OptionFlag : uint64_t
      * This is useful to override the default check, which is done in
      * OptionStorageTemplate::processSet().
      */
-    efOption_DontCheckMinimumCount = 1 << 10
+    efOption_DontCheckMinimumCount = 1 << 10,
+    /*! \brief
+     * Storage object supports multiple values.
+     *
+     * If this flag is set, the option supports providing an arbitrary
+     * number of values to it. This might mean that checking routines further
+     * down need to relax their behaviour in terms of input validation.
+     */
+    efOption_MultipleValues = 1 << 11
 };
 
 //! \libinternal Holds a combination of ::OptionFlag values.

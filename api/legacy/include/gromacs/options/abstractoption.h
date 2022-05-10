@@ -168,6 +168,8 @@ protected:
             maxValueCount_ = 3;
         }
     }
+    //! Returns true if the option supports multiple values.
+    bool supportsMultipleValues() const { return hasFlag(efOption_MultipleValues); }
     //! Sets the required number of values for the option.
     void setValueCount(int count)
     {
@@ -281,6 +283,7 @@ public:
         if (bMulti)
         {
             maxValueCount_ = -1;
+            setFlag(efOption_MultipleValues, bMulti);
         }
         return me();
     }
