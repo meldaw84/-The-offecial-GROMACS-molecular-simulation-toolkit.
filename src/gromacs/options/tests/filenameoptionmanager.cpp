@@ -369,4 +369,95 @@ TEST_F(FileNameOptionManagerTest, DefaultNameOptionWorksWithoutInputChecking)
     EXPECT_EQ("missing.ndx", value);
 }
 
+TEST_F(FileNameOptionManagerTest, CanHaveArbitraryLengthVectorOfFileNames)
+{
+    std::vector<std::string> values;
+    ASSERT_NO_THROW_GMX(options_.addOption(FileNameOption("files")
+                                                   .storeVector(&values)
+                                                   .multiValue()
+                                                   .filetype(gmx::OptionFileType::Trajectory)
+                                                   .outputFile()
+                                                   .defaultBasename("testfile")));
+
+    EXPECT_EQ(values.size(), 0);
+
+    gmx::OptionsAssigner assigner(&options_);
+    EXPECT_NO_THROW_GMX(assigner.start());
+    EXPECT_NO_THROW_GMX(assigner.startOption("files"));
+    EXPECT_NO_THROW_GMX(assigner.appendValue("file1.trr"));
+    EXPECT_NO_THROW_GMX(assigner.appendValue("file2.trr"));
+    EXPECT_NO_THROW_GMX(assigner.appendValue("file3.trr"));
+    EXPECT_NO_THROW_GMX(assigner.appendValue("file4.trr"));
+    EXPECT_NO_THROW_GMX(assigner.appendValue("file5.trr"));
+    EXPECT_NO_THROW_GMX(assigner.finishOption());
+    EXPECT_NO_THROW_GMX(assigner.finish());
+    EXPECT_NO_THROW_GMX(options_.finish());
+
+    EXPECT_EQ(values.size(), 5);
+}
+
+TEST_F(FileNameOptionManagerTest, CanRestrictMaxEntriesVectorOfFileNames)
+{
+    std::vector<std::string> values;
+    ASSERT_NO_THROW_GMX(options_.addOption(FileNameOption("files")
+                                                   .storeVector(&values)
+                                                   .multiValue()
+                                                   .valueCount(1)
+                                                   .filetype(gmx::OptionFileType::Trajectory)
+                                                   .outputFile()
+                                                   .defaultBasename("testfile")));
+
+    EXPECT_EQ(values.size(), 0);
+
+    gmx::OptionsAssigner assigner(&options_);
+    EXPECT_NO_THROW_GMX(assigner.start());
+    EXPECT_NO_THROW_GMX(assigner.startOption("files"));
+    EXPECT_NO_THROW_GMX(assigner.appendValue("file1.trr"));
+    EXPECT_THROW_GMX(assigner.appendValue("file2.trr"), gmx::InvalidInputError);
+}
+
+TEST_F(FileNameOptionManagerTest, VectorOfFileNamesWorksWithDefaultAndNoValue)
+{
+    std::vector<std::string> values;
+    ASSERT_NO_THROW_GMX(options_.addOption(FileNameOption("files")
+                                                   .storeVector(&values)
+                                                   .multiValue()
+                                                   .filetype(gmx::OptionFileType::Trajectory)
+                                                   .outputFile()
+                                                   .defaultBasename("testfile")));
+
+    EXPECT_EQ(values.size(), 0);
+
+    gmx::OptionsAssigner assigner(&options_);
+    EXPECT_NO_THROW_GMX(assigner.start());
+    EXPECT_NO_THROW_GMX(assigner.startOption("files"));
+    EXPECT_NO_THROW_GMX(assigner.finishOption());
+    EXPECT_NO_THROW_GMX(assigner.finish());
+    EXPECT_NO_THROW_GMX(options_.finish());
+
+    EXPECT_EQ(values.size(), 1);
+    EXPECT_STREQ(values[0].c_str(), "testfile.xtc");
+}
+
+TEST_F(FileNameOptionManagerTest, VectorOfFileNamesUnsetWorks)
+{
+    std::vector<std::string> values;
+    ASSERT_NO_THROW_GMX(options_.addOption(FileNameOption("files")
+                                                   .storeVector(&values)
+                                                   .multiValue()
+                                                   .filetype(gmx::OptionFileType::Trajectory)
+                                                   .outputFile()
+                                                   .defaultBasename("testfile")));
+
+    EXPECT_EQ(values.size(), 0);
+
+    gmx::OptionsAssigner assigner(&options_);
+    EXPECT_NO_THROW_GMX(assigner.start());
+    EXPECT_NO_THROW_GMX(assigner.finish());
+    EXPECT_NO_THROW_GMX(options_.finish());
+
+    EXPECT_EQ(values.size(), 0);
+}
+
+
 } // namespace
