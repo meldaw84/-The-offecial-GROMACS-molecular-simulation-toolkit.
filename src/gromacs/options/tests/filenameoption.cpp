@@ -42,9 +42,12 @@
 
 #include "gromacs/options/filenameoption.h"
 
+#include <vector>
+
 #include <gtest/gtest.h>
 
 #include "gromacs/fileio/filetypes.h"
+#include "gromacs/options/optionfiletype.h"
 #include "gromacs/options/options.h"
 #include "gromacs/options/optionsassigner.h"
 #include "gromacs/utility/exceptions.h"
@@ -254,5 +257,55 @@ TEST(FileNameOptionTest, HandlesRequiredCsvOptionWithoutValue)
 
     EXPECT_EQ("testfile.csv", value);
 }
+
+TEST(FileNameOptionTest, CanHaveArbitraryLengthVectorOfFileNames)
+{
+    gmx::Options             options;
+    std::vector<std::string> values;
+    ASSERT_NO_THROW_GMX(options.addOption(FileNameOption("files")
+                                                  .storeVector(&values)
+                                                  .multiValue()
+                                                  .filetype(gmx::OptionFileType::Trajectory)
+                                                  .inputFile()
+                                                  .defaultBasename("testfile")));
+
+    EXPECT_EQ(values.size(), 0);
+
+    gmx::OptionsAssigner assigner(&options);
+    EXPECT_NO_THROW_GMX(assigner.start());
+    EXPECT_NO_THROW_GMX(assigner.startOption("files"));
+    EXPECT_NO_THROW_GMX(assigner.appendValue("file1.trr"));
+    EXPECT_NO_THROW_GMX(assigner.appendValue("file2.trr"));
+    EXPECT_NO_THROW_GMX(assigner.appendValue("file3.trr"));
+    EXPECT_NO_THROW_GMX(assigner.appendValue("file4.trr"));
+    EXPECT_NO_THROW_GMX(assigner.appendValue("file5.trr"));
+    EXPECT_NO_THROW_GMX(assigner.finishOption());
+    EXPECT_NO_THROW_GMX(assigner.finish());
+    EXPECT_NO_THROW_GMX(options.finish());
+
+    EXPECT_EQ(values.size(), 5);
+}
+
+TEST(FileNameOptionTest, CanRestrictMaxEntriesVectorOfFileNames)
+{
+    gmx::Options             options;
+    std::vector<std::string> values;
+    ASSERT_NO_THROW_GMX(options.addOption(FileNameOption("files")
+                                                  .storeVector(&values)
+                                                  .multiValue()
+                                                  .valueCount(1)
+                                                  .filetype(gmx::OptionFileType::Trajectory)
+                                                  .inputFile()
+                                                  .defaultBasename("testfile")));
+
+    EXPECT_EQ(values.size(), 0);
+
+    gmx::OptionsAssigner assigner(&options);
+    EXPECT_NO_THROW_GMX(assigner.start());
+    EXPECT_NO_THROW_GMX(assigner.startOption("files"));
+    EXPECT_NO_THROW_GMX(assigner.appendValue("file1.trr"));
+    EXPECT_THROW_GMX(assigner.appendValue("file2.trr"), gmx::InvalidInputError);
+}
+
 
 } // namespace
