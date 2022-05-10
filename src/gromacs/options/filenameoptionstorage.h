@@ -110,6 +110,7 @@ private:
     bool                   bWrite_;
     bool                   bLibrary_;
     bool                   bAllowMissing_;
+    bool                   bMultipleValues_;
 };
 
 } // namespace gmx
