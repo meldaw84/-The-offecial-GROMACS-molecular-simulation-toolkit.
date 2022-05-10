@@ -307,5 +307,50 @@ TEST(FileNameOptionTest, CanRestrictMaxEntriesVectorOfFileNames)
     EXPECT_THROW_GMX(assigner.appendValue("file2.trr"), gmx::InvalidInputError);
 }
 
+TEST(FileNameOptionTest, VectorOfFileNamesWorksWithDefaultAndNoValue)
+{
+    gmx::Options             options;
+    std::vector<std::string> values;
+    ASSERT_NO_THROW_GMX(options.addOption(FileNameOption("files")
+                                                  .storeVector(&values)
+                                                  .multiValue()
+                                                  .filetype(gmx::OptionFileType::Trajectory)
+                                                  .inputFile()
+                                                  .defaultBasename("testfile")));
+
+    EXPECT_EQ(values.size(), 0);
+
+    gmx::OptionsAssigner assigner(&options);
+    EXPECT_NO_THROW_GMX(assigner.start());
+    EXPECT_NO_THROW_GMX(assigner.startOption("files"));
+    EXPECT_NO_THROW_GMX(assigner.finishOption());
+    EXPECT_NO_THROW_GMX(assigner.finish());
+    EXPECT_NO_THROW_GMX(options.finish());
+
+    EXPECT_EQ(values.size(), 1);
+    EXPECT_STREQ(values[0].c_str(), "testfile.xtc");
+}
+
+TEST(FileNameOptionTest, VectorOfFileNamesUnsetWorks)
+{
+    gmx::Options             options;
+    std::vector<std::string> values;
+    ASSERT_NO_THROW_GMX(options.addOption(FileNameOption("files")
+                                                  .storeVector(&values)
+                                                  .multiValue()
+                                                  .filetype(gmx::OptionFileType::Trajectory)
+                                                  .inputFile()
+                                                  .defaultBasename("testfile")));
+
+    EXPECT_EQ(values.size(), 0);
+
+    gmx::OptionsAssigner assigner(&options);
+    EXPECT_NO_THROW_GMX(assigner.start());
+    EXPECT_NO_THROW_GMX(assigner.finish());
+    EXPECT_NO_THROW_GMX(options.finish());
+
+    EXPECT_EQ(values.size(), 0);
+}
+
 
 } // namespace
