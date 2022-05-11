@@ -108,12 +108,9 @@ function(gmx_manage_prefer_static_libs_flags build_type)
         set(punctuation "_") # for build-type-specific compiler flags (e.g.) CMAKE_CXX_FLAGS_RELEASE
     endif()
 
-    # Change the real CMake variables for the given build type in each
-    # language, in the parent scope.
-    foreach(language C CXX)
-        string(REPLACE /MD /MT CMAKE_${language}_FLAGS${punctuation}${build_type} ${CMAKE_${language}_FLAGS${punctuation}${build_type}})
-        set(CMAKE_${language}_FLAGS${punctuation}${build_type} ${CMAKE_${language}_FLAGS${punctuation}${build_type}} PARENT_SCOPE)
-    endforeach()
+    # Change the real CMake variables for the given build type in the parent scope.
+    string(REPLACE /MD /MT CMAKE_CXX_FLAGS${punctuation}${build_type} ${CMAKE_CXX_FLAGS${punctuation}${build_type}})
+    set(CMAKE_CXX_FLAGS${punctuation}${build_type} ${CMAKE_CXX_FLAGS${punctuation}${build_type}} PARENT_SCOPE)
 endfunction()
 
 IF( WIN32)

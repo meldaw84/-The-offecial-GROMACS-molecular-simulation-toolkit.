@@ -68,23 +68,17 @@ function(gmxManageMsanBuild)
 
     set(_flags "-O1 -g -fsanitize=memory -fsanitize-memory-track-origins -fno-omit-frame-pointer")
 
-    foreach(_language C CXX)
-        string(REPLACE "X" "+" _human_readable_language ${_language})
-        if (CMAKE_${_language}_COMPILER_ID MATCHES "Clang")
-            if(${_language} MATCHES CXX)
-                set(_language_flags "${_flags} -nostdinc++")
-                if(GMX_MSAN_PATH)
-                    set(_language_flags "${_language_flags} -isystem ${GMX_MSAN_PATH}/include -isystem ${GMX_MSAN_PATH}/include/c++/v1")
-                endif()
-            else()
-                set(_language_flags "${_flags}")
-            endif()
-            set(CMAKE_${_language}_FLAGS_MSAN ${_language_flags} CACHE STRING "${_human_readable_language} flags for Memory Sanitizer" FORCE)
-            mark_as_advanced(CMAKE_${_language}_FLAGS_MSAN)
-        else()
-            message(FATAL_ERROR "The Memory Sanitizer build is only available with clang ${_human_readable_language} compiler, but it was ${CMAKE_${_language}_COMPILER_ID}.")
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        set(_language_flags "${_flags} -nostdinc++")
+        if(GMX_MSAN_PATH)
+            set(_language_flags "${_language_flags} -isystem ${GMX_MSAN_PATH}/include -isystem ${GMX_MSAN_PATH}/include/c++/v1")
         endif()
-    endforeach()
+        set(CMAKE_CXX_FLAGS_MSAN ${_language_flags} CACHE STRING "C++ flags for Memory Sanitizer" FORCE)
+        mark_as_advanced(CMAKE_CXX_FLAGS_MSAN)
+    else()
+        message(FATAL_ERROR "The Memory Sanitizer build is only available with clang C++ compiler, "
+                "but it was ${CMAKE_CXX_COMPILER_ID}.")
+    endif()
 
     # Per-build-type linker flags like CMAKE_EXE_LINKER_FLAGS_MSAN
     # only seem to be supported by CMake on Windows, so we can't use

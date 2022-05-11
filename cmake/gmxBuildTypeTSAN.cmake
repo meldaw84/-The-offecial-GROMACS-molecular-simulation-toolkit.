@@ -67,19 +67,13 @@
 # TODO find a better home for this and other suppression files
 set(_flags "-O1 -g -fsanitize=thread")
 
-foreach(_language C CXX)
-
-    string(REPLACE "X" "+" _human_readable_language ${_language})
-
-    if (CMAKE_${_language}_COMPILER_ID MATCHES "GNU")
-        set(CMAKE_${_language}_FLAGS_TSAN "${_flags} -pie -fPIE" CACHE STRING "${_human_readable_language} flags for thread sanitizer" FORCE)
-    else()
-        set(CMAKE_${_language}_FLAGS_TSAN ${_flags} CACHE STRING "${_human_readable_language} flags for thread sanitizer" FORCE)
-    endif()
-    mark_as_advanced(CMAKE_${_language}_FLAGS_TSAN)
-    string(TOUPPER "${CMAKE_BUILD_TYPE}" _cmake_build_type)
-    if (_cmake_build_type STREQUAL TSAN)
-        set(TMPI_ATOMICS_DISABLED 1)
-    endif()
-
-endforeach()
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    set(CMAKE_CXX_FLAGS_TSAN "${_flags} -pie -fPIE" CACHE STRING "C++ flags for thread sanitizer" FORCE)
+else()
+    set(CMAKE_CXX_FLAGS_TSAN ${_flags} CACHE STRING "C++ flags for thread sanitizer" FORCE)
+endif()
+mark_as_advanced(CMAKE_CXX_FLAGS_TSAN)
+string(TOUPPER "${CMAKE_BUILD_TYPE}" _cmake_build_type)
+if (_cmake_build_type STREQUAL TSAN)
+    set(TMPI_ATOMICS_DISABLED 1)
+endif()
