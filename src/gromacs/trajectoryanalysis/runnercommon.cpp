@@ -55,7 +55,6 @@
 #include "gromacs/options/basicoptions.h"
 #include "gromacs/options/filenameoption.h"
 #include "gromacs/options/ioptionscontainer.h"
-#include "gromacs/options/optionsvisitor.h"
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/selection/selection.h"
 #include "gromacs/selection/selectioncollection.h"
@@ -84,12 +83,6 @@ public:
     InputData() : bTrajOpen_(false), fr_(nullptr), gpbc_(nullptr), status_(nullptr), oenv_(nullptr)
     {
     }
-    ~InputData();
-
-    InputData& operator=(const InputData& other) = default;
-    InputData& operator=(InputData&& other) = default;
-    InputData(const InputData& other)       = default;
-    InputData(InputData&& other)            = default;
 
     void finishTrajectory();
     //! Name of particular input file.
@@ -112,18 +105,13 @@ void InputData::finishTrajectory()
     {
         close_trx(status_);
         bTrajOpen_ = false;
+        status_    = nullptr;
     }
     if (gpbc_ != nullptr)
     {
         gmx_rmpbc_done(gpbc_);
         gpbc_ = nullptr;
     }
-}
-
-
-InputData::~InputData()
-{
-    finishTrajectory();
     if (fr_ != nullptr)
     {
         // There doesn't seem to be a function for freeing frame data
@@ -132,13 +120,14 @@ InputData::~InputData()
         sfree(fr_->f);
         sfree(fr_->index);
         sfree(fr_);
+        fr_ = nullptr;
     }
     if (oenv_ != nullptr)
     {
         output_env_done(oenv_);
+        oenv_ = nullptr;
     }
 }
-
 
 class TrajectoryAnalysisRunnerCommon::Impl : public ITopologyProvider
 {
@@ -368,7 +357,7 @@ void TrajectoryAnalysisRunnerCommon::Impl::initFrameIndexGroup()
                 trajectoryInputData_.fr_->natoms);
         GMX_THROW(InconsistentInputError(message));
     }
-    trajectoryInputData_.fr_->bIndex = TRUE;
+    trajectoryInputData_.fr_->bIndex = true;
     snew(trajectoryInputData_.fr_->index, trajectoryGroup_.atomCount());
     std::copy(trajectoryGroup_.atomIndices().begin(),
               trajectoryGroup_.atomIndices().end(),
@@ -377,6 +366,7 @@ void TrajectoryAnalysisRunnerCommon::Impl::initFrameIndexGroup()
 
 bool TrajectoryAnalysisRunnerCommon::Impl::advanceTrajectory()
 {
+    finishTrajectory();
     ++trjFileIndex_;
     bool inRange = trjFileIndex_ < trajectoryCollectionSize();
     if (inRange)
@@ -390,7 +380,8 @@ bool TrajectoryAnalysisRunnerCommon::Impl::advanceTrajectory()
 
 void TrajectoryAnalysisRunnerCommon::Impl::finishTrajectory()
 {
-    trajectoryInputData_ = InputData();
+    trajectoryInputData_.finishTrajectory();
+    trajectoryInputData_.fileName_.clear();
 }
 
 /*********************************************************************
@@ -558,7 +549,6 @@ bool TrajectoryAnalysisRunnerCommon::readNextFrame()
     }
     if (!bContinue)
     {
-        impl_->finishTrajectory();
         bContinue = impl_->advanceTrajectory();
     }
     return bContinue;
