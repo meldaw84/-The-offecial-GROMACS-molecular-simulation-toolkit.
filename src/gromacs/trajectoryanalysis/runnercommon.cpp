@@ -86,6 +86,11 @@ public:
     }
     ~InputData();
 
+    InputData& operator=(const InputData& other) = default;
+    InputData& operator=(InputData&& other) = default;
+    InputData(const InputData& other)       = default;
+    InputData(InputData&& other)            = default;
+
     void finishTrajectory();
     //! Name of particular input file.
     std::string fileName_;
