@@ -217,7 +217,10 @@ TrajectoryAnalysisRunnerCommon::Impl::Impl(TrajectoryAnalysisSettings* settings)
 }
 
 
-TrajectoryAnalysisRunnerCommon::Impl::~Impl() {}
+TrajectoryAnalysisRunnerCommon::Impl::~Impl()
+{
+    trajectoryInputData_.finishTrajectory();
+}
 
 void TrajectoryAnalysisRunnerCommon::Impl::initTrajectoryCollection()
 {
