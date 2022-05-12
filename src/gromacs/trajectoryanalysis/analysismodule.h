@@ -436,6 +436,15 @@ public:
      * \see AnalysisData::finishFrameSerial()
      */
     void finishFrameSerial(int frameIndex);
+    /*! \brief
+     * Signals that the module can handle multiple trajectory input files.
+     *
+     * When called during module initialization, it signals to the runner
+     * that arbitrary numbers of trajectories can be processed by the module.
+     *
+     * By default, only one trajectory file is accepted.
+     */
+    virtual bool canHandleMultipleTrajectoryInputs() const;
 
 protected:
     /*! \brief

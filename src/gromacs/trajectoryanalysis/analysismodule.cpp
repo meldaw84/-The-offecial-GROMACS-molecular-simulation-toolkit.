@@ -82,6 +82,8 @@ public:
     DatasetContainer datasets_;
     //! Keeps registered AnalysisData objects.
     AnalysisDatasetContainer analysisDatasets_;
+    //! This module can't handle multiple inputs.
+    bool canHandleMultipleTrajectoryInputs = false;
 };
 
 /********************************************************************
@@ -159,6 +161,10 @@ TrajectoryAnalysisModuleData::TrajectoryAnalysisModuleData(TrajectoryAnalysisMod
 
 TrajectoryAnalysisModuleData::~TrajectoryAnalysisModuleData() {}
 
+bool TrajectoryAnalysisModule::canHandleMultipleTrajectoryInputs() const
+{
+    return impl_->canHandleMultipleTrajectoryInputs;
+}
 
 void TrajectoryAnalysisModuleData::finishDataHandles()
 {

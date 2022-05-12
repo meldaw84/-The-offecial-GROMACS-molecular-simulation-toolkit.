@@ -43,6 +43,7 @@
 #include "gromacs/trajectoryanalysis/cmdlinerunner.h"
 
 #include <gmock/gmock.h>
+#include <gtest/gtest-param-test.h>
 #include <gtest/gtest.h>
 
 #include "gromacs/commandline/cmdlinemodule.h"
@@ -57,13 +58,22 @@
 
 #include "testutils/cmdlinetest.h"
 #include "testutils/testasserts.h"
+#include "testutils/testfilemanager.h"
 
+namespace gmx
+{
+namespace test
+{
 namespace
 {
 
 class MockModule : public gmx::TrajectoryAnalysisModule
 {
 public:
+    MockModule(bool canHandleMultipleTrajectoryInputs) :
+        allowMultipleTrajectories_(canHandleMultipleTrajectoryInputs)
+    {
+    }
     MOCK_METHOD2(initOptions,
                  void(gmx::IOptionsContainer* options, gmx::TrajectoryAnalysisSettings* settings));
     MOCK_METHOD2(initAnalysis,
@@ -73,14 +83,23 @@ public:
                  void(int frnr, const t_trxframe& fr, t_pbc* pbc, gmx::TrajectoryAnalysisModuleData* pdata));
     MOCK_METHOD1(finishAnalysis, void(int nframes));
     MOCK_METHOD0(writeOutput, void());
+
+    bool canHandleMultipleTrajectoryInputs() const override { return allowMultipleTrajectories_; }
+
+private:
+    bool allowMultipleTrajectories_;
 };
 
 using gmx::test::CommandLine;
 
-class TrajectoryAnalysisCommandLineRunnerTest : public gmx::test::CommandLineTestBase
+class TrajectoryAnalysisCommandLineRunnerTest :
+    public gmx::test::CommandLineTestBase,
+    public ::testing::WithParamInterface<std::tuple<bool>>
 {
 public:
-    TrajectoryAnalysisCommandLineRunnerTest() : mockModule_(new MockModule()) {}
+    TrajectoryAnalysisCommandLineRunnerTest() : mockModule_(new MockModule(std::get<0>(GetParam())))
+    {
+    }
 
     gmx::ICommandLineOptionsModulePointer createRunner()
     {
@@ -106,7 +125,7 @@ void initOptions(gmx::IOptionsContainer* options, gmx::TrajectoryAnalysisSetting
     options->addOption(gmx::BooleanOption("test").description("Test option"));
 }
 
-TEST_F(TrajectoryAnalysisCommandLineRunnerTest, WritesHelp)
+TEST_P(TrajectoryAnalysisCommandLineRunnerTest, WritesHelp)
 {
     using ::testing::_;
     using ::testing::Invoke;
@@ -117,7 +136,7 @@ TEST_F(TrajectoryAnalysisCommandLineRunnerTest, WritesHelp)
     testWriteHelp(module.get());
 }
 
-TEST_F(TrajectoryAnalysisCommandLineRunnerTest, RunsWithSubsetTrajectory)
+TEST_P(TrajectoryAnalysisCommandLineRunnerTest, RunsWithSubsetTrajectory)
 {
     const char* const cmdline[] = { "-fgroup", "atomnr 4 5 6 10 to 14" };
 
@@ -134,7 +153,7 @@ TEST_F(TrajectoryAnalysisCommandLineRunnerTest, RunsWithSubsetTrajectory)
     EXPECT_NO_THROW_GMX(runTest(CommandLine(cmdline)));
 }
 
-TEST_F(TrajectoryAnalysisCommandLineRunnerTest, DetectsIncorrectTrajectorySubset)
+TEST_P(TrajectoryAnalysisCommandLineRunnerTest, DetectsIncorrectTrajectorySubset)
 {
     const char* const cmdline[] = { "-fgroup", "atomnr 3 to 6 10 to 14" };
 
@@ -147,7 +166,7 @@ TEST_F(TrajectoryAnalysisCommandLineRunnerTest, DetectsIncorrectTrajectorySubset
     EXPECT_THROW_GMX(runTest(CommandLine(cmdline)), gmx::InconsistentInputError);
 }
 
-TEST_F(TrajectoryAnalysisCommandLineRunnerTest, FailsWithTrajectorySubsetWithoutTrajectory)
+TEST_P(TrajectoryAnalysisCommandLineRunnerTest, FailsWithTrajectorySubsetWithoutTrajectory)
 {
     const char* const cmdline[] = { "-fgroup", "atomnr 3 to 6 10 to 14" };
 
@@ -158,4 +177,42 @@ TEST_F(TrajectoryAnalysisCommandLineRunnerTest, FailsWithTrajectorySubsetWithout
     EXPECT_THROW_GMX(runTest(CommandLine(cmdline)), gmx::InconsistentInputError);
 }
 
+TEST_P(TrajectoryAnalysisCommandLineRunnerTest, AllowMultipleTrajectoryWorks)
+{
+    const char* const cmdline[] = { "-fgroup", "atomnr 4 5 6 10 to 14" };
+
+    const bool canUseMultival = std::get<0>(GetParam());
+    EXPECT_EQ(mockModule_->canHandleMultipleTrajectoryInputs(), canUseMultival);
+    using ::testing::_;
+    EXPECT_CALL(*mockModule_, initOptions(_, _));
+    if (mockModule_->canHandleMultipleTrajectoryInputs())
+    {
+        EXPECT_CALL(*mockModule_, initAnalysis(_, _));
+        EXPECT_CALL(*mockModule_, analyzeFrame(0, _, _, _));
+        EXPECT_CALL(*mockModule_, analyzeFrame(1, _, _, _));
+        EXPECT_CALL(*mockModule_, analyzeFrame(2, _, _, _));
+        EXPECT_CALL(*mockModule_, analyzeFrame(3, _, _, _));
+        EXPECT_CALL(*mockModule_, finishAnalysis(4));
+        EXPECT_CALL(*mockModule_, writeOutput());
+    }
+
+    setInputFile("-s", "simple.gro");
+    setInputFile("-f", "simple-subset.gro");
+    commandLine().append(TestFileManager::getInputFilePath("simple-subset.gro"));
+    if (mockModule_->canHandleMultipleTrajectoryInputs())
+    {
+        EXPECT_NO_THROW_GMX(runTest(CommandLine(cmdline)));
+    }
+    else
+    {
+        EXPECT_THROW_GMX(runTest(CommandLine(cmdline)), gmx::InvalidInputError);
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(InputTest,
+                         TrajectoryAnalysisCommandLineRunnerTest,
+                         ::testing::Combine(::testing::Values(false, true)));
+
 } // namespace
+} // namespace test
+} // namespace gmx

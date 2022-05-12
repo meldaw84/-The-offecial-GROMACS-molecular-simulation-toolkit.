@@ -98,7 +98,10 @@ void RunnerModule::initOptions(IOptionsContainer* options, ICommandLineOptionsMo
     settings->addOptionsBehavior(selectionOptionBehavior);
     IOptionsContainer& commonOptions = options->addGroup();
     IOptionsContainer& moduleOptions = options->addGroup();
-
+    if (module_->canHandleMultipleTrajectoryInputs())
+    {
+        common_.allowMultipleInputTrajectories();
+    }
     settings_.setOptionsModuleSettings(settings);
     module_->initOptions(&moduleOptions, &settings_);
     settings_.setOptionsModuleSettings(nullptr);

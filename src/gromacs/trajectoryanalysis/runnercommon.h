@@ -103,6 +103,16 @@ public:
      */
     void initFrameIndexGroup();
     /*! \brief
+     * Sets option to allow multiple input files.
+     *
+     * By default, only one trajectory input file can be passed
+     * to analysis tools. If this method is called, the option
+     * will be added to allow multiple files to be read in.
+     *
+     * Needs to be called before option handling has finished.
+     */
+    void allowMultipleInputTrajectories();
+    /*! \brief
      * Reads the next frame from the trajectory.
      *
      * \returns false if there were no more frames.
