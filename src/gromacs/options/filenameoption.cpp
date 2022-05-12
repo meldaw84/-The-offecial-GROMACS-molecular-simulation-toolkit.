@@ -361,26 +361,22 @@ std::string FileNameOptionStorage::processValue(const std::string& value) const
 
 void FileNameOptionStorage::processAll()
 {
-    if (manager_ != nullptr && hasFlag(efOption_HasDefaultValue))
+    if (manager_ != nullptr && hasFlag(efOption_HasDefaultValue) && !bMultipleValues_)
     {
         ArrayRef<std::string> valueList = values();
-        GMX_RELEASE_ASSERT(bMultipleValues_ || valueList.size() == 1,
-                           "There should be only one default value when not using multiple values");
-        for (auto& value : valueList)
+        GMX_RELEASE_ASSERT(valueList.size() == 1, "There should be only one default value.");
+        if (!valueList[0].empty())
         {
-            if (!value.empty())
+            const std::string& oldValue = valueList[0];
+            GMX_ASSERT(endsWith(oldValue, defaultExtension()),
+                       "Default value does not have the expected extension");
+            const std::string prefix   = stripSuffixIfPresent(oldValue, defaultExtension());
+            const std::string newValue = manager_->completeDefaultFileName(prefix, info_);
+            if (!newValue.empty() && newValue != oldValue)
             {
-                const std::string& oldValue = value;
-                GMX_ASSERT(endsWith(oldValue, defaultExtension()),
-                           "Default value does not have the expected extension");
-                const std::string prefix   = stripSuffixIfPresent(oldValue, defaultExtension());
-                const std::string newValue = manager_->completeDefaultFileName(prefix, info_);
-                if (!newValue.empty() && newValue != oldValue)
-                {
-                    GMX_ASSERT(isValidType(fn2ftp(newValue.c_str())),
-                               "Manager returned an invalid default value");
-                    value = newValue;
-                }
+                GMX_ASSERT(isValidType(fn2ftp(newValue.c_str())),
+                           "Manager returned an invalid default value");
+                valueList[0] = newValue;
             }
         }
     }
