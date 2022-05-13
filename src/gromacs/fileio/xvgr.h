@@ -245,8 +245,30 @@ void write_xvg(const char*                    fn,
  */
 
 
-/* This function reads ascii (xvg) files and extracts the data sets to a
- * two dimensional array which is returned.
+/*!\ brief
+ * Reads xvg files wth explicit or implicit first time row.
+ *
+ * Note: This function is deprecated and should not be used.
+ *       It will be replaced by something using readXvg under
+ *       the hood.
+ * Note: It is the callers duty to clean up the allocations
+ *       made by this function, and to ensure no memory is leaking
+ *       from previously allocated data.
+ * Note: This function should never have existed in the first place,
+ *       but this likely comes a few years too late.
+ *
+ * \returns Two dimensional array with time column first.
+ * \param[in] fn File to read
+ * \param[in] bHaveT If the file is supposed to have a time column or not.
+ * \param[in] bTB    If a time is set where reading should start.
+ * \param[in] tb     First time to read.
+ * \param[in] bTE    If a time is set where reading should end.
+ * \param[in] te     Last time to read.
+ * \param[in] nsets_in Number of datasets in file, separated by & (?)
+ * \param[in,out] nset  Number of columns (?)
+ * \param[in,out] nval  Number of rows (?)
+ * \param[in,out] dt    Time difference (?)
+ * \param[in,out] t     Array of time values (?)
  */
 real** read_xvg_time(const char* fn,
                      gmx_bool    bHaveT,

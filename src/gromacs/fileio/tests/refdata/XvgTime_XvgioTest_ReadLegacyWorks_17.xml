@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="referencedata.xsl"?>
+<ReferenceData>
+  <BasicValues>
+    <Int Name="NumberOfRows">2</Int>
+    <Int Name="NumberOfColumns">3</Int>
+    <Real Name="TimeStep">0.1</Real>
+  </BasicValues>
+  <XvgMatrix>
+    <Sequence Name="ColumnValues">
+      <Int Name="Length">6</Int>
+      <Real>2</Real>
+      <Real>1</Real>
+      <Real>1</Real>
+      <Real>1</Real>
+      <Real>2</Real>
+      <Real>2</Real>
+    </Sequence>
+  </XvgMatrix>
+  <XvgTimeSeries>
+    <Sequence Name="TimeValues">
+      <Int Name="Length">2</Int>
+      <Real>0.2</Real>
+      <Real>0.30000001</Real>
+    </Sequence>
+  </XvgTimeSeries>
+</ReferenceData>
