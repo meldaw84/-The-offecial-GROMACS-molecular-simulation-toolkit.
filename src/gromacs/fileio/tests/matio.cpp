@@ -40,12 +40,13 @@
  */
 #include "gmxpre.h"
 
+#include "gromacs/fileio/matio.h"
+
 #include <numeric>
 #include <vector>
 
 #include <gtest/gtest.h>
 
-#include "gromacs/fileio/matio.h"
 #include "gromacs/mdspan/mdspan.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/smalloc.h"
