@@ -10,9 +10,9 @@
     <Sequence Name="ColumnValues">
       <Int Name="Length">16</Int>
       <Real>0</Real>
-      <Real>0.1</Real>
-      <Real>0.2</Real>
-      <Real>0.30000001</Real>
+      <Real>0.10000000000000001</Real>
+      <Real>0.20000000000000001</Real>
+      <Real>0.29999999999999999</Real>
       <Real>1</Real>
       <Real>2</Real>
       <Real>3</Real>

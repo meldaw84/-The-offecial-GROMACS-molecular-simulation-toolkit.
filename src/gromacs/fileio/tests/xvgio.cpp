@@ -50,6 +50,7 @@
 #include "gromacs/utility/textwriter.h"
 
 #include "testutils/refdata.h"
+#include "testutils/testasserts.h"
 #include "testutils/testfilemanager.h"
 #include "testutils/testoptions.h"
 
@@ -251,13 +252,6 @@ void checkTimeSeries(TestReferenceChecker* checker, ArrayRef<const real> timeSer
 // This test should be removed once read_xvg_time has been replaced with something sensible
 TEST_P(XvgioTest, ReadLegacyWorks)
 {
-    useStringAsXvgFile(
-            "0 1 2 3\n"
-            "0.1 2 1 3\n"
-            "0.2 3 1 2\n"
-            "0.3 1 2 3\n"
-            "0.4 3 2 1\n");
-    writeXvgFile();
     auto              params      = GetParam();
     const std::string fileContent = std::get<0>(params);
     useStringAsXvgFile(fileContent);
@@ -265,8 +259,8 @@ TEST_P(XvgioTest, ReadLegacyWorks)
     const bool haveTimeColumn = std::get<1>(params);
     const bool haveBeginTime  = std::get<2>(params);
     const bool haveEndTime    = std::get<3>(params);
-    const real startTime      = 0.1;
-    const real endTime        = 0.3;
+    const real startTime      = 0.05;
+    const real endTime        = 0.25;
     const int  nsets_in       = 1;
     int        nset           = 0;
     int        nval           = 0;
@@ -286,11 +280,14 @@ TEST_P(XvgioTest, ReadLegacyWorks)
                                        &timeSeries);
 
     TestReferenceChecker compound(checker()->checkCompound("BasicValues", nullptr));
+    const auto           tolerance = relativeToleranceAsPrecisionDependentUlp(1.0, 40, 20);
+    compound.setDefaultTolerance(tolerance);
+
     compound.checkInteger(nset, "NumberOfRows");
     compound.checkInteger(nval, "NumberOfColumns");
     compound.checkReal(deltaT, "TimeStep");
     checkMatrix(checker(), xvgTestData, nset, nval);
-    checkTimeSeries(checker(), gmx::arrayRefFromArray(timeSeries, nset));
+    checkTimeSeries(checker(), gmx::arrayRefFromArray(timeSeries, nval));
 
     sfree(timeSeries);
     for (int i = 0; i < nset; ++i)

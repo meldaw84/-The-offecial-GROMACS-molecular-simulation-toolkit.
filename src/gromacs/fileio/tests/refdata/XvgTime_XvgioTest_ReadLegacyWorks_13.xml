@@ -10,10 +10,10 @@
     <Sequence Name="ColumnValues">
       <Int Name="Length">30</Int>
       <Real>0</Real>
-      <Real>0.1</Real>
-      <Real>0.2</Real>
-      <Real>0.30000001</Real>
-      <Real>0.40000001</Real>
+      <Real>0.10000000000000001</Real>
+      <Real>0.20000000000000001</Real>
+      <Real>0.29999999999999999</Real>
+      <Real>0.40000000000000002</Real>
       <Real>1</Real>
       <Real>2</Real>
       <Real>3</Real>
@@ -43,13 +43,12 @@
   </XvgMatrix>
   <XvgTimeSeries>
     <Sequence Name="TimeValues">
-      <Int Name="Length">6</Int>
+      <Int Name="Length">5</Int>
       <Real>0</Real>
       <Real>1</Real>
       <Real>2</Real>
       <Real>3</Real>
       <Real>4</Real>
-      <Real>0</Real>
     </Sequence>
   </XvgTimeSeries>
 </ReferenceData>
