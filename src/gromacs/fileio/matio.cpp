@@ -140,7 +140,7 @@ static std::vector<t_mapping> getcmap(FILE* in, const std::filesystem::path& fn)
         sscanf(line, "%s%s%lf%lf%lf", code, desc, &r, &g, &b);
         m[i].code.c1 = code[0];
         m[i].code.c2 = 0;
-        m[i].desc    = gmx_strdup(desc);
+        m[i].desc    = desc;
         m[i].rgb.r   = r;
         m[i].rgb.g   = g;
         m[i].rgb.b   = b;
