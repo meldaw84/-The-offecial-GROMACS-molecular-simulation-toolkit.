@@ -130,7 +130,7 @@ set(INSTALLED_HEADER_DEFINITIONS "")
 # linking. They should be appended to with list(APPEND ${name}
 # new-library) calls. They are:
 #  - Libraries that are required for libgromacs (only)
-set(GMX_EXTRA_LIBRARIES "")
+set(GMX_EXTRA_LIBRARIES "-lcuda")
 #  - Libraries that are required for all code in the repository
 set(GMX_COMMON_LIBRARIES "")
 #  - Libraries that all code linked against libgromacs needs

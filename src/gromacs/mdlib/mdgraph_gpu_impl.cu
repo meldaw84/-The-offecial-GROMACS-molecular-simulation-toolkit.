@@ -41,7 +41,13 @@
  * \ingroup module_mdlib
  */
 
+#define CU_INIT_UUID_STATIC
 #include "mdgraph_gpu_impl.h"
+
+#include <stdio.h>
+
+#include <cuda_etbl/cuda_graphs.h>
+#include <cuda_etbl/graph_update.h>
 
 #include "gromacs/gpu_utils/device_stream.h"
 #include "gromacs/gpu_utils/gpueventsynchronizer.h"
@@ -224,6 +230,7 @@ void MdGpuGraph::Impl::start(bool                  bNS,
     }
 };
 
+static int writeFileCount;
 
 void MdGpuGraph::Impl::end(GpuEventSynchronizer* xUpdatedOnDeviceEvent)
 {
@@ -267,28 +274,52 @@ void MdGpuGraph::Impl::end(GpuEventSynchronizer* xUpdatedOnDeviceEvent)
                     deviceStreamManager_.stream(gmx::DeviceStreamType::NonBondedLocal).stream(), &graph_);
             CU_RET_ERR(stat_, "cudaStreamEndCapture in MD graph definition finalization failed.");
 
+            const CUetblCudaGraphs* pETBL_CG = nullptr;
+            cuGetExportTable((const void**)&pETBL_CG, &CU_ETID_CudaGraphs);
+            char filename[80];
+            sprintf(filename, "src.%d.dot", writeFileCount);
+            pETBL_CG->GraphDebugDotPrint(graph_, filename, CU_GRAPH_DEBUG_DOT_FLAGS_VERBOSE);
+
             // Instantiate graph, or update a previously instantiated graph (if possible)
-            if (!updateGraph_)
+            bool updateFailed = false;
+            if (updateGraph_)
+            {
+                wallcycle_sub_start(wcycle_, WallCycleSubCounter::MdGpuGraphUpdate);
+
+                const CUetblGraphExecUpdate* pETBL = nullptr;
+                cuGetExportTable((const void**)&pETBL, &CU_ETID_GraphExecUpdate);
+                CUgraphExecUpdateResultInfo info;
+                stat_ = (cudaError_t)pETBL->GraphExecUpdateByEdge(instance_, graph_, &info);
+                // CU_RET_ERR(stat_,
+                //         "cudaGraphExecUpdateByEdge in MD graph definition finalization failed.");
+
+                sprintf(filename, "execUpdated.%d.dot", writeFileCount);
+                pETBL_CG->GraphExecDebugDotPrint(instance_, filename, CU_GRAPH_DEBUG_DOT_FLAGS_VERBOSE);
+
+                if (stat_ != 0)
+                {
+                    printf("cudaGraphExecUpdateByEdge failed, will fall back to "
+                           "re-instantiation.\n");
+                    updateFailed = true;
+                }
+
+                wallcycle_sub_stop(wcycle_, WallCycleSubCounter::MdGpuGraphUpdate);
+            }
+            if (!updateGraph_ || updateFailed || (getenv("GMX_NEVER_USE_UPDATED_GRAPH") != nullptr))
             {
                 wallcycle_sub_start(wcycle_, WallCycleSubCounter::MdGpuGraphInstantiate);
                 stat_ = cudaGraphInstantiate(&instance_, graph_, nullptr, nullptr, 0);
                 wallcycle_sub_stop(wcycle_, WallCycleSubCounter::MdGpuGraphInstantiate);
                 CU_RET_ERR(stat_,
                            "cudaGraphInstantiate in MD graph definition finalization failed.");
-            }
-            else
-            {
-                cudaGraphNode_t           hErrorNode_out;
-                cudaGraphExecUpdateResult updateResult_out;
-                wallcycle_sub_start(wcycle_, WallCycleSubCounter::MdGpuGraphUpdate);
-                stat_ = cudaGraphExecUpdate(instance_, graph_, &hErrorNode_out, &updateResult_out);
-                wallcycle_sub_stop(wcycle_, WallCycleSubCounter::MdGpuGraphUpdate);
-                CU_RET_ERR(stat_, "cudaGraphExecUpdate in MD graph definition finalization failed.");
+
+                sprintf(filename, "execInstantiated.%d.dot", writeFileCount++);
+                pETBL_CG->GraphExecDebugDotPrint(instance_, filename, CU_GRAPH_DEBUG_DOT_FLAGS_VERBOSE);
             }
 
             // With current CUDA, only single-threaded update is possible.
             // Multi-threaded update support will be available in a future CUDA release.
-            if (ppSize_ == 1)
+            if (ppSize_ == 1 || (getenv("GMX_CUDA_GRAPH_FORCE_UPDATE") != nullptr))
             {
                 updateGraph_ = true;
             }
