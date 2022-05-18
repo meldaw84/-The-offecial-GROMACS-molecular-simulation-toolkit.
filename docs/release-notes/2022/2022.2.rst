@@ -63,6 +63,13 @@ as energy minimization might fix such issues.
 Fixes that affect portability
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Revert explicit host compiler setting
+"""""""""""""""""""""""""""""""""""""
+
+This broke compilation with some combinations of gcc.
+
+:issue:`4478`
+
 Miscellaneous
 ^^^^^^^^^^^^^
 
