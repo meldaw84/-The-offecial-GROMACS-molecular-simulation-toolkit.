@@ -271,15 +271,12 @@ static void reduce_topology_x(int gnx, int index[], gmx_mtop_t* mtop, rvec x[], 
 
 static void zeroq(gmx::ArrayRef<const int> index, gmx_mtop_t* mtop)
 {
-    int molBlock = 0;
     for (const int globalAtomIndex : index)
     {
-    for (const int globalAtomIndex : index)
-    {
-        int molBlock = 0;
+        int molBlock            = 0;
         int atomIndexInMolecule = 0;
         mtopGetMolblockIndex(*mtop, globalAtomIndex, &molBlock, nullptr, &atomIndexInMolecule);
-        auto& moltype                      = mtop->moltype[mtop->molblock[molBlock].type];
+        auto& moltype                              = mtop->moltype[mtop->molblock[molBlock].type];
         moltype.atoms.atom[atomIndexInMolecule].q  = 0;
         moltype.atoms.atom[atomIndexInMolecule].qB = 0;
     }
@@ -417,7 +414,8 @@ int ConvertTpr::run()
 
     if ((extendTimeIsSet_ || maxStepsIsSet_ || runToMaxTimeIsSet_) && (zeroQIsSet_ || haveReadIndexFile_))
     {
-        printf("Cannot do both runtime modification and charge-zeroing/index group extraction in a "
+        printf("Cannot do both runtime modification and charge-zeroing/index group extraction "
+               "in a "
                "single call.\n");
         return 1;
     }
