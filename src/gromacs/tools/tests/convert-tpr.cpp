@@ -37,6 +37,7 @@
  *
  * \author Eliane Briand <eliane@br.iand.fr>
  */
+#include <gtest/gtest.h>
 #include "gmxpre.h"
 
 #include "gromacs/math/functions.h"
@@ -45,9 +46,11 @@
 #include "gromacs/tools/convert_tpr.h"
 #include "gromacs/topology/topology.h"
 #include "gromacs/fileio/tpxio.h"
+#include "gromacs/utility/stringutil.h"
 
 #include "testutils/cmdlinetest.h"
 #include "testutils/simulationdatabase.h"
+#include "testutils/stdiohelper.h"
 #include "testutils/tprfilegenerator.h"
 
 namespace gmx
@@ -57,7 +60,7 @@ namespace test
 namespace
 {
 
-class ConvertTprTest : public ::testing::Test
+class ConvertTprTest : public ::testing::Test, public ::testing::WithParamInterface<int>
 {
 protected:
     ConvertTprTest() : tprFileHandle("lysozyme") {}
@@ -195,6 +198,36 @@ TEST_F(ConvertTprTest, nstepRuntimeExtensionTest)
         EXPECT_EQ(ir_after.nsteps, originalNStep + nsteps);
     }
 }
+
+TEST_P(ConvertTprTest, CanZeroChargeGroups)
+{
+    gmx_mtop_t        top;
+    t_inputrec        ir;
+    TprAndFileManager localHandle("spc-and-methanol", "gro");
+    readTprInput(localHandle.tprName().c_str(), &top, &ir);
+
+    const int         group = GetParam();
+    TestFileManager   fileManager;
+    std::string       outTprFilename = fileManager.getTemporaryFilePath("zeroCharge.tpr");
+    const char* const command[]      = {
+        "convert-tpr", "-s", localHandle.tprName().c_str(), "-o", outTprFilename.c_str(), "-zeroq"
+    };
+    StdioTestHelper stdioHelper(&fileManager);
+    auto            groupString = formatString("%d\n", group);
+
+    CommandLine cmdline(command);
+
+    stdioHelper.redirectStringToStdin(groupString.c_str());
+    ASSERT_EQ(gmx::test::CommandLineTestHelper::runModuleFactory(&gmx::ConvertTprInfo::create, &cmdline), 0);
+    {
+        gmx_mtop_t top_after;
+        t_inputrec ir_after;
+        readTprInput(outTprFilename.c_str(), &top_after, &ir_after);
+        // add code to check charges of group above are zero.
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(ToolWorks, ConvertTprTest, ::testing::Values(0, 2, 3));
 
 } // namespace
 } // namespace test

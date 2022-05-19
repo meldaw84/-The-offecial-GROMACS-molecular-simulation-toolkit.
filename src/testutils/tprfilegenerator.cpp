@@ -53,7 +53,7 @@ namespace gmx
 namespace test
 {
 
-TprAndFileManager::TprAndFileManager(const std::string& name)
+TprAndFileManager::TprAndFileManager(const std::string& name, const std::string& coordinateFileExtension)
 {
     const std::string mdpInputFileName = fileManager_.getTemporaryFilePath(name + ".mdp");
     gmx::TextWriter::writeFileFromString(mdpInputFileName, "");
@@ -63,7 +63,7 @@ TprAndFileManager::TprAndFileManager(const std::string& name)
         caller.append("grompp");
         caller.addOption("-f", mdpInputFileName);
         caller.addOption("-p", TestFileManager::getInputFilePath(name + ".top"));
-        caller.addOption("-c", TestFileManager::getInputFilePath(name + ".pdb"));
+        caller.addOption("-c", TestFileManager::getInputFilePath(name + "." + coordinateFileExtension));
         caller.addOption("-o", tprFileName_);
         EXPECT_EQ(0, gmx_grompp(caller.argc(), caller.argv()));
     }

@@ -63,8 +63,10 @@ public:
      * Generates the file when needed.
      *
      * \param[in] name The basename of the input files and the generated TPR.
+     * \param[in] coordinateFileExtension Type of coordinate file to use.
+     *                                    Defaults to pdb.
      */
-    TprAndFileManager(const std::string& name);
+    TprAndFileManager(const std::string& name, const std::string& coordinateFileExtension = "pdb");
     //! Access to the string.
     const std::string& tprName() const { return tprFileName_; }
 

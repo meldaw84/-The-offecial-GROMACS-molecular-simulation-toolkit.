@@ -60,6 +60,11 @@ With energy minimization, the error/warning about pair distances
 beyond/close to the cut-off has been changed to a warning/note,
 as energy minimization might fix such issues.
 
+Fix charge zeroing with convert-tpr
+"""""""""""""""""""""""""""""""""""
+
+:issue:`4226`
+
 Fixes that affect portability
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

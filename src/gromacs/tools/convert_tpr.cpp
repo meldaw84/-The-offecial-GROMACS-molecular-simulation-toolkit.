@@ -52,8 +52,10 @@
 #include "gromacs/random/seed.h"
 #include "gromacs/topology/ifunc.h"
 #include "gromacs/topology/index.h"
+#include "gromacs/topology/mtop_lookup.h"
 #include "gromacs/topology/mtop_util.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/fatalerror.h"
@@ -267,15 +269,16 @@ static void reduce_topology_x(int gnx, int index[], gmx_mtop_t* mtop, rvec x[], 
     mtop->natoms = atoms.nr;
 }
 
-static void zeroq(const int index[], gmx_mtop_t* mtop)
+static void zeroq(gmx::ArrayRef<const int> index, gmx_mtop_t* mtop)
 {
-    for (gmx_moltype_t& moltype : mtop->moltype)
+    int molBlock = 0;
+    for (const int globalAtomIndex : index)
     {
-        for (int i = 0; i < moltype.atoms.nr; i++)
-        {
-            moltype.atoms.atom[index[i]].q  = 0;
-            moltype.atoms.atom[index[i]].qB = 0;
-        }
+        int atomIndexInMolecule = 0;
+        mtopGetMolblockIndex(*mtop, globalAtomIndex, &molBlock, nullptr, &atomIndexInMolecule);
+        gmx_moltype_t* moltype                      = &mtop->moltype[mtop->molblock[molBlock].type];
+        moltype->atoms.atom[atomIndexInMolecule].q  = 0;
+        moltype->atoms.atom[atomIndexInMolecule].qB = 0;
     }
 }
 
@@ -500,7 +503,7 @@ int ConvertTpr::run()
         }
         else if (zeroQIsSet_)
         {
-            zeroq(index, &mtop);
+            zeroq(gmx::arrayRefFromArray(index, gnx), &mtop);
             fprintf(stderr, "Zero-ing charges for group %s\n", grpname);
         }
         else
