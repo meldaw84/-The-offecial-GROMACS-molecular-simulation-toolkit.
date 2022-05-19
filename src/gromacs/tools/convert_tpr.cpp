@@ -274,11 +274,14 @@ static void zeroq(gmx::ArrayRef<const int> index, gmx_mtop_t* mtop)
     int molBlock = 0;
     for (const int globalAtomIndex : index)
     {
+    for (const int globalAtomIndex : index)
+    {
+        int molBlock = 0;
         int atomIndexInMolecule = 0;
         mtopGetMolblockIndex(*mtop, globalAtomIndex, &molBlock, nullptr, &atomIndexInMolecule);
-        gmx_moltype_t* moltype                      = &mtop->moltype[mtop->molblock[molBlock].type];
-        moltype->atoms.atom[atomIndexInMolecule].q  = 0;
-        moltype->atoms.atom[atomIndexInMolecule].qB = 0;
+        auto& moltype                      = mtop->moltype[mtop->molblock[molBlock].type];
+        moltype.atoms.atom[atomIndexInMolecule].q  = 0;
+        moltype.atoms.atom[atomIndexInMolecule].qB = 0;
     }
 }
 
