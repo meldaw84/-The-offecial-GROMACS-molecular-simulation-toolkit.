@@ -2,42 +2,34 @@
 <?xml-stylesheet type="text/xsl" href="referencedata.xsl"?>
 <ReferenceData>
   <BasicValues>
-    <Int Name="NumberOfRows">5</Int>
+    <Int Name="NumberOfRows">3</Int>
     <Int Name="NumberOfColumns">4</Int>
-    <Real Name="TimeStep">0.10000000000000002</Real>
+    <Real Name="TimeStep">0.1</Real>
   </BasicValues>
   <XvgMatrix>
     <Sequence Name="ColumnValues">
-      <Int Name="Length">20</Int>
+      <Int Name="Length">12</Int>
+      <Real>1</Real>
       <Real>2</Real>
       <Real>3</Real>
       <Real>1</Real>
-      <Real>3</Real>
+      <Real>2</Real>
       <Real>1</Real>
       <Real>1</Real>
       <Real>2</Real>
-      <Real>2</Real>
+      <Real>3</Real>
       <Real>3</Real>
       <Real>2</Real>
       <Real>3</Real>
-      <Real>1</Real>
-      <Real>4</Real>
-      <Real>4</Real>
-      <Real>4</Real>
-      <Real>4</Real>
-      <Real>5</Real>
-      <Real>5</Real>
-      <Real>5</Real>
-      <Real>5</Real>
     </Sequence>
   </XvgMatrix>
   <XvgTimeSeries>
     <Sequence Name="TimeValues">
       <Int Name="Length">4</Int>
-      <Real>0.10000000000000001</Real>
-      <Real>0.20000000000000001</Real>
-      <Real>0.29999999999999999</Real>
-      <Real>0.40000000000000002</Real>
+      <Real>0</Real>
+      <Real>0.1</Real>
+      <Real>0.2</Real>
+      <Real>0.30000001</Real>
     </Sequence>
   </XvgTimeSeries>
 </ReferenceData>

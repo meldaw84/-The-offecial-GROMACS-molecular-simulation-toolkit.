@@ -42,6 +42,7 @@
 #include <numeric>
 #include <vector>
 
+#include <gtest/gtest-param-test.h>
 #include <gtest/gtest.h>
 
 #include "gromacs/fileio/xvgr.h"
@@ -62,9 +63,9 @@ namespace test
 /*! \brief
  * Convienience type for testing read_xvg_time.
  *
- * Fields are: fileContentString, haveTime, haveStartTime, haveEndTime
+ * Fields are: fileContentString, haveTime, haveStartTime, haveEndTime, numDataSets
  */
-using XvgrTimeReadingParams = std::tuple<std::string, bool, bool, bool>;
+using XvgrTimeReadingParams = std::tuple<std::string, bool, bool, bool, int>;
 
 
 static void compareValues(basic_mdspan<const double, dynamicExtents2D> ref,
@@ -261,7 +262,7 @@ TEST_P(XvgioTest, ReadLegacyWorks)
     const bool haveEndTime    = std::get<3>(params);
     const real startTime      = 0.05;
     const real endTime        = 0.25;
-    const int  nsets_in       = 1;
+    const int  nsets_in       = std::get<4>(params);
     int        nset           = 0;
     int        nval           = 0;
     real       deltaT         = 0;
@@ -297,30 +298,43 @@ TEST_P(XvgioTest, ReadLegacyWorks)
     sfree(xvgTestData);
 }
 
-const std::string fileOne =
+const std::string fileOneDataSet =
         "0   1 2 3\n"
         "0.1 2 1 3\n"
         "0.2 3 1 2\n"
         "0.3 1 2 3\n";
-const std::string fileTwo =
-        "0   1 2 3 4 5\n"
-        "0.1 2 1 3 4 5\n"
-        "0.2 3 1 2 4 5\n"
-        "0.3 1 2 3 4 5\n"
-        "0.4 3 2 1 4 5\n";
-const std::string fileThree =
-        "0   1 2\n"
-        "0.1 2 1\n"
-        "0.2 2 1\n"
-        "0.3 1 2\n"
-        "0.4 1 2\n";
+const std::string fileTwoDataSets =
+        "0   1 2 3\n"
+        "0.1 2 3 1\n"
+        "&\n"
+        "0   3 2 1\n"
+        "0.1 1 2 3\n";
+const std::string fileDataSetAsTime =
+        "0  \n"
+        "0.1\n"
+        "0.2\n"
+        "0.3\n"
+        "&  \n"
+        "1 2 3\n"
+        "2 1 3\n"
+        "1 3 2\n"
+        "3 2 1\n";
 
-INSTANTIATE_TEST_SUITE_P(XvgTime,
+INSTANTIATE_TEST_SUITE_P(XvgTimeSingleDataSet,
                          XvgioTest,
-                         ::testing::Combine(::testing::Values(fileOne, fileTwo, fileThree),
+                         ::testing::Combine(::testing::Values(fileOneDataSet),
                                             ::testing::Values(true, false),
                                             ::testing::Values(true, false),
-                                            ::testing::Values(true, false)));
+                                            ::testing::Values(true, false),
+                                            ::testing::Values(1)));
+
+INSTANTIATE_TEST_SUITE_P(XvgTimeMultipleDataSets,
+                         XvgioTest,
+                         ::testing::Combine(::testing::Values(fileTwoDataSets, fileDataSetAsTime),
+                                            ::testing::Values(true, false),
+                                            ::testing::Values(true, false),
+                                            ::testing::Values(true, false),
+                                            ::testing::Values(2)));
 
 
 } // namespace test
