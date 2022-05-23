@@ -37,8 +37,9 @@
  *
  * \author Eliane Briand <eliane@br.iand.fr>
  */
-#include <gtest/gtest.h>
 #include "gmxpre.h"
+
+#include <gtest/gtest.h>
 
 #include "gromacs/math/functions.h"
 #include "gromacs/mdtypes/inputrec.h"
@@ -206,28 +207,32 @@ TEST_P(ConvertTprTest, CanZeroChargeGroups)
     TprAndFileManager localHandle("spc-and-methanol", "gro");
     readTprInput(localHandle.tprName().c_str(), &top, &ir);
 
-    const int         group = GetParam();
-    TestFileManager   fileManager;
-    std::string       outTprFilename = fileManager.getTemporaryFilePath("zeroCharge.tpr");
-    const char* const command[]      = {
-        "convert-tpr", "-s", localHandle.tprName().c_str(), "-o", outTprFilename.c_str(), "-zeroq"
-    };
+    const int       group = GetParam();
+    TestFileManager fileManager;
+    std::string     outTprFilename = fileManager.getTemporaryFilePath("zeroCharge.tpr");
+    std::string     indexFileName  = fileManager.getInputFilePath("spc-and-methanol.ndx");
     StdioTestHelper stdioHelper(&fileManager);
     auto            groupString = formatString("%d\n", group);
 
-    CommandLine cmdline(command);
+    CommandLine cmdline;
+    cmdline.append("convert-tpr");
+    cmdline.addOption("-s", localHandle.tprName().c_str());
+    cmdline.addOption("-n", indexFileName.c_str());
+    cmdline.addOption("-o", outTprFilename.c_str());
+    cmdline.addOption("-zeroq");
 
     stdioHelper.redirectStringToStdin(groupString.c_str());
-    ASSERT_EQ(gmx::test::CommandLineTestHelper::runModuleFactory(&gmx::ConvertTprInfo::create, &cmdline), 0);
+    ASSERT_EQ(CommandLineTestHelper::runModuleFactory(&ConvertTprInfo::create, &cmdline), 0);
     {
         gmx_mtop_t top_after;
         t_inputrec ir_after;
         readTprInput(outTprFilename.c_str(), &top_after, &ir_after);
-        // add code to check charges of group above are zero.
+        // If more rigor is necessary, we could check the initial and final charge values.
+        // See also https://gitlab.com/gromacs/gromacs/-/issues/4226
     }
 }
 
-INSTANTIATE_TEST_SUITE_P(ToolWorks, ConvertTprTest, ::testing::Values(0, 2, 3));
+INSTANTIATE_TEST_SUITE_P(ToolWorks, ConvertTprTest, ::testing::Values(0, 1, 2, 3));
 
 } // namespace
 } // namespace test
