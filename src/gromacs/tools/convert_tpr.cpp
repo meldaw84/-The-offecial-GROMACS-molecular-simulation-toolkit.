@@ -473,7 +473,6 @@ int ConvertTpr::run()
     {
         // If zeroQIsSet_, then we are doing charge zero-ing; otherwise index group extraction
 
-        atoms                     = gmx_mtop_global_atoms(mtop);
         int         gnx           = 0;
         int*        index         = nullptr;
         char*       grpname       = nullptr;
@@ -511,6 +510,8 @@ int ConvertTpr::run()
         {
             fprintf(stderr, "Will write full tpx file (no selection)\n");
         }
+        sfree(index);
+        sfree(grpname);
     }
 
     // Writing output tpx regardless of the operation performed
