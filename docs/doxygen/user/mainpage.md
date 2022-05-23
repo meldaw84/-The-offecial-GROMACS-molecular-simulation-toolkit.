@@ -79,7 +79,8 @@ give an overview of some of the topics that are documented:
    same test.
  - \subpage page_modularsimulator <br/>
    Documentation of the modular simulator approach.
-
+ - \subpage page_lambdaDynamics <br/>
+   Documentation of the lambda-dynamics module. <br/>
  - \subpage page_modulegraph <br/>
    Automatically generated module dependency graph.
 \endif
