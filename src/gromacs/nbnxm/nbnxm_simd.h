@@ -34,7 +34,7 @@
 /*! \internal \file
  *
  * \brief
- * Defines constants used to know which Nbnxm kernel flavours (4xn or 2xnn)
+ * Defines constants used to know which nbNxM kernel flavours (4xM or 2xMM)
  * can be supported by the SIMD layer in use.
  *
  * \author Berk Hess <hess@kth.se>
@@ -49,11 +49,20 @@
 #include "gromacs/simd/simd.h"
 #include "gromacs/utility/real.h"
 
+#include "pairlistparams.h"
+
+//! The types of nbNxM SIMD kernel layout
+enum class KernelLayout
+{
+    r4xM, //!< 4 'i'-registers each containing data for interaction with M j-atoms
+    r2xMM //!< 2 'i'-registers each containing duplicated data, { M, M }, for interaction with M j-atoms
+};
+
 #if GMX_SIMD && GMX_USE_SIMD_KERNELS
 /*! \brief The nbnxn SIMD 4xN and 2x(N+N) kernels can be added independently.
  * Currently the 2xNN SIMD kernels only make sense with:
- *  8-way SIMD: 4x4 setup, works with AVX-256 in single precision
- * 16-way SIMD: 4x8 setup, not currently in use, but worked with Intel MIC
+ *  8-way SIMD: 4x4 setup, performance wise once useful on CPUs without FMA or AMD Zen1
+ * 16-way SIMD: 4x8 setup, used by AVX-512
  */
 #    if GMX_SIMD_REAL_WIDTH == 2 || GMX_SIMD_REAL_WIDTH == 4 || GMX_SIMD_REAL_WIDTH == 8
 #        define GMX_NBNXN_SIMD_4XN
@@ -68,4 +77,4 @@
 
 #endif // GMX_SIMD && GMX_USE_SIMD_KERNELS
 
-#endif
+#endif // GMX_NBNXM_NBNXM_SIMD
