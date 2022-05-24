@@ -10,9 +10,9 @@
     <Sequence Name="ColumnValues">
       <Int Name="Length">4</Int>
       <Real>0</Real>
-      <Real>0.1</Real>
+      <Real>0.10000000000000001</Real>
       <Real>0</Real>
-      <Real>0.1</Real>
+      <Real>0.10000000000000001</Real>
     </Sequence>
   </XvgMatrix>
   <XvgTimeSeries>

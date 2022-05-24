@@ -4,7 +4,7 @@
   <BasicValues>
     <Int Name="NumberOfRows">3</Int>
     <Int Name="NumberOfColumns">4</Int>
-    <Real Name="TimeStep">0.1</Real>
+    <Real Name="TimeStep">0.099999999999999992</Real>
   </BasicValues>
   <XvgMatrix>
     <Sequence Name="ColumnValues">
@@ -27,9 +27,9 @@
     <Sequence Name="TimeValues">
       <Int Name="Length">4</Int>
       <Real>0</Real>
-      <Real>0.1</Real>
-      <Real>0.2</Real>
-      <Real>0.30000001</Real>
+      <Real>0.10000000000000001</Real>
+      <Real>0.20000000000000001</Real>
+      <Real>0.29999999999999999</Real>
     </Sequence>
   </XvgTimeSeries>
 </ReferenceData>

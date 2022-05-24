@@ -16,7 +16,7 @@
   <XvgTimeSeries>
     <Sequence Name="TimeValues">
       <Int Name="Length">1</Int>
-      <Real>0.1</Real>
+      <Real>0.10000000000000001</Real>
     </Sequence>
   </XvgTimeSeries>
 </ReferenceData>
