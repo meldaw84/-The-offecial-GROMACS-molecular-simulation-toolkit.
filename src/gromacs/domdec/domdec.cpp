@@ -3273,7 +3273,7 @@ static gmx_bool test_dd_cutoff(const t_commrec* cr, const matrix box, gmx::Array
         /* The GPU halo communication code currently does not allow multiple
          * pulses along dimensions other than the first.
          */
-        if (cr->dd->gpuHaloExchange && d > 0 && np > 1)
+        if (usingGpuHaloExchange(cr->dd) && d > 0 && np > 1)
         {
             return FALSE;
         }

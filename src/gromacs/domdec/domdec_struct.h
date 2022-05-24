@@ -254,4 +254,11 @@ static inline bool DDMASTER(const gmx_domdec_t* dd)
     return dd->rank == dd->masterrank;
 };
 
+//! Returns whether GPU exchange is used
+static inline bool usingGpuHaloExchange(const gmx_domdec_t* dd)
+{
+    return ((dd != nullptr) && (!dd->gpuHaloExchange[0].empty()));
+}
+
+
 #endif

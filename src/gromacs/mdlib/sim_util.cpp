@@ -1410,8 +1410,7 @@ void do_force(FILE*                               fplog,
                                                 AtomLocality::Local, simulationWork, stepWork)
                                         : nullptr;
 
-    GMX_ASSERT(simulationWork.useGpuHaloExchange
-                       == ((cr->dd != nullptr) && (!cr->dd->gpuHaloExchange[0].empty())),
+    GMX_ASSERT(simulationWork.useGpuHaloExchange == usingGpuHaloExchange(cr->dd),
                "The GPU halo exchange is active, but it has not been constructed.");
 
     bool gmx_used_in_debug haveCopiedXFromGpu = false;
