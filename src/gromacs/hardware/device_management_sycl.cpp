@@ -124,7 +124,7 @@ static DeviceStatus isDeviceCompatible(const sycl::device& syclDevice)
 #if defined(HIPSYCL_PLATFORM_ROCM)
             GMX_GPU_NB_CLUSTER_SIZE * GMX_GPU_NB_CLUSTER_SIZE;
 #else
-            GMX_GPU_NB_CLUSTER_SIZE * GMX_GPU_NB_CLUSTER_SIZE / 2;
+            GMX_GPU_NB_CLUSTER_SIZE * GMX_GPU_NB_CLUSTER_SIZE;
 #endif
 
     if (std::find(supportedSubGroupSizes.begin(), supportedSubGroupSizes.end(), requiredSubGroupSizeForNbnxm)

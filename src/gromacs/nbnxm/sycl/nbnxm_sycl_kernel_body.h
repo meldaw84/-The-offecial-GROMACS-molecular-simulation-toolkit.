@@ -657,7 +657,7 @@ static auto nbnxmKernel(sycl::handler&                                          
 #if defined(HIPSYCL_PLATFORM_ROCM) // SYCL-TODO AMD RDNA/RDNA2 has 32-wide exec; how can we check for that?
     gmx_unused constexpr int subGroupSize = c_clSize * c_clSize;
 #else
-    gmx_unused constexpr int subGroupSize = prunedClusterPairSize;
+    gmx_unused constexpr int subGroupSize = 64;
 #endif
 
     return [=](sycl::nd_item<3> itemIdx) [[intel::reqd_sub_group_size(subGroupSize)]]
