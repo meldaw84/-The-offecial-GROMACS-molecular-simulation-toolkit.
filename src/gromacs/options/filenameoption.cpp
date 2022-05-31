@@ -361,9 +361,16 @@ std::string FileNameOptionStorage::processValue(const std::string& value) const
 
 void FileNameOptionStorage::processAll()
 {
-    if (manager_ != nullptr && hasFlag(efOption_HasDefaultValue) && !bMultipleValues_)
+    if (manager_ != nullptr && hasFlag(efOption_HasDefaultValue))
     {
         ArrayRef<std::string> valueList = values();
+        if (valueList.empty())
+        {
+            GMX_RELEASE_ASSERT(
+                    bMultipleValues_,
+                    "There can only be an empty list when using multiple possible values");
+            return;
+        }
         GMX_RELEASE_ASSERT(valueList.size() == 1, "There should be only one default value.");
         if (!valueList[0].empty())
         {
