@@ -43,6 +43,8 @@
  */
 #include "gmxpre.h"
 
+#include <cstdlib>
+
 #include <map>
 #include <optional>
 
@@ -60,6 +62,12 @@ void warnWhenDeviceNotTargeted(const gmx::MDLogger& /* mdlog */, const DeviceInf
 
 bool isDeviceDetectionFunctional(std::string* errorMessage)
 {
+    // Only permit GPUs for LevelZero back end, else ze_loader
+    // confuses device detection.
+    //
+    // TODO work how to call something that forces SYCL device
+    // detection to only permit LevelZero backend
+    setenv("SYCL_DEVICE_FILTER", "level_zero:gpu", 0);
     try
     {
         const std::vector<sycl::platform> platforms = sycl::platform::get_platforms();

@@ -452,6 +452,7 @@ TEST_P(ParameterizedFFTTest3D, RunsOnDevices)
     ClfftInitializer clfftInitializer;
     for (const auto& testDevice : getTestHardwareEnvironment()->getTestDeviceList())
     {
+        fprintf(stderr, "Running on new device\n");
         const DeviceContext& deviceContext = testDevice->deviceContext();
         setActiveDevice(testDevice->deviceInfo());
         const DeviceStream& deviceStream = testDevice->deviceStream();
@@ -465,7 +466,7 @@ TEST_P(ParameterizedFFTTest3D, RunsOnDevices)
         // exists. The real grid is always checked by doing the
         // identity transform via forward and inverse transform.
         std::optional<TestReferenceChecker> checker;
-        if ((realGridSize[XX] == 5 && realGridSize[YY] == 6 && realGridSize[ZZ] == 9)
+        if (true || (realGridSize[XX] == 5 && realGridSize[YY] == 6 && realGridSize[ZZ] == 9)
             || (realGridSize[XX] == 5 && realGridSize[YY] == 5 && realGridSize[ZZ] == 10))
         {
             checker = TestReferenceChecker(data_.rootChecker()); // Must be inside the loop to avoid warnings
@@ -512,6 +513,8 @@ TEST_P(ParameterizedFFTTest3D, RunsOnDevices)
 #            if GMX_FFT_MKL
         const FftBackend backend = FftBackend::SyclMkl;
 #            else
+        const FftBackend backend = FftBackend::SyclVkfft;
+        /*
         // Use stub backend so compilation succeeds
         const FftBackend backend = FftBackend::Sycl;
         // Don't complain about unused reference data
@@ -521,6 +524,7 @@ TEST_P(ParameterizedFFTTest3D, RunsOnDevices)
         }
         // Skip the rest of the test
         GTEST_SKIP() << "Only MKL backend is supported with DPC++";
+        */
 #            endif
 #        else
 #            error "Unsupported SYCL implementation"
@@ -555,9 +559,22 @@ TEST_P(ParameterizedFFTTest3D, RunsOnDevices)
         copyToDeviceBuffer(
                 &realGrid, in_.data(), 0, in_.size(), deviceStream, GpuApiCallBehavior::Sync, nullptr);
 
+        // Clear the complex grid TODO should not be needed
+        std::vector<float> zeroesForComplexGrid(complexGridValues.size(), 0.0_real);
+        copyToDeviceBuffer(&complexGrid,
+                           zeroesForComplexGrid.data(),
+                           0,
+                           zeroesForComplexGrid.size(),
+                           deviceStream,
+                           GpuApiCallBehavior::Sync,
+                           nullptr);
+
+        SCOPED_TRACE("Preparing the forward transform");
         // Do the forward FFT to compute the complex grid
         CommandEvent* timingEvent = nullptr;
-        gpu3dFft.perform3dFft(GMX_FFT_REAL_TO_COMPLEX, timingEvent);
+        // TODO this sync should not be needed
+        deviceStream.synchronize();
+        ASSERT_NO_THROW_GMX(gpu3dFft.perform3dFft(GMX_FFT_REAL_TO_COMPLEX, timingEvent)) << "forward transform";
         deviceStream.synchronize();
 
         SCOPED_TRACE("Checking the complex grid - NB this data has not been normalized");
@@ -612,18 +629,28 @@ TEST_P(ParameterizedFFTTest3D, RunsOnDevices)
 
 #endif // GMX_GPU
 
-/* Uncomment this to run more exhaustive tests
+/* Uncomment this to run more exhaustive tests */
 INSTANTIATE_TEST_SUITE_P(ScanWorks,
                          ParameterizedFFTTest3D,
                          ::testing::Combine(::testing::Range(4, 8, 1),
                                             ::testing::Range(4, 8, 1),
                                             ::testing::Range(4, 8, 1)),
                          nameOfTest);
-*/
+/**/
 
 INSTANTIATE_TEST_SUITE_P(Works,
                          ParameterizedFFTTest3D,
-                         ::testing::Values(FFTTest3DParameters{ 5, 6, 9 }, FFTTest3DParameters{ 5, 5, 10 }),
+                         ::testing::Values(FFTTest3DParameters{ 2, 2, 2 },
+                                           FFTTest3DParameters{ 2, 2, 3 },
+                                           FFTTest3DParameters{ 2, 3, 2 },
+                                           FFTTest3DParameters{ 3, 2, 2 },
+                                           FFTTest3DParameters{ 3, 3, 3 },
+                                           FFTTest3DParameters{ 2, 2, 4},
+                                           FFTTest3DParameters{ 2, 4, 2},
+                                           FFTTest3DParameters{ 4, 2, 2},
+                                           FFTTest3DParameters{ 4, 4, 4},
+                                           //FFTTest3DParameters{ },
+                         /*::testing::Values(*/FFTTest3DParameters{ 5, 6, 9 }, FFTTest3DParameters{ 5, 5, 10 }),
                          nameOfTest);
 
 } // namespace

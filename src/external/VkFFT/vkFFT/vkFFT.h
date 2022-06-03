@@ -26252,10 +26252,14 @@ static inline VkFFTResult VkFFTPlanAxis(VkFFTApplication* app, VkFFTPlan* FFTPla
 			fwrite(code0, 1, codelen, temp);
 			fclose(temp);
 			char system_call[500];
-			sprintf(system_call, "clang -c -target spir64 -O0 -emit-llvm -Xclang -finclude-default-header -o %s %s", fname_bc, fname_cl);
+            fprintf(stderr, "calling clang\n");
+            //			sprintf(system_call, "clang -c -target spir64 -O0 -emit-llvm -fsycl-device-only -flto -Xclang -finclude-default-header -o %s %s", fname_bc, fname_cl);
+			sprintf(system_call, "clang -c -target spir64 -O0 -emit-llvm -flto -Xclang -finclude-default-header -o %s %s", fname_bc, fname_cl);
 			system(system_call);
+            fprintf(stderr, "calling llvm-spirv\n");
 			sprintf(system_call, "llvm-spirv -o %s %s", fname_spv, fname_bc);
 			system(system_call);
+            fprintf(stderr, "done calling llvm-spirv\n");
 			temp = fopen(fname_spv, "rb");
 			fseek(temp, 0L, SEEK_END);
 			uint64_t spv_size = ftell(temp);

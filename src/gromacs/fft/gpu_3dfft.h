@@ -71,7 +71,8 @@ enum class FftBackend
     HeFFTe_CUDA,
     SyclMkl,    // supports only single-GPU
     SyclRocfft, // supports only single-GPU
-    Sycl,       // stubs for not supported configurations
+    SyclVkfft,  // supports only single-GPU
+    Sycl,       // stubs for unsupported configurations
     Count
 };
 
@@ -130,6 +131,7 @@ private:
     class ImplOcl;
     class ImplSyclMkl;
     class ImplSyclRocfft;
+    class ImplSyclVkfft;
     class ImplSycl;
 
     template<typename backend_tag>

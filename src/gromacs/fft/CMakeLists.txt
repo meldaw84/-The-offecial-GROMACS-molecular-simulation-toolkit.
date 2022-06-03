@@ -77,17 +77,30 @@ elseif (GMX_GPU_OPENCL)
         gpu_3dfft.cpp
         )
 elseif (GMX_GPU_SYCL)
-    if (NOT GMX_SYCL_HIPSYCL AND GMX_FFT_MKL)
-            gmx_add_libgromacs_sources(
-            gpu_3dfft_sycl_mkl.cpp
+    if (NOT GMX_SYCL_HIPSYCL)
+        gmx_add_libgromacs_sources(
             gpu_3dfft_impl.cpp
             gpu_3dfft.cpp
-            )
+        )
         _gmx_add_files_to_property(SYCL_SOURCES
-            gpu_3dfft_sycl_mkl.cpp
             gpu_3dfft_impl.cpp
             gpu_3dfft.cpp
+        )
+        if (GMX_FFT_MKL)
+            gmx_add_libgromacs_sources(
+                gpu_3dfft_sycl_mkl.cpp
             )
+            _gmx_add_files_to_property(SYCL_SOURCES
+                gpu_3dfft_sycl_mkl.cpp
+            )
+        else()
+            gmx_add_libgromacs_sources(
+                gpu_3dfft_sycl_vkfft.cpp
+            )
+            _gmx_add_files_to_property(SYCL_SOURCES
+                gpu_3dfft_sycl_vkfft.cpp
+            )
+        endif()
     endif()
     if (GMX_SYCL_HIPSYCL AND GMX_HIPSYCL_HAVE_HIP_TARGET)
             gmx_add_libgromacs_sources(

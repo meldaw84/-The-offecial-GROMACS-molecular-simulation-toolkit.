@@ -162,7 +162,7 @@ bool decideWhetherToUseGpusForNonbondedWithThreadMpi(const TaskTarget        non
 
 static bool decideWhetherToUseGpusForPmeFft(const TaskTarget pmeFftTarget)
 {
-    const bool syclGpuFftForced = getenv("GMX_GPU_SYCL_USE_GPU_FFT") != nullptr;
+    const bool syclGpuFftForced = true; //getenv("GMX_GPU_SYCL_USE_GPU_FFT") != nullptr;
     bool       useCpuFft        = (pmeFftTarget == TaskTarget::Cpu)
                      || (pmeFftTarget == TaskTarget::Auto && !syclGpuFftForced
                          && sc_gpuBuildOnlySupportsMixedModePme);

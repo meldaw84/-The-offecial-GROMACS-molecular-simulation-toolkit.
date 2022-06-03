@@ -1,0 +1,145 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="referencedata.xsl"?>
+<ReferenceData>
+  <Vector Name="realGridSizePadded">
+    <Int Name="X">4</Int>
+    <Int Name="Y">4</Int>
+    <Int Name="Z">8</Int>
+  </Vector>
+  <Vector Name="complexGridSizePadded">
+    <Int Name="X">4</Int>
+    <Int Name="Y">4</Int>
+    <Int Name="Z">4</Int>
+  </Vector>
+  <Sequence Name="ComplexGridAfterRealToComplex">
+    <Int Name="Length">128</Int>
+    <Real>54.200005</Real>
+    <Real>0</Real>
+    <Real>0.53828716</Real>
+    <Real>44.26368</Real>
+    <Real>5.3557234</Real>
+    <Real>-27.066517</Real>
+    <Real>-27.394001</Real>
+    <Real>-33.865833</Real>
+    <Real>27.799999</Real>
+    <Real>-53.000004</Real>
+    <Real>-69.663391</Real>
+    <Real>-30.486286</Real>
+    <Real>75.928513</Real>
+    <Real>12.298256</Real>
+    <Real>-7.0083122</Real>
+    <Real>30.143448</Real>
+    <Real>-51.400002</Real>
+    <Real>0</Real>
+    <Real>-56.554153</Real>
+    <Real>-47.849846</Real>
+    <Real>-30.772964</Real>
+    <Real>-84.844498</Real>
+    <Real>17.827122</Real>
+    <Real>-44.590813</Real>
+    <Real>27.799999</Real>
+    <Real>53.000004</Real>
+    <Real>59.120647</Real>
+    <Real>5.6088266</Real>
+    <Real>19.19158</Real>
+    <Real>-45.108776</Real>
+    <Real>-85.769035</Real>
+    <Real>69.855362</Real>
+    <Real>-80.899994</Real>
+    <Real>24.900002</Real>
+    <Real>-25.340946</Real>
+    <Real>-30.403227</Real>
+    <Real>-35.979836</Real>
+    <Real>-10.099934</Real>
+    <Real>-2.2888231</Real>
+    <Real>13.964084</Real>
+    <Real>73.699997</Real>
+    <Real>78.300003</Real>
+    <Real>20.08202</Real>
+    <Real>-67.991295</Real>
+    <Real>-19.650234</Real>
+    <Real>37.331184</Real>
+    <Real>-6.2574549</Real>
+    <Real>15.99328</Real>
+    <Real>45.300003</Real>
+    <Real>-1.7000008</Real>
+    <Real>-20.846996</Real>
+    <Real>39.987312</Real>
+    <Real>31.542137</Real>
+    <Real>23.12834</Real>
+    <Real>73.803734</Real>
+    <Real>83.968201</Real>
+    <Real>-1.2999992</Real>
+    <Real>-4.6999969</Real>
+    <Real>56.122414</Real>
+    <Real>8.8239622</Real>
+    <Real>-13.246443</Real>
+    <Real>-27.048618</Real>
+    <Real>-57.016525</Real>
+    <Real>24.321095</Real>
+    <Real>13.200005</Real>
+    <Real>0</Real>
+    <Real>-0.93308353</Real>
+    <Real>36.050697</Real>
+    <Real>-5.5640135</Real>
+    <Real>140.58632</Real>
+    <Real>-37.202908</Real>
+    <Real>-7.7718573</Real>
+    <Real>-40.200001</Real>
+    <Real>-31.600002</Real>
+    <Real>-25.531874</Real>
+    <Real>15.02956</Real>
+    <Real>2.349369</Real>
+    <Real>75.035255</Real>
+    <Real>-84.955826</Real>
+    <Real>27.740154</Real>
+    <Real>23.199999</Real>
+    <Real>0</Real>
+    <Real>74.992508</Real>
+    <Real>20.179594</Real>
+    <Real>5.4999762</Real>
+    <Real>-7.7320213</Real>
+    <Real>-91.392487</Real>
+    <Real>-13.745358</Real>
+    <Real>-40.200001</Real>
+    <Real>31.600002</Real>
+    <Real>1.424839</Real>
+    <Real>-31.332813</Real>
+    <Real>-44.153053</Real>
+    <Real>-16.639965</Real>
+    <Real>-16.133461</Real>
+    <Real>-14.22224</Real>
+    <Real>-80.899994</Real>
+    <Real>-24.900002</Real>
+    <Real>5.4190702</Real>
+    <Real>-46.11348</Real>
+    <Real>-31.585281</Real>
+    <Real>52.741497</Real>
+    <Real>-23.224194</Real>
+    <Real>44.23291</Real>
+    <Real>-1.2999992</Real>
+    <Real>4.6999969</Real>
+    <Real>12.804484</Real>
+    <Real>-3.4750137</Real>
+    <Real>-9.5384188</Real>
+    <Real>-47.009773</Real>
+    <Real>8.6744814</Real>
+    <Real>-69.218781</Real>
+    <Real>45.300003</Real>
+    <Real>1.7000008</Real>
+    <Real>-13.337878</Real>
+    <Real>-1.6793346</Real>
+    <Real>-7.2322493</Real>
+    <Real>-85.996239</Real>
+    <Real>59.47126</Real>
+    <Real>23.759441</Real>
+    <Real>73.699997</Real>
+    <Real>-78.300003</Real>
+    <Real>42.251488</Real>
+    <Real>-18.945316</Real>
+    <Real>37.611069</Real>
+    <Real>40.519375</Real>
+    <Real>-1.4368763</Real>
+    <Real>-55.240902</Real>
+  </Sequence>
+</ReferenceData>

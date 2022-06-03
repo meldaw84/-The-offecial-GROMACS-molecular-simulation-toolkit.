@@ -1,0 +1,113 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="referencedata.xsl"?>
+<ReferenceData>
+  <Vector Name="realGridSizePadded">
+    <Int Name="X">4</Int>
+    <Int Name="Y">4</Int>
+    <Int Name="Z">6</Int>
+  </Vector>
+  <Vector Name="complexGridSizePadded">
+    <Int Name="X">4</Int>
+    <Int Name="Y">4</Int>
+    <Int Name="Z">3</Int>
+  </Vector>
+  <Sequence Name="ComplexGridAfterRealToComplex">
+    <Int Name="Length">96</Int>
+    <Real>20.499996</Real>
+    <Real>0</Real>
+    <Real>-51.600002</Real>
+    <Real>77.300003</Real>
+    <Real>-11.300003</Real>
+    <Real>0</Real>
+    <Real>4.499999</Real>
+    <Real>-31.800001</Real>
+    <Real>15.599998</Real>
+    <Real>-39.300003</Real>
+    <Real>20.299999</Real>
+    <Real>-2.5999985</Real>
+    <Real>16.099995</Real>
+    <Real>0</Real>
+    <Real>-9.5999985</Real>
+    <Real>-5.0999999</Real>
+    <Real>-42.899994</Real>
+    <Real>0</Real>
+    <Real>4.499999</Real>
+    <Real>31.800001</Real>
+    <Real>-18.399998</Real>
+    <Real>54.299999</Real>
+    <Real>20.299999</Real>
+    <Real>2.5999985</Real>
+    <Real>5.5</Real>
+    <Real>57.599998</Real>
+    <Real>19.400002</Real>
+    <Real>-32.099998</Real>
+    <Real>-10.1</Real>
+    <Real>11.799997</Real>
+    <Real>3.0999985</Real>
+    <Real>30.000002</Real>
+    <Real>-9.7999992</Real>
+    <Real>-0.90000153</Real>
+    <Real>19.5</Real>
+    <Real>37.799999</Real>
+    <Real>-15.899998</Real>
+    <Real>29.400002</Real>
+    <Real>-29.200001</Real>
+    <Real>-33.100002</Real>
+    <Real>-33.099998</Real>
+    <Real>-2.8000011</Real>
+    <Real>22.900002</Real>
+    <Real>16.200003</Real>
+    <Real>38.399998</Real>
+    <Real>0.90000391</Real>
+    <Real>-35.900002</Real>
+    <Real>30.4</Real>
+    <Real>-35.099995</Real>
+    <Real>0</Real>
+    <Real>-38.600002</Real>
+    <Real>-35.299999</Real>
+    <Real>-6.4999967</Real>
+    <Real>0</Real>
+    <Real>9.0999994</Real>
+    <Real>50</Real>
+    <Real>-3.5999994</Real>
+    <Real>-4.8999996</Real>
+    <Real>-25.900002</Real>
+    <Real>-16</Real>
+    <Real>8.9000044</Real>
+    <Real>0</Real>
+    <Real>-28.199997</Real>
+    <Real>11.099998</Real>
+    <Real>48.699997</Real>
+    <Real>0</Real>
+    <Real>9.0999994</Real>
+    <Real>-50</Real>
+    <Real>8.7999992</Real>
+    <Real>-70.899994</Real>
+    <Real>-25.900002</Real>
+    <Real>16</Real>
+    <Real>5.5</Real>
+    <Real>-57.599998</Real>
+    <Real>42</Real>
+    <Real>57.699997</Real>
+    <Real>-10.1</Real>
+    <Real>-11.799997</Real>
+    <Real>22.900002</Real>
+    <Real>-16.200003</Real>
+    <Real>5.7999973</Real>
+    <Real>-77.700005</Real>
+    <Real>-35.900002</Real>
+    <Real>-30.4</Real>
+    <Real>-15.899998</Real>
+    <Real>-29.400002</Real>
+    <Real>-64.199997</Real>
+    <Real>17.899998</Real>
+    <Real>-33.099998</Real>
+    <Real>2.8000011</Real>
+    <Real>3.0999985</Real>
+    <Real>-30.000002</Real>
+    <Real>48.000004</Real>
+    <Real>-15.9</Real>
+    <Real>19.5</Real>
+    <Real>-37.799999</Real>
+  </Sequence>
+</ReferenceData>

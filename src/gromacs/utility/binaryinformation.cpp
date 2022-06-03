@@ -230,7 +230,21 @@ const char* getGpuFftDescriptionString()
         }
         else if (GMX_GPU_SYCL)
         {
-            return "unknown";
+            if (GMX_SYCL_DPCPP)
+            {
+                if (GMX_FFT_MKL)
+                {
+                    return "oneMKL";
+                }
+                else
+                {
+                    return "VkFFT";
+                }
+            }
+            else
+            {
+                return "unknown";
+            }
         }
         else
         {

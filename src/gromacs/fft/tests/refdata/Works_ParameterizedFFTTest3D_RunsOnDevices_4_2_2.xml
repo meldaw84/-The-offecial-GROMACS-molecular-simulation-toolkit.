@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="referencedata.xsl"?>
+<ReferenceData>
+  <Vector Name="realGridSizePadded">
+    <Int Name="X">4</Int>
+    <Int Name="Y">2</Int>
+    <Int Name="Z">4</Int>
+  </Vector>
+  <Vector Name="complexGridSizePadded">
+    <Int Name="X">4</Int>
+    <Int Name="Y">2</Int>
+    <Int Name="Z">2</Int>
+  </Vector>
+  <Sequence Name="ComplexGridAfterRealToComplex">
+    <Int Name="Length">32</Int>
+    <Real>-44.400002</Real>
+    <Real>0</Real>
+    <Real>-10</Real>
+    <Real>0</Real>
+    <Real>-5.8000026</Real>
+    <Real>0</Real>
+    <Real>-4.2000003</Real>
+    <Real>0</Real>
+    <Real>1.4000006</Real>
+    <Real>10.199999</Real>
+    <Real>-3.8000002</Real>
+    <Real>7.4000001</Real>
+    <Real>23.199999</Real>
+    <Real>-16.199999</Real>
+    <Real>-27.200001</Real>
+    <Real>6.2000003</Real>
+    <Real>34.400002</Real>
+    <Real>0</Real>
+    <Real>5.599999</Real>
+    <Real>0</Real>
+    <Real>-10.999996</Real>
+    <Real>0</Real>
+    <Real>-7.7999997</Real>
+    <Real>0</Real>
+    <Real>1.4000006</Real>
+    <Real>-10.199999</Real>
+    <Real>-3.8000002</Real>
+    <Real>-7.4000001</Real>
+    <Real>23.199999</Real>
+    <Real>16.199999</Real>
+    <Real>-27.200001</Real>
+    <Real>-6.2000003</Real>
+  </Sequence>
+</ReferenceData>

@@ -293,7 +293,21 @@ else()
 
     include(gmxManageFFTLibraries)
     if(NOT GMX_FFT_MKL)
-        message(WARNING "Building SYCL version with ${GMX_FFT_LIBRARY} instead of MKL. GPU FFT is disabled!")
+
+        # Use VkFFT with LevelZero back end as header-only library
+        add_library(VkFFT INTERFACE)
+        target_compile_definitions(VkFFT INTERFACE -DVKFFT_BACKEND=4)
+        target_link_libraries(VkFFT INTERFACE ze_loader)
+        target_include_directories(VkFFT INTERFACE ${CMAKE_PROJECT_ROOT}/src/external/VkFFT)
+        find_path(ZE_API_H NAMES ze_api.h PATHS ENV ZE_ROOT PATH_SUFFIXES /usr/include/level_zero REQUIRED)
+        target_include_directories(VkFFT SYSTEM INTERFACE ${ZE_API_H})
+        target_compile_options(VkFFT INTERFACE "-Wno-unused-parameter")
+        target_compile_options(VkFFT INTERFACE "-Wno-unused-variable")
+        target_compile_options(VkFFT INTERFACE "-Wno-newline-eof")
+        target_compile_options(VkFFT INTERFACE "-Wno-old-style-cast")
+        target_compile_options(VkFFT INTERFACE "-Wno-zero-as-null-pointer-constant")
+        target_compile_options(VkFFT INTERFACE "-Wno-unused-but-set-variable")
+
     endif()
 
     # Add function wrapper similar to the one used by ComputeCPP and hipSYCL
