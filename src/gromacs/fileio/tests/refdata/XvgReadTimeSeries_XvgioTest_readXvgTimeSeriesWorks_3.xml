@@ -4,15 +4,15 @@
   <XvgMatrix>
     <Sequence Name="ColumnValues">
       <Int Name="Length">20</Int>
-      <Real>0.2</Real>
+      <Real>0.20000000000000001</Real>
       <Real>1</Real>
       <Real>2</Real>
       <Real>3</Real>
-      <Real>0.40000001</Real>
+      <Real>0.40000000000000002</Real>
       <Real>1</Real>
       <Real>3</Real>
       <Real>2</Real>
-      <Real>0.80000001</Real>
+      <Real>0.80000000000000004</Real>
       <Real>3</Real>
       <Real>2</Real>
       <Real>1</Real>
@@ -20,7 +20,7 @@
       <Real>3</Real>
       <Real>1</Real>
       <Real>2</Real>
-      <Real>1.4</Real>
+      <Real>1.3999999999999999</Real>
       <Real>1</Real>
       <Real>2</Real>
       <Real>3</Real>
