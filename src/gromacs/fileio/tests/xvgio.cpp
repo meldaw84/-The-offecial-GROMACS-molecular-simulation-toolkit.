@@ -91,10 +91,7 @@ using XvgrTimeReadingParams = std::tuple<bool, bool>;
 class XvgioTest : public ::testing::Test, public ::testing::WithParamInterface<XvgrTimeReadingParams>
 {
 public:
-    XvgioTest() : checker_(data_.rootChecker())
-    {
-        referenceFilename_ = fileManager_.getTemporaryFilePath("ref.xvg");
-    }
+    XvgioTest() { referenceFilename_ = fileManager_.getTemporaryFilePath("ref.xvg"); }
 
     const std::string& referenceFilename() const { return referenceFilename_; }
 
@@ -107,14 +104,10 @@ public:
         gmx::TextWriter::writeFileFromString(referenceFilename(), referenceContents());
     }
 
-    TestReferenceChecker* checker() { return &checker_; }
-
 private:
     gmx::test::TestFileManager fileManager_;
     std::string                referenceFilename_;
     std::string                referenceContents_;
-    TestReferenceData          data_;
-    TestReferenceChecker       checker_;
 };
 
 TEST_F(XvgioTest, readXvgIntWorks)
@@ -244,6 +237,8 @@ void checkMatrix(TestReferenceChecker* checker, basic_mdspan<const double, dynam
 
 TEST_P(XvgioTest, readXvgTimeSeriesWorks)
 {
+    TestReferenceData    data;
+    TestReferenceChecker checker(data.rootChecker());
     useStringAsXvgFile(
             "0.2 1 2 3\n"
             "0.4 1 3 2\n"
@@ -260,7 +255,7 @@ TEST_P(XvgioTest, readXvgTimeSeriesWorks)
                                             useStartTime ? std::make_optional(0.3) : std::nullopt,
                                             useEndTime ? std::make_optional(1.2) : std::nullopt);
 
-    checkMatrix(checker(), timeSeriesData);
+    checkMatrix(&checker, timeSeriesData);
 }
 
 INSTANTIATE_TEST_SUITE_P(XvgReadTimeSeries,
