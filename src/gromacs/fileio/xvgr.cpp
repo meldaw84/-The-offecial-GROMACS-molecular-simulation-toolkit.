@@ -839,11 +839,10 @@ readXvgTimeSeries(const std::string& fn, std::optional<real> startTime, std::opt
     {
         return fullDataSet;
     }
-    const int           numRows    = fullDataSet.extent(0);
-    const int           numColumns = fullDataSet.extent(1);
-    std::vector<double> reducedDataSetAsArray;
-    reducedDataSetAsArray.reserve(numRows * numColumns);
-    int reducedRows = 0;
+    const int numRows    = fullDataSet.extent(0);
+    const int numColumns = fullDataSet.extent(1);
+    gmx::MultiDimArray<std::vector<double>, gmx::dynamicExtents2D> reducedDataSet(numRows, numColumns);
+    int                                                            reducedRows = 0;
     for (std::ptrdiff_t row = 0; row < numRows; ++row)
     {
         const bool timeLargerThanStartTime = !startTime.has_value() || (fullDataSet(row, 0) > *startTime);
@@ -852,15 +851,12 @@ readXvgTimeSeries(const std::string& fn, std::optional<real> startTime, std::opt
         {
             for (std::ptrdiff_t column = 0; column < numColumns; ++column)
             {
-                reducedDataSetAsArray.emplace_back(fullDataSet(row, column));
+                reducedDataSet(reducedRows, column) = fullDataSet(row, column);
             }
             ++reducedRows;
         }
     }
-    gmx::MultiDimArray<std::vector<double>, gmx::dynamicExtents2D> reducedDataSet(reducedRows, numColumns);
-    std::copy(std::begin(reducedDataSetAsArray),
-              std::end(reducedDataSetAsArray),
-              begin(reducedDataSet.asView()));
+    reducedDataSet.resize(reducedRows, numColumns);
     return reducedDataSet;
 }
 
