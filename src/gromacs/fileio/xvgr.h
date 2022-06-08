@@ -249,7 +249,7 @@ void write_xvg(const char*                    fn,
  * Read xvg data as a time series.
  *
  * Allows truncation of data series to exclude time points.
- * Uses readXvgData under the hood. Expects first row to be
+ * Expects first row to be
  * time series. Only one set can be read in at the same time.
  *
  * \returns Data series in row major, first row being the time series.
