@@ -1109,7 +1109,9 @@ static void doSDUpdateGeneral(const gmx_stochd_t&                 sd,
                               const rvec                          f[],
                               int64_t                             step,
                               int                                 seed,
-                              const int*                          gatindex)
+                              const int*                          gatindex,
+                              real                                dtPressureCouple,
+                              const matrix                        parrinelloRahmanM)
 {
     // cTC, cACC and cFREEZE can be nullptr any time, but various
     // instantiations do not make sense with particular pointer
@@ -1153,7 +1155,8 @@ static void doSDUpdateGeneral(const gmx_stochd_t&                 sd,
             {
                 if (updateType == SDUpdate::ForcesOnly)
                 {
-                    real vn = v[n][d] + (inverseMass * f[n][d] + acceleration[accelerationGroup][d]) * dt;
+                    real vn = v[n][d] + (inverseMass * f[n][d] + acceleration[accelerationGroup][d]) * dt
+                              - dtPressureCouple * iprod(parrinelloRahmanM[d], v[n]);
                     v[n][d] = vn;
                     // Simple position update.
                     xprime[n][d] = x[n][d] + v[n][d] * dt;
@@ -1170,7 +1173,8 @@ static void doSDUpdateGeneral(const gmx_stochd_t&                 sd,
                 }
                 else
                 {
-                    real vn = v[n][d] + (inverseMass * f[n][d] + acceleration[accelerationGroup][d]) * dt;
+                    real vn = v[n][d] + (inverseMass * f[n][d] + acceleration[accelerationGroup][d]) * dt
+                              - dtPressureCouple * iprod(parrinelloRahmanM[d], v[n]);
                     v[n][d] = (vn * sd.sdc[temperatureGroup].em
                                + invsqrtMass * sd.sdsig[temperatureGroup].V * dist(rng));
                     // Here we include half of the friction+noise
@@ -1212,8 +1216,19 @@ static void do_update_sd(int                                 start,
                          int                                 seed,
                          const t_commrec*                    cr,
                          const gmx_stochd_t&                 sd,
-                         bool                                haveConstraints)
+                         bool                                haveConstraints,
+                         const PressureCoupling              pressureCoupling,
+                         const int                           nstpcouple,
+                         const matrix                        M)
 {
+    const bool doParrinelloRahmanThisStep = (pressureCoupling == PressureCoupling::ParrinelloRahman
+                                             && do_per_step(step + nstpcouple - 1, nstpcouple));
+
+    matrix zero;
+    clear_mat(zero);
+    const rvec* parrinelloRahmanM = (doParrinelloRahmanThisStep ? M : zero);
+    const real  dtPressureCouple  = (doParrinelloRahmanThisStep ? nstpcouple * dt : 0);
+
     if (haveConstraints)
     {
         // With constraints, the SD update is done in 2 parts
@@ -1234,7 +1249,9 @@ static void do_update_sd(int                                 start,
                                                 f,
                                                 step,
                                                 seed,
-                                                nullptr);
+                                                nullptr,
+                                                dtPressureCouple,
+                                                parrinelloRahmanM);
     }
     else
     {
@@ -1256,7 +1273,9 @@ static void do_update_sd(int                                 start,
                 f,
                 step,
                 seed,
-                haveDDAtomOrdering(*cr) ? cr->dd->globalAtomIndices.data() : nullptr);
+                haveDDAtomOrdering(*cr) ? cr->dd->globalAtomIndices.data() : nullptr,
+                dtPressureCouple,
+                parrinelloRahmanM);
     }
 }
 
@@ -1533,6 +1552,10 @@ void Update::Impl::update_sd_second_half(const t_inputrec&                 input
          */
         real dt = inputRecord.delta_t;
 
+        matrix parrinelloRahmanM;
+        clear_mat(parrinelloRahmanM);
+        real dtPressureCouple = 0;
+
         wallcycle_start(wcycle, WallCycleCounter::Update);
 
         int nth = gmx_omp_nthreads_get(ModuleMultiThread::Update);
@@ -1563,7 +1586,9 @@ void Update::Impl::update_sd_second_half(const t_inputrec&                 input
                         nullptr,
                         step,
                         inputRecord.ld_seed,
-                        haveDDAtomOrdering(*cr) ? cr->dd->globalAtomIndices.data() : nullptr);
+                        haveDDAtomOrdering(*cr) ? cr->dd->globalAtomIndices.data() : nullptr,
+                        dtPressureCouple,
+                        parrinelloRahmanM);
             }
             GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR
         }
@@ -1743,7 +1768,10 @@ void Update::Impl::update_coords(const t_inputrec&                 inputRecord,
                                  inputRecord.ld_seed,
                                  cr,
                                  sd_,
-                                 haveConstraints);
+                                 haveConstraints,
+                                 inputRecord.epc,
+                                 inputRecord.nstpcouple,
+                                 M);
                     break;
                 case (IntegrationAlgorithm::BD):
                     do_update_bd(start_th,
