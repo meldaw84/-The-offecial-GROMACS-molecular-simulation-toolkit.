@@ -276,7 +276,7 @@ public:
         haveType_(oldParticle.haveType_),
         haveParticleName_(oldParticle.haveParticleName_),
         haveParticleTypeName_(oldParticle.haveParticleTypeName_),
-        haveBState_(oldParticle.haveBState_)
+        haveBStateForAll_(oldParticle.haveBStateForAll_)
     {
     }
     //! Construct new datastructure from deserialization.
