@@ -365,7 +365,7 @@ public:
     //! Run the test with a single residue after finalizing.
     void runTest(const SimulationResidue& residue);
     //! Access to particles information for test.'
-    std::vector<SimulationParticle>* particles() { return &particles_; }
+    std::vector<SimulationParticle> particles() { return particles_; }
     //! Access to table.
     const StringTable& table() const { return *table_; }
 
@@ -442,20 +442,20 @@ TEST_F(SimulationResidueBuilderTest, CanCreateFullWithConstructor)
 
 TEST_F(SimulationResidueBuilderTest, CanUpdateAtoms)
 {
+    auto localParticles = particles();
     auto residueBuilder =
             SimulationResidueBuilder(table().at(0), ' ', 0, ' ', table().at(1), particles());
-    std::vector<SimulationParticle> newParticles(particles()->begin(), particles()->end());
-    ParticleTypeName                typeNameOne{ table().at(3) };
-    newParticles.emplace_back(SimulationParticle(testParticleMassOneState,
-                                                 testParticleChargeOneState,
-                                                 testParticleTypeValueOneState,
-                                                 typeNameOne,
-                                                 table().at(2),
-                                                 ParticleType::Atom,
-                                                 3,
-                                                 4,
-                                                 "Ref\n"));
-    residueBuilder.updateParticles(&newParticles);
+    ParticleTypeName typeNameOne{ table().at(3) };
+    localParticles.emplace_back(SimulationParticle(testParticleMassOneState,
+                                                   testParticleChargeOneState,
+                                                   testParticleTypeValueOneState,
+                                                   typeNameOne,
+                                                   table().at(2),
+                                                   ParticleType::Atom,
+                                                   3,
+                                                   4,
+                                                   "Ref\n"));
+    residueBuilder.updateParticles(std::move(localParticles));
     runTest(residueBuilder);
 }
 
@@ -473,8 +473,8 @@ TEST_F(SimulationResidueBuilderTest, CanCreateResidueFromBuilder)
 
 TEST_F(SimulationResidueBuilderTest, ResidueSerializerWorks)
 {
-    gmx::ArrayRef<const SimulationParticle> simParticles = *(particles());
-    auto                                    residueBuilder =
+    auto simParticles = particles();
+    auto residueBuilder =
             SimulationResidueBuilder(table().at(0), ' ', 0, ' ', table().at(1), particles());
     auto                    residue = residueBuilder.finalize(0, 0, simParticles.size());
     gmx::InMemorySerializer writer;

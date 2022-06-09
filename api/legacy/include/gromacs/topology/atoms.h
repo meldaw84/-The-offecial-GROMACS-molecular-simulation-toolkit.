@@ -381,19 +381,19 @@ class SimulationResidueBuilder
 {
 public:
     //! Construct object with complete information.
-    SimulationResidueBuilder(NameHolder                       name,
-                             unsigned char                    insertionCode,
-                             gmx::index                       chainNumber,
-                             char                             chainIdentifier,
-                             NameHolder                       rtp,
-                             std::vector<SimulationParticle>* particles) :
+    SimulationResidueBuilder(NameHolder                        name,
+                             unsigned char                     insertionCode,
+                             gmx::index                        chainNumber,
+                             char                              chainIdentifier,
+                             NameHolder                        rtp,
+                             std::vector<SimulationParticle>&& particles) :
         name_(name),
         insertionCode_(insertionCode),
         chainNumber_(chainNumber),
         chainIdentifier_(chainIdentifier),
-        rtp_(rtp)
+        rtp_(rtp),
+        residueParticles_(particles)
     {
-        std::swap(*particles, residueParticles_);
     }
 
     //! Copy constructor.
@@ -426,9 +426,9 @@ public:
     //! Access chain indentifier.
     char chainIdentifier() const { return chainIdentifier_; }
     //! Change particles in this residue.
-    void updateParticles(std::vector<SimulationParticle>* newParticles)
+    void updateParticles(std::vector<SimulationParticle>&& newParticles)
     {
-        std::swap(*newParticles, residueParticles_);
+        residueParticles_ = newParticles;
     }
     //! View on residue particles
     gmx::ArrayRef<const SimulationParticle> particles() const { return residueParticles_; }
