@@ -61,6 +61,7 @@
 #include "gromacs/math/vec.h"
 #include "gromacs/topology/residuetypes.h"
 #include "gromacs/topology/symtab.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/binaryinformation.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/dir_separator.h"
@@ -622,6 +623,19 @@ static void print_top_posre(FILE* out, const char* pr)
     fprintf(out, "#endif\n\n");
 }
 
+static void print_top_extra(FILE* out, gmx::ArrayRef<const std::string> extraIncludes)
+{
+    if (!extraIncludes.empty())
+    {
+        fprintf(out, "; Include extra include topologies\n");
+        for (const auto& string : extraIncludes)
+        {
+            auto fileName = gmx::Path::getFilename(string);
+            fprintf(out, "#include %s\n", fileName.c_str());
+        }
+    }
+}
+
 static void print_top_water(FILE* out, const char* ffdir, const char* water)
 {
     const char* p;
@@ -664,7 +678,8 @@ void print_top_mols(FILE*                            out,
                     const char*                      ffdir,
                     const char*                      water,
                     gmx::ArrayRef<const std::string> incls,
-                    gmx::ArrayRef<const t_mols>      mols)
+                    gmx::ArrayRef<const t_mols>      mols,
+                    gmx::ArrayRef<const std::string> extraIncludes)
 {
 
     if (!incls.empty())
@@ -681,6 +696,7 @@ void print_top_mols(FILE*                            out,
     {
         print_top_water(out, ffdir, water);
     }
+    print_top_extra(out, extraIncludes);
     print_top_system(out, title);
 
     if (!mols.empty())

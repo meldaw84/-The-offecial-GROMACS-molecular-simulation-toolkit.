@@ -1638,14 +1638,15 @@ private:
     real long_bond_dist_;
     real short_bond_dist_;
 
-    std::string indexOutputFile_;
-    std::string outputFile_;
-    std::string topologyFile_;
-    std::string includeTopologyFile_;
-    std::string outputConfFile_;
-    std::string inputConfFile_;
-    std::string outFile_;
-    std::string ff_;
+    std::string              indexOutputFile_;
+    std::string              outputFile_;
+    std::string              topologyFile_;
+    std::string              includeTopologyFile_;
+    std::string              outputConfFile_;
+    std::string              inputConfFile_;
+    std::string              outFile_;
+    std::string              ff_;
+    std::vector<std::string> inputItpFiles_;
 
     ChainSeparationType chainSeparation_;
     VSitesType          vsitesType_;
@@ -1913,6 +1914,12 @@ void pdb2gmx::initOptions(IOptionsContainer* options, ICommandLineOptionsModuleS
                                .defaultBasename("clean")
                                .defaultType(efPDB)
                                .description("Structure file"));
+    options->addOption(FileNameOption("readItp")
+                               .legacyType(efITP)
+                               .allowMultiple()
+                               .inputFile()
+                               .storeVector(&inputItpFiles_)
+                               .description("Additional itp files to be included in topology"));
 }
 
 void pdb2gmx::optionsFinished()
@@ -2825,7 +2832,7 @@ int pdb2gmx::run()
         }
     }
 
-    print_top_mols(top_file, title, ffdir_, watermodel_, incls_, mols_);
+    print_top_mols(top_file, title, ffdir_, watermodel_, incls_, mols_, inputItpFiles_);
     gmx_fio_fclose(top_file);
 
     /* now merge all chains back together */

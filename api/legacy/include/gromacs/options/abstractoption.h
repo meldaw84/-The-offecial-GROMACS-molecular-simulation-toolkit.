@@ -169,7 +169,10 @@ protected:
         }
     }
     //! Returns true if the option supports multiple values.
-    bool supportsMultipleValues() const { return hasFlag(efOption_MultipleValues); }
+    bool supportsMultipleValues() const
+    {
+        return hasFlag(efOption_MultipleValues) || hasFlag(efOption_MultipleTimes);
+    }
     //! Sets the required number of values for the option.
     void setValueCount(int count)
     {

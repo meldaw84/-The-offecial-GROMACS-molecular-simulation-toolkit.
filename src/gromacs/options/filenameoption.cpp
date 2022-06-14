@@ -194,8 +194,6 @@ FileNameOptionStorage::FileNameOptionStorage(const FileNameOption& settings, Fil
     bAllowMissing_(settings.bAllowMissing_),
     bMultipleValues_(settings.supportsMultipleValues())
 {
-    GMX_RELEASE_ASSERT(!hasFlag(efOption_MultipleTimes),
-                       "allowMultiple() is not supported for file name options");
     if (settings.optionType_ == OptionFileType::Count && settings.legacyType_ >= 0)
     {
         fileType_ = settings.legacyType_;

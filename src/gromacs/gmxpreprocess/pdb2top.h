@@ -128,7 +128,8 @@ void print_top_mols(FILE*                            out,
                     const char*                      ffdir,
                     const char*                      water,
                     gmx::ArrayRef<const std::string> incls,
-                    gmx::ArrayRef<const t_mols>      mols);
+                    gmx::ArrayRef<const t_mols>      mols,
+                    gmx::ArrayRef<const std::string> extraIncludes);
 
 void write_top(FILE*                                   out,
                const char*                             pr,

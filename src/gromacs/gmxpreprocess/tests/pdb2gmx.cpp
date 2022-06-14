@@ -42,7 +42,9 @@
 
 #include "gromacs/gmxpreprocess/pdb2gmx.h"
 
+#include <optional>
 #include <tuple>
+#include <vector>
 
 #include "gromacs/fileio/filetypes.h"
 #include "gromacs/utility/futil.h"
@@ -65,9 +67,12 @@ namespace
 
 using test::CommandLine;
 
+//! Convienece type for vector of optional itp files
+using ExtraItpFiles = std::optional<std::vector<std::string>>;
+
 //! Test parameter struct.
 using CommandLineOptionParams =
-        std::tuple<std::string, std::string, std::string, std::string, std::string, std::string, int, bool>;
+        std::tuple<std::string, std::string, std::string, std::string, std::string, std::string, int, bool, ExtraItpFiles>;
 
 /*! \brief Strings containing regular expressions for lines to skip
  * when matching.
@@ -117,6 +122,8 @@ public:
         CommandLine& cmdline = commandLine();
         cmdline.merge(args);
 
+        printf("%s\n", cmdline.toString().c_str());
+        fflush(stdout);
         TestReferenceChecker rootChecker(this->rootChecker());
 
         ASSERT_EQ(0, CommandLineTestHelper::runModuleFactory(&pdb2gmxInfo::create, &cmdline));
@@ -128,22 +135,32 @@ public:
 TEST_P(Pdb2gmxTest, Runs)
 {
     checkTestNameLength();
-    const auto& params    = GetParam();
-    std::string cmdline[] = { "pdb2gmx",   "-ignh",
-                              "-ff",       std::get<0>(params),
-                              "-water",    std::get<1>(params),
-                              "-vsite",    std::get<2>(params),
-                              "-chainsep", std::get<3>(params),
-                              "-merge",    std::get<4>(params) };
+    const auto&              params  = GetParam();
+    std::vector<std::string> cmdline = { "pdb2gmx",   "-ignh",
+                                         "-ff",       std::get<0>(params),
+                                         "-water",    std::get<1>(params),
+                                         "-vsite",    std::get<2>(params),
+                                         "-chainsep", std::get<3>(params),
+                                         "-merge",    std::get<4>(params) };
     setInputFile("-f", std::get<5>(params));
+    auto extraItpFiles = std::get<8>(params);
+    if (extraItpFiles.has_value())
+    {
+        for (const auto& file : extraItpFiles.value())
+        {
+            cmdline.emplace_back(std::string("-readItp"));
+            cmdline.emplace_back(TestFileManager::getInputFilePath(file));
+        }
+    }
     runTest(CommandLine(cmdline));
 }
 
 //! Help GoogleTest name our test cases
 std::string namesOfTests(const testing::TestParamInfo<Pdb2gmxTest::ParamType>& info)
 {
-    const auto& param = info.param;
-
+    const auto& param    = info.param;
+    const auto& extraItp = std::get<8>(param);
+    const int   size     = extraItp.has_value() ? extraItp.value().size() : 0;
     std::string testName = formatString(
             "ff_%s_"
             "%s_"
@@ -152,7 +169,8 @@ std::string namesOfTests(const testing::TestParamInfo<Pdb2gmxTest::ParamType>& i
             "merge_%s_"
             "%s_"
             "format_%s_"
-            "match_%s",
+            "match_%s"
+            "_nItp%d",
             std::get<0>(param).c_str(),
             std::get<1>(param).c_str(),
             std::get<2>(param).c_str(),
@@ -160,7 +178,8 @@ std::string namesOfTests(const testing::TestParamInfo<Pdb2gmxTest::ParamType>& i
             std::get<4>(param).c_str(),
             std::get<5>(param).c_str(),
             ftp2ext(std::get<6>(param)),
-            std::get<7>(param) ? "full" : "file");
+            std::get<7>(param) ? "full" : "file",
+            size);
 
     // Note that the returned names must be unique and may use only
     // alphanumeric ASCII characters. It's not supposed to contain
@@ -187,7 +206,10 @@ INSTANTIATE_TEST_SUITE_P(
                            ::testing::Values("no"),
                            ::testing::Values("A.pdb", "B.pdb", "C.pdb", "D.pdb", "E.pdb"),
                            ::testing::Values(efGRO),
-                           ::testing::Values(false)),
+                           ::testing::Values(false),
+                           ::testing::Values(std::nullopt,
+                                             ExtraItpFiles({ "test1.itp" }),
+                                             ExtraItpFiles({ "test1.itp", "test2.itp" }))),
         namesOfTests);
 #endif
 
@@ -202,7 +224,8 @@ INSTANTIATE_TEST_SUITE_P(
                            ::testing::Values("no"),
                            ::testing::Values("A.pdb", "B.pdb", "C.pdb", "D.pdb", "E.pdb"),
                            ::testing::Values(efGRO),
-                           ::testing::Values(false)),
+                           ::testing::Values(false),
+                           ::testing::Values(std::nullopt)),
         namesOfTests);
 
 INSTANTIATE_TEST_SUITE_P(
@@ -215,7 +238,8 @@ INSTANTIATE_TEST_SUITE_P(
                            ::testing::Values("no"),
                            ::testing::Values("A.pdb", "B.pdb", "C.pdb", "D.pdb", "E.pdb"),
                            ::testing::Values(efGRO),
-                           ::testing::Values(false)),
+                           ::testing::Values(false),
+                           ::testing::Values(std::nullopt)),
         namesOfTests);
 #endif
 
@@ -230,7 +254,8 @@ INSTANTIATE_TEST_SUITE_P(
                            ::testing::Values("no"),
                            ::testing::Values("A.pdb", "B.pdb", "C.pdb", "D.pdb", "E.pdb"),
                            ::testing::Values(efGRO),
-                           ::testing::Values(false)),
+                           ::testing::Values(false),
+                           ::testing::Values(std::nullopt)),
         namesOfTests);
 INSTANTIATE_TEST_SUITE_P(AmberTip4p,
                          Pdb2gmxTest,
@@ -241,7 +266,8 @@ INSTANTIATE_TEST_SUITE_P(AmberTip4p,
                                             ::testing::Values("no"),
                                             ::testing::Values("tip4p.pdb"),
                                             ::testing::Values(efGRO),
-                                            ::testing::Values(true)),
+                                            ::testing::Values(true),
+                                            ::testing::Values(std::nullopt)),
                          namesOfTests);
 #endif
 
@@ -257,7 +283,8 @@ INSTANTIATE_TEST_SUITE_P(
                 ::testing::Values("no"),
                 ::testing::Values("A.pdb", "B.pdb", "C.pdb", "D.pdb", "E.pdb", "monomer.pdb"),
                 ::testing::Values(efGRO),
-                ::testing::Values(false)),
+                ::testing::Values(false),
+                ::testing::Values(std::nullopt)),
         namesOfTests);
 
 
@@ -271,7 +298,8 @@ INSTANTIATE_TEST_SUITE_P(
                            ::testing::Values("all", "no"),
                            ::testing::Values("chainTer.pdb"),
                            ::testing::Values(efGRO),
-                           ::testing::Values(false)),
+                           ::testing::Values(false),
+                           ::testing::Values(std::nullopt)),
         namesOfTests);
 
 INSTANTIATE_TEST_SUITE_P(
@@ -284,7 +312,8 @@ INSTANTIATE_TEST_SUITE_P(
                            ::testing::Values("no"),
                            ::testing::Values("fragments.pdb"),
                            ::testing::Values(efPDB),
-                           ::testing::Values(false)),
+                           ::testing::Values(false),
+                           ::testing::Values(std::nullopt)),
         namesOfTests);
 
 INSTANTIATE_TEST_SUITE_P(Cyclic,
@@ -296,7 +325,8 @@ INSTANTIATE_TEST_SUITE_P(Cyclic,
                                             ::testing::Values("no", "all"),
                                             ::testing::Values("cyc-rna.pdb", "cyc-prot.pdb"),
                                             ::testing::Values(efGRO),
-                                            ::testing::Values(false)),
+                                            ::testing::Values(false),
+                                            ::testing::Values(std::nullopt)),
                          namesOfTests);
 #endif
 
