@@ -45,7 +45,7 @@ sample_taf:tmpi:
   extends:
     - .sample_taf
     - .rules:merge-requests
-  image: ${CI_REGISTRY_IMAGE}/ci-ubuntu-20.04-llvm-8-cuda-11.0.3
+  image: ${CI_REGISTRY_IMAGE}/ci-ubuntu-20.04-llvm-8-cuda-11.0
   variables:
     CMAKE: /usr/local/cmake-3.21.2/bin/cmake
   needs:
@@ -79,7 +79,7 @@ sample_restraint:clang-8:py-3.7.7:
     - .sample_restraint
     - .use-clang:base
     - .rules:merge-requests
-  image: ${CI_REGISTRY_IMAGE}/ci-ubuntu-20.04-llvm-8-cuda-11.0.3
+  image: ${CI_REGISTRY_IMAGE}/ci-ubuntu-20.04-llvm-8-cuda-11.0
   variables:
     VENVPATH: "/root/venv/py3.7"
     PY_VER: "3.7.7"
@@ -95,7 +95,7 @@ sample_restraint:clang-8:py-3.8.2:
     - .sample_restraint
     - .use-clang:base
     - .rules:merge-requests
-  image: ${CI_REGISTRY_IMAGE}/ci-ubuntu-20.04-llvm-8-cuda-11.0.3
+  image: ${CI_REGISTRY_IMAGE}/ci-ubuntu-20.04-llvm-8-cuda-11.0
   variables:
     VENVPATH: "/root/venv/py3.8"
     PY_VER: "3.8.2"
@@ -111,7 +111,7 @@ sample_restraint:clang-8:py-3.9.1:
     - .sample_restraint
     - .use-clang:base
     - .rules:merge-requests
-  image: ${CI_REGISTRY_IMAGE}/ci-ubuntu-20.04-llvm-8-cuda-11.0.3
+  image: ${CI_REGISTRY_IMAGE}/ci-ubuntu-20.04-llvm-8-cuda-11.0
   variables:
     VENVPATH: "/root/venv/py3.9"
     PY_VER: "3.9.1"
