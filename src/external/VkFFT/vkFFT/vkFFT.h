@@ -23792,7 +23792,7 @@ static inline VkFFTResult VkFFTPlanR2CMultiUploadDecomposition(VkFFTApplication*
 			fwrite(code0, 1, codelen, temp);
 			fclose(temp);
 			char system_call[500];
-			sprintf(system_call, "clang -c -target spir64 -O0 -emit-llvm -o %s %s", fname_bc, fname_cl);
+			sprintf(system_call, "clang -c -target spir64 -O0 -emit-llvm -Xclang -finclude-default-header -o %s %s", fname_bc, fname_cl);
 			system(system_call);
 			sprintf(system_call, "llvm-spirv -o %s %s", fname_spv, fname_bc);
 			system(system_call);
@@ -26252,7 +26252,7 @@ static inline VkFFTResult VkFFTPlanAxis(VkFFTApplication* app, VkFFTPlan* FFTPla
 			fwrite(code0, 1, codelen, temp);
 			fclose(temp);
 			char system_call[500];
-			sprintf(system_call, "clang -c -target spir64 -O0 -emit-llvm -o %s %s", fname_bc, fname_cl);
+			sprintf(system_call, "clang -c -target spir64 -O0 -emit-llvm -Xclang -finclude-default-header -o %s %s", fname_bc, fname_cl);
 			system(system_call);
 			sprintf(system_call, "llvm-spirv -o %s %s", fname_spv, fname_bc);
 			system(system_call);
@@ -26357,6 +26357,9 @@ static inline VkFFTResult VkFFTPlanAxis(VkFFTApplication* app, VkFFTPlan* FFTPla
 }
 static inline VkFFTResult initializeVkFFT(VkFFTApplication* app, VkFFTConfiguration inputLaunchConfiguration) {
 	//app->configuration = {};// inputLaunchConfiguration;
+	app->configuration = {};
+    app->localFFTPlan = 0;
+    app->localFFTPlan_inverse = 0;
 	if (inputLaunchConfiguration.doublePrecision != 0)	app->configuration.doublePrecision = inputLaunchConfiguration.doublePrecision;
 	if (inputLaunchConfiguration.doublePrecisionFloatMemory != 0)	app->configuration.doublePrecisionFloatMemory = inputLaunchConfiguration.doublePrecisionFloatMemory;
 	if (inputLaunchConfiguration.halfPrecision != 0)	app->configuration.halfPrecision = inputLaunchConfiguration.halfPrecision;
@@ -27000,10 +27003,12 @@ static inline VkFFTResult initializeVkFFT(VkFFTApplication* app, VkFFTConfigurat
 	if (checkBufferSizeFor64BitAddressing >= (uint64_t)pow((uint64_t)2, (uint64_t)34)) app->configuration.useUint64 = 1;
 
 	checkBufferSizeFor64BitAddressing = 0;
-	for (uint64_t i = 0; i < app->configuration.kernelNum; i++) {
-		if (app->configuration.kernelSize)
-			checkBufferSizeFor64BitAddressing += app->configuration.kernelSize[i];
-	}
+	if (app->configuration.performConvolution) {
+        for (uint64_t i = 0; i < app->configuration.kernelNum; i++) {
+            if (app->configuration.kernelSize)
+                checkBufferSizeFor64BitAddressing += app->configuration.kernelSize[i];
+        }
+    }
 	if (checkBufferSizeFor64BitAddressing >= (uint64_t)pow((uint64_t)2, (uint64_t)34)) app->configuration.useUint64 = 1;
 	if (inputLaunchConfiguration.useUint64 != 0)	app->configuration.useUint64 = inputLaunchConfiguration.useUint64;
 
