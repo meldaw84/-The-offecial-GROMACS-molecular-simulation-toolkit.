@@ -32,22 +32,30 @@
 # the research papers on the package. Check out https://www.gromacs.org.
 
 # Set up the module library
-add_library(pbcutil INTERFACE)
-file(GLOB PBCUTIL_SOURCES *.cpp)
-set(LIBGROMACS_SOURCES ${LIBGROMACS_SOURCES} ${PBCUTIL_SOURCES} PARENT_SCOPE)
+add_library(pbcutil
+        OBJECT
+        boxutilities.cpp
+        com.cpp
+        mshift.cpp
+        pbc.cpp
+        pbc_simd.cpp
+        pbcenums.cpp
+        pbcmethods.cpp
+        rmpbc.cpp
+        )
 
 # Source files have the following dependencies on library infrastructure.
-#target_link_libraries(pbcutil PRIVATE
-#                      common
-#                      legacy_modules
-#)
+target_link_libraries(pbcutil PRIVATE
+                      common
+                      legacy_modules
+)
 
 # Public interface for modules, including dependencies and interfaces
 #target_include_directories(pbcutil PUBLIC
 target_include_directories(pbcutil INTERFACE
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-#target_link_libraries(pbcutil PUBLIC
-target_link_libraries(pbcutil INTERFACE
+target_link_libraries(pbcutil PUBLIC
+#target_link_libraries(pbcutil INTERFACE
                       legacy_api
                       )
 
