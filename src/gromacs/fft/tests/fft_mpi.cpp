@@ -49,9 +49,9 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "gromacs/fft/clfftinitializer.h"
 #include "gromacs/fft/fft.h"
 #include "gromacs/fft/gpu_3dfft.h"
-#include "gromacs/gpu_utils/clfftinitializer.h"
 #if GMX_GPU
 #    include "gromacs/gpu_utils/devicebuffer.h"
 #endif

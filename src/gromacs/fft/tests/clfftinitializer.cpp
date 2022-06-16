@@ -39,7 +39,7 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/gpu_utils/clfftinitializer.h"
+#include "gromacs/fft/clfftinitializer.h"
 
 #include <gtest/gtest.h>
 
