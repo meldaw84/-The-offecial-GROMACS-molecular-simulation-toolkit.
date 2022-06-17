@@ -118,6 +118,7 @@ extensions = [
     'sphinx_inline_tabs',
     'sphinxarg.ext',
     'sphinxcontrib.autoprogram',
+    'breathe',
     'gmxsphinx'
 ]
 extlinks = {'issue': ('https://gitlab.com/gromacs/gromacs/-/issues/%s',
@@ -463,3 +464,8 @@ autodoc_mock_imports = ['hpccm', 'hpccm.config']
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
 intersphinx_cache_limit = -1
 intersphinx_timeout = 10
+
+# -- Options for breathe extension ----------------------------------------
+
+breathe_projects = { "api": "@PROJECT_BINARY_DIR@/api/docs/xml" }
+breathe_default_project = "api"

@@ -20,6 +20,8 @@ This can be directly copied from here.
 Finally, we use the namespace ``nblib`` for the data structures defined in the library.
 The last line in the block allows one to skip this specifier each time a function or a data structure is used.
 
+.. cpp:namespace:: nblib
+
 .. code:: cpp
 
    #include <cstdio>
@@ -107,7 +109,9 @@ Defining Coordinates, Velocities and Force Buffers
        { 0.0000, 0.0000, 0.0000 }, { 0.0000, 0.0000, 0.0000 }, { 0.0000, 0.0000, 0.0000 },
    };
 
-We can initialize coordinates for our particles using ``std::vector`` of ``gmx::RVec`` which is a specific data type for holding 3D vector quantities. `Doxygen page on RVec here`__.
+We can initialize coordinates for our particles using :cpp:class:`std::vector`
+of :cpp:class:`gmx::RVec` which is a
+specific data type for holding 3D vector quantities. `Doxygen page on RVec here`__.
 
   __ doxygen-ref-rvec_
 
@@ -136,7 +140,8 @@ Define ParticleTypes
        ParticleType Cm(cmethAtom.name, cmethAtom.mass);
        ParticleType Hc(hcAtom.name, hcAtom.mass);
 
-As before, the helper struct to define ``ParticleType`` data is not strictly needed, but is shown for clarity.
+As before, the helper struct to define :cpp:class:`ParticleType` data is not strictly needed, but is shown
+for clarity.
 The line ``ParticleType CMethAtom(ParticleName("Cm"), Mass(12.0107));`` would be sufficient.
 
 Define Non-Bonded Interactions
@@ -152,15 +157,20 @@ Define Non-Bonded Interactions
    interactions.add(cmethAtom.name, cmethAtom.c6, cmethAtom.c12);
    interactions.add(hcAtom.name, hcAtom.c6, hcAtom.c12);
 
-For the Lennard-Jones interactions, we define a ``ParticleTypeInteractions`` object.
-Each particle of the ``ParticleType`` interacts with each other based on the ``C6`` and ``C12`` parameters.
-These parameters of the two different particles are averaged using ``Geometric`` or ``LorentzBerthelot`` ``CombinationRule``.
+For the Lennard-Jones interactions, we define a :cpp:class:`ParticleTypeInteractions` object.
+Each particle of the :cpp:class:`ParticleType` interacts with each other based on the ``C6`` and ``C12``
+parameters.
+These parameters of the two different particles are averaged using
+:cpp:enumerator:`~CombinationRule::Geometric` or
+:cpp:enumerator:`~CombinationRule::LorentzBerthelot` :cpp:enum:`CombinationRule`.
 More details `here <http://manual.gromacs.org/documentation/2019/reference-manual/functions/nonbonded-interactions.html#the-lennard-jones-interaction>`__.
-By default ``CombinationRule::Geometric`` is selected.
+By default :cpp:enumerator:`CombinationRule::Geometric` is selected.
 
-We add the interaction parameters of each of the particle types into the ``ParticleTypeInteractions`` object.
-The result is a table that has interactions specified for all ``ParticleType`` pairs.
-The following matrix describes the pair-wise C6 parameter created using ``CombinationRule::Geometric``.
+We add the interaction parameters of each of the particle types into the
+:cpp:class:`ParticleTypeInteractions` object.
+The result is a table that has interactions specified for all :cpp:class:`ParticleType` pairs.
+The following matrix describes the pair-wise C6 parameter created using
+:cpp:enumerator:`CombinationRule::Geometric`.
 
 == ====== === ======= =======
 #  Ow     Hw  Cm      Hc
@@ -171,15 +181,17 @@ Cm 0.42   0.0 0.013   1.05e-3
 Hc 4.7e-4 0.0 1.05e-3 8.5e-5
 == ====== === ======= =======
 
-For a particular interaction pair, the user can also override the specified ``CombinationRule`` with custom parameters.
-The following overload would replace the parameters computed from a ``CombinationRule``  between ``Ow`` and ``Cm`` particle types.
+For a particular interaction pair, the user can also override the specified
+:cpp:enum:`CombinationRule` with custom parameters.
+The following overload would replace the parameters computed from a :cpp:enum:`CombinationRule`  between ``Ow`` and ``Cm`` particle types.
 
 .. code:: cpp
 
    interactions.add("Ow", "Cm", 0.42, 42e-6);
 
-To facilitate modular, reusable code, it is possible to combine multiple ``ParticleTypeInteractions`` objects.
-Assuming ``otherInteractions`` is defined, this can be done with ``interactions.merge(otherInteractions)``
+To facilitate modular, reusable code, it is possible to combine multiple :cpp:class:`ParticleTypeInteractions` objects.
+Assuming ``otherInteractions`` is defined, this can be done with
+:cpp:expr:`interactions.merge(otherInteractions)`
 
 Define Molecules
 ~~~~~~~~~~~~~~~~
@@ -210,12 +222,13 @@ Define Molecules
 We begin declaring molecules with their constituent particles.
 A string identifier must uniquely identify a specific particle within the molecule.
 It is also possible to define partial charges on each particle for the computation of Coulomb interactions.
-``water.addParticle(ParticleName("O"), Charge(-0.04), Ow);``
+:cpp:expr:`water.addParticle(ParticleName("O"), Charge(-0.04), Ow)`
 
 Adding exclusions ensures that non-bonded interactions are only computed when necessary.
 For example, if two  particles share a bond, the potential energy of the bond makes the non-bonded term negligible.
 Particle self-exclusions are enabled by default.
-We use the unique identifiers specified during ``addParticle()`` for this and the listed interactions later.
+We use the unique identifiers specified during :cpp:func:`~Molecule::addParticle()`
+for this and the listed interactions later.
 
 Define Listed Interactions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -265,22 +278,26 @@ Define Options for the Simulation and Non-Bonded Calculations
 
 One can define the bounding box either with a single argument for a cube and 3 arguments to specify length, breadth and height separately.
 
-``NBKernelOptions`` contains a set of flags and configuration options for both hardware context and the relevant calculations for the simulation.
+:cpp:any:`NBKernelOptions` contains a set of flags and configuration options for both hardware context and
+the relevant calculations for the simulation.
 The following table describes the possible options that can be set.
+
+.. cpp:namespace-push:: NBKernelOptions
+
 
 +----------------------+------+---------------------------------------+
 | Flag or Config       | Type | Implications                          |
 | Option               |      |                                       |
 +======================+======+=======================================+
-| ``useGpu``           | Bool | Use GPU for non-bonded computations   |
+| :cpp:any:`useGpu`    | Bool | Use GPU for non-bonded computations   |
 |                      | ean  |                                       |
 +----------------------+------+---------------------------------------+
-| ``numThreads``       | Inte | Number of CPU threads to use          |
+| :cpp:any:`numThreads`| Inte | Number of CPU threads to use          |
 |                      | ger  |                                       |
 +----------------------+------+---------------------------------------+
-| ``nbnxmSimd``        | Enum | Kernel SIMD type                      |
-|                      |      | (``SimdAuto``/``SimdNo``/``Simd4XM``/ |
-|                      |      | ``Simd2XMM``)                         |
+| :cpp:any:`nbnxmSimd` | Enum | :cpp:enum:`Kernel SIMD <SimdKernels>` |
+|                      |      | type (``SimdAuto``/``SimdNo``/        |
+|                      |      | ``Simd4XM``/``Simd2XMM``)             |
 +----------------------+------+---------------------------------------+
 | ``ljCombination      | Enum | Lennard-Jones combination rule        |
 | Rule``               |      | (``Geometric``/``LorentzBerthelot``)  |
@@ -310,12 +327,16 @@ The following table describes the possible options that can be set.
 | ``timestep``         | Real | Specify the time step                 |
 +----------------------+------+---------------------------------------+
 
+.. cpp:namespace-pop::
+
 Define Topology and Simulation State
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We build the system topology using the ``TopologyBuilder`` class.
-We add the ``Molecule`` objects that we defined previously along with the ``ParticleTypesInteractions`` using its public functions.
-We get the actual ``Topology`` object complete with all exclusions, interaction maps and listed interaction data constructed based on the defined entities using the ``buildTopology()``\ function.
+We build the system topology using the `TopologyBuilder` class.
+We add the `Molecule` objects that we defined previously along with the `ParticleTypesInteractions` using its public functions.
+We get the actual `Topology` object complete with all exclusions, interaction maps and listed interaction
+data constructed based on the defined entities using the
+:cpp:func:`~TopologyBuilder::buildTopology()` function.
 
 .. code:: cpp
 
@@ -330,7 +351,7 @@ We get the actual ``Topology`` object complete with all exclusions, interaction 
 
    Topology topology = topologyBuilder.buildTopology();
 
-We now have all we need to fully describe our system using the ``SimulationState`` object.
+We now have all we need to fully describe our system using the `SimulationState` object.
 This is built using the topology, the box, and the particle coordinates and velocities.
 This object serves as a snapshot of the system that can be used for analysis or to start simulations from known states.
 
@@ -344,8 +365,8 @@ Writing the MD Loop
 ~~~~~~~~~~~~~~~~~~~
 
 Now that we have fully described our system and the problem, we need two entities to write an MD loop.
-The first is the ``ForceCalculator`` and the second is an Integrator.
-NB-LIB comes with a ``LeapFrog`` integrator but it is also possible for users to write custom integrators.
+The first is the :cpp:var:`ForceCalculator` and the second is an Integrator.
+NB-LIB comes with a `LeapFrog` integrator but it is also possible for users to write custom integrators.
 
 .. code:: cpp
 

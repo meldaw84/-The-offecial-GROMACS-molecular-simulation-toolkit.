@@ -22,10 +22,11 @@ for other versions of |GROMACS| can be found at http://manual.gromacs.org/docume
    user-guide/index
    how-to/index
    reference-manual/index
+   api/index
    gmxapi/index
    nblib/index
    dev-manual/index
-
+        
 ==================
 Indices and tables
 ==================
