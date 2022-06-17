@@ -63,16 +63,7 @@ else ()
 
         # Use all gmxapi sources to populate developer docs.
         configure_file(Doxyfile-gmxapi0-dev.cmakein Doxyfile-gmxapi0-dev @ONLY)
-
-        list(APPEND GMX_API_INCLUDE_DIRECTORIES ${GMXAPI_PUBLIC_HEADERS})
     endif()
-
-    if (GMX_INSTALL_NBLIB_API)
-        get_target_property(NBLIB_SOURCE_DIR nblib SOURCE_DIR)
-        get_target_property(NBLIB_BINARY_DIR nblib BINARY_DIR)
-        set(NBLIB_INCLUDE_DIRECTORIES ${NBLIB_SOURCE_DIR}/include ${NBLIB_BINARY_DIR}/include)
-        list(APPEND GMX_API_INCLUDE_DIRECTORIES ${NBLIB_INCLUDE_DIRECTORIES})
-    endif ()
 
     string(REPLACE ";" " " GMX_API_INCLUDE_DIRECTORIES "${GMX_API_INCLUDE_DIRECTORIES}")
     configure_file(Doxyfile.cmakein Doxyfile-api @ONLY)

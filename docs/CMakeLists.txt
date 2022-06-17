@@ -565,7 +565,7 @@ if (SPHINX_FOUND)
             GMX_CURRENT_CONTRIBUTORS_STRING
             GMX_PREVIOUS_CONTRIBUTORS_STRING
             GMX_CURRENT_PROJECT_LEADERS_STRING
-        COMMENT "Configuring Sphinx configuration file")
+        COMMENT "Configuring Sphinx configuration file ${SPHINX_CONFIG_FILE}")
     gmx_add_sphinx_input_file(${SPHINX_CONFIG_FILE})
     gmx_add_sphinx_source_files(FILES ${SPHINX_SOURCE_FILES})
     if (EXISTS ${RELENG_PATH}/docs/FileList.cmake)
@@ -581,6 +581,8 @@ if (SPHINX_FOUND)
 
     gmx_add_sphinx_source_files(
             FILES
+            api/index.rst
+            api/gmxapi_1.rst
             gmxapi/index.rst
             gmxapi/userguide/install.rst
             gmxapi/userguide/usage.rst
@@ -679,6 +681,7 @@ if (SPHINX_FOUND)
         set(SPHINX_CONFIG_OVERRIDES "-Dtodo_include_todos=1")
     endif()
     add_custom_target(webpage-sphinx
+        DEPENDS public-api-xml
         DEPENDS sphinx-programs
         DEPENDS sphinx-input
         DEPENDS sphinx-image-conversion
@@ -691,6 +694,8 @@ if (SPHINX_FOUND)
             -w sphinx-html.log
             -d "${CMAKE_CURRENT_BINARY_DIR}/_html_doctrees"
             -t do_html
+            # Tell Breathe where to find the Doxygen output
+            -Dbreathe_projects.api=${PROJECT_BINARY_DIR}/api/docs/xml
             ${SPHINX_CONFIG_OVERRIDES}
             "${SPHINX_INPUT_DIR}"
             "${HTML_OUTPUT_DIR}"

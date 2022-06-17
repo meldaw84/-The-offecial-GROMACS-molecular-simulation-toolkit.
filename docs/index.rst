@@ -22,9 +22,9 @@ for other versions of |GROMACS| can be found at http://manual.gromacs.org/docume
    user-guide/index
    how-to/index
    reference-manual/index
+   api/index
    gmxapi/index
    nblib/index
-   api/index
    dev-manual/index
 
 .. Note: We manually curate differences between this documentation root

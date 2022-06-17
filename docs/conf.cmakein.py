@@ -59,6 +59,7 @@ gmx_version_string = "@GMX_VERSION_STRING@"
 gmx_version_string_full = "@GMX_VERSION_STRING_FULL@"
 regressiontest_version = "@REGRESSIONTEST_VERSION@"
 gmx_min_sphinx = "@EXPECTED_SPHINX_VERSION@"
+gmx_image_convert = "@IMAGE_CONVERT_STRING@"
 variables = [
     ("EXPECTED_DOXYGEN_VERSION", "@EXPECTED_DOXYGEN_VERSION@"),
     ("EXPECTED_SPHINX_VERSION", "@EXPECTED_SPHINX_VERSION@"),
@@ -118,6 +119,7 @@ extensions = [
     # Please run linkchecker and inspect the generated
     # docs/html/_modules/index.html page before committing a change that enables
     # 'sphinx.ext.viewcode',
+    "breathe",
     "sphinx_copybutton",
     "sphinx_inline_tabs",
     "sphinxarg.ext",
@@ -491,3 +493,8 @@ intersphinx_mapping = {
 }
 intersphinx_cache_limit = -1
 intersphinx_timeout = 10
+
+# -- Options for breathe extension ----------------------------------------
+
+breathe_projects = { "api": "@PROJECT_BINARY_DIR@/api/docs/xml" }
+breathe_default_project = "api"

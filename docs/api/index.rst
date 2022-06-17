@@ -6,6 +6,7 @@ C++ API
     :hidden:
 
     gmxlibs
+    gmxapi_1
 
 Public C++ application programming interfaces are available for |Gromacs| installations
 depending on the detected environment and user options when the |Gromacs| build
@@ -19,7 +20,8 @@ is configured with CMake.
     * CMake target ``Gromacs::libgromacs``,
       enabled by :cmake:`GMX_INSTALL_LEGACY_API` (default ``OFF``),
       provides :file:`gromacs/` headers and ``::gmx`` C++ namespace.
-
+* :doc:`gmxapi_1`
+    Public API specification for GROMACS (experimental).
 * :ref:`nblib`: Enabled by :cmake:`GMX_INSTALL_NBLIB_API`.
   (default, when :cmake:`BUILD_SHARED_LIBS` on non-Windows platforms)
 
