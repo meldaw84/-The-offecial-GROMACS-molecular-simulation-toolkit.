@@ -41,7 +41,6 @@
  *
  * \defgroup gmxapi_compat
  * \author M. Eric Irrgang <ericirrgang@gmail.com>
- * \ingroup gmxapi_compat
  */
 
 #ifndef GMXAPICOMPAT_H

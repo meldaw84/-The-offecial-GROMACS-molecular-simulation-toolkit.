@@ -554,6 +554,7 @@ if (SPHINX_FOUND)
             GMX_SOURCE_DOI_STRING
             GMXAPI_PYTHON_STAGING_DIR
             IMAGE_CONVERT_STRING
+            PROJECT_BINARY_DIR
             REGRESSIONTEST_VERSION
             REQUIRED_CUDA_COMPUTE_CAPABILITY
             REQUIRED_CUDA_VERSION
@@ -583,6 +584,9 @@ if (SPHINX_FOUND)
             FILES
             api/index.rst
             api/gmxapi_1.rst
+            api/simulation_input.rst
+            api/simulation_launch_sequence_2022.puml
+            api/simulation_launch_sequence_2023.puml
             gmxapi/index.rst
             gmxapi/userguide/install.rst
             gmxapi/userguide/usage.rst
@@ -694,8 +698,6 @@ if (SPHINX_FOUND)
             -w sphinx-html.log
             -d "${CMAKE_CURRENT_BINARY_DIR}/_html_doctrees"
             -t do_html
-            # Tell Breathe where to find the Doxygen output
-            -Dbreathe_projects.api=${PROJECT_BINARY_DIR}/api/docs/xml
             ${SPHINX_CONFIG_OVERRIDES}
             "${SPHINX_INPUT_DIR}"
             "${HTML_OUTPUT_DIR}"

@@ -1,0 +1,200 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+participant context.py
+
+box "Python bindings" #LightBlue
+participant _gmxapi
+participant "gmxpy::PyContext"
+end box
+
+box "libgmxapi" #LightGreen
+participant gmxapi
+participant "gmxapi::Context"
+participant "gmxapi::SimulationInput"
+participant "gmxapi::Session"
+end box
+
+box "libgromacs" #LightYellow
+participant "gmx::MdModules"
+end box
+
+box "extension code"
+participant plugin
+participant restraint
+end box
+
+autoactivate on
+context.py -> _gmxapi: Context()
+_gmxapi -> "gmxpy::PyContext" **: create
+"gmxpy::PyContext" -> "gmxapi::Context" **: gmxapi::createContext()
+return
+...
+context.py -> plugin: _builder.add_subscriber(mdbuilder)
+deactivate
+
+context.py -> plugin: _builder.build(graph)
+plugin -> restraint **: create
+plugin -> context.py: mdbuilder.potential.append(restraint)
+deactivate
+deactivate plugin
+
+...
+
+context.py -> context.py: mdbuilder.build(graph)
+
+'in MD builder-> launch
+context.py -> _gmxapi: from_tpr()
+_gmxapi -> "gmxapi::SimulationInput" **: readTpr()
+return SimulationInput
+
+context.py -> _gmxapi: setMDArgs()
+_gmxapi -> "gmxpy::PyContext": setMDArgs()
+note right
+setMDArgs() is awkward, but is deferred from the current
+proposal as much as possible.
+We should make more progress with the gmx::LegacyMdrunOptions
+mitigation before trying to replace setMDArgs with anything
+more API friendly.
+end note
+"gmxpy::PyContext" -> "gmxapi::Context": setMDArgs()
+deactivate
+deactivate
+deactivate _gmxapi
+
+context.py -> _gmxapi: add_mdmodule(plugin)
+_gmxapi -> "gmxpy::PyContext": addMDModule(restraint)
+"gmxpy::PyContext" -> "gmxapi::Context": getMDModules()
+"gmxapi::Context" -> "gmx::MdModules": getProxy
+return
+return MdModulesProxy
+"gmxpy::PyContext" -> restraint: bind(MdModulesProxy)
+restraint -> "gmx::MdModules": addForceProvider(restraint)
+deactivate
+deactivate
+deactivate
+deactivate
+
+context.py -> _gmxapi: launch(context, simulation_input)
+
+_gmxapi -> "gmxpy::PyContext": launch(simulation_input)
+"gmxpy::PyContext" -> gmxapi: launchSession
+gmxapi -> "gmxapi::Context": launch
+"gmxapi::Context" -> "gmxapi::SimulationInput"
+"gmxapi::Context" -> "gmx::MdModules"
+"gmxapi::Context" -> "gmxapi::Session": build
+return gmxapi::Session
+deactivate
+deactivate
+return gmxapi::Session
+return gmxapi::Session
+
+
+return gmxapi::Session
+return _gmxapi::MDSession
+return session
+
+' in session launch
+context.py -> _gmxapi: _gmxapi.MDSession.run()
+_gmxapi -> "gmxapi::Session": run()
+...
+@enduml
+
+@startuml
+
+participant context.py
+
+box "Python bindings" #LightBlue
+participant _gmxapi
+participant "gmxpy::PyContext"
+end box
+
+box "libgmxapi" #LightGreen
+participant gmxapi
+participant "gmxapi::Context"
+participant "gmxapi::SimulationInput"
+participant "gmxapi::Session"
+end box
+
+box "libgromacs" #LightYellow
+participant "gmx::MdModules"
+end box
+
+box "extension code"
+participant plugin
+participant restraint
+end box
+
+autoactivate on
+context.py -> _gmxapi: Context()
+_gmxapi -> "gmxpy::PyContext" **: create
+"gmxpy::PyContext" -> "gmxapi::Context" **: gmxapi::createContext()
+return
+...
+context.py -> plugin: _builder.add_subscriber(mdbuilder)
+deactivate
+
+context.py -> plugin: _builder.build(graph)
+plugin -> restraint **: create
+plugin -> context.py: mdbuilder.potential.append(restraint)
+deactivate
+deactivate plugin
+
+...
+
+context.py -> context.py: mdbuilder.build(graph)
+
+context.py -> _gmxapi: from_tpr()
+_gmxapi -> "gmxapi::SimulationInput" **: readTpr()
+return SimulationInput
+
+context.py -> _gmxapi: setMDArgs()
+_gmxapi -> "gmxpy::PyContext": setMDArgs()
+note right
+setMDArgs() is awkward, but is deferred from the current
+proposal as much as possible.
+We should make more progress with the gmx::LegacyMdrunOptions
+mitigation before trying to replace setMDArgs with anything
+more API friendly.
+end note
+"gmxpy::PyContext" -> "gmxapi::Context": setMDArgs()
+deactivate
+deactivate
+deactivate _gmxapi
+
+context.py -> _gmxapi: add_mdmodule(plugin)
+_gmxapi -> "gmxpy::PyContext": addMDModule(restraint)
+"gmxpy::PyContext" -> "gmxapi::Context": getMDModules()
+"gmxapi::Context" -> "gmx::MdModules": getProxy
+return
+return MdModulesProxy
+"gmxpy::PyContext" -> restraint: bind(MdModulesProxy)
+restraint -> "gmx::MdModules": addForceProvider(restraint)
+deactivate
+deactivate
+deactivate
+deactivate
+
+context.py -> _gmxapi: launch(context, simulation_input)
+
+_gmxapi -> "gmxpy::PyContext": launch(simulation_input)
+"gmxpy::PyContext" -> gmxapi: launchSession
+gmxapi -> "gmxapi::Context": launch
+"gmxapi::Context" -> "gmxapi::SimulationInput"
+"gmxapi::Context" -> "gmx::MdModules"
+"gmxapi::Context" -> "gmxapi::Session": build
+return gmxapi::Session
+deactivate
+deactivate
+return gmxapi::Session
+return gmxapi::Session
+
+
+return gmxapi::Session
+return _gmxapi::MDSession
+return session
+
+context.py -> _gmxapi: _gmxapi.MDSession.run()
+_gmxapi -> "gmxapi::Session": run()
+...
+@enduml

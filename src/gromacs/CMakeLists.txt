@@ -384,6 +384,7 @@ target_link_libraries(libgromacs PRIVATE
                       $<BUILD_INTERFACE:restraint>
                       $<BUILD_INTERFACE:selection>
                       $<BUILD_INTERFACE:simd>
+                      $<BUILD_INTERFACE:simulation>
                       $<BUILD_INTERFACE:statistics>
                       $<BUILD_INTERFACE:swap>
                       $<BUILD_INTERFACE:tables>

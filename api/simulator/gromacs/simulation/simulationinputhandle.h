@@ -35,8 +35,7 @@
  * \brief Public interface for SimulationInput facilities.
  *
  * \author M. Eric Irrgang <ericirrgang@gmail.com>
- * \ingroup module_mdrun
- * \inpublicapi
+ * \ingroup simulation
  */
 
 #ifndef GMX_MDRUN_SIMULATIONINPUTHANDLE_H
@@ -107,23 +106,28 @@ struct SimulationInputHandleImplDeleter
 {
     /*! \cond */
     SimulationInputHandleImplDeleter();
+
     SimulationInputHandleImplDeleter(const SimulationInputHandleImplDeleter& deleter) noexcept;
+
     SimulationInputHandleImplDeleter(SimulationInputHandleImplDeleter&& deleter) noexcept;
+
     SimulationInputHandleImplDeleter& operator=(const SimulationInputHandleImplDeleter& deleter) noexcept;
+
     SimulationInputHandleImplDeleter& operator=(SimulationInputHandleImplDeleter&& deleter) noexcept;
-    void                              operator()(SimulationInputHandleImpl* impl) const;
+
+    void operator()(SimulationInputHandleImpl* impl) const;
     /*! \endcond */
 };
 } // end namespace detail
-/*! \endcond internal */
+/*! \endcond */
 
 /*!
  * \brief Owning handle to a SimulationInput object.
  *
  * SimulationInput objects are logically immutable, so ownership may be shared
- * by multiple SimulationInputHolders.
+ * by multiple SimulationInputHandle instances.
  *
- * Acquire a SimulationInputHolder with makeSimulationInput() and pass to (e.g.)
+ * Acquire a SimulationInputHandle with makeSimulationInput() and pass to (e.g.)
  * gmx::MdrunnerBuilder::addInput()
  *
  * SimulationInput has no public API yet.
@@ -134,12 +138,15 @@ class SimulationInputHandle
 public:
     /*! \cond internal */
     SimulationInputHandle();
+
     ~SimulationInputHandle();
 
     SimulationInputHandle(const SimulationInputHandle& source);
+
     SimulationInputHandle(SimulationInputHandle&&) noexcept = default;
 
     SimulationInputHandle& operator=(const SimulationInputHandle& rhs);
+
     SimulationInputHandle& operator=(SimulationInputHandle&&) noexcept = default;
 
     /*!
@@ -158,7 +165,7 @@ public:
     /*!
      * \brief Boolean context returns true if an input is held, else false.
      */
-    operator bool() const;
+    explicit operator bool() const;
 
 private:
     std::unique_ptr<detail::SimulationInputHandleImpl, detail::SimulationInputHandleImplDeleter> impl_;
@@ -171,7 +178,9 @@ private:
  *
  * \param options library-internal container holding partially processed user input.
  *
- * \ingroup module_mdrun
+ * \return SimulationInputHandle
+ *
+ * \ingroup simulation
  *
  * \internal
  * This isn't really a public API function until its arguments are obtainable

@@ -1,0 +1,100 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+participant context.py
+participant _gmxapi
+participant "gmxpy::PyContext"
+
+box gmxapi
+participant API as gmxapi
+participant "gmxapi::Context"
+participant "gmxapi::System"
+participant "gmxapi::Session"
+end box
+
+'autonumber
+autoactivate on
+context.py -> _gmxapi: Context()
+_gmxapi -> "gmxpy::PyContext" **: create
+
+"gmxpy::PyContext" -> gmxapi: createContext()
+gmxapi -> "gmxapi::Context" **:
+return
+...
+context.py -> plugin: _builder.add_subscriber(mdbuilder)
+deactivate
+
+context.py -> plugin: _builder.build(graph)
+plugin -> restraint **: create
+plugin -> context.py: mdbuilder.potential.append(restraint)
+deactivate
+deactivate plugin
+
+...
+
+context.py -> context.py: mdbuilder.build(graph)
+
+'in MD builder-> launch
+context.py -> _gmxapi: from_tpr()
+_gmxapi -> "gmxapi::System" **: create
+return system
+
+context.py -> _gmxapi: setMDArgs()
+_gmxapi -> "gmxpy::PyContext": setMDArgs()
+"gmxpy::PyContext" -> "gmxapi::Context": setMDArgs()
+deactivate
+deactivate
+deactivate _gmxapi
+
+context.py -> _gmxapi: add_mdmodule(plugin)
+_gmxapi -> "gmxpy::PyContext": addMDModule(restraint)
+"gmxpy::PyContext" -> "gmxpy::PyContext": getSpec()
+return this->workNodes_
+"gmxpy::PyContext" -> restraint: bind(pycontext.workspec)
+restraint -> "gmxpy::PyContext": gmxapi::MDWorkSpec::addModule(module)
+note left
+restraint added to PyContext member.
+end note
+deactivate
+deactivate
+deactivate
+deactivate
+
+context.py -> _gmxapi: system.launch(context)
+_gmxapi -> gmxapi: getWork(system)
+note right
+We now only use gmxapi::System
+to hold the TPR filename.
+We can replace gmxapi::System
+with gmxapi::SimulationInput.
+end note
+gmxapi -> "gmxapi::System": systemimpl.workflow_
+return
+return gmxapi::Workflow
+
+_gmxapi -> "gmxpy::PyContext": launch(work)
+"gmxpy::PyContext" -> gmxapi: launchSession(context, work)
+gmxapi -> "gmxapi::Context": launch(work)
+note right "gmxapi::Context"
+Convert filename to SimulationInput.
+(Should be done before entering ContextImpl::launch())
+end note
+"gmxapi::Context" -> "gmxapi::Session" **
+return
+return "gmxapi::Session"
+"gmxpy::PyContext" -> gmxapi: this->workNodes_->getModules()
+return restraints
+loop foreach restraint
+"gmxpy::PyContext" -> gmxapi: addSessionRestraint(session, restraint)
+deactivate
+end
+
+return gmxapi::Session
+return _gmxapi::MDSession
+return session
+
+' in session launch
+context.py -> _gmxapi: _gmxapi.MDSession.run()
+_gmxapi -> "gmxapi::Session": run()
+...
+@enduml

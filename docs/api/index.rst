@@ -7,6 +7,7 @@ C++ API
 
     gmxlibs
     gmxapi_1
+    simulation_input
 
 Public C++ application programming interfaces are available for |Gromacs| installations
 depending on the detected environment and user options when the |Gromacs| build

@@ -42,6 +42,7 @@ endif()
 # The legacy public API headers may still be installed,
 # but may be removed or changed without warning.
 add_subdirectory(legacy)
+add_subdirectory(simulator)
 
 # Activate targets for new C++ API components and docs.
 if(GMX_NATIVE_WINDOWS)

@@ -124,6 +124,7 @@ extensions = [
     "sphinx_inline_tabs",
     "sphinxarg.ext",
     "sphinxcontrib.autoprogram",
+    "sphinxcontrib.plantuml",
     "gmxsphinx",
 ]
 extlinks = {"issue": ("https://gitlab.com/gromacs/gromacs/-/issues/%s", "Issue %s")}
@@ -496,5 +497,5 @@ intersphinx_timeout = 10
 
 # -- Options for breathe extension ----------------------------------------
 
-breathe_projects = { "api": "@PROJECT_BINARY_DIR@/api/docs/xml" }
+breathe_projects = {"api": "@PROJECT_BINARY_DIR@/api/docs/xml"}
 breathe_default_project = "api"

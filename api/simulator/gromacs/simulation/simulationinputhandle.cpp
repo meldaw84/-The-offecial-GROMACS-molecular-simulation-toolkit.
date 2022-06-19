@@ -34,7 +34,7 @@
 
 #include "gmxpre.h"
 
-#include "simulationinputhandle.h"
+#include "gromacs/simulation/simulationinputhandle.h"
 
 #include <utility>
 

@@ -1,7 +1,7 @@
 #
 # This file is part of the GROMACS molecular simulation package.
 #
-# Copyright 2018- The GROMACS Authors
+# Copyright 2022- The GROMACS Authors
 # and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
 # Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
 #
@@ -31,53 +31,28 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out https://www.gromacs.org.
 
-add_library(mdrun INTERFACE)
-gmx_add_libgromacs_sources(
-    legacymdrunoptions.cpp
-    legacysimulator.cpp
-    md.cpp
-    mdmodules.cpp
-    membedholder.cpp
-    mimic.cpp
-    minimize.cpp
-    replicaexchange.cpp
-    rerun.cpp
-    runner.cpp
-    shellfc.cpp
-    simulationcontext.cpp
-    simulationinput.cpp
-    simulatorbuilder.cpp
-    tpi.cpp
-    )
-
-# Source files have the following private module dependencies.
-target_link_libraries(mdrun PRIVATE
-#                      gmxlib
-#                      math
-#                      mdtypes
-#                      tng_io
-                      )
-
-# Public interface for modules, including dependencies and interfaces
-#target_include_directories(mdrun PUBLIC
-target_include_directories(mdrun INTERFACE
-                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-#target_link_libraries(mdrun PUBLIC
-target_link_libraries(mdrun INTERFACE
-                      hardware
-                      legacy_api
-                      )
-
-# TODO: when mdrun is an OBJECT target
-#target_link_libraries(mdrun PUBLIC legacy_api)
-#target_link_libraries(mdrun PRIVATE common)
-
-# Source files have the following private module dependencies.
-#target_link_libraries(mdrun PRIVATE tng_io)
-# TODO: Explicitly link specific modules.
-#target_link_libraries(mdrun PRIVATE legacy_modules)
-
-if (BUILD_TESTING)
-# TODO import this from src/programs/mdrun/tests
-#    add_subdirectory(tests)
+add_library(simulation OBJECT gromacs/simulation/simulationinputhandle.cpp)
+if (BUILD_SHARED_LIBS)
+    set_target_properties(simulation PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
+
+##########################
+# Define public interface.
+#
+target_include_directories(simulation PUBLIC
+                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+                           $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+                           $<INSTALL_INTERFACE:include>
+                           )
+
+target_link_libraries(simulation PRIVATE
+                      common
+                      legacy_modules
+                      mdrun)
+
+###############################
+# Install the public interface.
+#
+install(DIRECTORY gromacs
+        DESTINATION include
+        FILES_MATCHING PATTERN "*.h")

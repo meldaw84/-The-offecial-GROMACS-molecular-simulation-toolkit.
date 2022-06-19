@@ -31,12 +31,11 @@
  * To help us fund GROMACS development, we humbly ask that you cite
  * the research papers on the package. Check out https://www.gromacs.org.
  */
-/*! \libinternal \file
+/*! \file
  * \brief Utilities for interacting with SimulationInput.
  *
  * \author M. Eric Irrgang <ericirrgang@gmail.com>
  * \ingroup module_mdrun
- * \inlibraryapi
  */
 
 #ifndef GMX_MDRUN_SIMULATIONINPUT_H
@@ -45,9 +44,9 @@
 #include <memory>
 #include <string>
 
-#include "gromacs/mdrun/simulationinputhandle.h"
 #include "gromacs/mdrunutility/mdmodulesnotifiers.h"
 #include "gromacs/mdtypes/checkpointdata.h"
+#include "gromacs/simulation/simulationinputhandle.h"
 
 // Forward declarations for types from other modules that are opaque to the public API.
 // TODO: Document the sources of these symbols or import a (self-documenting) fwd header.
@@ -109,14 +108,14 @@ public:
  *
  * \{
  */
-// TODO: Remove this monolithic detail as member data can be separately cached and managed. (#3374)
+// TODO(#3379): Remove this monolithic detail as member data can be separately cached and managed.
 // Note that clients still need tpxio.h for PartialDeserializedTprFile.
 void applyGlobalSimulationState(const SimulationInput&      simulationInput,
                                 PartialDeserializedTprFile* partialDeserializedTpr,
                                 t_state*                    globalState,
                                 t_inputrec*                 inputrec,
                                 gmx_mtop_t*                 globalTopology);
-// TODO: Implement the following, pending further discussion re #3374.
+// TODO(#3379): Implement the following, pending further discussion re #3374.
 std::unique_ptr<t_state> globalSimulationState(const SimulationInput&);
 void                     applyGlobalInputRecord(const SimulationInput&, t_inputrec*);
 void                     applyGlobalTopology(const SimulationInput&, gmx_mtop_t*);

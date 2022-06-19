@@ -12,6 +12,8 @@ TODO: Import and update GROMACS-as-a-library documentation from old doxygen "pub
 
 .. see https://breathe.readthedocs.io/en/latest/directives.html for Sphinx extension syntax.
 
+.. cpp:namespace:: gmx
+
 Initializing the library
 ------------------------
 
@@ -43,6 +45,8 @@ details, such as
 
 Preparing simulation input
 --------------------------
+
+.. seealso:: :doc:`simulation_input`
 
 .. cpp:class:: SimulationInputBuilder
 
@@ -84,6 +88,30 @@ Preparing simulation input
     SimulationContext is a scoped substate of LibraryContext, configured with simulation component
     code objects (in the MDModules container), and computational resources locked for an immediately
     pending simulation task.
+
+.. doxygenclass:: gmx::SimulationInputHandle
+
+.. doxygenfunction:: gmx::makeSimulationInput
+
+.. cpp:class:: gmx::SimulationInput
+
+    Prescription for molecular simulation.
+
+    Represent the complete and unique information needed to generate a simulation
+    trajectory segment. SimulationInput objects are opaque to the public API.
+    Ownership can be managed with SimulationInputHandle objects. Clients can
+    acquire owning references to SimulationInput objects (as SimulationInputHandle)
+    through makeSimulationInput() or from other SimulationInputHandle instances.
+
+    A SimulationInput object represents an immutable source of data, and is safe
+    to share. A SimulationInput object may have internal state to support
+    performance optimizations when shared by multiple SimulationInputHandles.
+    The SimulationInput is guaranteed to live at least as long as any associated
+    SimulationInputHandles. The API does not specify whether it may persist
+    longer internally or be reused for later equivalent requests.
+
+    .. seealso:: `SimulationInputHandle`
+    .. seealso:: `makeSimulationInput`
 
 Running Simulations
 -------------------

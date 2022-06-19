@@ -44,6 +44,7 @@ else ()
     set(legacy_api_BINARY_DIR ${CMAKE_BINARY_DIR}/api/legacy)
     set(legacy_api_INCLUDE_DIRECTORIES ${legacy_api_SOURCE_DIR}/include ${legacy_api_BINARY_DIR}/include)
     set(GMX_API_INCLUDE_DIRECTORIES ${legacy_api_INCLUDE_DIRECTORIES})
+    list(APPEND GMX_API_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/api/simulator)
 
     if (GMXAPI)
         file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/docs/api-user" GMXAPI_USERDOC_OUTPUT)
