@@ -103,6 +103,12 @@ and when they should apply it to their own issues or merge requests.
 
 In general:
 
+.. It would be nice to have an actual swatch in addition to the hex codes
+   (https://gitlab.com/gromacs/gromacs/-/issues/3961),
+   but appropriate RsT syntax has not been agreed on.
+   Some variation on a raw html insertion might work, for someone who wants to
+   find the appropriate html: https://stackoverflow.com/a/56303496/5351807
+
 * Ongoing categorizations to help specify the GROMACS component or development area use the ``#7F8C8D`` color.
 * Specific features or subproject areas targeting an upcoming release use the ``#8E44AD`` background color.
 * Status labels use ``#428BCA``. Note that Status labels are also used for Issues,
