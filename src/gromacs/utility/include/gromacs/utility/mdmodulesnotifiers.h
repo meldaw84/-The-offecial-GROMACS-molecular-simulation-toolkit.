@@ -160,6 +160,24 @@ struct QMInputFileName
 };
 
 /*! \libinternal
+ *
+ * Notification for modules that wish to parse their own section(s) in the topol input file
+ *
+ */
+struct MDModuleTopologyParsing
+{
+    /*!
+     * \brief vector of callback by parsed section name
+     *
+     * E.g. module wishing to declare/parse a "[ my_section ]" section in the topology file should
+     * append "my_section" and a pointer to a callback that will receive each line in that section,
+     * excluding the heading, the comments and the preprocessor directive. The line will be
+     * delivered one-by-one in order.
+     */
+    std::vector<std::tuple<std::string, std::function<void(const std::string&)>>> callbacks_;
+};
+
+/*! \libinternal
  * \brief Group of notifers to organize that MDModules
  * can receive callbacks they subscribe to.
  *
@@ -273,7 +291,8 @@ struct MDModulesNotifiers
                            gmx_mtop_t*,
                            const IndexGroupsAndNames&,
                            KeyValueTreeObjectBuilder,
-                           const QMInputFileName&>::type preProcessingNotifier_;
+                           const QMInputFileName&,
+                           MDModuleTopologyParsing*>::type preProcessingNotifier_;
 
     /*! \brief Handles subscribing and calling checkpointing callback functions.
      *

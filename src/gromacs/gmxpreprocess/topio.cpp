@@ -78,6 +78,7 @@
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/logger.h"
+#include "gromacs/utility/mdmodulesnotifiers.h"
 #include "gromacs/utility/pleasecite.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringutil.h"
@@ -405,7 +406,8 @@ static char** read_topol(const char*                           infile,
                          bool                                  bZero,
                          bool                                  usingFullRangeElectrostatics,
                          WarningHandler*                       wi,
-                         const gmx::MDLogger&                  logger)
+                         const gmx::MDLogger&                  logger,
+                         const gmx::MDModuleTopologyParsing&   mdModuleTopologyParsing)
 {
     FILE*                out;
     int                  sl;
@@ -475,6 +477,9 @@ static char** read_topol(const char*                           infile,
     bGenPairs     = FALSE;
     bReadMolType  = FALSE;
     nmol_couple   = 0;
+
+    // Stores name of the directive when a module-parsed directive is being processed
+    std::string currentModuleDirective;
 
     do
     {
@@ -557,28 +562,45 @@ static char** read_topol(const char*                           infile,
                     }
                     trim(dirstr);
 
-                    if ((newd = str2dir(dirstr)) == Directive::d_invalid)
+
+                    // Before checking built-in directive type, check if it is handled by a
+                    // module parser.
+                    bool directiveIsParsedByModule = false;
+                    for (const auto& callbackReg : mdModuleTopologyParsing.callbacks_)
                     {
-                        sprintf(errbuf, "Invalid directive %s", dirstr);
-                        wi->addError(errbuf);
-                    }
-                    else
-                    {
-                        /* Directive found */
-                        if (DS_Check_Order(DS, newd))
+                        const std::string& directiveName = std::get<0>(callbackReg);
+                        if (dirstr == directiveName)
                         {
-                            DS_Push(&DS, newd);
-                            d = newd;
+                            currentModuleDirective  = directiveName;
+                            d                       = Directive::d_module_parser;
+                            directiveIsParsedByModule = true;
+                        }
+                    }
+
+                    if (!directiveIsParsedByModule)
+                    {
+                        if ((newd = str2dir(dirstr)) == Directive::d_invalid)
+                        {
+                            sprintf(errbuf, "Invalid directive %s", dirstr);
+                            wi->addError(errbuf);
                         }
                         else
                         {
-                            /* we should print here which directives should have
-                               been present, and which actually are */
-                            gmx_fatal(FARGS,
-                                      "%s\nInvalid order for directive %s",
-                                      cpp_error(&handle, eCPP_SYNTAX),
-                                      enumValueToString(newd));
-                            /* d = Directive::d_invalid; */
+                            /* Directive found */
+                            if (DS_Check_Order(DS, newd))
+                            {
+                                DS_Push(&DS, newd);
+                                d = newd;
+                            }
+                            else
+                            {
+                                /* we should print here which directives should have
+                                   been present, and which actually are */
+                                gmx_fatal(FARGS,
+                                          "%s\nInvalid order for directive %s",
+                                          cpp_error(&handle, eCPP_SYNTAX),
+                                          enumValueToString(newd));
+                                /* d = Directive::d_invalid; */
                         }
 
                         if (d == Directive::d_intermolecular_interactions)
@@ -595,8 +617,9 @@ static char** read_topol(const char*                           infile,
                                 make_atoms_sys(*molblock, *molinfo, &mi0->atoms);
                             }
                         }
+                        }
+                        sfree(dirstr);
                     }
-                    sfree(dirstr);
                 }
                 else if (d != Directive::d_invalid)
                 {
@@ -926,6 +949,20 @@ static char** read_topol(const char*                           infile,
                             }
                             break;
                         }
+                        case Directive::d_module_parser:
+                        {
+                            for (const auto& callbackReg : mdModuleTopologyParsing.callbacks_)
+                            {
+                                const std::string& directiveName = std::get<0>(callbackReg);
+                                if (currentModuleDirective == directiveName)
+                                {
+                                    std::string plineString = pline;
+                                    // Callback into the module that parses this directive's lines
+                                    std::get<1>(callbackReg)(plineString);
+                                }
+                            }
+                            break;
+                        }
                         default:
                             GMX_LOG(logger.warning)
                                     .asParagraph()
@@ -1058,7 +1095,8 @@ char** do_top(bool                                  bVerbose,
               std::vector<gmx_molblock_t>*          molblock,
               bool*                                 ffParametrizedWithHBondConstraints,
               WarningHandler*                       wi,
-              const gmx::MDLogger&                  logger)
+              const gmx::MDLogger&                  logger,
+              const gmx::MDModuleTopologyParsing&   mdModuleTopologyParsing)
 {
     /* Tmpfile might contain a long path */
     const char* tmpfile;
@@ -1096,7 +1134,8 @@ char** do_top(bool                                  bVerbose,
                        bZero,
                        usingFullElectrostatics(ir->coulombtype),
                        wi,
-                       logger);
+                       logger,
+                       mdModuleTopologyParsing);
 
     if ((*combination_rule != CombinationRule::Geometric) && (ir->vdwtype == VanDerWaalsType::User))
     {

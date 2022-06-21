@@ -92,6 +92,7 @@ const char* enumValueToString(Directive d)
         "cmap",
         "intermolecular_interactions",
         "maxdirs",
+        "module_parser", // Pseudo-directive type for module-parsed directive
         "invalid",
         "none"
     };
@@ -363,6 +364,7 @@ void DS_Init(DirStack** DS)
         set_nec(&(necessary[Directive::d_intermolecular_interactions]),
                 Directive::d_molecules,
                 Directive::d_none);
+        set_nec(&(necessary[Directive::d_module_parser]), Directive::d_none);
     }
     *DS = nullptr;
 }

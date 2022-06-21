@@ -79,6 +79,7 @@ enum class Directive : int
     d_intermolecular_interactions,
     d_maxdir,
     d_invalid,
+    d_module_parser,  // Pseudo-directive type for module-parsed directive
     d_none,
     Count
 };

@@ -56,6 +56,7 @@ namespace gmx
 template<typename>
 class ArrayRef;
 class MDLogger;
+struct MDModuleTopologyParsing;
 } // namespace gmx
 
 double check_mol(const gmx_mtop_t* mtop, WarningHandler* wi);
@@ -78,7 +79,8 @@ char** do_top(bool                                  bVerbose,
               std::vector<gmx_molblock_t>*          molblock,
               bool*                                 ffParametrizedWithHBondConstraints,
               WarningHandler*                       wi,
-              const gmx::MDLogger&                  logger);
+              const gmx::MDLogger&                  logger,
+              const gmx::MDModuleTopologyParsing&   mdModuleTopologyParsing);
 
 /* This routine expects sys->molt[m].ilist to be of size F_NRE and ordered. */
 void generate_qmexcl(gmx_mtop_t* sys, t_inputrec* ir, const gmx::MDLogger& logger);

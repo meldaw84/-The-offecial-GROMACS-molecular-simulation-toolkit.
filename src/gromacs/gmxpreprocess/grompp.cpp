@@ -589,7 +589,8 @@ static void new_status(const char*                           topfile,
                        real*                                 fudgeQQ,
                        gmx_bool                              bMorse,
                        WarningHandler*                       wi,
-                       const gmx::MDLogger&                  logger)
+                       const gmx::MDLogger&                  logger,
+                       const gmx::MDModuleTopologyParsing& topologyDirectiveParserRegistration)
 {
     std::vector<gmx_molblock_t> molblock;
     int                         i, nmismatch;
@@ -613,7 +614,8 @@ static void new_status(const char*                           topfile,
                        &molblock,
                        &ffParametrizedWithHBondConstraints,
                        wi,
-                       logger);
+                       logger,
+                       topologyDirectiveParserRegistration);
 
     sys->molblock.clear();
 
@@ -2051,6 +2053,10 @@ int gmx_grompp(int argc, char* argv[])
     // Notify MDModules of existing warninp
     mdModules.notifiers().preProcessingNotifier_.notify(&wi);
 
+    gmx::MDModuleTopologyParsing topologyDirectiveParserRegistration;
+    // Notify MDModules of existing logger
+    mdModules.notifiers().preProcessingNotifier_.notify(&topologyDirectiveParserRegistration);
+
     // Notify QMMM MDModule of external QM input file command-line option
     {
         gmx::QMInputFileName qmInputFileName = { ftp2bSet(efQMI, NFILE, fnm), ftp2fn(efQMI, NFILE, fnm) };
@@ -2126,7 +2132,8 @@ int gmx_grompp(int argc, char* argv[])
                &fudgeQQ,
                opts->bMorse,
                &wi,
-               logger);
+               logger,
+               topologyDirectiveParserRegistration);
 
     if (debug)
     {
