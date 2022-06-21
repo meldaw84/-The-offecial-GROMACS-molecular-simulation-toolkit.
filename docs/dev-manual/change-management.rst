@@ -115,7 +115,7 @@ reviewers) and when specific effort is planned or underway.
 Bug fixes should target milestones for release branches. For example, a bug fix that should be
 applied for the 2022.1 release would be assigned to the ``2022.1`` milestone.
 
-New development is merged into ``master``, and uses milestones named for a part of the development
+New development is merged into ``main``, and uses milestones named for a part of the development
 cycle leading up to a future release. For example, work planned for the first part of the 2022 calendar
 year would use the ``2023.devcycle1`` milestone.
 
@@ -170,13 +170,13 @@ You can also use ``git push`` on the command line directly and create a merge re
 following the link that is output on the command line.
 
 Your repository should be in sync with the GROMACS repository. To ensure this,
-use ``git fetch`` to obtain the newest branches, then merge the master branch
-into your branch with ``git merge master`` while on your branch.
+use ``git fetch`` to obtain the newest branches, then merge the main branch
+into your branch with ``git merge main`` while on your branch.
 
 Naming branches
 ---------------
 
-Good names: documentation_UpdateDevelopersDocsTOGitLab, nbnxm_MakeNbnxmGPUIntoClass, pme_FEPPMEGPU.
+Good names: documentation_UpdateDevelopersDocsToGitLab, nbnxm_MakeNbnxmGPUIntoClass, pme_FEPPMEGPU.
 Bad names: branch1234, mybranch, test, etc
 
 Reviewing someone else's uploaded code
