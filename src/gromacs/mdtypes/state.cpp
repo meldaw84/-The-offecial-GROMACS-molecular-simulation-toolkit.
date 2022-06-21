@@ -99,7 +99,7 @@ void ekinstate_t::doCheckpoint(gmx::CheckpointData<operation> checkpointData)
     {
         return;
     }
-    gmx::index numOfCouplingGroups = tcstat.size();
+    int numOfCouplingGroups = tcstat.size();
     checkpointData.scalar("ekin_n", &numOfCouplingGroups);
     if (operation == gmx::CheckpointDataOperation::Read)
     {
