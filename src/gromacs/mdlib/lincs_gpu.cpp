@@ -62,6 +62,7 @@
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/topology/ifunc.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/gmxmpi.h"
 
 namespace gmx
 {
@@ -339,8 +340,12 @@ bool LincsGpu::isNumCoupledConstraintsSupported(const gmx_mtop_t& mtop)
     return true;
 }
 
+static int count;
 void LincsGpu::set(const InteractionDefinitions& idef, const int numAtoms, const real* invmass)
 {
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+  if(rank==0) printf("\nNVDEBUG start of lincs set %d\n",count);
     GMX_RELEASE_ASSERT(bool(GMX_GPU_CUDA) || bool(GMX_GPU_SYCL),
                        "LINCS GPU is only implemented in CUDA and SYCL.");
     // List of constrained atoms (CPU memory)
@@ -607,6 +612,7 @@ void LincsGpu::set(const InteractionDefinitions& idef, const int numAtoms, const
     GMX_RELEASE_ASSERT(invmass != nullptr, "Masses of atoms should be specified.\n");
     copyToDeviceBuffer(
             &kernelParams_.d_inverseMasses, invmass, 0, numAtoms, deviceStream_, GpuApiCallBehavior::Sync, nullptr);
+  if(rank==0) printf("\nNVDEBUG end of lincs set %d\n",count++);
 }
 
 } // namespace gmx

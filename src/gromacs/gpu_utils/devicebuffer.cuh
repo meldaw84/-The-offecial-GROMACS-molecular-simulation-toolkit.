@@ -53,6 +53,9 @@
 #include "gromacs/gpu_utils/gputraits.cuh"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/stringutil.h"
+#include "gromacs/utility/gmxmpi.h"
+
+#include <omp.h>
 
 /*! \brief
  * Allocates a device-side buffer.
@@ -67,7 +70,12 @@ template<typename ValueType>
 void allocateDeviceBuffer(DeviceBuffer<ValueType>* buffer, size_t numValues, const DeviceContext& /* deviceContext */)
 {
     GMX_ASSERT(buffer, "needs a buffer pointer");
+    double t1=-omp_get_wtime();
     cudaError_t stat = cudaMalloc(buffer, numValues * sizeof(ValueType));
+    t1+=omp_get_wtime();
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+    if(rank==0) printf("  cudaMalloc %f MB: %e s\n",(numValues * sizeof(ValueType))/1024./1024.,t1);
     GMX_RELEASE_ASSERT(
             stat == cudaSuccess,
             ("Allocation of the device buffer failed. " + gmx::getDeviceErrorString(stat)).c_str());
