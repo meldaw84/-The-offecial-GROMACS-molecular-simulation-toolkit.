@@ -34,7 +34,8 @@
 # Custom build type "ASAN", to be used to run the
 # AddressSanitizer memory checker.
 
-set(_flags "-O1 -g -fsanitize=address -fno-omit-frame-pointer")
+# We set -asan-use-private-alias=1 due to a known bug in clang (https://github.com/google/sanitizers/issues/1017)
+set(_flags "-O1 -g -fsanitize=address -fno-omit-frame-pointer -mllvm -asan-use-private-alias=1")
 
 foreach(_language C CXX)
     string(REPLACE "X" "+" _human_readable_language ${_language})
