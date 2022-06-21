@@ -32,27 +32,39 @@
 # the research papers on the package. Check out https://www.gromacs.org.
 
 # Set up the module library
-add_library(topology INTERFACE)
-
-file(GLOB TOPOLOGY_SOURCES *.cpp)
-set(LIBGROMACS_SOURCES ${LIBGROMACS_SOURCES} ${TOPOLOGY_SOURCES} PARENT_SCOPE)
-
-# Source files have the following private module dependencies.
-target_link_libraries(options PRIVATE
-		)
+add_library(topology OBJECT)
+target_sources(topology PRIVATE
+	           atomprop.cpp
+		       atoms.cpp
+		       atomsbuilder.cpp
+		       block.cpp
+		       exclusionblocks.cpp
+		       forcefieldparameters.cpp
+		       idef.cpp
+		       ifunc.cpp
+		       index.cpp
+		       invblock.cpp
+		       mtop_atomloops.cpp
+		       mtop_util.cpp
+		       residuetypes.cpp
+		       symtab.cpp
+		       topology.cpp
+		       topsort.cpp
+)
+if (BUILD_SHARED_LIBS)
+	set_target_properties(topology PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endif()
 
 # Public interface for modules, including dependencies and interfaces
-#target_include_directories(topology PUBLIC
-target_include_directories(topology INTERFACE
+target_include_directories(topology PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-#target_link_libraries(topology PUBLIC
-target_link_libraries(topology INTERFACE
-        legacy_api
-        )
-
-# TODO: when topology is an OBJECT target
-#target_link_libraries(topology PUBLIC legacy_api)
-#target_link_libraries(topology PRIVATE common)
+target_link_libraries(topology PRIVATE
+  			  		  common
+					  legacy_api
+		              legacy_modules
+		              mdtypes
+		              utility
+)
 
 if (BUILD_TESTING)
 	add_subdirectory(tests)

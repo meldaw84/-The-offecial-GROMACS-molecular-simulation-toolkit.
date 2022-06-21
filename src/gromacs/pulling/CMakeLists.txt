@@ -48,8 +48,9 @@ endif()
 target_link_libraries(pulling PRIVATE
                       common
                       legacy_modules
-        utility
-        muparser
+                      utility
+                      muparser
+                      topology
 )
 
 # Public interface for modules, including dependencies and interfaces

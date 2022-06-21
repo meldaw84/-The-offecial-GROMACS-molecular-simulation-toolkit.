@@ -72,6 +72,7 @@ target_link_libraries(modularsimulator PRIVATE
                       mdtypes
                       pulling
                       tng_io
+                      topology
                       )
 
 # Public interface for modules, including dependencies and interfaces
