@@ -42,6 +42,8 @@
 
 #include "gromacs/options/filenameoptionmanager.h"
 
+#include <vector>
+
 #include <gtest/gtest.h>
 
 #include "gromacs/fileio/filetypes.h"
@@ -459,5 +461,34 @@ TEST_F(FileNameOptionManagerTest, VectorOfFileNamesUnsetWorks)
     EXPECT_EQ(values.size(), 0);
 }
 
+#if !defined(NDEBUG)
 
+TEST(FileNameOptionManagerDeathTest, FailsWithInvalidCombinations)
+{
+    gmx::test::TestFileInputRedirector redirector;
+    gmx::FileNameOptionManager         manager;
+    manager.setInputRedirector(&redirector);
+    gmx::Options options;
+    options.addManager(&manager);
+
+    std::vector<std::string> values;
+    ASSERT_NO_THROW_GMX(options.addOption(FileNameOption("files")
+                                                  .storeVector(&values)
+                                                  .filetype(gmx::OptionFileType::Trajectory)
+                                                  .outputFile()
+                                                  .defaultBasename("testfile")));
+    gmx::OptionsAssigner assigner(&options);
+    EXPECT_NO_THROW_GMX(assigner.start());
+    EXPECT_NO_THROW_GMX(assigner.finish());
+    GMX_EXPECT_DEATH_IF_SUPPORTED(options.finish(),
+                                  "Can't combine multiple value store and single value input");
+}
+#else
+
+TEST(DISABLED_FileNameOptionManagerDeathTest, FailsWithInvalidCombinations)
+{
+    ADD_FAILURE() << "Tests for proper assertion triggering only works with assertions enabled.";
+}
+
+#endif
 } // namespace
