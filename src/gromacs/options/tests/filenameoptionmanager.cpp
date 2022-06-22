@@ -395,7 +395,7 @@ TEST_F(FileNameOptionManagerTest, CanHaveArbitraryLengthVectorOfFileNames)
     EXPECT_NO_THROW_GMX(assigner.finish());
     EXPECT_NO_THROW_GMX(options_.finish());
 
-    EXPECT_EQ(values.size(), 5);
+    EXPECT_EQ(values.size(), 5) << "Five files were assigned to the 'files' option";
 }
 
 TEST_F(FileNameOptionManagerTest, CanRestrictMaxEntriesVectorOfFileNames)
@@ -437,8 +437,8 @@ TEST_F(FileNameOptionManagerTest, VectorOfFileNamesWorksWithDefaultAndNoValue)
     EXPECT_NO_THROW_GMX(assigner.finish());
     EXPECT_NO_THROW_GMX(options_.finish());
 
-    EXPECT_EQ(values.size(), 1);
-    EXPECT_STREQ(values[0].c_str(), "testfile.xtc");
+    EXPECT_EQ(values.size(), 1) << "No assigned filenames, so the default is used to create one";
+    EXPECT_STREQ(values[0].c_str(), "testfile.xtc") << "No assigned filenames, so the default is used";
 }
 
 TEST_F(FileNameOptionManagerTest, VectorOfFileNamesUnsetWorks)
@@ -458,12 +458,12 @@ TEST_F(FileNameOptionManagerTest, VectorOfFileNamesUnsetWorks)
     EXPECT_NO_THROW_GMX(assigner.finish());
     EXPECT_NO_THROW_GMX(options_.finish());
 
-    EXPECT_EQ(values.size(), 0);
+    EXPECT_EQ(values.size(), 0) << "The 'files' option was not assigned, so values is empty";
 }
 
 #if !defined(NDEBUG)
 
-TEST(FileNameOptionManagerDeathTest, FailsWithInvalidCombinations)
+TEST(FileNameOptionManagerDeathTest, FailsWithNoFileNamesAndNotMultiValueOption)
 {
     gmx::test::TestFileInputRedirector redirector;
     gmx::FileNameOptionManager         manager;
@@ -472,6 +472,7 @@ TEST(FileNameOptionManagerDeathTest, FailsWithInvalidCombinations)
     options.addManager(&manager);
 
     std::vector<std::string> values;
+    // Note that .multiValue() is not used.
     ASSERT_NO_THROW_GMX(options.addOption(FileNameOption("files")
                                                   .storeVector(&values)
                                                   .filetype(gmx::OptionFileType::Trajectory)
