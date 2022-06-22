@@ -258,7 +258,7 @@ TEST(FileNameOptionTest, HandlesRequiredCsvOptionWithoutValue)
     EXPECT_EQ("testfile.csv", value);
 }
 
-TEST(FileNameOptionTest, CanHaveArbitraryLengthVectorOfFileNames)
+TEST(FileNameOptionTest, CanHaveArbitraryNumberOfMultiValueFileNames)
 {
     gmx::Options             options;
     std::vector<std::string> values;
@@ -286,7 +286,7 @@ TEST(FileNameOptionTest, CanHaveArbitraryLengthVectorOfFileNames)
     EXPECT_EQ(values.size(), 5);
 }
 
-TEST(FileNameOptionTest, CanRestrictMaxEntriesVectorOfFileNames)
+TEST(FileNameOptionTest, CanRestrictMaxEntriesOfMultiValueFileNames)
 {
     gmx::Options             options;
     std::vector<std::string> values;
@@ -307,7 +307,7 @@ TEST(FileNameOptionTest, CanRestrictMaxEntriesVectorOfFileNames)
     EXPECT_THROW_GMX(assigner.appendValue("file2.trr"), gmx::InvalidInputError);
 }
 
-TEST(FileNameOptionTest, VectorOfFileNamesWorksWithDefaultAndNoValue)
+TEST(FileNameOptionTest, MultiValueFileNamesWorksWithDefaultAndNoValue)
 {
     gmx::Options             options;
     std::vector<std::string> values;
@@ -331,7 +331,7 @@ TEST(FileNameOptionTest, VectorOfFileNamesWorksWithDefaultAndNoValue)
     EXPECT_STREQ(values[0].c_str(), "testfile.xtc");
 }
 
-TEST(FileNameOptionTest, VectorOfFileNamesUnsetWorks)
+TEST(FileNameOptionTest, MultiValueFileNamesUnsetWorks)
 {
     gmx::Options             options;
     std::vector<std::string> values;

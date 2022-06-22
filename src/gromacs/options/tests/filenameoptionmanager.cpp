@@ -371,7 +371,7 @@ TEST_F(FileNameOptionManagerTest, DefaultNameOptionWorksWithoutInputChecking)
     EXPECT_EQ("missing.ndx", value);
 }
 
-TEST_F(FileNameOptionManagerTest, CanHaveArbitraryLengthVectorOfFileNames)
+TEST_F(FileNameOptionManagerTest, CanHaveArbitraryNumberOfMultiValueFileNames)
 {
     std::vector<std::string> values;
     ASSERT_NO_THROW_GMX(options_.addOption(FileNameOption("files")
@@ -398,7 +398,7 @@ TEST_F(FileNameOptionManagerTest, CanHaveArbitraryLengthVectorOfFileNames)
     EXPECT_EQ(values.size(), 5) << "Five files were assigned to the 'files' option";
 }
 
-TEST_F(FileNameOptionManagerTest, CanRestrictMaxEntriesVectorOfFileNames)
+TEST_F(FileNameOptionManagerTest, CanRestrictMaxEntriesMultiValueFileNames)
 {
     std::vector<std::string> values;
     ASSERT_NO_THROW_GMX(options_.addOption(FileNameOption("files")
@@ -418,7 +418,7 @@ TEST_F(FileNameOptionManagerTest, CanRestrictMaxEntriesVectorOfFileNames)
     EXPECT_THROW_GMX(assigner.appendValue("file2.trr"), gmx::InvalidInputError);
 }
 
-TEST_F(FileNameOptionManagerTest, VectorOfFileNamesWorksWithDefaultAndNoValue)
+TEST_F(FileNameOptionManagerTest, MultiValueFileNamesWorksWithDefaultAndNoValue)
 {
     std::vector<std::string> values;
     ASSERT_NO_THROW_GMX(options_.addOption(FileNameOption("files")
@@ -438,10 +438,11 @@ TEST_F(FileNameOptionManagerTest, VectorOfFileNamesWorksWithDefaultAndNoValue)
     EXPECT_NO_THROW_GMX(options_.finish());
 
     EXPECT_EQ(values.size(), 1) << "No assigned filenames, so the default is used to create one";
-    EXPECT_STREQ(values[0].c_str(), "testfile.xtc") << "No assigned filenames, so the default is used";
+    EXPECT_STREQ(values[0].c_str(), "testfile.xtc")
+            << "No assigned filenames, so the default is used";
 }
 
-TEST_F(FileNameOptionManagerTest, VectorOfFileNamesUnsetWorks)
+TEST_F(FileNameOptionManagerTest, MultiValueFileNamesUnsetWorks)
 {
     std::vector<std::string> values;
     ASSERT_NO_THROW_GMX(options_.addOption(FileNameOption("files")
@@ -463,7 +464,7 @@ TEST_F(FileNameOptionManagerTest, VectorOfFileNamesUnsetWorks)
 
 #if !defined(NDEBUG)
 
-TEST(FileNameOptionManagerDeathTest, FailsWithNoFileNamesAndNotMultiValueOption)
+TEST(FileNameOptionManagerDeathTest, FailsWithNoFileNamesStoreVectorAndNotMultiValueOption)
 {
     gmx::test::TestFileInputRedirector redirector;
     gmx::FileNameOptionManager         manager;
