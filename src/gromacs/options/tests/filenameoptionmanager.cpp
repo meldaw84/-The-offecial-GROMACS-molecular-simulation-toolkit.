@@ -371,6 +371,11 @@ TEST_F(FileNameOptionManagerTest, DefaultNameOptionWorksWithoutInputChecking)
     EXPECT_EQ("missing.ndx", value);
 }
 
+// Tests here are for the correct behaviour of multiple value for input files
+// in combination with using the OptionManager to handle things like setting
+// of correct file extensions and lookup of input files. This differs from
+// the tests on only the FilenameOptions handling without the manager, so we
+// have similar tests for both use cases.
 TEST_F(FileNameOptionManagerTest, CanHaveArbitraryNumberOfMultiValueFileNames)
 {
     std::vector<std::string> values;
