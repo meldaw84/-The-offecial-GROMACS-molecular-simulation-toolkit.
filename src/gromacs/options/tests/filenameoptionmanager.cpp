@@ -480,8 +480,8 @@ TEST(FileNameOptionManagerDeathTest, FailsWithInvalidCombinations)
     gmx::OptionsAssigner assigner(&options);
     EXPECT_NO_THROW_GMX(assigner.start());
     EXPECT_NO_THROW_GMX(assigner.finish());
-    GMX_EXPECT_DEATH_IF_SUPPORTED(options.finish(),
-                                  "Can't combine multiple value store and single value input");
+    GMX_EXPECT_DEATH_IF_SUPPORTED(
+            options.finish(), "There can only be an empty list when using multiple possible values");
 }
 #else
 
