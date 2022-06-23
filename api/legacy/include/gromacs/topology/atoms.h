@@ -212,7 +212,7 @@ public:
     //! Access particle type.
     ParticleType ptype() const { return particleType_; }
     //! Access residue index.
-    gmx::index resind() const { return residueIndex_; }
+    int64_t resind() const { return residueIndex_; }
     //! Access atomic number.
     int atomnumber() const { return atomicNumber_; }
     //! Access element name.
@@ -237,7 +237,7 @@ public:
                        const std::optional<ParticleTypeName>  particleTypeName,
                        NameHolder                             particleName,
                        ParticleType                           particleType,
-                       gmx::index                             residueIndex,
+                       int64_t                                residueIndex,
                        int                                    atomicNumber,
                        const std::string&                     elementName) :
         mass_(mass.has_value() ? *mass : ParticleMass()),
@@ -339,13 +339,13 @@ public:
         return *residueName_.value();
     }
     //! Access residue number.
-    gmx::index nr() const { return nr_; }
+    int64_t nr() const { return nr_; }
     //! Access insertion code.
     unsigned char insertionCode() const { return insertionCode_; }
     //! Begin of particles in global structure.
-    gmx::index begin() const { return begin_; }
+    int64_t begin() const { return begin_; }
     //! End of particles in global strucutre.
-    gmx::index size() const { return size_; }
+    int64_t size() const { return size_; }
 
     //! Copy constructor.
     SimulationResidue(const SimulationResidue&) = default;
@@ -359,7 +359,7 @@ public:
     friend class SimulationResidueBuilder;
 
 private:
-    SimulationResidue(NameHolder name, gmx::index nr, unsigned char insertionCode, gmx::index begin, gmx::index size) :
+    SimulationResidue(NameHolder name, int64_t nr, unsigned char insertionCode, int64_t begin, int64_t size) :
         residueName_(name), nr_(nr), insertionCode_(insertionCode), begin_(begin), size_(size)
     {
     }
@@ -367,13 +367,13 @@ private:
     //! Residue name.
     NameHolder residueName_;
     //! Residue number.
-    gmx::index nr_;
+    int64_t nr_;
     //! Insertion code, why?
     unsigned char insertionCode_;
     //! Begin of particles.
-    gmx::index begin_;
+    int64_t begin_;
     //! Size of particles.
-    gmx::index size_;
+    int64_t size_;
 };
 
 //! Build single amino acid residue in a simulation
@@ -383,7 +383,7 @@ public:
     //! Construct object with complete information.
     SimulationResidueBuilder(NameHolder                        name,
                              unsigned char                     insertionCode,
-                             gmx::index                        chainNumber,
+                             int                               chainNumber,
                              char                              chainIdentifier,
                              NameHolder                        rtp,
                              std::vector<SimulationParticle>&& particles) :
@@ -418,11 +418,11 @@ public:
         return *rtp_.value();
     }
     //! Make finalized residue.
-    SimulationResidue finalize(gmx::index residueNumber, gmx::index begin, gmx::index size) const;
+    SimulationResidue finalize(int64_t residueNumber, int64_t begin, int64_t size) const;
     //! Access insertion code.
     unsigned char insertionCode() const { return insertionCode_; }
     //! Access chain number.
-    gmx::index chainNumber() const { return chainNumber_; }
+    int chainNumber() const { return chainNumber_; }
     //! Access chain indentifier.
     char chainIdentifier() const { return chainIdentifier_; }
     //! Change particles in this residue.
@@ -439,7 +439,7 @@ private:
     //! Code for insertion of residues.
     unsigned char insertionCode_;
     //! Chain number, incremented at TER or new chain identifier.
-    gmx::index chainNumber_;
+    int chainNumber_;
     //! Chain identifier written/read to pdb.
     char chainIdentifier_;
     //! Optional rtp building block name.
@@ -471,9 +471,9 @@ public:
     //! Write data to serializer.
     void serializeMolecule(gmx::ISerializer* serializer);
     //! Get number of atoms.
-    int numParticles() const { return particles_.size(); }
+    int64_t numParticles() const { return particles_.size(); }
     //! Get number of residues.
-    int numResidues() const { return residues_.size(); }
+    int64_t numResidues() const { return residues_.size(); }
     //! Const view on particle information.
     gmx::ArrayRef<const SimulationParticle> particles() const { return particles_; }
     //! Const view on residue information.
@@ -514,14 +514,14 @@ public:
     friend class SimulationMoleculeBuilder;
 
 private:
-    SimulationMolecule(std::vector<SimulationParticle>* particles,
-                       std::vector<SimulationResidue>*  residues,
-                       bool                             allParticlesHaveMass,
-                       bool                             allParticlesHaveCharge,
-                       bool                             allParticlesHaveAtomName,
-                       bool                             allParticlesHaveType,
-                       bool                             allParticlesHaveTypeName,
-                       bool                             allParticlesHaveBstate);
+    SimulationMolecule(std::vector<SimulationParticle>&& particles,
+                       std::vector<SimulationResidue>&&  residues,
+                       bool                              allParticlesHaveMass,
+                       bool                              allParticlesHaveCharge,
+                       bool                              allParticlesHaveAtomName,
+                       bool                              allParticlesHaveType,
+                       bool                              allParticlesHaveTypeName,
+                       bool                              allParticlesHaveBstate);
 
     //! Atom information for A state.
     std::vector<SimulationParticle> particles_;
@@ -560,9 +560,9 @@ public:
     SimulationMolecule finalize();
 
     //! Get number of atoms.
-    int numParticles() const { return particles_.size(); }
+    int64_t numParticles() const { return particles_.size(); }
     //! Get number of residues.
-    int numResidues() const { return residues_.size(); }
+    int64_t numResidues() const { return residues_.size(); }
     //! Const view on particles information.
     gmx::ArrayRef<const SimulationParticle> particles() const { return particles_; }
     //! Const view on residue information.

@@ -228,9 +228,7 @@ void SimulationResidue::serializeResidue(gmx::ISerializer* serializer)
     serializer->doInt64(&size_);
 }
 
-SimulationResidue SimulationResidueBuilder::finalize(gmx::index residueNumber,
-                                                     gmx::index begin,
-                                                     gmx::index end) const
+SimulationResidue SimulationResidueBuilder::finalize(int64_t residueNumber, int64_t begin, int64_t end) const
 {
     return SimulationResidue(name_, residueNumber, insertionCode_, begin, end);
 }
@@ -251,10 +249,9 @@ SimulationMolecule SimulationMoleculeBuilder::finalize()
         residues.emplace_back(builderResidue.finalize(residueNumber, first, size));
         residueNumber++;
     }
-
     SimulationMolecule molecule(
-            &particles_,
-            &residues,
+            std::move(particles_),
+            std::move(residues),
             std::all_of(particles_.begin(),
                         particles_.end(),
                         [](const auto& particle) { return particle.haveMass(); }),
@@ -271,19 +268,26 @@ SimulationMolecule SimulationMoleculeBuilder::finalize()
                         particles_.end(),
                         [](const auto& particle) { return particle.haveParticleTypeName(); }),
             std::all_of(particles_.begin(), particles_.end(), [](const auto& particle) {
-                return particle.haveBState();
+                return particle.haveBStateForAll();
             }));
+    // We explicitly clear our residues from the builder here, so that the system is in a clear
+    // state to start adding new information again.
+    residues_.clear();
+    particles_.clear();
+
     return molecule;
 }
 
-SimulationMolecule::SimulationMolecule(std::vector<SimulationParticle>* particles,
-                                       std::vector<SimulationResidue>*  residues,
-                                       bool                             allParticlesHaveMass,
-                                       bool                             allParticlesHaveCharge,
-                                       bool                             allParticlesHaveAtomName,
-                                       bool                             allParticlesHaveType,
-                                       bool                             allParticlesHaveTypeName,
-                                       bool                             allParticlesHaveBstate) :
+SimulationMolecule::SimulationMolecule(std::vector<SimulationParticle>&& particles,
+                                       std::vector<SimulationResidue>&&  residues,
+                                       bool                              allParticlesHaveMass,
+                                       bool                              allParticlesHaveCharge,
+                                       bool                              allParticlesHaveAtomName,
+                                       bool                              allParticlesHaveType,
+                                       bool                              allParticlesHaveTypeName,
+                                       bool                              allParticlesHaveBstate) :
+    particles_(particles),
+    residues_(residues),
     allParticlesHaveMass_(allParticlesHaveMass),
     allParticlesHaveCharge_(allParticlesHaveCharge),
     allParticlesHaveAtomName_(allParticlesHaveAtomName),
@@ -291,22 +295,20 @@ SimulationMolecule::SimulationMolecule(std::vector<SimulationParticle>* particle
     allParticlesHaveTypeName_(allParticlesHaveTypeName),
     allParticlesHaveBstate_(allParticlesHaveBstate)
 {
-    std::swap(*particles, particles_);
-    std::swap(*residues, residues_);
 }
 
 SimulationMolecule::SimulationMolecule(gmx::ISerializer* serializer, const StringTable& table)
 {
     GMX_ASSERT(serializer->reading(), "Can not read molecule with writing serializer");
-    int numParticle;
-    serializer->doInt(&numParticle);
-    for (int index = 0; index < numParticle; ++index)
+    int64_t numParticle;
+    serializer->doInt64(&numParticle);
+    for (int64_t index = 0; index < numParticle; ++index)
     {
         particles_.emplace_back(SimulationParticle(serializer, table));
     }
-    int numResidue;
-    serializer->doInt(&numResidue);
-    for (int index = 0; index < numResidue; ++index)
+    int64_t numResidue;
+    serializer->doInt64(&numResidue);
+    for (int64_t index = 0; index < numResidue; ++index)
     {
         residues_.emplace_back(SimulationResidue(serializer, table));
     }
@@ -320,14 +322,14 @@ SimulationMolecule::SimulationMolecule(gmx::ISerializer* serializer, const Strin
 void SimulationMolecule::serializeMolecule(gmx::ISerializer* serializer)
 {
     GMX_ASSERT(!serializer->reading(), "Can not write molecule with reading serializer");
-    int numParticle = particles_.size();
-    serializer->doInt(&numParticle);
+    int64_t numParticle = particles_.size();
+    serializer->doInt64(&numParticle);
     for (auto& particle : particles_)
     {
         particle.serializeParticle(serializer);
     }
-    int numResidue = residues_.size();
-    serializer->doInt(&numResidue);
+    int64_t numResidue = residues_.size();
+    serializer->doInt64(&numResidue);
     for (auto& residue : residues_)
     {
         residue.serializeResidue(serializer);

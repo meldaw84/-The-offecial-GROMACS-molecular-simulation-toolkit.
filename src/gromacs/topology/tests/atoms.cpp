@@ -515,6 +515,8 @@ public:
     const StringTable& table() const { return *table_; }
     //! Access to checker.
     TestReferenceChecker* checker() { return &checker_; }
+    //! Data in residues is valid.
+    void residueDataInBuilderIsValid(bool hasEntries) const;
 
 private:
     //! Stored information.
@@ -575,8 +577,15 @@ void MoleculeBuilderTest::addResidues()
             particles.emplace_back(
                     mass, charge, type, typeName, name, ParticleType::Atom, 0, 12, "C");
         }
-        molecule_.addResidue(SimulationResidueBuilder(table().at(0), ' ', 0, ' ', table().at(1), &particles));
+        molecule_.addResidue(SimulationResidueBuilder(
+                table().at(0), ' ', 0, ' ', table().at(1), std::move(particles)));
     }
+}
+
+void MoleculeBuilderTest::residueDataInBuilderIsValid(bool hasEntries) const
+{
+    EXPECT_EQ(hasEntries, molecule_.numResidues() != 0);
+    EXPECT_EQ(hasEntries, !molecule_.residues().empty());
 }
 
 SimulationMolecule MoleculeBuilderTest::finalize()
@@ -584,6 +593,11 @@ SimulationMolecule MoleculeBuilderTest::finalize()
     return molecule_.finalize();
 }
 
+void moleculeEntriesAreValid(bool hasEntries, const SimulationMolecule& molecule)
+{
+    EXPECT_EQ(hasEntries, !molecule.particles().empty());
+    EXPECT_EQ(hasEntries, !molecule.residues().empty());
+}
 void checkMoleculeSanity(TestReferenceChecker* checker, const SimulationMolecule& molecule)
 {
     TestReferenceChecker compound(checker->checkCompound("MoleculeData", "Molecule"));
@@ -608,20 +622,29 @@ void checkMoleculeSanity(TestReferenceChecker* checker, const SimulationMolecule
 
 TEST_F(MoleculeBuilderTest, EmptyStructureGivesFalseForAll)
 {
-    checkMoleculeSanity(checker(), finalize());
+    residueDataInBuilderIsValid(false);
+    auto molecule = finalize();
+    checkMoleculeSanity(checker(), molecule);
+    moleculeEntriesAreValid(false, molecule);
 }
 
 TEST_P(MoleculeBuilderTest, ParticlesCheckValidEntries)
 {
     addResidues();
-    checkMoleculeSanity(checker(), finalize());
+    residueDataInBuilderIsValid(true);
+    auto molecule = finalize();
+    checkMoleculeSanity(checker(), molecule);
+    moleculeEntriesAreValid(true, molecule);
 }
 
 TEST_P(MoleculeBuilderTest, BuilderIsEmptyAfterFinalize)
 {
     addResidues();
-    checkMoleculeSanity(checker(), finalize());
-    checkMoleculeSanity(checker(), finalize());
+    auto firstMolecule = finalize();
+    checkMoleculeSanity(checker(), firstMolecule);
+    residueDataInBuilderIsValid(false);
+    auto secondMolecule = finalize();
+    moleculeEntriesAreValid(false, secondMolecule);
 }
 
 TEST_P(MoleculeBuilderTest, SerializerWorks)
