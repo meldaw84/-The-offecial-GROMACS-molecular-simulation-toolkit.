@@ -275,34 +275,61 @@ else()
             set(CHECK_DISABLE_SYCL_CXX_FLAGS_QUIETLY 1 CACHE INTERNAL "Keep quiet on future calls to detect no-SYCL flags" FORCE)
         endif()
     endif()
-    
+
     # Find the flags to enable (or re-enable) SYCL with Intel extensions. In case we turned it off above,
     # it's important that we check the combination of both flags, to make sure the second one re-enables SYCL.
     if(NOT CHECK_SYCL_CXX_FLAGS_QUIETLY)
         message(STATUS "Checking for flags to enable SYCL")
     endif()
-    gmx_find_flag_for_source(SYCL_CXX_FLAGS_RESULT
+    set(SAMPLE_SYCL_SOURCE
         "#include <CL/sycl.hpp>
          int main(){
              sycl::queue q(sycl::default_selector{});
              return 0;
-         }
-         " "CXX" DISABLE_SYCL_CXX_FLAGS SYCL_CXX_FLAGS " -fsycl -fsycl-device-code-split=per_kernel ${SYCL_CXX_FLAGS_EXTRA}")
-    
-    string(STRIP "${SYCL_CXX_FLAGS}" SYCL_CXX_FLAGS)
-    if(NOT CHECK_SYCL_CXX_FLAGS_QUIETLY)
-        if(SYCL_CXX_FLAGS_RESULT)
-            message(STATUS "Checking for flags to enable SYCL - ${SYCL_CXX_FLAGS}")
+         }")
+    set(SYCL_CXX_FLAGS "-fsycl")
+    gmx_check_source_compiles_with_flags(
+        "${SAMPLE_SYCL_SOURCE}"
+        "${DISABLE_SYCL_CXX_FLAGS} ${SYCL_CXX_FLAGS} ${SYCL_CXX_FLAGS_EXTRA}"
+        "CXX"
+        SYCL_CXX_FLAGS_RESULT
+        )
+    if (SYCL_CXX_FLAGS_RESULT)
+        if(NOT CHECK_SYCL_CXX_FLAGS_QUIETLY)
+            message(STATUS "Checking for flags to enable SYCL - ${DISABLE_SYCL_CXX_FLAGS} ${SYCL_CXX_FLAGS} ${SYCL_CXX_FLAGS_EXTRA}")
         endif()
         set(CHECK_SYCL_CXX_FLAGS_QUIETLY 1 CACHE INTERNAL "Keep quiet on future calls to detect SYCL flags" FORCE)
-    endif()
-    
-    if(NOT SYCL_CXX_FLAGS_RESULT)
+    else()
         message(FATAL_ERROR "Cannot compile with SYCL Intel compiler. Try a different compiler or disable SYCL.")
     endif()
 
-    if(NOT WIN32)
-         set(SYCL_CXX_FLAGS "${SYCL_CXX_FLAGS} -ffast-math")
+    # Require kernel splitting flag
+    set(SYCL_DEVICE_CODE_SPLIT_CXX_FLAGS "-fsycl-device-code-split=per_kernel")
+    gmx_check_source_compiles_with_flags(
+        "${SAMPLE_SYCL_SOURCE}"
+        "${DISABLE_SYCL_CXX_FLAGS_} ${SYCL_CXX_FLAGS} ${SYCL_CXX_FLAGS_EXTRA} ${SYCL_DEVICE_CODE_SPLIT_CXX_FLAGS}"
+        "CXX"
+        SYCL_DEVICE_CODE_SPLIT_CXX_FLAGS_RESULT
+        )
+    if (NOT SYCL_DEVICE_CODE_SPLIT_CXX_FLAGS_RESULT)
+        message(FATAL_ERROR "Cannot compile SYCL with per-kernel device-code splitting. Try a different compiler or disable SYCL.")
+    endif()
+
+    # Require fast-math where available
+    if(WIN32)
+        # The -ffast-math option is not supported there
+        set(SYCL_FAST_MATH_CXX_FLAGS "")
+    else()
+        set(SYCL_FAST_MATH_CXX_FLAGS "-ffast-math")
+        gmx_check_source_compiles_with_flags(
+            "${SAMPLE_SYCL_SOURCE}"
+            "${DISABLE_SYCL_CXX_FLAGS_} ${SYCL_CXX_FLAGS} ${SYCL_CXX_FLAGS_EXTRA} ${SYCL_FAST_MATH_CXX_FLAGS}"
+            "CXX"
+            SYCL_DEVICE_CODE_SPLIT_CXX_FLAGS_RESULT
+            )
+        if (NOT SYCL_DEVICE_CODE_SPLIT_CXX_FLAGS_RESULT)
+            message(FATAL_ERROR "Cannot compile SYCL with fast-math enabled. Try a different compiler or disable SYCL.")
+        endif()
     endif()
 
     include(gmxManageFFTLibraries)
@@ -322,7 +349,11 @@ else()
             "TARGET" # One-value keyword
             "SOURCES" # Multi-value keyword
         )
-        set_source_files_properties(${ARGS_SOURCES} PROPERTIES COMPILE_FLAGS "${SYCL_CXX_FLAGS}")
-        target_link_libraries(${ARGS_TARGET} PRIVATE ${SYCL_CXX_FLAGS})
+        set_property(SOURCE ${ARGS_SOURCES} APPEND PROPERTY COMPILE_OPTIONS
+            ${DISABLE_SYCL_CXX_FLAGS}
+            ${SYCL_CXX_FLAGS}
+            ${SYCL_DEVICE_CODE_SPLIT_CXX_FLAGS}
+            ${SYCL_FAST_MATH_CXX_FLAGS})
+        target_link_options(${ARGS_TARGET} PRIVATE ${SYCL_CXX_FLAGS})
     endfunction(add_sycl_to_target)
 endif()
