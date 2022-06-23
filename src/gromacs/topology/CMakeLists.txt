@@ -49,6 +49,7 @@ target_sources(topology PRIVATE
 		       residuetypes.cpp
 		       symtab.cpp
 		       topology.cpp
+                       topologyhelpers.cpp
 		       topsort.cpp
 )
 if (BUILD_SHARED_LIBS)

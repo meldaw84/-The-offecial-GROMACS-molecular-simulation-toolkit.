@@ -49,9 +49,6 @@ struct gmx_mtop_t;
 namespace gmx
 {
 
-namespace test
-{
-
 /*! \brief Adds water molecules with settles to topology
  *
  * Generates test topology with \p numWaters tip3p molecules.
@@ -62,8 +59,6 @@ namespace test
  *                      be added to the topology.
  */
 void addNWaterMolecules(gmx_mtop_t* mtop, int numWaters);
-
-} // namespace test
 
 } // namespace gmx
 

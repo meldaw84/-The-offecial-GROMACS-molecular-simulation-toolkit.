@@ -47,8 +47,6 @@
 
 namespace gmx
 {
-namespace test
-{
 
 void addNWaterMolecules(gmx_mtop_t* mtop, int numWaters)
 {
@@ -74,5 +72,4 @@ void addNWaterMolecules(gmx_mtop_t* mtop, int numWaters)
     mtop->natoms               = moltype.atoms.nr * mtop->molblock.back().nmol;
 }
 
-} // namespace test
 } // namespace gmx

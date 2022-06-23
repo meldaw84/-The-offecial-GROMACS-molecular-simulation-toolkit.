@@ -46,6 +46,7 @@
 
 #include "gromacs/topology/mtop_util.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/topology/topologyhelpers.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/logger.h"
 #include "gromacs/utility/textreader.h"
@@ -55,7 +56,6 @@
 #include "testutils/refdata.h"
 #include "testutils/testfilemanager.h"
 #include "testutils/textblockmatchers.h"
-#include "testutils/topologyhelpers.h"
 
 namespace gmx
 {

@@ -88,7 +88,6 @@ target_sources(testutils PRIVATE
                testmatchers.cpp
                testoptions.cpp
                textblockmatchers.cpp
-               topologyhelpers.cpp
                tprfilegenerator.cpp
                trajectoryreader.cpp
                xvgtest.cpp
@@ -123,6 +122,5 @@ target_link_libraries(testutils PUBLIC common)
 # TODO: Remove `legacy_modules` once specific modules are explicitly linked.
 target_link_libraries(testutils PUBLIC legacy_modules)
 target_link_libraries(testutils PUBLIC utility)
-target_link_libraries(testutils PRIVATE topology)
 
 add_subdirectory(tests)
