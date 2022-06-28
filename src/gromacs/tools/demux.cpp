@@ -181,13 +181,12 @@ void checkTimeConsistency(real frameTime, real demuxTime)
 //! Read in input file containing file list and convert to files to open
 std::vector<std::string> readInputFileIntoFileList(const std::string& trajectoryListFileName)
 {
-    gmx::StringInputStream   inputStream(trajectoryListFileName);
-    gmx::TextReader          reader(&inputStream);
+    gmx::TextReader          reader(trajectoryListFileName);
     std::vector<std::string> fileList;
     std::string              line;
     while (reader.readLine(&line))
     {
-        fileList.emplace_back(line);
+        fileList.emplace_back(gmx::stripString(gmx::Path::normalize(line)));
     }
     return fileList;
 }

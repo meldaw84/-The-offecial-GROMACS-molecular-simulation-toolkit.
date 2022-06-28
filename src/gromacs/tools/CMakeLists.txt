@@ -49,6 +49,7 @@ target_include_directories(tools INTERFACE
 #target_link_libraries(tools PUBLIC
 target_link_libraries(tools INTERFACE
                       legacy_api
+                      utility
                       )
 
 # TODO: when tools is an OBJECT target

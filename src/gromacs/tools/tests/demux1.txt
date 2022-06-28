@@ -1,2 +1,0 @@
-demux1_1.pdb
-demux1_2.pdb

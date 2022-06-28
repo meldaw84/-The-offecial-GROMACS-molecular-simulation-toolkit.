@@ -46,6 +46,10 @@
 #include <googletest/googletest/include/gtest/gtest.h>
 #include <gtest/gtest-param-test.h>
 
+#include "gromacs/utility/arrayref.h"
+#include "gromacs/utility/stringutil.h"
+#include "gromacs/utility/textwriter.h"
+
 #include "testutils/cmdlinetest.h"
 #include "testutils/testfilemanager.h"
 
@@ -56,31 +60,50 @@ namespace test
 {
 
 //! Convienence type for input related data.
-using DemuxInputParams = std::tuple<std::string, bool, std::vector<std::string>>;
+using DemuxInputParams = std::tuple<std::string, std::vector<std::string>>;
 //! Handle for holding input data for demuxing.
-using DemuxTestParams = std::tuple<DemuxInputParams, std::string>;
+using DemuxTestParams = std::tuple<DemuxInputParams, std::string, bool>;
 
 class DemuxTest : public ::testing::Test, public ::testing::WithParamInterface<DemuxTestParams>
 {
 public:
     //! Run test case.
-    static void runTest(CommandLine* cmdline, const DemuxInputParams& params);
+    void runTest(CommandLine* cmdline, const DemuxInputParams& params, bool useFileList);
+    TestFileManager* manager() { return &manager_; }
+
+private:
+    TestFileManager manager_;
 };
 
-void DemuxTest::runTest(CommandLine* cmdline, const DemuxInputParams& params)
+namespace
 {
-    cmdline->addOption("-input", std::get<0>(params));
-    bool useFileList = std::get<1>(params);
+//! Helper to write text file with input files for demuxing tool, needed for getting correct test paths.
+std::string writeTestInputFile(gmx::ArrayRef<const std::string> fileList, TestFileManager* manager)
+{
+    std::string     outputFile = manager->getTemporaryFilePath("demux.txt");
+    gmx::TextWriter writer(outputFile);
+    for (const auto& file : fileList)
+    {
+        writer.writeLine(manager->getInputFilePath(file));
+    }
+    writer.close();
+    return outputFile;
+}
+} // namespace
+
+void DemuxTest::runTest(CommandLine* cmdline, const DemuxInputParams& params, bool useFileList)
+{
+    cmdline->addOption("-input", manager()->getInputFilePath(std::get<0>(params)));
     if (useFileList)
     {
-        cmdline->addOption("-filelist", std::get<2>(params)[0]);
+        cmdline->addOption("-filelist", writeTestInputFile(std::get<1>(params), manager()));
     }
     else
     {
         cmdline->append("-f");
-        for (const auto& name : std::get<2>(params))
+        for (const auto& name : std::get<1>(params))
         {
-            cmdline->append(name);
+            cmdline->append(manager()->getInputFilePath(name));
         }
     }
     printf("%s\n", cmdline->toString().c_str());
@@ -93,16 +116,16 @@ TEST_P(DemuxTest, WorksForWholeFile)
     const char* const command[] = { "demux" };
     CommandLine       cmdline(command);
     cmdline.addOption("-o", std::get<1>(params));
-    runTest(&cmdline, std::get<0>(params));
+    runTest(&cmdline, std::get<0>(params), std::get<2>(params));
 }
 
-const DemuxInputParams twoFilesCmdline = { "demux1.xvg", false, { "demux1_1.pdb", "demux1_2.pdb" } };
-const DemuxInputParams twoFilesList    = { "demux1.xvg", true, { "demux1.txt" } };
+const DemuxInputParams twoFiles = { "demux1.xvg", { "demux1_1.pdb", "demux1_2.pdb" } };
 
 INSTANTIATE_TEST_SUITE_P(ToolWorks,
                          DemuxTest,
-                         ::testing::Combine(::testing::Values(twoFilesCmdline, twoFilesList),
-                                            ::testing::Values("test.trr", "test.xtc")));
+                         ::testing::Combine(::testing::Values(twoFiles),
+                                            ::testing::Values("test.trr", "test.xtc"),
+                                            ::testing::Values(false, true)));
 
 
 } // namespace test
