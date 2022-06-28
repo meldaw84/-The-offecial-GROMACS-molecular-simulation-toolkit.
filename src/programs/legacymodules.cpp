@@ -61,6 +61,7 @@
 #include "gromacs/gmxpreprocess/x2top.h"
 #include "gromacs/tools/check.h"
 #include "gromacs/tools/convert_tpr.h"
+#include "gromacs/tools/demux.h"
 #include "gromacs/tools/dump.h"
 #include "gromacs/tools/eneconv.h"
 #include "gromacs/tools/make_ndx.h"
@@ -210,6 +211,8 @@ void registerLegacyModules(gmx::CommandLineModuleManager* manager)
                    &gmx_do_dssp,
                    "do_dssp",
                    "Assign secondary structure and calculate solvent accessible surface area");
+    gmx::ICommandLineOptionsModule::registerModuleFactory(
+            manager, gmx::DemuxInfo::name, gmx::DemuxInfo::shortDescription, &gmx::DemuxInfo::create);
     registerModule(manager, &gmx_editconf, "editconf", "Convert and manipulates structure files");
     registerModule(manager, &gmx_eneconv, "eneconv", "Convert energy files");
     registerModule(manager, &gmx_solvate, "solvate", "Solvate a system");
@@ -446,6 +449,7 @@ void registerLegacyModules(gmx::CommandLineModuleManager* manager)
         group.addModule("trjorder");
         group.addModule("xpm2ps");
         group.addModule("report-methods");
+        group.addModule("demux");
     }
     {
         gmx::CommandLineModuleGroup group = manager->addModuleGroup("Distances between structures");

@@ -33,6 +33,7 @@
 
 gmx_add_gtest_executable(tool-test
     CPP_SOURCE_FILES
+        demux.cpp
         dump.cpp
         helpwriting.cpp
         report_methods.cpp
