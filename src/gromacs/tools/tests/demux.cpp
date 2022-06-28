@@ -83,6 +83,7 @@ void DemuxTest::runTest(CommandLine* cmdline, const DemuxInputParams& params)
             cmdline->append(name);
         }
     }
+    printf("%s\n", cmdline->toString().c_str());
     EXPECT_EQ(0, gmx::test::CommandLineTestHelper::runModuleFactory(&gmx::DemuxInfo::create, cmdline));
 }
 

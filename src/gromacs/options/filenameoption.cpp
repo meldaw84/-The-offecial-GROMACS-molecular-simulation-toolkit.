@@ -70,7 +70,7 @@ namespace
 //! Mappings from OptionFileType to file types in filetypes.h.
 constexpr EnumerationArray<OptionFileType, int> sc_fileTypeMapping = { efTPS, efTPR, efTRX, efEDR,
                                                                        efPDB, efNDX, efXVG, efDAT,
-                                                                       efCSV, efQMI };
+                                                                       efCSV, efQMI, efTXT };
 
 /********************************************************************
  * FileTypeHandler

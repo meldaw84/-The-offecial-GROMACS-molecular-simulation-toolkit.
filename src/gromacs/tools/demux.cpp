@@ -271,6 +271,7 @@ void Demux::initOptions(IOptionsContainer* options, ICommandLineOptionsModuleSet
                                .inputFile()
                                .store(&inputTprFilename_)
                                .storeIsSet(&haveInputTpr_)
+                               .defaultBasename("topol")
                                .description("Run input file to dump"));
     options->addOption(
             FileNameOption("f")
@@ -282,10 +283,11 @@ void Demux::initOptions(IOptionsContainer* options, ICommandLineOptionsModuleSet
                     .description("Trajectory files to demux, read in directly from command line"));
     options->addOption(
             FileNameOption("filelist")
-                    .filetype(OptionFileType::GenericData)
+                    .filetype(OptionFileType::RawText)
                     .inputFile()
                     .store(&trajectoryListFileName_)
                     .storeIsSet(&haveTrajectoryFileList_)
+                    .defaultBasename("filelist")
                     .description("Input file containing list of trajectory files to demux"));
     options->addOption(
             FileNameOption("o")

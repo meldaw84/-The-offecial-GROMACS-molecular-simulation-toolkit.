@@ -62,6 +62,7 @@ enum class OptionFileType : int
     GenericData,
     Csv,
     QMInput,
+    RawText,
     Count
 };
 
