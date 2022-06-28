@@ -138,6 +138,7 @@ void cleanupAllTrajectoryFiles(gmx::ArrayRef<t_trxstatus*> fileStatus, gmx::Arra
     for (int index = 0; index < gmx::ssize(frames); ++index)
     {
         done_frame(frames[index]);
+        sfree(frames[index]);
         close_trx(fileStatus[index]);
     }
 }
@@ -392,10 +393,11 @@ int Demux::run()
     int frameIndex = 0;
     do
     {
-        const real frameTime = checkFrameConsistency(frames);
+        const real frameTime            = checkFrameConsistency(frames);
+        const bool timeGreaterStartTime = startTime == std::nullopt || frameTime > startTime.value();
+        const bool timeLessThanEndTime  = endTime == std::nullopt || frameTime < endTime.value();
         // only try to do demuxing when we have the correct time.
-        if ((!startTime.has_value() || frameTime > *startTime)
-            && (!endTime.has_value() || frameTime < *endTime))
+        if (timeGreaterStartTime && timeLessThanEndTime)
         {
             // The maximum number of rows in the file always needs to be larger or equal
             // to the number of frames to analyse

@@ -119,11 +119,46 @@ TEST_P(DemuxTest, WorksForWholeFile)
     runTest(&cmdline, std::get<0>(params), std::get<2>(params));
 }
 
-const DemuxInputParams twoFiles = { "demux1.xvg", { "demux1_1.pdb", "demux1_2.pdb" } };
+TEST_P(DemuxTest, WorksWithStartTime)
+{
+    auto              params    = GetParam();
+    const char* const command[] = { "demux" };
+    CommandLine       cmdline(command);
+    cmdline.addOption("-o", std::get<1>(params));
+    cmdline.addOption("-b", "1.5");
+    runTest(&cmdline, std::get<0>(params), std::get<2>(params));
+}
+
+TEST_P(DemuxTest, WorksWithEndTime)
+{
+    auto              params    = GetParam();
+    const char* const command[] = { "demux" };
+    CommandLine       cmdline(command);
+    cmdline.addOption("-o", std::get<1>(params));
+    cmdline.addOption("-e", "3.5");
+    runTest(&cmdline, std::get<0>(params), std::get<2>(params));
+}
+
+TEST_P(DemuxTest, WorksWithStartAndEndTime)
+{
+    auto              params    = GetParam();
+    const char* const command[] = { "demux" };
+    CommandLine       cmdline(command);
+    cmdline.addOption("-o", std::get<1>(params));
+    cmdline.addOption("-b", "1.5");
+    cmdline.addOption("-e", "3.5");
+    runTest(&cmdline, std::get<0>(params), std::get<2>(params));
+}
+
+const DemuxInputParams twoFiles  = { "demux1.xvg", { "demux1_1.pdb", "demux1_2.pdb" } };
+const DemuxInputParams fourFiles = {
+    "demux2.xvg",
+    { "demux2_1.pdb", "demux2_2.pdb", "demux2_3.pdb", "demux2_4.pdb" }
+};
 
 INSTANTIATE_TEST_SUITE_P(ToolWorks,
                          DemuxTest,
-                         ::testing::Combine(::testing::Values(twoFiles),
+                         ::testing::Combine(::testing::Values(twoFiles, fourFiles),
                                             ::testing::Values("test.trr", "test.xtc"),
                                             ::testing::Values(false, true)));
 
