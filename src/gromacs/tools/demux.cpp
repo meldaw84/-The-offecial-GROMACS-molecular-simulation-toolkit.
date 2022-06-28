@@ -88,7 +88,6 @@ namespace
 std::vector<t_trxframe*> initializeAllTrajectoryFiles(gmx::ArrayRef<const std::string> fileNames,
                                                       gmx::ArrayRef<t_trxstatus*>      fileStatus,
                                                       gmx_output_env_t*                oenv,
-                                                      const TimeUnit                   timeUnit,
                                                       std::optional<int64_t>           atomNumber)
 {
     std::vector<t_trxframe*> frames(fileNames.size(), nullptr);
@@ -96,7 +95,6 @@ std::vector<t_trxframe*> initializeAllTrajectoryFiles(gmx::ArrayRef<const std::s
     {
         snew(frame, 1);
     }
-    output_env_init(&oenv, getProgramContext(), timeUnit, FALSE, XvgFormat::None, 0);
     int frflags = TRX_NEED_X;
     for (int index = 0; index < gmx::ssize(fileNames); ++index)
     {
@@ -113,7 +111,7 @@ std::vector<t_trxframe*> initializeAllTrajectoryFiles(gmx::ArrayRef<const std::s
         {
             GMX_THROW(InvalidInputError(
                     gmx::formatString("Number of atoms in frame %d (%d) doesn't match the atom "
-                                      "number in the topology %lld",
+                                      "number in the topology %ld",
                                       index,
                                       frames[index]->natoms,
                                       *atomNumber)));
@@ -380,12 +378,12 @@ int Demux::run()
                                                          requirementsBuilder_.process()));
     }
 
+    output_env_init(&oenv_, getProgramContext(), timeUnit_, FALSE, XvgFormat::None, 0);
     std::vector<t_trxstatus*> frameStatus(numberOfFiles, nullptr);
     std::vector<t_trxframe*>  frames = initializeAllTrajectoryFiles(
             trajectoryFileNames_,
             frameStatus,
             oenv_,
-            timeUnit_,
             haveInputTpr_ ? std::optional(topology.mtop()->natoms) : std::nullopt);
 
     // The demux table that has been read in starts after startTime and ends before endTime, so

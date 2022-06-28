@@ -55,17 +55,19 @@ namespace gmx
 namespace test
 {
 
+//! Convienence type for input related data.
+using DemuxInputParams = std::tuple<std::string, bool, std::vector<std::string>>;
 //! Handle for holding input data for demuxing.
-using DemuxTestParams = std::tuple<std::string, bool, std::vector<std::string>>;
+using DemuxTestParams = std::tuple<DemuxInputParams, std::string>;
 
 class DemuxTest : public ::testing::Test, public ::testing::WithParamInterface<DemuxTestParams>
 {
 public:
     //! Run test case.
-    static void runTest(CommandLine* cmdline, const DemuxTestParams& params);
+    static void runTest(CommandLine* cmdline, const DemuxInputParams& params);
 };
 
-void DemuxTest::runTest(CommandLine* cmdline, const DemuxTestParams& params)
+void DemuxTest::runTest(CommandLine* cmdline, const DemuxInputParams& params)
 {
     cmdline->addOption("-input", std::get<0>(params));
     bool useFileList = std::get<1>(params);
@@ -75,11 +77,12 @@ void DemuxTest::runTest(CommandLine* cmdline, const DemuxTestParams& params)
     }
     else
     {
-        cmdline->addOption("-f");
+        cmdline->append("-f");
         for (const auto& name : std::get<2>(params))
         {
             cmdline->append(name);
         }
+        printf("%s\n", cmdline->toString().c_str());
     }
     EXPECT_EQ(0, gmx::test::CommandLineTestHelper::runModuleFactory(&gmx::DemuxInfo::create, cmdline));
 }
@@ -89,12 +92,16 @@ TEST_P(DemuxTest, WorksForWholeFile)
     auto              params    = GetParam();
     const char* const command[] = { "demux" };
     CommandLine       cmdline(command);
-    runTest(&cmdline, params);
+    cmdline.addOption("-o", std::get<1>(params));
+    runTest(&cmdline, std::get<0>(params));
 }
 
-const DemuxTestParams TwoFiles = { "demux1.xvg", false, { "demux1_1.pdb", "demux1_2.pdb" } };
+const DemuxInputParams twoFiles = { "demux1.xvg", false, { "demux1_1.pdb", "demux1_2.pdb" } };
 
-INSTANTIATE_TEST_SUITE_P(ToolWorks, DemuxTest, ::testing::Values(TwoFiles));
+INSTANTIATE_TEST_SUITE_P(ToolWorks,
+                         DemuxTest,
+                         ::testing::Combine(::testing::Values(twoFiles),
+                                            ::testing::Values("test.trr", "test.xtc")));
 
 
 } // namespace test
