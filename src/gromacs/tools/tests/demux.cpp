@@ -95,11 +95,12 @@ TEST_P(DemuxTest, WorksForWholeFile)
     runTest(&cmdline, std::get<0>(params));
 }
 
-const DemuxInputParams twoFiles = { "demux1.xvg", false, { "demux1_1.pdb", "demux1_2.pdb" } };
+const DemuxInputParams twoFilesCmdline = { "demux1.xvg", false, { "demux1_1.pdb", "demux1_2.pdb" } };
+const DemuxInputParams twoFilesList    = { "demux1.xvg", true, { "demux1.txt" } };
 
 INSTANTIATE_TEST_SUITE_P(ToolWorks,
                          DemuxTest,
-                         ::testing::Combine(::testing::Values(twoFiles),
+                         ::testing::Combine(::testing::Values(twoFilesCmdline, twoFilesList),
                                             ::testing::Values("test.trr", "test.xtc")));
 
 
