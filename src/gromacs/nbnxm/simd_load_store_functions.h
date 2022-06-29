@@ -70,6 +70,9 @@ loadIAtomData(const real* ptr, const int offset, const int iRegister)
     return loadU1DualHsimd(ptr + offset + iRegister * 2);
 #else
     static_assert(kernelLayout != KernelLayout::r2xMM, "Unsupported template function instantiated");
+    GMX_UNUSED_VALUE(ptr);
+    GMX_UNUSED_VALUE(offset);
+    GMX_UNUSED_VALUE(iRegister);
 #endif
 }
 
@@ -90,6 +93,8 @@ inline std::enable_if_t<kernelLayout == KernelLayout::r2xMM, SimdReal> loadJAtom
     return loadDuplicateHsimd(ptr + offset);
 #else
     static_assert(kernelLayout != KernelLayout::r2xMM, "Unsupported template function instantiated");
+    GMX_UNUSED_VALUE(ptr);
+    GMX_UNUSED_VALUE(offset);
 #endif
 }
 
@@ -232,6 +237,10 @@ inline void accumulateGroupPairEnergies2xMM(SimdReal   energies,
     }
 #else
     static_assert(kernelLayout != KernelLayout::r2xMM, "Unsupported template function instantiated");
+    GMX_UNUSED_VALUE(energies);
+    GMX_UNUSED_VALUE(groupPairEnergyBuffersPtr0);
+    GMX_UNUSED_VALUE(groupPairEnergyBuffersPtr1);
+    GMX_UNUSED_VALUE(offset_jj);
 #endif
 }
 

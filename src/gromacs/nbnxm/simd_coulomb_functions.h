@@ -355,6 +355,9 @@ coulombForceAndCorrectionEnergy(SimdReal* rSquaredV,
                                    (coulombTable0V[i] + forceCorrectionV[i]),
                                    coulombTablePotV[i]);
     }
+
+    // Avoid compilers complainign about tablePotential being set but not used
+    GMX_UNUSED_VALUE(tablePotential);
 }
 
 } // namespace gmx
