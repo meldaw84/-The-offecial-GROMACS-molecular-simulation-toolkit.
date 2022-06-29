@@ -109,7 +109,7 @@ std::vector<t_trxframe*> initializeAllTrajectoryFiles(gmx::ArrayRef<const std::s
         }
         if (frames[index]->natoms != *atomNumber)
         {
-            GMX_THROW(InvalidInputError(
+            GMX_THROW(gmx::InconsistentInputError(
                     gmx::formatString("Number of atoms in frame %d (%d) doesn't match the atom "
                                       "number in the topology %ld",
                                       index,
@@ -144,7 +144,7 @@ void cleanupAllTrajectoryFiles(gmx::ArrayRef<t_trxstatus*> fileStatus, gmx::Arra
 }
 
 //! Check that all times in the \p frames match
-real checkFrameConsistency(gmx::ArrayRef<t_trxframe*> frames)
+real checkFrameConsistency(const gmx::ArrayRef<t_trxframe*> frames)
 {
     std::optional<real> frameTime;
     for (int index = 0; index < gmx::ssize(frames); ++index)
@@ -167,13 +167,13 @@ real checkFrameConsistency(gmx::ArrayRef<t_trxframe*> frames)
 }
 
 //! Check that time values are consistent.
-void checkTimeConsistency(real frameTime, real demuxTime)
+void checkTimeConsistency(const real frameTime, const real demuxTime)
 {
     if (std::round(frameTime - demuxTime) != 0)
     {
         GMX_THROW(InconsistentInputError(
                 gmx::formatString("The time read in from trajectories (%3.8f) does not match the "
-                                  "time read in from demuxing file (%3.8f)",
+                                  "time read in from the demuxing file (%3.8f)",
                                   frameTime,
                                   demuxTime)));
     }
@@ -266,13 +266,15 @@ void Demux::initOptions(IOptionsContainer* options, ICommandLineOptionsModuleSet
     };
     settings->setBugText(bugs);
 
-    options->addOption(FileNameOption("s")
-                               .filetype(OptionFileType::RunInput)
-                               .inputFile()
-                               .store(&inputTprFilename_)
-                               .storeIsSet(&haveInputTpr_)
-                               .defaultBasename("topol")
-                               .description("Run input file to dump"));
+    options->addOption(
+            FileNameOption("s")
+                    .filetype(OptionFileType::RunInput)
+                    .inputFile()
+                    .store(&inputTprFilename_)
+                    .storeIsSet(&haveInputTpr_)
+                    .defaultBasename("topol")
+                    .description(
+                            "Run input file to use for printing output trajectory after demuxing"));
     options->addOption(
             FileNameOption("f")
                     .multiValue()
@@ -344,10 +346,18 @@ void Demux::optionsFinished()
     }
     if (startTimeIsSet_)
     {
+        if (startTime_ < 0)
+        {
+            GMX_THROW(InvalidInputError("Start time can't be less than 0"));
+        }
         setTimeValue(TimeControl::Begin, startTime_);
     }
     if (endTimeIsSet_)
     {
+        if (startTimeIsSet_ ? endTime_ < startTime_ : endTime_ < 0)
+        {
+            GMX_THROW(InvalidInputError("End time need to be larger than start time"));
+        }
         setTimeValue(TimeControl::End, endTime_);
     }
 }
@@ -363,11 +373,11 @@ int Demux::run()
     std::optional<real> startTime     = startTimeIsSet_ ? std::optional(startTime_) : std::nullopt;
     std::optional<real> endTime       = endTimeIsSet_ ? std::optional(endTime_) : std::nullopt;
     auto demuxInformation             = readXvgTimeSeries(demuxIndexFileName_, startTime, endTime);
-    if (numberOfFiles != demuxInformation.extent(1) - 1)
-    {
-        GMX_THROW(InconsistentInputError(
-                "Number of files doesn't match number of columns in demuxing file"));
-    }
+    // We would like to check the consistency between the input trajectories and the demuxing table
+    // here, but it is a valid input to not loop over any frames and have an empty table here, so
+    // we need to only check if we are actually trying to perform the demuxing.
+    // This can in theory produce a list of empty files if no frames are actually in range
+    // of our analysis. But performing the initialization later is not worth it in my opinion.
     std::vector<TrajectoryFrameWriterPointer> writers;
     for (int index = 0; index < numberOfFiles; ++index)
     {
@@ -393,6 +403,8 @@ int Demux::run()
     int frameIndex = 0;
     do
     {
+        // We always check all frames, as we need to read them in anyway, even if we are not
+        // actually going to perform the demuxing for the time if it is not in range
         const real frameTime            = checkFrameConsistency(frames);
         const bool timeGreaterStartTime = startTime == std::nullopt || frameTime > startTime.value();
         const bool timeLessThanEndTime  = endTime == std::nullopt || frameTime < endTime.value();
@@ -410,6 +422,11 @@ int Demux::run()
                                           demuxInformation.extent(0))));
             }
             const auto viewOnDemuxAtIndex = demuxInformation.asConstView()[frameIndex];
+            if (numberOfFiles != viewOnDemuxAtIndex.extent(0) - 1)
+            {
+                GMX_THROW(InconsistentInputError(
+                        "Number of files doesn't match number of columns in demuxing file"));
+            }
             // First column in demux table is always the time
             checkTimeConsistency(frameTime, viewOnDemuxAtIndex[0]);
             for (int fileIndex = 0; fileIndex < numberOfFiles; ++fileIndex)

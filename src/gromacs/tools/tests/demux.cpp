@@ -41,12 +41,14 @@
 
 #include "gromacs/tools/demux.h"
 
+#include <optional>
 #include <vector>
 
 #include <googletest/googletest/include/gtest/gtest.h>
 #include <gtest/gtest-param-test.h>
 
 #include "gromacs/utility/arrayref.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/stringutil.h"
 #include "gromacs/utility/textwriter.h"
 
@@ -68,7 +70,10 @@ class DemuxTest : public ::testing::Test, public ::testing::WithParamInterface<D
 {
 public:
     //! Run test case.
-    void runTest(CommandLine* cmdline, const DemuxInputParams& params, bool useFileList);
+    static void runTest(CommandLine* cmdline);
+    //! Prepare command line
+    CommandLine createCmdline(const DemuxInputParams& params, bool useFileList);
+    //! Access file manager.
     TestFileManager* manager() { return &manager_; }
 
 private:
@@ -91,63 +96,120 @@ std::string writeTestInputFile(gmx::ArrayRef<const std::string> fileList, TestFi
 }
 } // namespace
 
-void DemuxTest::runTest(CommandLine* cmdline, const DemuxInputParams& params, bool useFileList)
+
+void DemuxTest::runTest(CommandLine* cmdline)
 {
-    cmdline->addOption("-input", manager()->getInputFilePath(std::get<0>(params)));
+    EXPECT_EQ(0, gmx::test::CommandLineTestHelper::runModuleFactory(&gmx::DemuxInfo::create, cmdline));
+}
+CommandLine DemuxTest::createCmdline(const DemuxInputParams& params, bool useFileList)
+{
+    const char* const command[] = { "demux" };
+    CommandLine       cmdline(command);
+    cmdline.addOption("-input", manager()->getInputFilePath(std::get<0>(params)));
     if (useFileList)
     {
-        cmdline->addOption("-filelist", writeTestInputFile(std::get<1>(params), manager()));
+        cmdline.addOption("-filelist", writeTestInputFile(std::get<1>(params), manager()));
     }
     else
     {
-        cmdline->append("-f");
+        cmdline.append("-f");
         for (const auto& name : std::get<1>(params))
         {
-            cmdline->append(manager()->getInputFilePath(name));
+            cmdline.append(manager()->getInputFilePath(name));
         }
     }
-    printf("%s\n", cmdline->toString().c_str());
-    EXPECT_EQ(0, gmx::test::CommandLineTestHelper::runModuleFactory(&gmx::DemuxInfo::create, cmdline));
+    return cmdline;
+}
+
+TEST_F(DemuxTest, RejectsMissingInput)
+{
+    const char* const command[] = { "demux" };
+    CommandLine       cmdline(command);
+    EXPECT_THROW(gmx::test::CommandLineTestHelper::runModuleFactory(&gmx::DemuxInfo::create, &cmdline),
+                 gmx::InvalidInputError);
+}
+
+TEST_F(DemuxTest, RejectsBothCmdlineAndListInputTogether)
+{
+    const char* const        command[] = { "demux" };
+    CommandLine              cmdline(command);
+    std::vector<std::string> fileList({ "demux1_1.pdb", "demux1_3.pdb" });
+    cmdline.addOption("-filelist", writeTestInputFile(fileList, manager()));
+    cmdline.append("-f");
+    for (const auto& name : fileList)
+    {
+        cmdline.append(manager()->getInputFilePath(name));
+    }
+    EXPECT_THROW(gmx::test::CommandLineTestHelper::runModuleFactory(&gmx::DemuxInfo::create, &cmdline),
+                 gmx::InvalidInputError);
+}
+
+TEST_F(DemuxTest, RejectsMismatchedTrajectoryFiles)
+{
+    DemuxInputParams params  = { "demux1.xvg", { "demux1_1.pdb", "demux1_3.pdb" } };
+    auto             cmdline = createCmdline(params, false);
+    EXPECT_THROW(gmx::test::CommandLineTestHelper::runModuleFactory(&gmx::DemuxInfo::create, &cmdline),
+                 gmx::InconsistentInputError);
+}
+
+TEST_F(DemuxTest, RejectsMismatchedTrajectoryTimeValues)
+{
+    DemuxInputParams params  = { "demux1.xvg", { "demux1_1.pdb", "demux2_1.pdb" } };
+    auto             cmdline = createCmdline(params, false);
+    EXPECT_THROW(gmx::test::CommandLineTestHelper::runModuleFactory(&gmx::DemuxInfo::create, &cmdline),
+                 gmx::InconsistentInputError);
+}
+
+TEST_F(DemuxTest, RejectsMismatchedNumberOfFilesAndDemuxValues)
+{
+    DemuxInputParams params  = { "demux2.xvg", { "demux1_1.pdb", "demux1_2.pdb" } };
+    auto             cmdline = createCmdline(params, false);
+    EXPECT_THROW(gmx::test::CommandLineTestHelper::runModuleFactory(&gmx::DemuxInfo::create, &cmdline),
+                 gmx::InconsistentInputError);
+}
+
+TEST_F(DemuxTest, RejectsMismatchedTrajectoryAndDemuxTimeValues)
+{
+    DemuxInputParams params  = { "demux1.xvg", { "demux2_1.pdb", "demux2_2.pdb" } };
+    auto             cmdline = createCmdline(params, false);
+    EXPECT_THROW(gmx::test::CommandLineTestHelper::runModuleFactory(&gmx::DemuxInfo::create, &cmdline),
+                 gmx::InconsistentInputError);
 }
 
 TEST_P(DemuxTest, WorksForWholeFile)
 {
-    auto              params    = GetParam();
-    const char* const command[] = { "demux" };
-    CommandLine       cmdline(command);
+    auto params  = GetParam();
+    auto cmdline = createCmdline(std::get<0>(params), std::get<2>(params));
     cmdline.addOption("-o", std::get<1>(params));
-    runTest(&cmdline, std::get<0>(params), std::get<2>(params));
+    runTest(&cmdline);
 }
 
 TEST_P(DemuxTest, WorksWithStartTime)
 {
-    auto              params    = GetParam();
-    const char* const command[] = { "demux" };
-    CommandLine       cmdline(command);
+    auto params  = GetParam();
+    auto cmdline = createCmdline(std::get<0>(params), std::get<2>(params));
     cmdline.addOption("-o", std::get<1>(params));
     cmdline.addOption("-b", "1.5");
-    runTest(&cmdline, std::get<0>(params), std::get<2>(params));
+    runTest(&cmdline);
 }
 
 TEST_P(DemuxTest, WorksWithEndTime)
 {
-    auto              params    = GetParam();
-    const char* const command[] = { "demux" };
-    CommandLine       cmdline(command);
+    auto params  = GetParam();
+    auto cmdline = createCmdline(std::get<0>(params), std::get<2>(params));
     cmdline.addOption("-o", std::get<1>(params));
     cmdline.addOption("-e", "3.5");
-    runTest(&cmdline, std::get<0>(params), std::get<2>(params));
+    runTest(&cmdline);
 }
 
 TEST_P(DemuxTest, WorksWithStartAndEndTime)
 {
-    auto              params    = GetParam();
-    const char* const command[] = { "demux" };
-    CommandLine       cmdline(command);
+    auto params  = GetParam();
+    auto cmdline = createCmdline(std::get<0>(params), std::get<2>(params));
     cmdline.addOption("-o", std::get<1>(params));
     cmdline.addOption("-b", "1.5");
     cmdline.addOption("-e", "3.5");
-    runTest(&cmdline, std::get<0>(params), std::get<2>(params));
+    runTest(&cmdline);
 }
 
 const DemuxInputParams twoFiles  = { "demux1.xvg", { "demux1_1.pdb", "demux1_2.pdb" } };
