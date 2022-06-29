@@ -97,18 +97,32 @@ void nonbonded_verlet_t::dispatchPruneKernelCpu(const gmx::InteractionLocality i
     pairlistSets_->dispatchPruneKernel(iLocality, nbat.get(), shift_vec);
 }
 
-void nonbonded_verlet_t::dispatchPruneKernelGpu(int64_t step)
+void nonbonded_verlet_t::dispatchPruneKernelGpu(int64_t step, bool havePpDomainDecomposition)
 {
     wallcycle_start_nocount(wcycle_, WallCycleCounter::LaunchGpuPp);
     wallcycle_sub_start_nocount(wcycle_, WallCycleSubCounter::LaunchGpuNonBonded);
 
-    const bool stepIsEven =
-            (pairlistSets().numStepsWithPairlist(step) % (2 * pairlistSets().params().mtsFactor) == 0);
+    if (pairlistSets().params().numRollingPruningParts == 1)
+    {
+        Nbnxm::gpu_launch_kernel_pruneonly(
+                gpu_nbv, gmx::InteractionLocality::Local, pairlistSets().params().numRollingPruningParts);
+        if (havePpDomainDecomposition)
+        {
+            Nbnxm::gpu_launch_kernel_pruneonly(gpu_nbv,
+                                               gmx::InteractionLocality::NonLocal,
+                                               pairlistSets().params().numRollingPruningParts);
+        }
+    }
+    else
+    {
+        const bool stepIsEven =
+                (pairlistSets().numStepsWithPairlist(step) % (2 * pairlistSets().params().mtsFactor) == 0);
 
-    Nbnxm::gpu_launch_kernel_pruneonly(
-            gpu_nbv,
-            stepIsEven ? gmx::InteractionLocality::Local : gmx::InteractionLocality::NonLocal,
-            pairlistSets().params().numRollingPruningParts);
+        Nbnxm::gpu_launch_kernel_pruneonly(
+                gpu_nbv,
+                stepIsEven ? gmx::InteractionLocality::Local : gmx::InteractionLocality::NonLocal,
+                pairlistSets().params().numRollingPruningParts);
+    }
 
     wallcycle_sub_stop(wcycle_, WallCycleSubCounter::LaunchGpuNonBonded);
     wallcycle_stop(wcycle_, WallCycleCounter::LaunchGpuPp);

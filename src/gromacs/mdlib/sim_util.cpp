@@ -1047,7 +1047,7 @@ static void launchGpuEndOfStepTasks(nonbonded_verlet_t*               nbv,
          */
         if (nbv->isDynamicPruningStepGpu(step))
         {
-            nbv->dispatchPruneKernelGpu(step);
+            nbv->dispatchPruneKernelGpu(step, runScheduleWork.simulationWork.havePpDomainDecomposition);
         }
 
         /* now clear the GPU outputs while we finish the step on the CPU */

@@ -106,9 +106,16 @@ public:
     {
         const int age = numStepsWithPairlist(step);
 
-        return (params_.useDynamicPruning && age > 0 && age < params_.lifetime
-                && step % params_.mtsFactor == 0
-                && (params_.haveMultipleDomains || age % (2 * params_.mtsFactor) == 0));
+        if (params_.numRollingPruningParts == 1)
+        {
+            return (params_.useDynamicPruning && numStepsWithPairlist(step) % params_.nstlistPrune == 0);
+        }
+        else
+        {
+            return (params_.useDynamicPruning && age > 0 && age < params_.lifetime
+                    && step % params_.mtsFactor == 0
+                    && (params_.haveMultipleDomains || age % (2 * params_.mtsFactor) == 0));
+        }
     }
 
     //! Changes the pair-list outer and inner radius

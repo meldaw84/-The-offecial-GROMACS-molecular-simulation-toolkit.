@@ -386,19 +386,21 @@ static const int c_nbnxnDynamicListPruningMinLifetime = 4;
 
 /*! \brief Set the dynamic pairlist pruning parameters in \p ic
  *
- * \param[in]     inputrec          The input parameter record
- * \param[in]     mtop        The global topology
+ * \param[in]     inputrec              The input parameter record
+ * \param[in]     mtop                  The global topology
  * \param[in]     effectiveAtomDensity  The effective atom density of the system
- * \param[in]     useGpuList  Tells if we are using a GPU type pairlist
- * \param[in]     listSetup   The nbnxn pair list setup
- * \param[in]     userSetNstlistPrune  The user set ic->nstlistPrune (using an env.var.)
- * \param[in]     interactionConst              The nonbonded interactions constants
- * \param[in,out] listParams  The list setup parameters
+ * \param[in]     useGpuList            Tells if we are using a GPU type pairlist
+ * \param[in]     disableRollingPruning Tells if rolling pruning setup is disabled (despite useGpuList)
+ * \param[in]     listSetup             The nbnxn pair list setup
+ * \param[in]     userSetNstlistPrune   The user set ic->nstlistPrune (using an env.var.)
+ * \param[in]     interactionConst      The nonbonded interactions constants
+ * \param[in,out] listParams            The list setup parameters
  */
 static void setDynamicPairlistPruningParameters(const t_inputrec&          inputrec,
                                                 const gmx_mtop_t&          mtop,
                                                 const real                 effectiveAtomDensity,
                                                 const bool                 useGpuList,
+                                                const bool                 disableRollingPruning,
                                                 const VerletbufListSetup&  listSetup,
                                                 const bool                 userSetNstlistPrune,
                                                 const interaction_const_t& interactionConst,
@@ -439,7 +441,8 @@ static void setDynamicPairlistPruningParameters(const t_inputrec&          input
          * every c_nbnxnGpuRollingListPruningInterval steps,
          * so keep nstlistPrune a multiple of the interval.
          */
-        tunedNstlistPrune += (useGpuList ? c_nbnxnGpuRollingListPruningInterval : 1) * mtsFactor;
+        tunedNstlistPrune +=
+                ((useGpuList && !disableRollingPruning) ? c_nbnxnGpuRollingListPruningInterval : 1) * mtsFactor;
     } while (!userSetNstlistPrune && tunedNstlistPrune < inputrec.nstlist
              && listParams->rlistInner == interactionCutoff);
 
@@ -555,10 +558,19 @@ void setupDynamicPairlistPruning(const gmx::MDLogger&       mdlog,
             listParams->nstlistPrune = c_nbnxnDynamicListPruningMinLifetime;
         }
 
-        setDynamicPairlistPruningParameters(
-                inputrec, mtop, effectiveAtomDensity, useGpuList, ls, userSetNstlistPrune, interactionConst, listParams);
+        const bool disableRollingPruning = (getenv("GMX_DISABLE_ROLLING_PRUNING") != nullptr);
 
-        if (listParams->useDynamicPruning && useGpuList)
+        setDynamicPairlistPruningParameters(inputrec,
+                                            mtop,
+                                            effectiveAtomDensity,
+                                            useGpuList,
+                                            disableRollingPruning,
+                                            ls,
+                                            userSetNstlistPrune,
+                                            interactionConst,
+                                            listParams);
+
+        if (listParams->useDynamicPruning && useGpuList && !disableRollingPruning)
         {
             /* Note that we can round down here. This makes the effective
              * rolling pruning interval slightly shorter than nstlistTune,

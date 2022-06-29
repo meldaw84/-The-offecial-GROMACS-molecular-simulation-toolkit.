@@ -383,7 +383,7 @@ public:
                                 gmx::ArrayRef<const gmx::RVec> shift_vec) const;
 
     //! Dispatches the dynamic pruning kernel for GPU lists
-    void dispatchPruneKernelGpu(int64_t step);
+    void dispatchPruneKernelGpu(int64_t step, bool havePpDomainDecomposition);
 
     //! \brief Executes the non-bonded kernel of the GPU or launches it on the GPU
     void dispatchNonbondedKernel(gmx::InteractionLocality       iLocality,

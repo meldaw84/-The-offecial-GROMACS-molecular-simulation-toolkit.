@@ -630,10 +630,16 @@ void gpu_launch_kernel_pruneonly(NbnxmGpu* nb, const InteractionLocality iloc, c
 
     if (debug)
     {
+        std::string localityStr = (iloc == InteractionLocality::Local) ? "local" : "nonlocal";
+        std::string listTypeStr = plist->haveFreshList ? "Fresh " + localityStr + " list"
+                                                       : "dynamic list" + localityStr + " part "
+                                                                 + std::to_string(part) + "/"
+                                                                 + std::to_string(numParts);
         fprintf(debug,
-                "Pruning GPU kernel launch configuration:\n\tThread block: %zux%zux%zu\n\t"
+                "%s pruning GPU kernel launch configuration:\n\tThread block: %zux%zux%zu\n\t"
                 "\tGrid: %zux%zu\n\t#Super-clusters/clusters: %d/%d (%d)\n"
                 "\tShMem: %zu\n",
+                listTypeStr.c_str(),
                 config.blockSize[0],
                 config.blockSize[1],
                 config.blockSize[2],
