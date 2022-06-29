@@ -400,7 +400,8 @@ int Demux::run()
 
     // The demux table that has been read in starts after startTime and ends before endTime, so
     // any row we read from it starts indexing from 0 at this point.
-    int frameIndex = 0;
+    const auto viewOnDemux = demuxInformation.asConstView();
+    int        frameIndex  = 0;
     do
     {
         // We always check all frames, as we need to read them in anyway, even if we are not
@@ -421,17 +422,16 @@ int Demux::run()
                                           frameIndex,
                                           demuxInformation.extent(0))));
             }
-            const auto viewOnDemuxAtIndex = demuxInformation.asConstView()[frameIndex];
-            if (numberOfFiles != viewOnDemuxAtIndex.extent(0) - 1)
+            if (numberOfFiles != viewOnDemux[frameIndex].extent(0) - 1)
             {
                 GMX_THROW(InconsistentInputError(
                         "Number of files doesn't match number of columns in demuxing file"));
             }
             // First column in demux table is always the time
-            checkTimeConsistency(frameTime, viewOnDemuxAtIndex[0]);
+            checkTimeConsistency(frameTime, viewOnDemux[frameIndex][0]);
             for (int fileIndex = 0; fileIndex < numberOfFiles; ++fileIndex)
             {
-                writers[static_cast<int>(viewOnDemuxAtIndex[fileIndex + 1])]->prepareAndWriteFrame(
+                writers[static_cast<int>(viewOnDemux[frameIndex][fileIndex + 1])]->prepareAndWriteFrame(
                         frameIndex, *frames[fileIndex]);
             }
             ++frameIndex;
