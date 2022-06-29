@@ -486,11 +486,12 @@
                 {
                     if constexpr (kernelLayout == KernelLayout::r4xM)
                     {
-                        accumulateGroupPairEnergies4xM(vCoulombV[i], vctp[i], egp_jj);
+                        accumulateGroupPairEnergies4xM<kernelLayout>(vCoulombV[i], vctp[i], egp_jj);
                     }
                     else
                     {
-                        accumulateGroupPairEnergies2xMM(vCoulombV[i], vctp[i * 2], vctp[i * 2 + 1], egp_jj);
+                        accumulateGroupPairEnergies2xMM<kernelLayout>(
+                                vCoulombV[i], vctp[i * 2], vctp[i * 2 + 1], egp_jj);
                     }
                 }
             }
@@ -511,11 +512,12 @@
                 {
                     if constexpr (kernelLayout == KernelLayout::r4xM)
                     {
-                        accumulateGroupPairEnergies4xM(vLJV[i], vvdwtp[i], egp_jj);
+                        accumulateGroupPairEnergies4xM<kernelLayout>(vLJV[i], vvdwtp[i], egp_jj);
                     }
                     else
                     {
-                        accumulateGroupPairEnergies2xMM(vLJV[i], vvdwtp[i * 2], vvdwtp[i * 2 + 1], egp_jj);
+                        accumulateGroupPairEnergies2xMM<kernelLayout>(
+                                vLJV[i], vvdwtp[i * 2], vvdwtp[i * 2 + 1], egp_jj);
                     }
                 }
             }

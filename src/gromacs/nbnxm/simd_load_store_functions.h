@@ -49,53 +49,65 @@
 #include "gromacs/simd/simd.h"
 #include "gromacs/utility/real.h"
 
+namespace gmx
+{
+
 //! Load a single real for an i-atom into \p iRegister
 template<KernelLayout kernelLayout>
-inline std::enable_if_t<kernelLayout == KernelLayout::r4xM, gmx::SimdReal>
-loadIAtomData(const real* ptr, const int offset, const int iRegister)
+inline std::enable_if_t<kernelLayout == KernelLayout::r4xM, SimdReal> loadIAtomData(const real* ptr,
+                                                                                    const int offset,
+                                                                                    const int iRegister)
 {
-    return gmx::SimdReal(ptr[offset + iRegister]);
+    return SimdReal(ptr[offset + iRegister]);
 }
 
 //! Load a pair of consecutive reals for two i-atom into the respective halves of \p iRegister
 template<KernelLayout kernelLayout>
-inline std::enable_if_t<kernelLayout == KernelLayout::r2xMM, gmx::SimdReal>
+inline std::enable_if_t<kernelLayout == KernelLayout::r2xMM, SimdReal>
 loadIAtomData(const real* ptr, const int offset, const int iRegister)
 {
-    return gmx::loadU1DualHsimd(ptr + offset + iRegister * 2);
+#if GMX_SIMD_HAVE_HSIMD_UTIL_REAL
+    return loadU1DualHsimd(ptr + offset + iRegister * 2);
+#else
+    static_assert(kernelLayout != KernelLayout::r2xMM, "Unsupported template function instantiated");
+#endif
 }
 
 //! Returns a SIMD register containing GMX_SIMD_REAL_WIDTH reals loaded from ptr + offset
 template<KernelLayout kernelLayout>
-inline std::enable_if_t<kernelLayout == KernelLayout::r4xM, gmx::SimdReal> loadJAtomData(const real* ptr,
-                                                                                         const int offset)
+inline std::enable_if_t<kernelLayout == KernelLayout::r4xM, SimdReal> loadJAtomData(const real* ptr,
+                                                                                    const int offset)
 {
-    return gmx::load<gmx::SimdReal>(ptr + offset);
+    return load<SimdReal>(ptr + offset);
 }
 
 //! Returns a SIMD register containing a duplicate sequence of GMX_SIMD_REAL_WIDTH/2 reals loaded from ptr + offset
 template<KernelLayout kernelLayout>
-inline std::enable_if_t<kernelLayout == KernelLayout::r2xMM, gmx::SimdReal> loadJAtomData(const real* ptr,
-                                                                                          const int offset)
+inline std::enable_if_t<kernelLayout == KernelLayout::r2xMM, SimdReal> loadJAtomData(const real* ptr,
+                                                                                     const int offset)
 {
-    return gmx::loadDuplicateHsimd(ptr + offset);
+#if GMX_SIMD_HAVE_HSIMD_UTIL_REAL
+    return loadDuplicateHsimd(ptr + offset);
+#else
+    static_assert(kernelLayout != KernelLayout::r2xMM, "Unsupported template function instantiated");
+#endif
 }
 
 #if GMX_SIMD_HAVE_INT32_LOGICAL
 //! Define SimdBitMask as an integer SIMD register
-typedef gmx::SimdInt32 SimdBitMask;
+typedef SimdInt32 SimdBitMask;
 #else
 //! Define SimdBitMask as a real SIMD register
-typedef gmx::SimdReal SimdBitMask;
+typedef SimdReal SimdBitMask;
 #endif
 
 //! Loads interaction masks for a cluster pair for 4xM kernel layout
 template<KernelLayout kernelLayout>
 inline std::enable_if_t<kernelLayout == KernelLayout::r4xM, void>
-loadSimdPairInteractionMasks(const int      excl,
-                             SimdBitMask*   filterBitMasksV,
-                             const real*    simdInteractionArray,
-                             gmx::SimdBool* interactionMasksV)
+loadSimdPairInteractionMasks(const int    excl,
+                             SimdBitMask* filterBitMasksV,
+                             const real*  simdInteractionArray,
+                             SimdBool*    interactionMasksV)
 {
     using namespace gmx;
 #if GMX_SIMD_HAVE_INT32_LOGICAL
@@ -115,7 +127,7 @@ loadSimdPairInteractionMasks(const int      excl,
 #    else
         std::int32_t i;
 #    endif
-        real         r;
+        real r;
     } conv;
 
     conv.i = excl;
@@ -145,10 +157,10 @@ loadSimdPairInteractionMasks(const int      excl,
 //! Loads interaction masks for a cluster pair for 2xMM kernel layout
 template<KernelLayout kernelLayout>
 inline std::enable_if_t<kernelLayout == KernelLayout::r2xMM, void>
-loadSimdPairInteractionMasks(const int      excl,
-                             SimdBitMask*   filterBitMasksV,
-                             const real*    simdInteractionArray,
-                             gmx::SimdBool* interactionMasksV)
+loadSimdPairInteractionMasks(const int    excl,
+                             SimdBitMask* filterBitMasksV,
+                             const real*  simdInteractionArray,
+                             SimdBool*    interactionMasksV)
 {
     using namespace gmx;
 #if GMX_SIMD_HAVE_INT32_LOGICAL
@@ -167,7 +179,7 @@ loadSimdPairInteractionMasks(const int      excl,
 #    else
         std::int32_t i;
 #    endif
-        real         r;
+        real r;
     } conv;
 
     conv.i = excl;
@@ -185,9 +197,8 @@ loadSimdPairInteractionMasks(const int      excl,
 }
 
 //! Adds energies to temporary energy group pair buffers for the 4xM kernel layout
-inline void accumulateGroupPairEnergies4xM(gmx::SimdReal energies,
-                                           real*         groupPairEnergyBuffersPtr,
-                                           const int*    offset_jj)
+template<KernelLayout kernelLayout>
+inline void accumulateGroupPairEnergies4xM(SimdReal energies, real* groupPairEnergyBuffersPtr, const int* offset_jj)
 {
     using namespace gmx;
 
@@ -206,17 +217,22 @@ inline void accumulateGroupPairEnergies4xM(gmx::SimdReal energies,
 }
 
 //! Adds energies to temporary energy group pair buffers for the 2xMM kernel layout
-inline void accumulateGroupPairEnergies2xMM(gmx::SimdReal energies,
-                                            real*         groupPairEnergyBuffersPtr0,
-                                            real*         groupPairEnergyBuffersPtr1,
-                                            const int*    offset_jj)
+template<KernelLayout kernelLayout>
+inline void accumulateGroupPairEnergies2xMM(SimdReal   energies,
+                                            real*      groupPairEnergyBuffersPtr0,
+                                            real*      groupPairEnergyBuffersPtr1,
+                                            const int* offset_jj)
 {
+#if GMX_SIMD_HAVE_HSIMD_UTIL_REAL
     for (int jj = 0; jj < GMX_SIMD_REAL_WIDTH / 2; jj++)
     {
         incrDualHsimd(groupPairEnergyBuffersPtr0 + offset_jj[jj] + jj * GMX_SIMD_REAL_WIDTH / 2,
                       groupPairEnergyBuffersPtr1 + offset_jj[jj] + jj * GMX_SIMD_REAL_WIDTH / 2,
                       energies);
     }
+#else
+    static_assert(kernelLayout != KernelLayout::r2xMM, "Unsupported template function instantiated");
+#endif
 }
 
 //! Return the number of atoms pairs that are within the cut-off distance
@@ -240,5 +256,7 @@ inline int pairCountWithinCutoff(SimdReal rSquaredV[nR], SimdReal cutoffSquared)
 
     return npair;
 }
+
+} // namespace gmx
 
 #endif // GMX_NBNXM_SIMD_LOAD_STORE_FUNCTIONS_H
