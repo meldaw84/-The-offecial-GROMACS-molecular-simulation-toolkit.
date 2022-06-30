@@ -784,10 +784,11 @@ void sumHistograms(gmx::ArrayRef<PointState> pointState,
 
         for (size_t localIndex = 0; localIndex < localUpdateList.size(); localIndex++)
         {
-            const PointState& ps = pointState[localUpdateList[localIndex]];
+            PointState& ps = pointState[localUpdateList[localIndex]];
 
             weightSum[localIndex]   = ps.weightSumIteration();
             coordVisits[localIndex] = ps.numVisitsIteration();
+            ps.addLocalNumVisits();
         }
 
         biasSharing->sumOverSharingSimulations(gmx::ArrayRef<double>(weightSum), biasIndex);
