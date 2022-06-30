@@ -54,4 +54,7 @@ real rTimeValue(TimeControl tcontrol);
 
 void setTimeValue(TimeControl tcontrol, real value);
 
+//! Release previously set value for time control
+void unsetTimeValue(TimeControl tcontrol);
+
 #endif

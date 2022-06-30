@@ -86,3 +86,10 @@ void setTimeValue(TimeControl tcontrol, real value)
     timecontrol[tcontrol].t    = value;
     timecontrol[tcontrol].bSet = TRUE;
 }
+
+void unsetTimeValue(TimeControl tcontrol)
+{
+    const std::lock_guard<std::mutex> lock(g_timeControlMutex);
+    timecontrol[tcontrol].t    = 0;
+    timecontrol[tcontrol].bSet = false;
+}

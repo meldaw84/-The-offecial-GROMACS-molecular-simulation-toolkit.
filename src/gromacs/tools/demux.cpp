@@ -278,6 +278,8 @@ private:
 
 Demux::~Demux()
 {
+    unsetTimeValue(TimeControl::Begin);
+    unsetTimeValue(TimeControl::End);
     cleanupAllTrajectoryFiles(fileStatusStorage_, frameStorage_);
     if (oenv_ != nullptr)
     {
@@ -389,6 +391,7 @@ void Demux::optionsFinished()
         {
             GMX_THROW(InvalidInputError("Start time can't be less than 0"));
         }
+        setTimeValue(TimeControl::Begin, startTime_);
     }
     if (endTimeIsSet_)
     {
@@ -396,6 +399,7 @@ void Demux::optionsFinished()
         {
             GMX_THROW(InvalidInputError("End time needs to be larger than start time"));
         }
+        setTimeValue(TimeControl::End, endTime_);
     }
 }
 
@@ -442,33 +446,25 @@ int Demux::run()
         // We always check all frames, as we need to read them in anyway, even if we are not
         // actually going to perform the demuxing for the time if it is not in range
         const real frameTime = checkFrameConsistency(frameStorage_);
-        const bool timeGreaterStartTime =
-                !startTime.has_value() || (startTime.has_value() && frameTime > startTime.value());
-        const bool timeLessThanEndTime =
-                !endTime.has_value() || (endTime.has_value() && frameTime < endTime.value());
-        // only try to do demuxing when we have the correct time.
-        if (timeGreaterStartTime && timeLessThanEndTime)
+        // The maximum number of rows in the file always needs to be larger or equal
+        // to the number of frames to analyse
+        if (frameIndex >= demuxInformation.extent(0))
         {
-            // The maximum number of rows in the file always needs to be larger or equal
-            // to the number of frames to analyse
-            if (frameIndex >= demuxInformation.extent(0))
-            {
-                GMX_THROW(InconsistentInputError(
-                        gmx::formatString("Number of frames for analysis (%d) is larger than the "
-                                          "number of rows read from the demuxing table (%ld)",
-                                          frameIndex,
-                                          demuxInformation.extent(0))));
-            }
-            // First column in demux table is always the time
-            checkTimeConsistency(frameTime, viewOnDemux[frameIndex][0]);
-            checkOutputInRange(viewOnDemux[frameIndex], numberOfFiles);
-            for (int fileIndex = 0; fileIndex < numberOfFiles; ++fileIndex)
-            {
-                int outputIndex = static_cast<int>(viewOnDemux[frameIndex][fileIndex + 1]);
-                writers[outputIndex]->prepareAndWriteFrame(frameIndex, *frameStorage_[fileIndex]);
-            }
-            ++frameIndex;
+            GMX_THROW(InconsistentInputError(
+                    gmx::formatString("Number of frames for analysis (%d) is larger than the "
+                                      "number of rows read from the demuxing table (%ld)",
+                                      frameIndex,
+                                      demuxInformation.extent(0))));
         }
+        // First column in demux table is always the time
+        checkTimeConsistency(frameTime, viewOnDemux[frameIndex][0]);
+        checkOutputInRange(viewOnDemux[frameIndex], numberOfFiles);
+        for (int fileIndex = 0; fileIndex < numberOfFiles; ++fileIndex)
+        {
+            int outputIndex = static_cast<int>(viewOnDemux[frameIndex][fileIndex + 1]);
+            writers[outputIndex]->prepareAndWriteFrame(frameIndex, *frameStorage_[fileIndex]);
+        }
+        ++frameIndex;
     } while (readNextFrameOfAllFiles(oenv_, fileStatusStorage_, frameStorage_));
     return 0;
 }
