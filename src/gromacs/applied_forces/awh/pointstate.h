@@ -458,10 +458,7 @@ public:
     }
 
     /*! \brief Add the local counts accumulated between updates. */
-    void addLocalNumVisits()
-    {
-        localNumVisits_ += numVisitsIteration_;
-    }
+    void addLocalNumVisits() { localNumVisits_ += numVisitsIteration_; }
 
     /*! \brief Scale the target weight of the point.
      *
