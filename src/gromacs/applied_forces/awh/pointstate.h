@@ -92,7 +92,8 @@ public:
         lastUpdateIndex_(0),
         logPmfSum_(0),
         numVisitsIteration_(0),
-        numVisitsTot_(0)
+        numVisitsTot_(0),
+        localNumVisits_(0)
     {
     }
 
@@ -113,6 +114,7 @@ public:
         logPmfSum_          = psh.log_pmfsum;
         numVisitsIteration_ = psh.visits_iteration;
         numVisitsTot_       = psh.visits_tot;
+        localNumVisits_     = psh.localNumVisits;
     }
 
     /*! \brief
@@ -132,6 +134,7 @@ public:
         psh->log_pmfsum          = logPmfSum_;
         psh->visits_iteration    = numVisitsIteration_;
         psh->visits_tot          = numVisitsTot_;
+        psh->localNumVisits      = localNumVisits_;
     }
 
     /*! \brief
@@ -454,6 +457,12 @@ public:
         numVisitsTot_ += numVisitsIteration_;
     }
 
+    /*! \brief Add the local counts accumulated between updates. */
+    void addLocalNumVisits()
+    {
+        localNumVisits_ += numVisitsIteration_;
+    }
+
     /*! \brief Scale the target weight of the point.
      *
      * \param[in] scaleFactor  Factor to scale with.
@@ -472,6 +481,7 @@ private:
     double  logPmfSum_;          /**< Logarithm of the PMF histogram */
     double  numVisitsIteration_; /**< Visits to this bin this iteration; note: only contains data for this Bias, even when sharing biases. */
     double  numVisitsTot_;       /**< Accumulated visits to this bin */
+    double  localNumVisits_;     /**< The total number of visits for the local Bias. */
 };
 
 } // namespace gmx

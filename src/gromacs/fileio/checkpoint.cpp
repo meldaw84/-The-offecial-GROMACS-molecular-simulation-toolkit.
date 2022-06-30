@@ -2123,6 +2123,7 @@ static int do_cpt_awh_bias(XDR* xd, gmx_bool bRead, int fflags, gmx::AwhBiasHist
                         do_cpt_double_err(xd, enumValueToString(*i), &psh.log_pmfsum, list);
                         do_cpt_double_err(xd, enumValueToString(*i), &psh.visits_iteration, list);
                         do_cpt_double_err(xd, enumValueToString(*i), &psh.visits_tot, list);
+                        do_cpt_double_err(xd, enumValueToString(*i), &psh.localNumVisits, list);
                     }
                     break;
                 case StateAwhEntry::UmbrellaGridPoint:
