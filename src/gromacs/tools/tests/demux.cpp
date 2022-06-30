@@ -130,7 +130,6 @@ CommandLine DemuxTest::createCmdline(const DemuxTestParams& params)
     {
         outputFileNames.emplace_back(manager()->getTemporaryFilePath(
                 gmx::Path::concatenateBeforeExtension(outputName, formatString("_%d", i))));
-        printf("%s\n", outputFileNames.back().c_str());
     }
     return cmdline;
 }

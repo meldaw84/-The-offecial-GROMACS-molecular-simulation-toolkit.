@@ -89,8 +89,7 @@ namespace
 //! Initialize all input trajectory files.
 std::vector<t_trxframe*> initializeAllTrajectoryFiles(gmx::ArrayRef<const std::string> fileNames,
                                                       gmx::ArrayRef<t_trxstatus*>      fileStatus,
-                                                      gmx_output_env_t*                oenv,
-                                                      std::optional<int64_t>           atomNumber)
+                                                      gmx_output_env_t*                oenv)
 {
     std::vector<t_trxframe*> frames(fileNames.size(), nullptr);
     for (auto& frame : frames)
@@ -104,19 +103,6 @@ std::vector<t_trxframe*> initializeAllTrajectoryFiles(gmx::ArrayRef<const std::s
         {
             GMX_THROW(FileIOError(gmx::formatString(
                     "Could not read coordinates from trajectory file, index %d", index)));
-        }
-        if (!atomNumber.has_value())
-        {
-            atomNumber = frames[index]->natoms;
-        }
-        if (frames[index]->natoms != *atomNumber)
-        {
-            GMX_THROW(gmx::InconsistentInputError(
-                    gmx::formatString("Number of atoms in frame %d (%d) doesn't match the atom "
-                                      "number in the topology %ld",
-                                      index,
-                                      frames[index]->natoms,
-                                      *atomNumber)));
         }
     }
     return frames;
@@ -145,6 +131,27 @@ void cleanupAllTrajectoryFiles(gmx::ArrayRef<t_trxstatus*> fileStatus, gmx::Arra
     for (auto& file : fileStatus)
     {
         close_trx(file);
+    }
+}
+
+//! Check that frame coordinate numbers match.
+void checkFrameCoordinateConsistency(gmx::ArrayRef<t_trxframe*> frames, std::optional<int64_t> atomNumber)
+{
+    for (auto& frame : frames)
+    {
+        if (!atomNumber.has_value())
+        {
+            atomNumber = frame->natoms;
+        }
+
+        if (frame->natoms != *atomNumber)
+        {
+            GMX_THROW(gmx::InconsistentInputError(
+                    gmx::formatString("Number of atoms in frame %d doesn't match the atom "
+                                      "number in the topology %ld",
+                                      frame->natoms,
+                                      *atomNumber)));
+        }
     }
 }
 
@@ -382,7 +389,6 @@ void Demux::optionsFinished()
         {
             GMX_THROW(InvalidInputError("Start time can't be less than 0"));
         }
-        setTimeValue(TimeControl::Begin, startTime_);
     }
     if (endTimeIsSet_)
     {
@@ -390,7 +396,6 @@ void Demux::optionsFinished()
         {
             GMX_THROW(InvalidInputError("End time needs to be larger than start time"));
         }
-        setTimeValue(TimeControl::End, endTime_);
     }
 }
 
@@ -424,11 +429,9 @@ int Demux::run()
 
     output_env_init(&oenv_, getProgramContext(), timeUnit_, FALSE, XvgFormat::None, 0);
     fileStatusStorage_.resize(numberOfFiles, nullptr);
-    frameStorage_ = initializeAllTrajectoryFiles(
-            trajectoryFileNames_,
-            fileStatusStorage_,
-            oenv_,
-            haveInputTpr_ ? std::optional(topology.mtop()->natoms) : std::nullopt);
+    frameStorage_ = initializeAllTrajectoryFiles(trajectoryFileNames_, fileStatusStorage_, oenv_);
+    checkFrameCoordinateConsistency(
+            frameStorage_, haveInputTpr_ ? std::optional(topology.mtop()->natoms) : std::nullopt);
 
     // The demux table that has been read in starts after startTime and ends before endTime, so
     // any row we read from it starts indexing from 0 at this point.
