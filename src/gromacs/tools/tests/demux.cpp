@@ -49,6 +49,7 @@
 
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/exceptions.h"
+#include "gromacs/utility/path.h"
 #include "gromacs/utility/stringutil.h"
 #include "gromacs/utility/textwriter.h"
 
@@ -72,12 +73,14 @@ public:
     //! Run test case.
     static void runTest(CommandLine* cmdline);
     //! Prepare command line
-    CommandLine createCmdline(const DemuxInputParams& params, bool useFileList);
+    CommandLine createCmdline(const DemuxTestParams& params);
     //! Access file manager.
     TestFileManager* manager() { return &manager_; }
 
 private:
     TestFileManager manager_;
+    //! Storage for file names so they get cleaned up.
+    std::vector<std::string> outputFileNames;
 };
 
 namespace
@@ -101,22 +104,33 @@ void DemuxTest::runTest(CommandLine* cmdline)
 {
     EXPECT_EQ(0, gmx::test::CommandLineTestHelper::runModuleFactory(&gmx::DemuxInfo::create, cmdline));
 }
-CommandLine DemuxTest::createCmdline(const DemuxInputParams& params, bool useFileList)
+CommandLine DemuxTest::createCmdline(const DemuxTestParams& params)
 {
     const char* const command[] = { "demux" };
     CommandLine       cmdline(command);
-    cmdline.addOption("-input", manager()->getInputFilePath(std::get<0>(params)));
+    const auto&       inputParams = std::get<0>(params);
+    const auto&       outputName  = std::get<1>(params);
+    const bool        useFileList = std::get<2>(params);
+    cmdline.addOption("-input", manager()->getInputFilePath(std::get<0>(inputParams)));
     if (useFileList)
     {
-        cmdline.addOption("-filelist", writeTestInputFile(std::get<1>(params), manager()));
+        cmdline.addOption("-filelist", writeTestInputFile(std::get<1>(inputParams), manager()));
     }
     else
     {
         cmdline.append("-f");
-        for (const auto& name : std::get<1>(params))
+        for (const auto& name : std::get<1>(inputParams))
         {
             cmdline.append(manager()->getInputFilePath(name));
         }
+    }
+    cmdline.addOption("-o", manager()->getTemporaryFilePath(outputName));
+    // make list of output files to be cleaned up.
+    for (int i = 0; i < gmx::ssize(std::get<1>(inputParams)); ++i)
+    {
+        outputFileNames.emplace_back(manager()->getTemporaryFilePath(
+                gmx::Path::concatenateBeforeExtension(outputName, formatString("_%d", i))));
+        printf("%s\n", outputFileNames.back().c_str());
     }
     return cmdline;
 }
@@ -147,7 +161,7 @@ TEST_F(DemuxTest, RejectsBothCmdlineAndListInputTogether)
 TEST_F(DemuxTest, RejectsMismatchedTrajectoryFiles)
 {
     DemuxInputParams params  = { "demux1.xvg", { "demux1_1.pdb", "demux1_3.pdb" } };
-    auto             cmdline = createCmdline(params, false);
+    auto             cmdline = createCmdline({ params, "test.trr", false });
     EXPECT_THROW(gmx::test::CommandLineTestHelper::runModuleFactory(&gmx::DemuxInfo::create, &cmdline),
                  gmx::InconsistentInputError);
 }
@@ -155,7 +169,7 @@ TEST_F(DemuxTest, RejectsMismatchedTrajectoryFiles)
 TEST_F(DemuxTest, RejectsMismatchedTrajectoryTimeValues)
 {
     DemuxInputParams params  = { "demux1.xvg", { "demux1_1.pdb", "demux2_1.pdb" } };
-    auto             cmdline = createCmdline(params, false);
+    auto             cmdline = createCmdline({ params, "test.trr", false });
     EXPECT_THROW(gmx::test::CommandLineTestHelper::runModuleFactory(&gmx::DemuxInfo::create, &cmdline),
                  gmx::InconsistentInputError);
 }
@@ -163,7 +177,7 @@ TEST_F(DemuxTest, RejectsMismatchedTrajectoryTimeValues)
 TEST_F(DemuxTest, RejectsMismatchedNumberOfFilesAndDemuxValues)
 {
     DemuxInputParams params  = { "demux2.xvg", { "demux1_1.pdb", "demux1_2.pdb" } };
-    auto             cmdline = createCmdline(params, false);
+    auto             cmdline = createCmdline({ params, "test.trr", false });
     EXPECT_THROW(gmx::test::CommandLineTestHelper::runModuleFactory(&gmx::DemuxInfo::create, &cmdline),
                  gmx::InconsistentInputError);
 }
@@ -171,24 +185,38 @@ TEST_F(DemuxTest, RejectsMismatchedNumberOfFilesAndDemuxValues)
 TEST_F(DemuxTest, RejectsMismatchedTrajectoryAndDemuxTimeValues)
 {
     DemuxInputParams params  = { "demux1.xvg", { "demux2_1.pdb", "demux2_2.pdb" } };
-    auto             cmdline = createCmdline(params, false);
+    auto             cmdline = createCmdline({ params, "test.trr", false });
     EXPECT_THROW(gmx::test::CommandLineTestHelper::runModuleFactory(&gmx::DemuxInfo::create, &cmdline),
                  gmx::InconsistentInputError);
+}
+
+TEST_F(DemuxTest, RejectsMismatchedNumberOfFramesAndValuesInDemuxingTable)
+{
+    DemuxInputParams params  = { "demux3.xvg", { "demux1_1.pdb", "demux1_2.pdb" } };
+    auto             cmdline = createCmdline({ params, "test.trr", false });
+    EXPECT_THROW(gmx::test::CommandLineTestHelper::runModuleFactory(&gmx::DemuxInfo::create, &cmdline),
+                 gmx::InconsistentInputError);
+}
+
+TEST_F(DemuxTest, RejectsDemuxTableEntryOutOfRange)
+{
+    DemuxInputParams params  = { "demux4.xvg", { "demux1_1.pdb", "demux1_2.pdb" } };
+    auto             cmdline = createCmdline({ params, "test.trr", false });
+    EXPECT_THROW(gmx::test::CommandLineTestHelper::runModuleFactory(&gmx::DemuxInfo::create, &cmdline),
+                 gmx::InvalidInputError);
 }
 
 TEST_P(DemuxTest, WorksForWholeFile)
 {
     auto params  = GetParam();
-    auto cmdline = createCmdline(std::get<0>(params), std::get<2>(params));
-    cmdline.addOption("-o", std::get<1>(params));
+    auto cmdline = createCmdline(params);
     runTest(&cmdline);
 }
 
 TEST_P(DemuxTest, WorksWithStartTime)
 {
     auto params  = GetParam();
-    auto cmdline = createCmdline(std::get<0>(params), std::get<2>(params));
-    cmdline.addOption("-o", std::get<1>(params));
+    auto cmdline = createCmdline(params);
     cmdline.addOption("-b", "1.5");
     runTest(&cmdline);
 }
@@ -196,8 +224,7 @@ TEST_P(DemuxTest, WorksWithStartTime)
 TEST_P(DemuxTest, WorksWithEndTime)
 {
     auto params  = GetParam();
-    auto cmdline = createCmdline(std::get<0>(params), std::get<2>(params));
-    cmdline.addOption("-o", std::get<1>(params));
+    auto cmdline = createCmdline(params);
     cmdline.addOption("-e", "3.5");
     runTest(&cmdline);
 }
@@ -205,8 +232,7 @@ TEST_P(DemuxTest, WorksWithEndTime)
 TEST_P(DemuxTest, WorksWithStartAndEndTime)
 {
     auto params  = GetParam();
-    auto cmdline = createCmdline(std::get<0>(params), std::get<2>(params));
-    cmdline.addOption("-o", std::get<1>(params));
+    auto cmdline = createCmdline(params);
     cmdline.addOption("-b", "1.5");
     cmdline.addOption("-e", "3.5");
     runTest(&cmdline);

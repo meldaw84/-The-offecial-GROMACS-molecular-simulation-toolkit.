@@ -62,6 +62,8 @@
 #include "gromacs/fileio/timecontrol.h"
 #include "gromacs/fileio/trxio.h"
 #include "gromacs/fileio/xvgr.h"
+#include "gromacs/mdspan/extents.h"
+#include "gromacs/mdspan/mdspan.h"
 #include "gromacs/options/basicoptions.h"
 #include "gromacs/options/filenameoption.h"
 #include "gromacs/options/ioptionscontainer.h"
@@ -135,11 +137,14 @@ bool readNextFrameOfAllFiles(gmx_output_env_t*           oenv,
 //! Clean up all files together.
 void cleanupAllTrajectoryFiles(gmx::ArrayRef<t_trxstatus*> fileStatus, gmx::ArrayRef<t_trxframe*> frames)
 {
-    for (int index = 0; index < gmx::ssize(frames); ++index)
+    for (auto& frame : frames)
     {
-        done_frame(frames[index]);
-        sfree(frames[index]);
-        close_trx(fileStatus[index]);
+        done_frame(frame);
+        sfree(frame);
+    }
+    for (auto& file : fileStatus)
+    {
+        close_trx(file);
     }
 }
 
@@ -176,6 +181,28 @@ void checkTimeConsistency(const real frameTime, const real demuxTime)
                                   "time read in from the demuxing file (%3.8f)",
                                   frameTime,
                                   demuxTime)));
+    }
+}
+
+//! Check that the size of the demuxing table and entries in it are in range of the number of files.
+void checkOutputInRange(gmx::basic_mdspan<const double, gmx::extents<gmx::dynamic_extent>> viewOnDemuxAtEntry,
+                        int numberOfFiles)
+{
+    if (viewOnDemuxAtEntry.extent(0) - 1 != numberOfFiles)
+    {
+        GMX_THROW(InconsistentInputError(
+                "Number of files doesn't match number of columns in demuxing file"));
+    }
+    for (int i = 0; i < numberOfFiles; ++i)
+    {
+        int outputIndex = static_cast<int>(viewOnDemuxAtEntry[i + 1]);
+        if (outputIndex >= numberOfFiles)
+        {
+            GMX_THROW(InvalidInputError(gmx::formatString(
+                    "Entry in demuxing table %d is out of range of number of files %d\n",
+                    outputIndex,
+                    numberOfFiles)));
+        }
     }
 }
 
@@ -236,10 +263,15 @@ private:
     OutputRequirementOptionDirector requirementsBuilder_;
     //! Name for output file.
     std::string outputNamePrefix_;
+    //! Storage for file status objects.
+    std::vector<t_trxstatus*> fileStatusStorage_;
+    //! Storage for actual frames.
+    std::vector<t_trxframe*> frameStorage_;
 };
 
 Demux::~Demux()
 {
+    cleanupAllTrajectoryFiles(fileStatusStorage_, frameStorage_);
     if (oenv_ != nullptr)
     {
         output_env_done(oenv_);
@@ -356,7 +388,7 @@ void Demux::optionsFinished()
     {
         if (startTimeIsSet_ ? endTime_ < startTime_ : endTime_ < 0)
         {
-            GMX_THROW(InvalidInputError("End time need to be larger than start time"));
+            GMX_THROW(InvalidInputError("End time needs to be larger than start time"));
         }
         setTimeValue(TimeControl::End, endTime_);
     }
@@ -391,10 +423,10 @@ int Demux::run()
     }
 
     output_env_init(&oenv_, getProgramContext(), timeUnit_, FALSE, XvgFormat::None, 0);
-    std::vector<t_trxstatus*> frameStatus(numberOfFiles, nullptr);
-    std::vector<t_trxframe*>  frames = initializeAllTrajectoryFiles(
+    fileStatusStorage_.resize(numberOfFiles, nullptr);
+    frameStorage_ = initializeAllTrajectoryFiles(
             trajectoryFileNames_,
-            frameStatus,
+            fileStatusStorage_,
             oenv_,
             haveInputTpr_ ? std::optional(topology.mtop()->natoms) : std::nullopt);
 
@@ -406,15 +438,17 @@ int Demux::run()
     {
         // We always check all frames, as we need to read them in anyway, even if we are not
         // actually going to perform the demuxing for the time if it is not in range
-        const real frameTime            = checkFrameConsistency(frames);
-        const bool timeGreaterStartTime = startTime == std::nullopt || frameTime > startTime.value();
-        const bool timeLessThanEndTime  = endTime == std::nullopt || frameTime < endTime.value();
+        const real frameTime = checkFrameConsistency(frameStorage_);
+        const bool timeGreaterStartTime =
+                !startTime.has_value() || (startTime.has_value() && frameTime > startTime.value());
+        const bool timeLessThanEndTime =
+                !endTime.has_value() || (endTime.has_value() && frameTime < endTime.value());
         // only try to do demuxing when we have the correct time.
         if (timeGreaterStartTime && timeLessThanEndTime)
         {
             // The maximum number of rows in the file always needs to be larger or equal
             // to the number of frames to analyse
-            if (frameIndex > demuxInformation.extent(0))
+            if (frameIndex >= demuxInformation.extent(0))
             {
                 GMX_THROW(InconsistentInputError(
                         gmx::formatString("Number of frames for analysis (%d) is larger than the "
@@ -422,22 +456,17 @@ int Demux::run()
                                           frameIndex,
                                           demuxInformation.extent(0))));
             }
-            if (numberOfFiles != viewOnDemux[frameIndex].extent(0) - 1)
-            {
-                GMX_THROW(InconsistentInputError(
-                        "Number of files doesn't match number of columns in demuxing file"));
-            }
             // First column in demux table is always the time
             checkTimeConsistency(frameTime, viewOnDemux[frameIndex][0]);
+            checkOutputInRange(viewOnDemux[frameIndex], numberOfFiles);
             for (int fileIndex = 0; fileIndex < numberOfFiles; ++fileIndex)
             {
-                writers[static_cast<int>(viewOnDemux[frameIndex][fileIndex + 1])]->prepareAndWriteFrame(
-                        frameIndex, *frames[fileIndex]);
+                int outputIndex = static_cast<int>(viewOnDemux[frameIndex][fileIndex + 1]);
+                writers[outputIndex]->prepareAndWriteFrame(frameIndex, *frameStorage_[fileIndex]);
             }
             ++frameIndex;
         }
-    } while (readNextFrameOfAllFiles(oenv_, frameStatus, frames));
-    cleanupAllTrajectoryFiles(frameStatus, frames);
+    } while (readNextFrameOfAllFiles(oenv_, fileStatusStorage_, frameStorage_));
     return 0;
 }
 
