@@ -122,7 +122,7 @@ void sharingSamplesTest(const void gmx_unused* dummy)
 {
     int numRanks;
     MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
-    GMX_RELEASE_ASSERT(numRanks == c_numRanks, "Expect c_numRanks thread-MPI ranks");
+    ASSERT_EQ(numRanks, c_numRanks);
 
     int myRank;
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
@@ -232,11 +232,9 @@ TEST(BiasSharingTest, SharingWorks)
 
 TEST(BiasSharingTest, SharingSamplesWorks)
 {
-    if (tMPI_Init_fn(FALSE, c_numRanks, TMPI_AFFINITY_NONE, sharingSamplesTest, static_cast<const void*>(this))
-        != TMPI_SUCCESS)
-    {
-        GMX_THROW(gmx::InternalError("Failed sharing samples"));
-    }
+    int result = tMPI_Init_fn(
+            FALSE, c_numRanks, TMPI_AFFINITY_NONE, sharingSamplesTest, static_cast<const void*>(this));
+    ASSERT_EQ(result, TMPI_SUCCESS);
 }
 
 #endif
