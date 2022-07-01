@@ -51,6 +51,7 @@
 #include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/smalloc.h"
@@ -349,7 +350,7 @@ static void dielectric(FILE*                   fmj,
                        real                    efit,
                        real                    bvit,
                        real                    evit,
-                       t_trxstatus*            status,
+                       TrajectoryIOStatus*     status,
                        int                     isize,
                        int                     nmols,
                        int                     nshift,
@@ -616,7 +617,7 @@ static void dielectric(FILE*                   fmj,
 
         nfr++;
 
-    } while (read_next_frame(oenv, status, &fr));
+    } while (status->readNextFrame(oenv, &fr));
 
     gmx_rmpbc_done(gpbc);
 
@@ -854,13 +855,11 @@ int gmx_current(int argc, char* argv[])
     int*              index0;
     int*              indexm = nullptr;
     int               isize;
-    t_trxstatus*      status;
-    int               flags = 0;
+    size_t            flags = 0;
     gmx_bool          bACF;
     gmx_bool          bINT;
     PbcType           pbcType = PbcType::Unset;
     int               nmols;
-    int               i;
     real*             qmol;
     FILE*             outf   = nullptr;
     FILE*             mcor   = nullptr;
@@ -951,10 +950,13 @@ int gmx_current(int argc, char* argv[])
 
     get_index(&(top.atoms), indexfn, 1, &isize, &index0, grpname);
 
-    flags = flags | TRX_READ_X | TRX_READ_V;
+    flags = flags | trxReadCoordinates | trxReadVelocities;
 
-    read_first_frame(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &fr, flags);
-
+    auto status = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, flags);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read input trajectory"));
+    }
     snew(mass2, top.atoms.nr);
     snew(qmol, top.atoms.nr);
 
@@ -963,7 +965,7 @@ int gmx_current(int argc, char* argv[])
 
     snew(indexm, isize);
 
-    for (i = 0; i < isize; i++)
+    for (int i = 0; i < isize; i++)
     {
         indexm[i] = index0[i];
     }
@@ -1042,7 +1044,7 @@ int gmx_current(int argc, char* argv[])
                efit,
                bvit,
                evit,
-               status,
+               &status.value(),
                isize,
                nmols,
                nshift,

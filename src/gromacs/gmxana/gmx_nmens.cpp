@@ -49,6 +49,7 @@
 #include "gromacs/random/uniformintdistribution.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/fatalerror.h"
@@ -78,7 +79,6 @@ int gmx_nmens(int argc, char* argv[])
     };
 #define NPA asize(pa)
 
-    t_trxstatus*        out;
     t_topology          top;
     PbcType             pbcType;
     t_atoms*            atoms;
@@ -214,7 +214,7 @@ int gmx_nmens(int argc, char* argv[])
 
     snew(xout1, natoms);
     snew(xout2, atoms->nr);
-    out = open_trx(ftp2fn(efTRO, NFILE, fnm), "w");
+    auto output = openTrajectoryFile(ftp2fn(efTRO, NFILE, fnm), "w");
 
     for (s = 0; s < nstruct; s++)
     {
@@ -255,12 +255,12 @@ int gmx_nmens(int argc, char* argv[])
             copy_rvec(xout1[i], xout2[index[i]]);
         }
         t = s + 1;
-        write_trx(out, natoms, index, atoms, 0, t, box, xout2, nullptr, nullptr);
+        output.writeTrajectory(
+                gmx::arrayRefFromArray(index, natoms), atoms, 0, t, box, xout2, nullptr, nullptr);
         fprintf(stderr, "\rGenerated %d structures", s + 1);
         fflush(stderr);
     }
     fprintf(stderr, "\n");
-    close_trx(out);
 
     return 0;
 }

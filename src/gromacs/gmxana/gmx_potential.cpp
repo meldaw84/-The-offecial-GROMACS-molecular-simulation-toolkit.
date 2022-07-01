@@ -51,9 +51,11 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/smalloc.h"
 
@@ -159,32 +161,29 @@ static void calc_potential(const char*             fn,
                            int                     ce,
                            const gmx_output_env_t* oenv)
 {
-    rvec*        x0;     /* coordinates without pbc */
-    matrix       box;    /* box (3x3) */
-    int          natoms; /* nr. atoms in trj */
-    t_trxstatus* status;
-    int          i, n;
-    int          nr_frames = 0;
-    int          slice;
-    double       qsum, nn;
-    real         t;
-    double       z;
-    rvec         xcm;
-    real         boxSize;
-    real         sliceWidth;
-    double       averageBoxSize;
-    gmx_rmpbc_t  gpbc = nullptr;
+    int         i, n;
+    int         nr_frames = 0;
+    int         slice;
+    double      qsum, nn;
+    double      z;
+    rvec        xcm;
+    real        boxSize;
+    real        sliceWidth;
+    double      averageBoxSize;
+    gmx_rmpbc_t gpbc = nullptr;
 
-    if ((natoms = read_first_x(oenv, &status, fn, &t, &x0, box)) == 0)
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, fn, &fr, trxNeedCoordinates);
+    if (!status.has_value())
     {
-        gmx_fatal(FARGS, "Could not read coordinates from statusfile\n");
+        GMX_THROW(gmx::InvalidInputError("Could not read coordinates from statusfile"));
     }
 
     averageBoxSize = 0;
 
     if (!*nslices)
     {
-        *nslices = static_cast<int>(box[axis][axis] * 10.0); /* default value */
+        *nslices = static_cast<int>(fr.box[axis][axis] * 10.0); /* default value */
         fprintf(stderr, "\nDividing the box in %d slices\n", *nslices);
     }
 
@@ -200,25 +199,25 @@ static void calc_potential(const char*             fn,
     }
 
 
-    gpbc = gmx_rmpbc_init(&top->idef, pbcType, natoms);
+    gpbc = gmx_rmpbc_init(&top->idef, pbcType, fr.natoms);
 
     /*********** Start processing trajectory ***********/
     do
     {
-        gmx_rmpbc(gpbc, natoms, box, x0);
+        gmx_rmpbc(gpbc, fr.natoms, fr.box, fr.x);
 
         // Translate atoms so the com of the center-group is in the
         // box geometrical center.
         if (bCenter)
         {
-            center_coords(&top->atoms, index_center, ncenter, box, x0);
+            center_coords(&top->atoms, index_center, ncenter, fr.box, fr.x);
         }
 
         /* calculate position of center of mass based on group 1 */
-        calc_xcm(x0, gnx[0], index[0], top->atoms.atom, xcm, FALSE);
+        calc_xcm(fr.x, gnx[0], index[0], top->atoms.atom, xcm, FALSE);
         svmul(-1, xcm, xcm);
 
-        boxSize    = box[axis][axis];
+        boxSize    = fr.box[axis][axis];
         sliceWidth = boxSize / *nslices;
         averageBoxSize += boxSize;
 
@@ -226,21 +225,21 @@ static void calc_potential(const char*             fn,
         {
             /* Check whether we actually have all positions of the requested index
              * group in the trajectory file */
-            if (gnx[n] > natoms)
+            if (gnx[n] > fr.natoms)
             {
                 gmx_fatal(FARGS,
                           "You selected a group with %d atoms, but only %d atoms\n"
                           "were found in the trajectory.\n",
                           gnx[n],
-                          natoms);
+                          fr.natoms);
             }
             for (i = 0; i < gnx[n]; i++) /* loop over all atoms in index file */
             {
                 if (bSpherical)
                 {
-                    rvec_add(x0[index[n][i]], xcm, x0[index[n][i]]);
+                    rvec_add(fr.x[index[n][i]], xcm, fr.x[index[n][i]]);
                     /* only distance from origin counts, not sign */
-                    slice = static_cast<int>(norm(x0[index[n][i]]) / sliceWidth);
+                    slice = static_cast<int>(norm(fr.x[index[n][i]]) / sliceWidth);
 
                     /* this is a nice check for spherical groups but not for
                        all water in a cubic box since a lot will fall outside
@@ -254,7 +253,7 @@ static void calc_potential(const char*             fn,
                 }
                 else
                 {
-                    z = x0[index[n][i]][axis];
+                    z = fr.x[index[n][i]][axis];
                     z = z + fudge_z;
                     if (z < 0)
                     {
@@ -287,12 +286,11 @@ static void calc_potential(const char*             fn,
             }
         }
         nr_frames++;
-    } while (read_next_x(oenv, status, &t, x0, box));
+    } while (status->readNextFrame(oenv, &fr));
 
     gmx_rmpbc_done(gpbc);
 
     /*********** done with status file **********/
-    close_trx(status);
 
     /* slCharge now contains the total charge per slice, summed over all
        frames. Now divide by nr_frames and integrate twice
@@ -334,7 +332,7 @@ static void calc_potential(const char*             fn,
             }
             else
             {
-                double sliceVolume = (box[XX][XX] * box[YY][YY] * box[ZZ][ZZ]) / (*nslices);
+                double sliceVolume = (fr.box[XX][XX] * fr.box[YY][YY] * fr.box[ZZ][ZZ]) / (*nslices);
                 (*slCharge)[n][i] /= (nr_frames * sliceVolume);
             }
         }
@@ -420,8 +418,6 @@ static void calc_potential(const char*             fn,
             }
         }
     }
-
-    sfree(x0); /* free memory used by coordinate array */
 }
 
 static void plot_potential(double*                          potential[],

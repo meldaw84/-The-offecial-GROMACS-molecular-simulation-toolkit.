@@ -48,7 +48,9 @@
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
 #include "gromacs/trajectory/trajectoryframe.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
@@ -126,17 +128,14 @@ int gmx_trjorder(int argc, char* argv[])
         { "-z", FALSE, etBOOL, { &bZ }, "Order molecules on z-coordinate" }
     };
     FILE*             fp;
-    t_trxstatus*      out;
-    t_trxstatus*      status;
     gmx_bool          bNShell, bPDBout;
     t_topology        top;
     PbcType           pbcType;
-    rvec *            x, *xsol, xcom, dx;
-    matrix            box;
+    rvec *            xsol, xcom, dx;
     t_pbc             pbc;
     gmx_rmpbc_t       gpbc;
-    real              t, totmass, mass, rcut2 = 0, n2;
-    int               natoms, nwat, ncut;
+    real              totmass, mass, rcut2 = 0, n2;
+    int               nwat, ncut;
     char**            grpname;
     int               i, j, d, *isize, isize_ref      = 0, isize_sol;
     int               sa, sr, *swi, **index, *ind_ref = nullptr, *ind_sol;
@@ -154,8 +153,10 @@ int gmx_trjorder(int argc, char* argv[])
         return 0;
     }
 
-    read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, &x, nullptr, box, TRUE);
-    sfree(x);
+    rvec*  xTop;
+    matrix boxTop;
+    read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, &xTop, nullptr, boxTop, TRUE);
+    sfree(xTop);
 
     /* get index groups */
     printf("Select %sa group of molecules to be ordered:\n", bZ ? "" : "a group of reference atoms and ");
@@ -177,8 +178,13 @@ int gmx_trjorder(int argc, char* argv[])
         ind_sol   = index[0];
     }
 
-    natoms = read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
-    if (natoms > top.atoms.nr)
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, trxNeedCoordinates);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
+    if (fr.natoms > top.atoms.nr)
     {
         gmx_fatal(FARGS, "Number of atoms in the run input file is larger than in the trajectory");
     }
@@ -186,7 +192,7 @@ int gmx_trjorder(int argc, char* argv[])
     {
         for (j = 0; (j < isize[i]); j++)
         {
-            if (index[i][j] > natoms)
+            if (index[i][j] > fr.natoms)
             {
                 gmx_fatal(FARGS,
                           "An atom number in group %s is larger than the number of atoms in the "
@@ -229,13 +235,13 @@ int gmx_trjorder(int argc, char* argv[])
     ref_a--;
     snew(xsol, nwat);
     snew(order, nwat);
-    snew(swi, natoms);
-    for (i = 0; (i < natoms); i++)
+    snew(swi, fr.natoms);
+    for (i = 0; (i < fr.natoms); i++)
     {
         swi[i] = i;
     }
 
-    out     = nullptr;
+    std::optional<TrajectoryIOStatus> output;
     fp      = nullptr;
     bNShell = ((opt2bSet("-nshell", NFILE, fnm)) || (opt2parg_bSet("-r", asize(pa), pa)));
     bPDBout = FALSE;
@@ -253,13 +259,13 @@ int gmx_trjorder(int argc, char* argv[])
             fprintf(stderr, "Creating pdbinfo records\n");
             snew(top.atoms.pdbinfo, top.atoms.nr);
         }
-        out = open_trx(opt2fn("-o", NFILE, fnm), "w");
+        output = openTrajectoryFile(opt2fn("-o", NFILE, fnm), "w");
     }
-    gpbc = gmx_rmpbc_init(&top.idef, pbcType, natoms);
+    gpbc = gmx_rmpbc_init(&top.idef, pbcType, fr.natoms);
     do
     {
-        gmx_rmpbc(gpbc, natoms, box, x);
-        set_pbc(&pbc, pbcType, box);
+        gmx_rmpbc(gpbc, fr.natoms, fr.box, fr.x);
+        set_pbc(&pbc, pbcType, fr.box);
 
         if (ref_a == -1)
         {
@@ -275,7 +281,7 @@ int gmx_trjorder(int argc, char* argv[])
                     totmass += mass;
                     for (d = 0; d < DIM; d++)
                     {
-                        xsol[i][d] += mass * x[sa][d];
+                        xsol[i][d] += mass * fr.x[sa][d];
                     }
                 }
                 svmul(1.0 / totmass, xsol[i], xsol[i]);
@@ -286,7 +292,7 @@ int gmx_trjorder(int argc, char* argv[])
             /* Copy the reference atom of all solvent molecules */
             for (i = 0; i < nwat; i++)
             {
-                copy_rvec(x[ind_sol[i * na + ref_a]], xsol[i]);
+                copy_rvec(fr.x[ind_sol[i * na + ref_a]], xsol[i]);
             }
         }
 
@@ -309,7 +315,7 @@ int gmx_trjorder(int argc, char* argv[])
                 totmass += mass;
                 for (j = 0; j < DIM; j++)
                 {
-                    xcom[j] += mass * x[ind_ref[i]][j];
+                    xcom[j] += mass * fr.x[ind_ref[i]][j];
                 }
             }
             svmul(1 / totmass, xcom, xcom);
@@ -327,7 +333,7 @@ int gmx_trjorder(int argc, char* argv[])
             for (i = 0; (i < nwat); i++)
             {
                 sa = ind_sol[na * i];
-                pbc_dx(&pbc, x[ind_ref[0]], xsol[i], dx);
+                pbc_dx(&pbc, fr.x[ind_ref[0]], xsol[i], dx);
                 order[i].i  = sa;
                 order[i].d2 = norm2(dx);
             }
@@ -336,7 +342,7 @@ int gmx_trjorder(int argc, char* argv[])
                 sr = ind_ref[j];
                 for (i = 0; (i < nwat); i++)
                 {
-                    pbc_dx(&pbc, x[sr], xsol[i], dx);
+                    pbc_dx(&pbc, fr.x[sr], xsol[i], dx);
                     n2 = norm2(dx);
                     if (n2 < order[i].d2)
                     {
@@ -356,9 +362,9 @@ int gmx_trjorder(int argc, char* argv[])
                     ncut++;
                 }
             }
-            fprintf(fp, "%10.3f  %8d\n", t, ncut);
+            fprintf(fp, "%10.3f  %8d\n", fr.time, ncut);
         }
-        if (out)
+        if (output.has_value())
         {
             qsort(order, nwat, sizeof(*order), ocomp);
             for (i = 0; (i < nwat); i++)
@@ -380,14 +386,10 @@ int gmx_trjorder(int argc, char* argv[])
                     }
                 }
             }
-            write_trx(out, natoms, swi, &top.atoms, 0, t, box, x, nullptr, nullptr);
+            output->writeTrajectory(
+                    gmx::arrayRefFromArray(swi, fr.natoms), &top.atoms, 0, fr.time, fr.box, fr.x, nullptr, nullptr);
         }
-    } while (read_next_x(oenv, status, &t, x, box));
-    close_trx(status);
-    if (out)
-    {
-        close_trx(out);
-    }
+    } while (status->readNextFrame(oenv, &fr));
     if (fp)
     {
         xvgrclose(fp);

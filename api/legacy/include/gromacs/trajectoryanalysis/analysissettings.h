@@ -161,7 +161,7 @@ public:
      */
     bool hasRmPBC() const;
     //! Returns the currently set frame flags.
-    int frflags() const;
+    size_t frflags() const;
 
     /*! \brief
      * Sets flags.
@@ -228,7 +228,7 @@ public:
      * forces), it can call this function to load additional information
      * from the trajectory.
      */
-    void setFrameFlags(int frflags);
+    void setFrameFlags(size_t frflags);
 
     //! \copydoc ICommandLineOptionsModuleSettings::setHelpText()
     void setHelpText(const ArrayRef<const char* const>& help);

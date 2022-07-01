@@ -57,6 +57,7 @@
 #include "gromacs/topology/topology.h"
 #include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/pleasecite.h"
@@ -274,7 +275,6 @@ int gmx_dos(int argc, char* argv[])
     matrix            box;
     int               gnx;
     real              t0, t1;
-    t_trxstatus*      status;
     int               nV, nframes, n_alloc, i, j, fftcode, Nmol, Natom;
     double            rho, dt, Vsum, V, tmass, dostot, dos2;
     real **           c1, **dos, mi, beta, bfac, *nu, *tt, stddev, c1j;
@@ -369,7 +369,11 @@ int gmx_dos(int argc, char* argv[])
         c1[i] = nullptr;
     }
 
-    read_first_frame(oenv, &status, ftp2fn(efTRN, NFILE, fnm), &fr, TRX_NEED_V);
+    auto status = read_first_frame(oenv, ftp2fn(efTRN, NFILE, fnm), &fr, trxNeedVelocities);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read input trajectory"));
+    }
     t0 = fr.time;
 
     n_alloc = 0;
@@ -402,9 +406,7 @@ int gmx_dos(int argc, char* argv[])
         t1 = fr.time;
 
         nframes++;
-    } while (read_next_frame(oenv, status, &fr));
-
-    close_trx(status);
+    } while (status->readNextFrame(oenv, &fr));
 
     if (nframes < min_frames)
     {

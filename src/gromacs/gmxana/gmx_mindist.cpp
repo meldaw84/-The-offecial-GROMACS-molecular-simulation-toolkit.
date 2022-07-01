@@ -39,6 +39,7 @@
 
 #include <algorithm>
 #include <array>
+#include <optional>
 #include <vector>
 
 #include "gromacs/commandline/pargs.h"
@@ -54,8 +55,11 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/gmxassert.h"
@@ -146,19 +150,16 @@ static void periodic_mindist_plot(const char*             trxfn,
                                   const gmx_output_env_t* oenv)
 {
     FILE*                      out;
-    std::array<std::string, 5> leg = { "min per.", "max int.", "box1", "box2", "box3" };
-    t_trxstatus*               status;
-    real                       t;
-    rvec*                      x;
-    matrix                     box;
-    int                        natoms, ind_min[2] = { 0, 0 }, ind_mini = 0, ind_minj = 0;
+    std::array<std::string, 5> leg        = { "min per.", "max int.", "box1", "box2", "box3" };
+    int                        ind_min[2] = { 0, 0 }, ind_mini = 0, ind_minj = 0;
     real                       rmin, rmax, rmint, tmint;
     gmx_bool                   bFirst;
     gmx_rmpbc_t                gpbc = nullptr;
 
-    natoms = read_first_x(oenv, &status, trxfn, &t, &x, box);
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, trxfn, &fr, trxNeedCoordinates);
 
-    check_index(nullptr, n, index, nullptr, natoms);
+    check_index(nullptr, n, index, nullptr, fr.natoms);
 
     out = xvgropen(outfn,
                    "Minimum distance to periodic image",
@@ -171,12 +172,12 @@ static void periodic_mindist_plot(const char*             trxfn,
     }
     xvgrLegend(out, leg, oenv);
 
-    rmint = box[XX][XX];
+    rmint = fr.box[XX][XX];
     tmint = 0;
 
     if (nullptr != top)
     {
-        gpbc = gmx_rmpbc_init(&top->idef, pbcType, natoms);
+        gpbc = gmx_rmpbc_init(&top->idef, pbcType, fr.natoms);
     }
 
     bFirst = TRUE;
@@ -184,31 +185,31 @@ static void periodic_mindist_plot(const char*             trxfn,
     {
         if (nullptr != top)
         {
-            gmx_rmpbc(gpbc, natoms, box, x);
+            gmx_rmpbc(gpbc, fr.natoms, fr.box, fr.x);
         }
 
-        periodic_dist(pbcType, box, x, n, index, &rmin, &rmax, ind_min);
+        periodic_dist(pbcType, fr.box, fr.x, n, index, &rmin, &rmax, ind_min);
         if (rmin < rmint)
         {
             rmint    = rmin;
-            tmint    = t;
+            tmint    = fr.time;
             ind_mini = ind_min[0];
             ind_minj = ind_min[1];
         }
-        if (bSplit && !bFirst && std::abs(t / output_env_get_time_factor(oenv)) < 1e-5)
+        if (bSplit && !bFirst && std::abs(fr.time / output_env_get_time_factor(oenv)) < 1e-5)
         {
             fprintf(out, "%s\n", output_env_get_print_xvgr_codes(oenv) ? "&" : "");
         }
         fprintf(out,
                 "\t%g\t%6.3f %6.3f %6.3f %6.3f %6.3f\n",
-                output_env_conv_time(oenv, t),
+                output_env_conv_time(oenv, fr.time),
                 rmin,
                 rmax,
-                norm(box[0]),
-                norm(box[1]),
-                norm(box[2]));
+                norm(fr.box[0]),
+                norm(fr.box[1]),
+                norm(fr.box[2]));
         bFirst = FALSE;
-    } while (read_next_x(oenv, status, &t, x, box));
+    } while (status->readNextFrame(oenv, &fr));
 
     if (nullptr != top)
     {
@@ -375,25 +376,23 @@ static void dist_plot(const char*             fn,
                       const gmx_output_env_t* oenv)
 {
     FILE *                   atm, *dist, *num;
-    t_trxstatus*             trxout;
     char                     buf[256];
     std::vector<std::string> leg;
-    real                     t, dmin, dmax, **mindres = nullptr, **maxdres = nullptr;
+    real                     dmin, dmax, **mindres = nullptr, **maxdres = nullptr;
     int                      nmin, nmax;
-    t_trxstatus*             status;
     int                      i = -1, j, k;
     int                      min2, max2, min1r, min2r, max1r, max2r;
     int                      min1 = 0;
     int                      max1 = 0;
     int                      oindex[2];
-    rvec*                    x0;
-    matrix                   box;
     gmx_bool                 bFirst;
     FILE*                    respertime = nullptr;
 
-    if (read_first_x(oenv, &status, fn, &t, &x0, box) == 0)
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, fn, &fr, trxNeedCoordinates);
+    if (!status.has_value())
     {
-        gmx_fatal(FARGS, "Could not read coordinates from statusfile\n");
+        GMX_THROW(gmx::InvalidInputError("Could not read coordinates from statusfile"));
     }
 
     sprintf(buf, "%simum Distance", bMin ? "Min" : "Max");
@@ -401,7 +400,8 @@ static void dist_plot(const char*             fn,
     sprintf(buf, "Number of Contacts %s %g nm", bMin ? "<" : ">", rcut);
     num = nfile ? xvgropen(nfile, buf, output_env_get_time_label(oenv), "Number", oenv) : nullptr;
     atm = afile ? gmx_ffopen(afile, "w") : nullptr;
-    trxout = xfile ? open_trx(xfile, "w") : nullptr;
+    std::optional<TrajectoryIOStatus> outputFile =
+            xfile ? std::optional(openTrajectoryFile(xfile, "w")) : std::nullopt;
 
     if (bMat)
     {
@@ -482,7 +482,7 @@ static void dist_plot(const char*             fn,
     bFirst = TRUE;
     do
     {
-        if (bSplit && !bFirst && std::abs(t / output_env_get_time_factor(oenv)) < 1e-5)
+        if (bSplit && !bFirst && std::abs(fr.time / output_env_get_time_factor(oenv)) < 1e-5)
         {
             fprintf(dist, "%s\n", output_env_get_print_xvgr_codes(oenv) ? "&" : "");
             if (num)
@@ -494,10 +494,10 @@ static void dist_plot(const char*             fn,
                 fprintf(atm, "%s\n", output_env_get_print_xvgr_codes(oenv) ? "&" : "");
             }
         }
-        fprintf(dist, "%12e", output_env_conv_time(oenv, t));
+        fprintf(dist, "%12e", output_env_conv_time(oenv, fr.time));
         if (num)
         {
-            fprintf(num, "%12e", output_env_conv_time(oenv, t));
+            fprintf(num, "%12e", output_env_conv_time(oenv, fr.time));
         }
 
         if (bMat)
@@ -507,8 +507,8 @@ static void dist_plot(const char*             fn,
                 calc_dist(rcut,
                           bPBC,
                           pbcType,
-                          box,
-                          x0,
+                          fr.box,
+                          fr.x,
                           gnx[0],
                           gnx[0],
                           index[0],
@@ -537,8 +537,8 @@ static void dist_plot(const char*             fn,
                         calc_dist(rcut,
                                   bPBC,
                                   pbcType,
-                                  box,
-                                  x0,
+                                  fr.box,
+                                  fr.x,
                                   gnx[i],
                                   gnx[k],
                                   index[i],
@@ -569,8 +569,8 @@ static void dist_plot(const char*             fn,
                 calc_dist(rcut,
                           bPBC,
                           pbcType,
-                          box,
-                          x0,
+                          fr.box,
+                          fr.x,
                           gnx[0],
                           gnx[i],
                           index[0],
@@ -596,8 +596,8 @@ static void dist_plot(const char*             fn,
                         calc_dist(rcut,
                                   bPBC,
                                   pbcType,
-                                  box,
-                                  x0,
+                                  fr.box,
+                                  fr.x,
                                   residue[j + 1] - residue[j],
                                   gnx[i],
                                   &(index[0][residue[j]]),
@@ -628,23 +628,24 @@ static void dist_plot(const char*             fn,
             {
                 fprintf(atm,
                         "%12e  %12d  %12d\n",
-                        output_env_conv_time(oenv, t),
+                        output_env_conv_time(oenv, fr.time),
                         1 + (bMin ? min1 : max1),
                         1 + (bMin ? min2 : max2));
             }
         }
 
-        if (trxout)
+        if (outputFile.has_value())
         {
             oindex[0] = bMin ? min1 : max1;
             oindex[1] = bMin ? min2 : max2;
-            write_trx(trxout, 2, oindex, atoms, i, t, box, x0, nullptr, nullptr);
+            outputFile->writeTrajectory(
+                    gmx::arrayRefFromArray(oindex, 2), atoms, i, fr.time, fr.box, fr.x, nullptr, nullptr);
         }
         bFirst = FALSE;
         /*dmin should be minimum distance for residue and group*/
         if (bEachResEachTime)
         {
-            fprintf(respertime, "%12e", t);
+            fprintf(respertime, "%12e", fr.time);
             for (i = 1; i < ng; i++)
             {
                 for (j = 0; j < nres; j++)
@@ -657,9 +658,8 @@ static void dist_plot(const char*             fn,
             }
             fprintf(respertime, "\n");
         }
-    } while (read_next_x(oenv, status, &t, x0, box));
+    } while (status->readNextFrame(oenv, &fr));
 
-    close_trx(status);
     xvgrclose(dist);
     if (num)
     {
@@ -668,10 +668,6 @@ static void dist_plot(const char*             fn,
     if (atm)
     {
         gmx_ffclose(atm);
-    }
-    if (trxout)
-    {
-        close_trx(trxout);
     }
     if (respertime)
     {
@@ -695,11 +691,6 @@ static void dist_plot(const char*             fn,
             fprintf(res, "\n");
         }
         xvgrclose(res);
-    }
-
-    if (x0)
-    {
-        sfree(x0);
     }
 }
 

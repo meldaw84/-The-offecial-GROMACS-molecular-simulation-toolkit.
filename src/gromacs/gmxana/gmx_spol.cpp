@@ -49,8 +49,10 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/smalloc.h"
 
@@ -147,13 +149,10 @@ static void spol_atom2molindex(int* n, int* index, const t_block* mols)
 
 int gmx_spol(int argc, char* argv[])
 {
-    t_topology*  top;
-    t_atom*      atom;
-    t_trxstatus* status;
-    int          nrefat, natoms, nf, ntot;
-    real         t;
-    rvec *       x, xref, trial, dx = { 0 }, dip, dir;
-    matrix       box;
+    t_topology* top;
+    t_atom*     atom;
+    int         nrefat, nf, ntot;
+    rvec        xref, trial, dx = { 0 }, dip, dir;
 
     FILE*       fp;
     int *       isize, nrefgrp;
@@ -217,7 +216,9 @@ int gmx_spol(int argc, char* argv[])
     // TODO: Only pbcType is used, not the full inputrec.
     t_inputrec  irInstance;
     t_inputrec* ir = &irInstance;
-    read_tpx_top(ftp2fn(efTPR, NFILE, fnm), ir, box, &natoms, nullptr, nullptr, top);
+    int         natomsTopology;
+    matrix      boxTop;
+    read_tpx_top(ftp2fn(efTPR, NFILE, fnm), ir, boxTop, &natomsTopology, nullptr, nullptr, top);
 
     /* get index groups */
     printf("Select a group of reference particles and a solvent group:\n");
@@ -241,9 +242,14 @@ int gmx_spol(int argc, char* argv[])
     srefat--;
 
     /* initialize reading trajectory:                         */
-    natoms = read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, trxNeedCoordinates);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
 
-    rcut = 0.99 * std::sqrt(max_cutoff2(ir->pbcType, box));
+    rcut = 0.99 * std::sqrt(max_cutoff2(ir->pbcType, fr.box));
     if (rcut == 0)
     {
         rcut = 10 * rmax;
@@ -266,18 +272,18 @@ int gmx_spol(int argc, char* argv[])
     molindex = top->mols.index;
     atom     = top->atoms.atom;
 
-    gpbc = gmx_rmpbc_init(&top->idef, ir->pbcType, natoms);
+    gpbc = gmx_rmpbc_init(&top->idef, ir->pbcType, fr.natoms);
 
     /* start analysis of trajectory */
     do
     {
         /* make molecules whole again */
-        gmx_rmpbc(gpbc, natoms, box, x);
+        gmx_rmpbc(gpbc, fr.natoms, fr.box, fr.x);
 
-        set_pbc(&pbc, ir->pbcType, box);
+        set_pbc(&pbc, ir->pbcType, fr.box);
         if (bCom)
         {
-            calc_com_pbc(nrefat, top, x, &pbc, index[0], xref, ir->pbcType);
+            calc_com_pbc(nrefat, top, fr.x, &pbc, index[0], xref, ir->pbcType);
         }
 
         for (m = 0; m < isize[1]; m++)
@@ -287,7 +293,7 @@ int gmx_spol(int argc, char* argv[])
             a1  = molindex[mol + 1];
             for (i = 0; i < nrefgrp; i++)
             {
-                pbc_dx(&pbc, x[a0 + srefat], bCom ? xref : x[index[0][i]], trial);
+                pbc_dx(&pbc, fr.x[a0 + srefat], bCom ? xref : fr.x[index[0][i]], trial);
                 rtry2 = norm2(trial);
                 if (i == 0 || rtry2 < rdx2)
                 {
@@ -314,18 +320,18 @@ int gmx_spol(int argc, char* argv[])
                     q = atom[a].q - qav;
                     for (d = 0; d < DIM; d++)
                     {
-                        dip[d] += q * x[a][d];
+                        dip[d] += q * fr.x[a][d];
                     }
                 }
                 for (d = 0; d < DIM; d++)
                 {
-                    dir[d] = -x[a0][d];
+                    dir[d] = -fr.x[a0][d];
                 }
                 for (a = a0 + 1; a < a0 + 3; a++)
                 {
                     for (d = 0; d < DIM; d++)
                     {
-                        dir[d] += 0.5 * x[a][d];
+                        dir[d] += 0.5 * fr.x[a][d];
                     }
                 }
                 unitv(dir, dir);
@@ -345,13 +351,11 @@ int gmx_spol(int argc, char* argv[])
         }
         nf++;
 
-    } while (read_next_x(oenv, status, &t, x, box));
+    } while (status->readNextFrame(oenv, &fr));
 
     gmx_rmpbc_done(gpbc);
 
     /* clean up */
-    sfree(x);
-    close_trx(status);
 
     fprintf(stderr, "Average number of molecules within %g nm is %.1f\n", rmax, static_cast<real>(ntot) / nf);
     if (ntot > 0)

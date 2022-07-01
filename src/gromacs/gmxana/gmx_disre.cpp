@@ -69,8 +69,10 @@
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/mtop_util.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/trajectoryanalysis/topologyinformation.h"
 #include "gromacs/utility/arraysize.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
@@ -732,18 +734,15 @@ int gmx_disre(int argc, char* argv[])
           "Use inverse third power averaging or linear for matrix output" }
     };
 
-    FILE *       out = nullptr, *aver = nullptr, *numv = nullptr, *maxxv = nullptr, *xvg = nullptr;
-    int          i, j, kkk;
-    t_trxstatus* status;
-    real         t;
-    rvec *       x, *xav = nullptr;
-    rvec4*       f;
-    matrix       box;
-    gmx_bool     bPDB;
-    int          isize;
-    int *        index = nullptr, *ind_fit = nullptr;
-    char*        grpname;
-    t_dr_result  dr, *dr_clust = nullptr;
+    FILE *      out = nullptr, *aver = nullptr, *numv = nullptr, *maxxv = nullptr, *xvg = nullptr;
+    int         i, j, kkk;
+    rvec*       xav = nullptr;
+    rvec4*      f;
+    gmx_bool    bPDB;
+    int         isize;
+    int *       index = nullptr, *ind_fit = nullptr;
+    char*       grpname;
+    t_dr_result dr, *dr_clust = nullptr;
     std::vector<std::string> leg;
     real *                   vvindex = nullptr, *w_rls = nullptr;
     t_pbc                    pbc, *pbc_null;
@@ -844,8 +843,13 @@ int gmx_disre(int argc, char* argv[])
                 nullptr,
                 FALSE);
 
-    int natoms = read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
-    snew(f, 5 * natoms);
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, trxNeedCoordinates);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
+    snew(f, 5 * fr.natoms);
 
     std::optional<t_cluster_ndx> clust;
     init_dr_res(&dr, disresdata.nres);
@@ -871,7 +875,7 @@ int gmx_disre(int argc, char* argv[])
     update_mdatoms(mdAtoms->mdatoms(), ir->fepvals->init_lambda);
     if (ir->pbcType != PbcType::No)
     {
-        gpbc = gmx_rmpbc_init(idef, ir->pbcType, natoms);
+        gpbc = gmx_rmpbc_init(idef, ir->pbcType, fr.natoms);
     }
 
     j = 0;
@@ -881,11 +885,11 @@ int gmx_disre(int argc, char* argv[])
         {
             if (ir->bPeriodicMols)
             {
-                set_pbc(&pbc, ir->pbcType, box);
+                set_pbc(&pbc, ir->pbcType, fr.box);
             }
             else
             {
-                gmx_rmpbc(gpbc, natoms, box, x);
+                gmx_rmpbc(gpbc, fr.natoms, fr.box, fr.x);
             }
         }
 
@@ -896,21 +900,21 @@ int gmx_disre(int argc, char* argv[])
                 gmx_fatal(FARGS,
                           "There are more frames in the trajectory than in the cluster index file. "
                           "t = %8f\n",
-                          t);
+                          fr.time);
             }
             my_clust = clust->inv_clust[j];
             range_check(my_clust, 0, clust->clust->nr);
             check_viol(
-                    fplog, idef.il[F_DISRES], idef.iparams, x, f, pbc_null, dr_clust, my_clust, isize, index, vvindex, &disresdata);
+                    fplog, idef.il[F_DISRES], idef.iparams, fr.x, f, pbc_null, dr_clust, my_clust, isize, index, vvindex, &disresdata);
         }
         else
         {
-            check_viol(fplog, idef.il[F_DISRES], idef.iparams, x, f, pbc_null, &dr, 0, isize, index, vvindex, &disresdata);
+            check_viol(fplog, idef.il[F_DISRES], idef.iparams, fr.x, f, pbc_null, &dr, 0, isize, index, vvindex, &disresdata);
         }
         if (bPDB)
         {
-            reset_x(atoms->nr, ind_fit, atoms->nr, nullptr, x, w_rls);
-            do_fit(atoms->nr, w_rls, x, x);
+            reset_x(atoms->nr, ind_fit, atoms->nr, nullptr, fr.x, w_rls);
+            do_fit(atoms->nr, w_rls, fr.x, fr.x);
             if (j == 0)
             {
                 /* Store the first frame of the trajectory as 'characteristic'
@@ -918,7 +922,7 @@ int gmx_disre(int argc, char* argv[])
                  */
                 for (kkk = 0; (kkk < atoms->nr); kkk++)
                 {
-                    copy_rvec(x[kkk], xav[kkk]);
+                    copy_rvec(fr.x[kkk], xav[kkk]);
                 }
             }
         }
@@ -926,21 +930,20 @@ int gmx_disre(int argc, char* argv[])
         {
             if (isize > 0)
             {
-                fprintf(xvg, "%10g", t);
+                fprintf(xvg, "%10g", fr.time);
                 for (i = 0; (i < isize); i++)
                 {
                     fprintf(xvg, "  %10g", vvindex[i]);
                 }
                 fprintf(xvg, "\n");
             }
-            fprintf(out, "%10g  %10g\n", t, dr.sumv);
-            fprintf(aver, "%10g  %10g\n", t, dr.averv);
-            fprintf(maxxv, "%10g  %10g\n", t, dr.maxv);
-            fprintf(numv, "%10g  %10d\n", t, dr.nv);
+            fprintf(out, "%10g  %10g\n", fr.time, dr.sumv);
+            fprintf(aver, "%10g  %10g\n", fr.time, dr.averv);
+            fprintf(maxxv, "%10g  %10g\n", fr.time, dr.maxv);
+            fprintf(numv, "%10g  %10d\n", fr.time, dr.nv);
         }
         j++;
-    } while (read_next_x(oenv, status, &t, x, box));
-    close_trx(status);
+    } while (status->readNextFrame(oenv, &fr));
     if (ir->pbcType != PbcType::No)
     {
         gmx_rmpbc_done(gpbc);
@@ -962,7 +965,7 @@ int gmx_disre(int argc, char* argv[])
                            xav,
                            nullptr,
                            ir->pbcType,
-                           box);
+                           fr.box);
         }
         dump_disre_matrix(
                 opt2fn_null("-x", NFILE, fnm), &dr, disresdata.nres, j, idef, topInfo.mtop(), max_dr, nlevels, bThird);

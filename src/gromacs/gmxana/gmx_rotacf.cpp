@@ -45,7 +45,9 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/smalloc.h"
 
@@ -81,17 +83,15 @@ int gmx_rotacf(int argc, char* argv[])
         { "-aver", FALSE, etBOOL, { &bAver }, "Average over molecules" }
     };
 
-    t_trxstatus*  status;
     int           isize;
     int*          index;
     char*         grpname;
-    rvec *        x, *x_s;
-    matrix        box;
+    rvec*         x_s;
     real**        c1;
     rvec          xij, xjk, n;
-    int           i, m, teller, n_alloc, natoms, nvec, ai, aj, ak;
+    int           i, m, teller, n_alloc, nvec, ai, aj, ak;
     unsigned long mode;
-    real          t, t0, t1, dt;
+    real          t0, t1, dt;
     gmx_rmpbc_t   gpbc = nullptr;
     t_topology*   top;
     PbcType       pbcType;
@@ -148,13 +148,18 @@ int gmx_rotacf(int argc, char* argv[])
     }
     n_alloc = 0;
 
-    natoms = read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
-    snew(x_s, natoms);
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, trxNeedCoordinates);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
+    snew(x_s, fr.natoms);
 
-    gpbc = gmx_rmpbc_init(&(top->idef), pbcType, natoms);
+    gpbc = gmx_rmpbc_init(&(top->idef), pbcType, fr.natoms);
 
     /* Start the loop over frames */
-    t0     = t;
+    t0     = fr.time;
     teller = 0;
     do
     {
@@ -166,10 +171,10 @@ int gmx_rotacf(int argc, char* argv[])
                 srenew(c1[i], DIM * n_alloc);
             }
         }
-        t1 = t;
+        t1 = fr.time;
 
         /* Remove periodicity */
-        gmx_rmpbc_copy(gpbc, natoms, box, x, x_s);
+        gmx_rmpbc_copy(gpbc, fr.natoms, fr.box, fr.x, x_s);
 
         /* Compute crossproducts for all vectors, if triplets.
          * else, just get the vectors in case of doublets.
@@ -205,8 +210,7 @@ int gmx_rotacf(int argc, char* argv[])
         }
         /* Increment loop counter */
         teller++;
-    } while (read_next_x(oenv, status, &t, x, box));
-    close_trx(status);
+    } while (status->readNextFrame(oenv, &fr));
     fprintf(stderr, "\nDone with trajectory\n");
 
     gmx_rmpbc_done(gpbc);

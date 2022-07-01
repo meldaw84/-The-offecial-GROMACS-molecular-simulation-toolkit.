@@ -48,10 +48,13 @@
 #include "gromacs/random/uniformrealdistribution.h"
 #include "gromacs/topology/mtop_util.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/smalloc.h"
+#include "gromacs/utility/stringutil.h"
 
 static void
 rand_rot(int natoms, rvec x[], rvec v[], vec4 xrot[], vec4 vrot[], gmx::DefaultRandomEngine* rng, const rvec max_rot)
@@ -117,16 +120,14 @@ int gmx_genconf(int argc, char* argv[])
     const char* bugs[] = { "The program should allow for random displacement of lattice points." };
 
     int               vol;
-    rvec *            x, *xx, *v; /* coordinates? */
-    real              t;
+    rvec *            x, *v; /* coordinates? */
     vec4 *            xrot, *vrot;
     PbcType           pbcType;
-    matrix            box, boxx; /* box length matrix */
+    matrix            box; /* box length matrix */
     rvec              shift;
     int               natoms; /* number of atoms in one molecule  */
     int               nres;   /* number of molecules? */
     int               i, j, k, l, m, ndx, nrdx, nx, ny, nz;
-    t_trxstatus*      status;
     bool              bTRX;
     gmx_output_env_t* oenv;
 
@@ -186,19 +187,25 @@ int gmx_genconf(int argc, char* argv[])
     snew(xrot, natoms);      /* get space for rotation matrix? */
     snew(vrot, natoms);
 
+    std::optional<TrajectoryIOStatus> status;
+    t_trxframe                        fr;
+    rvec*                             newCoordinates;
     if (bTRX)
     {
-        if (!read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &xx, boxx))
+        status = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, trxNeedCoordinates);
+        if (!status.has_value())
         {
-            gmx_fatal(FARGS, "No atoms in trajectory %s", ftp2fn(efTRX, NFILE, fnm));
+            GMX_THROW(gmx::InvalidInputError(
+                    gmx::formatString("Unable to read trajectory %s", ftp2fn(efTRX, NFILE, fnm))));
         }
+        newCoordinates = fr.x;
     }
     else
     {
-        snew(xx, natoms);
+        snew(newCoordinates, natoms);
         for (i = 0; i < natoms; i++)
         {
-            copy_rvec(x[i], xx[i]);
+            copy_rvec(x[i], newCoordinates[i]);
         }
     }
 
@@ -221,7 +228,7 @@ int gmx_genconf(int argc, char* argv[])
                 /* Random rotation on input coords */
                 if (bRandom)
                 {
-                    rand_rot(natoms, xx, v, xrot, vrot, &rng, max_rot);
+                    rand_rot(natoms, newCoordinates, v, xrot, vrot, &rng, max_rot);
                 }
 
                 for (l = 0; (l < natoms); l++)
@@ -235,7 +242,7 @@ int gmx_genconf(int argc, char* argv[])
                         }
                         else
                         {
-                            x[ndx + l][m] = xx[l][m];
+                            x[ndx + l][m] = newCoordinates[l][m];
                             v[ndx + l][m] = v[l][m];
                         }
                     }
@@ -266,17 +273,13 @@ int gmx_genconf(int argc, char* argv[])
                 }
                 if (bTRX)
                 {
-                    if (!read_next_x(oenv, status, &t, xx, boxx) && ((i + 1) * (j + 1) * (k + 1) < vol))
+                    if (!status->readNextFrame(oenv, &fr) && ((i + 1) * (j + 1) * (k + 1) < vol))
                     {
                         gmx_fatal(FARGS, "Not enough frames in trajectory");
                     }
                 }
             }
         }
-    }
-    if (bTRX)
-    {
-        close_trx(status);
     }
 
     /* make box bigger */
@@ -308,7 +311,7 @@ int gmx_genconf(int argc, char* argv[])
     sfree(v);
     sfree(xrot);
     sfree(vrot);
-    sfree(xx);
+    sfree(newCoordinates);
     done_atom(&atoms);
     output_env_done(oenv);
 

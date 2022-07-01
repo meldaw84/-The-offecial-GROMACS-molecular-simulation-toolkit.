@@ -66,6 +66,7 @@
 #include "gromacs/topology/ifunc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/enumerationhelpers.h"
@@ -2526,22 +2527,21 @@ int gmx_hbond(int argc, char* argv[])
     const char* hbdesc[HB_NR] = { "None", "Present", "Inserted", "Present & Inserted" };
     t_rgb       hbrgb[HB_NR]  = { { 1, 1, 1 }, { 1, 0, 0 }, { 0, 0, 1 }, { 1, 0, 1 } };
 
-    t_trxstatus* status;
-    bool         trrStatus = true;
-    t_topology   top;
-    t_pargs*     ppa;
-    int          npargs, natoms, nframes = 0, shatom;
-    rvec *       x, hbox;
-    matrix       box;
-    real         t, ccut, dist = 0.0, ang = 0.0;
-    double       max_nhb, aver_nhb, aver_dist;
-    int          h = 0, i = 0, j, k = 0, ogrp;
-    int          xi = 0, yi, zi, ai;
-    int          xj, yj, zj, aj, xjj, yjj, zjj;
-    gmx_bool     bHBmap, bStop, bTwo, bBox, bTric;
-    int *        adist, *rdist;
-    int          nabin, nrbin, resdist, ihb;
-    FILE *       fp, *fpnhb = nullptr, *donor_properties = nullptr;
+    bool       trrStatus = true;
+    t_topology top;
+    t_pargs*   ppa;
+    int        npargs, natoms, nframes = 0, shatom;
+    rvec       hbox;
+    matrix     box;
+    real       ccut, dist = 0.0, ang = 0.0;
+    double     max_nhb, aver_nhb, aver_dist;
+    int        h = 0, i = 0, j, k = 0, ogrp;
+    int        xi = 0, yi, zi, ai;
+    int        xj, yj, zj, aj, xjj, yjj, zjj;
+    gmx_bool   bHBmap, bStop, bTwo, bBox, bTric;
+    int *      adist, *rdist;
+    int        nabin, nrbin, resdist, ihb;
+    FILE *     fp, *fpnhb = nullptr, *donor_properties = nullptr;
     std::vector<std::vector<std::vector<HydrogenGridCell>>> grid;
     ivec                                                    ngrid;
     unsigned char*                                          datable;
@@ -2763,10 +2763,15 @@ int gmx_hbond(int argc, char* argv[])
     }
 
     /* Analyze trajectory */
-    natoms = read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
-    if (natoms > top.atoms.nr)
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, trxNeedCoordinates);
+    if (!status.has_value())
     {
-        gmx_fatal(FARGS, "Topology (%d atoms) does not match trajectory (%d atoms)", top.atoms.nr, natoms);
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory"));
+    }
+    if (fr.natoms > top.atoms.nr)
+    {
+        gmx_fatal(FARGS, "Topology (%d atoms) does not match trajectory (%d atoms)", top.atoms.nr, fr.natoms);
     }
 
     bBox  = (ir->pbcType != PbcType::No);
@@ -2833,7 +2838,16 @@ int gmx_hbond(int argc, char* argv[])
             {
                 try
                 {
-                    build_grid(&hb, x, x[shatom], bBox, box, hbox, (rcut > r2cut) ? rcut : r2cut, rshell, ngrid, &grid);
+                    build_grid(&hb,
+                               fr.x,
+                               fr.x[shatom],
+                               fr.bBox,
+                               fr.box,
+                               hbox,
+                               (rcut > r2cut) ? rcut : r2cut,
+                               rshell,
+                               ngrid,
+                               &grid);
                     reset_nhbonds(&(hb.d));
 
                     if (debug && bDebug)
@@ -2842,7 +2856,7 @@ int gmx_hbond(int argc, char* argv[])
                     }
 
                     add_frames(&hb, nframes);
-                    init_hbframe(&hb, nframes, output_env_conv_time(oenv, t));
+                    init_hbframe(&hb, nframes, output_env_conv_time(oenv, fr.time));
 
                     if (hb.bDAnr)
                     {
@@ -2928,9 +2942,9 @@ int gmx_hbond(int argc, char* argv[])
                                                                    rcut,
                                                                    r2cut,
                                                                    ccut,
-                                                                   x,
-                                                                   bBox,
-                                                                   box,
+                                                                   fr.x,
+                                                                   fr.bBox,
+                                                                   fr.box,
                                                                    hbox,
                                                                    &dist,
                                                                    &ang,
@@ -3037,7 +3051,7 @@ int gmx_hbond(int argc, char* argv[])
             {
                 try
                 {
-                    analyse_donor_properties(donor_properties, &hb, k, t);
+                    analyse_donor_properties(donor_properties, &hb, k, fr.time);
                 }
                 GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR
             }
@@ -3048,7 +3062,7 @@ int gmx_hbond(int argc, char* argv[])
                 {
                     if (fpnhb)
                     {
-                        do_nhb_dist(fpnhb, &hb, t);
+                        do_nhb_dist(fpnhb, &hb, fr.time);
                     }
                 }
                 GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR
@@ -3058,7 +3072,7 @@ int gmx_hbond(int argc, char* argv[])
             {
                 try
                 {
-                    trrStatus = (read_next_x(oenv, status, &t, x, box));
+                    trrStatus = (status->readNextFrame(oenv, &fr));
                     nframes++;
                 }
                 GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR
@@ -3116,7 +3130,6 @@ int gmx_hbond(int argc, char* argv[])
         gmx_fatal(FARGS, "Cannot calculate autocorrelation of life times with less than two frames");
     }
 
-    close_trx(status);
 
     if (donor_properties)
     {

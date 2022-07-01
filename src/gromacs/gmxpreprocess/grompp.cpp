@@ -785,7 +785,7 @@ static void new_status(const char*                           topfile,
 
 static void copy_state(const char* slog, t_trxframe* fr, bool bReadVel, t_state* state, double* use_time)
 {
-    if (fr->not_ok & FRAME_NOT_OK)
+    if (fr->not_ok & trxframeNotOk)
     {
         gmx_fatal(FARGS, "Can not start from an incomplete frame");
     }
@@ -823,10 +823,9 @@ static void cont_status(const char*             slog,
                         const gmx::MDLogger&    logger)
 /* If fr_time == -1 read the last frame available which is complete */
 {
-    bool         bReadVel;
-    t_trxframe   fr;
-    t_trxstatus* fp;
-    double       use_time;
+    bool       bReadVel;
+    t_trxframe fr;
+    double     use_time;
 
     bReadVel = (bNeedVel && !bGenVel);
 
@@ -842,6 +841,7 @@ static void cont_status(const char*             slog,
     {
         GMX_LOG(logger.info).asParagraph().appendTextFormatted("Will read till time %g", fr_time);
     }
+    std::optional<TrajectoryIOStatus> status;
     if (!bReadVel)
     {
         if (bGenVel)
@@ -852,11 +852,11 @@ static void cont_status(const char*             slog,
                             "Velocities generated: "
                             "ignoring velocities in input trajectory");
         }
-        read_first_frame(oenv, &fp, slog, &fr, TRX_NEED_X);
+        status = read_first_frame(oenv, slog, &fr, trxNeedCoordinates);
     }
     else
     {
-        read_first_frame(oenv, &fp, slog, &fr, TRX_NEED_X | TRX_NEED_V);
+        status = read_first_frame(oenv, slog, &fr, trxNeedCoordinates | trxNeedVelocities);
 
         if (!fr.bV)
         {
@@ -870,10 +870,10 @@ static void cont_status(const char*             slog,
             {
                 vi = { 0, 0, 0 };
             }
-            close_trx(fp);
             /* Search for a frame without velocities */
             bReadVel = false;
-            read_first_frame(oenv, &fp, slog, &fr, TRX_NEED_X);
+            status.reset();
+            status = read_first_frame(oenv, slog, &fr, trxNeedCoordinates);
         }
     }
 
@@ -888,12 +888,10 @@ static void cont_status(const char*             slog,
     copy_state(slog, &fr, bReadVel, state, &use_time);
 
     /* Find the appropriate frame */
-    while ((fr_time == -1 || fr.time < fr_time) && read_next_frame(oenv, fp, &fr))
+    while ((fr_time == -1 || fr.time < fr_time) && status->readNextFrame(oenv, &fr))
     {
         copy_state(slog, &fr, bReadVel, state, &use_time);
     }
-
-    close_trx(fp);
 
     /* Set the relative box lengths for preserving the box shape.
      * Note that this call can lead to differences in the last bit

@@ -38,6 +38,7 @@
 #include <cstring>
 
 #include <algorithm>
+#include <optional>
 
 #include "gromacs/commandline/pargs.h"
 #include "gromacs/commandline/viewit.h"
@@ -58,8 +59,11 @@
 #include "gromacs/random/uniformrealdistribution.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
@@ -171,25 +175,26 @@ static rvec** read_whole_trj(const char*             fn,
                              gmx_bool                bPBC,
                              gmx_rmpbc_t             gpbc)
 {
-    rvec **      xx, *x;
-    matrix       box;
-    real         t;
-    int          i, j, max_nf;
-    int          natom;
-    t_trxstatus* status;
+    rvec** xx;
+    int    i, max_nf;
 
 
-    max_nf           = 0;
-    xx               = nullptr;
-    *time            = nullptr;
-    natom            = read_first_x(oenv, &status, fn, &t, &x, box);
+    max_nf = 0;
+    xx     = nullptr;
+    *time  = nullptr;
+    t_trxframe fr;
+    auto       fileStatus = read_first_frame(oenv, fn, &fr, trxNeedCoordinates);
+    if (!fileStatus.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read input trajectory"));
+    }
     i                = 0;
     int clusterIndex = 0;
     do
     {
         if (bPBC)
         {
-            gmx_rmpbc(gpbc, natom, box, x);
+            gmx_rmpbc(gpbc, fr.natoms, fr.box, fr.x);
         }
         if (clusterIndex >= max_nf)
         {
@@ -203,21 +208,20 @@ static rvec** read_whole_trj(const char*             fn,
         {
             snew(xx[clusterIndex], isize);
             /* Store only the interesting atoms */
-            for (j = 0; (j < isize); j++)
+            for (int j = 0; (j < isize); j++)
             {
-                copy_rvec(x[index[j]], xx[clusterIndex][j]);
+                copy_rvec(fr.x[index[j]], xx[clusterIndex][j]);
             }
-            (*time)[clusterIndex] = t;
-            copy_mat(box, (*boxes)[clusterIndex]);
-            (*frameindices)[clusterIndex] = nframes_read(status);
+            (*time)[clusterIndex] = fr.time;
+            copy_mat(fr.box, (*boxes)[clusterIndex]);
+            (*frameindices)[clusterIndex] = fileStatus->numFramesRead();
             clusterIndex++;
         }
         i++;
-    } while (read_next_x(oenv, status, &t, x, box));
+    } while (fileStatus->readNextFrame(oenv, &fr));
     fprintf(stderr, "Allocated %zu bytes for frames\n", (max_nf * isize * sizeof(**xx)));
     fprintf(stderr, "Read %d frames from trajectory %s\n", clusterIndex, fn);
     *nframe = clusterIndex;
-    sfree(x);
 
     return xx;
 }
@@ -441,17 +445,17 @@ static void analyze_clusters(int                     nf,
                              t_rgb                   rhi,
                              const gmx_output_env_t* oenv)
 {
-    FILE*        size_fp = nullptr;
-    FILE*        ndxfn   = nullptr;
-    char         buf[STRLEN], buf1[40], buf2[40], buf3[40], *trxsfn;
-    t_trxstatus* trxout  = nullptr;
-    t_trxstatus* trxsout = nullptr;
-    int          i, i1, cl, nstr, *structure, first = 0, midstr;
-    gmx_bool*    bWrite = nullptr;
-    real         r, clrmsd, midrmsd;
-    rvec*        xav = nullptr;
-    matrix       zerobox;
+    FILE*     size_fp = nullptr;
+    FILE*     ndxfn   = nullptr;
+    char      buf[STRLEN], buf1[40], buf2[40], buf3[40], *trxsfn;
+    int       i, i1, cl, nstr, *structure, first = 0, midstr;
+    gmx_bool* bWrite = nullptr;
+    real      r, clrmsd, midrmsd;
+    rvec*     xav = nullptr;
+    matrix    zerobox;
 
+    std::optional<TrajectoryIOStatus> output;
+    std::optional<TrajectoryIOStatus> structureOutput;
     clear_mat(zerobox);
 
     ffprintf_d(stderr, log, buf, "\nFound %d clusters\n\n", clust->ncl);
@@ -508,7 +512,7 @@ static void analyze_clusters(int                     nf,
         {
             reset_x(ifsize, fitidx, natom, nullptr, xtps, mass);
         }
-        trxout = open_trx(trxfn, "w");
+        output = openTrajectoryFile(trxfn, "w");
         /* Calculate the average structure in each cluster,               *
          * all structures are fitted to the first struture of the cluster */
         snew(xav, natom);
@@ -697,7 +701,7 @@ static void analyze_clusters(int                     nf,
                 /* Dump all structures for this cluster */
                 /* generate numbered filename (there is a %d in trxfn!) */
                 sprintf(buf, trxsfn, cl);
-                trxsout = open_trx(buf, "w");
+                structureOutput = openTrajectoryFile(buf, "w");
                 for (i = 0; i < nstr; i++)
                 {
                     bWrite[i] = TRUE;
@@ -713,19 +717,16 @@ static void analyze_clusters(int                     nf,
                     }
                     if (bWrite[i])
                     {
-                        write_trx(trxsout,
-                                  iosize,
-                                  outidx,
-                                  atoms,
-                                  i,
-                                  time[structure[i]],
-                                  boxes[structure[i]],
-                                  xx[structure[i]],
-                                  nullptr,
-                                  nullptr);
+                        structureOutput->writeTrajectory(gmx::arrayRefFromArray(outidx, iosize),
+                                                         atoms,
+                                                         i,
+                                                         time[structure[i]],
+                                                         boxes[structure[i]],
+                                                         xx[structure[i]],
+                                                         nullptr,
+                                                         nullptr);
                     }
                 }
-                close_trx(trxsout);
             }
             /* Dump the average structure for this cluster */
             if (bAverage)
@@ -750,13 +751,13 @@ static void analyze_clusters(int                     nf,
             {
                 do_fit(natom, mass, xtps, xav);
             }
-            write_trx(trxout, iosize, outidx, atoms, cl, time[midstr], boxes[midstr], xav, nullptr, nullptr);
+            output->writeTrajectory(
+                    gmx::arrayRefFromArray(outidx, iosize), atoms, cl, time[midstr], boxes[midstr], xav, nullptr, nullptr);
         }
     }
     /* clean up */
     if (trxfn)
     {
-        close_trx(trxout);
         sfree(xav);
         if (write_ncl)
         {

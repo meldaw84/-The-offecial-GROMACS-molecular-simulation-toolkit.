@@ -83,7 +83,6 @@ void done_trxframe(t_trxframe* fr)
 
 TrajectoryFrameReader::TrajectoryFrameReader(const std::string& filename) :
     filename_(filename),
-    trajectoryFileGuard_(nullptr),
     trxframeGuard_(make_trxframe()),
     haveReadFirstFrame_(false),
     haveProbedForNextFrame_(false),
@@ -115,21 +114,18 @@ bool TrajectoryFrameReader::readNextFrame()
     // If there's a next frame, read it into trxframe_, and report the result.
     if (!haveReadFirstFrame_)
     {
-        t_trxstatus* trajectoryFile;
-        int          flags = TRX_READ_X | TRX_READ_V | TRX_READ_F;
-        nextFrameExists_   = read_first_frame(
-                oenvGuard_.get(), &trajectoryFile, filename_.c_str(), trxframeGuard_.get(), flags);
-        if (!trajectoryFile)
+        size_t flags      = trxReadCoordinates | trxReadVelocities | trxReadForces;
+        trajectoryStatus_ = read_first_frame(oenvGuard_.get(), filename_, trxframeGuard_.get(), flags);
+        nextFrameExists_ = trajectoryStatus_.has_value();
+        if (!trajectoryStatus_.has_value())
         {
             GMX_THROW(FileIOError("Could not open trajectory file " + filename_ + " for reading"));
         }
-        trajectoryFileGuard_.reset(trajectoryFile);
         haveReadFirstFrame_ = true;
     }
     else
     {
-        nextFrameExists_ =
-                read_next_frame(oenvGuard_.get(), trajectoryFileGuard_.get(), trxframeGuard_.get());
+        nextFrameExists_ = trajectoryStatus_->readNextFrame(oenvGuard_.get(), trxframeGuard_.get());
     }
     return nextFrameExists_;
 }

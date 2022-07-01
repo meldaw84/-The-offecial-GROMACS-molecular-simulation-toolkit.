@@ -49,6 +49,7 @@ target_include_directories(gmxana INTERFACE
 #target_link_libraries(gmxana PUBLIC
 target_link_libraries(gmxana INTERFACE
         legacy_api
+        fileio
         )
 
 # TODO: when gmxana is an OBJECT target

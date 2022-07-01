@@ -48,6 +48,7 @@
 #include "gromacs/math/units.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/fatalerror.h"
@@ -92,17 +93,16 @@ int gmx_nmtraj(int argc, char* argv[])
 
 #define NPA asize(pa)
 
-    t_trxstatus* out;
-    t_topology   top;
-    PbcType      pbcType;
-    t_atoms*     atoms;
-    rvec *       xtop, *xref, *xav, *xout;
-    int          nvec, *eignr = nullptr;
-    rvec**       eigvec = nullptr;
-    matrix       box;
-    int          natoms;
-    int          i, j, k, kmode, d;
-    gmx_bool     bDMR, bDMA, bFit;
+    t_topology top;
+    PbcType    pbcType;
+    t_atoms*   atoms;
+    rvec *     xtop, *xref, *xav, *xout;
+    int        nvec, *eignr = nullptr;
+    rvec**     eigvec = nullptr;
+    matrix     box;
+    int        natoms;
+    int        i, j, k, kmode, d;
+    gmx_bool   bDMR, bDMA, bFit;
 
     real*             eigval;
     int*              dummy;
@@ -269,7 +269,7 @@ int gmx_nmtraj(int argc, char* argv[])
         }
     }
 
-    out = open_trx(ftp2fn(efTRO, NFILE, fnm), "w");
+    auto output = openTrajectoryFile(ftp2fn(efTRO, NFILE, fnm), "w");
 
     /* Write a sine oscillation around the average structure,
      * modulated by the eigenvector with selected amplitude.
@@ -297,11 +297,11 @@ int gmx_nmtraj(int argc, char* argv[])
                 }
             }
         }
-        write_trx(out, natoms, dummy, atoms, i, fraction, box, xout, nullptr, nullptr);
+        output.writeTrajectory(
+                gmx::arrayRefFromArray(dummy, natoms), atoms, i, fraction, box, xout, nullptr, nullptr);
     }
 
     fprintf(stderr, "\n");
-    close_trx(out);
 
     return 0;
 }

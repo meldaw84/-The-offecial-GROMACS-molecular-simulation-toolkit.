@@ -36,6 +36,7 @@
 #include <cmath>
 #include <cstring>
 
+#include <optional>
 #include <vector>
 
 #include "gromacs/commandline/pargs.h"
@@ -51,6 +52,7 @@
 #include "gromacs/topology/topology.h"
 #include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/smalloc.h"
 
@@ -151,11 +153,10 @@ static void calc_axes(rvec x[], t_atom atom[], const int gnx[], int* index[], gm
     }
 }
 
-static void dump_axes(t_trxstatus* status, t_trxframe* fr, t_atoms* outat, t_bundle* bun)
+static void dump_axes(TrajectoryIOStatus* status, t_trxframe* fr, t_atoms* outat, t_bundle* bun)
 {
     t_trxframe                    frout;
     static std::vector<gmx::RVec> xout;
-    int                           i;
 
     GMX_ASSERT(outat->nr >= bun->n, "");
     if (xout.empty())
@@ -163,7 +164,7 @@ static void dump_axes(t_trxstatus* status, t_trxframe* fr, t_atoms* outat, t_bun
         xout.resize(outat->nr);
     }
 
-    for (i = 0; i < bun->n; i++)
+    for (int i = 0; i < bun->n; i++)
     {
         copy_rvec(bun->end[0][i], xout[3 * i]);
         if (bun->nend >= 3)
@@ -184,7 +185,7 @@ static void dump_axes(t_trxstatus* status, t_trxframe* fr, t_atoms* outat, t_bun
     frout.natoms = outat->nr;
     frout.atoms  = outat;
     frout.x      = as_rvec_array(xout.data());
-    write_trxframe(status, &frout, nullptr);
+    status->writeTrxframe(&frout, nullptr);
 }
 
 int gmx_bundle(int argc, char* argv[])
@@ -222,8 +223,6 @@ int gmx_bundle(int argc, char* argv[])
                        "Use the [IT]z[it]-axis as reference instead of the average axis" } };
     FILE *          flen, *fdist, *fz, *ftilt, *ftiltr, *ftiltl;
     FILE *          fkink = nullptr, *fkinkr = nullptr, *fkinkl = nullptr;
-    t_trxstatus*    status;
-    t_trxstatus*    fpdb;
     t_topology      top;
     PbcType         pbcType;
     rvec*           xtop;
@@ -342,6 +341,7 @@ int gmx_bundle(int argc, char* argv[])
                           oenv);
     }
 
+    std::optional<TrajectoryIOStatus> pdbFile;
     if (opt2bSet("-oa", NFILE, fnm))
     {
         init_t_atoms(&outatoms, 3 * n, FALSE);
@@ -354,14 +354,14 @@ int gmx_bundle(int argc, char* argv[])
             outatoms.resinfo[i / 3].nr   = i / 3 + 1;
             outatoms.resinfo[i / 3].ic   = ' ';
         }
-        fpdb = open_trx(opt2fn("-oa", NFILE, fnm), "w");
-    }
-    else
-    {
-        fpdb = nullptr;
+        pdbFile = openTrajectoryFile(opt2fn("-oa", NFILE, fnm), "w");
     }
 
-    read_first_frame(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &fr, TRX_NEED_X);
+    auto fileStatus = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, trxNeedCoordinates);
+    if (!fileStatus.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read input file"));
+    }
     gpbc = gmx_rmpbc_init(&top.idef, pbcType, fr.natoms);
 
     do
@@ -422,19 +422,13 @@ int gmx_bundle(int argc, char* argv[])
             fprintf(fkinkr, "\n");
             fprintf(fkinkl, "\n");
         }
-        if (fpdb)
+        if (pdbFile.has_value())
         {
-            dump_axes(fpdb, &fr, &outatoms, &bun);
+            dump_axes(&pdbFile.value(), &fr, &outatoms, &bun);
         }
-    } while (read_next_frame(oenv, status, &fr));
+    } while (fileStatus->readNextFrame(oenv, &fr));
     gmx_rmpbc_done(gpbc);
 
-    close_trx(status);
-
-    if (fpdb)
-    {
-        close_trx(fpdb);
-    }
     xvgrclose(flen);
     xvgrclose(fdist);
     xvgrclose(fz);

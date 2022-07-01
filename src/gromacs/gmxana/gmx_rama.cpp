@@ -84,7 +84,7 @@ int gmx_rama(int argc, char* argv[])
     }
 
 
-    snew(xr, 1);
+    xr = new t_xrama;
     init_rama(oenv, ftp2fn(efTRX, NFILE, fnm), ftp2fn(efTPR, NFILE, fnm), xr, 3);
 
     out = xvgropen(ftp2fn(efXVG, NFILE, fnm), "Ramachandran Plot", "Phi", "Psi", oenv);
@@ -106,5 +106,6 @@ int gmx_rama(int argc, char* argv[])
 
     do_view(oenv, ftp2fn(efXVG, NFILE, fnm), nullptr);
 
+    delete xr;
     return 0;
 }

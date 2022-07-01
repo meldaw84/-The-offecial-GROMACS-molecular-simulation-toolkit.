@@ -37,6 +37,7 @@
 
 #include "gromacs/fileio/trxio.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/real.h"
 
 struct gmx_output_env_t;
@@ -58,19 +59,16 @@ typedef struct
 
 typedef struct
 {
-    int               ndih;
-    t_dih*            dih;
-    int               npp;
-    t_phipsi*         pp;
-    t_trxstatus*      traj;
-    int               natoms;
-    int               amin, amax;
-    real              t;
-    rvec*             x;
-    matrix            box;
-    t_idef*           idef;
-    PbcType           pbcType;
-    gmx_output_env_t* oenv;
+    int                               ndih;
+    t_dih*                            dih;
+    int                               npp;
+    t_phipsi*                         pp;
+    t_trxframe                        fr;
+    std::optional<TrajectoryIOStatus> traj;
+    int                               amin, amax;
+    t_idef*                           idef;
+    PbcType                           pbcType;
+    gmx_output_env_t*                 oenv;
 } t_xrama;
 
 t_topology* init_rama(gmx_output_env_t* oenv, const char* infile, const char* topfile, t_xrama* xr, int mult);

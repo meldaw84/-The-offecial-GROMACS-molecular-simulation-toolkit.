@@ -94,14 +94,12 @@ int gmx_dyecoupl(int argc, char* argv[])
     const char *in_trajfile, *out_xvgrkfile = nullptr, *out_xvginstefffile = nullptr,
                              *out_xvgrhistfile = nullptr, *out_xvgkhistfile = nullptr,
                              *out_datfile = nullptr;
-    gmx_bool     bHaveFirstFrame, bHaveNextFrame, indexOK = TRUE;
-    int          ndon, nacc;
-    int *        donindex, *accindex;
-    char*        grpnm;
-    t_trxstatus* status;
-    t_trxframe   fr;
+    gmx_bool   bHaveNextFrame, indexOK = TRUE;
+    int        ndon, nacc;
+    int *      donindex, *accindex;
+    char*      grpnm;
+    t_trxframe fr;
 
-    int  flags;
     int  allocblock = 1000;
     real histexpand = 1e-6;
     rvec donvec, accvec, donpos, accpos, dist, distnorm;
@@ -198,11 +196,11 @@ int gmx_dyecoupl(int argc, char* argv[])
 
     printf("Reading first frame\n");
     /* open trx file for reading */
-    flags           = 0;
-    flags           = flags | TRX_READ_X;
-    bHaveFirstFrame = read_first_frame(oenv, &status, in_trajfile, &fr, flags);
+    size_t flags = 0;
+    flags        = flags | trxReadCoordinates;
+    auto status  = read_first_frame(oenv, in_trajfile, &fr, flags);
 
-    if (bHaveFirstFrame)
+    if (status.has_value())
     {
         printf("First frame is OK\n");
         natoms = fr.natoms;
@@ -360,7 +358,7 @@ int gmx_dyecoupl(int argc, char* argv[])
                     }
                 }
 
-                bHaveNextFrame = read_next_frame(oenv, status, &fr);
+                bHaveNextFrame = status->readNextFrame(oenv, &fr);
             } while (bHaveNextFrame);
 
             if (bRKout)

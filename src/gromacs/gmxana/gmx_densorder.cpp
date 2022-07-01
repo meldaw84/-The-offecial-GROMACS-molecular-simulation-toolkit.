@@ -55,6 +55,7 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/binaryinformation.h"
 #include "gromacs/utility/cstringutil.h"
@@ -132,17 +133,14 @@ static void density_in_time(const char*             fn,
      * nndx - number ot atoms in **index
      * grpn	 - group number in index
      */
-    t_trxstatus* status;
-    gmx_rmpbc_t  gpbc = nullptr;
-    matrix       box;               /* Box - 3x3 -each step*/
-    rvec*        x0;                /* List of Coord without PBC*/
-    int          i, j,              /* loop indices, checks etc*/
+    gmx_rmpbc_t gpbc = nullptr;
+    int         i, j,               /* loop indices, checks etc*/
             ax1 = 0, ax2 = 0,       /* tangent directions */
             framenr = 0,            /* frame number in trajectory*/
             slicex, slicey, slicez; /*slice # of x y z position */
     real*** Densslice = nullptr;    /* Density-slice in one frame*/
     real    dscale;                 /*physical scaling factor*/
-    real    t, x, y, z;             /* time and coordinates*/
+    real    x, y, z;                /* time and coordinates*/
     rvec    bbww;
 
     *tblock = 0; /* blocknr in block average - initialise to 0*/
@@ -164,13 +162,15 @@ static void density_in_time(const char*             fn,
         default: gmx_fatal(FARGS, "Invalid axes. Terminating\n");
     }
 
-    if (read_first_x(oenv, &status, fn, &t, &x0, box) == 0)
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, fn, &fr, trxNeedCoordinates);
+    if (!status.has_value())
     {
-        gmx_fatal(FARGS, "Could not read coordinates from file"); /* Open trajectory for read*/
+        GMX_THROW(gmx::InvalidInputError("Could not read coordinates from file")); /* Open trajectory for read*/
     }
-    *zslices = 1 + static_cast<int>(std::floor(box[axis][axis] / bwz));
-    *yslices = 1 + static_cast<int>(std::floor(box[ax2][ax2] / bw));
-    *xslices = 1 + static_cast<int>(std::floor(box[ax1][ax1] / bw));
+    *zslices = 1 + static_cast<int>(std::floor(fr.box[axis][axis] / bwz));
+    *yslices = 1 + static_cast<int>(std::floor(fr.box[ax2][ax2] / bw));
+    *xslices = 1 + static_cast<int>(std::floor(fr.box[ax1][ax1] / bw));
     if (bps1d)
     {
         if (*xslices < *yslices)
@@ -200,10 +200,10 @@ static void density_in_time(const char*             fn,
 
     do
     {
-        bbww[XX] = box[ax1][ax1] / *xslices;
-        bbww[YY] = box[ax2][ax2] / *yslices;
-        bbww[ZZ] = box[axis][axis] / *zslices;
-        gmx_rmpbc(gpbc, top->atoms.nr, box, x0);
+        bbww[XX] = fr.box[ax1][ax1] / *xslices;
+        bbww[YY] = fr.box[ax2][ax2] / *yslices;
+        bbww[ZZ] = fr.box[axis][axis] / *zslices;
+        gmx_rmpbc(gpbc, top->atoms.nr, fr.box, fr.x);
         /*Reset Densslice every nsttblock steps*/
         /* The first conditional is for clang to understand that this branch is
          * always taken the first time. */
@@ -227,45 +227,45 @@ static void density_in_time(const char*             fn,
         }
 
         dscale = (*xslices) * (*yslices) * (*zslices) * gmx::c_amu
-                 / (box[ax1][ax1] * box[ax2][ax2] * box[axis][axis] * nsttblock
+                 / (fr.box[ax1][ax1] * fr.box[ax2][ax2] * fr.box[axis][axis] * nsttblock
                     * (gmx::c_nano * gmx::c_nano * gmx::c_nano));
 
         if (bCenter)
         {
-            center_coords(&top->atoms, box, x0, axis);
+            center_coords(&top->atoms, fr.box, fr.x, axis);
         }
 
 
-        for (j = 0; j < gnx[0]; j++)
+        for (int j = 0; j < gnx[0]; j++)
         { /*Loop over all atoms in selected index*/
-            x = x0[index[0][j]][ax1];
-            y = x0[index[0][j]][ax2];
-            z = x0[index[0][j]][axis];
+            x = fr.x[index[0][j]][ax1];
+            y = fr.x[index[0][j]][ax2];
+            z = fr.x[index[0][j]][axis];
             while (x < 0)
             {
-                x += box[ax1][ax1];
+                x += fr.box[ax1][ax1];
             }
-            while (x > box[ax1][ax1])
+            while (x > fr.box[ax1][ax1])
             {
-                x -= box[ax1][ax1];
+                x -= fr.box[ax1][ax1];
             }
 
             while (y < 0)
             {
-                y += box[ax2][ax2];
+                y += fr.box[ax2][ax2];
             }
-            while (y > box[ax2][ax2])
+            while (y > fr.box[ax2][ax2])
             {
-                y -= box[ax2][ax2];
+                y -= fr.box[ax2][ax2];
             }
 
             while (z < 0)
             {
-                z += box[axis][axis];
+                z += fr.box[axis][axis];
             }
-            while (z > box[axis][axis])
+            while (z > fr.box[axis][axis])
             {
-                z -= box[axis][axis];
+                z -= fr.box[axis][axis];
             }
 
             slicex = static_cast<int>(x / bbww[XX]) % *xslices;
@@ -283,12 +283,11 @@ static void density_in_time(const char*             fn,
             (*tblock)++;
         }
 
-    } while (read_next_x(oenv, status, &t, x0, box));
+    } while (status->readNextFrame(oenv, &fr));
 
 
     /*Free memory we no longer need and exit.*/
     gmx_rmpbc_done(gpbc);
-    close_trx(status);
 }
 
 static void outputfield(const char* fldfn, real**** Densmap, int xslices, int yslices, int zslices, int tdim)

@@ -154,14 +154,14 @@ void Trajectory::initOptions(IOptionsContainer* options, TrajectoryAnalysisSetti
 
 void Trajectory::optionsFinished(TrajectoryAnalysisSettings* settings)
 {
-    int frameFlags = TRX_NEED_X;
+    size_t frameFlags = trxNeedCoordinates;
     if (!fnV_.empty())
     {
-        frameFlags |= TRX_READ_V;
+        frameFlags |= trxReadVelocities;
     }
     if (!fnF_.empty())
     {
-        frameFlags |= TRX_READ_F;
+        frameFlags |= trxReadForces;
     }
     settings->setFrameFlags(frameFlags);
     if (std::count(std::begin(maskSet_), std::end(maskSet_), true) > 0)

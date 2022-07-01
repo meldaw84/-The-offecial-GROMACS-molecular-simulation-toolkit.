@@ -82,13 +82,12 @@ static void clust_size(const char*             ndx,
                        int                     ndf,
                        const gmx_output_env_t* oenv)
 {
-    FILE *       fp, *gp, *hp, *tp;
-    int*         index = nullptr;
-    int          nindex, natoms;
-    t_trxstatus* status;
-    rvec *       x = nullptr, *v = nullptr, dx;
-    t_pbc        pbc;
-    gmx_bool     bSame, bTPRwarn = TRUE;
+    FILE *   fp, *gp, *hp, *tp;
+    int*     index = nullptr;
+    int      nindex, natoms;
+    rvec *   x = nullptr, *v = nullptr, dx;
+    t_pbc    pbc;
+    gmx_bool bSame, bTPRwarn = TRUE;
     /* Topology stuff */
     t_trxframe    fr;
     TpxFileHeader tpxh;
@@ -113,7 +112,8 @@ static void clust_size(const char*             ndx,
     hp             = xvgropen(mcl, "Max cluster size", timeLabel, "#molecules", oenv);
     tp             = xvgropen(tempf, "Temperature of largest cluster", timeLabel, "T (K)", oenv);
 
-    if (!read_first_frame(oenv, &status, trx, &fr, TRX_NEED_X | TRX_READ_V))
+    auto status = read_first_frame(oenv, trx, &fr, trxNeedCoordinates | trxReadVelocities);
+    if (!status.has_value())
     {
         gmx_file(trx);
     }
@@ -355,8 +355,7 @@ static void clust_size(const char*             ndx,
             }
         }
         nframe++;
-    } while (read_next_frame(oenv, status, &fr));
-    close_trx(status);
+    } while (status->readNextFrame(oenv, &fr));
     done_frame(&fr);
     xvgrclose(fp);
     xvgrclose(gp);

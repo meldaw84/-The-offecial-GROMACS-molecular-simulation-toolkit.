@@ -57,8 +57,10 @@
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
 #include "gromacs/trajectory/trajectoryframe.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
@@ -174,13 +176,13 @@ static void print_data(FILE*       fp,
     }
 }
 
-static void write_trx_x(t_trxstatus*      status,
-                        const t_trxframe* fr,
-                        real*             mass,
-                        gmx_bool          bCom,
-                        int               ngrps,
-                        int               isize[],
-                        int**             index)
+static void write_trx_x(TrajectoryIOStatus* status,
+                        const t_trxframe*   fr,
+                        real*               mass,
+                        gmx_bool            bCom,
+                        int                 ngrps,
+                        int                 isize[],
+                        int**               index)
 {
     static std::vector<gmx::RVec> xav;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
@@ -211,11 +213,11 @@ static void write_trx_x(t_trxstatus*      status,
         fr_av.natoms = ngrps;
         fr_av.atoms  = atoms;
         fr_av.x      = as_rvec_array(xav.data());
-        write_trxframe(status, &fr_av, nullptr);
+        status->writeTrxframe(&fr_av, nullptr);
     }
     else
     {
-        write_trxframe_indexed(status, fr, isize[0], index[0], nullptr);
+        status->writeIndexedTrxframe(fr, gmx::arrayRefFromArray(index[0], isize[0]), nullptr);
     }
 }
 
@@ -656,30 +658,28 @@ int gmx_traj(int argc, char* argv[])
           { &scale },
           "Scale factor for [REF].pdb[ref] output, 0 is autoscale" }
     };
-    FILE *       outx = nullptr, *outv = nullptr, *outf = nullptr, *outb = nullptr, *outt = nullptr;
-    FILE *       outekt = nullptr, *outekr = nullptr;
-    t_topology   top;
-    PbcType      pbcType;
-    real *       mass, time;
-    const char*  indexfn;
-    t_trxframe   fr;
-    int          flags, nvhisto = 0, *vhisto = nullptr;
-    rvec *       xtop, *xp = nullptr;
-    rvec *       sumx = nullptr, *sumv = nullptr, *sumf = nullptr;
-    matrix       topbox;
-    t_trxstatus* status;
-    t_trxstatus* status_out = nullptr;
-    gmx_rmpbc_t  gpbc       = nullptr;
-    int          i, j;
-    int          nr_xfr, nr_vfr, nr_ffr;
-    char**       grpname;
-    int *        isize0, *isize;
-    int **       index0, **index;
-    int*         atndx;
-    t_block*     mols;
-    gmx_bool     bTop, bOX, bOXT, bOV, bOF, bOB, bOT, bEKT, bEKR, bCV, bCF;
-    gmx_bool     bDim[4], bDum[4], bVD;
-    char         sffmt[STRLEN];
+    FILE *      outx = nullptr, *outv = nullptr, *outf = nullptr, *outb = nullptr, *outt = nullptr;
+    FILE *      outekt = nullptr, *outekr = nullptr;
+    t_topology  top;
+    PbcType     pbcType;
+    real *      mass, time;
+    const char* indexfn;
+    t_trxframe  fr;
+    int         nvhisto = 0, *vhisto = nullptr;
+    rvec *      xtop, *xp            = nullptr;
+    rvec *      sumx = nullptr, *sumv = nullptr, *sumf = nullptr;
+    matrix      topbox;
+    gmx_rmpbc_t gpbc = nullptr;
+    int         i, j;
+    int         nr_xfr, nr_vfr, nr_ffr;
+    char**      grpname;
+    int *       isize0, *isize;
+    int **      index0, **index;
+    int*        atndx;
+    t_block*    mols;
+    gmx_bool    bTop, bOX, bOXT, bOV, bOF, bOB, bOT, bEKT, bEKR, bCV, bCF;
+    gmx_bool    bDim[4], bDum[4], bVD;
+    char        sffmt[STRLEN];
     std::array<std::string, 6> box_leg = { "XX", "YY", "ZZ", "YX", "ZX", "ZY" };
     gmx_output_env_t*          oenv;
 
@@ -819,11 +819,11 @@ int gmx_traj(int argc, char* argv[])
         mass = nullptr;
     }
 
-    flags = 0;
+    size_t      flags = 0;
     std::string label(output_env_get_xvgr_tlabel(oenv));
     if (bOX)
     {
-        flags = flags | TRX_READ_X;
+        flags = flags | trxReadCoordinates;
         outx  = xvgropen(opt2fn("-ox", NFILE, fnm),
                         bCom ? "Center of mass" : "Coordinate",
                         label,
@@ -831,14 +831,15 @@ int gmx_traj(int argc, char* argv[])
                         oenv);
         make_legend(outx, ngroups, isize0[0], index0[0], grpname, bCom, bMol, bDim, oenv);
     }
+    std::optional<TrajectoryIOStatus> statusOutput;
     if (bOXT)
     {
-        flags      = flags | TRX_READ_X;
-        status_out = open_trx(opt2fn("-oxt", NFILE, fnm), "w");
+        flags        = flags | trxReadCoordinates;
+        statusOutput = openTrajectoryFile(opt2fn("-oxt", NFILE, fnm), "w");
     }
     if (bOV)
     {
-        flags = flags | TRX_READ_V;
+        flags = flags | trxReadVelocities;
         outv  = xvgropen(opt2fn("-ov", NFILE, fnm),
                         bCom ? "Center of mass velocity" : "Velocity",
                         label,
@@ -848,7 +849,7 @@ int gmx_traj(int argc, char* argv[])
     }
     if (bOF)
     {
-        flags = flags | TRX_READ_F;
+        flags = flags | trxReadForces;
         outf  = xvgropen(
                 opt2fn("-of", NFILE, fnm), "Force", label, "Force (kJ mol\\S-1\\N nm\\S-1\\N)", oenv);
         make_legend(outf, ngroups, isize0[0], index0[0], grpname, bCom, bMol, bDim, oenv);
@@ -865,7 +866,7 @@ int gmx_traj(int argc, char* argv[])
         bDum[YY]  = FALSE;
         bDum[ZZ]  = FALSE;
         bDum[DIM] = TRUE;
-        flags     = flags | TRX_READ_V;
+        flags     = flags | trxReadVelocities;
         outt      = xvgropen(opt2fn("-ot", NFILE, fnm), "Temperature", label, "(K)", oenv);
         make_legend(outt, ngroups, isize[0], index[0], grpname, bCom, bMol, bDum, oenv);
     }
@@ -875,7 +876,7 @@ int gmx_traj(int argc, char* argv[])
         bDum[YY]  = FALSE;
         bDum[ZZ]  = FALSE;
         bDum[DIM] = TRUE;
-        flags     = flags | TRX_READ_V;
+        flags     = flags | trxReadVelocities;
         outekt    = xvgropen(opt2fn("-ekt", NFILE, fnm),
                           "Center of mass translation",
                           label,
@@ -889,7 +890,7 @@ int gmx_traj(int argc, char* argv[])
         bDum[YY]  = FALSE;
         bDum[ZZ]  = FALSE;
         bDum[DIM] = TRUE;
-        flags     = flags | TRX_READ_X | TRX_READ_V;
+        flags     = flags | trxReadCoordinates | trxReadVelocities;
         outekr    = xvgropen(opt2fn("-ekr", NFILE, fnm),
                           "Center of mass rotation",
                           label,
@@ -899,15 +900,15 @@ int gmx_traj(int argc, char* argv[])
     }
     if (bVD)
     {
-        flags = flags | TRX_READ_V;
+        flags = flags | trxReadVelocities;
     }
     if (bCV)
     {
-        flags = flags | TRX_READ_X | TRX_READ_V;
+        flags = flags | trxReadCoordinates | trxReadVelocities;
     }
     if (bCF)
     {
-        flags = flags | TRX_READ_X | TRX_READ_F;
+        flags = flags | trxReadCoordinates | trxReadForces;
     }
     if ((flags == 0) && !bOB)
     {
@@ -915,8 +916,11 @@ int gmx_traj(int argc, char* argv[])
         exit(0);
     }
 
-    read_first_frame(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &fr, flags);
-
+    auto status = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, flags);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
 
     if ((bOV || bOF) && fn2ftp(ftp2fn(efTRX, NFILE, fnm)) == efXTC)
     {
@@ -990,7 +994,7 @@ int gmx_traj(int argc, char* argv[])
             }
             frout.bV = FALSE;
             frout.bF = FALSE;
-            write_trx_x(status_out, &frout, mass, bCom, ngroups, isize, index);
+            write_trx_x(&statusOutput.value(), &frout, mass, bCom, ngroups, isize, index);
         }
         if (bOV && fr.bV)
         {
@@ -1066,7 +1070,7 @@ int gmx_traj(int argc, char* argv[])
             nr_ffr++;
         }
 
-    } while (read_next_frame(oenv, status, &fr));
+    } while (status->readNextFrame(oenv, &fr));
 
     if (gpbc != nullptr)
     {
@@ -1074,15 +1078,9 @@ int gmx_traj(int argc, char* argv[])
     }
 
     /* clean up a bit */
-    close_trx(status);
-
     if (bOX)
     {
         xvgrclose(outx);
-    }
-    if (bOXT)
-    {
-        close_trx(status_out);
     }
     if (bOV)
     {

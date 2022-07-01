@@ -46,7 +46,9 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
@@ -73,13 +75,8 @@ int gmx_helixorient(int argc, char* argv[])
         "purposes, we also write out the actual Euler rotation angles as [TT]theta[1-3].xvg[tt]"
     };
 
-    t_topology*  top = nullptr;
-    real         t;
-    rvec*        x = nullptr;
-    matrix       box;
-    t_trxstatus* status;
-    int          natoms;
-    real         theta1, theta2, theta3;
+    t_topology* top = nullptr;
+    real        theta1, theta2, theta3;
 
     int   i, j, teller = 0;
     int   iCA, iSC;
@@ -212,7 +209,12 @@ int gmx_helixorient(int argc, char* argv[])
         }
     }
 
-    natoms = read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, trxNeedCoordinates);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
 
     fpaxis    = gmx_ffopen(opt2fn("-oaxis", NFILE, fnm), "w");
     fpcenter  = gmx_ffopen(opt2fn("-ocenter", NFILE, fnm), "w");
@@ -257,22 +259,22 @@ int gmx_helixorient(int argc, char* argv[])
     unitaxes[1][1] = 1;
     unitaxes[2][2] = 1;
 
-    gpbc = gmx_rmpbc_init(&top->idef, pbcType, natoms);
+    gpbc = gmx_rmpbc_init(&top->idef, pbcType, fr.natoms);
 
     do
     {
         /* initialisation for correct distance calculations */
-        set_pbc(&pbc, pbcType, box);
+        set_pbc(&pbc, pbcType, fr.box);
         /* make molecules whole again */
-        gmx_rmpbc(gpbc, natoms, box, x);
+        gmx_rmpbc(gpbc, fr.natoms, fr.box, fr.x);
 
         /* copy coords to our smaller arrays */
         for (i = 0; i < iCA; i++)
         {
-            copy_rvec(x[ind_CA[i]], x_CA[i]);
+            copy_rvec(fr.x[ind_CA[i]], x_CA[i]);
             if (bSC)
             {
-                copy_rvec(x[ind_SC[i]], x_SC[i]);
+                copy_rvec(fr.x[ind_SC[i]], x_SC[i]);
             }
         }
 
@@ -342,12 +344,12 @@ int gmx_helixorient(int argc, char* argv[])
         }
 
         /* calculate vector from origin to residue CA */
-        fprintf(fpaxis, "%15.12g  ", t);
-        fprintf(fpcenter, "%15.12g  ", t);
-        fprintf(fprise, "%15.12g  ", t);
-        fprintf(fpradius, "%15.12g  ", t);
-        fprintf(fptwist, "%15.12g  ", t);
-        fprintf(fpbending, "%15.12g  ", t);
+        fprintf(fpaxis, "%15.12g  ", fr.time);
+        fprintf(fpcenter, "%15.12g  ", fr.time);
+        fprintf(fprise, "%15.12g  ", fr.time);
+        fprintf(fpradius, "%15.12g  ", fr.time);
+        fprintf(fptwist, "%15.12g  ", fr.time);
+        fprintf(fpbending, "%15.12g  ", fr.time);
 
         for (i = 0; i < iCA; i++)
         {
@@ -400,11 +402,11 @@ int gmx_helixorient(int argc, char* argv[])
         }
         else
         {
-            fprintf(fptilt, "%15.12g       ", t);
-            fprintf(fprotation, "%15.12g       ", t);
-            fprintf(fptheta1, "%15.12g      ", t);
-            fprintf(fptheta2, "%15.12g      ", t);
-            fprintf(fptheta3, "%15.12g      ", t);
+            fprintf(fptilt, "%15.12g       ", fr.time);
+            fprintf(fprotation, "%15.12g       ", fr.time);
+            fprintf(fptheta1, "%15.12g      ", fr.time);
+            fprintf(fptheta2, "%15.12g      ", fr.time);
+            fprintf(fptheta3, "%15.12g      ", fr.time);
 
             for (i = 0; i < iCA; i++)
             {
@@ -476,7 +478,7 @@ int gmx_helixorient(int argc, char* argv[])
         }
 
         teller++;
-    } while (read_next_x(oenv, status, &t, x, box));
+    } while (status->readNextFrame(oenv, &fr));
 
     gmx_rmpbc_done(gpbc);
 
@@ -491,8 +493,6 @@ int gmx_helixorient(int argc, char* argv[])
     gmx_ffclose(fptheta1);
     gmx_ffclose(fptheta2);
     gmx_ffclose(fptheta3);
-
-    close_trx(status);
 
     return 0;
 }

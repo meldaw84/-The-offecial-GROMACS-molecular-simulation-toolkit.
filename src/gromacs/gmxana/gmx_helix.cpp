@@ -50,7 +50,9 @@
 #include "gromacs/math/vec.h"
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
@@ -134,17 +136,14 @@ int gmx_helix(int argc, char* argv[])
 
     gmx_output_env_t* oenv;
     char              buf[54];
-    t_trxstatus*      status;
-    int               natoms, nres;
+    int               nres;
     t_bb*             bb;
     int               i, j, nall, nbb, nca, teller;
     int *             bbindex, *caindex, *allindex;
     t_topology*       top;
     PbcType           pbcType;
-    rvec *            x, *xref;
-    real              t;
+    rvec*             xref;
     real              rms;
-    matrix            box;
     gmx_rmpbc_t       gpbc = nullptr;
     gmx_bool          bRange;
     t_filenm          fnm[] = {
@@ -165,15 +164,20 @@ int gmx_helix(int argc, char* argv[])
 
     top = read_top(ftp2fn(efTPR, NFILE, fnm), &pbcType);
 
-    natoms = read_first_x(oenv, &status, opt2fn("-f", NFILE, fnm), &t, &x, box);
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, opt2fn("-f", NFILE, fnm), &fr, trxNeedCoordinates);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read input file"));
+    }
 
-    if (natoms != top->atoms.nr)
+    if (fr.natoms != top->atoms.nr)
     {
         gmx_fatal(FARGS,
                   "Sorry can only run when the number of atoms in the run input file (%d) is equal "
                   "to the number in the trajectory (%d)",
                   top->atoms.nr,
-                  natoms);
+                  fr.natoms);
     }
 
     bb = mkbbind(ftp2fn(efNDX, NFILE, fnm),
@@ -185,7 +189,7 @@ int gmx_helix(int argc, char* argv[])
                  top->atoms.atomname,
                  top->atoms.atom,
                  top->atoms.resinfo);
-    snew(bbindex, natoms);
+    snew(bbindex, fr.natoms);
     snew(caindex, nres);
 
     fprintf(stderr, "nall=%d\n", nall);
@@ -216,20 +220,20 @@ int gmx_helix(int argc, char* argv[])
         pr_bb(stdout, nres, bb);
     }
 
-    gpbc = gmx_rmpbc_init(&top->idef, pbcType, natoms);
+    gpbc = gmx_rmpbc_init(&top->idef, pbcType, fr.natoms);
 
     teller = 0;
     do
     {
         if ((teller++ % 10) == 0)
         {
-            fprintf(stderr, "\rt=%.2f", t);
+            fprintf(stderr, "\rt=%.2f", fr.time);
             fflush(stderr);
         }
-        gmx_rmpbc(gpbc, natoms, box, x);
+        gmx_rmpbc(gpbc, fr.natoms, fr.box, fr.x);
 
 
-        calc_hxprops(nres, bb, x);
+        calc_hxprops(nres, bb, fr.x);
         if (bCheck)
         {
             do_start_end(nres, bb, &nbb, bbindex, &nca, caindex, FALSE, 0, 0);
@@ -237,46 +241,49 @@ int gmx_helix(int argc, char* argv[])
 
         if (nca >= 5)
         {
-            rms = fit_ahx(nres, bb, natoms, nall, allindex, x, nca, caindex, bFit);
+            rms = fit_ahx(nres, bb, fr.natoms, nall, allindex, fr.x, nca, caindex, bFit);
 
             if (teller == 1)
             {
-                write_sto_conf(
-                        opt2fn("-cz", NFILE, fnm), "Helix fitted to Z-Axis", &(top->atoms), x, nullptr, pbcType, box);
+                write_sto_conf(opt2fn("-cz", NFILE, fnm),
+                               "Helix fitted to Z-Axis",
+                               &(top->atoms),
+                               fr.x,
+                               nullptr,
+                               pbcType,
+                               fr.box);
             }
 
-            xf[efhRAD].val   = radius(xf[efhRAD].fp2, nca, caindex, x);
-            xf[efhTWIST].val = twist(nca, caindex, x);
-            xf[efhRISE].val  = rise(nca, caindex, x);
-            xf[efhLEN].val   = ahx_len(nca, caindex, x);
+            xf[efhRAD].val   = radius(xf[efhRAD].fp2, nca, caindex, fr.x);
+            xf[efhTWIST].val = twist(nca, caindex, fr.x);
+            xf[efhRISE].val  = rise(nca, caindex, fr.x);
+            xf[efhLEN].val   = ahx_len(nca, caindex, fr.x);
             xf[efhCD222].val = ellipticity(nres, bb);
-            xf[efhDIP].val   = dip(nbb, bbindex, x, top->atoms.atom);
+            xf[efhDIP].val   = dip(nbb, bbindex, fr.x, top->atoms.atom);
             xf[efhRMS].val   = rms;
-            xf[efhCPHI].val  = ca_phi(nca, caindex, x);
+            xf[efhCPHI].val  = ca_phi(nca, caindex, fr.x);
             xf[efhPPRMS].val = pprms(xf[efhPPRMS].fp2, nres, bb);
 
             for (j = 0; (j <= efhCPHI); j++)
             {
-                fprintf(xf[j].fp, "%10g  %10g\n", t, xf[j].val);
+                fprintf(xf[j].fp, "%10g  %10g\n", fr.time, xf[j].val);
             }
 
-            av_phipsi(xf[efhPHI].fp, xf[efhPSI].fp, xf[efhPHI].fp2, xf[efhPSI].fp2, t, nres, bb);
+            av_phipsi(xf[efhPHI].fp, xf[efhPSI].fp, xf[efhPHI].fp2, xf[efhPSI].fp2, fr.time, nres, bb);
             av_hblen(xf[efhHB3].fp,
                      xf[efhHB3].fp2,
                      xf[efhHB4].fp,
                      xf[efhHB4].fp2,
                      xf[efhHB5].fp,
                      xf[efhHB5].fp2,
-                     t,
+                     fr.time,
                      nres,
                      bb);
         }
-    } while (read_next_x(oenv, status, &t, x, box));
+    } while (status->readNextFrame(oenv, &fr));
     fprintf(stderr, "\n");
 
     gmx_rmpbc_done(gpbc);
-
-    close_trx(status);
 
     for (i = 0; (i < nres); i++)
     {

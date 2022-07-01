@@ -47,8 +47,10 @@
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/gmxassert.h"
@@ -114,12 +116,10 @@ int gmx_densmap(int argc, char* argv[])
     };
     gmx_bool          bXmin, bXmax, bRadial;
     FILE*             fp;
-    t_trxstatus*      status;
     t_topology        top;
     PbcType           pbcType = PbcType::Unset;
-    rvec *            x, xcom[2], direction, center, dx;
-    matrix            box;
-    real              t, m, mtot;
+    rvec              xcom[2], direction, center, dx;
+    real              m, mtot;
     t_pbc             pbc;
     int               cav = 0, c1 = 0, c2 = 0;
     char **           grpname, buf[STRLEN];
@@ -177,9 +177,11 @@ int gmx_densmap(int argc, char* argv[])
         unit    = "count";
     }
 
+    rvec*  xTop;
+    matrix boxTop;
     if (ftp2bSet(efTPS, NFILE, fnm) || !ftp2bSet(efNDX, NFILE, fnm))
     {
-        read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, &x, nullptr, box, bRadial);
+        read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, &xTop, nullptr, boxTop, bRadial);
     }
     if (!bRadial)
     {
@@ -229,17 +231,22 @@ int gmx_densmap(int argc, char* argv[])
             break;
     }
 
-    read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, trxNeedCoordinates);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
 
     if (!bRadial)
     {
         if (n1 == 0)
         {
-            n1 = gmx::roundToInt(box[c1][c1] / bin);
+            n1 = gmx::roundToInt(fr.box[c1][c1] / bin);
         }
         if (n2 == 0)
         {
-            n2 = gmx::roundToInt(box[c2][c2] / bin);
+            n2 = gmx::roundToInt(fr.box[c2][c2] / bin);
         }
     }
     else
@@ -259,7 +266,7 @@ int gmx_densmap(int argc, char* argv[])
     }
 
     snew(grid, n1);
-    for (i = 0; i < n1; i++)
+    for (int i = 0; i < n1; i++)
     {
         snew(grid[i], n2);
     }
@@ -271,23 +278,23 @@ int gmx_densmap(int argc, char* argv[])
     {
         if (!bRadial)
         {
-            box1 += box[c1][c1];
-            box2 += box[c2][c2];
+            box1 += fr.box[c1][c1];
+            box2 += fr.box[c2][c2];
             invcellvol = n1 * n2;
             if (nmpower == -3)
             {
-                invcellvol /= det(box);
+                invcellvol /= det(fr.box);
             }
             else if (nmpower == -2)
             {
-                invcellvol /= box[c1][c1] * box[c2][c2];
+                invcellvol /= fr.box[c1][c1] * fr.box[c2][c2];
             }
             for (i = 0; i < nindex; i++)
             {
                 j = index[i];
-                if ((!bXmin || x[j][cav] >= xmin) && (!bXmax || x[j][cav] <= xmax))
+                if ((!bXmin || fr.x[j][cav] >= xmin) && (!bXmax || fr.x[j][cav] <= xmax))
                 {
-                    m1 = x[j][c1] / box[c1][c1];
+                    m1 = fr.x[j][c1] / fr.box[c1][c1];
                     if (m1 >= 1)
                     {
                         m1 -= 1;
@@ -296,7 +303,7 @@ int gmx_densmap(int argc, char* argv[])
                     {
                         m1 += 1;
                     }
-                    m2 = x[j][c2] / box[c2][c2];
+                    m2 = fr.x[j][c2] / fr.box[c2][c2];
                     if (m2 >= 1)
                     {
                         m2 -= 1;
@@ -311,13 +318,13 @@ int gmx_densmap(int argc, char* argv[])
         }
         else
         {
-            set_pbc(&pbc, pbcType, box);
+            set_pbc(&pbc, pbcType, fr.box);
             for (i = 0; i < 2; i++)
             {
                 if (gnx[i] == 1)
                 {
                     /* One atom, just copy the coordinates */
-                    copy_rvec(x[ind[i][0]], xcom[i]);
+                    copy_rvec(fr.x[ind[i][0]], xcom[i]);
                 }
                 else
                 {
@@ -330,7 +337,7 @@ int gmx_densmap(int argc, char* argv[])
                         m = top.atoms.atom[k].m;
                         for (l = 0; l < DIM; l++)
                         {
-                            xcom[i][l] += m * x[k][l];
+                            xcom[i][l] += m * fr.x[k][l];
                         }
                         mtot += m;
                     }
@@ -346,7 +353,7 @@ int gmx_densmap(int argc, char* argv[])
             for (i = 0; i < nindex; i++)
             {
                 j = index[i];
-                pbc_dx(&pbc, x[j], center, dx);
+                pbc_dx(&pbc, fr.x[j], center, dx);
                 axial = iprod(dx, direction);
                 r     = std::sqrt(norm2(dx) - axial * axial);
                 if (axial >= -amax && axial < amax && r < rmax)
@@ -360,8 +367,7 @@ int gmx_densmap(int argc, char* argv[])
             }
         }
         nfr++;
-    } while (read_next_x(oenv, status, &t, x, box));
-    close_trx(status);
+    } while (status->readNextFrame(oenv, &fr));
 
     /* normalize gridpoints */
     maxgrid = 0;

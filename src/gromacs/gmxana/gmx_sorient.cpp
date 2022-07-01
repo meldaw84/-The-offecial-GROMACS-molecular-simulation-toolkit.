@@ -50,8 +50,10 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/smalloc.h"
 
@@ -112,13 +114,9 @@ static void calc_com_pbc(int nrefat, t_topology* top, rvec x[], t_pbc* pbc, cons
 
 int gmx_sorient(int argc, char* argv[])
 {
-    t_topology   top;
-    PbcType      pbcType = PbcType::Unset;
-    t_trxstatus* status;
-    int          natoms;
-    real         t;
-    rvec *       xtop, *x;
-    matrix       box;
+    t_topology top;
+    PbcType    pbcType = PbcType::Unset;
+    rvec*      xtop;
 
     FILE*       fp;
     int         i, p, sa0, sa1, sa2, n, ntot, nf, m, *hist1, *hist2, *histn, nbin1, nbin2, nrbin;
@@ -200,9 +198,10 @@ int gmx_sorient(int argc, char* argv[])
     }
 
     bTPS = (opt2bSet("-s", NFILE, fnm) || !opt2bSet("-n", NFILE, fnm) || bCom);
+    matrix boxTop;
     if (bTPS)
     {
-        read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, &xtop, nullptr, box, bCom);
+        read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, &xtop, nullptr, boxTop, bCom);
     }
 
     /* get index groups */
@@ -236,11 +235,16 @@ int gmx_sorient(int argc, char* argv[])
     }
 
     /* initialize reading trajectory:                         */
-    natoms = read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, trxNeedCoordinates);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
 
     rmin2 = gmx::square(rmin);
     rmax2 = gmx::square(rmax);
-    rcut  = 0.99 * std::sqrt(max_cutoff2(guessPbcType(box), box));
+    rcut  = 0.99 * std::sqrt(max_cutoff2(guessPbcType(fr.box), fr.box));
     if (rcut == 0)
     {
         rcut = 10 * rmax;
@@ -272,7 +276,7 @@ int gmx_sorient(int argc, char* argv[])
     if (bTPS)
     {
         /* make molecules whole again */
-        gpbc = gmx_rmpbc_init(&top.idef, pbcType, natoms);
+        gpbc = gmx_rmpbc_init(&top.idef, pbcType, fr.natoms);
     }
     /* start analysis of trajectory */
     do
@@ -280,21 +284,21 @@ int gmx_sorient(int argc, char* argv[])
         if (bTPS)
         {
             /* make molecules whole again */
-            gmx_rmpbc(gpbc, natoms, box, x);
+            gmx_rmpbc(gpbc, fr.natoms, fr.box, fr.x);
         }
 
-        set_pbc(&pbc, pbcType, box);
+        set_pbc(&pbc, pbcType, fr.box);
         n   = 0;
         inp = 0;
         for (p = 0; (p < nrefgrp); p++)
         {
             if (bCom)
             {
-                calc_com_pbc(nrefat, &top, x, &pbc, index[0], xref, bPBC);
+                calc_com_pbc(nrefat, &top, fr.x, &pbc, index[0], xref, bPBC);
             }
             else
             {
-                copy_rvec(x[index[0][p]], xref);
+                copy_rvec(fr.x[index[0][p]], xref);
             }
 
             for (m = 0; m < isize[1]; m += 3)
@@ -302,10 +306,10 @@ int gmx_sorient(int argc, char* argv[])
                 sa0 = index[1][m];
                 sa1 = index[1][m + 1];
                 sa2 = index[1][m + 2];
-                range_check(sa0, 0, natoms);
-                range_check(sa1, 0, natoms);
-                range_check(sa2, 0, natoms);
-                pbc_dx(&pbc, x[sa0], xref, dx);
+                range_check(sa0, 0, fr.natoms);
+                range_check(sa1, 0, fr.natoms);
+                range_check(sa2, 0, fr.natoms);
+                pbc_dx(&pbc, fr.x[sa0], xref, dx);
                 r2 = norm2(dx);
                 if (r2 < rcut2)
                 {
@@ -313,8 +317,8 @@ int gmx_sorient(int argc, char* argv[])
                     if (!bVec23)
                     {
                         /* Determine the normal to the plain */
-                        rvec_sub(x[sa1], x[sa0], dxh1);
-                        rvec_sub(x[sa2], x[sa0], dxh2);
+                        rvec_sub(fr.x[sa1], fr.x[sa0], dxh1);
+                        rvec_sub(fr.x[sa2], fr.x[sa0], dxh2);
                         rvec_inc(dxh1, dxh2);
                         svmul(1 / r, dx, dx);
                         unitv(dxh1, dxh1);
@@ -326,7 +330,7 @@ int gmx_sorient(int argc, char* argv[])
                     else
                     {
                         /* Use the vector between the 2nd and 3rd atom */
-                        rvec_sub(x[sa2], x[sa1], dxh2);
+                        rvec_sub(fr.x[sa2], fr.x[sa1], dxh2);
                         unitv(dxh2, dxh2);
                         outp = iprod(dx, dxh2) / r;
                     }
@@ -356,11 +360,9 @@ int gmx_sorient(int argc, char* argv[])
         ntot += n;
         nf++;
 
-    } while (read_next_x(oenv, status, &t, x, box));
+    } while (status->readNextFrame(oenv, &fr));
 
     /* clean up */
-    sfree(x);
-    close_trx(status);
     gmx_rmpbc_done(gpbc);
 
     /* Add the bin for the exact maximum to the previous bin */

@@ -72,17 +72,17 @@ static void calc_dihs(t_xrama* xr)
     t_dih*      dd;
     gmx_rmpbc_t gpbc = nullptr;
 
-    gpbc = gmx_rmpbc_init(xr->idef, xr->pbcType, xr->natoms);
-    gmx_rmpbc(gpbc, xr->natoms, xr->box, xr->x);
+    gpbc = gmx_rmpbc_init(xr->idef, xr->pbcType, xr->fr.natoms);
+    gmx_rmpbc(gpbc, xr->fr.natoms, xr->fr.box, xr->fr.x);
     gmx_rmpbc_done(gpbc);
 
     for (i = 0; (i < xr->ndih); i++)
     {
         dd      = &(xr->dih[i]);
-        dd->ang = dih_angle(xr->x[dd->ai[0]],
-                            xr->x[dd->ai[1]],
-                            xr->x[dd->ai[2]],
-                            xr->x[dd->ai[3]],
+        dd->ang = dih_angle(xr->fr.x[dd->ai[0]],
+                            xr->fr.x[dd->ai[1]],
+                            xr->fr.x[dd->ai[2]],
+                            xr->fr.x[dd->ai[3]],
                             nullptr,
                             r_ij,
                             r_kj,
@@ -97,7 +97,7 @@ static void calc_dihs(t_xrama* xr)
 
 gmx_bool new_data(t_xrama* xr)
 {
-    if (!read_next_x(xr->oenv, xr->traj, &xr->t, xr->x, xr->box))
+    if (!xr->traj->readNextFrame(xr->oenv, &xr->fr))
     {
         return FALSE;
     }
@@ -180,7 +180,7 @@ static void min_max(t_xrama* xr)
 {
     int ai, i, j;
 
-    xr->amin = xr->natoms;
+    xr->amin = xr->fr.natoms;
     xr->amax = 0;
     for (i = 0; (i < xr->ndih); i++)
     {
@@ -251,16 +251,15 @@ static void get_dih_props(t_xrama* xr, const t_idef* idef, int mult)
 t_topology* init_rama(gmx_output_env_t* oenv, const char* infile, const char* topfile, t_xrama* xr, int mult)
 {
     t_topology* top;
-    real        t;
 
     top = read_top(topfile, &xr->pbcType);
 
     /*get_dih2(xr,top->idef.functype,&(top->idef.bondeds),&(top->atoms));*/
     get_dih(xr, &(top->atoms));
     get_dih_props(xr, &(top->idef), mult);
-    xr->natoms = read_first_x(oenv, &xr->traj, infile, &t, &(xr->x), xr->box);
-    xr->idef   = &(top->idef);
-    xr->oenv   = oenv;
+    xr->traj = read_first_frame(oenv, infile, &xr->fr, trxNeedCoordinates);
+    xr->idef = &(top->idef);
+    xr->oenv = oenv;
 
     min_max(xr);
     calc_dihs(xr);

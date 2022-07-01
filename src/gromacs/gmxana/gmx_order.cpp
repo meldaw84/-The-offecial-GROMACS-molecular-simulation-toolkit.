@@ -57,6 +57,7 @@
 #include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/gmxassert.h"
@@ -274,23 +275,19 @@ static void calc_tetra_order_parm(const char*             fnNDX,
                                   const char*             skslfn,
                                   const gmx_output_env_t* oenv)
 {
-    FILE *       fpsg = nullptr, *fpsk = nullptr;
-    t_topology   top;
-    PbcType      pbcType;
-    t_trxstatus* status;
-    int          natoms;
-    real         t;
-    rvec *       xtop, *x;
-    matrix       box;
-    real         sg, sk;
-    int**        index;
-    char**       grpname;
-    int          i, *isize, ng, nframes;
-    real *       sg_slice, *sg_slice_tot, *sk_slice, *sk_slice_tot;
-    gmx_rmpbc_t  gpbc = nullptr;
+    FILE *      fpsg = nullptr, *fpsk = nullptr;
+    t_topology  top;
+    PbcType     pbcType;
+    rvec*       xtop;
+    real        sg, sk;
+    int**       index;
+    char**      grpname;
+    int         i, *isize, ng, nframes;
+    real *      sg_slice, *sg_slice_tot, *sk_slice, *sk_slice_tot;
+    gmx_rmpbc_t gpbc = nullptr;
 
-
-    read_tps_conf(fnTPS, &top, &pbcType, &xtop, nullptr, box, FALSE);
+    matrix boxTop;
+    read_tps_conf(fnTPS, &top, &pbcType, &xtop, nullptr, boxTop, FALSE);
 
     snew(sg_slice, nslice);
     snew(sk_slice, nslice);
@@ -306,33 +303,37 @@ static void calc_tetra_order_parm(const char*             fnNDX,
     get_index(&top.atoms, fnNDX, ng, isize, index, grpname);
 
     /* Analyze trajectory */
-    natoms = read_first_x(oenv, &status, fnTRX, &t, &x, box);
-    if (natoms > top.atoms.nr)
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, fnTRX, &fr, trxNeedCoordinates);
+    if (!status.has_value())
     {
-        gmx_fatal(FARGS, "Topology (%d atoms) does not match trajectory (%d atoms)", top.atoms.nr, natoms);
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
     }
-    check_index(nullptr, ng, index[0], nullptr, natoms);
+    if (fr.natoms > top.atoms.nr)
+    {
+        gmx_fatal(FARGS, "Topology (%d atoms) does not match trajectory (%d atoms)", top.atoms.nr, fr.natoms);
+    }
+    check_index(nullptr, ng, index[0], nullptr, fr.natoms);
 
     fpsg = xvgropen(sgfn, "S\\sg\\N Angle Order Parameter", "Time (ps)", "S\\sg\\N", oenv);
     fpsk = xvgropen(skfn, "S\\sk\\N Distance Order Parameter", "Time (ps)", "S\\sk\\N", oenv);
 
     /* loop over frames */
-    gpbc    = gmx_rmpbc_init(&top.idef, pbcType, natoms);
+    gpbc    = gmx_rmpbc_init(&top.idef, pbcType, fr.natoms);
     nframes = 0;
     do
     {
         find_nearest_neighbours(
-                pbcType, natoms, box, x, isize[0], index[0], &sg, &sk, nslice, slice_dim, sg_slice, sk_slice, gpbc);
+                pbcType, fr.natoms, fr.box, fr.x, isize[0], index[0], &sg, &sk, nslice, slice_dim, sg_slice, sk_slice, gpbc);
         for (i = 0; (i < nslice); i++)
         {
             sg_slice_tot[i] += sg_slice[i];
             sk_slice_tot[i] += sk_slice[i];
         }
-        fprintf(fpsg, "%f %f\n", t, sg);
-        fprintf(fpsk, "%f %f\n", t, sk);
+        fprintf(fpsg, "%f %f\n", fr.time, sg);
+        fprintf(fpsk, "%f %f\n", fr.time, sk);
         nframes++;
-    } while (read_next_x(oenv, status, &t, x, box));
-    close_trx(status);
+    } while (status->readNextFrame(oenv, &fr));
     gmx_rmpbc_done(gpbc);
 
     sfree(grpname);
@@ -348,11 +349,11 @@ static void calc_tetra_order_parm(const char*             fnNDX,
     {
         fprintf(fpsg,
                 "%10g  %10g\n",
-                (i + 0.5) * box[slice_dim][slice_dim] / nslice,
+                (i + 0.5) * fr.box[slice_dim][slice_dim] / nslice,
                 sg_slice_tot[i] / static_cast<real>(nframes));
         fprintf(fpsk,
                 "%10g  %10g\n",
-                (i + 0.5) * box[slice_dim][slice_dim] / nslice,
+                (i + 0.5) * fr.box[slice_dim][slice_dim] / nslice,
                 sk_slice_tot[i] / static_cast<real>(nframes));
     }
     xvgrclose(fpsg);
@@ -411,20 +412,16 @@ static void calc_order(const char*             fn,
 {
     /* if permolecule = TRUE, order parameters will be calculed per molecule
      * and stored in slOrder with #slices = # molecules */
-    rvec *x0,         /* coordinates with pbc                           */
-            *x1;      /* coordinates without pbc                        */
-    matrix       box; /* box (3x3)                                      */
-    t_trxstatus* status;
-    rvec         cossum,       /* sum of vector angles for three axes            */
-            Sx, Sy, Sz,        /* the three molecular axes                       */
-            tmp1, tmp2,        /* temp. rvecs for calculating dot products       */
-            frameorder;        /* order parameters for one frame                 */
-    real* slFrameorder;        /* order parameter for one frame, per slice      */
-    real  length,              /* total distance between two atoms               */
-            t,                 /* time from trajectory                           */
+    rvec* x1;           /* coordinates without pbc                        */
+    rvec  cossum,       /* sum of vector angles for three axes            */
+            Sx, Sy, Sz, /* the three molecular axes                       */
+            tmp1, tmp2, /* temp. rvecs for calculating dot products       */
+            frameorder; /* order parameters for one frame                 */
+    real* slFrameorder; /* order parameter for one frame, per slice      */
+    real  length,       /* total distance between two atoms               */
+
             z_ave, z1, z2;     /* average z, used to det. which slice atom is in */
-    int natoms,                /* nr. atoms in trj                               */
-            nr_tails,          /* nr tails, to check if index file is correct    */
+    int nr_tails,              /* nr tails, to check if index file is correct    */
             size = 0,          /* nr. of atoms in group. same as nr_tails        */
             i, j, m, k, slice; /* current slice number                           */
     real nr_frames = 0;
@@ -442,9 +439,11 @@ static void calc_order(const char*             fn,
     /* Initiate the pbc structure */
     std::memset(&pbc, 0, sizeof(pbc));
 
-    if ((natoms = read_first_x(oenv, &status, fn, &t, &x0, box)) == 0)
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, fn, &fr, trxNeedCoordinates);
+    if (!status.has_value())
     {
-        gmx_fatal(FARGS, "Could not read coordinates from statusfile\n");
+        GMX_THROW(gmx::InvalidInputError("Could not read coordinates from statusfile"));
     }
 
     nr_tails = index[1] - index[0];
@@ -497,11 +496,11 @@ static void calc_order(const char*             fn,
     }
     snew(*order, ngrps);
     snew(slFrameorder, nslices);
-    snew(x1, natoms);
+    snew(x1, fr.natoms);
 
     if (bSliced)
     {
-        *slWidth = box[axis][axis] / static_cast<real>(nslices);
+        *slWidth = fr.box[axis][axis] / static_cast<real>(nslices);
         fprintf(stderr, "Box divided in %d slices. Initial width of slice: %f\n", nslices, *slWidth);
     }
 
@@ -513,17 +512,17 @@ static void calc_order(const char*             fn,
        in index*/
 #endif
 
-    gpbc = gmx_rmpbc_init(&top->idef, pbcType, natoms);
+    gpbc = gmx_rmpbc_init(&top->idef, pbcType, fr.natoms);
     /*********** Start processing trajectory ***********/
     do
     {
         if (bSliced)
         {
-            *slWidth = box[axis][axis] / static_cast<real>(nslices);
+            *slWidth = fr.box[axis][axis] / static_cast<real>(nslices);
         }
 
-        set_pbc(&pbc, pbcType, box);
-        gmx_rmpbc_copy(gpbc, natoms, box, x0, x1);
+        set_pbc(&pbc, pbcType, fr.box);
+        gmx_rmpbc_copy(gpbc, fr.natoms, fr.box, fr.x, x1);
 
         /* Now loop over all groups. There are ngrps groups, the order parameter can
            be calculated for grp 1 to grp ngrps - 1. For each group, loop over all
@@ -642,7 +641,7 @@ static void calc_order(const char*             fn,
                     z1    = x1[a[index[i - 1] + j]][axis];
                     z2    = x1[a[index[i + 1] + j]][axis];
                     z_ave = 0.5 * (z1 + z2);
-                    slice = static_cast<int>((static_cast<real>(nslices) * z_ave) / box[axis][axis]);
+                    slice = static_cast<int>((static_cast<real>(nslices) * z_ave) / fr.box[axis][axis]);
                     while (slice < 0)
                     {
                         slice += static_cast<real>(nslices);
@@ -673,7 +672,7 @@ static void calc_order(const char*             fn,
                     else if (i == 1)
                     {
                         /* Want minimum lateral distance to first group calculated */
-                        tmpdist = trace(box); /* should be max value */
+                        tmpdist = trace(fr.box); /* should be max value */
                         for (k = 0; k < distsize; k++)
                         {
                             rvec displacement;
@@ -708,7 +707,7 @@ static void calc_order(const char*             fn,
         }
         nr_frames++;
 
-    } while (read_next_x(oenv, status, &t, x0, box));
+    } while (status->readNextFrame(oenv, &fr));
     /*********** done with status file **********/
 
     fprintf(stderr, "\nRead trajectory. Printing parameters to file\n");
@@ -740,7 +739,6 @@ static void calc_order(const char*             fn,
         }
     }
 
-    sfree(x0); /* free memory used by coordinate arrays */
     sfree(x1);
     if (comidx != nullptr)
     {
@@ -860,17 +858,15 @@ static void write_bfactors(t_filenm*         fnm,
 {
     /*function to write order parameters as B factors in PDB file using
           first frame of trajectory*/
-    t_trxstatus* status;
-    t_trxframe   fr, frout;
-    t_atoms      useatoms;
-    int          i, j, ctr, nout;
+    t_trxframe fr, frout;
+    t_atoms    useatoms;
+    int        i, j, ctr, nout;
 
     ngrps -= 2; /*we don't have an order parameter for the first or
                       last atom in each chain*/
-    nout = nslices * ngrps;
-    read_first_frame(oenv, &status, ftp2fn(efTRX, nfile, fnm), &fr, TRX_NEED_X);
+    nout        = nslices * ngrps;
+    auto status = read_first_frame(oenv, ftp2fn(efTRX, nfile, fnm), &fr, trxNeedCoordinates);
 
-    close_trx(status);
     frout        = fr;
     frout.natoms = nout;
     frout.bF     = FALSE;

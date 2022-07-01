@@ -569,48 +569,46 @@ int gmx_trjconv(int argc, char* argv[])
     };
 #define NPA asize(pa)
 
-    FILE*        out    = nullptr;
-    t_trxstatus* trxout = nullptr;
-    t_trxstatus* trxin;
-    int          file_nr;
-    t_trxframe   fr, frout, nextFrame, previousFrame, *frameToDump = nullptr;
-    int          flags;
-    rvec *       xmem = nullptr, *vmem = nullptr, *fmem = nullptr;
-    rvec *       xp    = nullptr, x_shift, hbox;
-    real*        w_rls = nullptr;
-    int          m, i, d, frame, outframe, natoms, nout, ncent, newstep = 0, model_nr;
-    t_topology*  top     = nullptr;
-    gmx_conect   gc      = nullptr;
-    PbcType      pbcType = PbcType::Unset;
-    t_atoms *    atoms   = nullptr, useatoms;
-    matrix       top_box;
-    int *        index = nullptr, *cindex = nullptr;
-    char*        grpnm = nullptr;
-    int *        frindex, nrfri;
-    char*        frname;
-    int          ifit;
-    int*         ind_fit;
-    char*        gn_fit;
-    int          ndrop = 0, ncol, drop0 = 0, drop1 = 0, dropuse = 0;
-    double**     dropval;
-    real         tshift = 0, prec;
-    gmx_bool     bFit, bPFit, bReset;
-    int          nfitdim;
-    gmx_rmpbc_t  gpbc = nullptr;
-    gmx_bool     bRmPBC, bPBCWhole, bPBCcomRes, bPBCcomMol, bPBCcomAtom, bPBC, bNoJump, bCluster;
-    gmx_bool     bCopy, bDoIt, bIndex, bTDump = false, bSetTime, bTPS = FALSE;
-    gmx_bool     bFrameReadHasPrinted = false;
-    int          frameNumberToPrint   = 0;
-    real         frameTimeToPrint     = 0.0;
-    gmx_bool     bExec, bTimeStep = FALSE, bDumpFrame = FALSE, bSetXtcPrec, bNeedPrec;
-    gmx_bool     bHaveFirstFrame, bHaveNextFrame, bSetBox, bSetUR, bSplit = FALSE;
-    gmx_bool     bDropUnder = FALSE, bDropOver = FALSE, bTrans = FALSE;
-    gmx_bool     bWriteFrame, bSplitHere;
-    const char * top_file, *in_file, *out_file = nullptr;
-    char         out_file2[256], *charpt;
-    char*        outf_base = nullptr;
-    const char*  outf_ext  = nullptr;
-    char         top_title[256], timestr[32], stepstr[32], filemode[5];
+    FILE*       out = nullptr;
+    int         file_nr;
+    t_trxframe  fr, frout, nextFrame, previousFrame, *frameToDump = nullptr;
+    int         flags;
+    rvec *      xmem = nullptr, *vmem = nullptr, *fmem = nullptr;
+    rvec *      xp    = nullptr, x_shift, hbox;
+    real*       w_rls = nullptr;
+    int         m, i, d, frame, outframe, natoms, nout, ncent, newstep = 0, model_nr;
+    t_topology* top     = nullptr;
+    gmx_conect  gc      = nullptr;
+    PbcType     pbcType = PbcType::Unset;
+    t_atoms *   atoms   = nullptr, useatoms;
+    matrix      top_box;
+    int *       index = nullptr, *cindex = nullptr;
+    char*       grpnm = nullptr;
+    int *       frindex, nrfri;
+    char*       frname;
+    int         ifit;
+    int*        ind_fit;
+    char*       gn_fit;
+    int         ndrop = 0, ncol, drop0 = 0, drop1 = 0, dropuse = 0;
+    double**    dropval;
+    real        tshift = 0, prec;
+    gmx_bool    bFit, bPFit, bReset;
+    int         nfitdim;
+    gmx_rmpbc_t gpbc = nullptr;
+    gmx_bool    bRmPBC, bPBCWhole, bPBCcomRes, bPBCcomMol, bPBCcomAtom, bPBC, bNoJump, bCluster;
+    gmx_bool    bCopy, bDoIt, bIndex, bTDump = false, bSetTime, bTPS = FALSE;
+    gmx_bool    bFrameReadHasPrinted = false;
+    int         frameNumberToPrint   = 0;
+    real        frameTimeToPrint     = 0.0;
+    gmx_bool    bExec, bTimeStep = FALSE, bDumpFrame = FALSE, bSetXtcPrec, bNeedPrec;
+    gmx_bool    bHaveFirstFrame, bHaveNextFrame, bSetBox, bSetUR, bSplit = FALSE;
+    gmx_bool    bDropUnder = FALSE, bDropOver = FALSE, bTrans = FALSE;
+    gmx_bool    bWriteFrame, bSplitHere;
+    const char *top_file, *in_file, *out_file = nullptr;
+    char        out_file2[256], *charpt;
+    char*       outf_base = nullptr;
+    const char* outf_ext  = nullptr;
+    char        top_title[256], timestr[32], stepstr[32], filemode[5];
     gmx_output_env_t* oenv;
 
     t_filenm fnm[] = { { efTRX, "-f", nullptr, ffREAD },     { efTRO, "-o", nullptr, ffWRITE },
@@ -643,6 +641,7 @@ int gmx_trjconv(int argc, char* argv[])
     /* Check command line */
     in_file = opt2fn("-f", NFILE, fnm);
 
+    std::optional<TrajectoryIOStatus> output;
     if (ttrunc != -1)
     {
         do_trunc(in_file, ttrunc);
@@ -868,16 +867,15 @@ int gmx_trjconv(int argc, char* argv[])
         else
         {
             {
-                t_trxframe   temporaryFrame;
-                t_trxstatus* temporaryStatus;
+                t_trxframe temporaryFrame;
                 clear_trxframe(&temporaryFrame, true);
+                auto temporaryStatus = read_first_frame(oenv, in_file, &temporaryFrame, trxDontSkip);
                 /* no index file, so read natoms from TRX */
-                if (!read_first_frame(oenv, &temporaryStatus, in_file, &temporaryFrame, TRX_DONT_SKIP))
+                if (!temporaryStatus.has_value())
                 {
                     gmx_fatal(FARGS, "Could not read a frame from %s", in_file);
                 }
                 natoms = temporaryFrame.natoms;
-                close_trx(temporaryStatus);
                 done_frame(&temporaryFrame);
             }
             snew(index, natoms);
@@ -954,23 +952,24 @@ int gmx_trjconv(int argc, char* argv[])
         /* select what to read */
         if (ftp == efTRR)
         {
-            flags = TRX_READ_X;
+            flags = trxReadCoordinates;
         }
         else
         {
-            flags = TRX_NEED_X;
+            flags = trxNeedCoordinates;
         }
         if (bVels)
         {
-            flags = flags | TRX_READ_V;
+            flags = flags | trxReadVelocities;
         }
         if (bForce)
         {
-            flags = flags | TRX_READ_F;
+            flags = flags | trxReadForces;
         }
 
         /* open trx file for reading */
-        bHaveFirstFrame = read_first_frame(oenv, &trxin, in_file, &fr, flags);
+        auto status     = read_first_frame(oenv, in_file, &fr, flags);
+        bHaveFirstFrame = status.has_value();
         if (fr.bPrec)
         {
             fprintf(stderr, "\nPrecision of %s is %g (nm)\n", in_file, 1 / fr.prec);
@@ -1047,9 +1046,9 @@ int gmx_trjconv(int argc, char* argv[])
             switch (ftp)
             {
                 case efTNG:
-                    trxout = trjtools_gmx_prepare_tng_writing(out_file,
+                    output = trjtools_gmx_prepare_tng_writing(out_file,
                                                               filemode[0],
-                                                              trxin,
+                                                              &status.value(),
                                                               nullptr,
                                                               nout,
                                                               mtop.get(),
@@ -1061,7 +1060,7 @@ int gmx_trjconv(int argc, char* argv[])
                     out = nullptr;
                     if (!bSplit)
                     {
-                        trxout = open_trx(out_file, filemode);
+                        output = openTrajectoryFile(out_file, filemode);
                     }
                     break;
                 case efGRO:
@@ -1114,7 +1113,8 @@ int gmx_trjconv(int argc, char* argv[])
                 }
                 // Read the next frame now, so that we know whether
                 // one exists.
-                bHaveNextFrame = read_next_frame(oenv, trxin, &nextFrame);
+                nextFrame.step = fr.step;
+                bHaveNextFrame = status->readNextFrame(oenv, &nextFrame);
 
 
                 if (bSetBox)
@@ -1338,7 +1338,7 @@ int gmx_trjconv(int argc, char* argv[])
                     }
 
                     /* Flag whenever the reading routine prints, so that we print after it and do not mangle the line */
-                    if (trxio_should_print_count(oenv, trxin))
+                    if (status->havePrintForFrame(oenv))
                     {
                         bFrameReadHasPrinted = true;
                     }
@@ -1477,20 +1477,17 @@ int gmx_trjconv(int argc, char* argv[])
                         switch (ftp)
                         {
                             case efTNG:
-                                write_tng_frame(trxout, &frout);
+                                output->writeTngFrame(&frout);
                                 // TODO when trjconv behaves better: work how to read and write lambda
                                 break;
                             case efTRR:
                             case efXTC:
                                 if (bSplitHere)
                                 {
-                                    if (trxout)
-                                    {
-                                        close_trx(trxout);
-                                    }
-                                    trxout = open_trx(out_file2, filemode);
+                                    output.reset();
+                                    output = openTrajectoryFile(out_file2, filemode);
                                 }
-                                write_trxframe(trxout, &frout, gc);
+                                output->writeTrxframe(&frout, gc);
                                 break;
                             case efGRO:
                             case efG96:
@@ -1646,7 +1643,6 @@ int gmx_trjconv(int argc, char* argv[])
         }
         fprintf(stderr, "\n");
 
-        close_trx(trxin);
         sfree(outf_base);
 
         if (bRmPBC)
@@ -1654,10 +1650,6 @@ int gmx_trjconv(int argc, char* argv[])
             gmx_rmpbc_done(gpbc);
         }
 
-        if (trxout)
-        {
-            close_trx(trxout);
-        }
         else if (out != nullptr)
         {
             gmx_ffclose(out);

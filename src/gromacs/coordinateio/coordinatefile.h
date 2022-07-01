@@ -145,16 +145,17 @@
 #ifndef GMX_COORDINATEIO_COORDINATEFILE_H
 #define GMX_COORDINATEIO_COORDINATEFILE_H
 
+#include <optional>
 #include <string>
 #include <utility>
 
 #include "gromacs/coordinateio/ioutputadapter.h"
 #include "gromacs/coordinateio/outputadaptercontainer.h"
+#include "gromacs/fileio/trxio.h"
 #include "gromacs/math/vectypes.h"
 #include "gromacs/topology/atoms.h"
 
 struct gmx_mtop_t;
-struct t_trxstatus;
 
 namespace gmx
 {
@@ -211,7 +212,7 @@ public:
      *                 than the object created here.
      */
     TrajectoryFileOpener(const std::string& name, int filetype, const Selection& sel, const gmx_mtop_t* mtop) :
-        outputFileName_(name), outputFile_(nullptr), filetype_(filetype), sel_(sel), mtop_(mtop)
+        outputFileName_(name), filetype_(filetype), sel_(sel), mtop_(mtop)
     {
     }
 
@@ -225,15 +226,16 @@ public:
      *
      * Performs lazy initialization if needed.
      */
-    t_trxstatus* outputFile();
+    TrajectoryIOStatus* outputFile();
 
 private:
     //! Name for the new coordinate file.
     std::string outputFileName_;
 
-    //! File pointer to the coordinate file being written.
-    t_trxstatus* outputFile_;
-
+    //! File handle to the coordinate file being written.
+    std::optional<TrajectoryIOStatus> outputFile_ = std::nullopt;
+    //! Access to file handle.
+    TrajectoryIOStatus* outputHandle_ = nullptr;
     //! Storage of file type for determing what kind of file will be written to disk.
     int filetype_;
 

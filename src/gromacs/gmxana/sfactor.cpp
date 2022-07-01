@@ -52,6 +52,7 @@
 #include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
@@ -449,8 +450,8 @@ extern int do_scattering_intensity(const char*             fnTPS,
                                    int                     ng,
                                    const gmx_output_env_t* oenv)
 {
-    int               i, *isize, flags = TRX_READ_X, **index_atp;
-    t_trxstatus*      status;
+    int               i, *isize, **index_atp;
+    size_t            flags = trxReadCoordinates;
     char**            grpname;
     int**             index;
     t_topology        top;
@@ -497,7 +498,11 @@ extern int do_scattering_intensity(const char*             fnTPS,
     }
 
     /* The first time we read data is a little special */
-    read_first_frame(oenv, &status, fnTRX, &fr, flags);
+    auto status = read_first_frame(oenv, fnTRX, &fr, flags);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
 
     sf->total_n_atoms = fr.natoms;
 
@@ -540,7 +545,7 @@ extern int do_scattering_intensity(const char*             fnTPS,
         }
     }
 
-    while (read_next_frame(oenv, status, &fr));
+    while (status->readNextFrame(oenv, &fr));
 
     save_data(static_cast<structure_factor_t*>(sf), fnXVG, ng, start_q, end_q, oenv);
 

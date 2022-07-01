@@ -50,9 +50,11 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/booltype.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringutil.h"
 
@@ -148,11 +150,8 @@ int gmx_polystat(int argc, char* argv[])
     PbcType                    pbcType;
     int                        isize, *index, nmol, *molind, mol, nat_min = 0, nat_max = 0;
     char*                      grpname;
-    t_trxstatus*               status;
-    real                       t;
-    rvec *                     x, *bond = nullptr;
-    matrix                     box;
-    int                        natoms, i, j, frame, ind0, ind1, a, d, d2, ord[DIM] = { 0 };
+    rvec*                      bond = nullptr;
+    int                        i, j, frame, ind0, ind1, a, d, d2, ord[DIM] = { 0 };
     dvec                       cm, sum_eig = { 0, 0, 0 };
     double **                  gyr, **gyr_all, eig[DIM], **eigv;
     double                     sum_eed2, sum_eed2_tot, sum_gyro, sum_gyro_tot, sum_pers_tot;
@@ -185,7 +184,10 @@ int gmx_polystat(int argc, char* argv[])
     }
 
     snew(top, 1);
-    pbcType = read_tpx_top(ftp2fn(efTPR, NFILE, fnm), nullptr, box, &natoms, nullptr, nullptr, top);
+    matrix boxTop;
+    int    natomsTopology;
+    pbcType = read_tpx_top(
+            ftp2fn(efTPR, NFILE, fnm), nullptr, boxTop, &natomsTopology, nullptr, nullptr, top);
 
     fprintf(stderr, "Select a group of polymer mainchain atoms:\n");
     get_index(&top->atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &isize, &index, &grpname);
@@ -269,7 +271,12 @@ int gmx_polystat(int argc, char* argv[])
         outi = nullptr;
     }
 
-    natoms = read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, trxNeedCoordinates);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
 
     snew(gyr, DIM);
     snew(gyr_all, DIM);
@@ -286,11 +293,11 @@ int gmx_polystat(int argc, char* argv[])
     sum_gyro_tot = 0;
     sum_pers_tot = 0;
 
-    gpbc = gmx_rmpbc_init(&top->idef, pbcType, natoms);
+    gpbc = gmx_rmpbc_init(&top->idef, pbcType, fr.natoms);
 
     do
     {
-        gmx_rmpbc(gpbc, natoms, box, x);
+        gmx_rmpbc(gpbc, fr.natoms, fr.box, fr.x);
 
         sum_eed2 = 0;
         for (d = 0; d < DIM; d++)
@@ -318,12 +325,12 @@ int gmx_polystat(int argc, char* argv[])
             ind1 = molind[mol + 1];
 
             /* Determine end to end distance */
-            sum_eed2 += distance2(x[index[ind0]], x[index[ind1 - 1]]);
+            sum_eed2 += distance2(fr.x[index[ind0]], fr.x[index[ind1 - 1]]);
 
             /* Determine internal distances */
             if (outi)
             {
-                calc_int_dist(intd, x, index[ind0], index[ind1 - 1]);
+                calc_int_dist(intd, fr.x, index[ind0], index[ind1 - 1]);
             }
 
             /* Determine the radius of gyration */
@@ -348,10 +355,10 @@ int gmx_polystat(int argc, char* argv[])
                 mmol += m;
                 for (d = 0; d < DIM; d++)
                 {
-                    cm[d] += m * x[a][d];
+                    cm[d] += m * fr.x[a][d];
                     for (d2 = 0; d2 < DIM; d2++)
                     {
-                        gyr[d][d2] += m * x[a][d] * x[a][d2];
+                        gyr[d][d2] += m * fr.x[a][d] * fr.x[a][d2];
                     }
                 }
             }
@@ -376,7 +383,7 @@ int gmx_polystat(int argc, char* argv[])
             {
                 for (i = ind0; i < ind1 - 1; i++)
                 {
-                    rvec_sub(x[index[i + 1]], x[index[i]], bond[i - ind0]);
+                    rvec_sub(fr.x[index[i + 1]], fr.x[index[i]], bond[i - ind0]);
                     unitv(bond[i - ind0], bond[i - ind0]);
                 }
                 for (i = ind0; i < ind1 - 1; i++)
@@ -405,7 +412,7 @@ int gmx_polystat(int argc, char* argv[])
 
         fprintf(out,
                 "%10.3f %8.4f %8.4f %8.4f %8.4f %8.4f",
-                t * output_env_get_time_factor(oenv),
+                fr.time * output_env_get_time_factor(oenv),
                 std::sqrt(sum_eed2),
                 sqrt(sum_gyro),
                 std::sqrt(eig[ord[0]]),
@@ -422,7 +429,7 @@ int gmx_polystat(int argc, char* argv[])
 
         if (outv)
         {
-            fprintf(outv, "%10.3f", t * output_env_get_time_factor(oenv));
+            fprintf(outv, "%10.3f", fr.time * output_env_get_time_factor(oenv));
             for (d = 0; d < DIM; d++)
             {
                 for (d2 = 0; d2 < DIM; d2++)
@@ -458,16 +465,14 @@ int gmx_polystat(int argc, char* argv[])
                        + 2.0 * (std::log(sum_inp[i - 2]) + 1.0)
                                  / (std::log(sum_inp[i - 2]) - std::log(sum_inp[i]));
             }
-            fprintf(outp, "%10.3f %8.4f\n", t * output_env_get_time_factor(oenv), pers);
+            fprintf(outp, "%10.3f %8.4f\n", fr.time * output_env_get_time_factor(oenv), pers);
             sum_pers_tot += pers;
         }
 
         frame++;
-    } while (read_next_x(oenv, status, &t, x, box));
+    } while (status->readNextFrame(oenv, &fr));
 
     gmx_rmpbc_done(gpbc);
-
-    close_trx(status);
 
     xvgrclose(out);
     if (outv)

@@ -49,8 +49,10 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/gmxassert.h"
@@ -118,16 +120,11 @@ int gmx_sans(int argc, char* argv[])
     };
     FILE*                                fp;
     const char *                         fnTPX, *fnTRX, *fnDAT = nullptr;
-    t_trxstatus*                         status;
     t_topology*                          top  = nullptr;
     gmx_rmpbc_t                          gpbc = nullptr;
     gmx_bool                             bFFT = FALSE, bDEBYE = FALSE;
     gmx_bool                             bMC     = FALSE;
     PbcType                              pbcType = PbcType::Unset;
-    matrix                               box;
-    rvec*                                x;
-    int                                  natoms;
-    real                                 t;
     char**                               grpname = nullptr;
     int*                                 index   = nullptr;
     int                                  isize;
@@ -214,7 +211,9 @@ int gmx_sans(int argc, char* argv[])
     snew(grpname, 1);
     snew(index, 1);
 
-    read_tps_conf(fnTPX, top, &pbcType, &x, nullptr, box, TRUE);
+    rvec*  xTop;
+    matrix boxTop;
+    read_tps_conf(fnTPX, top, &pbcType, &xTop, nullptr, boxTop, TRUE);
 
     printf("\nPlease select group for SANS spectra calculation:\n");
     get_index(&(top->atoms), ftp2fn_null(efNDX, NFILE, fnm), 1, &isize, &index, grpname);
@@ -225,15 +224,20 @@ int gmx_sans(int argc, char* argv[])
     if (bPBC)
     {
         gpbc = gmx_rmpbc_init(&top->idef, pbcType, top->atoms.nr);
-        gmx_rmpbc(gpbc, top->atoms.nr, box, x);
+        gmx_rmpbc(gpbc, top->atoms.nr, boxTop, xTop);
     }
 
-    natoms = read_first_x(oenv, &status, fnTRX, &t, &x, box);
-    if (natoms != top->atoms.nr)
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, fnTRX, &fr, trxNeedCoordinates);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
+    if (fr.natoms != top->atoms.nr)
     {
         fprintf(stderr,
                 "\nWARNING: number of atoms in tpx (%d) and trajectory (%d) do not match\n",
-                natoms,
+                fr.natoms,
                 top->atoms.nr);
     }
 
@@ -241,7 +245,7 @@ int gmx_sans(int argc, char* argv[])
     {
         if (bPBC)
         {
-            gmx_rmpbc(gpbc, top->atoms.nr, box, x);
+            gmx_rmpbc(gpbc, top->atoms.nr, fr.box, fr.x);
         }
         /* allocate memory for pr */
         if (pr == nullptr)
@@ -251,7 +255,7 @@ int gmx_sans(int argc, char* argv[])
         }
         /*  realy calc p(r) */
         prframecurrent = calc_radial_distribution_histogram(
-                gsans, x, box, index, isize, binwidth, bMC, bNORM, mcover, seed);
+                gsans, fr.x, fr.box, index, isize, binwidth, bMC, bNORM, mcover, seed);
         /* copy prframecurrent -> pr and summ up pr->gr[i] */
         /* allocate and/or resize memory for pr->gr[i] and pr->r[i] */
         if (pr->gr == nullptr)
@@ -287,10 +291,10 @@ int gmx_sans(int argc, char* argv[])
             snew(hdr, 25);
             snew(suffix, GMX_PATH_MAX);
             /* prepare header */
-            sprintf(hdr, "g(r), t = %f", t);
+            sprintf(hdr, "g(r), t = %f", fr.time);
             /* prepare output filename */
             auto fnmdup = filenames;
-            sprintf(suffix, "-t%.2f", t);
+            sprintf(suffix, "-t%.2f", fr.time);
             add_suffix_to_output_names(fnmdup.data(), NFILE, suffix);
             fp = xvgropen(opt2fn_null("-prframe", NFILE, fnmdup.data()),
                           hdr,
@@ -310,10 +314,10 @@ int gmx_sans(int argc, char* argv[])
             snew(hdr, 25);
             snew(suffix, GMX_PATH_MAX);
             /* prepare header */
-            sprintf(hdr, "I(q), t = %f", t);
+            sprintf(hdr, "I(q), t = %f", fr.time);
             /* prepare output filename */
             auto fnmdup = filenames;
-            sprintf(suffix, "-t%.2f", t);
+            sprintf(suffix, "-t%.2f", fr.time);
             add_suffix_to_output_names(fnmdup.data(), NFILE, suffix);
             fp = xvgropen(
                     opt2fn_null("-sqframe", NFILE, fnmdup.data()), hdr, "q (nm^-1)", "s(q)/s(0)", oenv);
@@ -333,8 +337,7 @@ int gmx_sans(int argc, char* argv[])
         sfree(sqframecurrent->q);
         sfree(sqframecurrent->s);
         sfree(sqframecurrent);
-    } while (read_next_x(oenv, status, &t, x, box));
-    close_trx(status);
+    } while (status->readNextFrame(oenv, &fr));
 
     /* normalize histo */
     normalize_probability(pr->grn, pr->gr);

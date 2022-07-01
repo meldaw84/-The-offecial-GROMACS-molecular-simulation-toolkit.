@@ -44,9 +44,11 @@
 #include "gromacs/math/vec.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringutil.h"
 
@@ -131,18 +133,15 @@ int gmx_saltbr(int argc, char* argv[])
     static const char* fn[3]    = { "plus-plus.xvg", "min-min.xvg", "plus-min.xvg" };
     int                nset[3]  = { 0, 0, 0 };
 
-    t_topology*  top;
-    PbcType      pbcType;
-    t_trxstatus* status;
-    int          i, j, k, m, nnn, teller, ncg;
-    real         t, *time, qi, qj;
-    t_charge*    cg;
-    real***      cgdist;
-    int**        nWithin;
+    t_topology* top;
+    PbcType     pbcType;
+    int         i, j, k, m, nnn, teller, ncg;
+    real *      time, qi, qj;
+    t_charge*   cg;
+    real***     cgdist;
+    int**       nWithin;
 
     t_pbc             pbc;
-    rvec*             x;
-    matrix            box;
     gmx_output_env_t* oenv;
 
     if (!parse_common_args(
@@ -161,16 +160,21 @@ int gmx_saltbr(int argc, char* argv[])
         snew(nWithin[i], ncg);
     }
 
-    read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, trxNeedCoordinates);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
 
     teller = 0;
     time   = nullptr;
     do
     {
         srenew(time, teller + 1);
-        time[teller] = t;
+        time[teller] = fr.time;
 
-        set_pbc(&pbc, pbcType, box);
+        set_pbc(&pbc, pbcType, fr.box);
 
         for (i = 0; (i < ncg); i++)
         {
@@ -178,7 +182,7 @@ int gmx_saltbr(int argc, char* argv[])
             {
                 srenew(cgdist[i][j], teller + 1);
                 rvec dx;
-                pbc_dx(&pbc, x[cg[i].cg], x[cg[j].cg], dx);
+                pbc_dx(&pbc, fr.x[cg[i].cg], fr.x[cg[j].cg], dx);
                 cgdist[i][j][teller] = norm(dx);
                 if (cgdist[i][j][teller] < truncate)
                 {
@@ -188,9 +192,8 @@ int gmx_saltbr(int argc, char* argv[])
         }
 
         teller++;
-    } while (read_next_x(oenv, status, &t, x, box));
+    } while (status->readNextFrame(oenv, &fr));
     fprintf(stderr, "\n");
-    close_trx(status);
 
     if (bSep)
     {

@@ -48,7 +48,9 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/gmxassert.h"
@@ -65,48 +67,53 @@ static void get_refx(gmx_output_env_t* oenv,
                      PbcType           pbcType,
                      rvec*             x_ref)
 {
-    int          natoms, nfr_all, nfr, i, j, a, r, c, min_fr;
-    t_trxstatus* status;
-    real *       ti, min_t;
-    double       tot_mass, msd, *srmsd, min_srmsd, srmsd_tot;
-    rvec *       x, **xi;
-    real         xf;
-    matrix       box, R;
-    real*        w_rls;
-    gmx_rmpbc_t  gpbc = nullptr;
+    int         nfr_all, nfr, i, j, a, r, c, min_fr;
+    real *      ti, min_t;
+    double      tot_mass, msd, *srmsd, min_srmsd, srmsd_tot;
+    rvec**      xi;
+    real        xf;
+    matrix      R;
+    real*       w_rls;
+    gmx_rmpbc_t gpbc = nullptr;
 
 
     nfr_all = 0;
     nfr     = 0;
     snew(ti, 100);
     snew(xi, 100);
-    natoms = read_first_x(oenv, &status, trxfn, &ti[nfr], &x, box);
+    t_trxframe fr;
+    auto status = read_first_frame(oenv, trxfn, &fr, trxNeedCoordinates); //&ti[nfr], &x, box);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
 
     snew(w_rls, gnx);
     tot_mass = 0;
     for (a = 0; a < gnx; a++)
     {
-        if (index[a] >= natoms)
+        if (index[a] >= fr.natoms)
         {
             gmx_fatal(FARGS,
                       "Atom index (%d) is larger than the number of atoms in the trajecory (%d)",
                       index[a] + 1,
-                      natoms);
+                      fr.natoms);
         }
         w_rls[a] = (bMW ? top->atoms.atom[index[a]].m : 1.0);
         tot_mass += w_rls[a];
     }
-    gpbc = gmx_rmpbc_init(&top->idef, pbcType, natoms);
+    gpbc = gmx_rmpbc_init(&top->idef, pbcType, fr.natoms);
 
     do
     {
+        ti[nfr] = fr.time;
         if (nfr_all % skip == 0)
         {
-            gmx_rmpbc(gpbc, natoms, box, x);
+            gmx_rmpbc(gpbc, fr.natoms, fr.box, fr.x);
             snew(xi[nfr], gnx);
             for (i = 0; i < gnx; i++)
             {
-                copy_rvec(x[index[i]], xi[nfr][i]);
+                copy_rvec(fr.x[index[i]], xi[nfr][i]);
             }
             reset_x(gnx, nullptr, gnx, nullptr, xi[nfr], w_rls);
             nfr++;
@@ -117,9 +124,7 @@ static void get_refx(gmx_output_env_t* oenv,
             }
         }
         nfr_all++;
-    } while (read_next_x(oenv, status, &ti[nfr], x, box));
-    close_trx(status);
-    sfree(x);
+    } while (status->readNextFrame(oenv, &fr));
 
     gmx_rmpbc_done(gpbc);
 
@@ -224,13 +229,11 @@ int gmx_rotmat(int argc, char* argv[])
         { "-mw", FALSE, etBOOL, { &bMW }, "Use mass weighted fitting" }
     };
     FILE*                      out;
-    t_trxstatus*               status;
     t_topology                 top;
     PbcType                    pbcType;
-    rvec *                     x_ref, *x;
-    matrix                     box, R;
-    real                       t;
-    int                        natoms, i;
+    rvec*                      x_ref;
+    matrix                     R;
+    int                        i;
     char*                      grpname;
     int                        gnx;
     gmx_rmpbc_t                gpbc = nullptr;
@@ -251,11 +254,12 @@ int gmx_rotmat(int argc, char* argv[])
         return 0;
     }
 
-    read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, &x_ref, nullptr, box, bMW);
+    matrix boxTop;
+    read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, &x_ref, nullptr, boxTop, bMW);
 
     gpbc = gmx_rmpbc_init(&top.idef, pbcType, top.atoms.nr);
 
-    gmx_rmpbc(gpbc, top.atoms.nr, box, x_ref);
+    gmx_rmpbc(gpbc, top.atoms.nr, boxTop, x_ref);
 
     get_index(&top.atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &gnx, &index, &grpname);
 
@@ -265,24 +269,29 @@ int gmx_rotmat(int argc, char* argv[])
         get_refx(oenv, ftp2fn(efTRX, NFILE, fnm), reffit[0][2] == 'z' ? 3 : 2, skip, gnx, index, bMW, &top, pbcType, x_ref);
     }
 
-    natoms = read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, trxNeedCoordinates);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
 
-    snew(w_rls, natoms);
+    snew(w_rls, fr.natoms);
     for (i = 0; i < gnx; i++)
     {
-        if (index[i] >= natoms)
+        if (index[i] >= fr.natoms)
         {
             gmx_fatal(FARGS,
                       "Atom index (%d) is larger than the number of atoms in the trajecory (%d)",
                       index[i] + 1,
-                      natoms);
+                      fr.natoms);
         }
         w_rls[index[i]] = (bMW ? top.atoms.atom[index[i]].m : 1.0);
     }
 
     if (reffit[0][0] == 'n')
     {
-        reset_x(gnx, index, natoms, nullptr, x_ref, w_rls);
+        reset_x(gnx, index, fr.natoms, nullptr, x_ref, w_rls);
     }
 
     out = xvgropen(ftp2fn(efXVG, NFILE, fnm), "Fit matrix", "Time (ps)", "", oenv);
@@ -290,20 +299,20 @@ int gmx_rotmat(int argc, char* argv[])
 
     do
     {
-        gmx_rmpbc(gpbc, natoms, box, x);
+        gmx_rmpbc(gpbc, fr.natoms, fr.box, fr.x);
 
-        reset_x(gnx, index, natoms, nullptr, x, w_rls);
+        reset_x(gnx, index, fr.natoms, nullptr, fr.x, w_rls);
 
         if (bFitXY)
         {
-            do_fit_ndim(2, natoms, w_rls, x_ref, x);
+            do_fit_ndim(2, fr.natoms, w_rls, x_ref, fr.x);
         }
 
-        calc_fit_R(DIM, natoms, w_rls, x_ref, x, R);
+        calc_fit_R(DIM, fr.natoms, w_rls, x_ref, fr.x, R);
 
         fprintf(out,
                 "%7g %7.4f %7.4f %7.4f %7.4f %7.4f %7.4f %7.4f %7.4f %7.4f\n",
-                t,
+                fr.time,
                 R[XX][XX],
                 R[XX][YY],
                 R[XX][ZZ],
@@ -313,11 +322,9 @@ int gmx_rotmat(int argc, char* argv[])
                 R[ZZ][XX],
                 R[ZZ][YY],
                 R[ZZ][ZZ]);
-    } while (read_next_x(oenv, status, &t, x, box));
+    } while (status->readNextFrame(oenv, &fr));
 
     gmx_rmpbc_done(gpbc);
-
-    close_trx(status);
 
     xvgrclose(out);
 

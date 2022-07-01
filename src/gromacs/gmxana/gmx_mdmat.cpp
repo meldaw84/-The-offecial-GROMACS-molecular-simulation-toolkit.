@@ -52,8 +52,10 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
@@ -211,18 +213,15 @@ int gmx_mdmat(int argc, char* argv[])
     char*      grpname;
     int *      rndx, *natm, prevres, newres;
 
-    int               i, j, nres, natoms, nframes, trxnat;
-    t_trxstatus*      status;
+    int               i, j, nres, nframes;
     gmx_bool          bCalcN, bFrames;
-    real              t, ratio;
+    real              ratio;
     char              label[234];
     t_rgb             rlo, rhi;
-    rvec*             x;
     real **           mdmat, *resnr, **totmdmat;
     int **            nmat, **totnmat;
     real*             mean_n;
     int*              tot_n;
-    matrix            box = { { 0 } };
     gmx_output_env_t* oenv;
     gmx_rmpbc_t       gpbc = nullptr;
 
@@ -240,17 +239,18 @@ int gmx_mdmat(int argc, char* argv[])
         fprintf(stderr, "Will calculate number of different contacts\n");
     }
 
-    read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, &x, nullptr, box, FALSE);
+    rvec*  xTop;
+    matrix boxTop;
+    read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, &xTop, nullptr, boxTop, FALSE);
 
     fprintf(stderr, "Select group for analysis\n");
     get_index(&top.atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &isize, &index, &grpname);
 
-    natoms = isize;
-    snew(useatoms.atom, natoms);
-    snew(useatoms.atomname, natoms);
+    snew(useatoms.atom, isize);
+    snew(useatoms.atomname, isize);
 
     useatoms.nres = 0;
-    snew(useatoms.resinfo, natoms);
+    snew(useatoms.resinfo, isize);
 
     prevres = top.atoms.atom[index[0]].resind;
     newres  = 0;
@@ -282,7 +282,7 @@ int gmx_mdmat(int argc, char* argv[])
     rndx = res_ndx(&(useatoms));
     natm = res_natm(&(useatoms));
     nres = useatoms.nres;
-    fprintf(stderr, "There are %d residues with %d atoms\n", nres, natoms);
+    fprintf(stderr, "There are %d residues with %d atoms\n", nres, isize);
 
     snew(resnr, nres);
     snew(mdmat, nres);
@@ -293,8 +293,8 @@ int gmx_mdmat(int argc, char* argv[])
     for (i = 0; (i < nres); i++)
     {
         snew(mdmat[i], nres);
-        snew(nmat[i], natoms);
-        snew(totnmat[i], natoms);
+        snew(nmat[i], isize);
+        snew(totnmat[i], isize);
         resnr[i] = i + 1;
     }
     snew(totmdmat, nres);
@@ -303,7 +303,12 @@ int gmx_mdmat(int argc, char* argv[])
         snew(totmdmat[i], nres);
     }
 
-    trxnat = read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, trxNeedCoordinates);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
 
     nframes = 0;
 
@@ -314,7 +319,7 @@ int gmx_mdmat(int argc, char* argv[])
     rhi.g = 0.0;
     rhi.b = 0.0;
 
-    gpbc = gmx_rmpbc_init(&top.idef, pbcType, trxnat);
+    gpbc = gmx_rmpbc_init(&top.idef, pbcType, fr.natoms);
 
     if (bFrames)
     {
@@ -322,12 +327,12 @@ int gmx_mdmat(int argc, char* argv[])
     }
     do
     {
-        gmx_rmpbc(gpbc, trxnat, box, x);
+        gmx_rmpbc(gpbc, fr.natoms, fr.box, fr.x);
         nframes++;
-        calc_mat(nres, natoms, rndx, x, index, truncate, mdmat, nmat, pbcType, box);
+        calc_mat(nres, isize, rndx, fr.x, index, truncate, mdmat, nmat, pbcType, fr.box);
         for (i = 0; (i < nres); i++)
         {
-            for (j = 0; (j < natoms); j++)
+            for (j = 0; (j < isize); j++)
             {
                 if (nmat[i][j])
                 {
@@ -344,7 +349,7 @@ int gmx_mdmat(int argc, char* argv[])
         }
         if (bFrames)
         {
-            sprintf(label, "t=%.0f ps", t);
+            sprintf(label, "t=%.0f ps", fr.time);
             write_xpm(out,
                       0,
                       label,
@@ -362,9 +367,8 @@ int gmx_mdmat(int argc, char* argv[])
                       rhi,
                       &nlevels);
         }
-    } while (read_next_x(oenv, status, &t, x, box));
+    } while (status->readNextFrame(oenv, &fr));
     fprintf(stderr, "\n");
-    close_trx(status);
     gmx_rmpbc_done(gpbc);
     if (bFrames)
     {
@@ -403,7 +407,7 @@ int gmx_mdmat(int argc, char* argv[])
             "Total/mean", "Total", "Mean", "# atoms", "Mean/# atoms"
         };
 
-        tot_nmat(nres, natoms, nframes, totnmat, tot_n, mean_n);
+        tot_nmat(nres, isize, nframes, totnmat, tot_n, mean_n);
         fp = xvgropen(
                 ftp2fn(efXVG, NFILE, fnm), "Increase in number of contacts", "Residue", "Ratio", oenv);
         xvgrLegend(fp, legend, oenv);

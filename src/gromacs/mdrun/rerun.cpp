@@ -179,7 +179,6 @@ void gmx::LegacySimulator::do_rerun()
     bool              doFreeEnergyPerturbation = false;
     unsigned int      force_flags;
     tensor            force_vir, shake_vir, total_vir, pres;
-    t_trxstatus*      status = nullptr;
     rvec              mu_tot;
     t_trxframe        rerun_fr;
     ForceBuffers      f;
@@ -442,9 +441,11 @@ void gmx::LegacySimulator::do_rerun()
     }
 
     rerun_fr.natoms = 0;
+    std::optional<TrajectoryIOStatus> status;
     if (MASTER(cr))
     {
-        isLastStep = !read_first_frame(oenv, &status, opt2fn("-rerun", nfile, fnm), &rerun_fr, TRX_NEED_X);
+        status = read_first_frame(oenv, opt2fn("-rerun", nfile, fnm), &rerun_fr, trxNeedCoordinates);
+        isLastStep = !status.has_value();
         if (rerun_fr.natoms != top_global.natoms)
         {
             gmx_fatal(FARGS,
@@ -856,7 +857,7 @@ void gmx::LegacySimulator::do_rerun()
         if (MASTER(cr))
         {
             /* read next frame from input trajectory */
-            isLastStep = !read_next_frame(oenv, status, &rerun_fr);
+            isLastStep = !status->readNextFrame(oenv, &rerun_fr);
         }
 
         if (PAR(cr))
@@ -886,11 +887,6 @@ void gmx::LegacySimulator::do_rerun()
 
     /* Stop measuring walltime */
     walltime_accounting_end_time(walltime_accounting);
-
-    if (MASTER(cr))
-    {
-        close_trx(status);
-    }
 
     if (!thisRankHasDuty(cr, DUTY_PME))
     {

@@ -57,7 +57,9 @@
 #include "gromacs/topology/ifunc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/pleasecite.h"
@@ -197,24 +199,22 @@ int gmx_rms(int argc, char* argv[])
         { "-dmax", FALSE, etREAL, { &delta_maxy }, "HIDDENMaximum level in delta matrix" },
         { "-aver", FALSE, etINT, { &avl }, "HIDDENAverage over this distance in the RMSD matrix" }
     };
-    int natoms_trx, natoms_trx2, natoms;
+    int natoms;
     int i, j, k, m;
 #define NFRAME 5000
     int        maxframe = NFRAME, maxframe2 = NFRAME;
-    real       t, *w_rls, *w_rms, *w_rls_m = nullptr, *w_rms_m = nullptr;
+    real *     w_rls, *w_rms, *w_rls_m = nullptr, *w_rms_m = nullptr;
     gmx_bool   bNorm, bAv, bFreq2, bFile2, bMat, bBond, bDelta, bMirror, bMass;
     gmx_bool   bFit, bReset;
     t_topology top;
     PbcType    pbcType;
     t_iatom*   iatom = nullptr;
 
-    matrix box = { { 0 } };
-    rvec * x, *xp, *xm = nullptr, **mat_x = nullptr, **mat_x2, *mat_x2_j = nullptr, vec1, vec2;
-    t_trxstatus* status;
-    char         buf[256], buf2[256];
-    int          ncons = 0;
-    FILE*        fp;
-    real         rlstot = 0, **rls, **rlsm = nullptr, *time, *time2, *rlsnorm = nullptr,
+    rvec *xp, *xm = nullptr, **mat_x = nullptr, **mat_x2, *mat_x2_j = nullptr, vec1, vec2;
+    char  buf[256], buf2[256];
+    int   ncons = 0;
+    FILE* fp;
+    real  rlstot = 0, **rls, **rlsm = nullptr, *time, *time2, *rlsnorm = nullptr,
          **rmsd_mat = nullptr, **bond_mat = nullptr, *axis, *axis2, *del_xaxis, *del_yaxis,
          rmsd_max, rmsd_min, rmsd_avg, bond_max, bond_min, ang;
     real **  rmsdav_mat = nullptr, av_tot, weight, weight_tot;
@@ -334,7 +334,8 @@ int gmx_rms(int argc, char* argv[])
         }
     }
 
-    bTop = read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, &xp, nullptr, box, bMassWeighted);
+    matrix boxTop;
+    bTop = read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, &xp, nullptr, boxTop, bMassWeighted);
     snew(w_rls, top.atoms.nr);
     snew(w_rms, top.atoms.nr);
 
@@ -444,7 +445,7 @@ int gmx_rms(int argc, char* argv[])
     if (bPBC)
     {
         gpbc = gmx_rmpbc_init(&top.idef, pbcType, top.atoms.nr);
-        gmx_rmpbc(gpbc, top.atoms.nr, box, xp);
+        gmx_rmpbc(gpbc, top.atoms.nr, boxTop, xp);
     }
     if (bReset)
     {
@@ -466,12 +467,17 @@ int gmx_rms(int argc, char* argv[])
     }
 
     /* read first frame */
-    natoms_trx = read_first_x(oenv, &status, opt2fn("-f", NFILE, fnm), &t, &x, box);
-    if (natoms_trx != top.atoms.nr)
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, opt2fn("-f", NFILE, fnm), &fr, trxNeedCoordinates);
+    if (!status.has_value())
     {
-        fprintf(stderr, "\nWARNING: topology has %d atoms, whereas trajectory has %d\n", top.atoms.nr, natoms_trx);
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
     }
-    natoms = std::min(top.atoms.nr, natoms_trx);
+    if (fr.natoms != top.atoms.nr)
+    {
+        fprintf(stderr, "\nWARNING: topology has %d atoms, whereas trajectory has %d\n", top.atoms.nr, fr.natoms);
+    }
+    natoms = std::min(top.atoms.nr, fr.natoms);
     if (bMat || bBond || bPrev)
     {
         snew(mat_x, NFRAME);
@@ -586,22 +592,22 @@ int gmx_rms(int argc, char* argv[])
     {
         if (bPBC)
         {
-            gmx_rmpbc(gpbc, natoms, box, x);
+            gmx_rmpbc(gpbc, natoms, fr.box, fr.x);
         }
 
         if (bReset)
         {
-            reset_x(ifit, ind_fit, natoms, nullptr, x, w_rls);
+            reset_x(ifit, ind_fit, natoms, nullptr, fr.x, w_rls);
         }
         if (ewhat == ewRhoSc)
         {
-            norm_princ(&top.atoms, ifit, ind_fit, natoms, x);
+            norm_princ(&top.atoms, ifit, ind_fit, natoms, fr.x);
         }
 
         if (bFit)
         {
             /*do the least squares fit to original structure*/
-            do_fit(natoms, w_rls, xp, x);
+            do_fit(natoms, w_rls, xp, fr.x);
         }
 
         if (frame % freq == 0)
@@ -616,7 +622,7 @@ int gmx_rms(int argc, char* argv[])
                 snew(mat_x[tel_mat], n_ind_m);
                 for (i = 0; i < n_ind_m; i++)
                 {
-                    copy_rvec(x[ind_m[i]], mat_x[tel_mat][i]);
+                    copy_rvec(fr.x[ind_m[i]], mat_x[tel_mat][i]);
                 }
             }
             tel_mat++;
@@ -639,18 +645,18 @@ int gmx_rms(int argc, char* argv[])
                 }
                 if (bFit)
                 {
-                    do_fit(natoms, w_rls, x, xp);
+                    do_fit(natoms, w_rls, fr.x, xp);
                 }
             }
             for (j = 0; (j < nrms); j++)
             {
-                rls[j][teller] = calc_similar_ind(ewhat != ewRMSD, irms[j], ind_rms[j], w_rms, x, xp);
+                rls[j][teller] = calc_similar_ind(ewhat != ewRMSD, irms[j], ind_rms[j], w_rms, fr.x, xp);
             }
             if (bNorm)
             {
                 for (j = 0; (j < irms[0]); j++)
                 {
-                    rlsnorm[j] += calc_similar_ind(ewhat != ewRMSD, 1, &(ind_rms[0][j]), w_rms, x, xp);
+                    rlsnorm[j] += calc_similar_ind(ewhat != ewRMSD, 1, &(ind_rms[0][j]), w_rms, fr.x, xp);
                 }
             }
 
@@ -659,16 +665,16 @@ int gmx_rms(int argc, char* argv[])
                 if (bFit)
                 {
                     /*do the least squares fit to mirror of original structure*/
-                    do_fit(natoms, w_rls, xm, x);
+                    do_fit(natoms, w_rls, xm, fr.x);
                 }
 
                 for (j = 0; j < nrms; j++)
                 {
                     rlsm[j][teller] =
-                            calc_similar_ind(ewhat != ewRMSD, irms[j], ind_rms[j], w_rms, x, xm);
+                            calc_similar_ind(ewhat != ewRMSD, irms[j], ind_rms[j], w_rms, fr.x, xm);
                 }
             }
-            time[teller] = output_env_conv_time(oenv, t);
+            time[teller] = output_env_conv_time(oenv, fr.time);
 
             teller++;
         }
@@ -689,8 +695,7 @@ int gmx_rms(int argc, char* argv[])
                 }
             }
         }
-    } while (read_next_x(oenv, status, &t, x, box));
-    close_trx(status);
+    } while (status->readNextFrame(oenv, &fr));
 
     int tel_mat2 = 0;
     int teller2  = 0;
@@ -701,36 +706,41 @@ int gmx_rms(int argc, char* argv[])
 
         fprintf(stderr, "\nWill read second trajectory file\n");
         snew(mat_x2, NFRAME);
-        natoms_trx2 = read_first_x(oenv, &status, opt2fn("-f2", NFILE, fnm), &t, &x, box);
-        if (natoms_trx2 != natoms_trx)
+        t_trxframe otherFr;
+        auto otherStatus = read_first_frame(oenv, opt2fn("-f2", NFILE, fnm), &otherFr, trxNeedCoordinates);
+        if (!otherStatus.has_value())
+        {
+            GMX_THROW(gmx::InvalidInputError("Unable to read second trajectory file"));
+        }
+        if (otherFr.natoms != fr.natoms)
         {
             gmx_fatal(FARGS,
                       "Second trajectory (%d atoms) does not match the first one"
                       " (%d atoms)",
-                      natoms_trx2,
-                      natoms_trx);
+                      otherFr.natoms,
+                      fr.natoms);
         }
         frame2 = 0;
         do
         {
             if (bPBC)
             {
-                gmx_rmpbc(gpbc, natoms, box, x);
+                gmx_rmpbc(gpbc, natoms, otherFr.box, otherFr.x);
             }
 
             if (bReset)
             {
-                reset_x(ifit, ind_fit, natoms, nullptr, x, w_rls);
+                reset_x(ifit, ind_fit, natoms, nullptr, otherFr.x, w_rls);
             }
             if (ewhat == ewRhoSc)
             {
-                norm_princ(&top.atoms, ifit, ind_fit, natoms, x);
+                norm_princ(&top.atoms, ifit, ind_fit, natoms, otherFr.x);
             }
 
             if (bFit)
             {
                 /*do the least squares fit to original structure*/
-                do_fit(natoms, w_rls, xp, x);
+                do_fit(natoms, w_rls, xp, otherFr.x);
             }
 
             if (frame2 % freq2 == 0)
@@ -745,12 +755,12 @@ int gmx_rms(int argc, char* argv[])
                     snew(mat_x2[tel_mat2], n_ind_m);
                     for (i = 0; i < n_ind_m; i++)
                     {
-                        copy_rvec(x[ind_m[i]], mat_x2[tel_mat2][i]);
+                        copy_rvec(otherFr.x[ind_m[i]], mat_x2[tel_mat2][i]);
                     }
                 }
                 tel_mat2++;
 
-                time2[teller2] = output_env_conv_time(oenv, t);
+                time2[teller2] = output_env_conv_time(oenv, otherFr.time);
 
                 teller2++;
             }
@@ -760,8 +770,7 @@ int gmx_rms(int argc, char* argv[])
                 maxframe2 += NFRAME;
                 srenew(time2, maxframe2);
             }
-        } while (read_next_x(oenv, status, &t, x, box));
-        close_trx(status);
+        } while (otherStatus->readNextFrame(oenv, &otherFr));
     }
     else
     {

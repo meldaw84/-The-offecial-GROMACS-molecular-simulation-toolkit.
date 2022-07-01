@@ -50,6 +50,7 @@
 #include "gromacs/topology/topology.h"
 #include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/stringutil.h"
@@ -158,8 +159,7 @@ int gmx_spatial(int argc, char* argv[])
     t_trxframe        fr;
     rvec*             xtop;
     matrix            box, box_pbc;
-    t_trxstatus*      status;
-    int               flags = TRX_READ_X;
+    size_t            flags = trxReadCoordinates;
     t_pbc             pbc;
     t_atoms*          atoms;
     int               natoms;
@@ -201,7 +201,11 @@ int gmx_spatial(int argc, char* argv[])
     get_index(atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &nidxp, &indexp, &grpnmp);
 
     /* The first time we read data is a little special */
-    read_first_frame(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &fr, flags);
+    auto status = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, flags);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
     natoms = fr.natoms;
 
     /* Memory Allocation */
@@ -317,7 +321,7 @@ int gmx_spatial(int argc, char* argv[])
         numfr++;
         /* printf("%f\t%f\t%f\n",box[XX][XX],box[YY][YY],box[ZZ][ZZ]); */
 
-    } while (read_next_frame(oenv, status, &fr));
+    } while (status->readNextFrame(oenv, &fr));
 
     if (bPBC)
     {

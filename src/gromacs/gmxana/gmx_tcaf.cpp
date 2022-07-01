@@ -345,7 +345,6 @@ int gmx_tcaf(int argc, char* argv[])
     char*             grpname;
     char              title[256];
     real              t0, t1, dt, m, mtot, sysmass, rho, sx, cx;
-    t_trxstatus*      status;
     int               nframes, n_alloc, i, j, k, d;
     rvec              mv_mol, cm_mol, kfac[NK];
     int               nkc, nk, ntc;
@@ -421,7 +420,8 @@ int gmx_tcaf(int argc, char* argv[])
         sysmass += top.atoms.atom[i].m;
     }
 
-    read_first_frame(oenv, &status, ftp2fn(efTRN, NFILE, fnm), &fr, TRX_NEED_X | TRX_NEED_V);
+    auto status = read_first_frame(
+            oenv, ftp2fn(efTRN, NFILE, fnm), &fr, trxNeedCoordinates | trxNeedVelocities);
     t0 = fr.time;
 
     n_alloc = 0;
@@ -501,8 +501,7 @@ int gmx_tcaf(int argc, char* argv[])
 
         t1 = fr.time;
         nframes++;
-    } while (read_next_frame(oenv, status, &fr));
-    close_trx(status);
+    } while (status->readNextFrame(oenv, &fr));
 
     dt = (t1 - t0) / (nframes - 1);
 

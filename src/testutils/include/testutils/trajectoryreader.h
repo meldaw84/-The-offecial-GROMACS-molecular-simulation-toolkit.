@@ -65,8 +65,6 @@ namespace test
 
 //! Convenience smart pointer typedef
 typedef unique_cptr<gmx_output_env_t, output_env_done> oenv_ptr;
-//! Convenience smart pointer typedef
-typedef unique_cptr<t_trxstatus, close_trx> trxstatus_file_ptr;
 //! Helper function to free all resources
 void done_trxframe(t_trxframe* fr);
 //! Convenience smart pointer typedef
@@ -118,7 +116,7 @@ private:
     //! Owning handle of output environment object
     oenv_ptr oenvGuard_;
     //! Owning handle of an open trajectory file ready to read frames.
-    trxstatus_file_ptr trajectoryFileGuard_;
+    std::optional<TrajectoryIOStatus> trajectoryStatus_;
     //! Owning handle of contents of trajectory file frame after reading.
     const trxframe_ptr trxframeGuard_;
     //! Whether the first frame has been read

@@ -62,6 +62,7 @@
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
 #include "gromacs/trajectory/energyframe.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/binaryinformation.h"
@@ -825,19 +826,17 @@ static void do_dip(const t_topology*       top,
 
     FILE *         outdd, *outmtot, *outaver, *outeps, *caver = nullptr;
     FILE *         dip3d = nullptr, *adip = nullptr;
-    rvec *         x, *dipole = nullptr, mu_t, quad, *dipsp = nullptr;
+    rvec *         dipole = nullptr, mu_t, quad, *dipsp = nullptr;
     t_gkrbin*      gkrbin = nullptr;
     gmx_enxnm_t*   enm    = nullptr;
     t_enxframe*    fr;
     int            nframes = 1000, nre, timecheck = 0, ncolour = 0;
     ener_file_t    fmu = nullptr;
-    int            i, n, m, natom = 0, gnx_tot, teller, tel3;
-    t_trxstatus*   status;
+    int            i, n, m, gnx_tot, teller, tel3;
     int *          dipole_bin, ndipbin, ibin, iVol, idim = -1;
     unsigned long  mode;
-    real           rcut = 0, t, t0, t1, dt, dd, rms_cos;
+    real           rcut = 0, t0, t1, dt, dd, rms_cos;
     rvec           dipaxis;
-    matrix         box;
     gmx_bool       bCorr, bTotal, bCont;
     double         M_diff = 0, epsilon, invtel, vol_aver;
     double         mu_ave, mu_mol, M2_ave = 0, M_ave2 = 0, M_av[DIM], M_av2[DIM];
@@ -1023,21 +1022,24 @@ static void do_dip(const t_topology*       top,
     clear_rvec(mu_t);
     teller = 0;
     /* Read the first frame from energy or traj file */
+    std::optional<TrajectoryIOStatus> status;
+    t_trxframe                        trxFr;
+    real                              enxTime;
     if (bMU)
     {
         do
         {
-            bCont = read_mu_from_enx(fmu, iVol, iMu, mu_t, &volume, &t, nre, fr);
+            bCont = read_mu_from_enx(fmu, iVol, iMu, mu_t, &volume, &enxTime, nre, fr);
             if (bCont)
             {
-                timecheck = check_times(t);
+                timecheck = check_times(enxTime);
                 if (timecheck < 0)
                 {
                     teller++;
                 }
                 if ((teller % 10) == 0)
                 {
-                    fprintf(stderr, "\r Skipping Frame %6d, time: %8.3f", teller, t);
+                    fprintf(stderr, "\r Skipping Frame %6d, time: %8.3f", teller, enxTime);
                     fflush(stderr);
                 }
             }
@@ -1050,7 +1052,11 @@ static void do_dip(const t_topology*       top,
     }
     else
     {
-        natom = read_first_x(oenv, &status, fn, &t, &x, box);
+        status = read_first_frame(oenv, fn, &trxFr, trxNeedCoordinates);
+        if (!status.has_value())
+        {
+            GMX_THROW(gmx::InvalidInputError("Unable to read trajectory frame"));
+        }
     }
 
     /* Calculate spacing for dipole bin (simple histogram) */
@@ -1067,14 +1073,15 @@ static void do_dip(const t_topology*       top,
         /* Use 0.7 iso 0.5 to account for pressure scaling */
         /*  rcut   = 0.7*sqrt(max_cutoff2(box)); */
         rcut = 0.7
-               * std::sqrt(gmx::square(box[XX][XX]) + gmx::square(box[YY][YY]) + gmx::square(box[ZZ][ZZ]));
+               * std::sqrt(gmx::square(trxFr.box[XX][XX]) + gmx::square(trxFr.box[YY][YY])
+                           + gmx::square(trxFr.box[ZZ][ZZ]));
 
         gkrbin = mk_gkrbin(rcut, rcmax, bPhi, ndegrees);
     }
-    gpbc = gmx_rmpbc_init(&top->idef, pbcType, natom);
+    gpbc = gmx_rmpbc_init(&top->idef, pbcType, trxFr.natoms);
 
     /* Start while loop over frames */
-    t0     = t;
+    t0     = bMU ? enxTime : trxFr.time;
     teller = 0;
     do
     {
@@ -1093,7 +1100,7 @@ static void do_dip(const t_topology*       top,
                 }
             }
         }
-        t1 = t;
+        t1 = bMU ? enxTime : trxFr.time;
 
         muframelsq = gmx_stats_init();
 
@@ -1119,7 +1126,7 @@ static void do_dip(const t_topology*       top,
                 M_av[m] = 0;
             }
 
-            gmx_rmpbc(gpbc, natom, box, x);
+            gmx_rmpbc(gpbc, trxFr.natoms, trxFr.box, trxFr.x);
 
             /* Begin loop of all molecules in frame */
             for (n = 0; (n < ncos); n++)
@@ -1131,16 +1138,17 @@ static void do_dip(const t_topology*       top,
                     ind0 = mols->index[molindex[n][i]];
                     ind1 = mols->index[molindex[n][i] + 1];
 
-                    mol_dip(ind0, ind1, x, atom, dipole[i]);
+                    mol_dip(ind0, ind1, trxFr.x, atom, dipole[i]);
                     gmx_stats_add_point(mulsq, 0, norm(dipole[i]), 0, 0);
                     gmx_stats_add_point(muframelsq, 0, norm(dipole[i]), 0, 0);
                     if (bSlab)
                     {
-                        update_slab_dipoles(ind0, ind1, x, dipole[i], idim, nslices, slab_dipoles, box);
+                        update_slab_dipoles(
+                                ind0, ind1, trxFr.x, dipole[i], idim, nslices, slab_dipoles, trxFr.box);
                     }
                     if (bQuad)
                     {
-                        mol_quad(ind0, ind1, x, atom, quad);
+                        mol_quad(ind0, ind1, trxFr.x, atom, quad);
                         for (m = 0; (m < DIM); m++)
                         {
                             gmx_stats_add_point(Qlsq[m], 0, quad[m], 0, 0);
@@ -1223,12 +1231,12 @@ static void do_dip(const t_topology*       top,
                             fprintf(dip3d,
                                     "set arrow %d from %f, %f, %f to %f, %f, %f lt %d  # %d %d\n",
                                     i + 1,
-                                    x[ind0][XX],
-                                    x[ind0][YY],
-                                    x[ind0][ZZ],
-                                    x[ind0][XX] + dipole[i][XX] / 25,
-                                    x[ind0][YY] + dipole[i][YY] / 25,
-                                    x[ind0][ZZ] + dipole[i][ZZ] / 25,
+                                    trxFr.x[ind0][XX],
+                                    trxFr.x[ind0][YY],
+                                    trxFr.x[ind0][ZZ],
+                                    trxFr.x[ind0][XX] + dipole[i][XX] / 25,
+                                    trxFr.x[ind0][YY] + dipole[i][YY] / 25,
+                                    trxFr.x[ind0][ZZ] + dipole[i][ZZ] / 25,
                                     ncolour,
                                     ind0,
                                     i);
@@ -1238,10 +1246,10 @@ static void do_dip(const t_topology*       top,
 
                 if (dip3d)
                 {
-                    fprintf(dip3d, "set title \"t = %4.3f\"\n", t);
-                    fprintf(dip3d, "set xrange [0.0:%4.2f]\n", box[XX][XX]);
-                    fprintf(dip3d, "set yrange [0.0:%4.2f]\n", box[YY][YY]);
-                    fprintf(dip3d, "set zrange [0.0:%4.2f]\n\n", box[ZZ][ZZ]);
+                    fprintf(dip3d, "set title \"t = %4.3f\"\n", bMU ? enxTime : trxFr.time);
+                    fprintf(dip3d, "set xrange [0.0:%4.2f]\n", trxFr.box[XX][XX]);
+                    fprintf(dip3d, "set yrange [0.0:%4.2f]\n", trxFr.box[YY][YY]);
+                    fprintf(dip3d, "set zrange [0.0:%4.2f]\n\n", trxFr.box[ZZ][ZZ]);
                     fprintf(dip3d, "splot 'dummy.dat' using 1:2:3 w vec\n");
                     fprintf(dip3d, "pause -1 'Hit return to continue'\n");
                 }
@@ -1262,7 +1270,7 @@ static void do_dip(const t_topology*       top,
             {
                 fprintf(caver,
                         "%10.3e  %10.3e  %10.3e  %10.3e  %10.3e  %10.3e\n",
-                        t,
+                        bMU ? enxTime : trxFr.time,
                         dd,
                         rms_cos,
                         dipaxis[XX],
@@ -1273,7 +1281,7 @@ static void do_dip(const t_topology*       top,
             {
                 fprintf(caver,
                         "%10.3e  %10.3e  %10.3e  %10.3e  %10.3e\n",
-                        t,
+                        bMU ? enxTime : trxFr.time,
                         rms_cos,
                         dipaxis[XX],
                         dipaxis[YY],
@@ -1283,7 +1291,7 @@ static void do_dip(const t_topology*       top,
 
         if (bGkr)
         {
-            do_gkr(gkrbin, ncos, gnx, molindex, mols->index, x, dipole, pbcType, box, atom, gkatom);
+            do_gkr(gkrbin, ncos, gnx, molindex, mols->index, trxFr.x, dipole, pbcType, trxFr.box, atom, gkatom);
         }
 
         if (bTotal)
@@ -1301,7 +1309,7 @@ static void do_dip(const t_topology*       top,
         {
             fprintf(outmtot,
                     "%10g  %12.8e %12.8e %12.8e %12.8e\n",
-                    t,
+                    bMU ? enxTime : trxFr.time,
                     M_av[XX],
                     M_av[YY],
                     M_av[ZZ],
@@ -1326,7 +1334,7 @@ static void do_dip(const t_topology*       top,
         /* Compute volume from box in traj, else we use the one from above */
         if (!bMU)
         {
-            volume = det(box);
+            volume = det(trxFr.box);
         }
         vol_aver += volume;
 
@@ -1344,11 +1352,17 @@ static void do_dip(const t_topology*       top,
              * the two. Here M is sum mu_i. Further write the finite system
              * Kirkwood G factor and epsilon.
              */
-            fprintf(outaver, "%10g  %10.3e %10.3e %10.3e %10.3e\n", t, M2_ave, M_ave2, M_diff, M_ave2 / M2_ave);
+            fprintf(outaver,
+                    "%10g  %10.3e %10.3e %10.3e %10.3e\n",
+                    bMU ? enxTime : trxFr.time,
+                    M2_ave,
+                    M_ave2,
+                    M_diff,
+                    M_ave2 / M2_ave);
 
             if (fnadip)
             {
-                fprintf(adip, "%10g %f \n", t, gmx_stats_get_average(muframelsq));
+                fprintf(adip, "%10g %f \n", bMU ? enxTime : trxFr.time, gmx_stats_get_average(muframelsq));
             }
             /*if (dipole)
                printf("%f %f\n", norm(dipole[0]), norm(dipole[1]));
@@ -1368,32 +1382,27 @@ static void do_dip(const t_topology*       top,
                            / (3 * epsilon * (2 * epsilonRF + 1)));
                 }
 
-                fprintf(outeps, "%10g  %10.3e %10.3e %10.3e\n", t, epsilon, Gk, g_k);
+                fprintf(outeps, "%10g  %10.3e %10.3e %10.3e\n", bMU ? enxTime : trxFr.time, epsilon, Gk, g_k);
             }
             else
             {
-                fprintf(outeps, "%10g  %12.8e\n", t, epsilon);
+                fprintf(outeps, "%10g  %12.8e\n", bMU ? enxTime : trxFr.time, epsilon);
             }
         }
         gmx_stats_free(muframelsq);
 
         if (bMU)
         {
-            bCont = read_mu_from_enx(fmu, iVol, iMu, mu_t, &volume, &t, nre, fr);
+            bCont = read_mu_from_enx(fmu, iVol, iMu, mu_t, &volume, &enxTime, nre, fr);
         }
         else
         {
-            bCont = read_next_x(oenv, status, &t, x, box);
+            bCont = status->readNextFrame(oenv, &trxFr);
         }
-        timecheck = check_times(t);
+        timecheck = check_times(bMU ? enxTime : trxFr.time);
     } while (bCont && (timecheck == 0));
 
     gmx_rmpbc_done(gpbc);
-
-    if (!bMU)
-    {
-        close_trx(status);
-    }
 
     xvgrclose(outmtot);
     xvgrclose(outaver);
@@ -1411,9 +1420,9 @@ static void do_dip(const t_topology*       top,
 
     if (dip3d)
     {
-        fprintf(dip3d, "set xrange [0.0:%4.2f]\n", box[XX][XX]);
-        fprintf(dip3d, "set yrange [0.0:%4.2f]\n", box[YY][YY]);
-        fprintf(dip3d, "set zrange [0.0:%4.2f]\n\n", box[ZZ][ZZ]);
+        fprintf(dip3d, "set xrange [0.0:%4.2f]\n", trxFr.box[XX][XX]);
+        fprintf(dip3d, "set yrange [0.0:%4.2f]\n", trxFr.box[YY][YY]);
+        fprintf(dip3d, "set zrange [0.0:%4.2f]\n\n", trxFr.box[ZZ][ZZ]);
         fprintf(dip3d, "splot 'dummy.dat' using 1:2:3 w vec\n");
         fprintf(dip3d, "pause -1 'Hit return to continue'\n");
         gmx_ffclose(dip3d);
@@ -1421,7 +1430,7 @@ static void do_dip(const t_topology*       top,
 
     if (bSlab)
     {
-        dump_slab_dipoles(slabfn, idim, nslices, slab_dipoles, box, teller, oenv);
+        dump_slab_dipoles(slabfn, idim, nslices, slab_dipoles, trxFr.box, teller, oenv);
         sfree(slab_dipoles);
     }
 
@@ -1442,7 +1451,7 @@ static void do_dip(const t_topology*       top,
         else
         {
             dt = (t1 - t0) / (teller - 1);
-            printf("t0 %g, t %g, teller %d\n", t0, t, teller);
+            printf("t0 %g, t %g, teller %d\n", t0, bMU ? enxTime : trxFr.time, teller);
 
             mode = eacVector;
 

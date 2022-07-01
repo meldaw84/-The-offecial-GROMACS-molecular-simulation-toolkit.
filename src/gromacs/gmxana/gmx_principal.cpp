@@ -42,8 +42,10 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringutil.h"
 
@@ -68,14 +70,10 @@ int gmx_principal(int argc, char* argv[])
     };
     static gmx_bool foo = FALSE;
 
-    t_pargs pa[] = { { "-foo", FALSE, etBOOL, { &foo }, "Dummy option to avoid empty array" } };
-    t_trxstatus* status;
-    t_topology   top;
-    PbcType      pbcType;
-    real         t;
-    rvec*        x;
+    t_pargs    pa[] = { { "-foo", FALSE, etBOOL, { &foo }, "Dummy option to avoid empty array" } };
+    t_topology top;
+    PbcType    pbcType;
 
-    int                      natoms;
     char*                    grpname;
     int                      i, gnx;
     int*                     index;
@@ -84,7 +82,7 @@ int gmx_principal(int argc, char* argv[])
     FILE*                    axis2;
     FILE*                    axis3;
     FILE*                    fmoi;
-    matrix                   axes, box;
+    matrix                   axes;
     gmx_output_env_t*        oenv;
     gmx_rmpbc_t              gpbc = nullptr;
     std::vector<std::string> legend;
@@ -148,29 +146,48 @@ int gmx_principal(int argc, char* argv[])
                     oenv);
     xvgrLegend(fmoi, legend, oenv);
 
-    read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, nullptr, nullptr, box, TRUE);
+    matrix boxTop;
+    read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, nullptr, nullptr, boxTop, TRUE);
 
     get_index(&top.atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &gnx, &index, &grpname);
 
-    natoms = read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, trxNeedCoordinates);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
 
-    gpbc = gmx_rmpbc_init(&top.idef, pbcType, natoms);
+    gpbc = gmx_rmpbc_init(&top.idef, pbcType, fr.natoms);
 
     do
     {
-        gmx_rmpbc(gpbc, natoms, box, x);
+        gmx_rmpbc(gpbc, fr.natoms, fr.box, fr.x);
 
-        calc_principal_axes(&top, x, index, gnx, axes, moi);
+        calc_principal_axes(&top, fr.x, index, gnx, axes, moi);
 
-        fprintf(axis1, "%15.10f     %15.10f  %15.10f  %15.10f\n", t, axes[XX][XX], axes[XX][YY], axes[XX][ZZ]);
-        fprintf(axis2, "%15.10f     %15.10f  %15.10f  %15.10f\n", t, axes[YY][XX], axes[YY][YY], axes[YY][ZZ]);
-        fprintf(axis3, "%15.10f     %15.10f  %15.10f  %15.10f\n", t, axes[ZZ][XX], axes[ZZ][YY], axes[ZZ][ZZ]);
-        fprintf(fmoi, "%15.10f     %15.10f  %15.10f  %15.10f\n", t, moi[XX], moi[YY], moi[ZZ]);
-    } while (read_next_x(oenv, status, &t, x, box));
+        fprintf(axis1,
+                "%15.10f     %15.10f  %15.10f  %15.10f\n",
+                fr.time,
+                axes[XX][XX],
+                axes[XX][YY],
+                axes[XX][ZZ]);
+        fprintf(axis2,
+                "%15.10f     %15.10f  %15.10f  %15.10f\n",
+                fr.time,
+                axes[YY][XX],
+                axes[YY][YY],
+                axes[YY][ZZ]);
+        fprintf(axis3,
+                "%15.10f     %15.10f  %15.10f  %15.10f\n",
+                fr.time,
+                axes[ZZ][XX],
+                axes[ZZ][YY],
+                axes[ZZ][ZZ]);
+        fprintf(fmoi, "%15.10f     %15.10f  %15.10f  %15.10f\n", fr.time, moi[XX], moi[YY], moi[ZZ]);
+    } while (status->readNextFrame(oenv, &fr));
 
     gmx_rmpbc_done(gpbc);
-
-    close_trx(status);
 
     xvgrclose(axis1);
     xvgrclose(axis2);

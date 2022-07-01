@@ -168,7 +168,6 @@ void LegacySimulator::do_tpi()
     gmx::ForceBuffers          f;
     real                       lambda, t, temp, beta, drmax, epot;
     double                     embU, sum_embU, *sum_UgembU, V, V_all, VembU_all;
-    t_trxstatus*               status;
     t_trxframe                 rerun_fr;
     gmx_bool                   bDispCorr, bCharge, bRFExcl, bNotLastFrame, bStateChanged, bNS;
     tensor                     force_vir, shake_vir, vir, pres;
@@ -527,7 +526,8 @@ void LegacySimulator::do_tpi()
     /* Avoid frame step numbers <= -1 */
     frame_step_prev = -1;
 
-    bNotLastFrame = read_first_frame(oenv, &status, opt2fn("-rerun", nfile, fnm), &rerun_fr, TRX_NEED_X);
+    auto status = read_first_frame(oenv, opt2fn("-rerun", nfile, fnm), &rerun_fr, trxNeedCoordinates);
+    bNotLastFrame = status.has_value();
     frame         = 0;
 
     if (rerun_fr.natoms - (bCavity ? nat_cavity : 0) != mdatoms->nr - (a_tp1 - a_tp0))
@@ -968,11 +968,9 @@ void LegacySimulator::do_tpi()
             fflush(fp_tpi);
         }
 
-        bNotLastFrame = read_next_frame(oenv, status, &rerun_fr);
+        bNotLastFrame = status->readNextFrame(oenv, &rerun_fr);
     } /* End of the loop  */
     walltime_accounting_end_time(walltime_accounting);
-
-    close_trx(status);
 
     if (fp_tpi != nullptr)
     {

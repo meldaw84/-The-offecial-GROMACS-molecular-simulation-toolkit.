@@ -51,8 +51,10 @@
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
@@ -709,28 +711,24 @@ int gmx_rmsdist(int argc, char* argv[])
 
     };
 
-    int  i, teller;
-    real t;
+    int i, teller;
 
     t_topology top;
     PbcType    pbcType;
     t_atoms*   atoms;
-    matrix     box;
-    rvec*      x;
     FILE*      fp;
 
-    t_trxstatus* status;
-    int          isize, gnr = 0;
-    int *        index, *noe_index;
-    char*        grpname;
-    real **      d_r, **d, **dtot, **dtot2, **mean, **rms, **rmsc, *resnr;
-    real **      dtot1_3 = nullptr, **dtot1_6 = nullptr;
-    real         rmsnow, meanmax, rmsmax, rmscmax;
-    real         max1_3, max1_6;
-    t_noe_gr*    noe_gr = nullptr;
-    t_noe**      noe    = nullptr;
-    t_rgb        rlo, rhi;
-    gmx_bool     bRMS, bScale, bMean, bNOE, bNMR3, bNMR6, bNMR;
+    int       isize, gnr = 0;
+    int *     index, *noe_index;
+    char*     grpname;
+    real **   d_r, **d, **dtot, **dtot2, **mean, **rms, **rmsc, *resnr;
+    real **   dtot1_3 = nullptr, **dtot1_6 = nullptr;
+    real      rmsnow, meanmax, rmsmax, rmscmax;
+    real      max1_3, max1_6;
+    t_noe_gr* noe_gr = nullptr;
+    t_noe**   noe    = nullptr;
+    t_rgb     rlo, rhi;
+    gmx_bool  bRMS, bScale, bMean, bNOE, bNMR3, bNMR6, bNMR;
 
     static int        nlevels  = 40;
     static real       scalemax = -1.0;
@@ -786,7 +784,9 @@ int gmx_rmsdist(int argc, char* argv[])
     }
 
     /* get topology and index */
-    read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, &x, nullptr, box, FALSE);
+    matrix boxTop;
+    rvec*  xTop;
+    read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, &xTop, nullptr, boxTop, FALSE);
 
     if (!bPBC)
     {
@@ -828,8 +828,8 @@ int gmx_rmsdist(int argc, char* argv[])
     }
 
     /*set box type*/
-    calc_dist(isize, index, x, pbcType, box, d_r);
-    sfree(x);
+    calc_dist(isize, index, xTop, pbcType, boxTop, d_r);
+    sfree(xTop);
 
     /*open output files*/
     fp = xvgropen(ftp2fn(efXVG, NFILE, fnm), "RMS Deviation", "Time (ps)", "RMSD (nm)", oenv);
@@ -839,22 +839,25 @@ int gmx_rmsdist(int argc, char* argv[])
     }
 
     /*do a first step*/
-    read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, trxNeedCoordinates);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
     teller = 0;
 
     do
     {
-        calc_dist_tot(isize, index, x, pbcType, box, d, dtot, dtot2, bNMR, dtot1_3, dtot1_6);
+        calc_dist_tot(isize, index, fr.x, pbcType, fr.box, d, dtot, dtot2, bNMR, dtot1_3, dtot1_6);
 
         rmsnow = rms_diff(isize, d, d_r);
-        fprintf(fp, "%g  %g\n", t, rmsnow);
+        fprintf(fp, "%g  %g\n", fr.time, rmsnow);
         teller++;
-    } while (read_next_x(oenv, status, &t, x, box));
+    } while (status->readNextFrame(oenv, &fr));
     fprintf(stderr, "\n");
 
     xvgrclose(fp);
-
-    close_trx(status);
 
     calc_rms(isize, teller, dtot, dtot2, rms, &rmsmax, rmsc, &rmscmax, mean, &meanmax);
     fprintf(stderr, "rmsmax = %g, rmscmax = %g\n", rmsmax, rmscmax);

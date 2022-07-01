@@ -721,9 +721,8 @@ void Select::writeOutput()
         {
             case PdbAtomsSelection::All:
             {
-                t_trxstatus* status = open_trx(fnPDB_.c_str(), "w");
-                write_trxframe(status, &fr, nullptr);
-                close_trx(status);
+                auto status = openTrajectoryFile(fnPDB_, "w");
+                status.writeTrxframe(&fr, nullptr);
                 break;
             }
             case PdbAtomsSelection::MaxSelection:
@@ -735,9 +734,8 @@ void Select::writeOutput()
                     atomIndicesSet.insert(atomIndices.begin(), atomIndices.end());
                 }
                 std::vector<int> allAtomIndices(atomIndicesSet.begin(), atomIndicesSet.end());
-                t_trxstatus*     status = open_trx(fnPDB_.c_str(), "w");
-                write_trxframe_indexed(status, &fr, allAtomIndices.size(), allAtomIndices.data(), nullptr);
-                close_trx(status);
+                auto             status = openTrajectoryFile(fnPDB_, "w");
+                status.writeIndexedTrxframe(&fr, allAtomIndices, nullptr);
                 break;
             }
             case PdbAtomsSelection::Selected:
@@ -750,9 +748,8 @@ void Select::writeOutput()
                         indices.push_back(i);
                     }
                 }
-                t_trxstatus* status = open_trx(fnPDB_.c_str(), "w");
-                write_trxframe_indexed(status, &fr, indices.size(), indices.data(), nullptr);
-                close_trx(status);
+                auto status = openTrajectoryFile(fnPDB_, "w");
+                status.writeIndexedTrxframe(&fr, indices, nullptr);
                 break;
             }
             case PdbAtomsSelection::Count:

@@ -51,8 +51,10 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/gmxassert.h"
@@ -272,18 +274,14 @@ static void calc_tetra_order_interface(const char*       fnNDX,
                                        real****          intfpos,
                                        gmx_output_env_t* oenv)
 {
-    FILE *       fpsg = nullptr, *fpsk = nullptr;
-    t_topology   top;
-    PbcType      pbcType;
-    t_trxstatus* status;
-    int          natoms;
-    real         t;
-    rvec *       xtop, *x;
-    matrix       box;
-    real         sg, sk, sgintf;
-    int**        index   = nullptr;
-    char**       grpname = nullptr;
-    int          i, j, k, n, *isize, ng, nslicez, framenr;
+    FILE *     fpsg = nullptr, *fpsk = nullptr;
+    t_topology top;
+    PbcType    pbcType;
+    rvec*      xtop;
+    real       sg, sk, sgintf;
+    int**      index   = nullptr;
+    char**     grpname = nullptr;
+    int        i, j, k, n, *isize, ng, nslicez, framenr;
     real ***sg_grid = nullptr, ***sk_grid = nullptr, ***sg_fravg = nullptr, ***sk_fravg = nullptr,
          ****sk_4d = nullptr, ****sg_4d = nullptr;
     int*       perm;
@@ -293,12 +291,12 @@ static void calc_tetra_order_interface(const char*       fnNDX,
     /* real   ***intfpos[2]; pointers to arrays of two interface positions zcoord(framenr,xbin,ybin): intfpos[interface_index][t][nslicey*x+y]
      * i.e 1D Row-major order in (t,x,y) */
 
+    matrix boxTop;
+    read_tps_conf(fnTPS, &top, &pbcType, &xtop, nullptr, boxTop, FALSE);
 
-    read_tps_conf(fnTPS, &top, &pbcType, &xtop, nullptr, box, FALSE);
-
-    *nslicex = static_cast<int>(box[XX][XX] / binw + onehalf); /*Calculate slicenr from binwidth*/
-    *nslicey = static_cast<int>(box[YY][YY] / binw + onehalf);
-    nslicez  = static_cast<int>(box[ZZ][ZZ] / binw + onehalf);
+    *nslicex = static_cast<int>(boxTop[XX][XX] / binw + onehalf); /*Calculate slicenr from binwidth*/
+    *nslicey = static_cast<int>(boxTop[YY][YY] / binw + onehalf);
+    nslicez  = static_cast<int>(boxTop[ZZ][ZZ] / binw + onehalf);
 
 
     ng = 1;
@@ -311,12 +309,17 @@ static void calc_tetra_order_interface(const char*       fnNDX,
     get_index(&top.atoms, fnNDX, ng, isize, index, grpname);
 
     /* Analyze trajectory */
-    natoms = read_first_x(oenv, &status, fnTRX, &t, &x, box);
-    if (natoms > top.atoms.nr)
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, fnTRX, &fr, trxNeedCoordinates);
+    if (!status.has_value())
     {
-        gmx_fatal(FARGS, "Topology (%d atoms) does not match trajectory (%d atoms)", top.atoms.nr, natoms);
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
     }
-    check_index(nullptr, ng, index[0], nullptr, natoms);
+    if (fr.natoms > top.atoms.nr)
+    {
+        gmx_fatal(FARGS, "Topology (%d atoms) does not match trajectory (%d atoms)", top.atoms.nr, fr.natoms);
+    }
+    check_index(nullptr, ng, index[0], nullptr, fr.natoms);
 
 
     /*Prepare structures for temporary storage of frame info*/
@@ -361,7 +364,7 @@ static void calc_tetra_order_interface(const char*       fnNDX,
         }
 
         find_tetra_order_grid(
-                top, pbcType, natoms, box, x, isize[0], index[0], &sg, &sk, *nslicex, *nslicey, nslicez, sg_grid, sk_grid);
+                top, pbcType, fr.natoms, fr.box, fr.x, isize[0], index[0], &sg, &sk, *nslicex, *nslicey, nslicez, sg_grid, sk_grid);
         GMX_RELEASE_ASSERT(sk_fravg != nullptr, "Trying to dereference NULL sk_fravg pointer");
         for (i = 0; i < *nslicex; i++)
         {
@@ -385,8 +388,7 @@ static void calc_tetra_order_interface(const char*       fnNDX,
             (*nframes)++;
         }
 
-    } while (read_next_x(oenv, status, &t, x, box));
-    close_trx(status);
+    } while (status->readNextFrame(oenv, &fr));
 
     sfree(grpname);
     sfree(index);
@@ -411,15 +413,15 @@ static void calc_tetra_order_interface(const char*       fnNDX,
                     {
                         fprintf(fpsg,
                                 "%4f  %4f  %4f  %8f\n",
-                                (i + 0.5) * box[XX][XX] / (*nslicex),
-                                (j + 0.5) * box[YY][YY] / (*nslicey),
-                                (k + 0.5) * box[ZZ][ZZ] / nslicez,
+                                (i + 0.5) * fr.box[XX][XX] / (*nslicex),
+                                (j + 0.5) * fr.box[YY][YY] / (*nslicey),
+                                (k + 0.5) * fr.box[ZZ][ZZ] / nslicez,
                                 sg_4d[n][i][j][k]);
                         fprintf(fpsk,
                                 "%4f  %4f  %4f  %8f\n",
-                                (i + 0.5) * box[XX][XX] / (*nslicex),
-                                (j + 0.5) * box[YY][YY] / (*nslicey),
-                                (k + 0.5) * box[ZZ][ZZ] / nslicez,
+                                (i + 0.5) * fr.box[XX][XX] / (*nslicex),
+                                (j + 0.5) * fr.box[YY][YY] / (*nslicey),
+                                (k + 0.5) * fr.box[ZZ][ZZ] / nslicez,
                                 sk_4d[n][i][j][k]);
                     }
                 }

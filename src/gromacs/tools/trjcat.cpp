@@ -41,6 +41,7 @@
 
 #include <algorithm>
 #include <string>
+#include <vector>
 
 #include "gromacs/commandline/pargs.h"
 #include "gromacs/fileio/confio.h"
@@ -56,6 +57,7 @@
 #include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
@@ -67,7 +69,7 @@
 #ifndef FLT_MAX
 #    define FLT_MAX 1e36
 #endif
-#define FLAGS (TRX_READ_X | TRX_READ_V | TRX_READ_F)
+static constexpr size_t flags = trxReadCoordinates | trxReadVelocities | trxReadForces;
 
 static void scan_trj_files(gmx::ArrayRef<const std::string> files,
                            real*                            readtime,
@@ -76,14 +78,15 @@ static void scan_trj_files(gmx::ArrayRef<const std::string> files,
                            const gmx_output_env_t*          oenv)
 {
     /* Check start time of all files */
-    int          natoms = 0;
-    t_trxstatus* status;
-    t_trxframe   fr;
-    bool         ok;
+    int        natoms = 0;
+    t_trxframe fr;
+    bool       ok;
 
+    std::optional<TrajectoryIOStatus> status;
     for (gmx::index i = 0; i < files.ssize(); i++)
     {
-        ok = read_first_frame(oenv, &status, files[i].c_str(), &fr, FLAGS);
+        status = read_first_frame(oenv, files[i], &fr, flags);
+        ok     = status.has_value();
 
         if (!ok)
         {
@@ -120,7 +123,7 @@ static void scan_trj_files(gmx::ArrayRef<const std::string> files,
                 }
             }
         }
-        ok = read_next_frame(oenv, status, &fr);
+        ok = status->readNextFrame(oenv, &fr);
         if (ok && fr.bTime)
         {
             timestep[i] = fr.time - readtime[i];
@@ -130,7 +133,6 @@ static void scan_trj_files(gmx::ArrayRef<const std::string> files,
             timestep[i] = 0;
         }
 
-        close_trx(status);
         if (fr.bX)
         {
             sfree(fr.x);
@@ -321,20 +323,23 @@ static void do_demux(gmx::ArrayRef<const std::string> inFiles,
                      real                             dt,
                      const gmx_output_env_t*          oenv)
 {
-    int           k, natoms;
-    t_trxstatus **fp_in, **fp_out;
-    gmx_bool      bCont, *bSet;
-    real          t, first_time = 0;
-    t_trxframe*   trx;
+    int      k, natoms;
+    gmx_bool bCont, *bSet;
+    real     t, first_time = 0;
 
-    snew(fp_in, inFiles.size());
-    snew(trx, inFiles.size());
+    std::vector<t_trxframe>                        trx(inFiles.size());
+    std::vector<std::optional<TrajectoryIOStatus>> inputStatus(inFiles.size());
+    std::vector<std::optional<TrajectoryIOStatus>> outputStatus(inFiles.size());
     snew(bSet, inFiles.size());
     natoms = -1;
     t      = -1;
     for (gmx::index i = 0; i < inFiles.ssize(); i++)
     {
-        read_first_frame(oenv, &(fp_in[i]), inFiles[i].c_str(), &(trx[i]), TRX_NEED_X);
+        inputStatus[i] = read_first_frame(oenv, inFiles[i].c_str(), &(trx[i]), trxNeedCoordinates);
+        if (!inputStatus[i].has_value())
+        {
+            GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+        }
         if (natoms == -1)
         {
             natoms     = trx[i].natoms;
@@ -362,10 +367,9 @@ static void do_demux(gmx::ArrayRef<const std::string> inFiles,
         }
     }
 
-    snew(fp_out, inFiles.size());
     for (gmx::index i = 0; i < inFiles.ssize(); i++)
     {
-        fp_out[i] = open_trx(outFiles[i].c_str(), "w");
+        outputStatus[i] = openTrajectoryFile(outFiles[i].c_str(), "w");
     }
     k = 0;
     if (std::round(time[k] - t) != 0)
@@ -400,11 +404,12 @@ static void do_demux(gmx::ArrayRef<const std::string> inFiles,
             {
                 if (index)
                 {
-                    write_trxframe_indexed(fp_out[j], &trx[i], isize, index, nullptr);
+                    outputStatus[j]->writeIndexedTrxframe(
+                            &trx[i], gmx::arrayRefFromArray(index, isize), nullptr);
                 }
                 else
                 {
-                    write_trxframe(fp_out[j], &trx[i], nullptr);
+                    outputStatus[j]->writeTrxframe(&trx[i], nullptr);
                 }
             }
         }
@@ -412,15 +417,9 @@ static void do_demux(gmx::ArrayRef<const std::string> inFiles,
         bCont = (k < nval);
         for (gmx::index i = 0; i < inFiles.ssize(); i++)
         {
-            bCont = bCont && read_next_frame(oenv, fp_in[i], &trx[i]);
+            bCont = bCont && inputStatus[i]->readNextFrame(oenv, &trx[i]);
         }
     } while (bCont);
-
-    for (gmx::index i = 0; i < inFiles.ssize(); i++)
-    {
-        close_trx(fp_in[i]);
-        close_trx(fp_out[i]);
-    }
 }
 
 int gmx_trjcat(int argc, char* argv[])
@@ -483,7 +482,6 @@ int gmx_trjcat(int argc, char* argv[])
     };
 #define npargs asize(pa)
     int               ftpin, i, frame, frame_out;
-    t_trxstatus *     status, *trxout = nullptr;
     real              t_corr;
     t_trxframe        fr, frout;
     int               n_append;
@@ -608,6 +606,8 @@ int gmx_trjcat(int argc, char* argv[])
                   nset,
                   outFiles.ssize());
     }
+    std::optional<TrajectoryIOStatus> status;
+    std::optional<TrajectoryIOStatus> output;
     if (bDeMux)
     {
         auto outFilesDemux = gmx::copyOf(outFiles);
@@ -678,7 +678,7 @@ int gmx_trjcat(int argc, char* argv[])
                 }
                 if (bIndex)
                 {
-                    trxout = trjtools_gmx_prepare_tng_writing(out_file,
+                    output = trjtools_gmx_prepare_tng_writing(out_file,
                                                               'w',
                                                               nullptr,
                                                               inFilesEdited[0].c_str(),
@@ -689,13 +689,13 @@ int gmx_trjcat(int argc, char* argv[])
                 }
                 else
                 {
-                    trxout = trjtools_gmx_prepare_tng_writing(
+                    output = trjtools_gmx_prepare_tng_writing(
                             out_file, 'w', nullptr, inFilesEdited[0].c_str(), -1, nullptr, {}, nullptr);
                 }
             }
             else
             {
-                trxout = open_trx(out_file, "w");
+                output = openTrajectoryFile(out_file, "w");
             }
             std::memset(&frout, 0, sizeof(frout));
         }
@@ -703,12 +703,13 @@ int gmx_trjcat(int argc, char* argv[])
         {
             t_fileio* stfio;
 
-            if (!read_first_frame(oenv, &status, out_file, &fr, FLAGS))
+            status = read_first_frame(oenv, out_file, &fr, flags);
+            if (!status.has_value())
             {
                 gmx_fatal(FARGS, "Reading first frame from %s", out_file);
             }
 
-            stfio = trx_get_fileio(status);
+            stfio = status->getFileIO();
             if (!bKeepLast && !bOverwrite)
             {
                 fprintf(stderr,
@@ -723,18 +724,18 @@ int gmx_trjcat(int argc, char* argv[])
                  * */
                 if (filetype == efXTC || filetype == efTNG)
                 {
-                    lasttime = trx_get_time_of_final_frame(status);
+                    lasttime = status->timeOfFinalFrame();
                     fr.time  = lasttime;
                 }
                 else
                 {
-                    while (read_next_frame(oenv, status, &fr)) {}
+                    while (status->readNextFrame(oenv, &fr)) {}
                     lasttime = fr.time;
                 }
                 lastTimeSet     = TRUE;
                 bKeepLastAppend = TRUE;
-                close_trx(status);
-                trxout = open_trx(out_file, "a");
+                status.reset();
+                output = openTrajectoryFile(out_file, "a");
             }
             else if (bOverwrite)
             {
@@ -742,7 +743,7 @@ int gmx_trjcat(int argc, char* argv[])
                 {
                     gmx_fatal(FARGS, "Overwrite only supported for XTC.");
                 }
-                last_frame_time = trx_get_time_of_final_frame(status);
+                last_frame_time = status->timeOfFinalFrame();
 
                 /* xtc_seek_time broken for trajectories containing only 1 or 2 frames
                  *     or when seek time = 0 */
@@ -760,7 +761,7 @@ int gmx_trjcat(int argc, char* argv[])
                 {
                     gmx_fatal(FARGS, "Error seeking to append position.");
                 }
-                read_next_frame(oenv, status, &fr);
+                status->readNextFrame(oenv, &fr);
                 if (std::abs(searchtime - fr.time) > timest[0] * 0.5)
                 {
                     gmx_fatal(FARGS, "Error seeking: attempted to seek to %f but got %f.", searchtime, fr.time);
@@ -768,9 +769,9 @@ int gmx_trjcat(int argc, char* argv[])
                 lasttime    = fr.time;
                 lastTimeSet = TRUE;
                 fpos        = gmx_fio_ftell(stfio);
-                close_trx(status);
-                trxout = open_trx(out_file, "r+");
-                if (gmx_fio_seek(trx_get_fileio(trxout), fpos))
+                status.reset();
+                output = openTrajectoryFile(out_file, "r+");
+                if (gmx_fio_seek(output->getFileIO(), fpos))
                 {
                     gmx_fatal(FARGS, "Error seeking to append position.");
                 }
@@ -840,7 +841,7 @@ int gmx_trjcat(int argc, char* argv[])
             {
                 timestep = timest[i];
             }
-            read_first_frame(oenv, &status, inFilesEdited[i].c_str(), &fr, FLAGS);
+            status = read_first_frame(oenv, inFilesEdited[i], &fr, flags);
             if (!fr.bTime)
             {
                 fr.time = 0;
@@ -930,13 +931,14 @@ int gmx_trjcat(int argc, char* argv[])
 
                         if (bIndex)
                         {
-                            write_trxframe_indexed(trxout, &frout, isize, index, nullptr);
+                            output->writeIndexedTrxframe(
+                                    &frout, gmx::arrayRefFromArray(index, isize), nullptr);
                         }
                         else
                         {
-                            write_trxframe(trxout, &frout, nullptr);
+                            output->writeTrxframe(&frout, nullptr);
                         }
-                        if (trxio_should_print_count(oenv, status))
+                        if (status->havePrintForFrame(oenv))
                         {
                             fprintf(stderr,
                                     " ->  frame %6d time %8.3f %s     \r",
@@ -947,13 +949,9 @@ int gmx_trjcat(int argc, char* argv[])
                         }
                     }
                 }
-            } while (read_next_frame(oenv, status, &fr));
+            } while (status->readNextFrame(oenv, &fr));
 
-            close_trx(status);
-        }
-        if (trxout)
-        {
-            close_trx(trxout);
+            status.reset();
         }
         fprintf(stderr,
                 "\nLast frame written was %d, time %f %s\n",

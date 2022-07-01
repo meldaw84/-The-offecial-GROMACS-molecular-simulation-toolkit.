@@ -50,8 +50,10 @@
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/smalloc.h"
@@ -130,14 +132,13 @@ int gmx_vanhove(int argc, char* argv[])
     const char *             matfile, *otfile, *orfile;
     t_topology               top;
     PbcType                  pbcType;
-    matrix                   boxtop, box, *sbox, avbox, corr;
-    rvec *                   xtop, *x, **sx;
+    matrix                   boxtop, *sbox, avbox, corr;
+    rvec *                   xtop, **sx;
     int                      isize, nalloc, nallocn;
-    t_trxstatus*             status;
     int*                     index;
     char*                    grpname;
     int                      nfr, f, ff, i, m, mat_nx = 0, nbin = 0, bin, mbin, fbin;
-    real *                   time, t, invbin = 0, rmax2 = 0, rint2 = 0, d2;
+    real *                   time, invbin = 0, rmax2 = 0, rint2 = 0, d2;
     real                     invsbin = 0, matmax, normfac, dt, *tickx, *ticky;
     std::vector<std::string> legend;
     real**                   mat = nullptr;
@@ -184,7 +185,12 @@ int gmx_vanhove(int argc, char* argv[])
     sx     = nullptr;
     clear_mat(avbox);
 
-    read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, trxNeedCoordinates);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
     nfr = 0;
     do
     {
@@ -198,24 +204,22 @@ int gmx_vanhove(int argc, char* argv[])
         GMX_RELEASE_ASSERT(time != nullptr, "Memory allocation failure; time array is NULL");
         GMX_RELEASE_ASSERT(sbox != nullptr, "Memory allocation failure; sbox array is NULL");
 
-        time[nfr] = t;
-        copy_mat(box, sbox[nfr]);
+        time[nfr] = fr.time;
+        copy_mat(fr.box, sbox[nfr]);
         /* This assumes that the off-diagonal box elements
          * are not affected by jumps across the periodic boundaries.
          */
-        m_add(avbox, box, avbox);
+        m_add(avbox, fr.box, avbox);
         snew(sx[nfr], isize);
         for (i = 0; i < isize; i++)
         {
-            copy_rvec(x[index[i]], sx[nfr][i]);
+            copy_rvec(fr.x[index[i]], sx[nfr][i]);
         }
 
         nfr++;
-    } while (read_next_x(oenv, status, &t, x, box));
+    } while (status->readNextFrame(oenv, &fr));
 
     /* clean up */
-    sfree(x);
-    close_trx(status);
 
     fprintf(stderr, "Read %d frames\n", nfr);
 

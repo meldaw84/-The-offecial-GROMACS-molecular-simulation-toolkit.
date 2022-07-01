@@ -46,7 +46,9 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
@@ -75,28 +77,25 @@ static void calc_h2order(const char*             fn,
                          int                     nmic,
                          const gmx_output_env_t* oenv)
 {
-    rvec *x0,            /* coordinates with pbc */
-            dipole,      /* dipole moment due to one molecules */
+    rvec dipole,         /* dipole moment due to one molecules */
             normal, com; /* center of mass of micel, with bMicel */
-    rvec*        dip;    /* sum of dipoles, unnormalized */
-    matrix       box;    /* box (3x3) */
-    t_trxstatus* status;
-    real         t,          /* time from trajectory */
-            *sum,            /* sum of all cosines of dipoles, per slice */
-            *frame;          /* order over one frame */
-    int natoms,              /* nr. atoms in trj */
-            i, j, slice = 0, /* current slice number */
-            *count;          /* nr. of atoms in one slice */
+    rvec* dip;           /* sum of dipoles, unnormalized */
+    real *sum,           /* sum of all cosines of dipoles, per slice */
+            *frame;      /* order over one frame */
+    int i, j, slice = 0, /* current slice number */
+            *count;      /* nr. of atoms in one slice */
     gmx_rmpbc_t gpbc = nullptr;
 
-    if ((natoms = read_first_x(oenv, &status, fn, &t, &x0, box)) == 0)
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, fn, &fr, trxNeedCoordinates);
+    if (!status.has_value())
     {
-        gmx_fatal(FARGS, "Could not read coordinates from statusfile\n");
+        GMX_THROW(gmx::InvalidInputError("Could not read coordinates from statusfile"));
     }
 
     if (!*nslices)
     {
-        *nslices = static_cast<int>(box[axis][axis] * 10); /* default value */
+        *nslices = static_cast<int>(fr.box[axis][axis] * 10); /* default value */
     }
     switch (axis)
     {
@@ -124,20 +123,20 @@ static void calc_h2order(const char*             fn,
     snew(dip, *nslices);
     snew(frame, *nslices);
 
-    *slWidth = box[axis][axis] / (*nslices);
+    *slWidth = fr.box[axis][axis] / (*nslices);
     fprintf(stderr, "Box divided in %d slices. Initial width of slice: %f\n", *nslices, *slWidth);
 
-    gpbc = gmx_rmpbc_init(&top->idef, pbcType, natoms);
+    gpbc = gmx_rmpbc_init(&top->idef, pbcType, fr.natoms);
     /*********** Start processing trajectory ***********/
     do
     {
-        *slWidth = box[axis][axis] / (*nslices);
+        *slWidth = fr.box[axis][axis] / (*nslices);
 
-        gmx_rmpbc(gpbc, natoms, box, x0);
+        gmx_rmpbc(gpbc, fr.natoms, fr.box, fr.x);
 
         if (bMicel)
         {
-            calc_xcm(x0, nmic, micel, top->atoms.atom, com, FALSE);
+            calc_xcm(fr.x, nmic, micel, top->atoms.atom, com, FALSE);
         }
 
         for (i = 0; i < ngx / 3; i++)
@@ -145,25 +144,25 @@ static void calc_h2order(const char*             fn,
             /* put all waters in box */
             for (j = 0; j < DIM; j++)
             {
-                if (x0[index[3 * i]][j] < 0)
+                if (fr.x[index[3 * i]][j] < 0)
                 {
-                    x0[index[3 * i]][j] += box[j][j];
-                    x0[index[3 * i + 1]][j] += box[j][j];
-                    x0[index[3 * i + 2]][j] += box[j][j];
+                    fr.x[index[3 * i]][j] += fr.box[j][j];
+                    fr.x[index[3 * i + 1]][j] += fr.box[j][j];
+                    fr.x[index[3 * i + 2]][j] += fr.box[j][j];
                 }
-                if (x0[index[3 * i]][j] > box[j][j])
+                if (fr.x[index[3 * i]][j] > fr.box[j][j])
                 {
-                    x0[index[3 * i]][j] -= box[j][j];
-                    x0[index[3 * i + 1]][j] -= box[j][j];
-                    x0[index[3 * i + 2]][j] -= box[j][j];
+                    fr.x[index[3 * i]][j] -= fr.box[j][j];
+                    fr.x[index[3 * i + 1]][j] -= fr.box[j][j];
+                    fr.x[index[3 * i + 2]][j] -= fr.box[j][j];
                 }
             }
 
             for (j = 0; j < DIM; j++)
             {
-                dipole[j] = x0[index[3 * i]][j] * top->atoms.atom[index[3 * i]].q
-                            + x0[index[3 * i + 1]][j] * top->atoms.atom[index[3 * i + 1]].q
-                            + x0[index[3 * i + 2]][j] * top->atoms.atom[index[3 * i + 2]].q;
+                dipole[j] = fr.x[index[3 * i]][j] * top->atoms.atom[index[3 * i]].q
+                            + fr.x[index[3 * i + 1]][j] * top->atoms.atom[index[3 * i + 1]].q
+                            + fr.x[index[3 * i + 2]][j] * top->atoms.atom[index[3 * i + 2]].q;
             }
 
             /* now we have a dipole vector. Might as well safe it. Then the
@@ -172,8 +171,8 @@ static void calc_h2order(const char*             fn,
              */
 
             if (bMicel)
-            {                                            /* this is for spherical interfaces */
-                rvec_sub(com, x0[index[3 * i]], normal); /* vector from Oxygen to COM */
+            {                                              /* this is for spherical interfaces */
+                rvec_sub(com, fr.x[index[3 * i]], normal); /* vector from Oxygen to COM */
                 slice = static_cast<int>(norm(normal) / (*slWidth)); /* spherical slice           */
 
                 sum[slice] += iprod(dipole, normal) / (norm(dipole) * norm(normal));
@@ -185,10 +184,10 @@ static void calc_h2order(const char*             fn,
                 /* this is for flat interfaces      */
 
                 /* determine which slice atom is in */
-                slice = static_cast<int>(x0[index[3 * i]][axis] / (*slWidth));
+                slice = static_cast<int>(fr.x[index[3 * i]][axis] / (*slWidth));
                 if (slice < 0 || slice >= *nslices)
                 {
-                    fprintf(stderr, "Coordinate: %f ", x0[index[3 * i]][axis]);
+                    fprintf(stderr, "Coordinate: %f ", fr.x[index[3 * i]][axis]);
                     fprintf(stderr, "HELP PANIC! slice = %d, OUT OF RANGE!\n", slice);
                 }
                 else
@@ -203,7 +202,7 @@ static void calc_h2order(const char*             fn,
             }
         }
 
-    } while (read_next_x(oenv, status, &t, x0, box));
+    } while (status->readNextFrame(oenv, &fr));
     /*********** done with status file **********/
 
     fprintf(stderr, "\nRead trajectory. Printing parameters to file\n");
@@ -227,7 +226,6 @@ static void calc_h2order(const char*             fn,
 
     *slOrder  = sum; /* copy a pointer, I hope */
     *slDipole = dip;
-    sfree(x0); /* free memory used by coordinate arrays */
 }
 
 static void h2order_plot(rvec dipole[], real order[], const char* afile, int nslices, real slWidth, const gmx_output_env_t* oenv)

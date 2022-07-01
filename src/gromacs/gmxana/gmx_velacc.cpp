@@ -52,6 +52,7 @@
 #include "gromacs/topology/topology.h"
 #include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/smalloc.h"
 
@@ -202,10 +203,9 @@ int gmx_velacc(int argc, char* argv[])
     /* t0, t1 are the beginning and end time respectively.
      * dt is the time step, mass is temp variable for atomic mass.
      */
-    real         t0, t1, dt, mass;
-    t_trxstatus* status;
-    int          counter, n_alloc, i, j, counter_dim, k, l;
-    rvec         mv_mol;
+    real t0, t1, dt, mass;
+    int  counter, n_alloc, i, j, counter_dim, k, l;
+    rvec mv_mol;
     /* Array for the correlation function */
     real**            c1;
     real*             normm = nullptr;
@@ -262,7 +262,11 @@ int gmx_velacc(int argc, char* argv[])
         c1[i] = nullptr;
     }
 
-    read_first_frame(oenv, &status, ftp2fn(efTRN, NFILE, fnm), &fr, TRX_NEED_V);
+    auto status = read_first_frame(oenv, ftp2fn(efTRN, NFILE, fnm), &fr, trxNeedVelocities);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
     t0 = fr.time;
 
     n_alloc = 0;
@@ -325,9 +329,7 @@ int gmx_velacc(int argc, char* argv[])
         t1 = fr.time;
 
         counter++;
-    } while (read_next_frame(oenv, status, &fr));
-
-    close_trx(status);
+    } while (status->readNextFrame(oenv, &fr));
 
     if (counter >= 4)
     {

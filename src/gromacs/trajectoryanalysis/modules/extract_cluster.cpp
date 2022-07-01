@@ -164,9 +164,9 @@ void ExtractCluster::initOptions(IOptionsContainer* options, TrajectoryAnalysisS
 
 void ExtractCluster::optionsFinished(TrajectoryAnalysisSettings* settings)
 {
-    int frameFlags = TRX_NEED_X;
+    size_t frameFlags = trxNeedCoordinates;
 
-    frameFlags |= TRX_READ_V | TRX_READ_F;
+    frameFlags |= trxReadVelocities | trxReadForces;
 
     settings->setFrameFlags(frameFlags);
 

@@ -63,6 +63,7 @@
 #include "gromacs/trajectory/energyframe.h"
 #include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
@@ -130,18 +131,20 @@ static void comp_tpx(const char* fn1, const char* fn2, gmx_bool bRMSD, real ftol
 
 static void comp_trx(const gmx_output_env_t* oenv, const char* fn1, const char* fn2, gmx_bool bRMSD, real ftol, real abstol)
 {
-    int          i;
-    const char*  fn[2];
-    t_trxframe   fr[2];
-    t_trxstatus* status[2];
-    gmx_bool     b[2];
+    int                               i;
+    const char*                       fn[2];
+    t_trxframe                        fr[2];
+    std::optional<TrajectoryIOStatus> status[2];
+    bool                              b[2];
 
     fn[0] = fn1;
     fn[1] = fn2;
     fprintf(stderr, "Comparing trajectory files %s and %s\n", fn1, fn2);
     for (i = 0; i < 2; i++)
     {
-        b[i] = read_first_frame(oenv, &status[i], fn[i], &fr[i], TRX_READ_X | TRX_READ_V | TRX_READ_F);
+        status[i] = read_first_frame(
+                oenv, fn[i], &fr[i], trxReadCoordinates | trxReadVelocities | trxReadForces);
+        b[i] = status[i].has_value();
     }
 
     if (b[0] && b[1])
@@ -152,7 +155,7 @@ static void comp_trx(const gmx_output_env_t* oenv, const char* fn1, const char* 
 
             for (i = 0; i < 2; i++)
             {
-                b[i] = read_next_frame(oenv, status[i], &fr[i]);
+                b[i] = status[i]->readNextFrame(oenv, &fr[i]);
             }
         } while (b[0] && b[1]);
 
@@ -162,7 +165,6 @@ static void comp_trx(const gmx_output_env_t* oenv, const char* fn1, const char* 
             {
                 fprintf(stdout, "\nEnd of file on %s but not on %s\n", fn[1 - i], fn[i]);
             }
-            close_trx(status[i]);
         }
     }
     if (!b[0] && !b[1])
@@ -280,16 +282,15 @@ static void chk_bonds(const InteractionDefinitions* idef, PbcType pbcType, rvec*
 
 static void chk_trj(const gmx_output_env_t* oenv, const char* fn, const char* tpr, real tol)
 {
-    t_trxframe   fr;
-    t_count      count;
-    t_fr_time    first, last;
-    int          j = -1, new_natoms, natoms;
-    real         old_t1, old_t2;
-    gmx_bool     bShowTimestep = TRUE, newline = FALSE;
-    t_trxstatus* status;
-    gmx_mtop_t   mtop;
-    t_state      state;
-    t_inputrec   ir;
+    t_trxframe fr;
+    t_count    count;
+    t_fr_time  first, last;
+    int        j = -1, new_natoms, natoms;
+    real       old_t1, old_t2;
+    gmx_bool   bShowTimestep = TRUE, newline = FALSE;
+    gmx_mtop_t mtop;
+    t_state    state;
+    t_inputrec ir;
 
     std::unique_ptr<gmx_localtop_t> top;
     if (tpr)
@@ -331,7 +332,11 @@ static void chk_trj(const gmx_output_env_t* oenv, const char* fn, const char* tp
     last.bF      = 0;
     last.bBox    = 0;
 
-    read_first_frame(oenv, &status, fn, &fr, TRX_READ_X | TRX_READ_V | TRX_READ_F);
+    auto status = read_first_frame(oenv, fn, &fr, trxReadCoordinates | trxReadVelocities | trxReadForces);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
 
     do
     {
@@ -403,11 +408,9 @@ static void chk_trj(const gmx_output_env_t* oenv, const char* fn, const char* tp
         INC(fr, count, first, last, bF)
         INC(fr, count, first, last, bBox)
 #undef INC
-    } while (read_next_frame(oenv, status, &fr));
+    } while (status->readNextFrame(oenv, &fr));
 
     fprintf(stderr, "\n");
-
-    close_trx(status);
 
     fprintf(stderr, "\nItem        #frames");
     if (bShowTimestep)

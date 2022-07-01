@@ -52,8 +52,11 @@
 #include "gromacs/math/vec.h"
 #include "gromacs/math/vecdump.h"
 #include "gromacs/pbcutil/pbc.h"
+#include "gromacs/trajectory/trajectoryframe.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/smalloc.h"
+#include "gromacs/utility/stringutil.h"
 
 void print_one(const gmx_output_env_t* oenv,
                const char*             base,
@@ -821,20 +824,24 @@ void read_ang_dih(const char*             trj_fn,
                   const gmx_output_env_t* oenv)
 {
     struct t_pbc* pbc;
-    t_trxstatus*  status;
     int           i, angind, teller;
     int           nangles, n_alloc;
-    real          t, fraction, pifac, angle;
+    real          fraction, pifac, angle;
     real*         angles[2];
-    matrix        box;
-    rvec*         x;
     int           cur = 0;
 #define prev (1 - cur)
 
+    t_trxframe fr;
+    size_t     frflags = trxNeedCoordinates;
     snew(pbc, 1);
     gmx::sfree_guard pbcGuard(pbc);
-    read_first_x(oenv, &status, trj_fn, &t, &x, box);
+    auto             trajectoryStatus = read_first_frame(oenv, trj_fn, &fr, frflags);
 
+    if (!trajectoryStatus.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError(
+                gmx::formatString("Unable to read trajectory frame from file %s\n", trj_fn)));
+    }
     if (bAngles)
     {
         nangles = isize / 3;
@@ -872,20 +879,20 @@ void read_ang_dih(const char*             trj_fn,
             srenew(*aver_angle, n_alloc);
         }
 
-        (*time)[teller] = t;
+        (*time)[teller] = fr.time;
 
         if (pbc)
         {
-            set_pbc(pbc, PbcType::Unset, box);
+            set_pbc(pbc, PbcType::Unset, fr.box);
         }
 
         if (bAngles)
         {
-            calc_angles(pbc, isize, index, angles[cur], x);
+            calc_angles(pbc, isize, index, angles[cur], fr.x);
         }
         else
         {
-            calc_dihs(pbc, isize, index, angles[cur], x);
+            calc_dihs(pbc, isize, index, angles[cur], fr.x);
 
             /* Trans fraction */
             fraction              = calc_fraction(angles[cur], nangles);
@@ -1006,9 +1013,7 @@ void read_ang_dih(const char*             trj_fn,
 
         /* Increment loop counter */
         teller++;
-    } while (read_next_x(oenv, status, &t, x, box));
-    done_trx_xframe(status);
-    close_trx(status);
+    } while (trajectoryStatus->readNextFrame(oenv, &fr));
 
     sfree(angles[cur]);
     sfree(angles[prev]);

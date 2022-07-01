@@ -51,9 +51,11 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/gmxassert.h"
@@ -186,43 +188,40 @@ static void calc_electron_density(const char*             fn,
                                   int                     ncenter,
                                   const gmx_output_env_t* oenv)
 {
-    rvec*        x0;  /* coordinates without pbc */
-    matrix       box; /* box (3x3) */
-    double       invvol;
-    int          natoms; /* nr. atoms in trj */
-    t_trxstatus* status;
-    int          i, n;
-    int          nr_frames = 0;
-    t_electron*  found;  /* found by bsearch */
-    t_electron   sought; /* thingie thought by bsearch */
-    int          sliceIndex;
-    real         boxSize;
-    real         sliceWidth;
-    double       averageBoxSize;
-    gmx_rmpbc_t  gpbc = nullptr;
+    double      invvol;
+    int         nr_frames = 0;
+    t_electron* found;  /* found by bsearch */
+    t_electron  sought; /* thingie thought by bsearch */
+    int         sliceIndex;
+    real        boxSize;
+    real        sliceWidth;
+    double      averageBoxSize;
+    gmx_rmpbc_t gpbc = nullptr;
 
-    real t, z;
+    real z;
 
     if (axis < 0 || axis >= DIM)
     {
         gmx_fatal(FARGS, "Invalid axes. Terminating\n");
     }
 
-    if ((natoms = read_first_x(oenv, &status, fn, &t, &x0, box)) == 0)
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, fn, &fr, trxNeedCoordinates);
+    if (!status.has_value())
     {
-        gmx_fatal(FARGS, "Could not read coordinates from statusfile\n");
+        GMX_THROW(gmx::InvalidInputError("Unable to read coordinate file"));
     }
 
     averageBoxSize = 0;
 
     if (!*nslices)
     {
-        *nslices = static_cast<int>(box[axis][axis] * 10); /* default value */
+        *nslices = static_cast<int>(fr.box[axis][axis] * 10); /* default value */
         fprintf(stderr, "\nDividing the box in %d slices\n", *nslices);
     }
 
     snew(*slDensity, nr_grps);
-    for (i = 0; i < nr_grps; i++)
+    for (int i = 0; i < nr_grps; i++)
     {
         snew((*slDensity)[i], *nslices);
     }
@@ -231,27 +230,27 @@ static void calc_electron_density(const char*             fn,
     /*********** Start processing trajectory ***********/
     do
     {
-        gmx_rmpbc(gpbc, natoms, box, x0);
+        gmx_rmpbc(gpbc, fr.natoms, fr.box, fr.x);
 
         /* Translate atoms so the com of the center-group is in the
          * box geometrical center.
          */
         if (bCenter)
         {
-            center_coords(&top->atoms, index_center, ncenter, box, x0);
+            center_coords(&top->atoms, index_center, ncenter, fr.box, fr.x);
         }
 
-        invvol = *nslices / (box[XX][XX] * box[YY][YY] * box[ZZ][ZZ]);
+        invvol = *nslices / (fr.box[XX][XX] * fr.box[YY][YY] * fr.box[ZZ][ZZ]);
 
-        boxSize    = box[axis][axis];
+        boxSize    = fr.box[axis][axis];
         sliceWidth = boxSize / *nslices;
         averageBoxSize += boxSize;
 
-        for (n = 0; n < nr_grps; n++)
+        for (int n = 0; n < nr_grps; n++)
         {
-            for (i = 0; i < gnx[n]; i++) /* loop over all atoms in index file */
+            for (int i = 0; i < gnx[n]; i++) /* loop over all atoms in index file */
             {
-                z = x0[index[n][i]][axis];
+                z = fr.x[index[n][i]][axis];
                 while (z < 0)
                 {
                     z += boxSize;
@@ -303,11 +302,10 @@ static void calc_electron_density(const char*             fn,
             }
         }
         nr_frames++;
-    } while (read_next_x(oenv, status, &t, x0, box));
+    } while (status->readNextFrame(oenv, &fr));
     gmx_rmpbc_done(gpbc);
 
     /*********** done with status file **********/
-    close_trx(status);
 
     /* slDensity now contains the total number of electrons per slice, summed
        over all frames. Now divide by nr_frames and volume of slice
@@ -318,15 +316,13 @@ static void calc_electron_density(const char*             fn,
     averageBoxSize /= nr_frames;
     *slWidth = averageBoxSize / (*nslices);
 
-    for (n = 0; n < nr_grps; n++)
+    for (int n = 0; n < nr_grps; n++)
     {
-        for (i = 0; i < *nslices; i++)
+        for (int i = 0; i < *nslices; i++)
         {
             (*slDensity)[n][i] /= nr_frames;
         }
     }
-
-    sfree(x0); /* free memory used by coordinate array */
 }
 
 static void calc_density(const char*             fn,
@@ -345,41 +341,39 @@ static void calc_density(const char*             fn,
                          const gmx_output_env_t* oenv,
                          const char**            dens_opt)
 {
-    rvec*        x0;  /* coordinates without pbc */
-    matrix       box; /* box (3x3) */
-    double       invvol;
-    int          natoms; /* nr. atoms in trj */
-    t_trxstatus* status;
-    int          i, n;
-    int          nr_frames = 0;
-    real         t, z;
-    real*        den_val; /* values from which the density is calculated */
-    int          sliceIndex;
-    real         boxSize;
-    real         sliceWidth;
-    double       averageBoxSize;
-    gmx_rmpbc_t  gpbc = nullptr;
+    double      invvol;
+    int         i, n;
+    int         nr_frames = 0;
+    real        z;
+    real*       den_val; /* values from which the density is calculated */
+    int         sliceIndex;
+    real        boxSize;
+    real        sliceWidth;
+    double      averageBoxSize;
+    gmx_rmpbc_t gpbc = nullptr;
 
     if (axis < 0 || axis >= DIM)
     {
         gmx_fatal(FARGS, "Invalid axes. Terminating\n");
     }
 
-    if ((natoms = read_first_x(oenv, &status, fn, &t, &x0, box)) == 0)
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, fn, &fr, trxNeedCoordinates);
+    if (!status.has_value())
     {
-        gmx_fatal(FARGS, "Could not read coordinates from statusfile\n");
+        GMX_THROW(gmx::InvalidInputError("Unable to read input trajectory"));
     }
 
     averageBoxSize = 0;
 
     if (!*nslices)
     {
-        *nslices = static_cast<int>(box[axis][axis] * 10); /* default value */
+        *nslices = static_cast<int>(fr.box[axis][axis] * 10); /* default value */
         fprintf(stderr, "\nDividing the box in %d slices\n", *nslices);
     }
 
     snew(*slDensity, nr_grps);
-    for (i = 0; i < nr_grps; i++)
+    for (int i = 0; i < nr_grps; i++)
     {
         snew((*slDensity)[i], *nslices);
     }
@@ -390,21 +384,21 @@ static void calc_density(const char*             fn,
     snew(den_val, top->atoms.nr);
     if (dens_opt[0][0] == 'n')
     {
-        for (i = 0; (i < top->atoms.nr); i++)
+        for (int i = 0; (i < top->atoms.nr); i++)
         {
             den_val[i] = 1;
         }
     }
     else if (dens_opt[0][0] == 'c')
     {
-        for (i = 0; (i < top->atoms.nr); i++)
+        for (int i = 0; (i < top->atoms.nr); i++)
         {
             den_val[i] = top->atoms.atom[i].q;
         }
     }
     else
     {
-        for (i = 0; (i < top->atoms.nr); i++)
+        for (int i = 0; (i < top->atoms.nr); i++)
         {
             den_val[i] = top->atoms.atom[i].m;
         }
@@ -412,27 +406,27 @@ static void calc_density(const char*             fn,
 
     do
     {
-        gmx_rmpbc(gpbc, natoms, box, x0);
+        gmx_rmpbc(gpbc, fr.natoms, fr.box, fr.x);
 
         /* Translate atoms so the com of the center-group is in the
          * box geometrical center.
          */
         if (bCenter)
         {
-            center_coords(&top->atoms, index_center, ncenter, box, x0);
+            center_coords(&top->atoms, index_center, ncenter, fr.box, fr.x);
         }
 
-        invvol = *nslices / (box[XX][XX] * box[YY][YY] * box[ZZ][ZZ]);
+        invvol = *nslices / (fr.box[XX][XX] * fr.box[YY][YY] * fr.box[ZZ][ZZ]);
 
-        boxSize    = box[axis][axis];
+        boxSize    = fr.box[axis][axis];
         sliceWidth = boxSize / *nslices;
         averageBoxSize += boxSize;
 
-        for (n = 0; n < nr_grps; n++)
+        for (int n = 0; n < nr_grps; n++)
         {
-            for (i = 0; i < gnx[n]; i++) /* loop over all atoms in index file */
+            for (int i = 0; i < gnx[n]; i++) /* loop over all atoms in index file */
             {
-                z = x0[index[n][i]][axis];
+                z = fr.x[index[n][i]][axis];
                 while (z < 0)
                 {
                     z += boxSize;
@@ -463,11 +457,8 @@ static void calc_density(const char*             fn,
             }
         }
         nr_frames++;
-    } while (read_next_x(oenv, status, &t, x0, box));
+    } while (status->readNextFrame(oenv, &fr));
     gmx_rmpbc_done(gpbc);
-
-    /*********** done with status file **********/
-    close_trx(status);
 
     /* slDensity now contains the total mass per slice, summed over all
        frames. Now divide by nr_frames and volume of slice
@@ -485,8 +476,6 @@ static void calc_density(const char*             fn,
             (*slDensity)[n][i] /= nr_frames;
         }
     }
-
-    sfree(x0); /* free memory used by coordinate array */
     sfree(den_val);
 }
 

@@ -59,7 +59,7 @@ namespace gmx
 
 TrajectoryAnalysisSettings::TrajectoryAnalysisSettings() : impl_(new Impl)
 {
-    impl_->frflags |= TRX_NEED_X;
+    impl_->frflags |= trxNeedCoordinates;
 }
 
 
@@ -108,7 +108,7 @@ bool TrajectoryAnalysisSettings::hasRmPBC() const
 }
 
 
-int TrajectoryAnalysisSettings::frflags() const
+size_t TrajectoryAnalysisSettings::frflags() const
 {
     return impl_->frflags;
 }
@@ -145,7 +145,7 @@ void TrajectoryAnalysisSettings::setRmPBC(bool bRmPBC)
 }
 
 
-void TrajectoryAnalysisSettings::setFrameFlags(int frflags)
+void TrajectoryAnalysisSettings::setFrameFlags(size_t frflags)
 {
     impl_->frflags = frflags;
 }

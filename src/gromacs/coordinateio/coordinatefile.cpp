@@ -340,7 +340,7 @@ deepCopy_t_trxframe(const t_trxframe& input, t_trxframe* copy, RVec* xvec, RVec*
  * \param[in] mtop Pointer to topology, tested before that it is valid.
  * \todo Those should be methods in a replacement for t_trxstatus instead.
  */
-static t_trxstatus* openTNG(const std::string& name, const Selection& sel, const gmx_mtop_t* mtop)
+static TrajectoryIOStatus openTNG(const std::string& name, const Selection& sel, const gmx_mtop_t* mtop)
 {
     const char* filemode = "w";
     if (sel.isValid())
@@ -368,28 +368,26 @@ static t_trxstatus* openTNG(const std::string& name, const Selection& sel, const
     }
 }
 
-TrajectoryFileOpener::~TrajectoryFileOpener()
-{
-    close_trx(outputFile_);
-}
+TrajectoryFileOpener::~TrajectoryFileOpener() {}
 
-t_trxstatus* TrajectoryFileOpener::outputFile()
+TrajectoryIOStatus* TrajectoryFileOpener::outputFile()
 {
-    if (outputFile_ == nullptr)
+    if (!outputFile_.has_value())
     {
         const char* filemode = "w";
         switch (filetype_)
         {
-            case (efTNG): outputFile_ = openTNG(outputFileName_, sel_, mtop_); break;
+            case (efTNG): outputFile_.emplace(openTNG(outputFileName_, sel_, mtop_)); break;
             case (efPDB):
             case (efGRO):
             case (efTRR):
             case (efXTC):
-            case (efG96): outputFile_ = open_trx(outputFileName_.c_str(), filemode); break;
+            case (efG96): outputFile_.emplace(openTrajectoryFile(outputFileName_, filemode)); break;
             default: GMX_THROW(InvalidInputError("Invalid file type"));
         }
+        outputHandle_ = &(*outputFile_);
     }
-    return outputFile_;
+    return outputHandle_;
 }
 
 void TrajectoryFrameWriter::prepareAndWriteFrame(const int framenumber, const t_trxframe& input)
@@ -417,11 +415,11 @@ void TrajectoryFrameWriter::prepareAndWriteFrame(const int framenumber, const t_
                 outputAdapter->processFrame(framenumber, &local);
             }
         }
-        write_trxframe(file_.outputFile(), &local, nullptr);
+        file_.outputFile()->writeTrxframe(&local, nullptr);
     }
     else
     {
-        write_trxframe(file_.outputFile(), const_cast<t_trxframe*>(&input), nullptr);
+        file_.outputFile()->writeTrxframe(const_cast<t_trxframe*>(&input), nullptr);
     }
 }
 

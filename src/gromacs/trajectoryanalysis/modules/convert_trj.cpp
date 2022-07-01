@@ -124,10 +124,10 @@ void ConvertTrj::initOptions(IOptionsContainer* options, TrajectoryAnalysisSetti
 
 void ConvertTrj::optionsFinished(TrajectoryAnalysisSettings* settings)
 {
-    int frameFlags = TRX_NEED_X;
+    size_t frameFlags = trxNeedCoordinates;
 
-    frameFlags |= TRX_READ_V;
-    frameFlags |= TRX_READ_F;
+    frameFlags |= trxReadVelocities;
+    frameFlags |= trxReadForces;
 
     settings->setFrameFlags(frameFlags);
 }

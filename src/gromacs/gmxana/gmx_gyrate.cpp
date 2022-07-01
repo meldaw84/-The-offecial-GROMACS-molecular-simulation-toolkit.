@@ -53,7 +53,9 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/smalloc.h"
 
@@ -217,18 +219,16 @@ int gmx_gyrate(int argc, char* argv[])
           "Calculate the 2D radii of gyration of this number of slices along the z-axis" },
     };
     FILE*                      out;
-    t_trxstatus*               status;
     t_topology                 top;
     PbcType                    pbcType;
-    rvec *                     x, *x_s;
+    rvec*                      x_s;
     rvec                       xcm, gvec, gvec1;
-    matrix                     box, trans;
+    matrix                     trans;
     gmx_bool                   bACF;
     real**                     moi_trans = nullptr;
     int                        max_moi = 0, delta_moi = 100;
     rvec                       d, d1; /* eigenvalues of inertia tensor */
-    real                       t, t0, tm, gyro;
-    int                        natoms;
+    real                       t0, tm, gyro;
     char*                      grpname;
     int                        j, m, gnx, nam, mol;
     int*                       index;
@@ -280,7 +280,10 @@ int gmx_gyrate(int argc, char* argv[])
         printf("Will print radius normalised by charge\n");
     }
 
-    read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, &x, nullptr, box, TRUE);
+
+    rvec*  xTop;
+    matrix boxTop;
+    read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, &xTop, nullptr, boxTop, TRUE);
     get_index(&top.atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &gnx, &index, &grpname);
 
     if (nmol > gnx || gnx % nmol != 0)
@@ -289,11 +292,16 @@ int gmx_gyrate(int argc, char* argv[])
     }
     nam = gnx / nmol;
 
-    natoms = read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
-    snew(x_s, natoms);
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, trxNeedCoordinates);
+    if (!status.has_value())
+    {
+        GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
+    }
+    snew(x_s, fr.natoms);
 
     j  = 0;
-    t0 = t;
+    t0 = fr.time;
     if (bQ)
     {
         out = xvgropen(ftp2fn(efXVG, NFILE, fnm),
@@ -335,13 +343,13 @@ int gmx_gyrate(int argc, char* argv[])
     }
     if (nz == 0)
     {
-        gpbc = gmx_rmpbc_init(&top.idef, pbcType, natoms);
+        gpbc = gmx_rmpbc_init(&top.idef, pbcType, fr.natoms);
     }
     do
     {
         if (nz == 0)
         {
-            gmx_rmpbc_copy(gpbc, natoms, box, x, x_s);
+            gmx_rmpbc_copy(gpbc, fr.natoms, fr.box, fr.x, x_s);
         }
         gyro = 0;
         clear_rvec(gvec);
@@ -350,7 +358,7 @@ int gmx_gyrate(int argc, char* argv[])
         clear_rvec(d1);
         for (mol = 0; mol < nmol; mol++)
         {
-            tm = sub_xcm(nz == 0 ? x_s : x, nam, index + mol * nam, top.atoms.atom, xcm, bQ);
+            tm = sub_xcm(nz == 0 ? x_s : fr.x, nam, index + mol * nam, top.atoms.atom, xcm, bQ);
             if (nz == 0)
             {
                 gyro += calc_gyro(
@@ -358,7 +366,7 @@ int gmx_gyrate(int argc, char* argv[])
             }
             else
             {
-                calc_gyro_z(x, box, nam, index + mol * nam, top.atoms.atom, nz, t, out);
+                calc_gyro_z(fr.x, fr.box, nam, index + mol * nam, top.atoms.atom, nz, fr.time, out);
             }
             rvec_inc(gvec, gvec1);
             rvec_inc(d, d1);
@@ -386,16 +394,15 @@ int gmx_gyrate(int argc, char* argv[])
                 {
                     copy_rvec(trans[m], moi_trans[m] + DIM * j);
                 }
-                fprintf(out, "%10g  %10g  %10g  %10g  %10g\n", t, gyro, d[XX], d[YY], d[ZZ]);
+                fprintf(out, "%10g  %10g  %10g  %10g  %10g\n", fr.time, gyro, d[XX], d[YY], d[ZZ]);
             }
             else
             {
-                fprintf(out, "%10g  %10g  %10g  %10g  %10g\n", t, gyro, gvec[XX], gvec[YY], gvec[ZZ]);
+                fprintf(out, "%10g  %10g  %10g  %10g  %10g\n", fr.time, gyro, gvec[XX], gvec[YY], gvec[ZZ]);
             }
         }
         j++;
-    } while (read_next_x(oenv, status, &t, x, box));
-    close_trx(status);
+    } while (status->readNextFrame(oenv, &fr));
     if (nz == 0)
     {
         gmx_rmpbc_done(gpbc);
@@ -413,7 +420,7 @@ int gmx_gyrate(int argc, char* argv[])
                     j,
                     3,
                     moi_trans,
-                    (t - t0) / j,
+                    (fr.time - t0) / j,
                     mode,
                     FALSE);
         do_view(oenv, opt2fn("-acf", NFILE, fnm), "-nxy");

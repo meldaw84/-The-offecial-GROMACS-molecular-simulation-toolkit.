@@ -56,6 +56,7 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/futil.h"
@@ -234,18 +235,16 @@ int gmx_rmsf(int argc, char* argv[])
           "Do a least squares superposition before computing RMSF. Without this you must "
           "make sure that the reference structure and the trajectory match." }
     };
-    int  natom;
-    int  i, m;
-    real t, *w_rls;
+    int   i, m;
+    real* w_rls;
 
     t_topology top;
     PbcType    pbcType;
     t_atoms *  pdbatoms, *refatoms;
 
-    matrix       box, pdbbox;
-    rvec *       x, *pdbx, *xref;
-    t_trxstatus* status;
-    const char*  label;
+    matrix      pdbbox;
+    rvec *      pdbx, *xref;
+    const char* label;
 
     FILE*       fp; /* the graphics file */
     const char *devfn, *dirfn;
@@ -287,7 +286,8 @@ int gmx_rmsf(int argc, char* argv[])
     devfn    = opt2fn_null("-od", NFILE, fnm);
     dirfn    = opt2fn_null("-dir", NFILE, fnm);
 
-    read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, &xref, nullptr, box, TRUE);
+    matrix boxTop;
+    read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, &xref, nullptr, boxTop, TRUE);
     const char* title = *top.name;
     snew(w_rls, top.atoms.nr);
 
@@ -336,7 +336,7 @@ int gmx_rmsf(int argc, char* argv[])
         pdbx     = xref;
         snew(pdbatoms->pdbinfo, pdbatoms->nr);
         pdbatoms->havePdbInfo = TRUE;
-        copy_mat(box, pdbbox);
+        copy_mat(boxTop, pdbbox);
     }
 
     if (bFit)
@@ -344,11 +344,12 @@ int gmx_rmsf(int argc, char* argv[])
         sub_xcm(xref, isize, index, top.atoms.atom, xcm, FALSE);
     }
 
-    natom = read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
+    t_trxframe fr;
+    auto       status = read_first_frame(oenv, ftp2fn(efTRX, NFILE, fnm), &fr, trxNeedCoordinates);
 
     if (bFit)
     {
-        gpbc = gmx_rmpbc_init(&top.idef, pbcType, natom);
+        gpbc = gmx_rmpbc_init(&top.idef, pbcType, fr.natoms);
     }
 
     /* Now read the trj again to compute fluctuations */
@@ -357,13 +358,13 @@ int gmx_rmsf(int argc, char* argv[])
         if (bFit)
         {
             /* Remove periodic boundary */
-            gmx_rmpbc(gpbc, natom, box, x);
+            gmx_rmpbc(gpbc, fr.natoms, fr.box, fr.x);
 
             /* Set center of mass to zero */
-            sub_xcm(x, isize, index, top.atoms.atom, xcm, FALSE);
+            sub_xcm(fr.x, isize, index, top.atoms.atom, xcm, FALSE);
 
             /* Fit to reference structure */
-            do_fit(natom, w_rls, xref, x);
+            do_fit(fr.natoms, w_rls, xref, fr.x);
         }
 
         /* Calculate Anisotropic U Tensor */
@@ -372,10 +373,10 @@ int gmx_rmsf(int argc, char* argv[])
             aid = index[i];
             for (d = 0; d < DIM; d++)
             {
-                xav[i * DIM + d] += x[aid][d];
+                xav[i * DIM + d] += fr.x[aid][d];
                 for (m = 0; m < DIM; m++)
                 {
-                    U[i][d * DIM + m] += x[aid][d] * x[aid][m];
+                    U[i][d * DIM + m] += fr.x[aid][d] * fr.x[aid][m];
                 }
             }
         }
@@ -388,13 +389,12 @@ int gmx_rmsf(int argc, char* argv[])
                 aid = index[i];
                 for (d = 0; (d < DIM); d++)
                 {
-                    rmsd_x[i][d] += gmx::square(x[aid][d] - xref[aid][d]);
+                    rmsd_x[i][d] += gmx::square(fr.x[aid][d] - xref[aid][d]);
                 }
             }
         }
         count += 1.0;
-    } while (read_next_x(oenv, status, &t, x, box));
-    close_trx(status);
+    } while (status->readNextFrame(oenv, &fr));
 
     if (bFit)
     {

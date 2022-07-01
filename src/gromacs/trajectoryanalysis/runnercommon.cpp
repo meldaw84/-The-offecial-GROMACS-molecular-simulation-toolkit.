@@ -130,8 +130,8 @@ public:
     t_trxframe* fr;
     gmx_rmpbc_t gpbc_;
     //! Used to store the status variable from read_first_frame().
-    t_trxstatus*      status_;
-    gmx_output_env_t* oenv_;
+    std::optional<TrajectoryIOStatus> status_;
+    gmx_output_env_t*                 oenv_;
 };
 
 
@@ -146,7 +146,6 @@ TrajectoryAnalysisRunnerCommon::Impl::Impl(TrajectoryAnalysisSettings* settings)
     bTrajOpen_(false),
     fr(nullptr),
     gpbc_(nullptr),
-    status_(nullptr),
     oenv_(nullptr)
 {
 }
@@ -207,14 +206,15 @@ void TrajectoryAnalysisRunnerCommon::Impl::initFirstFrame()
     }
     output_env_init(&oenv_, getProgramContext(), settings_.timeUnit(), FALSE, XvgFormat::None, 0);
 
-    int frflags = settings_.frflags();
-    frflags |= TRX_NEED_X;
+    size_t frflags = settings_.frflags();
+    frflags |= trxNeedCoordinates;
 
     snew(fr, 1);
 
     if (hasTrajectory())
     {
-        if (!read_first_frame(oenv_, &status_, trjfile_.c_str(), fr, frflags))
+        status_ = read_first_frame(oenv_, trjfile_, fr, frflags);
+        if (!status_.has_value())
         {
             GMX_THROW(FileIOError("Could not read coordinates from trajectory"));
         }
@@ -236,7 +236,7 @@ void TrajectoryAnalysisRunnerCommon::Impl::initFirstFrame()
     else
     {
         // Prepare a frame from topology information.
-        if (frflags & (TRX_NEED_F))
+        if (frflags & (trxNeedForces))
         {
             GMX_THROW(InvalidInputError("Forces cannot be read from a topology"));
         }
@@ -244,7 +244,7 @@ void TrajectoryAnalysisRunnerCommon::Impl::initFirstFrame()
         fr->bX     = TRUE;
         snew(fr->x, fr->natoms);
         memcpy(fr->x, topInfo_.xtop_.data(), sizeof(*fr->x) * fr->natoms);
-        if (frflags & (TRX_NEED_V))
+        if (frflags & (trxNeedVelocities))
         {
             if (topInfo_.vtop_.empty())
             {
@@ -291,7 +291,6 @@ void TrajectoryAnalysisRunnerCommon::Impl::finishTrajectory()
 {
     if (bTrajOpen_)
     {
-        close_trx(status_);
         bTrajOpen_ = false;
     }
     if (gpbc_ != nullptr)
@@ -440,7 +439,7 @@ bool TrajectoryAnalysisRunnerCommon::readNextFrame()
     bool bContinue = false;
     if (hasTrajectory())
     {
-        bContinue = read_next_frame(impl_->oenv_, impl_->status_, impl_->fr);
+        bContinue = impl_->status_->readNextFrame(impl_->oenv_, impl_->fr);
     }
     if (!bContinue)
     {

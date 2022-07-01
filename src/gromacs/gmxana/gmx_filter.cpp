@@ -36,6 +36,8 @@
 #include <cmath>
 #include <cstring>
 
+#include <optional>
+
 #include "gromacs/commandline/pargs.h"
 #include "gromacs/fileio/confio.h"
 #include "gromacs/fileio/trxio.h"
@@ -49,6 +51,8 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/trajectory/trajectoryframe.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/smalloc.h"
 
@@ -100,9 +104,7 @@ int gmx_filter(int argc, char* argv[])
     int               isize;
     int*              index;
     real*             w_rls = nullptr;
-    t_trxstatus*      in;
-    t_trxstatus *     outl, *outh;
-    int               nffr, i, fr, nat, j, d, m;
+    int               nffr, i, fr, j, d, m;
     int*              ind;
     real              flen, *filt, sum, *t;
     rvec              xcmtop, xcm, **x, *ptr, *xf, *xn, *xp, hbox;
@@ -184,50 +186,45 @@ int gmx_filter(int argc, char* argv[])
     snew(x, nffr);
     snew(box, nffr);
 
-    nat = read_first_x(oenv, &in, opt2fn("-f", NFILE, fnm), &(t[nffr - 1]), &(x[nffr - 1]), box[nffr - 1]);
-    snew(ind, nat);
-    for (i = 0; i < nat; i++)
+    t_trxframe trxFr;
+    auto status = read_first_frame(oenv, opt2fn("-f", NFILE, fnm), &trxFr, trxNeedCoordinates);
+    snew(ind, trxFr.natoms);
+    for (i = 0; i < trxFr.natoms; i++)
     {
         ind[i] = i;
     }
     /* x[nffr - 1] was already allocated by read_first_x */
     for (i = 0; i < nffr - 1; i++)
     {
-        snew(x[i], nat);
+        snew(x[i], trxFr.natoms);
     }
-    snew(xf, nat);
+    snew(xf, trxFr.natoms);
+    std::optional<TrajectoryIOStatus> outLow;
+    std::optional<TrajectoryIOStatus> outHigh;
     if (lowfile)
     {
-        outl = open_trx(lowfile, "w");
-    }
-    else
-    {
-        outl = nullptr;
+        outLow = openTrajectoryFile(lowfile, "w");
     }
     if (highfile)
     {
-        outh = open_trx(highfile, "w");
-    }
-    else
-    {
-        outh = nullptr;
+        outHigh = openTrajectoryFile(highfile, "w");
     }
 
     fr = 0;
     do
     {
-        xn = x[nffr - 1];
+        xn = trxFr.x;
         if (bNoJump && fr > 0)
         {
             xp = x[nffr - 2];
-            for (j = 0; j < nat; j++)
+            for (j = 0; j < trxFr.natoms; j++)
             {
                 for (d = 0; d < DIM; d++)
                 {
-                    hbox[d] = 0.5 * box[nffr - 1][d][d];
+                    hbox[d] = 0.5 * trxFr.box[d][d];
                 }
             }
-            for (i = 0; i < nat; i++)
+            for (i = 0; i < trxFr.natoms; i++)
             {
                 for (m = DIM - 1; m >= 0; m--)
                 {
@@ -237,14 +234,14 @@ int gmx_filter(int argc, char* argv[])
                         {
                             for (d = 0; d <= m; d++)
                             {
-                                xn[i][d] += box[nffr - 1][m][d];
+                                xn[i][d] += trxFr.box[m][d];
                             }
                         }
                         while (xn[i][m] - xp[i][m] > hbox[m])
                         {
                             for (d = 0; d <= m; d++)
                             {
-                                xn[i][d] -= box[nffr - 1][m][d];
+                                xn[i][d] -= trxFr.box[m][d];
                             }
                         }
                     }
@@ -253,32 +250,32 @@ int gmx_filter(int argc, char* argv[])
         }
         if (bTop)
         {
-            gmx_rmpbc(gpbc, nat, box[nffr - 1], xn);
+            gmx_rmpbc(gpbc, trxFr.natoms, trxFr.box, xn);
         }
         if (bFit)
         {
             calc_xcm(xn, isize, index, top.atoms.atom, xcm, FALSE);
-            for (j = 0; j < nat; j++)
+            for (j = 0; j < trxFr.natoms; j++)
             {
                 rvec_dec(xn[j], xcm);
             }
-            do_fit(nat, w_rls, xtop, xn);
-            for (j = 0; j < nat; j++)
+            do_fit(trxFr.natoms, w_rls, xtop, xn);
+            for (j = 0; j < trxFr.natoms; j++)
             {
                 rvec_inc(xn[j], xcmtop);
             }
         }
-        if (fr >= nffr && (outh || bLowAll || fr % nf == nf - 1))
+        if (fr >= nffr && (outHigh.has_value() || bLowAll || fr % nf == nf - 1))
         {
             /* Lowpass filtering */
-            for (j = 0; j < nat; j++)
+            for (j = 0; j < trxFr.natoms; j++)
             {
                 clear_rvec(xf[j]);
             }
             clear_mat(boxf);
             for (i = 0; i < nffr; i++)
             {
-                for (j = 0; j < nat; j++)
+                for (j = 0; j < trxFr.natoms; j++)
                 {
                     for (d = 0; d < DIM; d++)
                     {
@@ -293,32 +290,30 @@ int gmx_filter(int argc, char* argv[])
                     }
                 }
             }
-            if (outl && (bLowAll || fr % nf == nf - 1))
+            if (outLow.has_value() && (bLowAll || fr % nf == nf - 1))
             {
-                write_trx(outl,
-                          nat,
-                          ind,
-                          topfile ? &(top.atoms) : nullptr,
-                          0,
-                          t[nf - 1],
-                          bFit ? topbox : boxf,
-                          xf,
-                          nullptr,
-                          nullptr);
+                outLow->writeTrajectory(gmx::arrayRefFromArray(ind, trxFr.natoms),
+                                        topfile ? &(top.atoms) : nullptr,
+                                        0,
+                                        trxFr.time,
+                                        bFit ? topbox : boxf,
+                                        xf,
+                                        nullptr,
+                                        nullptr);
             }
-            if (outh)
+            if (outHigh.has_value())
             {
                 /* Highpass filtering */
-                for (j = 0; j < nat; j++)
+                for (j = 0; j < trxFr.natoms; j++)
                 {
                     for (d = 0; d < DIM; d++)
                     {
-                        xf[j][d] = xtop[j][d] + x[nf - 1][j][d] - xf[j][d];
+                        xf[j][d] = xtop[j][d] + trxFr.x[j][d] - xf[j][d];
                     }
                 }
                 if (bFit)
                 {
-                    for (j = 0; j < nat; j++)
+                    for (j = 0; j < trxFr.natoms; j++)
                     {
                         rvec_inc(xf[j], xcmtop);
                     }
@@ -327,19 +322,17 @@ int gmx_filter(int argc, char* argv[])
                 {
                     for (d = 0; d < DIM; d++)
                     {
-                        boxf[j][d] = topbox[j][d] + box[nf - 1][j][d] - boxf[j][d];
+                        boxf[j][d] = topbox[j][d] + trxFr.box[j][d] - boxf[j][d];
                     }
                 }
-                write_trx(outh,
-                          nat,
-                          ind,
-                          topfile ? &(top.atoms) : nullptr,
-                          0,
-                          t[nf - 1],
-                          bFit ? topbox : boxf,
-                          xf,
-                          nullptr,
-                          nullptr);
+                outHigh->writeTrajectory(gmx::arrayRefFromArray(ind, trxFr.natoms),
+                                         topfile ? &(top.atoms) : nullptr,
+                                         0,
+                                         trxFr.time,
+                                         bFit ? topbox : boxf,
+                                         xf,
+                                         nullptr,
+                                         nullptr);
             }
         }
         /* Cycle all the pointer and the box by one */
@@ -352,22 +345,12 @@ int gmx_filter(int argc, char* argv[])
         }
         x[nffr - 1] = ptr;
         fr++;
-    } while (read_next_x(oenv, in, &(t[nffr - 1]), x[nffr - 1], box[nffr - 1]));
+    } while (status->readNextFrame(oenv, &trxFr));
 
     if (bTop)
     {
         gmx_rmpbc_done(gpbc);
     }
-
-    if (outh)
-    {
-        close_trx(outh);
-    }
-    if (outl)
-    {
-        close_trx(outl);
-    }
-    close_trx(in);
 
     return 0;
 }

@@ -73,7 +73,7 @@ public:
     //! Flags for the analysis module.
     unsigned long flags;
     //! Frame reading flags for the analysis module.
-    int frflags;
+    size_t frflags;
 
     //! Whether to make molecules whole for each frame.
     bool bRmPBC;
