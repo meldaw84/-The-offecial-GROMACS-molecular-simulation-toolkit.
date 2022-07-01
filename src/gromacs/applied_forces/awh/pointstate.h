@@ -199,6 +199,9 @@ public:
     /*! \brief Return the total number of visits */
     double numVisitsTot() const { return numVisitsTot_; }
 
+    /*! \brief Return the local number of visits */
+    double localNumVisits() const { return localNumVisits_; }
+
     /*! \brief Set the constant target weight factor.
      *
      * \param[in] targetConstantWeight  The target weight factor.
