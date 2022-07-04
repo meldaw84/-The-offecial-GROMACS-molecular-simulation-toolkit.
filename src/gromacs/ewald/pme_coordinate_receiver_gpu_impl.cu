@@ -173,7 +173,14 @@ int PmeCoordinateReceiverGpu::Impl::synchronizeOnCoordinatesFromPpRank(int pipel
     // issue #4047
     senderRank = pipelineStage;
     MPI_Wait(&(requests_[senderRank]), MPI_STATUS_IGNORE);
-    ppCommManagers_[senderRank].sync->enqueueWaitEvent(deviceStream);
+    if (getenv("GMX_ATOMIC_EVENT") != nullptr)
+    {
+        ppCommManagers_[senderRank].sync->enqueueWaitEventUsingAtomicInPeerMemory(deviceStream);
+    }
+    else
+    {
+        ppCommManagers_[senderRank].sync->enqueueWaitEvent(deviceStream);
+    }
 #    endif
     return senderRank;
 #else

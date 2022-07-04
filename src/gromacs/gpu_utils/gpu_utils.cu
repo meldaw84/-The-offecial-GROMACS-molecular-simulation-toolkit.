@@ -258,3 +258,27 @@ void setupGpuDevicePeerAccess(const std::vector<int>& gpuIdsToUse, const gmx::MD
         GMX_LOG(mdlog.info).asParagraph().appendTextFormatted("%s", message.c_str());
     }
 }
+
+#include <cuda/std/atomic>
+
+__global__ void markEventUsingAtomicKernel(cuda::std::atomic<bool>* x)
+{
+    x->store(true);
+}
+
+__global__ void enqueueWaitEventUsingAtomicKernel(cuda::std::atomic<bool>* x)
+{
+    while (!x->load())
+        ; // spin
+    x->store(false);
+}
+
+void launchMarkEventUsingAtomicKernel(cuda::std::atomic<bool>* x, const DeviceStream& deviceStream)
+{
+    markEventUsingAtomicKernel<<<1, 1, 0, deviceStream.stream()>>>(x);
+}
+
+void launchEnqueueWaitEventUsingAtomicKernel(cuda::std::atomic<bool>* x, const DeviceStream& deviceStream)
+{
+    enqueueWaitEventUsingAtomicKernel<<<1, 1, 0, deviceStream.stream()>>>(x);
+}

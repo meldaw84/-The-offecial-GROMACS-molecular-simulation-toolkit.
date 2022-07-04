@@ -41,10 +41,17 @@
 #ifndef GMX_GPU_UTILS_DEVICE_EVENT_CUH
 #define GMX_GPU_UTILS_DEVICE_EVENT_CUH
 
+#include <cuda/std/atomic>
+
 #include "gromacs/gpu_utils/cudautils.cuh"
 #include "gromacs/gpu_utils/device_stream.h"
 #include "gromacs/gpu_utils/gputraits.cuh"
 #include "gromacs/utility/gmxassert.h"
+
+void launchMarkEventUsingAtomicKernel(cuda::std::atomic<bool>* x, const DeviceStream& deviceStream);
+
+void launchEnqueueWaitEventUsingAtomicKernel(cuda::std::atomic<bool>* x, const DeviceStream& deviceStream);
+
 
 #ifndef DOXYGEN
 
@@ -58,8 +65,14 @@ public:
         {
             GMX_THROW(gmx::InternalError("cudaEventCreate failed: " + gmx::getDeviceErrorString(stat)));
         }
+        cudaMallocManaged(&atomicFlag_, sizeof(cuda::std::atomic<bool>));
+        atomicFlag_->store(false);
     }
-    ~DeviceEvent() { cudaEventDestroy(event_); }
+    ~DeviceEvent()
+    {
+        cudaEventDestroy(event_);
+        cudaFree(atomicFlag_);
+    }
     // Disable copy, move, and assignment. Move can be allowed, but not needed yet.
     DeviceEvent& operator=(const DeviceEvent&) = delete;
     DeviceEvent(const DeviceEvent&)            = delete;
@@ -77,6 +90,12 @@ public:
             GMX_THROW(gmx::InternalError("cudaEventRecord failed: " + gmx::getDeviceErrorString(stat)));
         }
         isMarked_ = true;
+    }
+    /*! \brief Marks the synchronization point in the \p stream using an atomic in peer memory.
+     */
+    void markUsingAtomicInPeerMemory(const DeviceStream& deviceStream)
+    {
+        launchMarkEventUsingAtomicKernel(atomicFlag_, deviceStream);
     }
     //! Synchronizes the host thread on the marked event.
     inline void wait()
@@ -108,12 +127,18 @@ public:
             GMX_THROW(gmx::InternalError("cudaStreamWaitEvent failed: " + gmx::getDeviceErrorString(stat)));
         }
     }
+    //! Enqueues a wait for the recorded event in stream \p stream using an atomic in peer memory
+    inline void enqueueWaitUsingAtomicInPeerMemory(const DeviceStream& deviceStream)
+    {
+        launchEnqueueWaitEventUsingAtomicKernel(atomicFlag_, deviceStream);
+    }
     //! Reset the event
     inline void reset() { isMarked_ = false; }
 
 private:
-    cudaEvent_t event_;
-    bool        isMarked_;
+    cudaEvent_t              event_;
+    bool                     isMarked_;
+    cuda::std::atomic<bool>* atomicFlag_;
 };
 
 #endif

@@ -124,6 +124,10 @@ public:
         event_.mark(deviceStream);
         consumptionCount_ = 0;
     }
+    inline void markEventUsingAtomicInPeerMemory(const DeviceStream& deviceStream)
+    {
+        event_.markUsingAtomicInPeerMemory(deviceStream);
+    }
     /*! \brief Synchronizes the host thread on the marked event.
      *
      * Consumes the event if able, otherwise throws \ref gmx::InternalError.
@@ -179,6 +183,10 @@ public:
         consume();
         event_.enqueueWait(deviceStream);
         resetIfFullyConsumed();
+    }
+    inline void enqueueWaitEventUsingAtomicInPeerMemory(const DeviceStream& deviceStream)
+    {
+        event_.enqueueWaitUsingAtomicInPeerMemory(deviceStream);
     }
 
     //! Resets the event to unmarked state, releasing the underlying event object if needed.

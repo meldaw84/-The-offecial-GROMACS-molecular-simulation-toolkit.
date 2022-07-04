@@ -192,7 +192,14 @@ void PmePpCommGpu::Impl::sendCoordinatesToPmeCudaDirect(float3*               se
 
 #if GMX_MPI
     // Record and send event to allow PME task to sync to above transfer before commencing force calculations
-    pmeCoordinatesSynchronizer_.markEvent(pmePpCommStream_);
+    if (getenv("GMX_ATOMIC_EVENT") != nullptr)
+    {
+        pmeCoordinatesSynchronizer_.markEventUsingAtomicInPeerMemory(pmePpCommStream_);
+    }
+    else
+    {
+        pmeCoordinatesSynchronizer_.markEvent(pmePpCommStream_);
+    }
     GpuEventSynchronizer* pmeSync = &pmeCoordinatesSynchronizer_;
     // NOLINTNEXTLINE(bugprone-sizeof-expression)
     MPI_Send(&pmeSync, sizeof(GpuEventSynchronizer*), MPI_BYTE, pmeRank_, 0, comm_);
