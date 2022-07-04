@@ -106,6 +106,7 @@ std::vector<char> awhDimParamSerialized(AwhCoordinateProviderType inputCoordinat
  * \param[in] inputUserData If there is a user provided PMF estimate.
  */
 static std::vector<char> awhBiasParamSerialized(AwhHistogramGrowthType            eawhgrowth,
+                                                AwhTargetType                     awhTargetType,
                                                 double                            beta,
                                                 double                            inputErrorScaling,
                                                 ArrayRef<const std::vector<char>> dimensionParameterBuffers,
@@ -113,7 +114,7 @@ static std::vector<char> awhBiasParamSerialized(AwhHistogramGrowthType          
                                                 bool                              inputUserData)
 {
     int                    ndim                 = dimensionParameterBuffers.size();
-    AwhTargetType          eTarget              = AwhTargetType::Constant;
+    AwhTargetType          eTarget              = awhTargetType;
     double                 targetBetaScaling    = 0;
     double                 targetCutoff         = 0;
     AwhHistogramGrowthType eGrowth              = eawhgrowth;
@@ -156,6 +157,7 @@ static std::vector<char> awhBiasParamSerialized(AwhHistogramGrowthType          
  */
 static std::vector<char> awhParamSerialized(AwhHistogramGrowthType            eawhgrowth,
                                             AwhPotentialType                  eawhpotential,
+                                            AwhTargetType                     awhTargetType,
                                             double                            beta,
                                             double                            inputErrorScaling,
                                             int64_t                           inputSeed,
@@ -182,7 +184,7 @@ static std::vector<char> awhParamSerialized(AwhHistogramGrowthType            ea
 
     auto awhParamBuffer = serializer.finishAndGetBuffer();
     auto awhBiasBuffer  = awhBiasParamSerialized(
-            eawhgrowth, beta, inputErrorScaling, dimensionParameterBuffers, biasShareGroup, inputUserData);
+            eawhgrowth, awhTargetType, beta, inputErrorScaling, dimensionParameterBuffers, biasShareGroup, inputUserData);
 
     awhParamBuffer.insert(awhParamBuffer.end(), awhBiasBuffer.begin(), awhBiasBuffer.end());
 
@@ -197,6 +199,7 @@ AwhTestParameters::AwhTestParameters(ISerializer* serializer) : awhParams(serial
  */
 AwhTestParameters getAwhTestParameters(AwhHistogramGrowthType            eawhgrowth,
                                        AwhPotentialType                  eawhpotential,
+                                       AwhTargetType                     awhTargetType,
                                        ArrayRef<const std::vector<char>> dimensionParameterBuffers,
                                        bool                              inputUserData,
                                        double                            beta,
@@ -210,7 +213,7 @@ AwhTestParameters getAwhTestParameters(AwhHistogramGrowthType            eawhgro
     int64_t seed       = 93471803;
 
     auto awhParamBuffer = awhParamSerialized(
-            eawhgrowth, eawhpotential, beta, inputErrorScaling, seed, dimensionParameterBuffers, biasShareGroup, inputUserData);
+            eawhgrowth, eawhpotential, awhTargetType, beta, inputErrorScaling, seed, dimensionParameterBuffers, biasShareGroup, inputUserData);
     gmx::InMemoryDeserializer deserializer(awhParamBuffer, false);
     AwhTestParameters         params(&deserializer);
 
@@ -252,7 +255,7 @@ TEST(SerializationTest, CanSerializeBiasParams)
     auto awhDimBuffer   = awhDimParamSerialized();
     auto awhDimArrayRef = gmx::arrayRefFromArray(&awhDimBuffer, 1);
     auto awhBiasBuffer  = awhBiasParamSerialized(
-            AwhHistogramGrowthType::ExponentialLinear, 0.4, 0.5, awhDimArrayRef, 0, false);
+            AwhHistogramGrowthType::ExponentialLinear, AwhTargetType::Constant, 0.4, 0.5, awhDimArrayRef, 0, false);
     gmx::InMemoryDeserializer deserializer(awhBiasBuffer, false);
     AwhBiasParams             awhBiasParams(&deserializer);
     EXPECT_EQ(awhBiasParams.ndim(), 1);
@@ -286,6 +289,7 @@ TEST(SerializationTest, CanSerializeAwhParams)
     auto awhDimArrayRef = gmx::arrayRefFromArray(&awhDimBuffer, 1);
     auto awhParamBuffer = awhParamSerialized(AwhHistogramGrowthType::ExponentialLinear,
                                              AwhPotentialType::Convolved,
+                                             AwhTargetType::Constant,
                                              0.4,
                                              0.5,
                                              1337,

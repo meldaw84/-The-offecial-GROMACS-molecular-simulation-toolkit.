@@ -209,7 +209,7 @@ gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         
     if (params_.isUpdateFreeEnergyStep(step))
     {
         state_.updateFreeEnergyAndAddSamplesToHistogram(
-                dimParams_, grid_, params_, forceCorrelationGrid(), t, step, fplog, &updateList_);
+                dimParams_, grid_, params_, params_.eTarget == AwhTargetType::FrictionOptimized ? &forceCorrelationGrid() : nullptr, t, step, fplog, &updateList_);
 
         if (params_.convolveForce)
         {
@@ -388,7 +388,7 @@ Bias::Bias(int                            biasIndexInCollection,
     state_.initGridPointState(
             awhBiasParams, dimParams_, grid_, params_, biasInitFilename, awhParams.numBias());
 
-    if (thisRankDoesIO_)
+    if (thisRankDoesIO_ || params_.eTarget == AwhTargetType::FrictionOptimized)
     {
         /* Set up the force correlation object. */
 
@@ -404,7 +404,10 @@ Bias::Bias(int                            biasIndexInCollection,
                                                   CorrelationGrid::BlockLengthMeasure::Time,
                                                   awhParams.nstSampleCoord() * mdTimeStep);
 
-        writer_ = std::make_unique<BiasWriter>(*this);
+        if (thisRankDoesIO_)
+        {
+            writer_ = std::make_unique<BiasWriter>(*this);
+        }
     }
 }
 

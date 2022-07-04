@@ -90,6 +90,7 @@ struct AwhTestParameters
  */
 AwhTestParameters getAwhTestParameters(AwhHistogramGrowthType            eawhgrowth,
                                        AwhPotentialType                  eawhpotential,
+                                       AwhTargetType                     awhTargetType,
                                        ArrayRef<const std::vector<char>> dimensionParameterBuffers,
                                        bool                              inputUserData,
                                        double                            beta,
