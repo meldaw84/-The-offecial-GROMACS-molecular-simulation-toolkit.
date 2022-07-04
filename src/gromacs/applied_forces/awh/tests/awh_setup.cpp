@@ -212,8 +212,15 @@ AwhTestParameters getAwhTestParameters(AwhHistogramGrowthType            eawhgro
     double  k          = 1000;
     int64_t seed       = 93471803;
 
-    auto awhParamBuffer = awhParamSerialized(
-            eawhgrowth, eawhpotential, awhTargetType, beta, inputErrorScaling, seed, dimensionParameterBuffers, biasShareGroup, inputUserData);
+    auto                      awhParamBuffer = awhParamSerialized(eawhgrowth,
+                                             eawhpotential,
+                                             awhTargetType,
+                                             beta,
+                                             inputErrorScaling,
+                                             seed,
+                                             dimensionParameterBuffers,
+                                             biasShareGroup,
+                                             inputUserData);
     gmx::InMemoryDeserializer deserializer(awhParamBuffer, false);
     AwhTestParameters         params(&deserializer);
 

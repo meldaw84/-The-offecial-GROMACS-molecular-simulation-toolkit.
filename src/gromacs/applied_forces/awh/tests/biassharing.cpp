@@ -164,14 +164,14 @@ void sharingSamplesTest(const void* nStepsArg)
 
     const CorrelationGrid& forceCorrelation = bias.forceCorrelationGrid();
 
-    const int64_t exitStep = *(int64_t *)nStepsArg;
+    const int64_t* exitStep = static_cast<const int64_t*>(nStepsArg);
     /* We use a trajectory of the sum of two sines to cover the reaction
      * coordinate range in a semi-realistic way.
      */
     const double midPoint  = 0.5 * (awhDimParams.end() + awhDimParams.origin());
     const double halfWidth = 0.5 * (awhDimParams.end() - awhDimParams.origin());
 
-    for (int step = 0; step <= exitStep; step++)
+    for (int step = 0; step <= *exitStep; step++)
     {
         double t = step * mdTimeStep;
         double coord =
@@ -183,13 +183,15 @@ void sharingSamplesTest(const void* nStepsArg)
         bias.calcForceAndUpdateBias(
                 coordValue, {}, {}, &potential, &potentialJump, step, step, params.awhParams.seed(), nullptr);
     }
-    std::vector<double> rankNumVisitsIteration, rankNumVisitsTot, rankLocalNumVisits, rankLocalFriction, rankSharedFriction;
+    std::vector<double> rankNumVisitsIteration, rankNumVisitsTot, rankLocalNumVisits,
+            rankLocalFriction, rankSharedFriction;
     for (size_t pointIndex = 0; pointIndex < bias.state().points().size(); pointIndex++)
     {
         rankNumVisitsIteration.push_back(bias.state().points()[pointIndex].numVisitsIteration());
         rankNumVisitsTot.push_back(bias.state().points()[pointIndex].numVisitsTot());
         rankLocalNumVisits.push_back(bias.state().points()[pointIndex].localNumVisits());
-        rankLocalFriction.push_back(forceCorrelation.tensors()[pointIndex].getVolumeElement(forceCorrelation.dtSample));
+        rankLocalFriction.push_back(
+                forceCorrelation.tensors()[pointIndex].getVolumeElement(forceCorrelation.dtSample));
         rankSharedFriction.push_back(bias.state().points()[pointIndex].sharedFriction());
     }
     size_t numPoints = bias.state().points().size();
@@ -249,7 +251,7 @@ TEST(BiasSharingTest, SharingWorks)
 TEST(BiasSharingTest, SharingSamplesWorks)
 {
     int64_t nSteps = 22;
-    int result = tMPI_Init_fn(
+    int     result = tMPI_Init_fn(
             FALSE, c_numRanks, TMPI_AFFINITY_NONE, sharingSamplesTest, static_cast<const void*>(&nSteps));
     ASSERT_EQ(result, TMPI_SUCCESS);
 }
@@ -257,7 +259,7 @@ TEST(BiasSharingTest, SharingSamplesWorks)
 TEST(BiasSharingTest, SharingFrictionWorks)
 {
     int64_t nSteps = 2002;
-    int result = tMPI_Init_fn(
+    int     result = tMPI_Init_fn(
             FALSE, c_numRanks, TMPI_AFFINITY_NONE, sharingSamplesTest, static_cast<const void*>(&nSteps));
     ASSERT_EQ(result, TMPI_SUCCESS);
 }

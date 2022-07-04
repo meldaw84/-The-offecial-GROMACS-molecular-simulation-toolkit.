@@ -209,7 +209,14 @@ gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         
     if (params_.isUpdateFreeEnergyStep(step))
     {
         state_.updateFreeEnergyAndAddSamplesToHistogram(
-                dimParams_, grid_, params_, params_.eTarget == AwhTargetType::FrictionOptimized ? &forceCorrelationGrid() : nullptr, t, step, fplog, &updateList_);
+                dimParams_,
+                grid_,
+                params_,
+                params_.eTarget == AwhTargetType::FrictionOptimized ? &forceCorrelationGrid() : nullptr,
+                t,
+                step,
+                fplog,
+                &updateList_);
 
         if (params_.convolveForce)
         {
