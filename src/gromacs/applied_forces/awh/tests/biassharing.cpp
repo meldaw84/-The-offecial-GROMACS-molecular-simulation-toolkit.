@@ -89,6 +89,7 @@ void parallelTestFunction(const void gmx_unused* dummy)
     auto              awhDimArrayRef = gmx::arrayRefFromArray(&serializedAwhParametersPerDim, 1);
     AwhTestParameters params = getAwhTestParameters(AwhHistogramGrowthType::ExponentialLinear,
                                                     AwhPotentialType::Convolved,
+                                                    AwhTargetType::Constant,
                                                     awhDimArrayRef,
                                                     false,
                                                     0.4,
@@ -136,6 +137,7 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
     auto                awhDimArrayRef = gmx::arrayRefFromArray(&serializedAwhParametersPerDim, 1);
     AwhTestParameters   params = getAwhTestParameters(AwhHistogramGrowthType::ExponentialLinear,
                                                     AwhPotentialType::Convolved,
+                                                    AwhTargetType::FrictionOptimized,
                                                     awhDimArrayRef,
                                                     false,
                                                     0.4,

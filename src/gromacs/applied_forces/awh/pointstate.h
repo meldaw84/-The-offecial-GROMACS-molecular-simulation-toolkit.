@@ -442,6 +442,9 @@ public:
                 target_ = std::exp(-params.temperatureScaleFactor * freeEnergy_);
                 break;
             case AwhTargetType::LocalBoltzmann: target_ = weightSumRef_; break;
+            case AwhTargetType::FrictionOptimized:
+                target_ = 1; /* FIXME: This is not yet implemented. It is currently just included to run tests. */
+                break;
             default: GMX_RELEASE_ASSERT(false, "Unhandled enum");
         }
 

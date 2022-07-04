@@ -150,6 +150,11 @@ void updateSharedFriction(gmx::ArrayRef<PointState> pointState,
                           const BiasSharing*        biasSharing,
                           const int                 biasIndex)
 {
+    GMX_ASSERT(biasSharing != nullptr
+                       && numSharedUpdate % biasSharing->numSharingSimulations(biasIndex) == 0,
+               "numSharedUpdate should be a multiple of multiSimComm->numSimulations_");
+    GMX_ASSERT(numSharedUpdate == biasSharing->numSharingSimulations(biasIndex),
+               "Sharing within a simulation is not implemented (yet)");
     GMX_ASSERT(forceCorrelation != nullptr,
                "There must be a force correlation grid when updating the shared friction");
 
