@@ -72,6 +72,7 @@
 
 #include "biasgrid.h"
 #include "biassharing.h"
+#include "correlationgrid.h"
 #include "pointstate.h"
 
 namespace gmx
@@ -130,6 +131,53 @@ void sumPmf(gmx::ArrayRef<PointState> pointState, int numSharedUpdate, const Bia
         if (pointState[i].inTargetRegion())
         {
             pointState[i].setLogPmfSum(std::log(buffer[i] * normFac));
+        }
+    }
+}
+
+/*! \brief
+ * Update the friction, for all points, shared between the ranks.
+ *
+ * \param[in,out] pointState         The state of the points in the bias.
+ * \param[in]     forceCorrelation   The force correlation statistics for every grid point.
+ * \param[in]     numSharedUpdate    The number of biases sharing the histogram.
+ * \param[in]     biasSharing        Object for sharing bias data over multiple simulations
+ * \param[in]     biasIndex          Index of this bias in the total list of biases in this simulation
+ */
+void updateSharedFriction(gmx::ArrayRef<PointState> pointState,
+                          const CorrelationGrid&    forceCorrelation,
+                          int                       numSharedUpdate,
+                          const BiasSharing*        biasSharing,
+                          const int                 biasIndex)
+{
+    if (numSharedUpdate == 1)
+    {
+        return;
+    }
+    GMX_ASSERT(biasSharing != nullptr
+                       && numSharedUpdate % biasSharing->numSharingSimulations(biasIndex) == 0,
+               "numSharedUpdate should be a multiple of multiSimComm->numSimulations_");
+    GMX_ASSERT(numSharedUpdate == biasSharing->numSharingSimulations(biasIndex),
+               "Sharing within a simulation is not implemented (yet)");
+
+    std::vector<double> buffer(pointState.size(), 0);
+
+    for (size_t i = 0; i < buffer.size(); i++)
+    {
+        if (pointState[i].inTargetRegion())
+        {
+            buffer[i] = forceCorrelation.tensors()[i].getVolumeElement(forceCorrelation.dtSample)
+                        * pointState[i].localNumVisits();
+        }
+    }
+
+    biasSharing->sumOverSharingSimulations(gmx::ArrayRef<double>(buffer), biasIndex);
+
+    for (gmx::index i = 0; i < pointState.ssize(); i++)
+    {
+        if (pointState[i].inTargetRegion())
+        {
+            pointState[i].setSharedFriction(buffer[i] / pointState[i].numVisitsTot());
         }
     }
 }
@@ -1071,6 +1119,7 @@ static void normalizeFreeEnergyAndPmfSum(std::vector<PointState>* pointState)
 void BiasState::updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParams> dimParams,
                                                          const BiasGrid&           grid,
                                                          const BiasParams&         params,
+                                                         const CorrelationGrid&    forceCorrelation,
                                                          double                    t,
                                                          int64_t                   step,
                                                          FILE*                     fplog,
@@ -1119,6 +1168,10 @@ void BiasState::updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParam
     /* Update target distribution? */
     bool needToUpdateTargetDistribution =
             (params.eTarget != AwhTargetType::Constant && params.isUpdateTargetStep(step));
+    if (params.eTarget == AwhTargetType::FrictionOptimized && inInitialStage())
+    {
+        needToUpdateTargetDistribution = false;
+    }
 
     /* In the initial stage, the histogram grows dynamically as a function of the number of coverings. */
     bool detectedCovering = false;
@@ -1196,6 +1249,11 @@ void BiasState::updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParam
 
     if (needToUpdateTargetDistribution)
     {
+        if (params.eTarget == AwhTargetType::FrictionOptimized)
+        {
+            updateSharedFriction(
+                    points_, forceCorrelation, params.numSharedUpdate, biasSharing_, params.biasIndex);
+        }
         /* The target distribution is always updated for all points at once. */
         updateTargetDistribution(points_, params);
     }

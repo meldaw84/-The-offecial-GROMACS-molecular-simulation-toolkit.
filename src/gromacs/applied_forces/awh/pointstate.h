@@ -93,7 +93,8 @@ public:
         logPmfSum_(0),
         numVisitsIteration_(0),
         numVisitsTot_(0),
-        localNumVisits_(0)
+        localNumVisits_(0),
+        sharedFriction_(0)
     {
     }
 
@@ -115,6 +116,7 @@ public:
         numVisitsIteration_ = psh.visits_iteration;
         numVisitsTot_       = psh.visits_tot;
         localNumVisits_     = psh.localNumVisits;
+        sharedFriction_     = psh.sharedFriction;
     }
 
     /*! \brief
@@ -135,6 +137,7 @@ public:
         psh->visits_iteration    = numVisitsIteration_;
         psh->visits_tot          = numVisitsTot_;
         psh->localNumVisits      = localNumVisits_;
+        psh->sharedFriction      = sharedFriction_;
     }
 
     /*! \brief
@@ -201,6 +204,12 @@ public:
 
     /*! \brief Return the local number of visits */
     double localNumVisits() const { return localNumVisits_; }
+
+    /*! \brief Return the force correlation volume shared across all ranks */
+    double sharedFriction() const { return sharedFriction_; }
+
+    /*! \brief Set the force correlation volume shared across all ranks */
+    void setSharedFriction(double sharedFriction) { sharedFriction_ = sharedFriction; }
 
     /*! \brief Set the constant target weight factor.
      *
@@ -482,6 +491,7 @@ private:
     double  numVisitsIteration_; /**< Visits to this bin this iteration; note: only contains data for this Bias, even when sharing biases. */
     double  numVisitsTot_;       /**< Accumulated visits to this bin */
     double  localNumVisits_;     /**< The total number of visits for the local Bias. */
+    double  sharedFriction_;     /**< The force correlation volume shared across all ranks. */
 };
 
 } // namespace gmx
