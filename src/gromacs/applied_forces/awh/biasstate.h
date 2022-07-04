@@ -76,6 +76,7 @@ struct AwhBiasHistory;
 class BiasParams;
 class BiasGrid;
 class BiasSharing;
+class CorrelationGrid;
 class GridAxis;
 class PointState;
 
@@ -375,13 +376,13 @@ public:
      * of the free energy or sampling history that need to be updated here, namely the target
      * distribution and the bias function.
      *
-     * \param[in]     dimParams   The dimension parameters.
-     * \param[in]     grid        The grid.
-     * \param[in]     params      The bias parameters.
-     * \param[in]     t           Time.
-     * \param[in]     step        Time step.
-     * \param[in,out] fplog       Log file.
-     * \param[in,out] updateList  Work space to store a temporary list.
+     * \param[in]     dimParams        The dimension parameters.
+     * \param[in]     grid             The grid.
+     * \param[in]     params           The bias parameters.
+     * \param[in]     t                Time.
+     * \param[in]     step             Time step.
+     * \param[in,out] fplog            Log file.
+     * \param[in,out] updateList       Work space to store a temporary list.
      */
     void updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParams> dimParams,
                                                   const BiasGrid&           grid,
@@ -496,6 +497,33 @@ public:
      */
     void setUmbrellaGridpointToGridpoint() { coordState_.setUmbrellaGridpointToGridpoint(); }
 
+    /*! \brief Updates sharedCorrelationTensorTimeIntegral_ for all points.
+     *
+     * \param[in] biasParams       The bias parameters.
+     * \param[in] forceCorrelation The force correlation grid.
+     */
+    void updateSharedCorrelationTensorTimeIntegral(const BiasParams&      biasParams,
+                                                   const CorrelationGrid& forceCorrelation);
+
+    /*! \brief Gets the time integral, shared across all ranks, of a tensor of a correlation grid point.
+     *
+     * \param[in] gridPointIndex   The index of the grid point from which to retrieve the tensor
+     * volume.
+     * \param[in] tensorIndex      The index of the tensor.
+     * \param[in] numCorrelation   Number of force correlation tensors.
+     */
+    double getSharedCorrelationTensorTimeIntegral(const int gridPointIndex,
+                                                  const int tensorIndex,
+                                                  const int numCorrelation) const;
+
+    /*! \brief Gets the volume element, shared across all ranks, of a correlation grid point.
+     *
+     * \param[in] gridPointIndex   The index of the grid point from which to retrieve the tensor
+     * volume.
+     * \param[in] numCorrelation   Number of force correlation tensors.
+     */
+    double getSharedCorrelationTensorVolumeElement(const int gridPointIndex, const int numCorrelation) const;
+
     /* Data members */
 private:
     CoordState coordState_; /**< The Current coordinate state */
@@ -514,6 +542,9 @@ private:
 
     //! Object for sharing biases over multiple simulations, can be nullptr
     const BiasSharing* biasSharing_;
+
+    /* Correlation tensor time integral, for all points, shared across all ranks (weighted based on the local number of visits). */
+    std::vector<double> sharedCorrelationTensorTimeIntegral_;
 };
 
 //! Linewidth used for warning output

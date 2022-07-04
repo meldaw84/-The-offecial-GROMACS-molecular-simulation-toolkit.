@@ -72,6 +72,7 @@
 
 #include "biasgrid.h"
 #include "biassharing.h"
+#include "correlationgrid.h"
 #include "pointstate.h"
 
 namespace gmx
@@ -1542,6 +1543,127 @@ void BiasState::setFreeEnergyToConvolvedPmf(ArrayRef<const DimParams> dimParams,
     }
 }
 
+void BiasState::updateSharedCorrelationTensorTimeIntegral(const BiasParams&      biasParams,
+                                                          const CorrelationGrid& forceCorrelation)
+{
+    const int numCorrelation = forceCorrelation.tensorSize();
+    const int numPoints      = points_.size();
+
+    GMX_ASSERT(static_cast<int>(sharedCorrelationTensorTimeIntegral_.size()) == numCorrelation * numPoints,
+               "The size of sharedCorrelationTensorTimeIntegral_ does not match the number of "
+               "points and dimensions.");
+
+    std::vector<double> buffer(numCorrelation * numPoints, 0);
+
+    for (int gridPointIndex = 0; gridPointIndex < numPoints; gridPointIndex++)
+    {
+        if (points_[gridPointIndex].inTargetRegion())
+        {
+            for (int correlationIndex = 0; correlationIndex < numCorrelation; correlationIndex++)
+            {
+                int index     = gridPointIndex * numCorrelation + correlationIndex;
+                buffer[index] = forceCorrelation.tensors()[gridPointIndex].getTimeIntegral(
+                                        correlationIndex, forceCorrelation.dtSample)
+                                * points_[gridPointIndex].localNumVisits();
+            }
+        }
+    }
+
+    if (biasParams.numSharedUpdate > 1)
+    {
+        GMX_ASSERT(biasSharing_ != nullptr
+                           && biasParams.numSharedUpdate
+                                              % biasSharing_->numSharingSimulations(biasParams.biasIndex)
+                                      == 0,
+                   "numSharedUpdate should be a multiple of multiSimComm->numSimulations_");
+        GMX_ASSERT(biasParams.numSharedUpdate == biasSharing_->numSharingSimulations(biasParams.biasIndex),
+                   "Sharing within a simulation is not implemented (yet)");
+        biasSharing_->sumOverSharingSimulations(gmx::ArrayRef<double>(buffer), biasParams.biasIndex);
+    }
+
+    for (int gridPointIndex = 0; gridPointIndex < numPoints; gridPointIndex++)
+    {
+        for (int correlationIndex = 0; correlationIndex < numCorrelation; correlationIndex++)
+        {
+            int index = gridPointIndex * numCorrelation + correlationIndex;
+            if (points_[gridPointIndex].numVisitsTot() > 0)
+            {
+                sharedCorrelationTensorTimeIntegral_[index] =
+                        buffer[index] / points_[gridPointIndex].numVisitsTot();
+            }
+            else
+            {
+                sharedCorrelationTensorTimeIntegral_[index] = 0;
+            }
+        }
+    }
+}
+
+double BiasState::getSharedCorrelationTensorTimeIntegral(const int gridPointIndex,
+                                                         const int correlationIndex,
+                                                         const int numCorrelation) const
+{
+    if (!points_[gridPointIndex].inTargetRegion() || points_[gridPointIndex].numVisitsTot() <= 0)
+    {
+        return 0;
+    }
+
+    int index = gridPointIndex * numCorrelation + correlationIndex;
+
+    return sharedCorrelationTensorTimeIntegral_[index];
+}
+
+double BiasState::getSharedCorrelationTensorVolumeElement(const int gridPointIndex,
+                                                          const int numCorrelation) const
+{
+    double det;
+
+    if (!points_[gridPointIndex].inTargetRegion() || points_[gridPointIndex].numVisitsTot() <= 0)
+    {
+        return 0;
+    }
+
+    /* The following is based on CorrelationTensor::getVolumeElement(), but using shared data. */
+    switch (numCorrelation)
+    {
+        case 1:
+            /* 1-dimensional tensor: [a] */
+            det = getSharedCorrelationTensorTimeIntegral(gridPointIndex, 0, numCorrelation);
+            break;
+        case 3:
+        {
+            /* 2-dimensional tensor: [a b; b c] */
+            double a = getSharedCorrelationTensorTimeIntegral(gridPointIndex, 0, numCorrelation);
+            double b = getSharedCorrelationTensorTimeIntegral(gridPointIndex, 1, numCorrelation);
+            double c = getSharedCorrelationTensorTimeIntegral(gridPointIndex, 2, numCorrelation);
+
+            det = a * c - b * b;
+        }
+        break;
+        case 6:
+        {
+            /* 3-dimensional tensor: [a b d; b c e; d e f] */
+            double a = getSharedCorrelationTensorTimeIntegral(gridPointIndex, 0, numCorrelation);
+            double b = getSharedCorrelationTensorTimeIntegral(gridPointIndex, 1, numCorrelation);
+            double c = getSharedCorrelationTensorTimeIntegral(gridPointIndex, 2, numCorrelation);
+            double d = getSharedCorrelationTensorTimeIntegral(gridPointIndex, 3, numCorrelation);
+            double e = getSharedCorrelationTensorTimeIntegral(gridPointIndex, 4, numCorrelation);
+            double f = getSharedCorrelationTensorTimeIntegral(gridPointIndex, 5, numCorrelation);
+
+            det = a * c * f + 2 * b * d * e - d * c * d - b * b * f - a * e * e;
+        }
+        break;
+        default:
+            det = 0;
+            /* meh */
+            break;
+    }
+
+    /* Returns 0 if no data, not supported number of dims
+       or not enough data to give a positive determinant (as it should be) */
+    return det > 0 ? std::sqrt(det) : 0;
+}
+
 /*! \brief
  * Count trailing data rows containing only zeros.
  *
@@ -1850,7 +1972,9 @@ BiasState::BiasState(const AwhBiasParams&      awhBiasParams,
     points_(grid.numPoints()),
     weightSumCovering_(grid.numPoints()),
     histogramSize_(awhBiasParams, histogramSizeInitial),
-    biasSharing_(biasSharing)
+    biasSharing_(biasSharing),
+    /* The number of tensor elements are dim*(dim+1)/2 */
+    sharedCorrelationTensorTimeIntegral_(grid.numPoints() * (dimParams.size() * (dimParams.size() + 1) / 2))
 {
     /* The minimum and maximum multidimensional point indices that are affected by the next update */
     for (size_t d = 0; d < dimParams.size(); d++)

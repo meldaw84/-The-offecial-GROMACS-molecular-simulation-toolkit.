@@ -247,12 +247,14 @@ std::vector<std::string> makeLegend(const AwhBiasParams& awhBiasParams,
                                     OutputFileType       outputFileType,
                                     size_t               numLegend)
 {
-    const std::array<std::string, maxAwhGraphs> legendBase = { { "PMF",
-                                                                 "Coord bias",
-                                                                 "Coord distr",
-                                                                 "Ref value distr",
-                                                                 "Target ref value distr",
-                                                                 "Friction metric" } };
+    const std::array<std::string, maxAwhGraphs> legendBase = {
+        { "PMF",
+          "Coord bias",
+          "Coord distr",
+          "Ref value distr",
+          "Target ref value distr",
+          "sqrt(shared average friction metric)" }
+    };
 
     std::vector<std::string> legend;
     /* Give legends to dimensions higher than the first */
@@ -280,6 +282,13 @@ std::vector<std::string> makeLegend(const AwhBiasParams& awhBiasParams,
                 for (int i1 = 0; i1 <= i0; i1++)
                 {
                     legend.push_back(gmx::formatString("%d,%d", i0, i1));
+                }
+            }
+            for (int i0 = 0; i0 < awhBiasParams.ndim(); i0++)
+            {
+                for (int i1 = 0; i1 <= i0; i1++)
+                {
+                    legend.push_back(gmx::formatString("Shared Friction %d,%d", i0, i1));
                 }
             }
             break;
@@ -355,20 +364,20 @@ void OutputFile::initializeFrictionOutputFile(int                  subBlockStart
     /* The first subblock with actual graph y-values is index 1 + ndim */
     numDim_               = awhBiasParams.ndim();
     int numTensorElements = (numDim_ * (numDim_ + 1)) / 2;
+    numGraph_             = numTensorElements * 2;
 
     /* The friction tensor elements are always the last subblocks */
-    if (numSubBlocks < 1 + numDim_ + maxAwhGraphs + numTensorElements)
+    if (numSubBlocks < 1 + numDim_ + maxAwhGraphs + numGraph_)
     {
         gmx_fatal(FARGS,
                   "You requested friction tensor output, but the AWH data in the energy file does "
                   "not contain the friction tensor");
     }
-    GMX_ASSERT(numSubBlocks == 1 + numDim_ + maxAwhGraphs + numTensorElements,
+    GMX_ASSERT(numSubBlocks == 1 + numDim_ + maxAwhGraphs + numGraph_,
                "The number of sub-blocks per bias should be 1 + ndim + maxAwhGraphs + (ndim*(ndim "
                "+ 1))/2");
 
-    firstGraphSubBlock_ = subBlockStart + numSubBlocks - numTensorElements;
-    numGraph_           = numTensorElements;
+    firstGraphSubBlock_ = subBlockStart + numSubBlocks - numGraph_;
     useKTForEnergy_     = (energyUnit == EnergyUnit::KT);
     scaleFactor_.resize(numGraph_, useKTForEnergy_ ? 1 : kTValue);
     int numLegend = numDim_ - 1 + numGraph_;
