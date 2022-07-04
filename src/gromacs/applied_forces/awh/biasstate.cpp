@@ -145,7 +145,7 @@ void sumPmf(gmx::ArrayRef<PointState> pointState, int numSharedUpdate, const Bia
  * \param[in]     biasIndex          Index of this bias in the total list of biases in this simulation
  */
 void updateSharedFriction(gmx::ArrayRef<PointState> pointState,
-                          const CorrelationGrid&    forceCorrelation,
+                          const CorrelationGrid*    forceCorrelation,
                           int                       numSharedUpdate,
                           const BiasSharing*        biasSharing,
                           const int                 biasIndex)
@@ -159,6 +159,8 @@ void updateSharedFriction(gmx::ArrayRef<PointState> pointState,
                "numSharedUpdate should be a multiple of multiSimComm->numSimulations_");
     GMX_ASSERT(numSharedUpdate == biasSharing->numSharingSimulations(biasIndex),
                "Sharing within a simulation is not implemented (yet)");
+    GMX_ASSERT(forceCorrelation != nullptr,
+               "There must be a force correlation grid when updating the shared friction");
 
     std::vector<double> buffer(pointState.size(), 0);
 
@@ -166,7 +168,7 @@ void updateSharedFriction(gmx::ArrayRef<PointState> pointState,
     {
         if (pointState[i].inTargetRegion())
         {
-            buffer[i] = forceCorrelation.tensors()[i].getVolumeElement(forceCorrelation.dtSample)
+            buffer[i] = forceCorrelation->tensors()[i].getVolumeElement(forceCorrelation->dtSample)
                         * pointState[i].localNumVisits();
         }
     }
@@ -177,7 +179,14 @@ void updateSharedFriction(gmx::ArrayRef<PointState> pointState,
     {
         if (pointState[i].inTargetRegion())
         {
-            pointState[i].setSharedFriction(buffer[i] / pointState[i].numVisitsTot());
+            if (pointState[i].numVisitsTot() > 0)
+            {
+                pointState[i].setSharedFriction(buffer[i] / pointState[i].numVisitsTot());
+            }
+            else
+            {
+                pointState[i].setSharedFriction(0);
+            }
         }
     }
 }
@@ -1119,7 +1128,7 @@ static void normalizeFreeEnergyAndPmfSum(std::vector<PointState>* pointState)
 void BiasState::updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParams> dimParams,
                                                          const BiasGrid&           grid,
                                                          const BiasParams&         params,
-                                                         const CorrelationGrid&    forceCorrelation,
+                                                         const CorrelationGrid*    forceCorrelation,
                                                          double                    t,
                                                          int64_t                   step,
                                                          FILE*                     fplog,

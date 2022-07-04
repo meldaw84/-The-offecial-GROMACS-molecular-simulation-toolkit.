@@ -388,7 +388,7 @@ public:
     void updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParams> dimParams,
                                                   const BiasGrid&           grid,
                                                   const BiasParams&         params,
-                                                  const CorrelationGrid&    forceCorrelation,
+                                                  const CorrelationGrid*    forceCorrelation,
                                                   double                    t,
                                                   int64_t                   step,
                                                   FILE*                     fplog,

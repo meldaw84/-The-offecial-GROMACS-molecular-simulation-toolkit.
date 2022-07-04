@@ -89,6 +89,7 @@ void parallelTestFunction(const void gmx_unused* dummy)
     auto              awhDimArrayRef = gmx::arrayRefFromArray(&serializedAwhParametersPerDim, 1);
     AwhTestParameters params = getAwhTestParameters(AwhHistogramGrowthType::ExponentialLinear,
                                                     AwhPotentialType::Convolved,
+                                                    AwhTargetType::Constant,
                                                     awhDimArrayRef,
                                                     false,
                                                     0.4,
@@ -118,7 +119,7 @@ void parallelTestFunction(const void gmx_unused* dummy)
  *
  * Sets ups sharing and tests that the number of samples are counted correctly
  */
-void sharingSamplesTest(const void gmx_unused* dummy)
+void sharingSamplesTest(const void* nStepsArg)
 {
     int numRanks;
     MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
@@ -136,6 +137,7 @@ void sharingSamplesTest(const void gmx_unused* dummy)
     auto                awhDimArrayRef = gmx::arrayRefFromArray(&serializedAwhParametersPerDim, 1);
     AwhTestParameters   params = getAwhTestParameters(AwhHistogramGrowthType::ExponentialLinear,
                                                     AwhPotentialType::Convolved,
+                                                    AwhTargetType::FrictionOptimized,
                                                     awhDimArrayRef,
                                                     false,
                                                     0.4,
@@ -160,7 +162,9 @@ void sharingSamplesTest(const void gmx_unused* dummy)
               "",
               Bias::ThisRankWillDoIO::No);
 
-    constexpr int64_t exitStep = 22;
+    const CorrelationGrid& forceCorrelation = bias.forceCorrelationGrid();
+
+    const int64_t exitStep = *(int64_t *)nStepsArg;
     /* We use a trajectory of the sum of two sines to cover the reaction
      * coordinate range in a semi-realistic way.
      */
@@ -179,16 +183,14 @@ void sharingSamplesTest(const void gmx_unused* dummy)
         bias.calcForceAndUpdateBias(
                 coordValue, {}, {}, &potential, &potentialJump, step, step, params.awhParams.seed(), nullptr);
     }
-    double sumLocalNumVisits = 0, sumPointNumVisitsTot = 0, sumPointNumVisitsIteration = 0;
-    std::vector<double> rankNumVisitsIteration, rankNumVisitsTot, rankLocalNumVisits;
-    for (const auto& point : bias.state().points())
+    std::vector<double> rankNumVisitsIteration, rankNumVisitsTot, rankLocalNumVisits, rankLocalFriction, rankSharedFriction;
+    for (size_t pointIndex = 0; pointIndex < bias.state().points().size(); pointIndex++)
     {
-        rankNumVisitsIteration.push_back(point.numVisitsIteration());
-        rankNumVisitsTot.push_back(point.numVisitsTot());
-        rankLocalNumVisits.push_back(point.localNumVisits());
-        sumPointNumVisitsIteration += point.numVisitsIteration();
-        sumPointNumVisitsTot += point.numVisitsTot();
-        sumLocalNumVisits += point.localNumVisits();
+        rankNumVisitsIteration.push_back(bias.state().points()[pointIndex].numVisitsIteration());
+        rankNumVisitsTot.push_back(bias.state().points()[pointIndex].numVisitsTot());
+        rankLocalNumVisits.push_back(bias.state().points()[pointIndex].localNumVisits());
+        rankLocalFriction.push_back(forceCorrelation.tensors()[pointIndex].getVolumeElement(forceCorrelation.dtSample));
+        rankSharedFriction.push_back(bias.state().points()[pointIndex].sharedFriction());
     }
     int nSamples = exitStep / params.awhParams.nstSampleCoord();
     int expectedUnaccountedNumSamples =
@@ -208,14 +210,20 @@ void sharingSamplesTest(const void gmx_unused* dummy)
         std::vector<double> numVisitsIteration(numPoints * numRanks);
         std::vector<double> numVisitsTot(numPoints * numRanks);
         std::vector<double> localNumVisits(numPoints * numRanks);
+        std::vector<double> localFriction(numPoints * numRanks);
+        std::vector<double> sharedFriction(numPoints * numRanks);
         std::copy(rankNumVisitsIteration.begin(), rankNumVisitsIteration.end(), numVisitsIteration.begin());
         std::copy(rankNumVisitsTot.begin(), rankNumVisitsTot.end(), numVisitsTot.begin());
         std::copy(rankLocalNumVisits.begin(), rankLocalNumVisits.end(), localNumVisits.begin());
+        std::copy(rankLocalFriction.begin(), rankLocalFriction.end(), localFriction.begin());
+        std::copy(rankSharedFriction.begin(), rankSharedFriction.end(), sharedFriction.begin());
         for (int i = 1; i < numRanks; i++)
         {
             MPI_Recv(numVisitsIteration.data() + numPoints * i, numPoints, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(numVisitsTot.data() + numPoints * i, numPoints, MPI_DOUBLE, i, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(localNumVisits.data() + numPoints * i, numPoints, MPI_DOUBLE, i, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(localFriction.data() + numPoints * i, numPoints, MPI_DOUBLE, i, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(sharedFriction.data() + numPoints * i, numPoints, MPI_DOUBLE, i, 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
         gmx::test::TestReferenceData    data;
         gmx::test::TestReferenceChecker checker(data.rootChecker());
@@ -223,12 +231,16 @@ void sharingSamplesTest(const void gmx_unused* dummy)
                 numVisitsIteration.begin(), numVisitsIteration.end(), "numVisitsIteration");
         checker.checkSequence(numVisitsTot.begin(), numVisitsTot.end(), "numVisitsTot");
         checker.checkSequence(localNumVisits.begin(), localNumVisits.end(), "localNumVisits");
+        checker.checkSequence(localFriction.begin(), localFriction.end(), "localFriction");
+        checker.checkSequence(sharedFriction.begin(), sharedFriction.end(), "sharedFriction");
     }
     else
     {
         MPI_Send(rankNumVisitsIteration.data(), numPoints, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
         MPI_Send(rankNumVisitsTot.data(), numPoints, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
         MPI_Send(rankLocalNumVisits.data(), numPoints, MPI_DOUBLE, 0, 2, MPI_COMM_WORLD);
+        MPI_Send(rankLocalFriction.data(), numPoints, MPI_DOUBLE, 0, 3, MPI_COMM_WORLD);
+        MPI_Send(rankSharedFriction.data(), numPoints, MPI_DOUBLE, 0, 4, MPI_COMM_WORLD);
     }
 }
 
@@ -245,8 +257,17 @@ TEST(BiasSharingTest, SharingWorks)
 
 TEST(BiasSharingTest, SharingSamplesWorks)
 {
+    int64_t nSteps = 22;
     int result = tMPI_Init_fn(
-            FALSE, c_numRanks, TMPI_AFFINITY_NONE, sharingSamplesTest, static_cast<const void*>(this));
+            FALSE, c_numRanks, TMPI_AFFINITY_NONE, sharingSamplesTest, static_cast<const void*>(&nSteps));
+    ASSERT_EQ(result, TMPI_SUCCESS);
+}
+
+TEST(BiasSharingTest, SharingFrictionWorks)
+{
+    int64_t nSteps = 2002;
+    int result = tMPI_Init_fn(
+            FALSE, c_numRanks, TMPI_AFFINITY_NONE, sharingSamplesTest, static_cast<const void*>(&nSteps));
     ASSERT_EQ(result, TMPI_SUCCESS);
 }
 
