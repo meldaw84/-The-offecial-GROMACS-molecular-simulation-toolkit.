@@ -204,6 +204,11 @@ public:
         maxConsumptionCount_ = maxConsumptionCount;
     }
 
+    inline void createAtomicFlag()
+    {
+        event_.createAtomicFlag();
+    }
+
 private:
     DeviceEvent event_;
     int         consumptionCount_;

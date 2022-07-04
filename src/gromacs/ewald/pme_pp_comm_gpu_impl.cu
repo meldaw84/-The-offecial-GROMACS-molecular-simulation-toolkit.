@@ -71,6 +71,7 @@ PmePpCommGpu::Impl::Impl(MPI_Comm                    comm,
     d_pmeForces_(nullptr)
 {
     stageLibMpiGpuCpuComm_ = (getenv("GMX_DISABLE_STAGED_GPU_TO_CPU_PMEPP_COMM") == nullptr);
+    pmeCoordinatesSynchronizer_.createAtomicFlag();
 }
 
 PmePpCommGpu::Impl::~Impl() = default;

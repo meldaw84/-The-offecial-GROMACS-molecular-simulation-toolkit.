@@ -65,13 +65,14 @@ public:
         {
             GMX_THROW(gmx::InternalError("cudaEventCreate failed: " + gmx::getDeviceErrorString(stat)));
         }
-        cudaMallocManaged(&atomicFlag_, sizeof(cuda::std::atomic<bool>));
-        atomicFlag_->store(false);
     }
     ~DeviceEvent()
     {
         cudaEventDestroy(event_);
-        cudaFree(atomicFlag_);
+        if(atomicFlagCreated_)
+        {
+            cudaFree(atomicFlag_);
+        }
     }
     // Disable copy, move, and assignment. Move can be allowed, but not needed yet.
     DeviceEvent& operator=(const DeviceEvent&) = delete;
@@ -135,10 +136,20 @@ public:
     //! Reset the event
     inline void reset() { isMarked_ = false; }
 
+    void createAtomicFlag()
+    {
+        if(!atomicFlagCreated_)
+        {
+            cudaMallocManaged(&atomicFlag_, sizeof(cuda::std::atomic<bool>));
+            atomicFlag_->store(false);
+            atomicFlagCreated_ = true;
+        }
+    }
 private:
     cudaEvent_t              event_;
     bool                     isMarked_;
     cuda::std::atomic<bool>* atomicFlag_;
+    bool atomicFlagCreated_ = false;
 };
 
 #endif
