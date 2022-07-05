@@ -144,11 +144,11 @@ void sumPmf(gmx::ArrayRef<PointState> pointState, int numSharedUpdate, const Bia
  * \param[in]     biasSharing        Object for sharing bias data over multiple simulations
  * \param[in]     biasIndex          Index of this bias in the total list of biases in this simulation
  */
-void updateSharedFriction(gmx::ArrayRef<PointState> pointState,
-                          const CorrelationGrid*    forceCorrelation,
-                          int                       numSharedUpdate,
-                          const BiasSharing*        biasSharing,
-                          const int                 biasIndex)
+void updateNormalizedSharedFriction(gmx::ArrayRef<PointState> pointState,
+                                    const CorrelationGrid*    forceCorrelation,
+                                    int                       numSharedUpdate,
+                                    const BiasSharing*        biasSharing,
+                                    const int                 biasIndex)
 {
     if (numSharedUpdate == 1)
     {
@@ -175,17 +175,39 @@ void updateSharedFriction(gmx::ArrayRef<PointState> pointState,
 
     biasSharing->sumOverSharingSimulations(gmx::ArrayRef<double>(buffer), biasIndex);
 
+    int64_t numPointsWithFriction = 0;
+    double  frictionSum           = 0;
     for (gmx::index i = 0; i < pointState.ssize(); i++)
     {
         if (pointState[i].inTargetRegion())
         {
             if (pointState[i].numVisitsTot() > 0)
             {
-                pointState[i].setSharedFriction(buffer[i] / pointState[i].numVisitsTot());
+                pointState[i].setNormalizedSharedFriction(buffer[i] / pointState[i].numVisitsTot());
+                frictionSum += buffer[i] / pointState[i].numVisitsTot();
+                numPointsWithFriction += 1;
             }
             else
             {
-                pointState[i].setSharedFriction(0);
+                pointState[i].setNormalizedSharedFriction(0);
+            }
+        }
+    }
+    double normalizationFactor = numPointsWithFriction / frictionSum;
+    for (gmx::index i = 0; i < pointState.ssize(); i++)
+    {
+        if (pointState[i].inTargetRegion())
+        {
+            if (pointState[i].numVisitsTot() > 0)
+            {
+                pointState[i].setNormalizedSharedFriction(pointState[i].normalizedSharedFriction()
+                                                          * normalizationFactor);
+            }
+            else
+            {
+                /* Set the normalized shared friction to 1 where there has been no sampling, i.e. do
+                 * not modify the target distribution of points that have not yet been visited. */
+                pointState[i].setNormalizedSharedFriction(1);
             }
         }
     }
@@ -1260,7 +1282,7 @@ void BiasState::updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParam
     {
         if (params.eTarget == AwhTargetType::FrictionOptimized)
         {
-            updateSharedFriction(
+            updateNormalizedSharedFriction(
                     points_, forceCorrelation, params.numSharedUpdate, biasSharing_, params.biasIndex);
         }
         /* The target distribution is always updated for all points at once. */
