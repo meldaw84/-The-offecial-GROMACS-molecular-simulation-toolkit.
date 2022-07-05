@@ -856,7 +856,14 @@ static gmx::FftBackend getFftBackend(const PmeGpu* pmeGpu)
         }
         else if ((GMX_SYCL_HIPSYCL != 0) && (GMX_HIPSYCL_HAVE_HIP_TARGET != 0)) // NOLINT(misc-redundant-expression)
         {
-            return gmx::FftBackend::SyclRocfft;
+            if (GMX_FFT_VKFFT)
+            {
+                return gmx::FftBackend::SyclVkfft;
+            }
+            else
+            {
+                return gmx::FftBackend::SyclRocfft;
+            }
         }
         else
         {

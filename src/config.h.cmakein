@@ -64,6 +64,9 @@
 /* Use built in fftpack FFT library */
 #cmakedefine01 GMX_FFT_FFTPACK
 
+/* Use VKFFT Library */
+#cmakedefine01 GMX_FFT_VKFFT
+
 /* Target platform is x86 or x86_64 */
 #cmakedefine01 GMX_TARGET_X86
 

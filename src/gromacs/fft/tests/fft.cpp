@@ -496,7 +496,11 @@ TEST_P(ParameterizedFFTTest3D, RunsOnDevices)
 #    elif GMX_GPU_SYCL
 #        if GMX_SYCL_HIPSYCL
 #            if GMX_HIPSYCL_HAVE_HIP_TARGET
+#                if GMX_FFT_VKFFT
+        const FftBackend backend = FftBackend::SyclVkfft;
+#                else
         const FftBackend backend = FftBackend::SyclRocfft;
+#                endif
 #            else
         // Use stub backend so compilation succeeds
         const FftBackend backend = FftBackend::Sycl;
