@@ -68,7 +68,7 @@ namespace gmx
 const char* enumValueToString(AwhTargetType enumValue)
 {
     constexpr gmx::EnumerationArray<AwhTargetType, const char*> awhTargetTypeNames = {
-        "constant", "cutoff", "boltzmann", "local-boltzmann"
+        "constant", "cutoff", "boltzmann", "local-boltzmann", "friction-optimized"
     };
     return awhTargetTypeNames[enumValue];
 }
@@ -785,8 +785,9 @@ AwhBiasParams::AwhBiasParams(std::vector<t_inpfile>* inp, const std::string& pre
 
     if (bComment)
     {
-        printStringNoNewline(
-                inp, "Target distribution type: constant, cutoff, boltzmann or local-boltzmann");
+        printStringNoNewline(inp,
+                             "Target distribution type: constant, cutoff, boltzmann, "
+                             "local-boltzmann or friction-optimized");
     }
     opt      = prefix + "-target";
     eTarget_ = getEnum<AwhTargetType>(inp, opt.c_str(), wi);

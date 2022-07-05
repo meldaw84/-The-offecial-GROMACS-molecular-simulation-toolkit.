@@ -181,12 +181,12 @@ public:
     /*! \brief
      * Initialize the state of grid coordinate points.
      *
-     * \param[in] awhBiasParams   Bias parameters from inputrec.
-     * \param[in] dimParams       The dimension parameters.
-     * \param[in] grid            The grid.
-     * \param[in] params          The bias parameters.
-     * \param[in] filename        Name of file to read PMF and target from.
-     * \param[in] numBias         The number of biases.
+     * \param[in] awhBiasParams    Bias parameters from inputrec.
+     * \param[in] dimParams        The dimension parameters.
+     * \param[in] grid             The grid.
+     * \param[in] params           The bias parameters.
+     * \param[in] filename         Name of file to read PMF and target from.
+     * \param[in] numBias          The number of biases.
      */
     void initGridPointState(const AwhBiasParams&      awhBiasParams,
                             ArrayRef<const DimParams> dimParams,
@@ -350,6 +350,16 @@ private:
                                  ArrayRef<const DimParams> dimParams,
                                  const BiasGrid&           grid) const;
 
+    /*! \brief
+     * Updates the target distribution for all points.
+     *
+     * The target distribution is always updated for all points
+     * at the same time.
+     *
+     * \param[in] params           The bias parameters.
+     */
+    void updateTargetDistribution(const BiasParams& params);
+
 public:
     /*! \brief
      * Update the reaction coordinate value.
@@ -376,13 +386,13 @@ public:
      * of the free energy or sampling history that need to be updated here, namely the target
      * distribution and the bias function.
      *
-     * \param[in]     dimParams   The dimension parameters.
-     * \param[in]     grid        The grid.
-     * \param[in]     params      The bias parameters.
-     * \param[in]     t           Time.
-     * \param[in]     step        Time step.
-     * \param[in,out] fplog       Log file.
-     * \param[in,out] updateList  Work space to store a temporary list.
+     * \param[in]     dimParams        The dimension parameters.
+     * \param[in]     grid             The grid.
+     * \param[in]     params           The bias parameters.
+     * \param[in]     t                Time.
+     * \param[in]     step             Time step.
+     * \param[in,out] fplog            Log file.
+     * \param[in,out] updateList       Work space to store a temporary list.
      */
     void updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParams> dimParams,
                                                   const BiasGrid&           grid,
@@ -519,14 +529,6 @@ public:
      * volume.
      */
     const std::vector<double>& getSharedPointCorrelationIntegral(int gridPointIndex) const;
-
-    /*! \brief Gets the volume element, shared across all ranks, of a correlation grid point.
-     *
-     * \param[in] gridPointIndex   The index of the grid point from which to retrieve the tensor
-     * volume.
-     * \param[in] numCorrelation   Number of force correlation tensors.
-     */
-    double getSharedCorrelationTensorVolumeElement(int gridPointIndex, int numCorrelation) const;
 
     /* Data members */
 private:
