@@ -433,6 +433,9 @@ public:
                 target_ = std::exp(-params.temperatureScaleFactor * freeEnergy_);
                 break;
             case AwhTargetType::LocalBoltzmann: target_ = weightSumRef_; break;
+            case AwhTargetType::FrictionOptimized:
+                target_ = std::sqrt(normalizedSharedFriction_);
+                break;
             default: GMX_RELEASE_ASSERT(false, "Unhandled enum");
         }
 
