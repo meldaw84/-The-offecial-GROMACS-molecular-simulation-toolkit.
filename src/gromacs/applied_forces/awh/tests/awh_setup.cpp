@@ -99,6 +99,7 @@ std::vector<char> awhDimParamSerialized(AwhCoordinateProviderType inputCoordinat
  * Prepare a memory buffer with serialized AwhBiasParams.
  *
  * \param[in] eawhgrowth Way to grow potential.
+ * \param[in] awhTargetType The AWH target distribution to use.
  * \param[in] beta Value for 1/(kB*T).
  * \param[in] inputErrorScaling Factor for initial error scaling.
  * \param[in] dimensionParameterBuffers Buffers containing the dimension parameters.
@@ -148,6 +149,7 @@ static std::vector<char> awhBiasParamSerialized(AwhHistogramGrowthType          
  *
  * \param[in] eawhgrowth Way to grow potential.
  * \param[in] eawhpotential Which potential to use.
+ * \param[in] awhTargetType The AWH target distribution to use.
  * \param[in] beta Value for 1/(kB*T).
  * \param[in] inputErrorScaling Factor for initial error scaling.
  * \param[in] inputSeed Seed value to use.
