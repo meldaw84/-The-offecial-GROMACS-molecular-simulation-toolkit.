@@ -119,6 +119,8 @@ extern template __global__ void
 nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnxm::gpu_plist, int, int);
 #else
 {
+    __builtin_assume(numParts > 0);
+    __builtin_assume(part >= 0);
 
     /* convenience variables */
     const nbnxn_sci_t* pl_sci    = plist.sci;
@@ -175,6 +177,9 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
     int sci        = nb_sci.sci;           /* super-cluster */
     int cij4_start = nb_sci.cj4_ind_start; /* first ...*/
     int cij4_end   = nb_sci.cj4_ind_end;   /* and last index of j clusters */
+    __builtin_assume(sci >= 0);
+    __builtin_assume(cij4_start >= 0);
+    __builtin_assume(cij4_end >= 0);
 
     // We may need only a subset of threads active for preloading i-atoms
     // depending on the super-cluster and cluster / thread-block size.
@@ -184,6 +189,8 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
         /* Pre-load i-atom x and q into shared memory */
         int ci = sci * c_nbnxnGpuNumClusterPerSupercluster + tidxj;
         int ai = ci * c_clSize + tidxi;
+        __builtin_assume(ci >= 0);
+        __builtin_assume(ai >= 0);
 
         /* We don't need q, but using float4 in shmem avoids bank conflicts.
            (but it also wastes L2 bandwidth). */
@@ -240,6 +247,8 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
                     int cj = c_preloadCj ? cjs[jm + (tidxj & 4) * c_nbnxnGpuJgroupSize / c_splitClSize]
                                          : pl_cj4[j4].cj[jm];
                     int aj = cj * c_clSize + tidxj;
+                    __builtin_assume(cj >= 0);
+                    __builtin_assume(aj >= 0);
 
                     /* load j atom data */
                     float4 tmp = xq[aj];
