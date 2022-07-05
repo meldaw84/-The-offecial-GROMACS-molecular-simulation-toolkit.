@@ -185,7 +185,7 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
     }
     double sumLocalNumVisits = 0, sumPointNumVisitsTot = 0, sumPointNumVisitsIteration = 0;
     std::vector<double> rankNumVisitsIteration, rankNumVisitsTot, rankLocalNumVisits,
-            rankLocalFriction, rankSharedFriction;
+            rankLocalFriction, rankSharedFriction, rankTargetDistribution;
     for (size_t pointIndex = 0; pointIndex < bias.state().points().size(); pointIndex++)
     {
         rankNumVisitsIteration.push_back(bias.state().points()[pointIndex].numVisitsIteration());
@@ -197,6 +197,7 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
         sumPointNumVisitsIteration += bias.state().points()[pointIndex].numVisitsIteration();
         sumPointNumVisitsTot += bias.state().points()[pointIndex].numVisitsTot();
         sumLocalNumVisits += bias.state().points()[pointIndex].localNumVisits();
+        rankTargetDistribution.push_back(bias.state().points()[pointIndex].target());
     }
     int nSamples = exitStep / params.awhParams.nstSampleCoord();
     int expectedUnaccountedNumSamples =
@@ -218,11 +219,13 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
         std::vector<double> localNumVisits(numPoints * numRanks);
         std::vector<double> localFriction(numPoints * numRanks);
         std::vector<double> sharedFriction(numPoints * numRanks);
+        std::vector<double> targetDistribution(numPoints * numRanks);
         std::copy(rankNumVisitsIteration.begin(), rankNumVisitsIteration.end(), numVisitsIteration.begin());
         std::copy(rankNumVisitsTot.begin(), rankNumVisitsTot.end(), numVisitsTot.begin());
         std::copy(rankLocalNumVisits.begin(), rankLocalNumVisits.end(), localNumVisits.begin());
         std::copy(rankLocalFriction.begin(), rankLocalFriction.end(), localFriction.begin());
         std::copy(rankSharedFriction.begin(), rankSharedFriction.end(), sharedFriction.begin());
+        std::copy(rankTargetDistribution.begin(), rankTargetDistribution.end(), targetDistribution.begin());
         for (int i = 1; i < numRanks; i++)
         {
             MPI_Recv(numVisitsIteration.data() + numPoints * i, numPoints, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -230,6 +233,7 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
             MPI_Recv(localNumVisits.data() + numPoints * i, numPoints, MPI_DOUBLE, i, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(localFriction.data() + numPoints * i, numPoints, MPI_DOUBLE, i, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(sharedFriction.data() + numPoints * i, numPoints, MPI_DOUBLE, i, 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(targetDistribution.data() + numPoints * i, numPoints, MPI_DOUBLE, i, 5, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
         gmx::test::TestReferenceData    data;
         gmx::test::TestReferenceChecker checker(data.rootChecker());
@@ -243,6 +247,9 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
         checker.setDefaultTolerance(relativeToleranceAsUlp(1.0, ulpTol));
         checker.checkSequence(localFriction.begin(), localFriction.end(), "localFriction");
         checker.checkSequence(sharedFriction.begin(), sharedFriction.end(), "sharedFriction");
+        checker.checkSequence(targetDistribution.begin(),
+                              targetDistribution.end(),
+                              "targetDistribution");
     }
     else
     {
@@ -251,6 +258,7 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
         MPI_Send(rankLocalNumVisits.data(), numPoints, MPI_DOUBLE, 0, 2, MPI_COMM_WORLD);
         MPI_Send(rankLocalFriction.data(), numPoints, MPI_DOUBLE, 0, 3, MPI_COMM_WORLD);
         MPI_Send(rankSharedFriction.data(), numPoints, MPI_DOUBLE, 0, 4, MPI_COMM_WORLD);
+        MPI_Send(rankTargetDistribution.data(), numPoints, MPI_DOUBLE, 0, 5, MPI_COMM_WORLD);
     }
 }
 
@@ -265,7 +273,7 @@ TEST(BiasSharingTest, SharingWorks)
     }
 }
 
-TEST(BiasSharingTest, SharingSamplesAndFrictionWorks)
+TEST(BiasSharingTest, SharingFrictionOptimizationWorks)
 {
     int64_t nSteps = 2002;
     int     result = tMPI_Init_fn(FALSE,
