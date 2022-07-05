@@ -94,7 +94,7 @@ public:
         numVisitsIteration_(0),
         numVisitsTot_(0),
         localNumVisits_(0),
-        normalizedSharedFriction_(0)
+        normalizedSharedFriction_(1.0)
     {
     }
 
@@ -446,7 +446,7 @@ public:
                 break;
             case AwhTargetType::LocalBoltzmann: target_ = weightSumRef_; break;
             case AwhTargetType::FrictionOptimized:
-                target_ = 1; /* FIXME: This is not yet implemented. It is currently just included to run tests. */
+                target_ = std::sqrt(normalizedSharedFriction_);
                 break;
             default: GMX_RELEASE_ASSERT(false, "Unhandled enum");
         }

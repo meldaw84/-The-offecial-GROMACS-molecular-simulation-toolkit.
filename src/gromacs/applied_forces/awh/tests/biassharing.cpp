@@ -184,7 +184,7 @@ void sharingSamplesTest(const void* nStepsArg)
                 coordValue, {}, {}, &potential, &potentialJump, step, step, params.awhParams.seed(), nullptr);
     }
     std::vector<double> rankNumVisitsIteration, rankNumVisitsTot, rankLocalNumVisits,
-            rankLocalFriction, rankNormalizedSharedFriction;
+            rankLocalFriction, rankNormalizedSharedFriction, rankTargetDistribution;
     for (size_t pointIndex = 0; pointIndex < bias.state().points().size(); pointIndex++)
     {
         rankNumVisitsIteration.push_back(bias.state().points()[pointIndex].numVisitsIteration());
@@ -193,6 +193,7 @@ void sharingSamplesTest(const void* nStepsArg)
         rankLocalFriction.push_back(
                 forceCorrelation.tensors()[pointIndex].getVolumeElement(forceCorrelation.dtSample));
         rankNormalizedSharedFriction.push_back(bias.state().points()[pointIndex].normalizedSharedFriction());
+        rankTargetDistribution.push_back(bias.state().points()[pointIndex].target());
     }
     size_t numPoints = bias.state().points().size();
 
@@ -205,6 +206,7 @@ void sharingSamplesTest(const void* nStepsArg)
         std::vector<double> localNumVisits(numPoints * numRanks);
         std::vector<double> localFriction(numPoints * numRanks);
         std::vector<double> normalizedSharedFriction(numPoints * numRanks);
+        std::vector<double> targetDistribution(numPoints * numRanks);
         std::copy(rankNumVisitsIteration.begin(), rankNumVisitsIteration.end(), numVisitsIteration.begin());
         std::copy(rankNumVisitsTot.begin(), rankNumVisitsTot.end(), numVisitsTot.begin());
         std::copy(rankLocalNumVisits.begin(), rankLocalNumVisits.end(), localNumVisits.begin());
@@ -212,6 +214,7 @@ void sharingSamplesTest(const void* nStepsArg)
         std::copy(rankNormalizedSharedFriction.begin(),
                   rankNormalizedSharedFriction.end(),
                   normalizedSharedFriction.begin());
+        std::copy(rankTargetDistribution.begin(), rankTargetDistribution.end(), targetDistribution.begin());
         for (int i = 1; i < numRanks; i++)
         {
             MPI_Recv(numVisitsIteration.data() + numPoints * i, numPoints, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -219,6 +222,7 @@ void sharingSamplesTest(const void* nStepsArg)
             MPI_Recv(localNumVisits.data() + numPoints * i, numPoints, MPI_DOUBLE, i, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(localFriction.data() + numPoints * i, numPoints, MPI_DOUBLE, i, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(normalizedSharedFriction.data() + numPoints * i, numPoints, MPI_DOUBLE, i, 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(targetDistribution.data() + numPoints * i, numPoints, MPI_DOUBLE, i, 5, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
         gmx::test::TestReferenceData    data;
         gmx::test::TestReferenceChecker checker(data.rootChecker());
@@ -233,7 +237,10 @@ void sharingSamplesTest(const void* nStepsArg)
         checker.checkSequence(localFriction.begin(), localFriction.end(), "localFriction");
         checker.checkSequence(normalizedSharedFriction.begin(),
                               normalizedSharedFriction.end(),
-                              "normalizedNormalizedSharedFriction");
+                              "normalizedSharedFriction");
+        checker.checkSequence(targetDistribution.begin(),
+                              targetDistribution.end(),
+                              "targetDistribution");
     }
     else
     {
@@ -242,6 +249,7 @@ void sharingSamplesTest(const void* nStepsArg)
         MPI_Send(rankLocalNumVisits.data(), numPoints, MPI_DOUBLE, 0, 2, MPI_COMM_WORLD);
         MPI_Send(rankLocalFriction.data(), numPoints, MPI_DOUBLE, 0, 3, MPI_COMM_WORLD);
         MPI_Send(rankNormalizedSharedFriction.data(), numPoints, MPI_DOUBLE, 0, 4, MPI_COMM_WORLD);
+        MPI_Send(rankTargetDistribution.data(), numPoints, MPI_DOUBLE, 0, 5, MPI_COMM_WORLD);
     }
 }
 
@@ -264,7 +272,7 @@ TEST(BiasSharingTest, SharingSamplesWorks)
     ASSERT_EQ(result, TMPI_SUCCESS);
 }
 
-TEST(BiasSharingTest, SharingFrictionWorks)
+TEST(BiasSharingTest, SharingFrictionOptimizationWorks)
 {
     int64_t nSteps = 2002;
     int     result = tMPI_Init_fn(
