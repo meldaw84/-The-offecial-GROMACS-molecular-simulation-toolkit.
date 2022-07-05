@@ -85,18 +85,19 @@ public:
      */
     inline void mark(const DeviceStream& deviceStream)
     {
-        cudaError_t stat = cudaEventRecord(event_, deviceStream.stream());
-        if (stat != cudaSuccess)
+        if(atomicFlagCreated_)
         {
-            GMX_THROW(gmx::InternalError("cudaEventRecord failed: " + gmx::getDeviceErrorString(stat)));
+            launchMarkEventUsingAtomicKernel(atomicFlag_, deviceStream);
         }
-        isMarked_ = true;
-    }
-    /*! \brief Marks the synchronization point in the \p stream using an atomic in peer memory.
-     */
-    void markUsingAtomicInPeerMemory(const DeviceStream& deviceStream)
-    {
-        launchMarkEventUsingAtomicKernel(atomicFlag_, deviceStream);
+        else
+        {
+            cudaError_t stat = cudaEventRecord(event_, deviceStream.stream());
+            if (stat != cudaSuccess)
+            {
+                GMX_THROW(gmx::InternalError("cudaEventRecord failed: " + gmx::getDeviceErrorString(stat)));
+            }
+            isMarked_ = true;
+        }
     }
     //! Synchronizes the host thread on the marked event.
     inline void wait()
@@ -122,21 +123,23 @@ public:
     //! Enqueues a wait for the recorded event in stream \p stream
     inline void enqueueWait(const DeviceStream& deviceStream)
     {
-        cudaError_t stat = cudaStreamWaitEvent(deviceStream.stream(), event_, 0);
-        if (stat != cudaSuccess)
+        if(atomicFlagCreated_)
         {
-            GMX_THROW(gmx::InternalError("cudaStreamWaitEvent failed: " + gmx::getDeviceErrorString(stat)));
+            launchEnqueueWaitEventUsingAtomicKernel(atomicFlag_, deviceStream);
         }
-    }
-    //! Enqueues a wait for the recorded event in stream \p stream using an atomic in peer memory
-    inline void enqueueWaitUsingAtomicInPeerMemory(const DeviceStream& deviceStream)
-    {
-        launchEnqueueWaitEventUsingAtomicKernel(atomicFlag_, deviceStream);
+        else
+        {
+            cudaError_t stat = cudaStreamWaitEvent(deviceStream.stream(), event_, 0);
+            if (stat != cudaSuccess)
+            {
+                GMX_THROW(gmx::InternalError("cudaStreamWaitEvent failed: " + gmx::getDeviceErrorString(stat)));
+            }
+        }
     }
     //! Reset the event
     inline void reset() { isMarked_ = false; }
 
-    void createAtomicFlag()
+    void useAtomicFlagSync()
     {
         if(!atomicFlagCreated_)
         {

@@ -71,7 +71,10 @@ PmePpCommGpu::Impl::Impl(MPI_Comm                    comm,
     d_pmeForces_(nullptr)
 {
     stageLibMpiGpuCpuComm_ = (getenv("GMX_DISABLE_STAGED_GPU_TO_CPU_PMEPP_COMM") == nullptr);
-    pmeCoordinatesSynchronizer_.createAtomicFlag();
+    if (getenv("GMX_ATOMIC_EVENT") != nullptr)
+    {
+        pmeCoordinatesSynchronizer_.useAtomicFlagSync();
+    }
 }
 
 PmePpCommGpu::Impl::~Impl() = default;
@@ -193,14 +196,7 @@ void PmePpCommGpu::Impl::sendCoordinatesToPmeCudaDirect(float3*               se
 
 #if GMX_MPI
     // Record and send event to allow PME task to sync to above transfer before commencing force calculations
-    if (getenv("GMX_ATOMIC_EVENT") != nullptr)
-    {
-        pmeCoordinatesSynchronizer_.markEventUsingAtomicInPeerMemory(pmePpCommStream_);
-    }
-    else
-    {
-        pmeCoordinatesSynchronizer_.markEvent(pmePpCommStream_);
-    }
+    pmeCoordinatesSynchronizer_.markEvent(pmePpCommStream_);
     GpuEventSynchronizer* pmeSync = &pmeCoordinatesSynchronizer_;
     // NOLINTNEXTLINE(bugprone-sizeof-expression)
     MPI_Send(&pmeSync, sizeof(GpuEventSynchronizer*), MPI_BYTE, pmeRank_, 0, comm_);
