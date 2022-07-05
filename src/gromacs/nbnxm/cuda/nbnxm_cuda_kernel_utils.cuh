@@ -203,6 +203,8 @@ calculate_potential_switch_F_E(const NBParamGpu nbparam, float inv_r, float r2, 
  */
 static __forceinline__ __device__ float calculate_lj_ewald_c6grid(const NBParamGpu nbparam, int typei, int typej)
 {
+    __builtin_assume(typei >= 0); 
+    __builtin_assume(typej >= 0); 
 #    if DISABLE_CUDA_TEXTURES
     float c6_i = LDG(&nbparam.nbfp_comb[typei]).x;
     float c6_j = LDG(&nbparam.nbfp_comb[typej]).x;
@@ -226,6 +228,8 @@ static __forceinline__ __device__ void calculate_lj_ewald_comb_geom_F(const NBPa
                                                                       float            lje_coeff6_6,
                                                                       float*           F_invr)
 {
+    __builtin_assume(typei >= 0); 
+    __builtin_assume(typej >= 0); 
     float c6grid, inv_r6_nm, cr2, expmcr2, poly;
 
     c6grid = calculate_lj_ewald_c6grid(nbparam, typei, typej);
@@ -255,6 +259,8 @@ static __forceinline__ __device__ void calculate_lj_ewald_comb_geom_F_E(const NB
                                                                         float* F_invr,
                                                                         float* E_lj)
 {
+    __builtin_assume(typei >= 0); 
+    __builtin_assume(typej >= 0); 
     float c6grid, inv_r6_nm, cr2, expmcr2, poly, sh_mask;
 
     c6grid = calculate_lj_ewald_c6grid(nbparam, typei, typej);
@@ -304,6 +310,8 @@ static __forceinline__ __device__ void calculate_lj_ewald_comb_LB_F_E(const NBPa
                                                                       float*           F_invr,
                                                                       float*           E_lj)
 {
+    __builtin_assume(typei >= 0); 
+    __builtin_assume(typej >= 0); 
     float c6grid, inv_r6_nm, cr2, expmcr2, poly;
     float sigma, sigma2, epsilon;
 
@@ -344,6 +352,7 @@ static __forceinline__ __device__ void calculate_lj_ewald_comb_LB_F_E(const NBPa
  */
 static __forceinline__ __device__ float2 fetch_coulomb_force_r(const NBParamGpu nbparam, int index)
 {
+    __builtin_assume(index >= 0); 
     float2 d;
 
 #    if DISABLE_CUDA_TEXTURES
@@ -377,6 +386,7 @@ static __forceinline__ __device__ float interpolate_coulomb_force_r(const NBPara
 {
     float normalized = nbparam.coulomb_tab_scale * r;
     int   index      = static_cast<int>(normalized);
+    __builtin_assume(index >= 0); 
     float fraction   = normalized - index;
 
     float2 d01 = fetch_coulomb_force_r(nbparam, index);
@@ -392,6 +402,7 @@ static __forceinline__ __device__ float interpolate_coulomb_force_r(const NBPara
 // NOLINTNEXTLINE(google-runtime-references)
 static __forceinline__ __device__ void fetch_nbfp_c6_c12(float& c6, float& c12, const NBParamGpu nbparam, int baseIndex)
 {
+    __builtin_assume(baseIndex >= 0); 
     float2 c6c12;
 #    if DISABLE_CUDA_TEXTURES
     c6c12 = LDG(&nbparam.nbfp[baseIndex]);
@@ -448,6 +459,9 @@ static __forceinline__ __device__ float pmecorrF(float z2)
 static __forceinline__ __device__ void
 reduce_force_j_generic(const float* f_buf, float3* fout, int tidxi, int tidxj, int aidx)
 {
+    __builtin_assume(tidxi >= 0); 
+    __builtin_assume(tidxj >= 0); 
+    __builtin_assume(aidx >= 0); 
     if (tidxi < 3)
     {
         float f = 0.0F;
@@ -466,6 +480,9 @@ reduce_force_j_generic(const float* f_buf, float3* fout, int tidxi, int tidxj, i
 static __forceinline__ __device__ void
 reduce_force_j_warp_shfl(float3 f, float3* fout, int tidxi, int aidx, const unsigned int activemask)
 {
+    __builtin_assume(tidxi >= 0); 
+    __builtin_assume(aidx >= 0); 
+
     f.x += __shfl_down_sync(activemask, f.x, 1);
     f.y += __shfl_up_sync(activemask, f.y, 1);
     f.z += __shfl_down_sync(activemask, f.z, 1);
@@ -503,6 +520,9 @@ static __forceinline__ __device__ void reduce_force_i_generic(const float* f_buf
                                                               int          tidxj,
                                                               int          aidx)
 {
+    __builtin_assume(tidxi >= 0); 
+    __builtin_assume(tidxj >= 0); 
+    __builtin_assume(aidx >= 0); 
     if (tidxj < 3)
     {
         float f = 0.0F;
@@ -531,7 +551,9 @@ static __forceinline__ __device__ void reduce_force_i_pow2(volatile float* f_buf
                                                            int             tidxj,
                                                            int             aidx)
 {
-    int   i, j;
+    __builtin_assume(tidxi >= 0); 
+    __builtin_assume(tidxj >= 0); 
+    __builtin_assume(aidx >= 0); 
     float f;
 
     static_assert(c_clSize == 1 << c_clSizeLog2);
@@ -540,10 +562,12 @@ static __forceinline__ __device__ void reduce_force_i_pow2(volatile float* f_buf
      * every step by using c_clSize * i threads.
      * Can't just use i as loop variable because than nvcc refuses to unroll.
      */
-    i = c_clSize / 2;
+    int i = c_clSize / 2;
+    __builtin_assume(i >= 0); 
 #    pragma unroll 5
-    for (j = c_clSizeLog2 - 1; j > 0; j--)
+    for (int j = c_clSizeLog2 - 1; j > 0; j--)
     {
+        __builtin_assume(j >= 0); 
         if (tidxj < i)
         {
 
@@ -577,6 +601,9 @@ static __forceinline__ __device__ void reduce_force_i_pow2(volatile float* f_buf
 static __forceinline__ __device__ void
 reduce_force_i(float* f_buf, float3* f, float* fshift_buf, bool bCalcFshift, int tidxi, int tidxj, int ai)
 {
+    __builtin_assume(tidxi >= 0); 
+    __builtin_assume(tidxj >= 0); 
+    __builtin_assume(ai >= 0); 
     if ((c_clSize & (c_clSize - 1)))
     {
         reduce_force_i_generic(f_buf, f, fshift_buf, bCalcFshift, tidxi, tidxj, ai);
@@ -598,6 +625,9 @@ static __forceinline__ __device__ void reduce_force_i_warp_shfl(float3          
                                                                 int                aidx,
                                                                 const unsigned int activemask)
 {
+    __builtin_assume(tidxj >= 0); 
+    __builtin_assume(aidx >= 0); 
+
     fin.x += __shfl_down_sync(activemask, fin.x, c_clSize);
     fin.y += __shfl_up_sync(activemask, fin.y, c_clSize);
     fin.z += __shfl_down_sync(activemask, fin.z, c_clSize);
@@ -641,6 +671,7 @@ reduce_energy_pow2(volatile float* buf, float* e_lj, float* e_el, unsigned int t
 #    pragma unroll 10
     for (int j = warp_size_log2 - 1; j > 0; j--)
     {
+        __builtin_assume(j >= 0); 
         if (tidx < i)
         {
             buf[tidx] += buf[tidx + i];
@@ -668,12 +699,13 @@ reduce_energy_pow2(volatile float* buf, float* e_lj, float* e_el, unsigned int t
 static __forceinline__ __device__ void
 reduce_energy_warp_shfl(float E_lj, float E_el, float* e_lj, float* e_el, int tidx, const unsigned int activemask)
 {
-    int i, sh;
-
-    sh = 1;
+    __builtin_assume(tidx >= 0);
+    int sh = 1;
+    __builtin_assume(sh > 0); 
 #    pragma unroll 5
-    for (i = 0; i < 5; i++)
-    {
+    for (int i = 0; i < 5; i++)
+     { 
+        __builtin_assume(i >= 0); 
         E_lj += __shfl_down_sync(activemask, E_lj, sh);
         E_el += __shfl_down_sync(activemask, E_el, sh);
         sh += sh;

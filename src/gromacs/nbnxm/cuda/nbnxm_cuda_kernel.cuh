@@ -170,6 +170,7 @@ __launch_bounds__(THREADS_PER_BLOCK)
 #    ifndef LJ_COMB
     const int*           atom_types  = atdat.atomTypes;
     int                  ntypes      = atdat.numTypes;
+    __builtin_assume(ntypes > 0); 
 #    else
     const float2*        lj_comb = atdat.ljComb;
     float2               ljcp_i, ljcp_j;
@@ -219,11 +220,6 @@ __launch_bounds__(THREADS_PER_BLOCK)
     unsigned int bidx  = blockIdx.x;
     unsigned int widx  = tidx / warp_size; /* warp index */
 
-    int          sci, ci, cj, ai, aj, cij4_start, cij4_end;
-#    ifndef LJ_COMB
-    int          typei, typej;
-#    endif
-    int          i, jm, j4, wexcl_idx;
     float        qi, qj_f, r2, inv_r, inv_r2;
 #    if !defined LJ_COMB_LB || defined CALC_ENERGIES
     float        inv_r6, c6, c12;
@@ -318,9 +314,12 @@ __launch_bounds__(THREADS_PER_BLOCK)
     /*********************************************************************/
 
     nb_sci     = pl_sci[bidx];         /* my i super-cluster's index = current bidx */
-    sci        = nb_sci.sci;           /* super-cluster */
-    cij4_start = nb_sci.cj4_ind_start; /* first ...*/
-    cij4_end   = nb_sci.cj4_ind_end;   /* and last index of j clusters */
+    int sci        = nb_sci.sci;           /* super-cluster */
+    int cij4_start = nb_sci.cj4_ind_start; /* first ...*/
+    int cij4_end   = nb_sci.cj4_ind_end;   /* and last index of j clusters */
+    __builtin_assume(sci >= 0); 
+    __builtin_assume(cij4_start >= 0); 
+    __builtin_assume(cij4_end   >= 0); 
 
     // We may need only a subset of threads active for preloading i-atoms
     // depending on the super-cluster and cluster / thread-block size.
@@ -328,8 +327,10 @@ __launch_bounds__(THREADS_PER_BLOCK)
     if (tidxz == 0 && (c_loadUsingAllXYThreads || tidxj < c_nbnxnGpuNumClusterPerSupercluster))
     {
         /* Pre-load i-atom x and q into shared memory */
-        ci = sci * c_nbnxnGpuNumClusterPerSupercluster + tidxj;
-        ai = ci * c_clSize + tidxi;
+        int ci = sci * c_nbnxnGpuNumClusterPerSupercluster + tidxj;
+        __builtin_assume(ci >= 0); 
+        int ai = ci * c_clSize + tidxi;
+        __builtin_assume(ai >= 0); 
 
         const float* shiftptr = reinterpret_cast<const float*>(&shift_vec[nb_sci.shift]);
         xqbuf = xq[ai] + make_float4(LDG(shiftptr), LDG(shiftptr + 1), LDG(shiftptr + 2), 0.0F);
@@ -346,7 +347,8 @@ __launch_bounds__(THREADS_PER_BLOCK)
     }
     __syncthreads();
 
-    for (i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i++)
+#pragma unroll
+    for (int i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i++)
     {
         fci_buf[i] = make_float3(0.0F);
     }
@@ -367,7 +369,8 @@ __launch_bounds__(THREADS_PER_BLOCK)
         && pl_cj4[cij4_start].cj[0] == sci * c_nbnxnGpuNumClusterPerSupercluster)
     {
         /* we have the diagonal: add the charge and LJ self interaction energy term */
-        for (i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i++)
+#pragma unroll
+        for (int i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i++)
         {
 #            if defined EL_EWALD_ANY || defined EL_RF || defined EL_CUTOFF
             qi = xqib[i * c_clSize + tidxi].w;
@@ -404,15 +407,18 @@ __launch_bounds__(THREADS_PER_BLOCK)
 
 #    ifdef EXCLUSION_FORCES
     const int nonSelfInteraction = !(nb_sci.shift == gmx::c_centralShiftIndex & tidxj <= tidxi);
+    __builtin_assume(nonSelfInteraction >= 0); 
 #    endif
 
     /* loop over the j clusters = seen by any of the atoms in the current super-cluster;
      * The loop stride NTHREAD_Z ensures that consecutive warps-pairs are assigned
      * consecutive j4's entries.
      */
-    for (j4 = cij4_start + tidxz; j4 < cij4_end; j4 += NTHREAD_Z)
+    for (int j4 = cij4_start + tidxz; j4 < cij4_end; j4 += NTHREAD_Z)
     {
-        wexcl_idx = pl_cj4[j4].imei[widx].excl_ind;
+        __builtin_assume(j4 >= 0); 
+        int wexcl_idx = pl_cj4[j4].imei[widx].excl_ind;
+        __builtin_assume(wexcl_idx >= 0); 
         imask     = pl_cj4[j4].imei[widx].imask;
         wexcl     = excl[wexcl_idx].pair[(tidx) & (warp_size - 1)];
 
@@ -433,23 +439,27 @@ __launch_bounds__(THREADS_PER_BLOCK)
 #    if DO_JM_UNROLL
 #        pragma unroll(jmLoopUnrollFactor)
 #    endif
-            for (jm = 0; jm < c_nbnxnGpuJgroupSize; jm++)
+            for (int jm = 0; jm < c_nbnxnGpuJgroupSize; jm++)
             {
+                __builtin_assume(jm >= 0); 
                 if (imask & (superClInteractionMask << (jm * c_nbnxnGpuNumClusterPerSupercluster)))
                 {
                     mask_ji = (1U << (jm * c_nbnxnGpuNumClusterPerSupercluster));
 
-                    cj = c_preloadCj ? cjs[jm + (tidxj & 4) * c_nbnxnGpuJgroupSize / c_splitClSize]
+                    int cj = c_preloadCj ? cjs[jm + (tidxj & 4) * c_nbnxnGpuJgroupSize / c_splitClSize]
                                      : cj = pl_cj4[j4].cj[jm];
+                    __builtin_assume(cj >= 0); 
 
-                    aj = cj * c_clSize + tidxj;
+                    int aj = cj * c_clSize + tidxj;
+                    __builtin_assume(aj >= 0); 
 
                     /* load j atom data */
                     xqbuf = xq[aj];
                     xj    = make_float3(xqbuf.x, xqbuf.y, xqbuf.z);
                     qj_f  = xqbuf.w;
 #    ifndef LJ_COMB
-                    typej = atom_types[aj];
+                    int typej = atom_types[aj];
+                    __builtin_assume(typej >= 0); 
 #    else
                     ljcp_j = lj_comb[aj];
 #    endif
@@ -459,11 +469,12 @@ __launch_bounds__(THREADS_PER_BLOCK)
 #    if !defined PRUNE_NBL
 #        pragma unroll c_nbnxnGpuNumClusterPerSupercluster
 #    endif
-                    for (i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i++)
+                    for (int i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i++)
                     {
                         if (imask & mask_ji)
                         {
-                            ci = sci * c_nbnxnGpuNumClusterPerSupercluster + i; /* i cluster index */
+                            int ci = sci * c_nbnxnGpuNumClusterPerSupercluster + i; /* i cluster index */
+                            __builtin_assume(ci >= 0); 
 
                             /* all threads load an atom from i cluster ci into shmem! */
                             xqbuf = xqib[i * c_clSize + tidxi];
@@ -497,7 +508,8 @@ __launch_bounds__(THREADS_PER_BLOCK)
 
 #    ifndef LJ_COMB
                                 /* LJ 6*C6 and 12*C12 */
-                                typei = atib[i * c_clSize + tidxi];
+                                int typei = atib[i * c_clSize + tidxi];
+                                __builtin_assume(typei >= 0); 
                                 fetch_nbfp_c6_c12(c6, c12, nbparam, ntypes * typei + typej);
 #    else
                                 ljcp_i       = ljcpib[i * c_clSize + tidxi];
@@ -681,9 +693,12 @@ __launch_bounds__(THREADS_PER_BLOCK)
     float fshift_buf = 0.0F;
 
     /* reduce i forces */
-    for (i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i++)
+//#pragma unroll
+    for (int i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i++)
     {
-        ai = (sci * c_nbnxnGpuNumClusterPerSupercluster + i) * c_clSize + tidxi;
+        __builtin_assume(i >= 0); 
+        int ai = (sci * c_nbnxnGpuNumClusterPerSupercluster + i) * c_clSize + tidxi;
+        __builtin_assume(ai >= 0); 
         reduce_force_i_warp_shfl(fci_buf[i], f, &fshift_buf, bCalcFshift, tidxj, ai, c_fullWarpMask);
     }
 
