@@ -222,10 +222,14 @@ void sharingSamplesTest(const void* nStepsArg)
         }
         gmx::test::TestReferenceData    data;
         gmx::test::TestReferenceChecker checker(data.rootChecker());
+
+        constexpr int ulpTol = 100;
+
         checker.checkSequence(
                 numVisitsIteration.begin(), numVisitsIteration.end(), "numVisitsIteration");
         checker.checkSequence(numVisitsTot.begin(), numVisitsTot.end(), "numVisitsTot");
         checker.checkSequence(localNumVisits.begin(), localNumVisits.end(), "localNumVisits");
+        checker.setDefaultTolerance(relativeToleranceAsUlp(1.0, ulpTol));
         checker.checkSequence(localFriction.begin(), localFriction.end(), "localFriction");
         checker.checkSequence(normalizedSharedFriction.begin(),
                               normalizedSharedFriction.end(),
