@@ -61,6 +61,7 @@ __launch_bounds__(c_solveMaxThreadsPerBlock) CLANG_DISABLE_OPTIMIZATION_ATTRIBUT
         void pme_solve_kernel(const struct PmeGpuCudaKernelParams kernelParams)
 {
     /* This kernel supports 2 different grid dimension orderings: YZX and XYZ */
+#if 0
     int majorDim, middleDim, minorDim;
     switch (gridOrdering)
     {
@@ -78,6 +79,14 @@ __launch_bounds__(c_solveMaxThreadsPerBlock) CLANG_DISABLE_OPTIMIZATION_ATTRIBUT
 
         default: assert(false);
     }
+#else
+    const int majorDim  = (gridOrdering == GridOrdering::YZX) ? YY : XX;
+    const int middleDim = (gridOrdering == GridOrdering::YZX) ? ZZ : YY;
+    const int minorDim  = (gridOrdering == GridOrdering::YZX) ? XX : ZZ;
+#endif
+    __builtin_assume(majorDim >= 0 && majorDim <= 3);
+    __builtin_assume(middleDim >= 0 && middleDim <= 3);
+    __builtin_assume(minorDim >= 0 && minorDim <= 3);
 
     /* Global memory pointers */
     const float* __restrict__ gm_splineValueMajor = kernelParams.grid.d_splineModuli[gridIndex]
@@ -101,6 +110,16 @@ __launch_bounds__(c_solveMaxThreadsPerBlock) CLANG_DISABLE_OPTIMIZATION_ATTRIBUT
     const int maxkMajor        = (nMajor + 1) / 2;  // X or Y
     const int maxkMiddle       = (nMiddle + 1) / 2; // Y OR Z => only check for !YZX
     const int maxkMinor        = (nMinor + 1) / 2;  // Z or X => only check for YZX
+                __builtin_assume(localSizeMinor >= 0);
+                __builtin_assume(localSizeMiddle >= 0);
+                __builtin_assume(localCountMiddle >= 0);
+                __builtin_assume(localCountMinor >= 0);
+                __builtin_assume(nMajor >= 0);
+                __builtin_assume(nMiddle >= 0);
+                __builtin_assume(nMinor >= 0);
+                __builtin_assume(maxkMajor >= 0);
+                __builtin_assume(maxkMiddle >= 0);
+                __builtin_assume(maxkMinor >= 0);
 
     /* Each thread works on one cell of the Fourier space complex 3D grid (gm_grid).
      * Each block handles up to c_solveMaxThreadsPerBlock cells -
@@ -116,6 +135,16 @@ __launch_bounds__(c_solveMaxThreadsPerBlock) CLANG_DISABLE_OPTIMIZATION_ATTRIBUT
     const int indexMinor        = blockIdx.x * blockDim.x + gridLineCellIndex;
     const int indexMiddle       = blockIdx.y * gridLinesPerBlock + gridLineIndex;
     const int indexMajor        = blockIdx.z;
+                __builtin_assume(threadLocalId >= 0);
+                __builtin_assume(gridLineSize >= 0);
+                __builtin_assume(gridLineIndex >= 0);
+                __builtin_assume(gridLineCellIndex >= 0);
+                __builtin_assume(gridLinesPerBlock >= 0);
+                __builtin_assume(activeWarps >= 0);
+                __builtin_assume(indexMinor >= 0);
+                __builtin_assume(indexMiddle >= 0);
+                __builtin_assume(indexMajor >= 0);
+
 
     /* Optional outputs */
     float energy = 0.0F;
@@ -133,13 +162,16 @@ __launch_bounds__(c_solveMaxThreadsPerBlock) CLANG_DISABLE_OPTIMIZATION_ATTRIBUT
         /* The offset should be equal to the global thread index for coalesced access */
         const int gridThreadIndex =
                 (indexMajor * localSizeMiddle + indexMiddle) * localSizeMinor + indexMinor;
+                __builtin_assume(gridThreadIndex >= 0);
         float2* __restrict__ gm_gridCell = gm_grid + gridThreadIndex;
 
         const int kMajor = indexMajor + localOffsetMajor;
+                __builtin_assume(kMajor >= 0);
         /* Checking either X in XYZ, or Y in YZX cases */
         const float mMajor = (kMajor < maxkMajor) ? kMajor : (kMajor - nMajor);
 
         const int kMiddle = indexMiddle + localOffsetMiddle;
+                __builtin_assume(kMiddle >= 0);
         float     mMiddle = kMiddle;
         /* Checking Y in XYZ case */
         if (gridOrdering == GridOrdering::XYZ)
@@ -147,6 +179,7 @@ __launch_bounds__(c_solveMaxThreadsPerBlock) CLANG_DISABLE_OPTIMIZATION_ATTRIBUT
             mMiddle = (kMiddle < maxkMiddle) ? kMiddle : (kMiddle - nMiddle);
         }
         const int kMinor = localOffsetMinor + indexMinor;
+                __builtin_assume(kMinor >= 0);
         float     mMinor = kMinor;
         /* Checking X in YZX case */
         if (gridOrdering == GridOrdering::YZX)
@@ -253,6 +286,7 @@ __launch_bounds__(c_solveMaxThreadsPerBlock) CLANG_DISABLE_OPTIMIZATION_ATTRIBUT
 
         /* We can only reduce warp-wise */
         const int          width      = warp_size;
+                __builtin_assume(width >= 0);
         const unsigned int activeMask = c_fullWarpMask;
 
         /* Making pair sums */
@@ -298,28 +332,33 @@ __launch_bounds__(c_solveMaxThreadsPerBlock) CLANG_DISABLE_OPTIMIZATION_ATTRIBUT
         /* Now first 7 threads of each warp have the full output contributions in virxx */
 
         const int  componentIndex      = threadLocalId & (warp_size - 1);
+                __builtin_assume(componentIndex >= 0);
         const bool validComponentIndex = (componentIndex < c_virialAndEnergyCount);
         /* Reduce 7 outputs per warp in the shared memory */
         const int stride =
                 8; // this is c_virialAndEnergyCount==7 rounded up to power of 2 for convenience, hence the assert
         static_assert(c_virialAndEnergyCount == 7);
         const int        reductionBufferSize = (c_solveMaxThreadsPerBlock / warp_size) * stride;
+                __builtin_assume(reductionBufferSize >= 0);
         __shared__ float sm_virialAndEnergy[reductionBufferSize];
 
         if (validComponentIndex)
         {
             const int warpIndex                                     = threadLocalId / warp_size;
+                __builtin_assume(warpIndex >= 0);
             sm_virialAndEnergy[warpIndex * stride + componentIndex] = virxx;
         }
         __syncthreads();
 
         /* Reduce to the single warp size */
         const int targetIndex = threadLocalId;
+                __builtin_assume(targetIndex >= 0);
 #pragma unroll
         for (int reductionStride = reductionBufferSize >> 1; reductionStride >= warp_size;
              reductionStride >>= 1)
         {
             const int sourceIndex = targetIndex + reductionStride;
+                __builtin_assume(sourceIndex >= 0);
             if ((targetIndex < reductionStride) & (sourceIndex < activeWarps * stride))
             {
                 // TODO: the second conditional is only needed on first iteration, actually - see if compiler eliminates it!
