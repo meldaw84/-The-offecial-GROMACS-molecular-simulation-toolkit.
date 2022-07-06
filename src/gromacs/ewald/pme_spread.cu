@@ -89,22 +89,32 @@ __device__ __forceinline__ void spread_charges(const PmeGpuCudaKernelParams kern
     // Number of atoms processed by a single warp in spread and gather
     const int threadsPerAtomValue = (threadsPerAtom == ThreadsPerAtom::Order) ? order : order * order;
     const int atomsPerWarp        = warp_size / threadsPerAtomValue;
+    __builtin_assume(threadsPerAtomValue >= 0);
+    __builtin_assume(atomsPerWarp >= 0);
 
     const int nx  = kernelParams.grid.realGridSize[XX];
     const int ny  = kernelParams.grid.realGridSize[YY];
     const int nz  = kernelParams.grid.realGridSize[ZZ];
     const int pny = kernelParams.grid.realGridSizePadded[YY];
     const int pnz = kernelParams.grid.realGridSizePadded[ZZ];
+    __builtin_assume(nx >= 0);
+    __builtin_assume(ny >= 0);
+    __builtin_assume(nz >= 0);
+    __builtin_assume(pny >= 0);
+    __builtin_assume(pnz >= 0);
 
     const int offx = 0, offy = 0, offz = 0; // unused for now
 
     const int atomIndexLocal = threadIdx.z;
+    __builtin_assume(atomIndexLocal >= 0);
 
     const int chargeCheck = pme_gpu_check_atom_charge(*atomCharge);
+        __builtin_assume(chargeCheck >= 0);
     if (chargeCheck)
     {
         // Spline Z coordinates
         const int ithz = threadIdx.x;
+        __builtin_assume(ithz >= 0);
 
         const int ixBase = sm_gridlineIndices[atomIndexLocal * DIM + XX] - offx;
         const int iyBase = sm_gridlineIndices[atomIndexLocal * DIM + YY] - offy;
@@ -115,16 +125,22 @@ __device__ __forceinline__ void spread_charges(const PmeGpuCudaKernelParams kern
         }
         /* Atom index w.r.t. warp - alternating 0 1 0 1 .. */
         const int atomWarpIndex = atomIndexLocal % atomsPerWarp;
+        __builtin_assume(atomWarpIndex >= 0);
         /* Warp index w.r.t. block - could probably be obtained easier? */
         const int warpIndex = atomIndexLocal / atomsPerWarp;
+        __builtin_assume(warpIndex >= 0);
 
         const int splineIndexBase = getSplineParamIndexBase<order, atomsPerWarp>(warpIndex, atomWarpIndex);
         const int splineIndexZ = getSplineParamIndex<order, atomsPerWarp>(splineIndexBase, ZZ, ithz);
+        __builtin_assume(splineIndexBase >= 0);
+        __builtin_assume(splineIndexZ >= 0);
         const float thetaZ     = sm_theta[splineIndexZ];
 
         /* loop not used if order*order threads per atom */
         const int ithyMin = (threadsPerAtom == ThreadsPerAtom::Order) ? 0 : threadIdx.y;
         const int ithyMax = (threadsPerAtom == ThreadsPerAtom::Order) ? order : threadIdx.y + 1;
+        __builtin_assume(ithyMin >= 0);
+        __builtin_assume(ithyMax >= 0);
         for (int ithy = ithyMin; ithy < ithyMax; ithy++)
         {
             int iy = iyBase + ithy;
@@ -211,6 +227,13 @@ __launch_bounds__(c_spreadMaxThreadsPerBlock) CLANG_DISABLE_OPTIMIZATION_ATTRIBU
     const int atomIndexLocal = warpIndex * atomsPerWarp + atomWarpIndex;
     /* Atom index w.r.t. global memory */
     const int atomIndexGlobal = atomIndexOffset + atomIndexLocal;
+        __builtin_assume(threadsPerAtomValue >= 0);
+        __builtin_assume(atomsPerBlock > 0);
+        __builtin_assume(atomsPerWarp > 0);
+        __builtin_assume(blockIndex >= 0);
+        __builtin_assume(atomWarpIndex >= 0);
+        __builtin_assume(atomIndexLocal >= 0);
+        __builtin_assume(atomIndexGlobal >= 0);
 
     /* Early return for fully empty blocks at the end
      * (should only happen for billions of input atoms)

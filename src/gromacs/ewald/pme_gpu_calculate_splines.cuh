@@ -66,6 +66,8 @@
 template<int order, int atomsPerWarp>
 static int __device__ __forceinline__ getSplineParamIndexBase(int warpIndex, int atomWarpIndex)
 {
+    __builtin_assume(warpIndex >= 0);
+    __builtin_assume(atomWarpIndex >= 0);
     assert((atomWarpIndex >= 0) && (atomWarpIndex < atomsPerWarp));
     const int dimIndex    = 0;
     const int splineIndex = 0;
@@ -90,6 +92,9 @@ static int __device__ __forceinline__ getSplineParamIndexBase(int warpIndex, int
 template<int order, int atomsPerWarp>
 static int __device__ __forceinline__ getSplineParamIndex(int paramIndexBase, int dimIndex, int splineIndex)
 {
+    __builtin_assume(paramIndexBase >= 0);
+    __builtin_assume(dimIndex >= 0);
+    __builtin_assume(splineIndex >= 0);
     assert((dimIndex >= XX) && (dimIndex < DIM));
     assert((splineIndex >= 0) && (splineIndex < order));
     return (paramIndexBase + (splineIndex * DIM + dimIndex) * atomsPerWarp);
@@ -156,6 +161,11 @@ static __device__ __forceinline__ void pme_gpu_stage_atom_data(T* __restrict__ s
     const int localIndex       = threadLocalIndex;
     const int globalIndexBase = blockIndex * atomsPerBlock * dataCountPerAtom;
     const int globalIndex     = globalIndexBase + localIndex;
+        __builtin_assume(blockIndex >= 0);
+        __builtin_assume(threadLocalIndex >= 0);
+        __builtin_assume(localIndex >= 0);
+        __builtin_assume(globalIndexBase >= 0);
+        __builtin_assume(globalIndex >= 0);
     if (localIndex < atomsPerBlock * dataCountPerAtom)
     {
         assertIsFinite(gm_source[globalIndex]);
@@ -196,6 +206,8 @@ static __device__ __forceinline__ void calculate_splines(const PmeGpuCudaKernelP
                                                          float* __restrict__ sm_dtheta,
                                                          int* __restrict__ sm_gridlineIndices)
 {
+    __builtin_assume(atomIndexOffset >= 0);
+    
     assert(numGrids == 1 || numGrids == 2);
     assert(numGrids == 1 || c_skipNeutralAtoms == false);
 
@@ -229,6 +241,17 @@ static __device__ __forceinline__ void calculate_splines(const PmeGpuCudaKernelP
     float splineData[order];
 
     const int localCheck = (dimIndex < DIM) && (orderIndex < 1);
+
+        __builtin_assume(threadLocalId >= 0);
+        __builtin_assume(warpIndex >= 0);
+        __builtin_assume(atomWarpIndex >= 0);
+        __builtin_assume(atomIndexLocal >= 0);
+        __builtin_assume(threadLocalIdXY >= 0);
+        __builtin_assume(orderIndex >= 0);
+        __builtin_assume(dimIndex >= 0);
+        __builtin_assume(sharedMemoryIndex >= 0);
+        
+        __builtin_assume(localCheck >= 0);
 
     /* we have 4 threads per atom, but can only use 3 here for the dimensions */
     if (localCheck)
@@ -271,6 +294,7 @@ static __device__ __forceinline__ void calculate_splines(const PmeGpuCudaKernelP
                         * kernelParams.current.recipBox[dimIndex][ZZ];
                     break;
             }
+            __builtin_assume(tableIndex >= 0);
             const float shift = c_pmeMaxUnitcellShift;
             /* Fractional coordinates along box vectors, adding a positive shift to ensure t is positive for triclinic boxes */
             t    = (t + shift) * n;
@@ -304,6 +328,7 @@ static __device__ __forceinline__ void calculate_splines(const PmeGpuCudaKernelP
         {
             float div;
             int o = orderIndex; // This is an index that is set once for PME_GPU_PARALLEL_SPLINE == 1
+            __builtin_assume(o >= 0);
 
             const float dr = sm_fractCoords[sharedMemoryIndex];
             assert(isfinite(dr));

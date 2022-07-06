@@ -101,6 +101,7 @@ __device__ __forceinline__ void reduce_atom_forces(float3* __restrict__ sm_force
         static_assert(atomDataSize <= warp_size,
                       "TODO: rework for atomDataSize > warp_size (order 8 or larger)");
         const int width = atomDataSize;
+        __builtin_assume(width >= 0);
 
         fx += __shfl_down_sync(activeMask, fx, 1, width);
         fy += __shfl_up_sync(activeMask, fy, 1, width);
@@ -150,11 +151,16 @@ __device__ __forceinline__ void reduce_atom_forces(float3* __restrict__ sm_force
         const int numWarps = blockSize / smemPerDim;
         const int minStride =
                 max(1, atomDataSize / numWarps); // order 4: 128 threads => 4, 256 threads => 2, etc
+        __builtin_assume(smemPerDim >= 0);
+        __builtin_assume(smemReserved >= 0);
+        __builtin_assume(numWarps >= 0);
+        __builtin_assume(minStride >= 0);
 
 #pragma unroll
         for (int dimIndex = 0; dimIndex < DIM; dimIndex++)
         {
             int elementIndex = smemReserved + lineIndex;
+            __builtin_assume(elementIndex >= 0);
             // Store input force contributions
             sm_forceReduction[elementIndex] = (dimIndex == XX) ? fx : (dimIndex == YY) ? fy : fz;
             // sync here because two warps write data that the first one consumes below
@@ -175,6 +181,7 @@ __device__ __forceinline__ void reduce_atom_forces(float3* __restrict__ sm_force
             if (splineIndex < redStride)
             {
                 const int packedIndex = atomIndexLocal * redStride + splineIndex;
+                __builtin_assume(packedIndex >= 0);
                 sm_forceTemp[dimIndex][packedIndex] =
                         sm_forceReduction[elementIndex] + sm_forceReduction[elementIndex + redStride];
             }
@@ -186,11 +193,14 @@ __device__ __forceinline__ void reduce_atom_forces(float3* __restrict__ sm_force
 
         const int warpIndex = lineIndex / warp_size;
         const int dimIndex  = warpIndex;
+        __builtin_assume(warpIndex >= 0);
+        __builtin_assume(dimIndex >= 0);
 
         // First 3 warps can now process 1 dimension each
         if (dimIndex < DIM)
         {
             int sourceIndex = lineIndex % warp_size;
+            __builtin_assume(sourceIndex >= 0);
 #pragma unroll
             for (int redStride = minStride / 2; redStride > 1; redStride >>= 1)
             {
@@ -204,6 +214,7 @@ __device__ __forceinline__ void reduce_atom_forces(float3* __restrict__ sm_force
 
             const float n         = read_grid_size(realGridSizeFP, dimIndex);
             const int   atomIndex = sourceIndex / minStride;
+            __builtin_assume(atomIndex >= 0);
 
             if (sourceIndex == minStride * atomIndex)
             {
@@ -404,12 +415,30 @@ __launch_bounds__(c_gatherMaxThreadsPerBlock, c_gatherMinBlocksPerMP) __global__
     const int threadLocalId =
             (threadIdx.z * (blockDim.x * blockDim.y)) + blockDim.x * threadIdx.y + threadIdx.x;
     const int threadLocalIdMax = blockDim.x * blockDim.y * blockDim.z;
+        __builtin_assume(blockIndex >= 0);
+        __builtin_assume(threadsPerAtomValue >= order);
+        __builtin_assume(atomDataSize > 0);
+        __builtin_assume(atomsPerBlock > 0);
+        __builtin_assume(atomsPerWarp > 0);
+        __builtin_assume(blockSize > 0);
+        __builtin_assume(atomIndexLocal >= 0);
+        __builtin_assume(atomIndexOffset >= 0);
+        __builtin_assume(atomIndexGlobal >= 0);
+        __builtin_assume(splineParamsSize >= 0);
+        __builtin_assume(gridlineIndicesSize >= 0);
+        __builtin_assume(ithz >= 0);
+        __builtin_assume(splineIndex >= 0);
+        __builtin_assume(lineIndex >= 0);
+        __builtin_assume(threadLocalId >= 0);
+        __builtin_assume(threadLocalIdMax >= 0);
 
     if (readGlobal)
     {
         /* Read splines */
         const int localGridlineIndicesIndex = threadLocalId;
         const int globalGridlineIndicesIndex = blockIndex * gridlineIndicesSize + localGridlineIndicesIndex;
+        __builtin_assume(localGridlineIndicesIndex >= 0);
+        __builtin_assume(globalGridlineIndicesIndex >= 0);
         if (localGridlineIndicesIndex < gridlineIndicesSize)
         {
             sm_gridlineIndices[localGridlineIndicesIndex] = gm_gridlineIndices[globalGridlineIndicesIndex];
@@ -420,6 +449,8 @@ __launch_bounds__(c_gatherMaxThreadsPerBlock, c_gatherMinBlocksPerMP) __global__
 
         const int iMin = 0;
         const int iMax = (threadsPerAtom == ThreadsPerAtom::Order) ? 3 : 1;
+        __builtin_assume(iMin >= 0);
+        __builtin_assume(iMax >= 0);
 
         for (int i = iMin; i < iMax; i++)
         {
@@ -427,6 +458,7 @@ __launch_bounds__(c_gatherMaxThreadsPerBlock, c_gatherMinBlocksPerMP) __global__
                     threadLocalId
                     + i * threadLocalIdMax; /* i will always be zero for order*order threads per atom */
             int globalSplineParamsIndex = blockIndex * splineParamsSize + localSplineParamsIndex;
+            __builtin_assume(globalSplineParamsIndex >= 0);
             if (localSplineParamsIndex < splineParamsSize)
             {
                 sm_theta[localSplineParamsIndex]  = gm_theta[globalSplineParamsIndex];
@@ -487,6 +519,14 @@ __launch_bounds__(c_gatherMaxThreadsPerBlock, c_gatherMinBlocksPerMP) __global__
     int       iz     = sm_gridlineIndices[atomIndexLocal * DIM + ZZ] + ithz;
     const int ixBase = sm_gridlineIndices[atomIndexLocal * DIM + XX];
 
+        __builtin_assume(nx >= 0);
+        __builtin_assume(ny >= 0);
+        __builtin_assume(nz >= 0);
+        __builtin_assume(pny >= 0);
+        __builtin_assume(pnz >= 0);
+        __builtin_assume(atomWarpIndex >= 0);
+        __builtin_assume(warpIndex >= 0);
+
     if (iz >= nz)
     {
         iz -= nz;
@@ -494,6 +534,8 @@ __launch_bounds__(c_gatherMaxThreadsPerBlock, c_gatherMinBlocksPerMP) __global__
 
     const int ithyMin = (threadsPerAtom == ThreadsPerAtom::Order) ? 0 : threadIdx.y;
     const int ithyMax = (threadsPerAtom == ThreadsPerAtom::Order) ? order : threadIdx.y + 1;
+        __builtin_assume(ithyMin >= 0);
+        __builtin_assume(ithyMax >= 0);
     if (chargeCheck)
     {
         sumForceComponents<order, atomsPerWarp, wrapX, wrapY>(&fx,
@@ -525,6 +567,8 @@ __launch_bounds__(c_gatherMaxThreadsPerBlock, c_gatherMinBlocksPerMP) __global__
     const int   forceIndexLocal  = threadLocalId;
     const int   forceIndexGlobal = atomIndexOffset + forceIndexLocal;
     const float scale            = kernelParams.current.scale;
+        __builtin_assume(forceIndexLocal >= 0);
+        __builtin_assume(forceIndexGlobal >= 0);
     if (forceIndexLocal < atomsPerBlock)
     {
         calculateAndStoreGridForces(
@@ -538,6 +582,9 @@ __launch_bounds__(c_gatherMaxThreadsPerBlock, c_gatherMinBlocksPerMP) __global__
     const int blockForcesSize = atomsPerBlock * DIM;
     const int numIter         = (blockForcesSize + warp_size - 1) / warp_size;
     const int iterThreads     = blockForcesSize / numIter;
+        __builtin_assume(blockForcesSize >= 0);
+        __builtin_assume(numIter >= 0);
+        __builtin_assume(iterThreads >= 0);
     if (threadLocalId < iterThreads)
     {
 #pragma unroll
@@ -545,6 +592,8 @@ __launch_bounds__(c_gatherMaxThreadsPerBlock, c_gatherMinBlocksPerMP) __global__
         {
             int   outputIndexLocal       = i * iterThreads + threadLocalId;
             int   outputIndexGlobal      = blockIndex * blockForcesSize + outputIndexLocal;
+        __builtin_assume(outputIndexLocal >= 0);
+        __builtin_assume(outputIndexGlobal >= 0);
             float outputForceComponent   = (reinterpret_cast<float*>(sm_forces)[outputIndexLocal]);
             gm_forces[outputIndexGlobal] = outputForceComponent;
         }
@@ -605,6 +654,8 @@ __launch_bounds__(c_gatherMaxThreadsPerBlock, c_gatherMinBlocksPerMP) __global__
             {
                 int   outputIndexLocal     = i * iterThreads + threadLocalId;
                 int   outputIndexGlobal    = blockIndex * blockForcesSize + outputIndexLocal;
+                __builtin_assume(outputIndexLocal >= 0);
+                __builtin_assume(outputIndexGlobal >= 0);
                 float outputForceComponent = (reinterpret_cast<float*>(sm_forces)[outputIndexLocal]);
                 gm_forces[outputIndexGlobal] += outputForceComponent;
             }
