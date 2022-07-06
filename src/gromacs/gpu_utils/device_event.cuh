@@ -69,7 +69,7 @@ public:
     ~DeviceEvent()
     {
         cudaEventDestroy(event_);
-        if(atomicFlagCreated_)
+        if (atomicFlagCreated_)
         {
             cudaFree(atomicFlag_);
         }
@@ -85,7 +85,7 @@ public:
      */
     inline void mark(const DeviceStream& deviceStream)
     {
-        if(atomicFlagCreated_)
+        if (atomicFlagCreated_)
         {
             launchMarkEventUsingAtomicKernel(atomicFlag_, deviceStream);
         }
@@ -123,7 +123,7 @@ public:
     //! Enqueues a wait for the recorded event in stream \p stream
     inline void enqueueWait(const DeviceStream& deviceStream)
     {
-        if(atomicFlagCreated_)
+        if (atomicFlagCreated_)
         {
             launchEnqueueWaitEventUsingAtomicKernel(atomicFlag_, deviceStream);
         }
@@ -132,27 +132,33 @@ public:
             cudaError_t stat = cudaStreamWaitEvent(deviceStream.stream(), event_, 0);
             if (stat != cudaSuccess)
             {
-                GMX_THROW(gmx::InternalError("cudaStreamWaitEvent failed: " + gmx::getDeviceErrorString(stat)));
+                GMX_THROW(gmx::InternalError("cudaStreamWaitEvent failed: "
+                                             + gmx::getDeviceErrorString(stat)));
             }
         }
     }
     //! Reset the event
     inline void reset() { isMarked_ = false; }
 
-    void useAtomicFlagSync()
+    void useAtomicFlagSync(int preferredLocation)
     {
-        if(!atomicFlagCreated_)
+        if (!atomicFlagCreated_)
         {
             cudaMallocManaged(&atomicFlag_, sizeof(cuda::std::atomic<bool>));
+            cudaMemAdvise(atomicFlag_,
+                          sizeof(cuda::std::atomic<bool>),
+                          cudaMemAdviseSetPreferredLocation,
+                          preferredLocation);
             atomicFlag_->store(false);
             atomicFlagCreated_ = true;
         }
     }
+
 private:
     cudaEvent_t              event_;
     bool                     isMarked_;
     cuda::std::atomic<bool>* atomicFlag_;
-    bool atomicFlagCreated_ = false;
+    bool                     atomicFlagCreated_ = false;
 };
 
 #endif

@@ -196,9 +196,9 @@ public:
         maxConsumptionCount_ = maxConsumptionCount;
     }
 
-    inline void useAtomicFlagSync()
+    inline void useAtomicFlagSync(int preferredLocation)
     {
-        event_.useAtomicFlagSync();
+        event_.useAtomicFlagSync(preferredLocation);
     }
 
 private:

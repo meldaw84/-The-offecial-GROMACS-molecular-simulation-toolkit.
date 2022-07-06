@@ -73,7 +73,7 @@ PmePpCommGpu::Impl::Impl(MPI_Comm                    comm,
     stageLibMpiGpuCpuComm_ = (getenv("GMX_DISABLE_STAGED_GPU_TO_CPU_PMEPP_COMM") == nullptr);
     if (getenv("GMX_ATOMIC_EVENT") != nullptr)
     {
-        pmeCoordinatesSynchronizer_.useAtomicFlagSync();
+        pmeCoordinatesSynchronizer_.useAtomicFlagSync(pmeRank);
     }
 }
 
