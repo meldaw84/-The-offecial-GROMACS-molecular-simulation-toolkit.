@@ -335,7 +335,7 @@ static void do_demux(gmx::ArrayRef<const std::string> inFiles,
     t      = -1;
     for (gmx::index i = 0; i < inFiles.ssize(); i++)
     {
-        inputStatus[i] = read_first_frame(oenv, inFiles[i].c_str(), &(trx[i]), trxNeedCoordinates);
+        inputStatus[i] = read_first_frame(oenv, inFiles[i], &(trx[i]), trxNeedCoordinates);
         if (!inputStatus[i].has_value())
         {
             GMX_THROW(gmx::InvalidInputError("Unable to read trajectory file"));
@@ -369,7 +369,7 @@ static void do_demux(gmx::ArrayRef<const std::string> inFiles,
 
     for (gmx::index i = 0; i < inFiles.ssize(); i++)
     {
-        outputStatus[i] = openTrajectoryFile(outFiles[i].c_str(), "w");
+        outputStatus[i] = openTrajectoryFile(outFiles[i], "w");
     }
     k = 0;
     if (std::round(time[k] - t) != 0)
