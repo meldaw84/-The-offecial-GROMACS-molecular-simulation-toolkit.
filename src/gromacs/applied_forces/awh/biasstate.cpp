@@ -150,15 +150,6 @@ void updateNormalizedSharedFriction(gmx::ArrayRef<PointState> pointState,
                                     const BiasSharing*        biasSharing,
                                     const int                 biasIndex)
 {
-    if (numSharedUpdate == 1)
-    {
-        return;
-    }
-    GMX_ASSERT(biasSharing != nullptr
-                       && numSharedUpdate % biasSharing->numSharingSimulations(biasIndex) == 0,
-               "numSharedUpdate should be a multiple of multiSimComm->numSimulations_");
-    GMX_ASSERT(numSharedUpdate == biasSharing->numSharingSimulations(biasIndex),
-               "Sharing within a simulation is not implemented (yet)");
     GMX_ASSERT(forceCorrelation != nullptr,
                "There must be a force correlation grid when updating the shared friction");
 
@@ -173,7 +164,15 @@ void updateNormalizedSharedFriction(gmx::ArrayRef<PointState> pointState,
         }
     }
 
-    biasSharing->sumOverSharingSimulations(gmx::ArrayRef<double>(buffer), biasIndex);
+    if (numSharedUpdate > 1)
+    {
+        GMX_ASSERT(biasSharing != nullptr
+                        && numSharedUpdate % biasSharing->numSharingSimulations(biasIndex) == 0,
+                "numSharedUpdate should be a multiple of multiSimComm->numSimulations_");
+        GMX_ASSERT(numSharedUpdate == biasSharing->numSharingSimulations(biasIndex),
+                "Sharing within a simulation is not implemented (yet)");
+        biasSharing->sumOverSharingSimulations(gmx::ArrayRef<double>(buffer), biasIndex);
+    }
 
     int64_t numPointsWithFriction = 0;
     double  frictionSum           = 0;
@@ -186,10 +185,6 @@ void updateNormalizedSharedFriction(gmx::ArrayRef<PointState> pointState,
                 pointState[i].setNormalizedSharedFriction(buffer[i] / pointState[i].numVisitsTot());
                 frictionSum += buffer[i] / pointState[i].numVisitsTot();
                 numPointsWithFriction += 1;
-            }
-            else
-            {
-                pointState[i].setNormalizedSharedFriction(0);
             }
         }
     }
