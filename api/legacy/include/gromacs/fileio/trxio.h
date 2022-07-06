@@ -76,16 +76,16 @@ public:
     TrajectoryIOStatus(t_fileio*           fio,
                        gmx_tng_trajectory* tng,
                        std::vector<char>&& persistentLine,
-                       VmdPluginPointer,
-                       real   time,
-                       size_t natoms,
-                       size_t flags);
-    TrajectoryIOStatus(TrajectoryIOStatus&&) noexcept;
-    TrajectoryIOStatus& operator=(TrajectoryIOStatus&&) noexcept;
+                       VmdPluginPointer    plugin,
+                       real                time,
+                       size_t              natoms,
+                       size_t              flags);
+    TrajectoryIOStatus(TrajectoryIOStatus&& other) noexcept;
+    TrajectoryIOStatus& operator=(TrajectoryIOStatus&& other) noexcept;
     //! Reset internal counter. Needed for pdb reading.
     void resetCounter();
     //! Currently active flags.
-    size_t flags() { return flags_; }
+    size_t flags() const { return flags_; }
     //! Returns the number of frames read from the trajectory
     int numFramesRead() const;
     //! Returns true if I/O has printed to stderr for current frame.
@@ -163,7 +163,7 @@ public:
     //! Increment current frame.
     void increment() { currentFrame_++; }
     //! Access to number of atoms in frame.
-    size_t numAtoms() { return numAtoms_; }
+    size_t numAtoms() const { return numAtoms_; }
     //! Access TNG pointer.
     gmx_tng_trajectory* tng() { return tng_; }
     //! Access persistent line.
@@ -284,18 +284,18 @@ int check_times(real t);
  * but a frame might be returned which does not contain the field.
  * When a NEED flag is set, frames not containing the field will be skipped.
  */
-static constexpr size_t trxReadCoordinates = 1u << 0u;
-static constexpr size_t trxNeedCoordinates = 1u << 1u;
-static constexpr size_t trxReadVelocities  = 1u << 2u;
-static constexpr size_t trxNeedVelocities  = 1u << 3u;
-static constexpr size_t trxReadForces      = 1u << 4u;
-static constexpr size_t trxNeedForces      = 1u << 5u;
+static constexpr size_t trxReadCoordinates = 1U << 0U;
+static constexpr size_t trxNeedCoordinates = 1U << 1U;
+static constexpr size_t trxReadVelocities  = 1U << 2U;
+static constexpr size_t trxNeedVelocities  = 1U << 3U;
+static constexpr size_t trxReadForces      = 1U << 4U;
+static constexpr size_t trxNeedForces      = 1U << 5U;
 /* Useful for reading natoms from a trajectory without skipping */
-static constexpr size_t trxDontSkip = 1u << 6u;
+static constexpr size_t trxDontSkip = 1U << 6U;
 
 /* For trxframe.not_ok */
-static constexpr size_t trxframeHeaderNotOk = 1u << 0u;
-static constexpr size_t trxframeDataNotOk   = 1u << 1u;
+static constexpr size_t trxframeHeaderNotOk = 1U << 0U;
+static constexpr size_t trxframeDataNotOk   = 1U << 1U;
 
 static constexpr size_t trxframeNotOk = trxframeHeaderNotOk | trxframeDataNotOk;
 

@@ -924,7 +924,7 @@ int TrajectoryIOStatus::writeTrajectory(gmx::ArrayRef<const int> index,
 
 TrajectoryIOStatus::~TrajectoryIOStatus()
 {
-    auto tngHandle = tng();
+    auto* tngHandle = tng();
     gmx_tng_close(&tngHandle);
     if (fio_)
     {
