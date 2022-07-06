@@ -167,10 +167,10 @@ void updateNormalizedSharedFriction(gmx::ArrayRef<PointState> pointState,
     if (numSharedUpdate > 1)
     {
         GMX_ASSERT(biasSharing != nullptr
-                        && numSharedUpdate % biasSharing->numSharingSimulations(biasIndex) == 0,
-                "numSharedUpdate should be a multiple of multiSimComm->numSimulations_");
+                           && numSharedUpdate % biasSharing->numSharingSimulations(biasIndex) == 0,
+                   "numSharedUpdate should be a multiple of multiSimComm->numSimulations_");
         GMX_ASSERT(numSharedUpdate == biasSharing->numSharingSimulations(biasIndex),
-                "Sharing within a simulation is not implemented (yet)");
+                   "Sharing within a simulation is not implemented (yet)");
         biasSharing->sumOverSharingSimulations(gmx::ArrayRef<double>(buffer), biasIndex);
     }
 
