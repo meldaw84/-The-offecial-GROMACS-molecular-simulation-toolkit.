@@ -70,7 +70,6 @@ using VmdPluginPointer = void*;
 class TrajectoryIOStatus
 {
 public:
-    TrajectoryIOStatus();
     ~TrajectoryIOStatus();
     TrajectoryIOStatus(t_fileio* fio);
     TrajectoryIOStatus(t_fileio*           fio,

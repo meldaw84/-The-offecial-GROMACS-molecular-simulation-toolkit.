@@ -520,7 +520,7 @@ static void project(const char*              trajfile,
     {
         snew(inprod, noutvec + 1);
 
-        TrajectoryIOStatus output;
+        std::optional<TrajectoryIOStatus> output;
         if (filterfile)
         {
             fprintf(stderr, "Writing a filtered trajectory to %s using eigenvectors\n", filterfile);
@@ -612,12 +612,12 @@ static void project(const char*              trajfile,
                             }
                         }
                     }
-                    output.writeTrajectory(index, atoms, 0, fr.time, fr.box, fr.x, nullptr, nullptr);
+                    output->writeTrajectory(index, atoms, 0, fr.time, fr.box, fr.x, nullptr, nullptr);
                 }
                 nframes++;
             }
             nfr++;
-        } while (output.readNextFrame(oenv, &fr));
+        } while (inputStatus->readNextFrame(oenv, &fr));
     }
 
     if (top)

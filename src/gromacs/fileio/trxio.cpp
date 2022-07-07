@@ -197,12 +197,7 @@ TrajectoryIOStatus& TrajectoryIOStatus::operator=(TrajectoryIOStatus&& other) no
 }
 
 
-TrajectoryIOStatus::TrajectoryIOStatus() {}
-
-TrajectoryIOStatus::TrajectoryIOStatus(t_fileio* fio) : TrajectoryIOStatus()
-{
-    fio_ = fio;
-}
+TrajectoryIOStatus::TrajectoryIOStatus(t_fileio* fio) : fio_(fio) {}
 
 TrajectoryIOStatus::TrajectoryIOStatus(t_fileio*           fio,
                                        gmx_tng_trajectory* tng,
@@ -542,15 +537,13 @@ t_fileio* TrajectoryIOStatus::getFileIO()
 
 float TrajectoryIOStatus::timeOfFinalFrame()
 {
-    t_fileio* stfio    = fio_;
-    int       filetype = gmx_fio_getftp(stfio);
-    bool      bOK;
-    float     lasttime = -1;
+    int   filetype = gmx_fio_getftp(fio_);
+    bool  bOK;
+    float lasttime = -1;
 
     if (filetype == efXTC)
     {
-        lasttime = xdr_xtc_get_last_frame_time(
-                gmx_fio_getfp(stfio), gmx_fio_getxdr(stfio), numAtoms_, &bOK);
+        lasttime = xdr_xtc_get_last_frame_time(gmx_fio_getfp(fio_), gmx_fio_getxdr(fio_), numAtoms_, &bOK);
         if (!bOK)
         {
             gmx_fatal(FARGS, "Error reading last frame. Maybe seek not supported.");
@@ -558,12 +551,11 @@ float TrajectoryIOStatus::timeOfFinalFrame()
     }
     else if (filetype == efTNG)
     {
-        gmx_tng_trajectory_t tng = tng_;
-        if (!tng)
+        if (!tng_)
         {
             gmx_fatal(FARGS, "Error opening TNG file.");
         }
-        lasttime = gmx_tng_get_time_of_final_frame(tng);
+        lasttime = gmx_tng_get_time_of_final_frame(tng_);
     }
     else
     {
@@ -769,7 +761,6 @@ TrajectoryIOStatus trjtools_gmx_prepare_tng_writing(const char*              fil
     {
         gmx_incons("Sorry, can only prepare for TNG output.");
     }
-    TrajectoryIOStatus out;
 
     gmx_tng_trajectory* inHandle  = (in != nullptr) ? in->tng() : nullptr;
     gmx_tng_trajectory* outHandle = nullptr;
@@ -799,7 +790,7 @@ TrajectoryIOStatus trjtools_gmx_prepare_tng_writing(const char*              fil
 
 void TrajectoryIOStatus::writeTngFrame(t_trxframe* frame)
 {
-    gmx_write_tng_from_trxframe(tng(), frame, -1);
+    gmx_write_tng_from_trxframe(tng_, frame, -1);
 }
 
 int TrajectoryIOStatus::writeTrxframe(t_trxframe* fr, gmx_conect gc)
@@ -808,33 +799,29 @@ int TrajectoryIOStatus::writeTrxframe(t_trxframe* fr, gmx_conect gc)
     title[0]        = '\0';
     const real prec = fr->bPrec ? fr->prec : 1000.0;
 
-    if (tng() != nullptr)
+    if (tng_ != nullptr)
     {
-        gmx_tng_set_compression_precision(tng(), prec);
+        gmx_tng_set_compression_precision(tng_, prec);
         writeTngFrame(fr);
         return 0;
     }
 
-    switch (gmx_fio_getftp(getFileIO()))
+    switch (gmx_fio_getftp(fio_))
     {
         case efTRR: break;
         default:
             if (!fr->bX)
             {
-                gmx_fatal(FARGS,
-                          "Need coordinates to write a %s trajectory",
-                          ftp2ext(gmx_fio_getftp(getFileIO())));
+                gmx_fatal(FARGS, "Need coordinates to write a %s trajectory", ftp2ext(gmx_fio_getftp(fio_)));
             }
             break;
     }
 
-    switch (gmx_fio_getftp(getFileIO()))
+    switch (gmx_fio_getftp(fio_))
     {
-        case efXTC:
-            write_xtc(getFileIO(), fr->natoms, fr->step, fr->time, fr->box, fr->x, prec);
-            break;
+        case efXTC: write_xtc(fio_, fr->natoms, fr->step, fr->time, fr->box, fr->x, prec); break;
         case efTRR:
-            gmx_trr_write_frame(getFileIO(),
+            gmx_trr_write_frame(fio_,
                                 fr->step,
                                 fr->time,
                                 fr->lambda,
@@ -850,19 +837,17 @@ int TrajectoryIOStatus::writeTrxframe(t_trxframe* fr, gmx_conect gc)
         case efENT:
             if (!fr->bAtoms)
             {
-                gmx_fatal(FARGS,
-                          "Can not write a %s file without atom names",
-                          ftp2ext(gmx_fio_getftp(getFileIO())));
+                gmx_fatal(FARGS, "Can not write a %s file without atom names", ftp2ext(gmx_fio_getftp(fio_)));
             }
             sprintf(title, "frame t= %.3f", fr->time);
-            if (gmx_fio_getftp(getFileIO()) == efGRO)
+            if (gmx_fio_getftp(fio_) == efGRO)
             {
                 write_hconf_p(
-                        gmx_fio_getfp(getFileIO()), title, fr->atoms, fr->x, fr->bV ? fr->v : nullptr, fr->box);
+                        gmx_fio_getfp(fio_), title, fr->atoms, fr->x, fr->bV ? fr->v : nullptr, fr->box);
             }
             else
             {
-                write_pdbfile(gmx_fio_getfp(getFileIO()),
+                write_pdbfile(gmx_fio_getfp(fio_),
                               title,
                               fr->atoms,
                               fr->x,
@@ -873,9 +858,9 @@ int TrajectoryIOStatus::writeTrxframe(t_trxframe* fr, gmx_conect gc)
                               gc);
             }
             break;
-        case efG96: write_g96_conf(gmx_fio_getfp(getFileIO()), title, fr, -1, nullptr); break;
+        case efG96: write_g96_conf(gmx_fio_getfp(fio_), title, fr, -1, nullptr); break;
         default:
-            gmx_fatal(FARGS, "Sorry, write_trxframe can not write %s", ftp2ext(gmx_fio_getftp(getFileIO())));
+            gmx_fatal(FARGS, "Sorry, write_trxframe can not write %s", ftp2ext(gmx_fio_getftp(fio_)));
     }
 
     return 0;
@@ -924,8 +909,7 @@ int TrajectoryIOStatus::writeTrajectory(gmx::ArrayRef<const int> index,
 
 TrajectoryIOStatus::~TrajectoryIOStatus()
 {
-    auto* tngHandle = tng();
-    gmx_tng_close(&tngHandle);
+    gmx_tng_close(&tng_);
     if (fio_)
     {
         gmx_fio_close(fio_);
@@ -943,8 +927,18 @@ TrajectoryIOStatus openTrajectoryFile(const std::string& outfile, const char* fi
     {
         gmx_fatal(FARGS, "Sorry, write_trx can only write");
     }
-
-    return { gmx_fio_open(outfile.c_str(), filemode) };
+    // special handling for TNG writing, in addition to dedicated function above.
+    // this should remove a lot of the extra code paths that work around incompatibilities
+    // of writing TNG compared to other file types.
+    if (fn2ftp(outfile.c_str()) == efTNG)
+    {
+        return trjtools_gmx_prepare_tng_writing(
+                outfile.c_str(), filemode[0], nullptr, nullptr, 0, nullptr, {}, nullptr);
+    }
+    else
+    {
+        return { gmx_fio_open(outfile.c_str(), filemode) };
+    }
 }
 
 static bool gmx_next_frame(TrajectoryIOStatus* status, t_trxframe* fr)
@@ -1020,7 +1014,7 @@ bool TrajectoryIOStatus::readNextFrame(const gmx_output_env_t* oenv, t_trxframe*
     {
         clear_trxframe(fr, FALSE);
 
-        if (tng())
+        if (tng_)
         {
             /* Special treatment for TNG files */
             ftp = efTNG;
@@ -1039,14 +1033,14 @@ bool TrajectoryIOStatus::readNextFrame(const gmx_output_env_t* oenv, t_trxframe*
             case efG96:
             {
                 t_symtab* symtab = nullptr;
-                read_g96_conf(gmx_fio_getfp(getFileIO()), nullptr, nullptr, fr, symtab, persistentLine());
+                read_g96_conf(gmx_fio_getfp(fio_), nullptr, nullptr, fr, symtab, persistentLine_.data());
                 bRet = (fr->natoms > 0);
                 break;
             }
             case efXTC:
                 if (startTime.has_value() && (frameTime_ < startTime.value()))
                 {
-                    if (xtc_seek_time(getFileIO(), startTime.value(), fr->natoms, TRUE))
+                    if (xtc_seek_time(fio_, startTime.value(), fr->natoms, TRUE))
                     {
                         gmx_fatal(FARGS,
                                   "Specified frame (time %f) doesn't exist or file "
@@ -1055,8 +1049,7 @@ bool TrajectoryIOStatus::readNextFrame(const gmx_output_env_t* oenv, t_trxframe*
                     }
                     resetCounter();
                 }
-                bRet      = (read_next_xtc(
-                                getFileIO(), fr->natoms, &fr->step, &fr->time, fr->box, fr->x, &fr->prec, &bOK)
+                bRet = (read_next_xtc(fio_, fr->natoms, &fr->step, &fr->time, fr->box, fr->x, &fr->prec, &bOK)
                         != 0);
                 fr->bPrec = (bRet && fr->prec > 0);
                 fr->bStep = bRet;
@@ -1070,31 +1063,31 @@ bool TrajectoryIOStatus::readNextFrame(const gmx_output_env_t* oenv, t_trxframe*
                     fr->not_ok = trxframeDataNotOk;
                 }
                 break;
-            case efTNG: bRet = gmx_read_next_tng_frame(tng(), fr, nullptr, 0); break;
-            case efPDB: bRet = pdb_next_x(currentFrame_, gmx_fio_getfp(getFileIO()), fr); break;
-            case efGRO: bRet = gro_next_x_or_v(gmx_fio_getfp(getFileIO()), fr); break;
+            case efTNG: bRet = gmx_read_next_tng_frame(tng_, fr, nullptr, 0); break;
+            case efPDB: bRet = pdb_next_x(currentFrame_, gmx_fio_getfp(fio_), fr); break;
+            case efGRO: bRet = gro_next_x_or_v(gmx_fio_getfp(fio_), fr); break;
             default:
 #if GMX_USE_PLUGINS
-                bRet = read_next_vmd_frame(status->vmdplugin, fr);
+                bRet = read_next_vmd_frame(vmdplugin_, fr);
 #else
                 gmx_fatal(FARGS,
                           "DEATH HORROR in read_next_frame ftp=%s,status=%s",
-                          ftp2ext(gmx_fio_getftp(getFileIO())),
-                          gmx_fio_getname(getFileIO()));
+                          ftp2ext(gmx_fio_getftp(fio_)),
+                          gmx_fio_getname(fio_));
 #endif
         }
         frameTime_ = fr->time;
 
         if (bRet)
         {
-            bMissingData = ((((flags() & trxNeedCoordinates) != 0) && !fr->bX)
-                            || (((flags() & trxNeedVelocities) != 0) && !fr->bV)
-                            || (((flags() & trxNeedForces) != 0) && !fr->bF));
+            bMissingData = ((((flags_ & trxNeedCoordinates) != 0) && !fr->bX)
+                            || (((flags_ & trxNeedVelocities) != 0) && !fr->bV)
+                            || (((flags_ & trxNeedForces) != 0) && !fr->bF));
             bSkip        = FALSE;
             if (!bMissingData)
             {
                 ct = check_times2(fr->time, initialTime_, fr->bDouble);
-                if (ct == 0 || ((flags() & trxDontSkip) && ct < 0))
+                if (ct == 0 || ((flags_ & trxDontSkip) && ct < 0))
                 {
                     increment();
                     printcount(*this, oenv, fr->time, FALSE);
