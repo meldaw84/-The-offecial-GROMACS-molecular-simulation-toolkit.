@@ -69,6 +69,7 @@ public:
         coordinates_ = { { 1, 2, 3 }, { 4, 5, 6 }, { 7, 8, 9 } };
         clear_trxframe(&testFrame_, false);
         testFrame_.step   = 0;
+        testFrame_.time   = 0;
         testFrame_.natoms = coordinates_.size();
         testFrame_.x      = as_rvec_array(coordinates_.data());
         output_env_init(&oenv_, getProgramContext(), {}, FALSE, XvgFormat::None, 0);
