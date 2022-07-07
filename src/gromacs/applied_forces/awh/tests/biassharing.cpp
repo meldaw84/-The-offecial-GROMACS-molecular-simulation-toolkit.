@@ -190,10 +190,11 @@ void sharingSamplesTest(const void gmx_unused* dummy)
         sumPointNumVisitsTot += point.numVisitsTot();
         sumLocalNumVisits += point.localNumVisits();
     }
+    int nSamples = exitStep / params.awhParams.nstSampleCoord();
     int expectedUnaccountedNumSamples =
-            exitStep
+            nSamples
             % (params.awhParams.nstSampleCoord() * params.awhParams.numSamplesUpdateFreeEnergy());
-    int expectedAccountedNumSamples = exitStep - expectedUnaccountedNumSamples;
+    int expectedAccountedNumSamples = nSamples - expectedUnaccountedNumSamples;
     EXPECT_EQ(sumLocalNumVisits, expectedAccountedNumSamples);
     EXPECT_EQ(sumPointNumVisitsTot, c_numSharingBiases * expectedAccountedNumSamples);
     EXPECT_EQ(sumPointNumVisitsIteration, expectedUnaccountedNumSamples);

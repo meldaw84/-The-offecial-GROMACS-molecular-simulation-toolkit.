@@ -203,9 +203,10 @@ TEST_P(BiasTest, ForcesBiasPmfVisits)
         sumPointNumVisitsTot += point.numVisitsTot();
         sumPointNumVisitsIteration += point.numVisitsIteration();
     }
+    int nSamples = (step - 1) / awhParams().nstSampleCoord();
     int expectedUnaccountedNumSamples =
-            (step - 1) % (awhParams().nstSampleCoord() * awhParams().numSamplesUpdateFreeEnergy());
-    int expectedAccountedNumSamples = (step - 1) - expectedUnaccountedNumSamples;
+            nSamples % (awhParams().nstSampleCoord() * awhParams().numSamplesUpdateFreeEnergy());
+    int expectedAccountedNumSamples = nSamples - expectedUnaccountedNumSamples;
     EXPECT_EQ(sumLocalNumVisits, expectedAccountedNumSamples);
     EXPECT_EQ(sumPointNumVisitsTot, expectedAccountedNumSamples);
     EXPECT_EQ(sumPointNumVisitsIteration, expectedUnaccountedNumSamples);
