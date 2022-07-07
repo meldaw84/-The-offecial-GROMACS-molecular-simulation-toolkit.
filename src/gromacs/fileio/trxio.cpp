@@ -790,7 +790,7 @@ TrajectoryIOStatus trjtools_gmx_prepare_tng_writing(const char*              fil
 
 void TrajectoryIOStatus::writeTngFrame(t_trxframe* frame)
 {
-    gmx_write_tng_from_trxframe(tng_, frame, -1);
+    gmx_write_tng_from_trxframe(tng_, frame, frame->natoms);
 }
 
 int TrajectoryIOStatus::writeTrxframe(t_trxframe* fr, gmx_conect gc)
