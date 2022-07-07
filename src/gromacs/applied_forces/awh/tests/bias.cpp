@@ -84,6 +84,9 @@ public:
     //! The awh Bias
     std::unique_ptr<Bias> bias_;
 
+    //! Return the awhParams
+    const AwhParams& awhParams() const { return params_->awhParams; }
+
     BiasTest() : coordinates_(std::begin(g_coords), std::end(g_coords))
     {
         /* We test all combinations of:
@@ -140,7 +143,7 @@ public:
     }
 };
 
-TEST_P(BiasTest, ForcesBiasPmf)
+TEST_P(BiasTest, ForcesBiasPmfVisits)
 {
     gmx::test::TestReferenceData    data;
     gmx::test::TestReferenceChecker checker(data.rootChecker());
@@ -186,12 +189,26 @@ TEST_P(BiasTest, ForcesBiasPmf)
         bias.doSkippedUpdatesForAllPoints();
     }
 
-    std::vector<double> pointBias, logPmfsum;
+    double sumLocalNumVisits = 0, sumPointNumVisitsTot = 0, sumPointNumVisitsIteration = 0;
+    std::vector<double> pointBias, logPmfsum, pointLocalNumVisits, pointNumVisitsTot,
+            pointNumVisitsIteration;
     for (const auto& point : bias.state().points())
     {
         pointBias.push_back(point.bias());
         logPmfsum.push_back(point.logPmfSum());
+        pointLocalNumVisits.push_back(point.localNumVisits());
+        pointNumVisitsTot.push_back(point.numVisitsTot());
+        pointNumVisitsIteration.push_back(point.numVisitsIteration());
+        sumLocalNumVisits += point.localNumVisits();
+        sumPointNumVisitsTot += point.numVisitsTot();
+        sumPointNumVisitsIteration += point.numVisitsIteration();
     }
+    int expectedUnaccountedNumSamples =
+            (step - 1) % (awhParams().nstSampleCoord() * awhParams().numSamplesUpdateFreeEnergy());
+    int expectedAccountedNumSamples = (step - 1) - expectedUnaccountedNumSamples;
+    EXPECT_EQ(sumLocalNumVisits, expectedAccountedNumSamples);
+    EXPECT_EQ(sumPointNumVisitsTot, expectedAccountedNumSamples);
+    EXPECT_EQ(sumPointNumVisitsIteration, expectedUnaccountedNumSamples);
 
     /* The umbrella force is computed from the coordinate deviation.
      * In taking this deviation we lose a lot of precision, so we should
@@ -209,6 +226,12 @@ TEST_P(BiasTest, ForcesBiasPmf)
     checker.setDefaultTolerance(relativeToleranceAsUlp(1.0, ulpTol));
     checker.checkSequence(pointBias.begin(), pointBias.end(), "PointBias");
     checker.checkSequence(logPmfsum.begin(), logPmfsum.end(), "PointLogPmfsum");
+    checker.checkSequence(
+            pointLocalNumVisits.begin(), pointLocalNumVisits.end(), "pointLocalNumVisits");
+    checker.checkSequence(pointNumVisitsTot.begin(), pointNumVisitsTot.end(), "pointNumVisitsTot");
+    checker.checkSequence(pointNumVisitsIteration.begin(),
+                          pointNumVisitsIteration.end(),
+                          "pointNumVisitsIteration");
 }
 
 /* Scan initial/final phase, MC/convolved force and update skip (not) allowed

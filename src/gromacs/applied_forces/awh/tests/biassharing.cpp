@@ -179,13 +179,25 @@ void sharingSamplesTest(const void gmx_unused* dummy)
         bias.calcForceAndUpdateBias(
                 coordValue, {}, {}, &potential, &potentialJump, step, step, params.awhParams.seed(), nullptr);
     }
+    double sumLocalNumVisits = 0, sumPointNumVisitsTot = 0, sumPointNumVisitsIteration = 0;
     std::vector<double> rankNumVisitsIteration, rankNumVisitsTot, rankLocalNumVisits;
     for (const auto& point : bias.state().points())
     {
         rankNumVisitsIteration.push_back(point.numVisitsIteration());
         rankNumVisitsTot.push_back(point.numVisitsTot());
         rankLocalNumVisits.push_back(point.localNumVisits());
+        sumPointNumVisitsIteration += point.numVisitsIteration();
+        sumPointNumVisitsTot += point.numVisitsTot();
+        sumLocalNumVisits += point.localNumVisits();
     }
+    int expectedUnaccountedNumSamples =
+            exitStep
+            % (params.awhParams.nstSampleCoord() * params.awhParams.numSamplesUpdateFreeEnergy());
+    int expectedAccountedNumSamples = exitStep - expectedUnaccountedNumSamples;
+    EXPECT_EQ(sumLocalNumVisits, expectedAccountedNumSamples);
+    EXPECT_EQ(sumPointNumVisitsTot, c_numSharingBiases * expectedAccountedNumSamples);
+    EXPECT_EQ(sumPointNumVisitsIteration, expectedUnaccountedNumSamples);
+
     size_t numPoints = bias.state().points().size();
 
     /* There can be only one simultaneous test open, so send all the data to MPI rank 0 and run the

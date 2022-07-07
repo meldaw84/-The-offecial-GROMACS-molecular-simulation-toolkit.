@@ -127,4 +127,76 @@
     <Real>3.7345175271931206</Real>
     <Real>3.7345175271931206</Real>
   </Sequence>
+  <Sequence Name="pointLocalNumVisits">
+    <Int Name="Length">21</Int>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>5</Real>
+    <Real>3</Real>
+    <Real>3</Real>
+    <Real>2</Real>
+    <Real>3</Real>
+    <Real>2</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>2</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+  </Sequence>
+  <Sequence Name="pointNumVisitsTot">
+    <Int Name="Length">21</Int>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>5</Real>
+    <Real>3</Real>
+    <Real>3</Real>
+    <Real>2</Real>
+    <Real>3</Real>
+    <Real>2</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>2</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+  </Sequence>
+  <Sequence Name="pointNumVisitsIteration">
+    <Int Name="Length">21</Int>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+  </Sequence>
 </ReferenceData>
