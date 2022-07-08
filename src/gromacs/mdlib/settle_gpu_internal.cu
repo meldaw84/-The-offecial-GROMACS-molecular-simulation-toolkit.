@@ -101,6 +101,7 @@ __launch_bounds__(sc_maxThreadsPerBlock) __global__
                            float* __restrict__ gm_virialScaled,
                            const PbcAiuc pbcAiuc)
 {
+    __builtin_assume(numSettles > 0);
     /* ******************************************************************* */
     /*                                                                  ** */
     /*    Original code by Shuichi Miyamoto, last update Oct. 1, 1992   ** */
@@ -122,6 +123,7 @@ __launch_bounds__(sc_maxThreadsPerBlock) __global__
     extern __shared__ float sm_threadVirial[];
 
     int tid = static_cast<int>(blockIdx.x * blockDim.x + threadIdx.x);
+    __builtin_assume(tid >= 0);
 
     if (tid < numSettles)
     {
@@ -330,6 +332,8 @@ __launch_bounds__(sc_maxThreadsPerBlock) __global__
         // This casts unsigned into signed integers to avoid clang warnings
         int tib       = static_cast<int>(threadIdx.x);
         int blockSize = static_cast<int>(blockDim.x);
+        __builtin_assume(tib > 0);
+        __builtin_assume(blockSize > 0);
         // Reduce up to one virial per thread block
         // All blocks are divided by half, the first half of threads sums
         // two virials. Then the first half is divided by two and the first half
@@ -338,6 +342,9 @@ __launch_bounds__(sc_maxThreadsPerBlock) __global__
         for (int divideBy = 2; divideBy <= blockSize; divideBy *= 2)
         {
             int dividedAt = blockSize / divideBy;
+            __builtin_assume( divideBy > 0);
+            __builtin_assume( dividedAt > 0);
+
             if (tib < dividedAt)
             {
                 for (int d = 0; d < 6; d++)
