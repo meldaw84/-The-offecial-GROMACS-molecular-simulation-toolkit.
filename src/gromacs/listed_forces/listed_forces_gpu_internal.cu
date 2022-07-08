@@ -101,12 +101,17 @@ __device__ void bonds_gpu(const int       i,
                           float3          sm_fShiftLoc[],
                           const PbcAiuc   pbcAiuc)
 {
+    __builtin_assume(i >= 0);
+    __builtin_assume(numBonds >= 0);
     if (i < numBonds)
     {
         const int3 bondData = *(reinterpret_cast<const int3*>(d_forceatoms + 3 * i));
         int        type     = bondData.x;
         int        ai       = bondData.y;
         int        aj       = bondData.z;
+        __builtin_assume(type >= 0);
+        __builtin_assume(ai >= 0);
+        __builtin_assume(aj >= 0);
 
         /* dx = xi - xj, corrected for periodic boundary conditions. */
         float3 dx;
@@ -172,6 +177,8 @@ __device__ void angles_gpu(const int       i,
                            float3          sm_fShiftLoc[],
                            const PbcAiuc   pbcAiuc)
 {
+    __builtin_assume(i >= 0);
+    __builtin_assume(numBonds >= 0);
     if (i < numBonds)
     {
         const int4 angleData = *(reinterpret_cast<const int4*>(d_forceatoms + 4 * i));
@@ -179,6 +186,10 @@ __device__ void angles_gpu(const int       i,
         int        ai        = angleData.y;
         int        aj        = angleData.z;
         int        ak        = angleData.w;
+        __builtin_assume(type >= 0);
+        __builtin_assume(ai >= 0);
+        __builtin_assume(aj >= 0);
+        __builtin_assume(ak >= 0);
 
         float3 r_ij;
         float3 r_kj;
@@ -245,6 +256,8 @@ __device__ void urey_bradley_gpu(const int       i,
                                  float3          sm_fShiftLoc[],
                                  const PbcAiuc   pbcAiuc)
 {
+    __builtin_assume(i >= 0);
+    __builtin_assume(numBonds >= 0);
     if (i < numBonds)
     {
         const int4 ubData = *(reinterpret_cast<const int4*>(d_forceatoms + 4 * i));
@@ -252,6 +265,10 @@ __device__ void urey_bradley_gpu(const int       i,
         int        ai     = ubData.y;
         int        aj     = ubData.z;
         int        ak     = ubData.w;
+        __builtin_assume(type >= 0);
+        __builtin_assume(ai >= 0);
+        __builtin_assume(aj >= 0);
+        __builtin_assume(ak >= 0);
 
         float th0A = d_forceparams[type].u_b.thetaA * CUDA_DEG2RAD_F;
         float kthA = d_forceparams[type].u_b.kthetaA;
@@ -397,6 +414,10 @@ __device__ static void do_dih_fup_gpu(const int            i,
                                       const int            t2,
                                       const int gmx_unused t3)
 {
+    __builtin_assume(i >= 0);
+    __builtin_assume(j >= 0);
+    __builtin_assume(k >= 0);
+    __builtin_assume(l >= 0);
     float iprm  = norm2(m);
     float iprn  = norm2(n);
     float nrkj2 = norm2(r_kj);
@@ -449,6 +470,8 @@ __device__ void pdihs_gpu(const int       i,
                           float3          sm_fShiftLoc[],
                           const PbcAiuc   pbcAiuc)
 {
+    __builtin_assume(i >= 0);
+    __builtin_assume(numBonds >= 0);
     if (i < numBonds)
     {
         int type = d_forceatoms[5 * i];
@@ -456,6 +479,10 @@ __device__ void pdihs_gpu(const int       i,
         int aj   = d_forceatoms[5 * i + 2];
         int ak   = d_forceatoms[5 * i + 3];
         int al   = d_forceatoms[5 * i + 4];
+        __builtin_assume(type >= 0);
+        __builtin_assume(ai >= 0);
+        __builtin_assume(aj >= 0);
+        __builtin_assume(ak >= 0);
 
         float3 r_ij;
         float3 r_kj;
@@ -498,6 +525,8 @@ __device__ void rbdihs_gpu(const int       i,
                            float3          sm_fShiftLoc[],
                            const PbcAiuc   pbcAiuc)
 {
+    __builtin_assume(i >= 0);
+    __builtin_assume(numBonds >= 0);
     constexpr float c0 = 0.0F, c1 = 1.0F, c2 = 2.0F, c3 = 3.0F, c4 = 4.0F, c5 = 5.0F;
 
     if (i < numBonds)
@@ -507,6 +536,10 @@ __device__ void rbdihs_gpu(const int       i,
         int aj   = d_forceatoms[5 * i + 2];
         int ak   = d_forceatoms[5 * i + 3];
         int al   = d_forceatoms[5 * i + 4];
+        __builtin_assume(type >= 0);
+        __builtin_assume(ai >= 0);
+        __builtin_assume(aj >= 0);
+        __builtin_assume(ak >= 0);
 
         float3 r_ij;
         float3 r_kj;
@@ -533,6 +566,7 @@ __device__ void rbdihs_gpu(const int       i,
         float sin_phi = sinf(phi);
 
         float parm[NR_RBDIHS];
+#pragma unroll NR_RBDIHS
         for (int j = 0; j < NR_RBDIHS; j++)
         {
             parm[j] = d_forceparams[type].rbdihs.rbcA[j];
@@ -615,6 +649,8 @@ __device__ void idihs_gpu(const int       i,
                           float3          sm_fShiftLoc[],
                           const PbcAiuc   pbcAiuc)
 {
+    __builtin_assume(i >= 0);
+    __builtin_assume(numBonds >= 0);
     if (i < numBonds)
     {
         int type = d_forceatoms[5 * i];
@@ -622,6 +658,10 @@ __device__ void idihs_gpu(const int       i,
         int aj   = d_forceatoms[5 * i + 2];
         int ak   = d_forceatoms[5 * i + 3];
         int al   = d_forceatoms[5 * i + 4];
+        __builtin_assume(type >= 0);
+        __builtin_assume(ai >= 0);
+        __builtin_assume(aj >= 0);
+        __builtin_assume(ak >= 0);
 
         float3 r_ij;
         float3 r_kj;
@@ -675,6 +715,8 @@ __device__ void pairs_gpu(const int       i,
                           float*          vtotVdw_loc,
                           float*          vtotElec_loc)
 {
+    __builtin_assume(i >= 0);
+    __builtin_assume(numBonds >= 0);
     if (i < numBonds)
     {
         // TODO this should be made into a separate type, the GPU and CPU sizes should be compared
@@ -682,6 +724,9 @@ __device__ void pairs_gpu(const int       i,
         int        type     = pairData.x;
         int        ai       = pairData.y;
         int        aj       = pairData.z;
+        __builtin_assume(type >= 0);
+        __builtin_assume(ai >= 0);
+        __builtin_assume(aj >= 0);
 
         float qq  = gm_xq[ai].w * gm_xq[aj].w;
         float c6  = iparams[type].lj14.c6A;
@@ -690,6 +735,7 @@ __device__ void pairs_gpu(const int       i,
         /* Do we need to apply full periodic boundary conditions? */
         float3 dr;
         int    fshift_index = pbcDxAiuc<calcVir>(pbcAiuc, gm_xq[ai], gm_xq[aj], dr);
+        __builtin_assume(fshift_index >= 0);
 
         float r2    = norm2(dr);
         float rinv  = rsqrtf(r2);
@@ -730,6 +776,7 @@ __global__ void exec_kernel_gpu(BondedCudaKernelParameters kernelParams, float4*
 {
     assert(blockDim.y == 1 && blockDim.z == 1);
     const int tid          = blockIdx.x * blockDim.x + threadIdx.x;
+    __builtin_assume(tid >= 0);
     float     vtot_loc     = 0;
     float     vtotVdw_loc  = 0;
     float     vtotElec_loc = 0;
@@ -753,12 +800,16 @@ __global__ void exec_kernel_gpu(BondedCudaKernelParameters kernelParams, float4*
 #pragma unroll
     for (int j = 0; j < numFTypesOnGpu; j++)
     {
+        __builtin_assume(j >= 0);
         if (tid >= kernelParams.fTypeRangeStart[j] && tid <= kernelParams.fTypeRangeEnd[j])
         {
             const int      numBonds = kernelParams.numFTypeBonds[j];
             int            fTypeTid = tid - kernelParams.fTypeRangeStart[j];
+            __builtin_assume(numBonds > 0);
+            __builtin_assume(fTypeTid >= 0);
             const t_iatom* iatoms   = kernelParams.d_iatoms[j];
             fType                   = kernelParams.fTypesOnGpu[j];
+            __builtin_assume(fType >= 0);
             if (calcEner)
             {
                 threadComputedPotential = true;
@@ -862,6 +913,8 @@ __global__ void exec_kernel_gpu(BondedCudaKernelParameters kernelParams, float4*
 
         int numWarps = blockDim.x / warpSize;
         int warpId   = threadIdx.x / warpSize;
+        __builtin_assume(numWarps >= 0);
+        __builtin_assume(warpId >= 0);
 
         // Shared memory variables to hold block-local partial sum
         float* sm_vTot = reinterpret_cast<float*>(sm_nextSlotPtr);
