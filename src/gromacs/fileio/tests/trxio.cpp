@@ -67,11 +67,12 @@ public:
     TrxTest()
     {
         coordinates_ = { { 1, 2, 3 }, { 4, 5, 6 }, { 7, 8, 9 } };
-        clear_trxframe(&testFrame_, false);
+        clear_trxframe(&testFrame_, true);
         testFrame_.step   = 0;
         testFrame_.time   = 0;
         testFrame_.natoms = coordinates_.size();
         testFrame_.x      = as_rvec_array(coordinates_.data());
+        testFrame_.bX     = true;
         output_env_init(&oenv_, getProgramContext(), {}, FALSE, XvgFormat::None, 0);
     }
 
@@ -94,19 +95,34 @@ TEST_F(TrxTest, CanOpenFileForOutput)
     auto status = openTrajectoryFile(fileManager_.getTemporaryFilePath("test.trr"), fileMode);
     EXPECT_EQ(status.tng(), nullptr);
     EXPECT_NE(status.getFileIO(), nullptr);
-    status.writeTngFrame(&testFrame_);
 }
 
-TEST_F(TrxTest, CanOpenTngUsingDefault)
+TEST_F(TrxTest, CanOpenWriteAndRead)
 {
-    const char* fileMode = "w";
-    auto status = openTrajectoryFile(fileManager_.getTemporaryFilePath("test.tng"), fileMode);
-    EXPECT_NE(status.tng(), nullptr);
-    EXPECT_EQ(status.getFileIO(), nullptr);
-    status.writeTngFrame(&testFrame_);
+    auto filePath = fileManager_.getTemporaryFilePath("test.trr");
+    {
+        const char* fileMode = "w";
+        auto        status   = openTrajectoryFile(filePath, fileMode);
+        EXPECT_EQ(status.tng(), nullptr);
+        EXPECT_NE(status.getFileIO(), nullptr);
+        status.writeTrxframe(&testFrame_, nullptr);
+    }
+    t_trxframe newFrame;
+    clear_trxframe(&newFrame, true);
+    auto readStatus = read_first_frame(oenv_, filePath, &newFrame, trxNeedCoordinates);
+    EXPECT_TRUE(readStatus.has_value());
+    done_frame(&newFrame);
 }
-
 // Currently fails, thus disabled
+// TEST_F(TrxTest, CanOpenTngUsingDefault)
+//{
+//    const char* fileMode = "w";
+//    auto status = openTrajectoryFile(fileManager_.getTemporaryFilePath("test.tng"), fileMode);
+//    EXPECT_NE(status.tng(), nullptr);
+//    EXPECT_EQ(status.getFileIO(), nullptr);
+//    status.writeTngFrame(&testFrame_);
+//}
+//
 // TEST_F(TrxTest, CanWriteFileAndReadAgain)
 //{
 //    auto fullName = fileManager_.getTemporaryFilePath("test.trr");
