@@ -19,7 +19,7 @@ gromacs:oneapi-2022.1.0-sycl-nightly:configure:
    - .use-oneapi:base
    - .use-sycl
    - .rules:nightly-not-for-release
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-7-oneapi-2022.1.0-intel-compute-runtime:latest
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-9-oneapi-2022.1.0-intel-compute-runtime:latest
   variables:
     CMAKE: /usr/local/cmake-3.18.4/bin/cmake
     CMAKE_BUILD_TYPE_OPTIONS: "-DCMAKE_BUILD_TYPE=RelWithAssert"
@@ -32,7 +32,7 @@ gromacs:oneapi-2022.1.0-sycl-nightly:build:
     - .use-ccache
     - .use-oneapi:base
     - .rules:nightly-not-for-release
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-7-oneapi-2022.1.0-intel-compute-runtime:latest
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-9-oneapi-2022.1.0-intel-compute-runtime:latest
   variables:
     CMAKE: /usr/local/cmake-3.18.4/bin/cmake
   needs:
@@ -45,7 +45,7 @@ gromacs:oneapi-2022.1.0-sycl-nightly:test-opencl:
     - .rules:nightly-not-for-release
   tags:
     - intel-gpu-dg1
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-7-oneapi-2022.1.0-intel-compute-runtime:latest
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-9-oneapi-2022.1.0-intel-compute-runtime:latest
   variables:
     CMAKE: /usr/local/cmake-3.18.4/bin/cmake
     SYCL_DEVICE_FILTER: "opencl:gpu"
@@ -65,7 +65,7 @@ gromacs:oneapi-2022.1.0-sycl-nightly:test-opencl-upd:
     - .rules:nightly-not-for-release
   tags:
     - intel-gpu-dg1
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-7-oneapi-2022.1.0-intel-compute-runtime:latest
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-9-oneapi-2022.1.0-intel-compute-runtime:latest
   variables:
     CMAKE: /usr/local/cmake-3.18.4/bin/cmake
     SYCL_DEVICE_FILTER: "opencl:gpu"
@@ -84,7 +84,7 @@ gromacs:oneapi-2022.1.0-sycl-nightly:regressiontest-opencl:
     - .rules:nightly-not-for-release
   tags:
     - intel-gpu-dg1
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-7-oneapi-2022.1.0-intel-compute-runtime:latest
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-9-oneapi-2022.1.0-intel-compute-runtime:latest
   variables:
     CMAKE: /usr/local/cmake-3.18.4/bin/cmake
     SYCL_DEVICE_FILTER: "opencl:gpu"
@@ -106,7 +106,7 @@ gromacs:oneapi-2022.1.0-sycl-nightly:regressiontest-opencl-singlerank-upd:
     - .rules:nightly-not-for-release
   tags:
     - intel-gpu-dg1
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-7-oneapi-2022.1.0-intel-compute-runtime:latest
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-9-oneapi-2022.1.0-intel-compute-runtime:latest
   variables:
     CMAKE: /usr/local/cmake-3.18.4/bin/cmake
     SYCL_DEVICE_FILTER: "opencl:gpu"
@@ -130,7 +130,7 @@ gromacs:oneapi-2022.1.0-sycl-nightly:regressiontest-l0-upd:
     - .rules:nightly-not-for-release
   tags:
     - intel-gpu-dg1
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-7-oneapi-2022.1.0-intel-compute-runtime:latest
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-9-oneapi-2022.1.0-intel-compute-runtime:latest
   variables:
     CMAKE: /usr/local/cmake-3.18.4/bin/cmake
     SYCL_DEVICE_FILTER: "level_zero:gpu"
@@ -153,7 +153,7 @@ gromacs:oneapi-2022.1.0-sycl-nightly:regressiontest-l0-singlerank:
     - .rules:nightly-not-for-release
   tags:
     - intel-gpu-dg1
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-7-oneapi-2022.1.0-intel-compute-runtime:latest
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-9-oneapi-2022.1.0-intel-compute-runtime:latest
   variables:
     CMAKE: /usr/local/cmake-3.18.4/bin/cmake
     SYCL_DEVICE_FILTER: "level_zero:gpu"
