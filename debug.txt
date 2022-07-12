@@ -1,0 +1,4256 @@
+[1/6] Generating git version information
+SYCL_PI_TRACE[basic]: Plugin found and successfully loaded: libpi_level_zero.so
+---> piPlatformsGet(
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fad24
+ZE ---> zeInit(0)
+ZE ---> zeDriverGet(&ZeDriverCount, nullptr)
+ZE ---> zeDriverGet(&ZeDriverCount, ZeDrivers.data())
+ZE ---> zeDriverGetProperties(ZeDriver, &ZeDriverProperties)
+ZE ---> zeDriverGetApiVersion(ZeDriver, &ZeApiVersion)
+ZE ---> zeDriverGetExtensionProperties(ZeDriver, &Count, nullptr)
+ZE ---> zeDriverGetExtensionProperties(ZeDriver, &Count, zeExtensions.data())
+Using all host-visible events
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformsGet(
+	<unknown> : 1
+	<unknown> : 0x1f2cef0
+	<nullptr>
+Using all host-visible events
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x1f2cef0[ 0x1569370 ... ]
+
+---> piDevicesGet(
+	pi_platform : 0x1569370
+	<unknown> : 4294967295
+	<unknown> : 0
+	<unknown> : 0
+	<unknown> : 0x7ffeb57fa89c
+ZE ---> zeDeviceGet(ZeDriver, &ZeDeviceCount, nullptr)
+ZE ---> zeDeviceGet(ZeDriver, &ZeDeviceCount, ZeDevices.data())
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, nullptr)
+NOTE: Number of queue groups = 2
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, QueueGroupProperties.data())
+NOTE: main blitter/copy engine is available
+NOTE: link blitter/copy engines are not available
+ZE ---> zeDeviceGetSubDevices(Device->ZeDevice, &SubDevicesCount, nullptr)
+ZE ---> zeDeviceGetSubDevices(Device->ZeDevice, &SubDevicesCount, ZeSubdevices)
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, nullptr)
+NOTE: Number of queue groups = 2
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, QueueGroupProperties.data())
+NOTE: main blitter/copy engine is available
+NOTE: link blitter/copy engines are not available
+ZE ---> zeDeviceGetCommandQueueGroupProperties(PiSubDevice->ZeDevice, &numQueueGroups, nullptr)
+ZE ---> zeDeviceGetCommandQueueGroupProperties(PiSubDevice->ZeDevice, &numQueueGroups, QueueGroupProperties.data())
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, nullptr)
+NOTE: Number of queue groups = 2
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, QueueGroupProperties.data())
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, nullptr)
+NOTE: Number of queue groups = 2
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, QueueGroupProperties.data())
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, nullptr)
+NOTE: Number of queue groups = 2
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, QueueGroupProperties.data())
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, nullptr)
+NOTE: Number of queue groups = 2
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, QueueGroupProperties.data())
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, nullptr)
+NOTE: Number of queue groups = 2
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, QueueGroupProperties.data())
+NOTE: main blitter/copy engine is available
+NOTE: link blitter/copy engines are not available
+ZE ---> zeDeviceGetCommandQueueGroupProperties(PiSubDevice->ZeDevice, &numQueueGroups, nullptr)
+ZE ---> zeDeviceGetCommandQueueGroupProperties(PiSubDevice->ZeDevice, &numQueueGroups, QueueGroupProperties.data())
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, nullptr)
+NOTE: Number of queue groups = 2
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, QueueGroupProperties.data())
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, nullptr)
+NOTE: Number of queue groups = 2
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, QueueGroupProperties.data())
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, nullptr)
+NOTE: Number of queue groups = 2
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, QueueGroupProperties.data())
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, nullptr)
+NOTE: Number of queue groups = 2
+ZE ---> zeDeviceGetCommandQueueGroupProperties(ZeDevice, &numQueueGroups, QueueGroupProperties.data())
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0[ nullptr ]
+
+---> piDevicesGet(
+	pi_platform : 0x1569370
+	<unknown> : 4294967295
+	<unknown> : 1
+	<unknown> : 0x1f33cc0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x1f33cc0[ 0x1f33ce0 ... ]
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2305
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa280
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2305
+	<unknown> : 4
+	<char * > : 0x1f34290
+	<nullptr>
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa280
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 20
+	<char * > : 0x1f34290
+	<nullptr>
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4096
+	<unknown> : 8
+	<unknown> : 0x7ffeb57fa278
+	<nullptr>
+ZE ---> zeDeviceGetProperties(ZeDevice, &Properties)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4097
+	<unknown> : 4
+	<unknown> : 0x7ffeb57fa280
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4141
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa238
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4141
+	<unknown> : 10
+	<char * > : 0x1f34290
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa2e0
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 27
+	<char * > : 0x1f39700
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4096
+	<unknown> : 8
+	<unknown> : 0x7ffeb57fa8d0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4096
+	<unknown> : 8
+	<unknown> : 0x1f33268
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4162
+	<unknown> : 8
+	<unknown> : 0x7ffeb57fa3f8
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x7ffeb57fa3f8[ 0 ... ]
+
+---> piDeviceRetain(
+	<unknown> : 0x1f33ce0
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4144
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa018
+ZE ---> zeDeviceGetModuleProperties(ZeDevice, &Properties)
+ZE ---> zeDeviceGetImageProperties(ZeDevice, &Properties)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4144
+	<unknown> : 215
+	<char * > : 0x18dada0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa970
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 20
+	<char * > : 0x1f33cc0
+	<nullptr>
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceRelease(
+	<unknown> : 0x1f33ce0
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformsGet(
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57faa44
+Using all host-visible events
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformsGet(
+	<unknown> : 1
+	<unknown> : 0x1f34290
+	<nullptr>
+Using all host-visible events
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x1f34290[ 0x1569370 ... ]
+
+---> piDevicesGet(
+	pi_platform : 0x1569370
+	<unknown> : 4294967295
+	<unknown> : 0
+	<unknown> : 0
+	<unknown> : 0x7ffeb57fa5bc
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0[ nullptr ]
+
+---> piDevicesGet(
+	pi_platform : 0x1569370
+	<unknown> : 4294967295
+	<unknown> : 1
+	<unknown> : 0x1f2cef0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x1f2cef0[ 0x1f33ce0 ... ]
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2305
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57f9fa0
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2305
+	<unknown> : 4
+	<char * > : 0x1f34370
+	<nullptr>
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57f9fa0
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 20
+	<char * > : 0x1f34370
+	<nullptr>
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4096
+	<unknown> : 8
+	<unknown> : 0x7ffeb57f9f98
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4097
+	<unknown> : 4
+	<unknown> : 0x7ffeb57f9fa0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4141
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57f9f58
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4141
+	<unknown> : 10
+	<char * > : 0x1f34370
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa000
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 27
+	<char * > : 0x1f39700
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4096
+	<unknown> : 8
+	<unknown> : 0x7ffeb57fa5f0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4096
+	<unknown> : 8
+	<unknown> : 0x1f39b78
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4162
+	<unknown> : 8
+	<unknown> : 0x7ffeb57fa118
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x7ffeb57fa118[ 0 ... ]
+
+---> piDeviceRetain(
+	<unknown> : 0x1f33ce0
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4144
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57f9d38
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4144
+	<unknown> : 215
+	<char * > : 0x1887de0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa690
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 20
+	<char * > : 0x1f2cef0
+	<nullptr>
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceRelease(
+	<unknown> : 0x1f33ce0
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDevicesGet(
+	pi_platform : 0x1569370
+	<unknown> : 4
+	<unknown> : 0
+	<unknown> : 0
+	<unknown> : 0x7ffeb57faa0c
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0[ nullptr ]
+
+---> piDevicesGet(
+	pi_platform : 0x1569370
+	<unknown> : 4
+	<unknown> : 1
+	<unknown> : 0x1f34290
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x1f34290[ 0x1f33ce0 ... ]
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2305
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa3f0
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2305
+	<unknown> : 4
+	<char * > : 0x1f39bb0
+	<nullptr>
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa3f0
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 20
+	<char * > : 0x1f39bb0
+	<nullptr>
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4096
+	<unknown> : 8
+	<unknown> : 0x7ffeb57fa3e8
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4097
+	<unknown> : 4
+	<unknown> : 0x7ffeb57fa3f0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4141
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa3a8
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4141
+	<unknown> : 10
+	<char * > : 0x1f39bb0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa450
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 27
+	<char * > : 0x1f39730
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4096
+	<unknown> : 8
+	<unknown> : 0x7ffeb57faa40
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4096
+	<unknown> : 8
+	<unknown> : 0x1f39be8
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4162
+	<unknown> : 8
+	<unknown> : 0x7ffeb57fa568
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x7ffeb57fa568[ 0 ... ]
+
+---> piDeviceRetain(
+	<unknown> : 0x1f33ce0
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4144
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa188
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4144
+	<unknown> : 215
+	<char * > : 0x18dada0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4130
+	<unknown> : 4
+	<unknown> : 0x7ffeb57fab44
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 16648
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fab80
+ZE ---> zeDeviceGetComputeProperties(ZeDevice, &Properties)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 16648
+	<unknown> : 24
+	<unknown> : 0x1f33cc0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDevicesGet(
+	pi_platform : 0x1569370
+	<unknown> : 4294967295
+	<unknown> : 0
+	<unknown> : 0
+	<unknown> : 0x7ffeb57fa91c
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0[ nullptr ]
+
+---> piDevicesGet(
+	pi_platform : 0x1569370
+	<unknown> : 4294967295
+	<unknown> : 1
+	<unknown> : 0x1f33cc0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x1f33cc0[ 0x1f33ce0 ... ]
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2305
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa300
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2305
+	<unknown> : 4
+	<char * > : 0x1f39bb0
+	<nullptr>
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa300
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 20
+	<char * > : 0x1f39bb0
+	<nullptr>
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4096
+	<unknown> : 8
+	<unknown> : 0x7ffeb57fa2f8
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4097
+	<unknown> : 4
+	<unknown> : 0x7ffeb57fa300
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4141
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa2b8
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4141
+	<unknown> : 10
+	<char * > : 0x1f39bb0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa360
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 27
+	<char * > : 0x1f39c20
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4096
+	<unknown> : 8
+	<unknown> : 0x7ffeb57fa950
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piContextCreate(
+	<nullptr>
+	<unknown> : 1
+	<unknown> : 0x1f34370
+	<nullptr>
+	<nullptr>
+	<unknown> : 0x1f39f78
+ZE ---> zeContextCreate(Platform->ZeDriver, &ContextDesc, &ZeContext)
+ZE ---> zeCommandListCreateImmediate(ZeContext, Device->ZeDevice, &ZeCommandQueueDesc, &ZeCommandListInit)
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x1f34370[ 0x1f33ce0 ... ]
+	[out]<unknown> ** : 0x1f39f78[ 0x15841f0 ... ]
+
+---> piQueueCreate(
+	<unknown> : 0x15841f0
+	<unknown> : 0x1f33ce0
+	<unknown> : 1
+	<unknown> : 0x7ffeb57fa970
+ZE ---> zeCommandQueueCreate(Context->ZeContext, ZeDevice, &ZeCommandQueueDesc, &ZeComputeCommandQueue)
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x7ffeb57fa970[ 0x1568530 ... ]
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4149
+	<unknown> : 4
+	<unknown> : 0x7ffeb57f9efc
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piMemBufferCreate(
+	<unknown> : 0x15841f0
+	<unknown> : 1
+	<unknown> : 32
+	<unknown> : 0
+	<unknown> : 0x7ffeb57fa158
+	<unknown> : 0
+PI ---> piextUSMDeviceAlloc(&Ptr, Context, Context->SingleRootDevice, nullptr, Size, Alignment)
+ZE ---> zeMemAllocDevice(Context->ZeContext, &ZeDesc, Size, Alignment, Device->ZeDevice, ResultPtr)
+) ---> 	pi_result : PI_SUCCESS
+	[out]void * : 0
+	[out]pi_mem * : 0x7ffeb57fa158[ 0x1f385d0 ... ]
+
+---> piextDeviceSelectBinary(
+	<unknown> : 0x1f33ce0
+	<unknown> : 0x1f49e40
+	<unknown> : 1
+	<unknown> : 0x7ffeb57f94e0
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x1f49e40[ 0x7f93b4c0a140 ... ]
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57f8f50
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 20
+	<char * > : 0x1f49e40
+	<nullptr>
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57f8f60
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 27
+	<char * > : 0x1f49ec0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4143
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57f8f50
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4143
+	<unknown> : 4
+	<char * > : 0x1f49ea0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4141
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57f8f60
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4141
+	<unknown> : 10
+	<char * > : 0x1f49ea0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piProgramCreate(
+	<unknown> : 0x15841f0
+	<unknown> : 0x7f939eccd8c0
+	<unknown> : 1117004
+	<unknown> : 0x7ffeb57f93d0
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x7ffeb57f93d0[ 0x1f4a060 ... ]
+
+---> piProgramBuild(
+	<unknown> : 0x1f4a060
+	<unknown> : 1
+	<unknown> : 0x1f39be0
+	<const char *>: -g
+	<nullptr>
+	<nullptr>
+ZE ---> zeModuleCreate(ZeContext, ZeDevice, &ZeModuleDesc, &ZeModule, &Program->ZeBuildLog)
+ZE ---> zeModuleGetPropertiesMock(ZeModule, &ZeModuleProps)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57f8bc0
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 20
+	<char * > : 0x2b4a510
+	<nullptr>
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57f8bd0
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 27
+	<char * > : 0x237caa0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4143
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57f8bc0
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4143
+	<unknown> : 4
+	<char * > : 0x2b4a510
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4141
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57f8bd0
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4141
+	<unknown> : 10
+	<char * > : 0x2b4a510
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piKernelCreate(
+	<unknown> : 0x1f4a060
+	<const char *>: _ZTS11DummyKernel
+	<unknown> : 0x7ffeb57f9898
+ZE ---> zeModuleGetKernelNames(*ModIt, &KernelNum, nullptr)
+ZE ---> zeKernelCreate(*ModIt, &ZeKernelDesc, &ZeKernel)
+PI ---> piProgramRetain(Program)
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x7ffeb57f9898[ 0x22d8860 ... ]
+
+---> piKernelSetExecInfo(
+	<unknown> : 0x22d8860
+	<unknown> : 0
+	<unknown> : 4
+	<unknown> : 0x7f939d201014
+ZE ---> zeKernelSetIndirectAccess(Kernel->ZeKernel, IndirectFlags)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextKernelSetArgMemObj(
+	<unknown> : 0x22d8860
+	<unknown> : 0
+	<unknown> : 0x7ffeb57f9450
+ZE ---> zeKernelSetArgumentValue(pi_cast<ze_kernel_handle_t>(Kernel->ZeKernel), pi_cast<uint32_t>(ArgIndex), sizeof(void *), (*ArgValue)->getZeHandlePtr())
+) ---> 	pi_result : PI_SUCCESS
+	[out]pi_mem * : 0x7ffeb57f9450[ 0x1f385d0 ... ]
+
+---> piKernelSetArg(
+	<unknown> : 0x22d8860
+	<unknown> : 1
+	<unknown> : 8
+	<unknown> : 0x1f38ab0
+ZE ---> zeKernelSetArgumentValue(pi_cast<ze_kernel_handle_t>(Kernel->ZeKernel), pi_cast<uint32_t>(ArgIndex), pi_cast<size_t>(ArgSize), pi_cast<const void *>(ArgValue))
+) ---> 	pi_result : PI_SUCCESS
+	[out]void * : 0x1f38ab0
+
+---> piKernelGetGroupInfo(
+	<unknown> : 0x22d8860
+	<unknown> : 0x1f33ce0
+	<unknown> : 4529
+	<unknown> : 24
+	<unknown> : 0x7ffeb57f9890
+	<nullptr>
+ZE ---> zeKernelGetProperties(ZeKernel, &Properties)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piEnqueueKernelLaunch(
+	<unknown> : 0x1568530
+	<unknown> : 0x22d8860
+	<unknown> : 1
+	<unknown> : 0x1f478f0
+	<unknown> : 0x1f478c0
+	<unknown> : 0
+	<unknown> : 0
+	pi_event * : 0[ nullptr ]
+	pi_event * : 0x1f481b0[ 0 ... ]
+ZE ---> zeKernelSetGlobalOffsetExp(Kernel->ZeKernel, GlobalWorkOffset[0], GlobalWorkOffset[1], GlobalWorkOffset[2])
+ZE ---> zeKernelSuggestGroupSize(Kernel->ZeKernel, GlobalWorkSize[0], GlobalWorkSize[1], GlobalWorkSize[2], &WG[0], &WG[1], &WG[2])
+ZE ---> zeKernelSetGroupSize(Kernel->ZeKernel, WG[0], WG[1], WG[2])
+ZE ---> zeCommandListCreate(Queue->Context->ZeContext, Queue->Device->ZeDevice, &ZeCommandListDesc, &ZeCommandList)
+ZE ---> zeFenceCreate(ZeCommandQueue, &ZeFenceDesc, &ZeFence)
+ZE ---> zeEventPoolCreate(ZeContext, &ZeEventPoolDesc, ZeDevices.size(), &ZeDevices[0], ZePool)
+ZE ---> zeEventCreate(ZeEventPool, &ZeEventDesc, &ZeEvent)
+PI ---> piEventRetain(*Event)
+PI ---> piEventRetain(*Event)
+PI ---> piKernelRetain(Kernel)
+PI ---> piProgramRetain(Kernel->Program)
+ZE ---> zeCommandListAppendLaunchKernel(CommandList->first, Kernel->ZeKernel, &ZeThreadGroupDimensions, ZeEvent, (*Event)->WaitList.Length, (*Event)->WaitList.ZeEventList)
+calling zeCommandListAppendLaunchKernel() with  ZeEvent 0x30d7970
+  NumEventsInWaitList 0:
+) ---> 	pi_result : PI_SUCCESS
+	[out]pi_event * : 0[ nullptr ]
+	[out]pi_event * : 0x1f481b0[ 0x30444d0 ... ]
+
+---> piEventsWait(
+	<unknown> : 1
+	const pi_event * : 0x1f481b0[ 0x30444d0 ... ]
+ZE ---> zeCommandListClose(CommandList->first)
+Calling zeCommandQueueExecuteCommandLists with Index = -1
+ZE ---> zeCommandQueueExecuteCommandLists(ZeCommandQueue, 1, &ZeCommandList, CommandList->second.ZeFence)
+ZeEvent = 0x30d7970
+ZE ---> zeHostSynchronize(ZeEvent)
+ZE ---> zeFenceQueryStatus(it->second.ZeFence)
+ZE ---> zeFenceReset(CommandList->second.ZeFence)
+ZE ---> zeCommandListReset(CommandList->first)
+PI ---> piKernelRelease(pi_cast<pi_kernel>(CommandData))
+PI ---> piProgramRelease(KernelProgram)
+PI ---> EventRelease(this, LockedQueue)
+PI ---> EventRelease(Event, this)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4149
+	<unknown> : 4
+	<unknown> : 0x7ffeb57fa69c
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piEnqueueMemBufferRead(
+	<unknown> : 0x1568530
+	pi_mem : 0x1f385d0
+	<unknown> : 0
+	<unknown> : 0
+	<unknown> : 32
+	<char * > : 0x22d9080
+	<unknown> : 1
+	pi_event * : 0x29f7f60[ 0x30444d0 ... ]
+	pi_event * : 0x2074450[ 0 ... ]
+ZE ---> zeEventQueryStatus(ZeEventHostVisible)
+ZE ---> zeEventCreate(ZeEventPool, &ZeEventDesc, &ZeEvent)
+PI ---> piEventRetain(*Event)
+PI ---> piEventRetain(*Event)
+ZE ---> zeCommandListAppendMemoryCopy(ZeCommandList, Dst, Src, Size, ZeEvent, 0, nullptr)
+calling zeCommandListAppendMemoryCopy() with
+  ZeEvent 0x22d2700
+  NumEventsInWaitList 0:
+) ---> 	pi_result : PI_SUCCESS
+	[out]pi_event * : 0x29f7f60[ 0x30444d0 ... ]
+	[out]pi_event * : 0x2074450[ 0x3044420 ... ]
+
+---> piEventsWait(
+	<unknown> : 1
+	pi_event * : 0x30d7540[ 0x3044420 ... ]
+ZE ---> zeCommandListClose(CommandList->first)
+Calling zeCommandQueueExecuteCommandLists with Index = -1
+ZE ---> zeCommandQueueExecuteCommandLists(ZeCommandQueue, 1, &ZeCommandList, CommandList->second.ZeFence)
+ZeEvent = 0x22d2700
+ZE ---> zeHostSynchronize(ZeEvent)
+ZE ---> zeFenceQueryStatus(it->second.ZeFence)
+PI ---> EventRelease(this, LockedQueue)
+) ---> 	pi_result : PI_SUCCESS
+	[out]pi_event * : 0x30d7540[ 0x3044420 ... ]
+
+---> piEventsWait(
+	<unknown> : 1
+	const pi_event * : 0x2074450[ 0x3044420 ... ]
+ZeEvent = 0x22d2700
+ZE ---> zeHostSynchronize(ZeEvent)
+ZE ---> zeFenceQueryStatus(it->second.ZeFence)
+ZE ---> zeFenceReset(CommandList->second.ZeFence)
+ZE ---> zeCommandListReset(CommandList->first)
+PI ---> EventRelease(Event, this)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piMemRelease(
+	pi_mem : 0x1f385d0
+PI ---> piextUSMFree(Mem->Context, Mem->getZeHandle())
+ZE ---> zeMemGetAllocProperties(Context->ZeContext, Ptr, &ZeMemoryAllocationProperties, &ZeDeviceHandle)
+ZE ---> zeMemFree(Context->ZeContext, Ptr)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piEventRelease(
+	pi_event : 0x30444d0
+ZE ---> zeEventDestroy(Event->ZeEvent)
+PI ---> QueueRelease(Event->Queue, LockedQueue)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piEventRelease(
+	pi_event : 0x3044420
+ZE ---> zeEventDestroy(Event->ZeEvent)
+PI ---> QueueRelease(Event->Queue, LockedQueue)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piQueueRelease(
+	<unknown> : 0x1568530
+ZE ---> zeHostSynchronize(Queue->ZeComputeCommandQueue)
+ZE ---> zeFenceDestroy(it->second.ZeFence)
+PI ---> QueueRelease(Queue, nullptr)
+ZE ---> zeCommandQueueDestroy(Queue->ZeComputeCommandQueue)
+piQueueRelease(compute) NumTimesClosedFull 0, NumTimesClosedEarly 2
+piQueueRelease(copy) NumTimesClosedFull 0, NumTimesClosedEarly 0
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4140
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fab90
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4140
+	<unknown> : 21
+	<char * > : 0x1f47580
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57faf90
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 27
+	<char * > : 0x2ff9dc0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4140
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57faf90
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4140
+	<unknown> : 21
+	<char * > : 0x1f49be0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4143
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57faf80
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4143
+	<unknown> : 4
+	<char * > : 0x1f49be0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4141
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57faf90
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4141
+	<unknown> : 10
+	<char * > : 0x1f49be0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piContextCreate(
+	<nullptr>
+	<unknown> : 1
+	<unknown> : 0x2b19c80
+	<nullptr>
+	<nullptr>
+	<unknown> : 0x205ebe8
+ZE ---> zeContextCreate(Platform->ZeDriver, &ContextDesc, &ZeContext)
+ZE ---> zeCommandListCreateImmediate(ZeContext, Device->ZeDevice, &ZeCommandQueueDesc, &ZeCommandListInit)
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x2b19c80[ 0x1f33ce0 ... ]
+	[out]<unknown> ** : 0x205ebe8[ 0x2b19240 ... ]
+
+---> piPlatformsGet(
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fac34
+Using all host-visible events
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformsGet(
+	<unknown> : 1
+	<unknown> : 0x1f49be0
+	<nullptr>
+Using all host-visible events
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x1f49be0[ 0x1569370 ... ]
+
+---> piDevicesGet(
+	pi_platform : 0x1569370
+	<unknown> : 4294967295
+	<unknown> : 0
+	<unknown> : 0
+	<unknown> : 0x7ffeb57fa7ac
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0[ nullptr ]
+
+---> piDevicesGet(
+	pi_platform : 0x1569370
+	<unknown> : 4294967295
+	<unknown> : 1
+	<unknown> : 0x29f7f60
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x29f7f60[ 0x1f33ce0 ... ]
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2305
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa190
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2305
+	<unknown> : 4
+	<char * > : 0x2b19c80
+	<nullptr>
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa190
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 20
+	<char * > : 0x2b19c80
+	<nullptr>
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4096
+	<unknown> : 8
+	<unknown> : 0x7ffeb57fa188
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4097
+	<unknown> : 4
+	<unknown> : 0x7ffeb57fa190
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4141
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa148
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4141
+	<unknown> : 10
+	<char * > : 0x2b19c80
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa1f0
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 27
+	<char * > : 0x30401c0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4096
+	<unknown> : 8
+	<unknown> : 0x7ffeb57fa7e0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa880
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 20
+	<char * > : 0x29f7f60
+	<nullptr>
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDevicesGet(
+	pi_platform : 0x1569370
+	<unknown> : 4294967295
+	<unknown> : 0
+	<unknown> : 0
+	<unknown> : 0x7ffeb57fabfc
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0[ nullptr ]
+
+---> piDevicesGet(
+	pi_platform : 0x1569370
+	<unknown> : 4294967295
+	<unknown> : 1
+	<unknown> : 0x1f49be0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x1f49be0[ 0x1f33ce0 ... ]
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2305
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa5e0
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2305
+	<unknown> : 4
+	<char * > : 0x2b19c80
+	<nullptr>
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa5e0
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 20
+	<char * > : 0x2b19c80
+	<nullptr>
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4096
+	<unknown> : 8
+	<unknown> : 0x7ffeb57fa5d8
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4097
+	<unknown> : 4
+	<unknown> : 0x7ffeb57fa5e0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4141
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa598
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4141
+	<unknown> : 10
+	<char * > : 0x2b19c80
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fa640
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 27
+	<char * > : 0x30401c0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4096
+	<unknown> : 8
+	<unknown> : 0x7ffeb57fac30
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4096
+	<unknown> : 8
+	<unknown> : 0x7ffeb57fac00
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4145
+	<unknown> : 8
+	<unknown> : 0x7ffeb57fad08
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x7ffeb57fad08[ 0x1569370 ... ]
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fad70
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 20
+	<char * > : 0x2b37350
+	<nullptr>
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fad80
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 27
+	<char * > : 0x30401c0
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+SYCL_PI_TRACE[all]: select_device(): -> score = 1500
+SYCL_PI_TRACE[all]:   platform: Intel(R) Level-Zero
+SYCL_PI_TRACE[all]:   device: Intel(R) Graphics [0x020a]
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4145
+	<unknown> : 8
+	<unknown> : 0x7ffeb57fad08
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x7ffeb57fad08[ 0x1569370 ... ]
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fad70
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piPlatformGetInfo(
+	pi_platform : 0x1569370
+	<unknown> : 2306
+	<unknown> : 20
+	<char * > : 0x1f342b0
+	<nullptr>
+==========================
+SYCL over Level-Zero 1.3.23266
+==========================
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 0
+	<nullptr>
+	<unknown> : 0x7ffeb57fad80
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceGetInfo(
+	<unknown> : 0x1f33ce0
+	<unknown> : 4139
+	<unknown> : 27
+	<char * > : 0x29c8d50
+	<nullptr>
+) ---> 	pi_result : PI_SUCCESS
+
+SYCL_PI_TRACE[all]: Selected device ->
+SYCL_PI_TRACE[all]:   platform: Intel(R) Level-Zero
+SYCL_PI_TRACE[all]:   device: Intel(R) Graphics [0x020a]
+---> piQueueCreate(
+	<unknown> : 0x15841f0
+	<unknown> : 0x1f33ce0
+	<unknown> : 1
+	<unknown> : 0x7ffeb57facd0
+ZE ---> zeCommandQueueCreate(Context->ZeContext, ZeDevice, &ZeCommandQueueDesc, &ZeComputeCommandQueue)
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x7ffeb57facd0[ 0x1568530 ... ]
+
+---> piQueueCreate(
+	<unknown> : 0x2b19240
+	<unknown> : 0x1f33ce0
+	<unknown> : 0
+	<unknown> : 0x7ffeb57fad40
+ZE ---> zeCommandQueueCreate(Context->ZeContext, ZeDevice, &ZeCommandQueueDesc, &ZeComputeCommandQueue)
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x7ffeb57fad40[ 0x22d6dc0 ... ]
+
+---> piQueueRelease(
+	<unknown> : 0x1568530
+ZE ---> zeHostSynchronize(Queue->ZeComputeCommandQueue)
+PI ---> QueueRelease(Queue, nullptr)
+ZE ---> zeCommandQueueDestroy(Queue->ZeComputeCommandQueue)
+piQueueRelease(compute) NumTimesClosedFull 0, NumTimesClosedEarly 0
+piQueueRelease(copy) NumTimesClosedFull 0, NumTimesClosedEarly 0
+) ---> 	pi_result : PI_SUCCESS
+
+Note: Google Test filter = S*Dev*/4_4*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from ScanWorks/ParameterizedFFTTest3D
+[ RUN      ] ScanWorks/ParameterizedFFTTest3D.RunsOnDevices/4_4_4
+Running on new device
+---> piextUSMDeviceAlloc(
+	<unknown> : 0x7ffeb57fac50
+	<unknown> : 0x2b19240
+	<unknown> : 0x1f33ce0
+	<nullptr>
+	<unknown> : 384
+	<unknown> : 0
+ZE ---> zeMemAllocDevice(Context->ZeContext, &ZeDesc, Size, Alignment, Device->ZeDevice, ResultPtr)
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x7ffeb57fac50[ 0xffffd556aa780000 ... ]
+
+---> piextUSMDeviceAlloc(
+	<unknown> : 0x7ffeb57fa590
+	<unknown> : 0x2b19240
+	<unknown> : 0x1f33ce0
+	<nullptr>
+	<unknown> : 384
+	<unknown> : 0
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x7ffeb57fa590[ 0xffffd556aa780180 ... ]
+
+---> piextDeviceGetNativeHandle(
+	<unknown> : 0x1f33ce0
+	<unknown> : 0x7ffeb57fa6a8
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextContextGetNativeHandle(
+	<unknown> : 0x2b19240
+	<unknown> : 0x7ffeb57fa6a0
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextQueueGetNativeHandle(
+	<unknown> : 0x22d6dc0
+	<unknown> : 0x7ffeb57fa710
+) ---> 	pi_result : PI_SUCCESS
+
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+---> piextUSMEnqueueMemcpy(
+	<unknown> : 0x22d6dc0
+	<unknown> : 0
+	<unknown> : 0xffffd556aa780000
+	<unknown> : 0x1f39420
+	<unknown> : 384
+	<unknown> : 0
+	pi_event * : 0[ nullptr ]
+	pi_event * : 0x304b420[ 0 ... ]
+ZE ---> zeMemGetAllocProperties(Context->ZeContext, Ptr, &ZeMemoryAllocationProperties, &ZeDeviceHandle)
+Note: CopyQueueGroupIndex = 1
+Note: CopyQueueIndex = 0
+NOTE: Copy Engine ZeCommandQueueDesc.ordinal = 1, ZeCommandQueueDesc.index = 0
+ZE ---> zeCommandQueueCreate(Context->ZeContext, Device->ZeDevice, &ZeCommandQueueDesc, &ZeCopyCommandQueue)
+ZE ---> zeCommandListCreate(Queue->Context->ZeContext, Queue->Device->ZeDevice, &ZeCommandListDesc, &ZeCommandList)
+ZE ---> zeFenceCreate(ZeCommandQueue, &ZeFenceDesc, &ZeFence)
+ZE ---> zeEventPoolCreate(ZeContext, &ZeEventPoolDesc, ZeDevices.size(), &ZeDevices[0], ZePool)
+ZE ---> zeEventCreate(ZeEventPool, &ZeEventDesc, &ZeEvent)
+PI ---> piEventRetain(*Event)
+PI ---> piEventRetain(*Event)
+ZE ---> zeCommandListAppendMemoryCopy(ZeCommandList, Dst, Src, Size, ZeEvent, 0, nullptr)
+calling zeCommandListAppendMemoryCopy() with
+  ZeEvent 0x22d65c0
+  NumEventsInWaitList 0:
+Command list to be executed on copy engine 0
+) ---> 	pi_result : PI_SUCCESS
+	[out]void * : 0xffffd556aa780000
+	[out]pi_event * : 0[ nullptr ]
+	[out]pi_event * : 0x304b420[ 0x2567430 ... ]
+
+---> piEventsWait(
+	<unknown> : 1
+	const pi_event * : 0x304b420[ 0x2567430 ... ]
+Command list to be executed on copy engine 0
+ZE ---> zeCommandListClose(CommandList->first)
+Calling zeCommandQueueExecuteCommandLists with Index = 0
+ZE ---> zeCommandQueueExecuteCommandLists(ZeCommandQueue, 1, &ZeCommandList, CommandList->second.ZeFence)
+ZeEvent = 0x22d65c0
+ZE ---> zeHostSynchronize(ZeEvent)
+ZE ---> zeHostSynchronize(it->second.ZeFence)
+ZE ---> zeFenceReset(CommandList->second.ZeFence)
+ZE ---> zeCommandListReset(CommandList->first)
+PI ---> EventRelease(this, LockedQueue)
+PI ---> EventRelease(Event, this)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextUSMEnqueueMemcpy(
+	<unknown> : 0x22d6dc0
+	<unknown> : 0
+	<unknown> : 0xffffd556aa780180
+	<unknown> : 0x217e730
+	<unknown> : 384
+	<unknown> : 0
+	pi_event * : 0[ nullptr ]
+	pi_event * : 0x20679e0[ 0 ... ]
+ZE ---> zeMemGetAllocProperties(Context->ZeContext, Ptr, &ZeMemoryAllocationProperties, &ZeDeviceHandle)
+ZE ---> zeEventCreate(ZeEventPool, &ZeEventDesc, &ZeEvent)
+PI ---> piEventRetain(*Event)
+PI ---> piEventRetain(*Event)
+ZE ---> zeCommandListAppendMemoryCopy(ZeCommandList, Dst, Src, Size, ZeEvent, 0, nullptr)
+calling zeCommandListAppendMemoryCopy() with
+  ZeEvent 0x2c12ce0
+  NumEventsInWaitList 0:
+Command list to be executed on copy engine 0
+) ---> 	pi_result : PI_SUCCESS
+	[out]void * : 0xffffd556aa780180
+	[out]pi_event * : 0[ nullptr ]
+	[out]pi_event * : 0x20679e0[ 0x26fe050 ... ]
+
+---> piEventRelease(
+	pi_event : 0x2567430
+ZE ---> zeEventDestroy(Event->ZeEvent)
+PI ---> QueueRelease(Event->Queue, LockedQueue)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piEventsWait(
+	<unknown> : 1
+	const pi_event * : 0x20679e0[ 0x26fe050 ... ]
+Command list to be executed on copy engine 0
+ZE ---> zeCommandListClose(CommandList->first)
+Calling zeCommandQueueExecuteCommandLists with Index = 0
+ZE ---> zeCommandQueueExecuteCommandLists(ZeCommandQueue, 1, &ZeCommandList, CommandList->second.ZeFence)
+ZeEvent = 0x2c12ce0
+ZE ---> zeHostSynchronize(ZeEvent)
+ZE ---> zeHostSynchronize(it->second.ZeFence)
+ZE ---> zeFenceReset(CommandList->second.ZeFence)
+ZE ---> zeCommandListReset(CommandList->first)
+PI ---> EventRelease(this, LockedQueue)
+PI ---> EventRelease(Event, this)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piQueueFinish(
+	<unknown> : 0x22d6dc0
+ZE ---> zeHostSynchronize(ZeQueue)
+ZE ---> zeHostSynchronize(ZeQueue)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextQueueGetNativeHandle(
+	<unknown> : 0x22d6dc0
+	<unknown> : 0x7ffeb57fabb0
+) ---> 	pi_result : PI_SUCCESS
+
+gmx: executing command list
+gmx: zeQueue = 0x2b2da80
+gmx: submitting FFT work
+gmx: done submitting FFT work, enqueuing barrier
+gmx: executing FFT work
+---> piQueueFinish(
+	<unknown> : 0x22d6dc0
+ZE ---> zeHostSynchronize(ZeQueue)
+ZE ---> zeHostSynchronize(ZeQueue)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextUSMEnqueueMemcpy(
+	<unknown> : 0x22d6dc0
+	<unknown> : 0
+	<unknown> : 0x29dd1b0
+	<unknown> : 0xffffd556aa780180
+	<unknown> : 384
+	<unknown> : 0
+	pi_event * : 0[ nullptr ]
+	pi_event * : 0x2b18e00[ 0 ... ]
+ZE ---> zeMemGetAllocProperties(Context->ZeContext, Ptr, &ZeMemoryAllocationProperties, &ZeDeviceHandle)
+ZE ---> zeMemGetAllocProperties(Context->ZeContext, Ptr, &ZeMemoryAllocationProperties, &ZeDeviceHandle)
+ZE ---> zeEventCreate(ZeEventPool, &ZeEventDesc, &ZeEvent)
+PI ---> piEventRetain(*Event)
+PI ---> piEventRetain(*Event)
+ZE ---> zeCommandListAppendMemoryCopy(ZeCommandList, Dst, Src, Size, ZeEvent, 0, nullptr)
+calling zeCommandListAppendMemoryCopy() with
+  ZeEvent 0x218e090
+  NumEventsInWaitList 0:
+Command list to be executed on copy engine 0
+) ---> 	pi_result : PI_SUCCESS
+	[out]void * : 0x29dd1b0
+	[out]pi_event * : 0[ nullptr ]
+	[out]pi_event * : 0x2b18e00[ 0x2567430 ... ]
+
+---> piEventRelease(
+	pi_event : 0x26fe050
+ZE ---> zeEventDestroy(Event->ZeEvent)
+PI ---> QueueRelease(Event->Queue, LockedQueue)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piEventsWait(
+	<unknown> : 1
+	const pi_event * : 0x2b18e00[ 0x2567430 ... ]
+Command list to be executed on copy engine 0
+ZE ---> zeCommandListClose(CommandList->first)
+Calling zeCommandQueueExecuteCommandLists with Index = 0
+ZE ---> zeCommandQueueExecuteCommandLists(ZeCommandQueue, 1, &ZeCommandList, CommandList->second.ZeFence)
+ZeEvent = 0x218e090
+ZE ---> zeHostSynchronize(ZeEvent)
+ZE ---> zeHostSynchronize(it->second.ZeFence)
+ZE ---> zeFenceReset(CommandList->second.ZeFence)
+ZE ---> zeCommandListReset(CommandList->first)
+PI ---> EventRelease(this, LockedQueue)
+PI ---> EventRelease(Event, this)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextUSMFree(
+	<unknown> : 0x2b19240
+	<unknown> : 0xffffd556aa780180
+ZE ---> zeMemGetAllocProperties(Context->ZeContext, Ptr, &ZeMemoryAllocationProperties, &ZeDeviceHandle)
+) ---> 	pi_result : PI_SUCCESS
+	[out]void * : 0xffffd556aa780180
+
+[       OK ] ScanWorks/ParameterizedFFTTest3D.RunsOnDevices/4_4_4 (3497 ms)
+[ RUN      ] ScanWorks/ParameterizedFFTTest3D.RunsOnDevices/4_4_5
+Running on new device
+---> piextUSMDeviceAlloc(
+	<unknown> : 0x7ffeb57fac50
+	<unknown> : 0x2b19240
+	<unknown> : 0x1f33ce0
+	<nullptr>
+	<unknown> : 384
+	<unknown> : 0
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x7ffeb57fac50[ 0xffffd556aa780180 ... ]
+
+---> piextUSMDeviceAlloc(
+	<unknown> : 0x7ffeb57fa590
+	<unknown> : 0x2b19240
+	<unknown> : 0x1f33ce0
+	<nullptr>
+	<unknown> : 384
+	<unknown> : 0
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x7ffeb57fa590[ 0xffffd556aa780300 ... ]
+
+---> piextDeviceGetNativeHandle(
+	<unknown> : 0x1f33ce0
+	<unknown> : 0x7ffeb57fa6a8
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextContextGetNativeHandle(
+	<unknown> : 0x2b19240
+	<unknown> : 0x7ffeb57fa6a0
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextQueueGetNativeHandle(
+	<unknown> : 0x22d6dc0
+	<unknown> : 0x7ffeb57fa710
+) ---> 	pi_result : PI_SUCCESS
+
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+---> piextUSMEnqueueMemcpy(
+	<unknown> : 0x22d6dc0
+	<unknown> : 0
+	<unknown> : 0xffffd556aa780180
+	<unknown> : 0x2b1a5f0
+	<unknown> : 384
+	<unknown> : 0
+	pi_event * : 0[ nullptr ]
+	pi_event * : 0x20aa610[ 0 ... ]
+ZE ---> zeMemGetAllocProperties(Context->ZeContext, Ptr, &ZeMemoryAllocationProperties, &ZeDeviceHandle)
+ZE ---> zeEventCreate(ZeEventPool, &ZeEventDesc, &ZeEvent)
+PI ---> piEventRetain(*Event)
+PI ---> piEventRetain(*Event)
+ZE ---> zeCommandListAppendMemoryCopy(ZeCommandList, Dst, Src, Size, ZeEvent, 0, nullptr)
+calling zeCommandListAppendMemoryCopy() with
+  ZeEvent 0x2743db0
+  NumEventsInWaitList 0:
+Command list to be executed on copy engine 0
+) ---> 	pi_result : PI_SUCCESS
+	[out]void * : 0xffffd556aa780180
+	[out]pi_event * : 0[ nullptr ]
+	[out]pi_event * : 0x20aa610[ 0x26649e0 ... ]
+
+---> piEventRelease(
+	pi_event : 0x2567430
+ZE ---> zeEventDestroy(Event->ZeEvent)
+PI ---> QueueRelease(Event->Queue, LockedQueue)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piEventsWait(
+	<unknown> : 1
+	const pi_event * : 0x20aa610[ 0x26649e0 ... ]
+Lowering QueueBatchSize to 1
+Command list to be executed on copy engine 0
+ZE ---> zeCommandListClose(CommandList->first)
+Calling zeCommandQueueExecuteCommandLists with Index = 0
+ZE ---> zeCommandQueueExecuteCommandLists(ZeCommandQueue, 1, &ZeCommandList, CommandList->second.ZeFence)
+ZeEvent = 0x2743db0
+ZE ---> zeHostSynchronize(ZeEvent)
+ZE ---> zeHostSynchronize(it->second.ZeFence)
+ZE ---> zeFenceReset(CommandList->second.ZeFence)
+ZE ---> zeCommandListReset(CommandList->first)
+PI ---> EventRelease(this, LockedQueue)
+PI ---> EventRelease(Event, this)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextUSMEnqueueMemcpy(
+	<unknown> : 0x22d6dc0
+	<unknown> : 0
+	<unknown> : 0xffffd556aa780300
+	<unknown> : 0x23440a0
+	<unknown> : 384
+	<unknown> : 0
+	pi_event * : 0[ nullptr ]
+	pi_event * : 0x218e0a0[ 0 ... ]
+ZE ---> zeMemGetAllocProperties(Context->ZeContext, Ptr, &ZeMemoryAllocationProperties, &ZeDeviceHandle)
+ZE ---> zeEventCreate(ZeEventPool, &ZeEventDesc, &ZeEvent)
+PI ---> piEventRetain(*Event)
+PI ---> piEventRetain(*Event)
+ZE ---> zeCommandListAppendMemoryCopy(ZeCommandList, Dst, Src, Size, ZeEvent, 0, nullptr)
+calling zeCommandListAppendMemoryCopy() with
+  ZeEvent 0x30b84d0
+  NumEventsInWaitList 0:
+Command list to be executed on copy engine 0
+ZE ---> zeCommandListClose(CommandList->first)
+Calling zeCommandQueueExecuteCommandLists with Index = 0
+ZE ---> zeCommandQueueExecuteCommandLists(ZeCommandQueue, 1, &ZeCommandList, CommandList->second.ZeFence)
+) ---> 	pi_result : PI_SUCCESS
+	[out]void * : 0xffffd556aa780300
+	[out]pi_event * : 0[ nullptr ]
+	[out]pi_event * : 0x218e0a0[ 0x2567430 ... ]
+
+---> piEventRelease(
+	pi_event : 0x26649e0
+ZE ---> zeEventDestroy(Event->ZeEvent)
+PI ---> QueueRelease(Event->Queue, LockedQueue)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piEventsWait(
+	<unknown> : 1
+	const pi_event * : 0x218e0a0[ 0x2567430 ... ]
+ZeEvent = 0x30b84d0
+ZE ---> zeHostSynchronize(ZeEvent)
+ZE ---> zeHostSynchronize(it->second.ZeFence)
+ZE ---> zeFenceReset(CommandList->second.ZeFence)
+ZE ---> zeCommandListReset(CommandList->first)
+PI ---> EventRelease(this, LockedQueue)
+PI ---> EventRelease(Event, this)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piQueueFinish(
+	<unknown> : 0x22d6dc0
+ZE ---> zeHostSynchronize(ZeQueue)
+ZE ---> zeHostSynchronize(ZeQueue)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextQueueGetNativeHandle(
+	<unknown> : 0x22d6dc0
+	<unknown> : 0x7ffeb57fabb0
+) ---> 	pi_result : PI_SUCCESS
+
+gmx: executing command list
+gmx: zeQueue = 0x2b2da80
+gmx: submitting FFT work
+gmx: done submitting FFT work, enqueuing barrier
+gmx: executing FFT work
+---> piQueueFinish(
+	<unknown> : 0x22d6dc0
+ZE ---> zeHostSynchronize(ZeQueue)
+ZE ---> zeHostSynchronize(ZeQueue)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextUSMEnqueueMemcpy(
+	<unknown> : 0x22d6dc0
+	<unknown> : 0
+	<unknown> : 0x217e730
+	<unknown> : 0xffffd556aa780300
+	<unknown> : 384
+	<unknown> : 0
+	pi_event * : 0[ nullptr ]
+	pi_event * : 0x2ff5d40[ 0 ... ]
+ZE ---> zeMemGetAllocProperties(Context->ZeContext, Ptr, &ZeMemoryAllocationProperties, &ZeDeviceHandle)
+ZE ---> zeMemGetAllocProperties(Context->ZeContext, Ptr, &ZeMemoryAllocationProperties, &ZeDeviceHandle)
+ZE ---> zeEventCreate(ZeEventPool, &ZeEventDesc, &ZeEvent)
+PI ---> piEventRetain(*Event)
+PI ---> piEventRetain(*Event)
+ZE ---> zeCommandListAppendMemoryCopy(ZeCommandList, Dst, Src, Size, ZeEvent, 0, nullptr)
+calling zeCommandListAppendMemoryCopy() with
+  ZeEvent 0x2ff1d60
+  NumEventsInWaitList 0:
+Command list to be executed on copy engine 0
+ZE ---> zeCommandListClose(CommandList->first)
+Calling zeCommandQueueExecuteCommandLists with Index = 0
+ZE ---> zeCommandQueueExecuteCommandLists(ZeCommandQueue, 1, &ZeCommandList, CommandList->second.ZeFence)
+) ---> 	pi_result : PI_SUCCESS
+	[out]void * : 0x217e730
+	[out]pi_event * : 0[ nullptr ]
+	[out]pi_event * : 0x2ff5d40[ 0x26649e0 ... ]
+
+---> piEventRelease(
+	pi_event : 0x2567430
+ZE ---> zeEventDestroy(Event->ZeEvent)
+PI ---> QueueRelease(Event->Queue, LockedQueue)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piEventsWait(
+	<unknown> : 1
+	const pi_event * : 0x2ff5d40[ 0x26649e0 ... ]
+ZeEvent = 0x2ff1d60
+ZE ---> zeHostSynchronize(ZeEvent)
+ZE ---> zeHostSynchronize(it->second.ZeFence)
+ZE ---> zeFenceReset(CommandList->second.ZeFence)
+ZE ---> zeCommandListReset(CommandList->first)
+PI ---> EventRelease(this, LockedQueue)
+PI ---> EventRelease(Event, this)
+) ---> 	pi_result : PI_SUCCESS
+
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[2]
+    Actual: -38.021247863769531
+ Reference: -92.400634765625
+Difference: 54.3794 (10532702 single-prec. ULPs, rel. 0.589)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[3]
+    Actual: 20.928783416748047
+ Reference: 43.209945678710938
+Difference: 22.2812 (8743126 single-prec. ULPs, rel. 0.516)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[4]
+    Actual: -33.688816070556641
+ Reference: 21.750637054443359
+Difference: 55.4395 (2209661607 single-prec. ULPs, rel. 2.55), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[5]
+    Actual: 4.8425498008728027
+ Reference: 2.3901486396789551
+Difference: 2.4524 (8519161 single-prec. ULPs, rel. 1.03)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[8]
+    Actual: 0.15153694152832031
+ Reference: 6.3855371475219727
+Difference: 6.234 (45165010 single-prec. ULPs, rel. 0.976)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[9]
+    Actual: 1.0515317916870117
+ Reference: -31.006811141967773
+Difference: 32.0583 (2172561035 single-prec. ULPs, rel. 1.03), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[10]
+    Actual: -4.6334352493286133
+ Reference: -14.650724411010742
+Difference: 10.0173 (14033988 single-prec. ULPs, rel. 0.684)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[11]
+    Actual: -62.345207214355469
+ Reference: -32.963466644287109
+Difference: 29.3817 (7702247 single-prec. ULPs, rel. 0.891)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[14]
+    Actual: 42.914134979248047
+ Reference: -9.326298713684082
+Difference: 52.2404 (2202067096 single-prec. ULPs, rel. 5.6), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[15]
+    Actual: 14.396190643310547
+ Reference: 7.717132568359375
+Difference: 6.67906 (7300108 single-prec. ULPs, rel. 0.865)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[16]
+    Actual: -98.64923095703125
+ Reference: -35.823707580566406
+Difference: 62.8255 (11927790 single-prec. ULPs, rel. 1.75)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[17]
+    Actual: 21.789764404296875
+ Reference: -13.762568473815918
+Difference: 35.5523 (2198504683 single-prec. ULPs, rel. 2.58), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[20]
+    Actual: 3.3097686767578125
+ Reference: -14.940642356872559
+Difference: 18.2504 (2177032223 single-prec. ULPs, rel. 1.22), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[21]
+    Actual: 50.933074951171875
+ Reference: 25.133010864257812
+Difference: 25.8001 (8563472 single-prec. ULPs, rel. 1.03)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[22]
+    Actual: 1.8580522537231445
+ Reference: 52.605827331542969
+Difference: 50.7478 (40146870 single-prec. ULPs, rel. 0.965)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[23]
+    Actual: 30.974502563476562
+ Reference: 47.996711730957031
+Difference: 17.0222 (4731098 single-prec. ULPs, rel. 0.355)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[26]
+    Actual: -8.6209430694580078
+ Reference: 32.817237854003906
+Difference: 41.4382 (2198680636 single-prec. ULPs, rel. 1.26), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[27]
+    Actual: 8.4155311584472656
+ Reference: -19.448896408081055
+Difference: 27.8644 (2191670619 single-prec. ULPs, rel. 1.43), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[28]
+    Actual: 17.072910308837891
+ Reference: -16.445060729980469
+Difference: 33.518 (2198611150 single-prec. ULPs, rel. 2.04), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[29]
+    Actual: -3.2331981658935547
+ Reference: -16.859024047851562
+Difference: 13.6258 (20443792 single-prec. ULPs, rel. 0.808)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[32]
+    Actual: 2.0185141563415527
+ Reference: 23.846370697021484
+Difference: 21.8279 (29201928 single-prec. ULPs, rel. 0.915)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[33]
+    Actual: -5.7934045791625977
+ Reference: -22.566726684570312
+Difference: 16.7733 (16459030 single-prec. ULPs, rel. 0.743)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[34]
+    Actual: 66.313102722167969
+ Reference: 19.353721618652344
+Difference: 46.9594 (15322083 single-prec. ULPs, rel. 2.43)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[35]
+    Actual: 27.576469421386719
+ Reference: 54.734474182128906
+Difference: 27.158 (8278910 single-prec. ULPs, rel. 0.496)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[38]
+    Actual: -9.0661029815673828
+ Reference: -21.356634140014648
+Difference: 12.2905 (10079137 single-prec. ULPs, rel. 0.575)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[39]
+    Actual: 54.14849853515625
+ Reference: -22.337272644042969
+Difference: 76.4858 (2215332556 single-prec. ULPs, rel. 3.42), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[40]
+    Actual: -34.126239776611328
+ Reference: -57.130508422851562
+Difference: 23.0043 (6030431 single-prec. ULPs, rel. 0.403)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[41]
+    Actual: -50.493206024169922
+ Reference: -12.574689865112305
+Difference: 37.9185 (16828189 single-prec. ULPs, rel. 3.02)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[44]
+    Actual: -9.4490575790405273
+ Reference: 11.586264610290527
+Difference: 21.0353 (2186317998 single-prec. ULPs, rel. 1.82), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[45]
+    Actual: 19.358364105224609
+ Reference: 32.999294281005859
+Difference: 13.6409 (6889817 single-prec. ULPs, rel. 0.413)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[46]
+    Actual: 17.867776870727539
+ Reference: -45.332489013671875
+Difference: 63.2003 (2210678189 single-prec. ULPs, rel. 1.39), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[47]
+    Actual: 14.628545761108398
+ Reference: -31.467828750610352
+Difference: 46.0964 (2204486819 single-prec. ULPs, rel. 1.46), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[50]
+    Actual: -44.730873107910156
+ Reference: -17.701873779296875
+Difference: 27.029 (10833658 single-prec. ULPs, rel. 1.53)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[51]
+    Actual: 3.9815130233764648
+ Reference: -42.443511962890625
+Difference: 46.425 (2192086852 single-prec. ULPs, rel. 1.09), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[52]
+    Actual: 27.664676666259766
+ Reference: -32.348125457763672
+Difference: 60.0128 (2212410813 single-prec. ULPs, rel. 1.86), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[53]
+    Actual: 12.162214279174805
+ Reference: 18.061315536499023
+Difference: 5.8991 (5104933 single-prec. ULPs, rel. 0.327)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[56]
+    Actual: 30.360349655151367
+ Reference: 29.854976654052734
+Difference: 0.505373 (264961 single-prec. ULPs, rel. 0.0169)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[57]
+    Actual: -5.656458854675293
+ Reference: 13.753458023071289
+Difference: 19.4099 (2182156256 single-prec. ULPs, rel. 1.41), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[58]
+    Actual: 3.8667497634887695
+ Reference: -13.382425308227539
+Difference: 17.2492 (2177734462 single-prec. ULPs, rel. 1.29), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[59]
+    Actual: 96.962043762207031
+ Reference: 27.311191558837891
+Difference: 69.6508 (15167295 single-prec. ULPs, rel. 2.55)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[62]
+    Actual: -27.154170989990234
+ Reference: -37.305706024169922
+Difference: 10.1515 (3931469 single-prec. ULPs, rel. 0.272)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[63]
+    Actual: -53.513050079345703
+ Reference: -45.587291717529297
+Difference: 7.92576 (2077690 single-prec. ULPs, rel. 0.174)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[64]
+    Actual: 13.776004791259766
+ Reference: 55.15570068359375
+Difference: 41.3797 (16790764 single-prec. ULPs, rel. 0.75)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[65]
+    Actual: -8.8407325744628906
+ Reference: 15.066884994506836
+Difference: 23.9076 (2189329818 single-prec. ULPs, rel. 1.59), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[68]
+    Actual: -16.237724304199219
+ Reference: 23.307395935058594
+Difference: 39.5451 (2201771112 single-prec. ULPs, rel. 1.7), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[69]
+    Actual: -41.093612670898438
+ Reference: -21.370960235595703
+Difference: 19.7227 (7956514 single-prec. ULPs, rel. 0.923)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[70]
+    Actual: 4.9916677474975586
+ Reference: -89.979942321777344
+Difference: 94.9716 (2203300217 single-prec. ULPs, rel. 1.06), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[71]
+    Actual: -46.734619140625
+ Reference: -19.664390563964844
+Difference: 27.0702 (10330004 single-prec. ULPs, rel. 1.38)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[74]
+    Actual: 27.895978927612305
+ Reference: 10.126225471496582
+Difference: 17.7698 (12396018 single-prec. ULPs, rel. 1.75)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[75]
+    Actual: 32.131622314453125
+ Reference: 74.350173950195312
+Difference: 42.2186 (9710722 single-prec. ULPs, rel. 0.568)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[76]
+    Actual: 17.756509780883789
+ Reference: 29.201602935791016
+Difference: 11.4451 (6000525 single-prec. ULPs, rel. 0.392)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[77]
+    Actual: 1.3743362426757812
+ Reference: -19.658088684082031
+Difference: 21.0324 (2169318916 single-prec. ULPs, rel. 1.07), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[80]
+    Actual: 23.768709182739258
+ Reference: 56.311176300048828
+Difference: 32.5425 (10688596 single-prec. ULPs, rel. 0.578)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[81]
+    Actual: -86.973564147949219
+ Reference: -83.107177734375
+Difference: 3.86639 (506775 single-prec. ULPs, rel. 0.0465)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[82]
+    Actual: 76.348800659179688
+ Reference: -7.9649567604064941
+Difference: 84.3138 (2207748995 single-prec. ULPs, rel. 10.6), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[83]
+    Actual: 29.403446197509766
+ Reference: -25.261362075805664
+Difference: 54.6648 (2209698183 single-prec. ULPs, rel. 2.16), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[86]
+    Actual: -61.202594757080078
+ Reference: -60.392707824707031
+Difference: 0.809887 (212307 single-prec. ULPs, rel. 0.0134)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[87]
+    Actual: -16.301319122314453
+ Reference: 4.3600969314575195
+Difference: 20.6614 (2181951236 single-prec. ULPs, rel. 4.74), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[88]
+    Actual: -16.698997497558594
+ Reference: -28.42015266418457
+Difference: 11.7212 (6145261 single-prec. ULPs, rel. 0.412)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[89]
+    Actual: 53.831718444824219
+ Reference: 29.327936172485352
+Difference: 24.5038 (7123985 single-prec. ULPs, rel. 0.836)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[92]
+    Actual: -7.7638006210327148
+ Reference: 20.360515594482422
+Difference: 28.1243 (2191217508 single-prec. ULPs, rel. 1.38), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[93]
+    Actual: -11.714686393737793
+ Reference: -1.2464876174926758
+Difference: 10.4682 (26993267 single-prec. ULPs, rel. 8.4)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[94]
+    Actual: 53.175708770751953
+ Reference: 19.039398193359375
+Difference: 34.1363 (12346173 single-prec. ULPs, rel. 1.79)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[95]
+    Actual: -25.743839263916016
+ Reference: -57.885765075683594
+Difference: 32.1419 (10065828 single-prec. ULPs, rel. 0.555)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+---> piextUSMFree(
+	<unknown> : 0x2b19240
+	<unknown> : 0xffffd556aa780300
+ZE ---> zeMemGetAllocProperties(Context->ZeContext, Ptr, &ZeMemoryAllocationProperties, &ZeDeviceHandle)
+) ---> 	pi_result : PI_SUCCESS
+	[out]void * : 0xffffd556aa780300
+
+[  FAILED  ] ScanWorks/ParameterizedFFTTest3D.RunsOnDevices/4_4_5, where GetParam() = (4, 4, 5) (3510 ms)
+[ RUN      ] ScanWorks/ParameterizedFFTTest3D.RunsOnDevices/4_4_6
+Running on new device
+---> piextUSMDeviceAlloc(
+	<unknown> : 0x7ffeb57fac50
+	<unknown> : 0x2b19240
+	<unknown> : 0x1f33ce0
+	<nullptr>
+	<unknown> : 512
+	<unknown> : 0
+ZE ---> zeMemAllocDevice(Context->ZeContext, &ZeDesc, Size, Alignment, Device->ZeDevice, ResultPtr)
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x7ffeb57fac50[ 0xffffd556aa610000 ... ]
+
+---> piextUSMDeviceAlloc(
+	<unknown> : 0x7ffeb57fa590
+	<unknown> : 0x2b19240
+	<unknown> : 0x1f33ce0
+	<nullptr>
+	<unknown> : 512
+	<unknown> : 0
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x7ffeb57fa590[ 0xffffd556aa610200 ... ]
+
+---> piextDeviceGetNativeHandle(
+	<unknown> : 0x1f33ce0
+	<unknown> : 0x7ffeb57fa6a8
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextContextGetNativeHandle(
+	<unknown> : 0x2b19240
+	<unknown> : 0x7ffeb57fa6a0
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextQueueGetNativeHandle(
+	<unknown> : 0x22d6dc0
+	<unknown> : 0x7ffeb57fa710
+) ---> 	pi_result : PI_SUCCESS
+
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+---> piextUSMEnqueueMemcpy(
+	<unknown> : 0x22d6dc0
+	<unknown> : 0
+	<unknown> : 0xffffd556aa610000
+	<unknown> : 0x21425a0
+	<unknown> : 512
+	<unknown> : 0
+	pi_event * : 0[ nullptr ]
+	pi_event * : 0x20acfb0[ 0 ... ]
+ZE ---> zeMemGetAllocProperties(Context->ZeContext, Ptr, &ZeMemoryAllocationProperties, &ZeDeviceHandle)
+ZE ---> zeEventCreate(ZeEventPool, &ZeEventDesc, &ZeEvent)
+PI ---> piEventRetain(*Event)
+PI ---> piEventRetain(*Event)
+ZE ---> zeCommandListAppendMemoryCopy(ZeCommandList, Dst, Src, Size, ZeEvent, 0, nullptr)
+calling zeCommandListAppendMemoryCopy() with
+  ZeEvent 0x2b315d0
+  NumEventsInWaitList 0:
+Command list to be executed on copy engine 0
+ZE ---> zeCommandListClose(CommandList->first)
+Calling zeCommandQueueExecuteCommandLists with Index = 0
+ZE ---> zeCommandQueueExecuteCommandLists(ZeCommandQueue, 1, &ZeCommandList, CommandList->second.ZeFence)
+) ---> 	pi_result : PI_SUCCESS
+	[out]void * : 0xffffd556aa610000
+	[out]pi_event * : 0[ nullptr ]
+	[out]pi_event * : 0x20acfb0[ 0x266e6a0 ... ]
+
+---> piEventRelease(
+	pi_event : 0x26649e0
+ZE ---> zeEventDestroy(Event->ZeEvent)
+PI ---> QueueRelease(Event->Queue, LockedQueue)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piEventsWait(
+	<unknown> : 1
+	const pi_event * : 0x20acfb0[ 0x266e6a0 ... ]
+ZeEvent = 0x2b315d0
+ZE ---> zeHostSynchronize(ZeEvent)
+ZE ---> zeHostSynchronize(it->second.ZeFence)
+ZE ---> zeFenceReset(CommandList->second.ZeFence)
+ZE ---> zeCommandListReset(CommandList->first)
+PI ---> EventRelease(this, LockedQueue)
+PI ---> EventRelease(Event, this)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextUSMEnqueueMemcpy(
+	<unknown> : 0x22d6dc0
+	<unknown> : 0
+	<unknown> : 0xffffd556aa610200
+	<unknown> : 0x26428f0
+	<unknown> : 512
+	<unknown> : 0
+	pi_event * : 0[ nullptr ]
+	pi_event * : 0x2ff1d70[ 0 ... ]
+ZE ---> zeMemGetAllocProperties(Context->ZeContext, Ptr, &ZeMemoryAllocationProperties, &ZeDeviceHandle)
+ZE ---> zeEventCreate(ZeEventPool, &ZeEventDesc, &ZeEvent)
+PI ---> piEventRetain(*Event)
+PI ---> piEventRetain(*Event)
+ZE ---> zeCommandListAppendMemoryCopy(ZeCommandList, Dst, Src, Size, ZeEvent, 0, nullptr)
+calling zeCommandListAppendMemoryCopy() with
+  ZeEvent 0x22d2a50
+  NumEventsInWaitList 0:
+Command list to be executed on copy engine 0
+ZE ---> zeCommandListClose(CommandList->first)
+Calling zeCommandQueueExecuteCommandLists with Index = 0
+ZE ---> zeCommandQueueExecuteCommandLists(ZeCommandQueue, 1, &ZeCommandList, CommandList->second.ZeFence)
+) ---> 	pi_result : PI_SUCCESS
+	[out]void * : 0xffffd556aa610200
+	[out]pi_event * : 0[ nullptr ]
+	[out]pi_event * : 0x2ff1d70[ 0x26649e0 ... ]
+
+---> piEventRelease(
+	pi_event : 0x266e6a0
+ZE ---> zeEventDestroy(Event->ZeEvent)
+PI ---> QueueRelease(Event->Queue, LockedQueue)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piEventsWait(
+	<unknown> : 1
+	const pi_event * : 0x2ff1d70[ 0x26649e0 ... ]
+ZeEvent = 0x22d2a50
+ZE ---> zeHostSynchronize(ZeEvent)
+ZE ---> zeHostSynchronize(it->second.ZeFence)
+ZE ---> zeFenceReset(CommandList->second.ZeFence)
+ZE ---> zeCommandListReset(CommandList->first)
+PI ---> EventRelease(this, LockedQueue)
+PI ---> EventRelease(Event, this)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piQueueFinish(
+	<unknown> : 0x22d6dc0
+ZE ---> zeHostSynchronize(ZeQueue)
+ZE ---> zeHostSynchronize(ZeQueue)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextQueueGetNativeHandle(
+	<unknown> : 0x22d6dc0
+	<unknown> : 0x7ffeb57fabb0
+) ---> 	pi_result : PI_SUCCESS
+
+gmx: executing command list
+gmx: zeQueue = 0x2b2da80
+gmx: submitting FFT work
+gmx: done submitting FFT work, enqueuing barrier
+gmx: executing FFT work
+---> piQueueFinish(
+	<unknown> : 0x22d6dc0
+ZE ---> zeHostSynchronize(ZeQueue)
+ZE ---> zeHostSynchronize(ZeQueue)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextUSMEnqueueMemcpy(
+	<unknown> : 0x22d6dc0
+	<unknown> : 0
+	<unknown> : 0x2074500
+	<unknown> : 0xffffd556aa610200
+	<unknown> : 512
+	<unknown> : 0
+	pi_event * : 0[ nullptr ]
+	pi_event * : 0x42cde40[ 0 ... ]
+ZE ---> zeMemGetAllocProperties(Context->ZeContext, Ptr, &ZeMemoryAllocationProperties, &ZeDeviceHandle)
+ZE ---> zeMemGetAllocProperties(Context->ZeContext, Ptr, &ZeMemoryAllocationProperties, &ZeDeviceHandle)
+ZE ---> zeEventCreate(ZeEventPool, &ZeEventDesc, &ZeEvent)
+PI ---> piEventRetain(*Event)
+PI ---> piEventRetain(*Event)
+ZE ---> zeCommandListAppendMemoryCopy(ZeCommandList, Dst, Src, Size, ZeEvent, 0, nullptr)
+calling zeCommandListAppendMemoryCopy() with
+  ZeEvent 0x2932760
+  NumEventsInWaitList 0:
+Command list to be executed on copy engine 0
+ZE ---> zeCommandListClose(CommandList->first)
+Calling zeCommandQueueExecuteCommandLists with Index = 0
+ZE ---> zeCommandQueueExecuteCommandLists(ZeCommandQueue, 1, &ZeCommandList, CommandList->second.ZeFence)
+) ---> 	pi_result : PI_SUCCESS
+	[out]void * : 0x2074500
+	[out]pi_event * : 0[ nullptr ]
+	[out]pi_event * : 0x42cde40[ 0x266e6a0 ... ]
+
+---> piEventRelease(
+	pi_event : 0x26649e0
+ZE ---> zeEventDestroy(Event->ZeEvent)
+PI ---> QueueRelease(Event->Queue, LockedQueue)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piEventsWait(
+	<unknown> : 1
+	const pi_event * : 0x42cde40[ 0x266e6a0 ... ]
+ZeEvent = 0x2932760
+ZE ---> zeHostSynchronize(ZeEvent)
+ZE ---> zeHostSynchronize(it->second.ZeFence)
+ZE ---> zeFenceReset(CommandList->second.ZeFence)
+ZE ---> zeCommandListReset(CommandList->first)
+PI ---> EventRelease(this, LockedQueue)
+PI ---> EventRelease(Event, this)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextUSMFree(
+	<unknown> : 0x2b19240
+	<unknown> : 0xffffd556aa610200
+ZE ---> zeMemGetAllocProperties(Context->ZeContext, Ptr, &ZeMemoryAllocationProperties, &ZeDeviceHandle)
+) ---> 	pi_result : PI_SUCCESS
+	[out]void * : 0xffffd556aa610200
+
+[       OK ] ScanWorks/ParameterizedFFTTest3D.RunsOnDevices/4_4_6 (3583 ms)
+[ RUN      ] ScanWorks/ParameterizedFFTTest3D.RunsOnDevices/4_4_7
+Running on new device
+---> piextUSMDeviceAlloc(
+	<unknown> : 0x7ffeb57fac50
+	<unknown> : 0x2b19240
+	<unknown> : 0x1f33ce0
+	<nullptr>
+	<unknown> : 512
+	<unknown> : 0
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x7ffeb57fac50[ 0xffffd556aa610200 ... ]
+
+---> piextUSMDeviceAlloc(
+	<unknown> : 0x7ffeb57fa590
+	<unknown> : 0x2b19240
+	<unknown> : 0x1f33ce0
+	<nullptr>
+	<unknown> : 512
+	<unknown> : 0
+) ---> 	pi_result : PI_SUCCESS
+	[out]<unknown> ** : 0x7ffeb57fa590[ 0xffffd556aa610400 ... ]
+
+---> piextDeviceGetNativeHandle(
+	<unknown> : 0x1f33ce0
+	<unknown> : 0x7ffeb57fa6a8
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextContextGetNativeHandle(
+	<unknown> : 0x2b19240
+	<unknown> : 0x7ffeb57fa6a0
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextQueueGetNativeHandle(
+	<unknown> : 0x22d6dc0
+	<unknown> : 0x7ffeb57fa710
+) ---> 	pi_result : PI_SUCCESS
+
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+calling clang
+calling llvm-spirv
+done calling llvm-spirv
+---> piextUSMEnqueueMemcpy(
+	<unknown> : 0x22d6dc0
+	<unknown> : 0
+	<unknown> : 0xffffd556aa610200
+	<unknown> : 0x21da840
+	<unknown> : 512
+	<unknown> : 0
+	pi_event * : 0[ nullptr ]
+	pi_event * : 0x207b6c0[ 0 ... ]
+ZE ---> zeMemGetAllocProperties(Context->ZeContext, Ptr, &ZeMemoryAllocationProperties, &ZeDeviceHandle)
+ZE ---> zeEventCreate(ZeEventPool, &ZeEventDesc, &ZeEvent)
+PI ---> piEventRetain(*Event)
+PI ---> piEventRetain(*Event)
+ZE ---> zeCommandListAppendMemoryCopy(ZeCommandList, Dst, Src, Size, ZeEvent, 0, nullptr)
+calling zeCommandListAppendMemoryCopy() with
+  ZeEvent 0x210e700
+  NumEventsInWaitList 0:
+Command list to be executed on copy engine 0
+ZE ---> zeCommandListClose(CommandList->first)
+Calling zeCommandQueueExecuteCommandLists with Index = 0
+ZE ---> zeCommandQueueExecuteCommandLists(ZeCommandQueue, 1, &ZeCommandList, CommandList->second.ZeFence)
+) ---> 	pi_result : PI_SUCCESS
+	[out]void * : 0xffffd556aa610200
+	[out]pi_event * : 0[ nullptr ]
+	[out]pi_event * : 0x207b6c0[ 0x2bd16c0 ... ]
+
+---> piEventRelease(
+	pi_event : 0x266e6a0
+ZE ---> zeEventDestroy(Event->ZeEvent)
+PI ---> QueueRelease(Event->Queue, LockedQueue)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piEventsWait(
+	<unknown> : 1
+	const pi_event * : 0x207b6c0[ 0x2bd16c0 ... ]
+ZeEvent = 0x210e700
+ZE ---> zeHostSynchronize(ZeEvent)
+ZE ---> zeHostSynchronize(it->second.ZeFence)
+ZE ---> zeFenceReset(CommandList->second.ZeFence)
+ZE ---> zeCommandListReset(CommandList->first)
+PI ---> EventRelease(this, LockedQueue)
+PI ---> EventRelease(Event, this)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextUSMEnqueueMemcpy(
+	<unknown> : 0x22d6dc0
+	<unknown> : 0
+	<unknown> : 0xffffd556aa610400
+	<unknown> : 0x2130920
+	<unknown> : 512
+	<unknown> : 0
+	pi_event * : 0[ nullptr ]
+	pi_event * : 0x2932770[ 0 ... ]
+ZE ---> zeMemGetAllocProperties(Context->ZeContext, Ptr, &ZeMemoryAllocationProperties, &ZeDeviceHandle)
+ZE ---> zeEventCreate(ZeEventPool, &ZeEventDesc, &ZeEvent)
+PI ---> piEventRetain(*Event)
+PI ---> piEventRetain(*Event)
+ZE ---> zeCommandListAppendMemoryCopy(ZeCommandList, Dst, Src, Size, ZeEvent, 0, nullptr)
+calling zeCommandListAppendMemoryCopy() with
+  ZeEvent 0x2bd1830
+  NumEventsInWaitList 0:
+Command list to be executed on copy engine 0
+ZE ---> zeCommandListClose(CommandList->first)
+Calling zeCommandQueueExecuteCommandLists with Index = 0
+ZE ---> zeCommandQueueExecuteCommandLists(ZeCommandQueue, 1, &ZeCommandList, CommandList->second.ZeFence)
+) ---> 	pi_result : PI_SUCCESS
+	[out]void * : 0xffffd556aa610400
+	[out]pi_event * : 0[ nullptr ]
+	[out]pi_event * : 0x2932770[ 0x266e6a0 ... ]
+
+---> piEventRelease(
+	pi_event : 0x2bd16c0
+ZE ---> zeEventDestroy(Event->ZeEvent)
+PI ---> QueueRelease(Event->Queue, LockedQueue)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piEventsWait(
+	<unknown> : 1
+	const pi_event * : 0x2932770[ 0x266e6a0 ... ]
+ZeEvent = 0x2bd1830
+ZE ---> zeHostSynchronize(ZeEvent)
+ZE ---> zeHostSynchronize(it->second.ZeFence)
+ZE ---> zeFenceReset(CommandList->second.ZeFence)
+ZE ---> zeCommandListReset(CommandList->first)
+PI ---> EventRelease(this, LockedQueue)
+PI ---> EventRelease(Event, this)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piQueueFinish(
+	<unknown> : 0x22d6dc0
+ZE ---> zeHostSynchronize(ZeQueue)
+ZE ---> zeHostSynchronize(ZeQueue)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextQueueGetNativeHandle(
+	<unknown> : 0x22d6dc0
+	<unknown> : 0x7ffeb57fabb0
+) ---> 	pi_result : PI_SUCCESS
+
+gmx: executing command list
+gmx: zeQueue = 0x2b2da80
+gmx: submitting FFT work
+gmx: done submitting FFT work, enqueuing barrier
+gmx: executing FFT work
+---> piQueueFinish(
+	<unknown> : 0x22d6dc0
+ZE ---> zeHostSynchronize(ZeQueue)
+ZE ---> zeHostSynchronize(ZeQueue)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piextUSMEnqueueMemcpy(
+	<unknown> : 0x22d6dc0
+	<unknown> : 0
+	<unknown> : 0x26428f0
+	<unknown> : 0xffffd556aa610400
+	<unknown> : 512
+	<unknown> : 0
+	pi_event * : 0[ nullptr ]
+	pi_event * : 0x29bc9b0[ 0 ... ]
+ZE ---> zeMemGetAllocProperties(Context->ZeContext, Ptr, &ZeMemoryAllocationProperties, &ZeDeviceHandle)
+ZE ---> zeMemGetAllocProperties(Context->ZeContext, Ptr, &ZeMemoryAllocationProperties, &ZeDeviceHandle)
+ZE ---> zeEventCreate(ZeEventPool, &ZeEventDesc, &ZeEvent)
+PI ---> piEventRetain(*Event)
+PI ---> piEventRetain(*Event)
+ZE ---> zeCommandListAppendMemoryCopy(ZeCommandList, Dst, Src, Size, ZeEvent, 0, nullptr)
+calling zeCommandListAppendMemoryCopy() with
+  ZeEvent 0x2afe7b0
+  NumEventsInWaitList 0:
+Command list to be executed on copy engine 0
+ZE ---> zeCommandListClose(CommandList->first)
+Calling zeCommandQueueExecuteCommandLists with Index = 0
+ZE ---> zeCommandQueueExecuteCommandLists(ZeCommandQueue, 1, &ZeCommandList, CommandList->second.ZeFence)
+) ---> 	pi_result : PI_SUCCESS
+	[out]void * : 0x26428f0
+	[out]pi_event * : 0[ nullptr ]
+	[out]pi_event * : 0x29bc9b0[ 0x2bd16c0 ... ]
+
+---> piEventRelease(
+	pi_event : 0x266e6a0
+ZE ---> zeEventDestroy(Event->ZeEvent)
+PI ---> QueueRelease(Event->Queue, LockedQueue)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piEventsWait(
+	<unknown> : 1
+	const pi_event * : 0x29bc9b0[ 0x2bd16c0 ... ]
+ZeEvent = 0x2afe7b0
+ZE ---> zeHostSynchronize(ZeEvent)
+ZE ---> zeHostSynchronize(it->second.ZeFence)
+ZE ---> zeFenceReset(CommandList->second.ZeFence)
+ZE ---> zeCommandListReset(CommandList->first)
+PI ---> EventRelease(this, LockedQueue)
+PI ---> EventRelease(Event, this)
+) ---> 	pi_result : PI_SUCCESS
+
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[2]
+    Actual: 18.577577590942383
+ Reference: 0.53828716278076172
+Difference: 18.0393 (42652081 single-prec. ULPs, rel. 33.5)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[3]
+    Actual: 41.360206604003906
+ Reference: 44.263679504394531
+Difference: 2.90347 (761128 single-prec. ULPs, rel. 0.0656)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[4]
+    Actual: 2.4409255981445312
+ Reference: 5.3557233810424805
+Difference: 2.9148 (9382390 single-prec. ULPs, rel. 0.544)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[5]
+    Actual: -15.742900848388672
+ Reference: -27.066516876220703
+Difference: 11.3236 (6071630 single-prec. ULPs, rel. 0.418)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[6]
+    Actual: 29.321743011474609
+ Reference: -27.394001007080078
+Difference: 56.7157 (2210773464 single-prec. ULPs, rel. 2.07), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[7]
+    Actual: 80.456108093261719
+ Reference: -33.865833282470703
+Difference: 114.322 (2225627172 single-prec. ULPs, rel. 3.38), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[10]
+    Actual: -68.488815307617188
+ Reference: -69.66339111328125
+Difference: 1.17458 (153954 single-prec. ULPs, rel. 0.0169)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[11]
+    Actual: -29.698640823364258
+ Reference: -30.486286163330078
+Difference: 0.787645 (412953 single-prec. ULPs, rel. 0.0258)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[12]
+    Actual: 27.419281005859375
+ Reference: 75.928512573242188
+Difference: 48.5092 (12353718 single-prec. ULPs, rel. 0.639)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[13]
+    Actual: -71.569282531738281
+ Reference: 12.298255920410156
+Difference: 83.8675 (2211703073 single-prec. ULPs, rel. 6.82), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[14]
+    Actual: -45.330936431884766
+ Reference: -7.0083122253417969
+Difference: 38.3226 (22351561 single-prec. ULPs, rel. 5.47)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[15]
+    Actual: 91.508392333984375
+ Reference: 30.143447875976562
+Difference: 61.3649 (12967556 single-prec. ULPs, rel. 2.04)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[18]
+    Actual: -46.534988403320312
+ Reference: -56.554153442382812
+Difference: 10.0192 (2626464 single-prec. ULPs, rel. 0.177)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[19]
+    Actual: -44.586437225341797
+ Reference: -47.849845886230469
+Difference: 3.26341 (855483 single-prec. ULPs, rel. 0.0682)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[20]
+    Actual: -35.640899658203125
+ Reference: -30.772964477539062
+Difference: 4.86794 (1597760 single-prec. ULPs, rel. 0.158)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[21]
+    Actual: -38.425369262695312
+ Reference: -84.844497680664062
+Difference: 46.4191 (9436366 single-prec. ULPs, rel. 0.547)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[22]
+    Actual: 3.2422208786010742
+ Reference: 17.827121734619141
+Difference: 14.5849 (20913510 single-prec. ULPs, rel. 0.818)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[23]
+    Actual: -31.391273498535156
+ Reference: -44.590812683105469
+Difference: 13.1995 (3619754 single-prec. ULPs, rel. 0.296)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[26]
+    Actual: 112.32339477539062
+ Reference: 59.120647430419922
+Difference: 53.2027 (7612937 single-prec. ULPs, rel. 0.9)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[27]
+    Actual: -35.107131958007812
+ Reference: 5.6088266372680664
+Difference: 40.716 (2193615158 single-prec. ULPs, rel. 7.26), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[28]
+    Actual: -51.778053283691406
+ Reference: 19.191579818725586
+Difference: 70.9696 (2213061909 single-prec. ULPs, rel. 3.7), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[29]
+    Actual: -33.577861785888672
+ Reference: -45.108776092529297
+Difference: 11.5309 (3022760 single-prec. ULPs, rel. 0.256)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[30]
+    Actual: -3.765655517578125
+ Reference: -85.769035339355469
+Difference: 82.0034 (37390655 single-prec. ULPs, rel. 0.956)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[31]
+    Actual: -24.81410026550293
+ Reference: 69.855361938476562
+Difference: 94.6695 (2219981113 single-prec. ULPs, rel. 1.36), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[34]
+    Actual: -54.821037292480469
+ Reference: -25.340946197509766
+Difference: 29.4801 (9473660 single-prec. ULPs, rel. 1.16)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[35]
+    Actual: -80.650733947753906
+ Reference: -30.403226852416992
+Difference: 50.2475 (11408222 single-prec. ULPs, rel. 1.65)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[36]
+    Actual: 3.9668121337890625
+ Reference: -35.979835510253906
+Difference: 39.9466 (2190330778 single-prec. ULPs, rel. 1.11), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[37]
+    Actual: 19.638313293457031
+ Reference: -10.099933624267578
+Difference: 29.7382 (2193536152 single-prec. ULPs, rel. 2.94), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[38]
+    Actual: -21.660083770751953
+ Reference: -2.288823127746582
+Difference: 19.3713 (26921926 single-prec. ULPs, rel. 8.46)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[39]
+    Actual: -39.406864166259766
+ Reference: 13.964083671569824
+Difference: 53.3709 (2206010756 single-prec. ULPs, rel. 3.82), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[42]
+    Actual: 46.400421142578125
+ Reference: 20.082019805908203
+Difference: 26.3184 (10023438 single-prec. ULPs, rel. 1.31)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[43]
+    Actual: -12.474245071411133
+ Reference: -67.991294860839844
+Difference: 55.5171 (20997385 single-prec. ULPs, rel. 0.817)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[44]
+    Actual: 31.129953384399414
+ Reference: -19.650234222412109
+Difference: 50.7802 (2207661523 single-prec. ULPs, rel. 2.58), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[45]
+    Actual: -2.8739414215087891
+ Reference: 37.331184387207031
+Difference: 40.2051 (2186101194 single-prec. ULPs, rel. 1.08), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[46]
+    Actual: 19.587062835693359
+ Reference: -6.2574548721313477
+Difference: 25.8445 (2187652960 single-prec. ULPs, rel. 4.13), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[47]
+    Actual: 9.3398256301879883
+ Reference: 15.993280410766602
+Difference: 6.65345 (6976653 single-prec. ULPs, rel. 0.416)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[50]
+    Actual: -12.179587364196777
+ Reference: -20.846996307373047
+Difference: 8.66741 (6547215 single-prec. ULPs, rel. 0.416)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[51]
+    Actual: 17.565267562866211
+ Reference: 39.987312316894531
+Difference: 22.422 (9661783 single-prec. ULPs, rel. 0.561)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[52]
+    Actual: 53.976005554199219
+ Reference: 31.542137145996094
+Difference: 22.4339 (6000930 single-prec. ULPs, rel. 0.711)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[53]
+    Actual: 1.2208843231201172
+ Reference: 23.128339767456055
+Difference: 21.9075 (35438823 single-prec. ULPs, rel. 0.947)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[54]
+    Actual: 0.223724365234375
+ Reference: 73.803733825683594
+Difference: 73.58 (70157187 single-prec. ULPs, rel. 0.997)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[55]
+    Actual: 45.926860809326172
+ Reference: 83.96820068359375
+Difference: 38.0413 (7355037 single-prec. ULPs, rel. 0.453)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[58]
+    Actual: 45.404655456542969
+ Reference: 56.122413635253906
+Difference: 10.7178 (2809596 single-prec. ULPs, rel. 0.191)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[59]
+    Actual: 19.756919860839844
+ Reference: 8.8239622116088867
+Difference: 10.933 (9494329 single-prec. ULPs, rel. 1.24)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[60]
+    Actual: 11.282205581665039
+ Reference: -13.246442794799805
+Difference: 24.5286 (2189981016 single-prec. ULPs, rel. 1.85), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[61]
+    Actual: -51.859130859375
+ Reference: -27.048618316650391
+Difference: 24.8105 (7801902 single-prec. ULPs, rel. 0.917)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[62]
+    Actual: -59.590984344482422
+ Reference: -57.016525268554688
+Difference: 2.57446 (674879 single-prec. ULPs, rel. 0.0452)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[63]
+    Actual: 38.064121246337891
+ Reference: 24.321094512939453
+Difference: 13.743 (5615631 single-prec. ULPs, rel. 0.565)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[66]
+    Actual: 13.357156753540039
+ Reference: -0.93308353424072266
+Difference: 14.2902 (2160366970 single-prec. ULPs, rel. 15.3), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[67]
+    Actual: 60.581939697265625
+ Reference: 36.050697326660156
+Difference: 24.5312 (6430718 single-prec. ULPs, rel. 0.68)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[68]
+    Actual: -46.788177490234375
+ Reference: -5.5640134811401367
+Difference: 41.2242 (25762482 single-prec. ULPs, rel. 7.41)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[69]
+    Actual: 73.290924072265625
+ Reference: 140.58631896972656
+Difference: 67.2954 (7995685 single-prec. ULPs, rel. 0.479)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[70]
+    Actual: -57.186023712158203
+ Reference: -37.202907562255859
+Difference: 19.9831 (5238454 single-prec. ULPs, rel. 0.537)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[71]
+    Actual: 10.68408203125
+ Reference: -7.7718572616577148
+Difference: 18.4559 (2183374094 single-prec. ULPs, rel. 2.37), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[74]
+    Actual: -3.5849075317382812
+ Reference: -25.53187370300293
+Difference: 21.947 (23515687 single-prec. ULPs, rel. 0.86)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[75]
+    Actual: -19.019979476928711
+ Reference: 15.029560089111328
+Difference: 34.0495 (2198381055 single-prec. ULPs, rel. 2.27), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[76]
+    Actual: -45.640998840332031
+ Reference: 2.3493690490722656
+Difference: 47.9904 (2186079346 single-prec. ULPs, rel. 20.4), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[77]
+    Actual: 73.806510925292969
+ Reference: 75.035255432128906
+Difference: 1.22874 (161054 single-prec. ULPs, rel. 0.0164)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[78]
+    Actual: -56.499935150146484
+ Reference: -84.955825805664062
+Difference: 28.4559 (4712819 single-prec. ULPs, rel. 0.335)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[79]
+    Actual: 24.030731201171875
+ Reference: 27.740154266357422
+Difference: 3.70942 (1944806 single-prec. ULPs, rel. 0.134)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[82]
+    Actual: 61.451873779296875
+ Reference: 74.992507934570312
+Difference: 13.5406 (2108786 single-prec. ULPs, rel. 0.181)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[83]
+    Actual: -32.603900909423828
+ Reference: 20.179594039916992
+Difference: 52.7835 (2208553524 single-prec. ULPs, rel. 2.62), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[84]
+    Actual: -20.187492370605469
+ Reference: 5.4999761581420898
+Difference: 25.6875 (2186379210 single-prec. ULPs, rel. 4.67), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[85]
+    Actual: 27.373565673828125
+ Reference: -7.7320213317871094
+Difference: 35.1056 (2194827720 single-prec. ULPs, rel. 4.54), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[86]
+    Actual: 22.215896606445312
+ Reference: -91.392486572265625
+Difference: 113.608 (2221441820 single-prec. ULPs, rel. 1.24), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[87]
+    Actual: 77.434341430664062
+ Reference: -13.745358467102051
+Difference: 91.1797 (2213989215 single-prec. ULPs, rel. 6.63), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[90]
+    Actual: -25.539627075195312
+ Reference: 1.4248390197753906
+Difference: 26.9645 (2172826184 single-prec. ULPs, rel. 18.9), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[91]
+    Actual: -46.761260986328125
+ Reference: -31.332813262939453
+Difference: 15.4284 (4219374 single-prec. ULPs, rel. 0.492)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[92]
+    Actual: -55.099037170410156
+ Reference: -44.153053283691406
+Difference: 10.946 (2869424 single-prec. ULPs, rel. 0.248)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[93]
+    Actual: -1.1138801574707031
+ Reference: -16.639965057373047
+Difference: 15.5261 (32934662 single-prec. ULPs, rel. 0.933)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[94]
+    Actual: -17.305889129638672
+ Reference: -16.133460998535156
+Difference: 1.17243 (614690 single-prec. ULPs, rel. 0.0727)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[95]
+    Actual: -44.17437744140625
+ Reference: -14.222240447998047
+Difference: 29.9521 (13444164 single-prec. ULPs, rel. 2.11)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[98]
+    Actual: -31.548576354980469
+ Reference: 5.4190702438354492
+Difference: 36.9676 (2192166018 single-prec. ULPs, rel. 6.82), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[99]
+    Actual: -81.370796203613281
+ Reference: -46.113479614257812
+Difference: 35.2573 (6965669 single-prec. ULPs, rel. 0.765)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[100]
+    Actual: 3.4745273590087891
+ Reference: -31.585281372070312
+Difference: 35.0598 (2187005264 single-prec. ULPs, rel. 1.11), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[101]
+    Actual: 55.204833984375
+ Reference: 52.741497039794922
+Difference: 2.46334 (645749 single-prec. ULPs, rel. 0.0467)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[102]
+    Actual: 8.0832958221435547
+ Reference: -23.224193572998047
+Difference: 31.3075 (2193301588 single-prec. ULPs, rel. 1.35), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[103]
+    Actual: 2.7772061824798584
+ Reference: 44.23291015625
+Difference: 41.4557 (33501377 single-prec. ULPs, rel. 0.937)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[106]
+    Actual: -16.882354736328125
+ Reference: 12.804484367370605
+Difference: 29.6868 (2194927163 single-prec. ULPs, rel. 2.32), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[107]
+    Actual: 3.3169612884521484
+ Reference: -3.4750137329101562
+Difference: 6.79198 (2159194040 single-prec. ULPs, rel. 1.95), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[108]
+    Actual: -21.132028579711914
+ Reference: -9.5384187698364258
+Difference: 11.5936 (9466120 single-prec. ULPs, rel. 1.22)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[109]
+    Actual: -60.988426208496094
+ Reference: -47.009773254394531
+Difference: 13.9787 (3664420 single-prec. ULPs, rel. 0.297)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[110]
+    Actual: 9.1782608032226562
+ Reference: 8.6744813919067383
+Difference: 0.503779 (528251 single-prec. ULPs, rel. 0.0581)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[111]
+    Actual: 0.33776092529296875
+ Reference: -69.218780517578125
+Difference: 69.5565 (2167889668 single-prec. ULPs, rel. 1), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[114]
+    Actual: -14.935786247253418
+ Reference: -13.337878227233887
+Difference: 1.59791 (1675528 single-prec. ULPs, rel. 0.12)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[115]
+    Actual: -26.649757385253906
+ Reference: -1.6793346405029297
+Difference: 24.9704 (33439300 single-prec. ULPs, rel. 14.9)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[116]
+    Actual: 59.348136901855469
+ Reference: -7.2322492599487305
+Difference: 66.5804 (2203374356 single-prec. ULPs, rel. 9.21), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[117]
+    Actual: -60.506698608398438
+ Reference: -85.996238708496094
+Difference: 25.4895 (3798839 single-prec. ULPs, rel. 0.296)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[118]
+    Actual: -7.0373897552490234
+ Reference: 59.471260070800781
+Difference: 66.5087 (2202997982 single-prec. ULPs, rel. 1.12), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[119]
+    Actual: 5.8112955093383789
+ Reference: 23.759441375732422
+Difference: 17.9481 (17046836 single-prec. ULPs, rel. 0.755)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[122]
+    Actual: 5.6636838912963867
+ Reference: 42.251487731933594
+Difference: 36.5878 (24364192 single-prec. ULPs, rel. 0.866)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[123]
+    Actual: -24.855792999267578
+ Reference: -18.945316314697266
+Difference: 5.91048 (3098792 single-prec. ULPs, rel. 0.312)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[124]
+    Actual: 76.580108642578125
+ Reference: 37.611068725585938
+Difference: 38.969 (8566600 single-prec. ULPs, rel. 1.04)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[125]
+    Actual: -9.4405364990234375
+ Reference: 40.519374847412109
+Difference: 49.9599 (2201559111 single-prec. ULPs, rel. 1.23), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[126]
+    Actual: 28.800064086914062
+ Reference: -1.4368762969970703
+Difference: 30.2369 (2174636568 single-prec. ULPs, rel. 21), signs differ
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+../src/testutils/refdata.cpp:949: Failure
+   In item: /ComplexGridAfterRealToComplex/[127]
+    Actual: -46.703575134277344
+ Reference: -55.240901947021484
+Difference: 8.53733 (2238009 single-prec. ULPs, rel. 0.155)
+ Tolerance: abs. 7.62939e-05, 64 ULPs
+Google Test trace:
+../src/gromacs/fft/tests/fft.cpp:580: Checking the complex grid - NB this data has not been normalized
+../src/gromacs/fft/tests/fft.cpp:572: Preparing the forward transform
+../src/gromacs/fft/tests/fft.cpp:534: Allocating the device buffers
+---> piextUSMFree(
+	<unknown> : 0x2b19240
+	<unknown> : 0xffffd556aa610400
+ZE ---> zeMemGetAllocProperties(Context->ZeContext, Ptr, &ZeMemoryAllocationProperties, &ZeDeviceHandle)
+) ---> 	pi_result : PI_SUCCESS
+	[out]void * : 0xffffd556aa610400
+
+[  FAILED  ] ScanWorks/ParameterizedFFTTest3D.RunsOnDevices/4_4_7, where GetParam() = (4, 4, 7) (3646 ms)
+[----------] 4 tests from ScanWorks/ParameterizedFFTTest3D (14237 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (14238 ms total)
+[  PASSED  ] 2 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] ScanWorks/ParameterizedFFTTest3D.RunsOnDevices/4_4_5, where GetParam() = (4, 4, 5)
+[  FAILED  ] ScanWorks/ParameterizedFFTTest3D.RunsOnDevices/4_4_7, where GetParam() = (4, 4, 7)
+
+ 2 FAILED TESTS
+---> piQueueRelease(
+	<unknown> : 0x22d6dc0
+ZE ---> zeHostSynchronize(Queue->ZeComputeCommandQueue)
+ZE ---> zeHostSynchronize(Queue->ZeCopyCommandQueues[i])
+ZE ---> zeFenceDestroy(it->second.ZeFence)
+PI ---> QueueRelease(Queue, nullptr)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piEventRelease(
+	pi_event : 0x2bd16c0
+ZE ---> zeEventDestroy(Event->ZeEvent)
+PI ---> QueueRelease(Event->Queue, LockedQueue)
+ZE ---> zeCommandQueueDestroy(Queue->ZeComputeCommandQueue)
+ZE ---> zeCommandQueueDestroy(Queue->ZeCopyCommandQueues[i])
+piQueueRelease(compute) NumTimesClosedFull 0, NumTimesClosedEarly 0
+piQueueRelease(copy) NumTimesClosedFull 8, NumTimesClosedEarly 0
+) ---> 	pi_result : PI_SUCCESS
+
+---> piContextRelease(
+	<unknown> : 0x2b19240
+ZE ---> zeEventPoolDestroy(ZePool)
+ZE ---> zeCommandListDestroy(ZeCommandListInit)
+ZE ---> zeCommandListDestroy(ZeCommandList)
+ZE ---> zeMemFree(Context->ZeContext, Ptr)
+ZE ---> zeMemFree(Context->ZeContext, Ptr)
+ZE ---> zeContextDestroy(DestoryZeContext)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piContextRelease(
+	<unknown> : 0x15841f0
+ZE ---> zeEventPoolDestroy(ZePool)
+ZE ---> zeCommandListDestroy(ZeCommandListInit)
+ZE ---> zeCommandListDestroy(ZeCommandList)
+ZE ---> zeContextDestroy(DestoryZeContext)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piKernelRelease(
+	<unknown> : 0x22d8860
+ZE ---> zeKernelDestroy(Kernel->ZeKernel)
+PI ---> piProgramRelease(KernelProgram)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piProgramRelease(
+	<unknown> : 0x1f4a060
+ZE ---> zeModuleBuildLogDestroy(ZeBuildLog)
+ZE ---> zeModuleDestroy(ZeModule)
+) ---> 	pi_result : PI_SUCCESS
+
+---> piDeviceRelease(
+	<unknown> : 0x1f33ce0
+) ---> 	pi_result : PI_SUCCESS
+
+---> piTearDown(
+	<unknown> : 0
+) ---> 	pi_result : PI_SUCCESS
+	[out]void * : 0
+

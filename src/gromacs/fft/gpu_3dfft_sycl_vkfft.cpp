@@ -48,12 +48,15 @@
 
 #include "config.h"
 
+#include <optional>
+
 #include "gromacs/gpu_utils/device_stream.h"
 #include "gromacs/gpu_utils/devicebuffer.h"
 #include "gromacs/gpu_utils/devicebuffer_sycl.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/gmxassert.h"
+#include "gromacs/utility/strconvert.h"
 
 //#include <level_zero/ze_api.h>
 
@@ -72,6 +75,7 @@ namespace gmx
 
 namespace
 {
+
 //! Helper for consistent error handling
 void handleFftError(VkFFTResult result, const std::string& msg)
 {
@@ -214,6 +218,40 @@ Gpu3dFft::ImplSyclVkfft::Descriptor Gpu3dFft::ImplSyclVkfft::initDescriptor(cons
 }
     */
 
+static std::optional<uint32_t> getEnvironmentVariableValue(const char *environmentVariable)
+{
+    const char* valueString = std::getenv(environmentVariable);
+    if (valueString)
+    {
+        return intFromString(valueString);
+    }
+    return std::nullopt;
+}
+
+static uint32_t get_command_queue_group_ordinal(ze_device_handle_t device,
+                                         ze_command_queue_group_property_flags_t flags)
+{
+    ze_result_t zeResult;
+    uint32_t cmdqueue_group_count = 0;
+    zeResult = zeDeviceGetCommandQueueGroupProperties(device, &cmdqueue_group_count, nullptr);
+    handleFftError(zeResult, "Error getting command queue group properties count");
+    auto cmdqueue_group_properties =
+        std::vector<ze_command_queue_group_properties_t>(cmdqueue_group_count);
+    zeResult = zeDeviceGetCommandQueueGroupProperties(device, &cmdqueue_group_count,
+                                           cmdqueue_group_properties.data());
+    handleFftError(zeResult, "Error getting command queue group properties count");
+
+    uint32_t ordinal = cmdqueue_group_count;
+    for (uint32_t i = 0; i < cmdqueue_group_count; ++i) {
+        if ((~cmdqueue_group_properties[i].flags & flags) == 0) {
+            ordinal = i;
+            break;
+        }
+    }
+
+    return ordinal;
+}
+
 Gpu3dFft::ImplSyclVkfft::ImplSyclVkfft(bool allocateRealGrid,
                                    MPI_Comm /*comm*/,
                                    ArrayRef<const int> gridSizesInXForEachRank,
@@ -259,16 +297,37 @@ Gpu3dFft::ImplSyclVkfft::ImplSyclVkfft(bool allocateRealGrid,
     configuration_.context = &context_;
     stream_ = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(pmeStream.stream());
     configuration_.commandQueue = &stream_;
-    configuration_.commandQueueID = 0; // TODO what should this be?
+
+    // VkFFT needs to be passed a command list that targets a command
+    // queue that supports compute (for the FFTs) and copy (for phase
+    // vectors, etc). We'd like to re-use the SYCL queue, but we
+    // cannot query the ordinal from it via the
+    // ze_command_queue_handle_t. So we just take the first command
+    // queue group that supports compute and copy. Then we must sync
+    // the operations in the command lists on the two command queues.
+    const ze_command_queue_group_property_flags_t commandQueueGroupPropertyFlags = ZE_COMMAND_QUEUE_GROUP_PROPERTY_FLAG_COMPUTE | ZE_COMMAND_QUEUE_GROUP_PROPERTY_FLAG_COPY;
+    // This field of configuration_ is misnamed. It is used to fill the ordinal field of
+    // a ze_command_queue_desc_t.
+    configuration_.commandQueueID = get_command_queue_group_ordinal(device_, commandQueueGroupPropertyFlags);
+    
     //configuration_.userTempBuffer = 0; // Not applicable to our use case
     // Buffer sizes only mandatory for Vulkan
     //configuration_.bufferSize = 0; //?
     //configuration_.inputBufferSize = 
     // TODO should we use performConvolution?
     configuration_.bufferOffset = 0;
-    configuration_.coalescedMemory = 64; // TODO is this appropriate?
-    configuration_.aimThreads = 128; // TODO tune me
-    configuration_.numSharedBanks = 64; // TODO tune me
+    if (std::optional<uint32_t> value = getEnvironmentVariableValue("GMX_VKFFT_COALESCED_MEMORY"))
+    {
+        configuration_.coalescedMemory = value.value_or(64); // TODO is this appropriate?
+    }
+    if (std::optional<uint32_t> value = getEnvironmentVariableValue("GMX_VKFFT_AIM_THREADS"))
+    {
+        configuration_.aimThreads = value.value_or(128); // TODO tune me
+    }
+    if (std::optional<uint32_t> value = getEnvironmentVariableValue("GMX_VKFFT_NUM_SHARED_BANKS"))
+    {
+        configuration_.numSharedBanks = value.value_or(64); // TODO tune me
+    }
     configuration_.numberBatches = 1;
     configuration_.useUint64 = 1;
     configuration_.performBandwidthBoost = 0; // TODO tune me
@@ -379,36 +438,62 @@ Gpu3dFft::ImplSyclVkfft::ImplSyclVkfft(bool allocateRealGrid,
                 formatString("MKL failure while configuring C2R descriptor: %s", exc.what())));
     }
     */
+
+    ze_result_t zeResult;
+
+    // TODO comment
+    zeCommandListDescription_.stype = ZE_STRUCTURE_TYPE_COMMAND_LIST_DESC;
+    zeCommandListDescription_.pNext = nullptr;
+
+    // Use the same command queue group as VkFFT uses for its transfers
+    zeCommandListDescription_.commandQueueGroupOrdinal = configuration_.commandQueueID;
+    zeCommandListDescription_.flags = ZE_COMMAND_LIST_FLAG_EXPLICIT_ONLY;
+
+    // Create event pool
+    ze_event_pool_desc_t eventPoolDescription = {
+        ZE_STRUCTURE_TYPE_EVENT_POOL_DESC,
+        nullptr,
+        0, // default: events visible to device and peers
+        4 // count of events in this pool
+    };
+    zeResult = zeEventPoolCreate(context_, &eventPoolDescription, 1, &device_, &eventPool_);
+    handleFftError(zeResult, "Error creating event pool");
+
+    EnumerationArray<FftDirection, ze_event_desc_t> descriptionOfEventBeforeFft, descriptionOfEventAfterFft;
+    uint32_t eventPoolIndex = 0;
+    for (FftDirection direction : EnumerationWrapper<FftDirection>{})
+    {
+        // Create the event to use before the FFT for this direction
+        descriptionOfEventBeforeFft[direction] = {
+            ZE_STRUCTURE_TYPE_EVENT_DESC,
+            nullptr,
+            eventPoolIndex++,
+            // ensure memory coherency across device after event completes
+            ZE_EVENT_SCOPE_FLAG_DEVICE,
+            ZE_EVENT_SCOPE_FLAG_DEVICE
+        };
+        zeResult = zeEventCreate(eventPool_, &descriptionOfEventBeforeFft[direction], &eventBeforeFft_[direction]);
+        handleFftError(zeResult, formatString("Error creating event before FFT for direction %d", static_cast<int>(direction)));
+
+        // Create the event to use after the FFT for this direction
+        descriptionOfEventAfterFft[direction] = {
+            ZE_STRUCTURE_TYPE_EVENT_DESC,
+            nullptr,
+            eventPoolIndex++,
+            // ensure memory coherency across device after event completes
+            ZE_EVENT_SCOPE_FLAG_DEVICE,
+            ZE_EVENT_SCOPE_FLAG_DEVICE
+        };
+        // TODO file bug, when eventPoolIndex is out of range, garbage error code is returned
+        zeResult = zeEventCreate(eventPool_, &descriptionOfEventAfterFft[direction], &eventAfterFft_[direction]);
+        handleFftError(zeResult, formatString("Error creating event after FFT for direction %d", static_cast<int>(direction)));
+    }
 }
 
 Gpu3dFft::ImplSyclVkfft::~ImplSyclVkfft()
 {
     deleteVkFFT(&application_);
     deallocateComplexGrid();
-}
-
-static uint32_t get_command_queue_group_ordinal(ze_device_handle_t device,
-                                         ze_command_queue_group_property_flags_t flags)
-{
-    ze_result_t zeResult;
-    uint32_t cmdqueue_group_count = 0;
-    zeResult = zeDeviceGetCommandQueueGroupProperties(device, &cmdqueue_group_count, nullptr);
-    handleFftError(zeResult, "Error getting command queue group properties count");
-    auto cmdqueue_group_properties =
-        std::vector<ze_command_queue_group_properties_t>(cmdqueue_group_count);
-    zeResult = zeDeviceGetCommandQueueGroupProperties(device, &cmdqueue_group_count,
-                                           cmdqueue_group_properties.data());
-    handleFftError(zeResult, "Error getting command queue group properties count");
-
-    uint32_t ordinal = cmdqueue_group_count;
-    for (uint32_t i = 0; i < cmdqueue_group_count; ++i) {
-        if ((~cmdqueue_group_properties[i].flags & flags) == 0) {
-            ordinal = i;
-            break;
-        }
-    }
-
-    return ordinal;
 }
 
 void Gpu3dFft::ImplSyclVkfft::perform3dFft(gmx_fft_direction dir, CommandEvent* /*timingEvent*/)
@@ -424,31 +509,31 @@ void Gpu3dFft::ImplSyclVkfft::perform3dFft(gmx_fft_direction dir, CommandEvent* 
 #endif
     ze_result_t zeResult;
     ze_command_queue_handle_t zeQueue = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(queue_);
-    fprintf(stderr, "executing command list\nzeQueue = %p", reinterpret_cast<void*>(zeQueue));
+    fprintf(stderr, "gmx: executing command list\ngmx: zeQueue = %p\n", reinterpret_cast<void*>(zeQueue));
 
     // TODO this sync should not be needed
-    zeResult = zeCommandQueueSynchronize(zeQueue, UINT64_MAX);
-    handleFftError(zeResult, "Error synchronizing queue before VkFFT work");
+    //zeResult = zeCommandQueueSynchronize(zeQueue, UINT64_MAX);
+    //handleFftError(zeResult, "Error synchronizing queue before VkFFT work");
 
+    //zeResult = zeCommandListAppendSignalEvent(zeQueue, 
+    
     VkFFTLaunchParams launchParameters;
     launchParameters.inputBuffer = &realGridPtr;
     launchParameters.buffer = &complexGridPtr;
 
-    ze_command_list_desc_t zeCommandListDescription;
-    zeCommandListDescription.stype = ZE_STRUCTURE_TYPE_COMMAND_LIST_DESC;
-    zeCommandListDescription.pNext = nullptr;
+    // Make a command list to put into the SYCL command queue that
+    // will send the signal that the FFT can start and wait for the
+    // signal that it has ended.
+    ze_command_list_handle_t zeCommandListFftSignalling;
+    // TODO zeCommandListDescription_.commandQueueGroupOrdinal could probably just be based on copy
+    zeResult = zeCommandListCreate(context_, device_, &zeCommandListDescription_, &zeCommandListFftSignalling);
+    handleFftError(zeResult, "Error creating LevelZero command list to signal FFT start");
+       
 
-    // We cannot query the ordinal from ze_command_queue_handle_t so
-    // we just take the first command queue group that supports
-    // compute. TODO does this create the race condition?
-    const ze_command_queue_group_property_flags_t commandQueueGroupPropertyFlags = ZE_COMMAND_QUEUE_GROUP_PROPERTY_FLAG_COMPUTE;
-    zeCommandListDescription.commandQueueGroupOrdinal = get_command_queue_group_ordinal(device_, commandQueueGroupPropertyFlags);
-    zeCommandListDescription.flags = ZE_COMMAND_LIST_FLAG_EXPLICIT_ONLY;
-
-    ze_command_list_handle_t zeCommandList;
-    zeResult = zeCommandListCreate(context_, device_, &zeCommandListDescription, &zeCommandList);
-    handleFftError(zeResult, "Error creating LevelZero command list");
-    launchParameters.commandList = &zeCommandList;
+    ze_command_list_handle_t zeCommandListFftCompute;
+    zeResult = zeCommandListCreate(context_, device_, &zeCommandListDescription_, &zeCommandListFftCompute);
+    handleFftError(zeResult, "Error creating LevelZero command list for FFT compute");
+    launchParameters.commandList = &zeCommandListFftCompute;
 
     VkFFTResult result;
     const int forwardTransfer = -1;
@@ -456,24 +541,49 @@ void Gpu3dFft::ImplSyclVkfft::perform3dFft(gmx_fft_direction dir, CommandEvent* 
     switch (dir)
     {
         case GMX_FFT_REAL_TO_COMPLEX:
+            /*
+            zeResult = zeCommandListAppendSignalEvent(zeCommandListFftSignalling, eventBeforeFft_[FftDirection::RealToComplex]);
+            handleFftError(zeResult, "Error appending signal before real-to-complex");
+            zeResult = zeCommandListAppendWaitOnEvents(zeCommandListFftCompute, 1, &eventBeforeFft_[FftDirection::RealToComplex]);
+            handleFftError(zeResult, "Error appending wait before real-to-complex");
+            */
+            fprintf(stderr, "gmx: submitting FFT work\n");
             result = VkFFTAppend(&application_, forwardTransfer, &launchParameters);
             handleFftError(result, "Transform failure doing real-to-complex");
+            fprintf(stderr, "gmx: done submitting FFT work, enqueuing barrier\n");
+            zeResult = zeCommandListAppendBarrier(zeCommandListFftCompute, nullptr, 0, nullptr);
+            handleFftError(zeResult, "Error appending barrier after real-to-complex");
+            /*
+            zeResult = zeCommandListAppendSignalEvent(zeCommandListFftCompute, eventAfterFft_[FftDirection::RealToComplex]);
+            handleFftError(zeResult, "Error appending signal after real-to-complex");
+            zeResult = zeCommandListAppendWaitOnEvents(zeCommandListFftSignalling, 1, &eventAfterFft_[FftDirection::RealToComplex]);
+            handleFftError(zeResult, "Error appending wait after real-to-complex");
+            */
             break;
         case GMX_FFT_COMPLEX_TO_REAL:
             result = VkFFTAppend(&application_, backwardTransfer, &launchParameters);
             handleFftError(result, "Transform failure doing complex-to-real");
+            //zeResult = zeCommandListAppendSignalEvent(zeQueue, &eventAfterFft_[FftDirection::ComplexToReal]);
+            //handleFftError(zeResult, "Error appending signal after complex-to-real");
             break;
         default:
             GMX_THROW(NotImplementedError("The chosen 3D-FFT case is not implemented on GPUs"));
     }
-    zeResult = zeCommandListClose(zeCommandList);
-    handleFftError(zeResult, "Error closing command list\n");
-    zeResult = zeCommandQueueExecuteCommandLists(zeQueue, 1, &zeCommandList, nullptr);
-    handleFftError(zeResult, "Error executing command lists\n");
+    /*
+    zeResult = zeCommandListClose(zeCommandListFftSignalling);
+    handleFftError(zeResult, "Error closing command list for FFT signalling\n");
+    zeResult = zeCommandQueueExecuteCommandLists(zeQueue, 1, &zeCommandListFftSignalling, nullptr);
+    handleFftError(zeResult, "Error executing command list for FFT signalling\n");
+    */
+    zeResult = zeCommandListClose(zeCommandListFftCompute);
+    handleFftError(zeResult, "Error closing command list for FFT compute\n");
+    fprintf(stderr, "gmx: executing FFT work\n");
+    zeResult = zeCommandQueueExecuteCommandLists(zeQueue, 1, &zeCommandListFftCompute, nullptr);
+    handleFftError(zeResult, "Error executing command list for FFT compute\n");
 
     // TODO this sync should not be needed
-    zeResult = zeCommandQueueSynchronize(zeQueue, UINT64_MAX);
-    handleFftError(zeResult, "Error synchronizing queue after VkFFT work");
+    //zeResult = zeCommandQueueSynchronize(zeQueue, UINT64_MAX);
+    //handleFftError(zeResult, "Error synchronizing queue after VkFFT work");
 }
 
 } // namespace gmx

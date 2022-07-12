@@ -52,6 +52,7 @@
 #include "gromacs/gpu_utils/devicebuffer_datatype.h"
 #include "gromacs/gpu_utils/gmxsycl.h"
 #include "gromacs/gpu_utils/gputraits.h"
+#include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/gmxmpi.h"
 
 #include "gpu_3dfft_impl.h"
@@ -61,6 +62,14 @@ class DeviceStream;
 
 namespace gmx
 {
+
+//! Model the kinds of 3D FFT implemented
+enum class FftDirection : int
+{
+    RealToComplex,
+    ComplexToReal,
+    Count,
+};
 
 /*! \internal \brief
  * A 3D FFT wrapper class for performing R2C/C2R transforms using SYCL + VKFFT.
@@ -108,6 +117,9 @@ private:
 
     static Descriptor initDescriptor(const ivec realGridSize);
         */
+    ze_command_list_desc_t zeCommandListDescription_;
+    ze_event_pool_handle_t eventPool_;
+        EnumerationArray<FftDirection, ze_event_handle_t> eventBeforeFft_, eventAfterFft_;
         ze_device_handle_t device_;
         ze_context_handle_t context_;
         ze_command_queue_handle_t stream_;
