@@ -470,6 +470,11 @@ int main() {
         set(_sycl_has_valid_fft TRUE)
     endif()
 
+    if(GMX_GPU_FFT_DBFFT)
+        # TODO
+        set(_sycl_has_valid_fft TRUE)
+    endif()
+
     # Add function wrapper similar to the one used by ComputeCPP and hipSYCL
     function(add_sycl_to_target)
         cmake_parse_arguments(

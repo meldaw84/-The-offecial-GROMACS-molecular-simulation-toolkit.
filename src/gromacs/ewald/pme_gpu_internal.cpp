@@ -777,7 +777,7 @@ static void pme_gpu_init_internal(PmeGpu* pmeGpu, const DeviceContext& deviceCon
     pmeGpu->archSpecific.reset(new PmeGpuSpecific(deviceContext, deviceStream));
     pmeGpu->kernelParams.reset(new PmeGpuKernelParams());
 
-    pmeGpu->archSpecific->performOutOfPlaceFFT = true;
+    pmeGpu->archSpecific->performOutOfPlaceFFT = (GMX_GPU_FFT_MKL == 0);
     if (pmeGpu->settings.useDecomposition && GMX_USE_cuFFTMp)
     {
         pmeGpu->archSpecific->performOutOfPlaceFFT = false;
@@ -871,6 +871,10 @@ static gmx::FftBackend getFftBackend(const PmeGpu* pmeGpu)
         if (GMX_GPU_FFT_MKL)
         {
             return gmx::FftBackend::SyclMkl;
+        }
+        else if (GMX_GPU_FFT_BBFFT)
+        {
+            return gmx::FftBackend::SyclBbfft;
         }
         else if (GMX_GPU_FFT_ROCFFT)
         {

@@ -74,6 +74,8 @@
 #cmakedefine01 GMX_GPU_FFT_MKL
 /* Use rocFFT library for FFT on GPUs */
 #cmakedefine01 GMX_GPU_FFT_ROCFFT
+/* Use BBFFT library for FFT on GPUs */
+#cmakedefine01 GMX_GPU_FFT_BBFFT
 
 /* VKFFT Library version */
 #define vkfft_VERSION "@vkfft_VERSION@"

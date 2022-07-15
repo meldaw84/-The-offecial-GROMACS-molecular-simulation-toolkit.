@@ -419,7 +419,7 @@ constexpr bool sc_performOutOfPlaceFFT = (GMX_GPU_FFT_MKL == 0);
 template<bool performOutOfPlaceFFT>
 DeviceBuffer<float>* actualOutputGrid(DeviceBuffer<float>* realGrid, DeviceBuffer<float>* complexGrid);
 
-#    if GMX_GPU_FFT_MKL
+#    if GMX_SYCL_DPCPP && GMX_GPU_FFT_MKL
 
 template<>
 DeviceBuffer<float>* actualOutputGrid<false>(DeviceBuffer<float>* realGrid,
@@ -500,6 +500,8 @@ TEST_P(ParameterizedFFTTest3D, RunsOnDevices)
 #    elif GMX_GPU_SYCL
 #        if GMX_GPU_FFT_MKL
         const FftBackend backend = FftBackend::SyclMkl;
+#        elif GMX_GPU_FFT_BBFFT
+        const FftBackend backend = FftBackend::SyclBbfft;
 #        elif GMX_GPU_FFT_ROCFFT
         const FftBackend backend = FftBackend::SyclRocfft;
 #        elif GMX_GPU_FFT_VKFFT
