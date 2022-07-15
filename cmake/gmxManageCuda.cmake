@@ -39,7 +39,16 @@ if(GMX_DOUBLE)
     message(FATAL_ERROR "CUDA acceleration is not available in double precision")
 endif()
 
-find_package(CUDA ${REQUIRED_CUDA_VERSION} REQUIRED)
+if (GMX_GPU_CUDA)
+    if(${CMAKE_VERSION} VERSION_LESS "3.17.0")
+        find_package(CUDA ${REQUIRED_CUDA_VERSION} REQUIRED)
+    else()
+        find_package(CUDAToolkit ${REQUIRED_CUDA_VERSION} REQUIRED)
+        enable_language(CUDA)
+        set(CUDA_NVCC_EXECUTABLE "${CUDAToolkit_NVCC_EXECUTABLE}")
+        set(CUDA_HOST_COMPILER "${CMAKE_C_COMPILER}")
+    endif()
+endif()
 
 # Try to execute ${CUDA_NVCC_EXECUTABLE} --version and set the output
 # (or an error string) in the argument variable.
