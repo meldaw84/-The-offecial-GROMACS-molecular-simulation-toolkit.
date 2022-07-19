@@ -97,6 +97,9 @@ __launch_bounds__(c_maxThreadsPerBlock) __global__
     const int     numConstraintsThreads                   = kernelParams.numConstraintsThreads;
     const int     numIterations                           = kernelParams.numIterations;
     const int     expansionOrder                          = kernelParams.expansionOrder;
+    __builtin_assume(numConstraintsThreads > 0);
+    __builtin_assume(numIterations > 0);
+    __builtin_assume(expansionOrder > 0);
     const AtomPair* __restrict__ gm_constraints           = kernelParams.d_constraints;
     const float* __restrict__ gm_constraintsTargetLengths = kernelParams.d_constraintsTargetLengths;
     const int* __restrict__ gm_coupledConstraintsCounts   = kernelParams.d_coupledConstraintsCounts;
@@ -107,6 +110,7 @@ __launch_bounds__(c_maxThreadsPerBlock) __global__
     float* __restrict__ gm_virialScaled                  = kernelParams.d_virialScaled;
 
     const int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    __builtin_assume(threadIndex >= 0);
 
     // numConstraintsThreads should be a integer multiple of blockSize (numConstraintsThreads = numBlocks*blockSize).
     // This is to ensure proper synchronizations and reduction. All array are padded to the required size.
@@ -119,6 +123,8 @@ __launch_bounds__(c_maxThreadsPerBlock) __global__
     AtomPair pair = gm_constraints[threadIndex];
     int      i    = pair.i;
     int      j    = pair.j;
+    __builtin_assume(i >= -1);
+    __builtin_assume(j >= 0);
 
     // Mass-scaled Lagrange multiplier
     float lagrangeScaled = 0.0F;
@@ -175,10 +181,14 @@ __launch_bounds__(c_maxThreadsPerBlock) __global__
 
     // Only non-zero values are saved (for coupled constraints)
     int coupledConstraintsCount = gm_coupledConstraintsCounts[threadIndex];
+    __builtin_assume( coupledConstraintsCount >= 0);
     for (int n = 0; n < coupledConstraintsCount; n++)
     {
         int index = n * numConstraintsThreads + threadIndex;
         int c1    = gm_coupledConstraintsIndices[index];
+        __builtin_assume(n >= 0);
+        __builtin_assume(index >= 0);
+        __builtin_assume(c1 >= 0);
 
         float3 rc1        = sm_r[c1];
         gm_matrixA[index] = gm_massFactors[index] * (rc.x * rc1.x + rc.y * rc1.y + rc.z * rc1.z);
@@ -209,6 +219,7 @@ __launch_bounds__(c_maxThreadsPerBlock) __global__
 
     for (int rec = 0; rec < expansionOrder; rec++)
     {
+        __builtin_assume(rec >= 0);
         // Making sure that all sm_rhs are saved before they are accessed in a loop below
         __syncthreads();
         float mvb = 0.0F;
@@ -217,6 +228,9 @@ __launch_bounds__(c_maxThreadsPerBlock) __global__
         {
             int index = n * numConstraintsThreads + threadIndex;
             int c1    = gm_coupledConstraintsIndices[index];
+            __builtin_assume(n >= 0);
+            __builtin_assume(index >= 0);
+            __builtin_assume(c1 >= 0);
             // Convolute current right-hand-side with A
             // Different, non overlapping parts of sm_rhs[..] are read during odd and even iterations
             mvb = mvb + gm_matrixA[index] * sm_rhs[c1 + blockDim.x * (rec % 2)];
@@ -245,6 +259,7 @@ __launch_bounds__(c_maxThreadsPerBlock) __global__
      */
     for (int iter = 0; iter < numIterations; iter++)
     {
+        __builtin_assume( iter > 0);
         // Make sure that all xp's are saved: atomic operation calls before are
         // communicating current xp[..] values across thread block.
         __syncthreads();
@@ -280,6 +295,7 @@ __launch_bounds__(c_maxThreadsPerBlock) __global__
          */
         for (int rec = 0; rec < expansionOrder; rec++)
         {
+            __builtin_assume(rec > 0);
             // Make sure that all elements of rhs are saved into shared memory
             __syncthreads();
             float mvb = 0;
@@ -288,6 +304,9 @@ __launch_bounds__(c_maxThreadsPerBlock) __global__
             {
                 int index = n * numConstraintsThreads + threadIndex;
                 int c1    = gm_coupledConstraintsIndices[index];
+                __builtin_assume(n >= 0);
+                __builtin_assume(index >= 0);
+                __builtin_assume(c1 >= 0);
 
                 mvb = mvb + gm_matrixA[index] * sm_rhs[c1 + blockDim.x * (rec % 2)];
             }
@@ -355,7 +374,9 @@ __launch_bounds__(c_maxThreadsPerBlock) __global__
         // in the beginning of the kernel).
         for (int divideBy = 2; divideBy <= static_cast<int>(blockDim.x); divideBy *= 2)
         {
+            __builtin_assume(divideBy >= 2);
             int dividedAt = blockDim.x / divideBy;
+            __builtin_assume(dividedAt >= 0);
             if (static_cast<int>(threadIdx.x) < dividedAt)
             {
                 for (int d = 0; d < 6; d++)
