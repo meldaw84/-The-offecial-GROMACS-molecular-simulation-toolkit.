@@ -108,13 +108,13 @@ typedef SimdReal SimdBitMask;
 
 //! Loads interaction masks for a cluster pair for 4xM kernel layout
 template<KernelLayout kernelLayout>
-inline std::enable_if_t<kernelLayout == KernelLayout::r4xM, void>
-loadSimdPairInteractionMasks(const int    excl,
-                             SimdBitMask* filterBitMasksV,
-                             const real*  simdInteractionArray,
-                             SimdBool*    interactionMasksV)
+inline std::enable_if_t<kernelLayout == KernelLayout::r4xM, std::array<SimdBool, c_nbnxnCpuIClusterSize>>
+loadSimdPairInteractionMasks(const int excl, SimdBitMask* filterBitMasksV, const real* simdInteractionArray)
 {
     using namespace gmx;
+
+    std::array<SimdBool, c_nbnxnCpuIClusterSize> interactionMasksV;
+
 #if GMX_SIMD_HAVE_INT32_LOGICAL
     /* Load integer interaction mask */
     SimdInt32 mask_pr_S(excl);
@@ -157,17 +157,19 @@ loadSimdPairInteractionMasks(const int    excl,
 
     GMX_UNUSED_VALUE(filterBitMasksV);
 #endif
+
+    return interactionMasksV;
 }
 
 //! Loads interaction masks for a cluster pair for 2xMM kernel layout
 template<KernelLayout kernelLayout>
-inline std::enable_if_t<kernelLayout == KernelLayout::r2xMM, void>
-loadSimdPairInteractionMasks(const int    excl,
-                             SimdBitMask* filterBitMasksV,
-                             const real*  simdInteractionArray,
-                             SimdBool*    interactionMasksV)
+inline std::enable_if_t<kernelLayout == KernelLayout::r2xMM, std::array<SimdBool, c_nbnxnCpuIClusterSize / 2>>
+loadSimdPairInteractionMasks(const int excl, SimdBitMask* filterBitMasksV, const real* simdInteractionArray)
 {
     using namespace gmx;
+
+    std::array<SimdBool, c_nbnxnCpuIClusterSize / 2> interactionMasksV;
+
 #if GMX_SIMD_HAVE_INT32_LOGICAL
     SimdInt32 mask_pr_S(excl);
     for (int i = 0; i < c_nbnxnCpuIClusterSize / 2; i++)
@@ -199,6 +201,8 @@ loadSimdPairInteractionMasks(const int    excl,
 #else
 #    error "the SIMD architecture does not support 2xMM interaction mask loading"
 #endif
+
+    return interactionMasksV;
 }
 
 //! Adds energies to temporary energy group pair buffers for the 4xM kernel layout

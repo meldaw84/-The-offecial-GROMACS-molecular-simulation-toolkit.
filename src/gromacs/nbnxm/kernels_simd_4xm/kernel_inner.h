@@ -76,13 +76,13 @@
     const int ajz = ajy + STRIDE;
 
     /* Interaction (non-exclusion) mask of all 1's or 0's */
-    SimdBool interactV[c_needToCheckExclusions ? nR : c_emptyCArraySize];
+    // std::array<SimdBool, c_needToCheckExclusions ? nR : c_emptyCArraySize> interactV;
+    std::array<SimdBool, nR> interactV;
     if constexpr (c_needToCheckExclusions)
     {
-        loadSimdPairInteractionMasks<kernelLayout>(static_cast<int>(l_cj[cjind].excl),
-                                                   exclusionFilterV,
-                                                   nbat->simdMasks.interaction_array.data(),
-                                                   interactV);
+        interactV = loadSimdPairInteractionMasks<kernelLayout>(static_cast<int>(l_cj[cjind].excl),
+                                                               exclusionFilterV,
+                                                               nbat->simdMasks.interaction_array.data());
     }
 
     /* load j atom coordinates */
@@ -380,7 +380,17 @@
             }
 
             lennardJonesInteractionsC6C12<c_nRLJ, vdwModifier, c_haveExclusionForces, calculateEnergies>(
-                    rSquaredV, rInvV, rInvSquaredV, interactV, c6V, c12V, ljShiftOrSwitchParams, sixth_S, twelveth_S, frLJV, vLJV);
+                    rSquaredV,
+                    rInvV,
+                    rInvSquaredV,
+                    interactV.data(),
+                    c6V,
+                    c12V,
+                    ljShiftOrSwitchParams,
+                    sixth_S,
+                    twelveth_S,
+                    frLJV,
+                    vLJV);
         }
 
         if constexpr (ljCombinationRule == LJCombinationRule::LorentzBerthelot)
@@ -397,7 +407,16 @@
             }
 
             lennardJonesInteractionsSigmaEpsilon<c_nRLJ, c_haveExclusionForces, haveVdwCutoffCheck, calculateEnergies>(
-                    rInvV, interactV, withinVdwCutoffV, sigmaV, epsilonV, ljShiftOrSwitchParams, sixth_S, twelveth_S, frLJV, vLJV);
+                    rInvV,
+                    interactV.data(),
+                    withinVdwCutoffV,
+                    sigmaV,
+                    epsilonV,
+                    ljShiftOrSwitchParams,
+                    sixth_S,
+                    twelveth_S,
+                    frLJV,
+                    vLJV);
         }
 
         if constexpr (calculateEnergies && c_needToCheckExclusions)
@@ -420,7 +439,7 @@
             }
 
             addLennardJonesEwaldCorrections<c_nRLJ, c_needToCheckExclusions, calculateEnergies>(
-                    rSquaredV, rInvSquaredV, interactV, withinCutoffV, c6GridV, ljEwaldParams, sixth_S, frLJV, vLJV);
+                    rSquaredV, rInvSquaredV, interactV.data(), withinCutoffV, c6GridV, ljEwaldParams, sixth_S, frLJV, vLJV);
         }
 
         if constexpr (haveVdwCutoffCheck)
