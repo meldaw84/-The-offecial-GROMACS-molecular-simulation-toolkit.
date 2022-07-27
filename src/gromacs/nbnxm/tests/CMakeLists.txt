@@ -34,4 +34,5 @@
 gmx_add_unit_test(NbnxmTests nbnxm-test
     CPP_SOURCE_FILES
         kernelsetup.cpp
+        pairlists.cpp
         )

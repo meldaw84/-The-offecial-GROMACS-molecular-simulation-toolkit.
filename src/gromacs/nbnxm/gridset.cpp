@@ -111,7 +111,7 @@ GridSet::GridSet(const PbcType             pbcType,
     changePinningPolicy(&gridSetData_.cells, pinningPolicy);
     changePinningPolicy(&gridSetData_.atomIndices, pinningPolicy);
 }
-
+// TODO this is doing something about ordering, but the name doesn't seem correct to me
 void GridSet::setLocalAtomOrder()
 {
     /* Set the atom order for the home cell (index 0) */
