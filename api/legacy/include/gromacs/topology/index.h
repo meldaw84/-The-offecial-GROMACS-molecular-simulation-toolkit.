@@ -75,6 +75,18 @@ void get_index(const t_atoms* atoms, const char* fnm, int ngrps, int isize[], in
  * for the atoms in *atoms.
  */
 
+//! Convenience helper containing single index group with name
+struct SingleIndexWithName
+{
+    //! Name of group
+    std::string indexGroupName;
+    //! Values in index group.
+    std::vector<int> indexGroupEntries;
+};
+
+//! Get single index group
+SingleIndexWithName getSingleIndexGroup(const t_atoms* atoms, const char* fnm);
+
 struct t_cluster_ndx
 {
     int              maxframe = -1;

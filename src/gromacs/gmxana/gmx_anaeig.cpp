@@ -57,6 +57,7 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/fatalerror.h"
@@ -459,36 +460,35 @@ static void overlap(const char*             outfile,
     xvgrclose(out);
 }
 
-static void project(const char*             trajfile,
-                    const t_topology*       top,
-                    PbcType                 pbcType,
-                    matrix                  topbox,
-                    const char*             projfile,
-                    const char*             twodplotfile,
-                    const char*             threedplotfile,
-                    const char*             filterfile,
-                    const char*             projUnit,
-                    int                     skip,
-                    const char*             extremefile,
-                    gmx_bool                bExtrAll,
-                    real                    extreme,
-                    int                     nextr,
-                    const t_atoms*          atoms,
-                    int                     natoms,
-                    int*                    index,
-                    gmx_bool                bFit,
-                    rvec*                   xref,
-                    int                     nfit,
-                    int*                    ifit,
-                    real*                   w_rls,
-                    const real*             sqrtm,
-                    rvec*                   xav,
-                    int*                    eignr,
-                    rvec**                  eigvec,
-                    int                     noutvec,
-                    int*                    outvec,
-                    gmx_bool                bSplit,
-                    const gmx_output_env_t* oenv)
+static void project(const char*              trajfile,
+                    const t_topology*        top,
+                    PbcType                  pbcType,
+                    matrix                   topbox,
+                    const char*              projfile,
+                    const char*              twodplotfile,
+                    const char*              threedplotfile,
+                    const char*              filterfile,
+                    const char*              projUnit,
+                    int                      skip,
+                    const char*              extremefile,
+                    gmx_bool                 bExtrAll,
+                    real                     extreme,
+                    int                      nextr,
+                    const t_atoms*           atoms,
+                    int                      natoms,
+                    int*                     index,
+                    gmx_bool                 bFit,
+                    rvec*                    xref,
+                    gmx::ArrayRef<const int> indexGroupEntries,
+                    real*                    w_rls,
+                    const real*              sqrtm,
+                    rvec*                    xav,
+                    int*                     eignr,
+                    rvec**                   eigvec,
+                    int                      noutvec,
+                    int*                     outvec,
+                    gmx_bool                 bSplit,
+                    const gmx_output_env_t*  oenv)
 {
     FILE*        xvgrout = nullptr;
     int          nat, i, j, d, v, vec, nfr, nframes = 0, snew_size, frame;
@@ -505,6 +505,7 @@ static void project(const char*             trajfile,
     real         fact;
     gmx_rmpbc_t  gpbc = nullptr;
 
+    const int indexGroupSize = indexGroupEntries.size();
     snew(x, natoms);
 
     if (bExtrAll)
@@ -574,7 +575,7 @@ static void project(const char*             trajfile,
                 /* calculate x: a fitted struture of the selected atoms */
                 if (bFit)
                 {
-                    reset_x(nfit, ifit, nat, nullptr, xread, w_rls);
+                    reset_x(indexGroupSize, indexGroupEntries.data(), nat, nullptr, xread, w_rls);
                     do_fit(nat, w_rls, xref, xread);
                 }
                 for (i = 0; i < natoms; i++)
@@ -1119,11 +1120,10 @@ int gmx_anaeig(int argc, char* argv[])
     matrix            topbox;
     real              totmass, *sqrtm, *w_rls, t;
     int               natoms;
-    char*             grpname;
     const char*       indexfile;
     int               i, j, d;
-    int               nout, *iout, noutvec, *outvec, nfit;
-    int *             index = nullptr, *ifit = nullptr;
+    int               nout, *iout, noutvec, *outvec;
+    int*              index = nullptr;
     const char *      VecFile, *Vec2File, *topfile;
     const char *      EigFile, *Eig2File;
     const char *      CompFile, *RmsfFile, *ProjOnVecFile;
@@ -1297,9 +1297,8 @@ int gmx_anaeig(int argc, char* argv[])
     }
 
     xtop  = nullptr;
-    nfit  = 0;
-    ifit  = nullptr;
     w_rls = nullptr;
+    SingleIndexWithName singleIndexWithName;
 
     if (!bTPS)
     {
@@ -1321,18 +1320,20 @@ int gmx_anaeig(int argc, char* argv[])
                        topfile);
             }
             printf("\nSelect the index group that was used for the least squares fit in g_covar\n");
-            get_index(atoms, indexfile, 1, &nfit, &ifit, &grpname);
+            singleIndexWithName                     = getSingleIndexGroup(atoms, indexfile);
+            gmx::ArrayRef<const int> indexGroup     = singleIndexWithName.indexGroupEntries;
+            const int                indexGroupSize = indexGroup.size();
 
             snew(w_rls, atoms->nr);
-            for (i = 0; (i < nfit); i++)
+            for (i = 0; (i < indexGroupSize); i++)
             {
                 if (bDMR1)
                 {
-                    w_rls[ifit[i]] = atoms->atom[ifit[i]].m;
+                    w_rls[indexGroup[i]] = atoms->atom[indexGroup[i]].m;
                 }
                 else
                 {
-                    w_rls[ifit[i]] = 1.0;
+                    w_rls[indexGroup[i]] = 1.0;
                 }
             }
 
@@ -1340,27 +1341,27 @@ int gmx_anaeig(int argc, char* argv[])
             if (xref1 != nullptr)
             {
                 /* Safety check between selected fit-group and reference structure read from the eigenvector file */
-                if (natoms != nfit)
+                if (natoms != indexGroupSize)
                 {
                     gmx_fatal(FARGS,
                               "you selected a group with %d elements instead of %d, your selection "
                               "does not fit the reference structure in the eigenvector file.",
-                              nfit,
+                              indexGroupSize,
                               natoms);
                 }
-                for (i = 0; (i < nfit); i++)
+                for (i = 0; (i < indexGroupSize); i++)
                 {
-                    copy_rvec(xref1[i], xrefp[ifit[i]]);
+                    copy_rvec(xref1[i], xrefp[indexGroup[i]]);
                 }
             }
             else
             {
                 /* The top coordinates are the fitting reference */
-                for (i = 0; (i < nfit); i++)
+                for (i = 0; (i < indexGroupSize); i++)
                 {
-                    copy_rvec(xtop[ifit[i]], xrefp[ifit[i]]);
+                    copy_rvec(xtop[indexGroup[i]], xrefp[indexGroup[i]]);
                 }
-                reset_x(nfit, ifit, atoms->nr, nullptr, xrefp, w_rls);
+                reset_x(indexGroupSize, indexGroup.data(), atoms->nr, nullptr, xrefp, w_rls);
             }
         }
         gmx_rmpbc_done(gpbc);
@@ -1369,7 +1370,7 @@ int gmx_anaeig(int argc, char* argv[])
     if (bIndex)
     {
         printf("\nSelect an index group of %d elements that corresponds to the eigenvectors\n", natoms);
-        get_index(atoms, indexfile, 1, &i, &index, &grpname);
+        singleIndexWithName = getSingleIndexGroup(atoms, indexfile);
         if (i != natoms)
         {
             gmx_fatal(FARGS, "you selected a group with %d elements instead of %d", i, natoms);
@@ -1530,8 +1531,7 @@ int gmx_anaeig(int argc, char* argv[])
                 index,
                 bFit1,
                 xrefp,
-                nfit,
-                ifit,
+                singleIndexWithName.indexGroupEntries,
                 w_rls,
                 sqrtm,
                 xav1,

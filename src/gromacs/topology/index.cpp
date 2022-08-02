@@ -981,6 +981,23 @@ void get_index(const t_atoms* atoms, const char* fnm, int ngrps, int isize[], in
     sfree(grps);
 }
 
+SingleIndexWithName getSingleIndexGroup(const t_atoms* atoms, const char* fnm)
+{
+    char*     groupName  = nullptr;
+    int       groupSize  = 0;
+    const int numGroups  = 1;
+    int**     indexGroup = nullptr;
+    get_index(atoms, fnm, numGroups, &groupSize, indexGroup, &groupName);
+    SingleIndexWithName index;
+    index.indexGroupEntries.reserve(groupSize);
+    index.indexGroupName = groupName;
+    for (int i = 0; i < groupSize; ++i)
+    {
+        index.indexGroupEntries.emplace_back(indexGroup[0][i]);
+    }
+    return index;
+}
+
 t_cluster_ndx cluster_index(FILE* fplog, const char* ndx)
 {
     t_cluster_ndx c;
