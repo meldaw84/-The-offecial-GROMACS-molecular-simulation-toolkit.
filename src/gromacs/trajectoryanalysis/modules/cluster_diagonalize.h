@@ -56,12 +56,8 @@ class MDLogger;
 class ClusterDiagonalize : public ICluster
 {
 public:
-    explicit ClusterDiagonalize(const t_mat* inputMatrix, real rmsdCutOff, int numStructures, const MDLogger& logger) :
-        finished_(false),
-        rmsdCutOff_(rmsdCutOff),
-        numStructures_(numStructures),
-        matrix_(inputMatrix),
-        logger_(logger)
+    explicit ClusterDiagonalize(const t_mat* inputMatrix, int numStructures) :
+        finished_(false), numStructures_(numStructures), matrix_(inputMatrix)
     {
         makeClusters();
     }
@@ -77,16 +73,12 @@ private:
     void makeClusters();
     //! Did we peform the clustering?
     bool finished_;
-    //! Value for RMSD cutoff.
-    const real rmsdCutOff_;
     //! Number of input structures.
     const int numStructures_;
     //! Handle to cluster matrix.
     const t_mat* matrix_;
     //! Matrix eigenvalues
     std::vector<real> eigenvalues_;
-    //! Logger handle
-    const MDLogger& logger_;
 };
 
 } // namespace gmx

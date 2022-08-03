@@ -57,18 +57,14 @@ class ClusterMonteCarlo : public ICluster
 {
 public:
     explicit ClusterMonteCarlo(t_mat*               inputMatrix,
-                               real                 rmsdCutOff,
                                real                 kT,
-                               int                  numInputs,
                                int                  seed,
                                int                  maxIterations,
                                int                  randomIterations,
                                const MDLogger&      logger,
                                ArrayRef<const real> time) :
         finished_(false),
-        rmsdCutOff_(rmsdCutOff),
         kT_(kT),
-        numInputs_(numInputs),
         seed_(seed),
         maxIterations_(maxIterations),
         randomIterations_(randomIterations),
@@ -87,12 +83,8 @@ private:
     void makeClusters();
     //! Did we perform the clustering?
     bool finished_;
-    //! Value for RMSD cutoff.
-    const real rmsdCutOff_;
     //! Boltzmann weigthing.
     const real kT_;
-    //! Number of inputs.
-    const int numInputs_;
     //! Random seed for monte carlo.
     const int seed_;
     //! Maximum number of MC steps.

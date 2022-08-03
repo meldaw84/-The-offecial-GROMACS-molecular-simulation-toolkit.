@@ -56,17 +56,15 @@ class MDLogger;
 class ClusterJarvisPatrick : public ICluster
 {
 public:
-    explicit ClusterJarvisPatrick(const t_mat*    inputMatrix,
-                                  real            rmsdCutOff,
-                                  int             numNearestNeighbors,
-                                  int             numIdenticalNeighbors,
-                                  const MDLogger& logger) :
+    explicit ClusterJarvisPatrick(const t_mat* inputMatrix,
+                                  real         rmsdCutOff,
+                                  int          numNearestNeighbors,
+                                  int          numIdenticalNeighbors) :
         finished_(false),
         rmsdCutOff_(rmsdCutOff),
         numNearestNeighbors_(numNearestNeighbors),
         numIdenticalNeighbors_(numIdenticalNeighbors),
-        matrix_(inputMatrix),
-        logger_(logger)
+        matrix_(inputMatrix)
     {
         makeClusters();
     }
@@ -89,8 +87,6 @@ private:
     const t_mat* matrix_;
     //! Cluster indices
     std::vector<int> clusters_;
-    //! Logger handle
-    const MDLogger& logger_;
 };
 
 } // namespace gmx

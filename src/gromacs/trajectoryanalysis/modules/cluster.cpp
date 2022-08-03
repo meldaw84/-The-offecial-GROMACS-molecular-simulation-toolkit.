@@ -1028,14 +1028,11 @@ void Cluster::finishAnalysis(int nframes)
                     clusterMatrixHandle_, rmsdCutoff_, nframes, logger);
             break;
         case ClusterMethods::Diagonalization:
-            clusterMethod_ = std::make_unique<ClusterDiagonalize>(
-                    clusterMatrixHandle_, rmsdCutoff_, nframes, logger);
+            clusterMethod_ = std::make_unique<ClusterDiagonalize>(clusterMatrixHandle_, nframes);
             break;
         case ClusterMethods::MonteCarlo:
             clusterMethod_ = std::make_unique<ClusterMonteCarlo>(clusterMatrixHandle_,
-                                                                 rmsdCutoff_,
                                                                  kT_,
-                                                                 nframes,
                                                                  randomNumberSeed_,
                                                                  maxMCIterations_,
                                                                  numRandomMCSteps_,
@@ -1046,8 +1043,7 @@ void Cluster::finishAnalysis(int nframes)
             clusterMethod_ = std::make_unique<ClusterJarvisPatrick>(clusterMatrixHandle_,
                                                                     rmsdCutoff_,
                                                                     numJarvisPatrickNearestNeighbors_,
-                                                                    numNearestNeighborsForCluster_,
-                                                                    logger);
+                                                                    numNearestNeighborsForCluster_);
             break;
         case ClusterMethods::Gromos:
             clusterMethod_ =
