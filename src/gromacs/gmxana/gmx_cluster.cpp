@@ -1433,7 +1433,7 @@ int gmx_cluster(int argc, char* argv[])
         init_t_atoms(&useatoms, indexSize, FALSE);
         snew(usextps, indexSize);
         useatoms.resinfo = top.atoms.resinfo;
-        for (i = 0; i < indexSize; i++)
+        for (i = 0; i < gmx::ssize(index); i++)
         {
             useatoms.atomname[i]    = top.atoms.atomname[index[i]];
             useatoms.atom[i].resind = top.atoms.atom[index[i]].resind;
