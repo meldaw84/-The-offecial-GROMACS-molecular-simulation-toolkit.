@@ -43,6 +43,7 @@
 #include <cstring>
 
 #include "gromacs/commandline/filenm.h"
+#include "gromacs/domdec/domdec.h"
 #include "gromacs/mdtypes/commrec.h"
 #include "gromacs/utility/basenetwork.h"
 #include "gromacs/utility/cstringutil.h"
@@ -52,8 +53,6 @@
 #include "gromacs/utility/gmxmpi.h"
 #include "gromacs/utility/real.h"
 #include "gromacs/utility/smalloc.h"
-
-void done_domdec(gmx_domdec_t* dd);
 
 /* The source code in this file should be thread-safe.
       Please keep it that way. */
