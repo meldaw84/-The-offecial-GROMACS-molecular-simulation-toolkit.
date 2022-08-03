@@ -1433,6 +1433,8 @@ int gmx_cluster(int argc, char* argv[])
         init_t_atoms(&useatoms, indexSize, FALSE);
         snew(usextps, indexSize);
         useatoms.resinfo = top.atoms.resinfo;
+        GMX_RELEASE_ASSERT(xtps || index.empty(),
+                           "Need to have valid coordinates when writing atoms");
         for (i = 0; i < gmx::ssize(index); i++)
         {
             useatoms.atomname[i]    = top.atoms.atomname[index[i]];
