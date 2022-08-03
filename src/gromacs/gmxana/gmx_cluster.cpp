@@ -888,7 +888,7 @@ int gmx_cluster(int argc, char* argv[])
 
     matrix      box;
     matrix*     boxes = nullptr;
-    rvec *      xtps, *usextps, *x1, **xx = nullptr;
+    rvec *      xtps = nullptr, *usextps = nullptr, *x1 = nullptr, **xx = nullptr;
     const char *fn, *trx_out_fn;
     t_clusters  clust;
     t_mat *     rms, *orig = nullptr;
