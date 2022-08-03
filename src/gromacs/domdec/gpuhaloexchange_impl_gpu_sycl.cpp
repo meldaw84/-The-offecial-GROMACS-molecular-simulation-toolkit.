@@ -163,7 +163,7 @@ void GpuHaloExchange::Impl::launchPackXKernel(const matrix box)
     // performed a DD partition, or have updated the box e.g. when
     // performing pressure coupling. So, for simplicity, the box
     // is used every step to pass the shift vector as an argument of
-    // the packing kernel.
+    // the packing kernel, even when PBC is not in use.
     const int    boxDimensionIndex = dd_->dim[dimIndex_];
     const Float3 coordinateShift{ box[boxDimensionIndex][XX],
                                   box[boxDimensionIndex][YY],
