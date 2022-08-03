@@ -44,11 +44,46 @@
 
 #include "gromacs/gpu_utils/device_context.h"
 #include "gromacs/gpu_utils/device_stream.h"
+#include "gromacs/utility/exceptions.h"
 
-static sycl::property_list makeQueuePropertyList(bool inOrder, bool enableProfiling)
+#if GMX_SYCL_HIPSYCL
+static int getHighestStreamPriority()
 {
+    int highestPriority;
+#    if GMX_HIPSYCL_HAVE_CUDA_TARGET
+    auto stat = cudaDeviceGetStreamPriorityRange(nullptr, &highestPriority);
+    if (stat != cudaSuccess)
+    {
+        GMX_THROW(gmx::InternalError("Could not query CUDA stream priority range."));
+    }
+#    elif GMX_HIPSYCL_HAVE_HIP_TARGET
+    auto stat = hipDeviceGetStreamPriorityRange(nullptr, &highestPriority);
+    if (stat != hipSuccess)
+    {
+        GMX_THROW(gmx::InternalError("Could not query HIP stream priority range."));
+    }
+#    else
+    GMX_THROW(gmx::InternalError("Cannot get stream priority in the current SYCL build"));
+#    endif
+    return highestPriority;
+}
+#endif
+
+static sycl::property_list makeQueuePropertyList(bool                            inOrder,
+                                                 bool                            enableProfiling,
+                                                 DeviceStreamPriority gmx_unused priority)
+{
+    // Priorities are only supported in hipSYCL with sycl::property::queue::hipSYCL_priority
     if (enableProfiling && inOrder)
     {
+#if GMX_SYCL_HIPSYCL
+        if (priority == DeviceStreamPriority::High)
+        {
+            return { sycl::property::queue::in_order(),
+                     sycl::property::queue::enable_profiling(),
+                     sycl::property::queue::hipSYCL_priority(getHighestStreamPriority()) };
+        }
+#endif
         return { sycl::property::queue::in_order(), sycl::property::queue::enable_profiling() };
     }
     else if (enableProfiling && !inOrder)
@@ -57,6 +92,13 @@ static sycl::property_list makeQueuePropertyList(bool inOrder, bool enableProfil
     }
     else if (!enableProfiling && inOrder)
     {
+#if GMX_SYCL_HIPSYCL
+        if (priority == DeviceStreamPriority::High)
+        {
+            return { sycl::property::queue::in_order(),
+                     sycl::property::queue::hipSYCL_priority(getHighestStreamPriority()) };
+        }
+#endif
         return { sycl::property::queue::in_order() };
     }
     else
@@ -65,9 +107,7 @@ static sycl::property_list makeQueuePropertyList(bool inOrder, bool enableProfil
     }
 }
 
-DeviceStream::DeviceStream(const DeviceContext& deviceContext,
-                           DeviceStreamPriority /* priority */,
-                           const bool useTiming)
+DeviceStream::DeviceStream(const DeviceContext& deviceContext, DeviceStreamPriority priority, const bool useTiming)
 {
     const std::vector<sycl::device> devicesInContext = deviceContext.context().get_devices();
     // The context is constructed to have exactly one device
@@ -80,7 +120,8 @@ DeviceStream::DeviceStream(const DeviceContext& deviceContext,
         enableProfiling                 = deviceSupportsTiming;
     }
     const bool inOrder = (GMX_SYCL_USE_USM != 0);
-    stream_ = sycl::queue(deviceContext.context(), device, makeQueuePropertyList(inOrder, enableProfiling));
+    stream_            = sycl::queue(
+            deviceContext.context(), device, makeQueuePropertyList(inOrder, enableProfiling, priority));
 }
 
 DeviceStream::~DeviceStream()
