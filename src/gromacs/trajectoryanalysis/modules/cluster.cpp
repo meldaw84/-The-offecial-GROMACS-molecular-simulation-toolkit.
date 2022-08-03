@@ -83,8 +83,10 @@
 #include "gromacs/trajectoryanalysis/modules/cluster_monte_carlo.h"
 #include "gromacs/trajectoryanalysis/topologyinformation.h"
 #include "gromacs/utility/filestream.h"
+#include "gromacs/utility/logger.h"
 #include "gromacs/utility/loggerbuilder.h"
 #include "gromacs/utility/path.h"
+#include "gromacs/utility/stringutil.h"
 
 namespace gmx
 {
@@ -493,6 +495,7 @@ class Cluster : public TrajectoryAnalysisModule
 public:
     Cluster();
 
+    ~Cluster() override;
     void initOptions(IOptionsContainer* options, TrajectoryAnalysisSettings* settings) override;
     void optionsFinished(TrajectoryAnalysisSettings* settings) override;
     void initAnalysis(const TrajectoryAnalysisSettings& settings, const TopologyInformation& top) override;
@@ -556,6 +559,7 @@ private:
     std::vector<RVec>               referenceCoordinates_;
     std::unique_ptr<LoggerOwner>    loggerOwner_;
     std::unique_ptr<ICluster>       clusterMethod_;
+    FILE*                           logFile_ = nullptr;
 
     t_mat* clusterMatrixHandle_ = nullptr;
 
@@ -577,6 +581,10 @@ Cluster::Cluster()
     loggerOwner_ = std::make_unique<LoggerOwner>(builder.build());
 }
 
+Cluster::~Cluster()
+{
+    fclose(logFile_);
+}
 
 void Cluster::initOptions(IOptionsContainer* options, TrajectoryAnalysisSettings* settings)
 {
@@ -850,6 +858,16 @@ void Cluster::optionsFinished(TrajectoryAnalysisSettings* settings)
     settings->setFrameFlags(frameFlags);
     settings->setFlag(TrajectoryAnalysisSettings::efRequireTop);
     settings->setFlag(TrajectoryAnalysisSettings::efUseTopX);
+
+    LoggerBuilder builder;
+    builder.addTargetStream(gmx::MDLogger::LogLevel::Info, &gmx::TextOutputFile::standardOutput());
+    if (!logFileName_.empty())
+    {
+        logFile_ = fopen(logFileName_.c_str(), "w");
+        builder.addTargetFile(gmx::MDLogger::LogLevel::Info, logFile_);
+    }
+    builder.addTargetStream(gmx::MDLogger::LogLevel::Warning, &gmx::TextOutputFile::standardError());
+    loggerOwner_ = std::make_unique<LoggerOwner>(builder.build());
 
     const MDLogger& logger = loggerOwner_->logger();
     if (method_ == ClusterMethods::JarvisPatrick)
@@ -1249,7 +1267,7 @@ void Cluster::writeOutput()
                 {
                     fprintf(clusterMappingFile, "[Cluster_%04d]\n", i);
                 }
-                real   clusterRmsd      = 0;
+                real   clusterRmsdValue = 0;
                 int    midStructure     = 0;
                 real   midStructureRmsd = 10000;
                 t_mat* matrix           = clusterMatrixHandle_;
@@ -1276,9 +1294,37 @@ void Cluster::writeOutput()
                         midStructure     = structure[i1];
                         midStructureRmsd = r;
                     }
-                    clusterRmsd += r;
+                    clusterRmsdValue += r;
                 }
-                clusterRmsd /= nstr;
+                clusterRmsdValue /= nstr;
+                /* dump cluster info to logfile */
+                std::string buf1;
+                std::string buf2;
+                if (nstr > 1)
+                {
+                    buf1 = gmx::formatString("%6.3f", clusterRmsdValue);
+                    if (buf1[0] == '0')
+                    {
+                        buf1[0] = ' ';
+                    }
+                    buf2 = gmx::formatString("%5.3f", midStructureRmsd);
+                    if (buf2[0] == '0')
+                    {
+                        buf2[0] = ' ';
+                    }
+                }
+                else
+                {
+                    buf1 = gmx::formatString("%5s", "");
+                    buf2 = gmx::formatString("%5s", "");
+                }
+                GMX_LOG(logger.info)
+                        .appendTextFormatted("%3d | %3d %s | %6g%s |",
+                                             i,
+                                             nstr,
+                                             buf1.c_str(),
+                                             frameData_.times[midStructure],
+                                             buf2.c_str());
                 if (writeClusterMappingFile_)
                 {
                     for (int str = 0; str < nstr; ++str)
