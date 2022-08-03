@@ -49,6 +49,7 @@
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
 #include "gromacs/trajectory/trajectoryframe.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/fatalerror.h"
@@ -58,38 +59,37 @@
 constexpr double EPSI0 = (gmx::c_epsilon0 * gmx::c_electronCharge * gmx::c_electronCharge * gmx::c_avogadro
                           / (gmx::c_kilo * gmx::c_nano)); /* c_epsilon0 in SI units */
 
-static void index_atom2mol(int* n, int* index, t_block* mols)
+static void index_atom2mol(std::vector<int>* index, t_block* mols)
 {
-    int nat, i, nmol, mol, j;
+    int i, nmol, mol, j;
 
-    nat  = *n;
-    i    = 0;
-    nmol = 0;
-    mol  = 0;
+    int nat = index->size();
+    i       = 0;
+    nmol    = 0;
+    mol     = 0;
     while (i < nat)
     {
-        while (index[i] > mols->index[mol])
+        while ((*index)[i] > mols->index[mol])
         {
             mol++;
             if (mol >= mols->nr)
             {
-                gmx_fatal(FARGS, "Atom index out of range: %d", index[i] + 1);
+                gmx_fatal(FARGS, "Atom index out of range: %d", (*index)[i] + 1);
             }
         }
         for (j = mols->index[mol]; j < mols->index[mol + 1]; j++)
         {
-            if (i >= nat || index[i] != j)
+            if (i >= nat || (*index)[i] != j)
             {
                 gmx_fatal(FARGS, "The index group does not consist of whole molecules");
             }
             i++;
         }
-        index[nmol++] = mol;
+        (*index)[nmol++] = mol;
     }
 
     fprintf(stderr, "\nSplit group of %d atoms into %d molecules\n", nat, nmol);
-
-    *n = nmol;
+    index->resize(nmol);
 }
 
 static gmx_bool precalc(t_topology top, real mass2[], real qmol[])
@@ -846,21 +846,15 @@ int gmx_current(int argc, char* argv[])
 
     gmx_output_env_t* oenv;
     t_topology        top;
-    char**            grpname = nullptr;
     const char*       indexfn;
     t_trxframe        fr;
     real*             mass2 = nullptr;
     matrix            box;
-    int*              index0;
-    int*              indexm = nullptr;
-    int               isize;
     t_trxstatus*      status;
     int               flags = 0;
     gmx_bool          bACF;
     gmx_bool          bINT;
     PbcType           pbcType = PbcType::Unset;
-    int               nmols;
-    int               i;
     real*             qmol;
     FILE*             outf   = nullptr;
     FILE*             mcor   = nullptr;
@@ -947,9 +941,10 @@ int gmx_current(int argc, char* argv[])
     read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, nullptr, nullptr, box, TRUE);
 
     indexfn = ftp2fn_null(efNDX, NFILE, fnm);
-    snew(grpname, 1);
 
-    get_index(&(top.atoms), indexfn, 1, &isize, &index0, grpname);
+    auto                     indexWithName = getSingleIndexGroup(&(top.atoms), indexfn);
+    gmx::ArrayRef<const int> index         = indexWithName.indexGroupEntries;
+    const int                indexSize     = index.size();
 
     flags = flags | TRX_READ_X | TRX_READ_V;
 
@@ -961,17 +956,8 @@ int gmx_current(int argc, char* argv[])
     precalc(top, mass2, qmol);
 
 
-    snew(indexm, isize);
-
-    for (i = 0; i < isize; i++)
-    {
-        indexm[i] = index0[i];
-    }
-
-    nmols = isize;
-
-
-    index_atom2mol(&nmols, indexm, &top.mols);
+    auto indexm = indexWithName.indexGroupEntries;
+    index_atom2mol(&indexm, &top.mols);
 
     if (fr.bV)
     {
@@ -1043,11 +1029,11 @@ int gmx_current(int argc, char* argv[])
                bvit,
                evit,
                status,
-               isize,
-               nmols,
+               indexSize,
+               indexm.size(),
                nshift,
-               index0,
-               indexm,
+               index.data(),
+               indexm.data(),
                mass2,
                qmol,
                eps_rf,

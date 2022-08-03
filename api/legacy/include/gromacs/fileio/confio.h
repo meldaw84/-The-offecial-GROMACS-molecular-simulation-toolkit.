@@ -54,7 +54,7 @@ void write_sto_conf_indexed(const char*    outfile,
                             PbcType        pbcType,
                             const matrix   box,
                             int            nindex,
-                            int            index[]);
+                            const int      index[]);
 /* like write_sto_conf, but indexed */
 
 void write_sto_conf(const char*    outfile,

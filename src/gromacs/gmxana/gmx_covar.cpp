@@ -164,9 +164,8 @@ int gmx_covar(int argc, char* argv[])
     const char *      fitfile, *trxfile, *ndxfile;
     const char *      eigvalfile, *eigvecfile, *averfile, *logfile;
     const char *      asciifile, *xpmfile, *xpmafile;
-    char              str[STRLEN], *fitname, *ananame;
-    int               d, dj, nfit;
-    int *             index, *ifit;
+    char              str[STRLEN];
+    int               d, dj, nfit = 0;
     gmx_bool          bDiffMass1, bDiffMass2;
     t_rgb             rlo, rmi, rhi;
     real*             eigenvectors;
@@ -204,24 +203,25 @@ int gmx_covar(int argc, char* argv[])
     read_tps_conf(fitfile, &top, &pbcType, &xref, nullptr, box, TRUE);
     atoms = &top.atoms;
 
+    SingleIndexWithName fitIndexWithName;
     if (bFit)
     {
         printf("\nChoose a group for the least squares fit\n");
-        get_index(atoms, ndxfile, 1, &nfit, &ifit, &fitname);
+        fitIndexWithName = getSingleIndexGroup(atoms, ndxfile);
+        nfit             = fitIndexWithName.indexGroupEntries.size();
         // Make sure that we never attempt to access a coordinate out of range
-        gmx::throwErrorIfIndexOutOfBounds({ ifit, ifit + nfit }, atoms->nr, "fitting");
+        gmx::throwErrorIfIndexOutOfBounds(fitIndexWithName.indexGroupEntries, atoms->nr, "fitting");
         if (nfit < 3)
         {
             gmx_fatal(FARGS, "Need >= 3 points to fit!\n");
         }
     }
-    else
-    {
-        nfit = 0;
-    }
+    gmx::ArrayRef<const int> fitIndex = fitIndexWithName.indexGroupEntries;
     printf("\nChoose a group for the covariance analysis\n");
-    get_index(atoms, ndxfile, 1, &natoms, &index, &ananame);
-    gmx::throwErrorIfIndexOutOfBounds({ index, index + natoms }, atoms->nr, "analysis");
+    SingleIndexWithName      anaIndexWithName = getSingleIndexGroup(atoms, ndxfile);
+    gmx::ArrayRef<const int> anaIndex         = anaIndexWithName.indexGroupEntries;
+    natoms                                    = anaIndex.size();
+    gmx::throwErrorIfIndexOutOfBounds(anaIndexWithName.indexGroupEntries, atoms->nr, "analysis");
 
     bDiffMass1 = FALSE;
     if (bFit)
@@ -229,10 +229,10 @@ int gmx_covar(int argc, char* argv[])
         snew(w_rls, atoms->nr);
         for (i = 0; (i < nfit); i++)
         {
-            w_rls[ifit[i]] = atoms->atom[ifit[i]].m;
+            w_rls[fitIndex[i]] = atoms->atom[fitIndex[i]].m;
             if (i)
             {
-                bDiffMass1 = bDiffMass1 || (w_rls[ifit[i]] != w_rls[ifit[i - 1]]);
+                bDiffMass1 = bDiffMass1 || (w_rls[fitIndex[i]] != w_rls[fitIndex[i - 1]]);
             }
         }
     }
@@ -242,7 +242,7 @@ int gmx_covar(int argc, char* argv[])
     {
         if (bM)
         {
-            sqrtm[i] = std::sqrt(atoms->atom[index[i]].m);
+            sqrtm[i] = std::sqrt(atoms->atom[anaIndex[i]].m);
             if (i)
             {
                 bDiffMass2 = bDiffMass2 || (sqrtm[i] != sqrtm[i - 1]);
@@ -259,7 +259,7 @@ int gmx_covar(int argc, char* argv[])
         bDiffMass1 = natoms != nfit;
         for (i = 0; (i < natoms) && !bDiffMass1; i++)
         {
-            bDiffMass1 = index[i] != ifit[i];
+            bDiffMass1 = anaIndex[i] != fitIndex[i];
         }
         if (!bDiffMass1)
         {
@@ -270,7 +270,7 @@ int gmx_covar(int argc, char* argv[])
                     "      Making the fit non mass weighted.\n\n");
             for (i = 0; (i < nfit); i++)
             {
-                w_rls[ifit[i]] = 1.0;
+                w_rls[fitIndex[i]] = 1.0;
             }
         }
     }
@@ -287,7 +287,7 @@ int gmx_covar(int argc, char* argv[])
     }
     if (bFit)
     {
-        reset_x(nfit, ifit, atoms->nr, nullptr, xref, w_rls);
+        reset_x(nfit, fitIndex.data(), atoms->nr, nullptr, xref, w_rls);
     }
 
     snew(x, natoms);
@@ -310,8 +310,8 @@ int gmx_covar(int argc, char* argv[])
                 natoms,
                 nat);
     }
-    gmx::throwErrorIfIndexOutOfBounds({ ifit, ifit + nfit }, nat, "fitting");
-    gmx::throwErrorIfIndexOutOfBounds({ index, index + natoms }, nat, "analysis");
+    gmx::throwErrorIfIndexOutOfBounds(fitIndex, nat, "fitting");
+    gmx::throwErrorIfIndexOutOfBounds(anaIndex, nat, "analysis");
 
     do
     {
@@ -327,12 +327,12 @@ int gmx_covar(int argc, char* argv[])
         }
         if (bFit)
         {
-            reset_x(nfit, ifit, nat, nullptr, xread, w_rls);
+            reset_x(nfit, fitIndex.data(), nat, nullptr, xread, w_rls);
             do_fit(nat, w_rls, xref, xread);
         }
         for (i = 0; i < natoms; i++)
         {
-            rvec_inc(xav[i], xread[index[i]]);
+            rvec_inc(xav[i], xread[anaIndex[i]]);
         }
     } while (read_next_x(oenv, status, &t, xread, box));
     close_trx(status);
@@ -343,11 +343,18 @@ int gmx_covar(int argc, char* argv[])
         for (d = 0; d < DIM; d++)
         {
             xav[i][d] *= inv_nframes;
-            xread[index[i]][d] = xav[i][d];
+            xread[anaIndex[i]][d] = xav[i][d];
         }
     }
-    write_sto_conf_indexed(
-            opt2fn("-av", NFILE, fnm), "Average structure", atoms, xread, nullptr, PbcType::No, zerobox, natoms, index);
+    write_sto_conf_indexed(opt2fn("-av", NFILE, fnm),
+                           "Average structure",
+                           atoms,
+                           xread,
+                           nullptr,
+                           PbcType::No,
+                           zerobox,
+                           natoms,
+                           anaIndex.data());
     sfree(xread);
 
     fprintf(stderr,
@@ -368,21 +375,21 @@ int gmx_covar(int argc, char* argv[])
         }
         if (bFit)
         {
-            reset_x(nfit, ifit, nat, nullptr, xread, w_rls);
+            reset_x(nfit, fitIndex.data(), nat, nullptr, xread, w_rls);
             do_fit(nat, w_rls, xref, xread);
         }
         if (bRef)
         {
             for (i = 0; i < natoms; i++)
             {
-                rvec_sub(xread[index[i]], xref[index[i]], x[i]);
+                rvec_sub(xread[anaIndex[i]], xref[anaIndex[i]], x[i]);
             }
         }
         else
         {
             for (i = 0; i < natoms; i++)
             {
-                rvec_sub(xread[index[i]], xav[i], x[i]);
+                rvec_sub(xread[anaIndex[i]], xav[i], x[i]);
             }
         }
 
@@ -414,7 +421,7 @@ int gmx_covar(int argc, char* argv[])
         snew(xproj, natoms);
         for (i = 0; i < natoms; i++)
         {
-            copy_rvec(xref[index[i]], xproj[i]);
+            copy_rvec(xref[anaIndex[i]], xproj[i]);
         }
     }
     else
@@ -659,7 +666,7 @@ int gmx_covar(int argc, char* argv[])
             WriteXref = eWXR_YES;
             for (i = 0; i < nfit; i++)
             {
-                copy_rvec(xref[ifit[i]], x[i]);
+                copy_rvec(xref[fitIndex[i]], x[i]);
             }
         }
         else
@@ -702,10 +709,10 @@ int gmx_covar(int argc, char* argv[])
     }
     fprintf(out, "\n");
 
-    fprintf(out, "Analysis group is '%s' (%d atoms)\n", ananame, natoms);
+    fprintf(out, "Analysis group is '%s' (%d atoms)\n", anaIndexWithName.indexGroupName.c_str(), natoms);
     if (bFit)
     {
-        fprintf(out, "Fit group is '%s' (%d atoms)\n", fitname, nfit);
+        fprintf(out, "Fit group is '%s' (%d atoms)\n", fitIndexWithName.indexGroupName.c_str(), nfit);
     }
     else
     {

@@ -987,6 +987,7 @@ SingleIndexWithName getSingleIndexGroup(const t_atoms* atoms, const char* fnm)
     int       groupSize  = 0;
     const int numGroups  = 1;
     int**     indexGroup = nullptr;
+    snew(indexGroup, 1);
     get_index(atoms, fnm, numGroups, &groupSize, indexGroup, &groupName);
     SingleIndexWithName index;
     index.indexGroupEntries.reserve(groupSize);
@@ -995,6 +996,9 @@ SingleIndexWithName getSingleIndexGroup(const t_atoms* atoms, const char* fnm)
     {
         index.indexGroupEntries.emplace_back(indexGroup[0][i]);
     }
+    sfree(indexGroup[0]);
+    sfree(indexGroup);
+    sfree(groupName);
     return index;
 }
 

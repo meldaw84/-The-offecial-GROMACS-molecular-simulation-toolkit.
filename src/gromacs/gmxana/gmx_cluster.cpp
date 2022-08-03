@@ -1133,10 +1133,9 @@ int gmx_cluster(int argc, char* argv[])
         gmx_fatal(FARGS, "skip (%d) should be >= 1", skip);
     }
 
+    std::vector<int> index;
     std::vector<int> outputIndex;
     std::vector<int> fitIndex;
-    std::vector<int> indexIntoFitIndex;
-    std::vector<int> indexIntoOutputIndex;
     /* get input */
     if (bReadTraj)
     {
@@ -1148,80 +1147,78 @@ int gmx_cluster(int argc, char* argv[])
         }
 
         fprintf(stderr, "\nSelect group for least squares fit%s:\n", bReadMat ? "" : " and RMSD calculation");
-        auto fitIndexWithName = getSingleIndexGroup(&(top.atoms), ftp2fn_null(efNDX, NFILE, fnm));
-        gmx::ArrayRef<const int> fitIndexGroup = fitIndexWithName.indexGroupEntries;
-        const int                fitIndexSize  = fitIndexGroup.size();
+        auto fitIndexWithName  = getSingleIndexGroup(&(top.atoms), ftp2fn_null(efNDX, NFILE, fnm));
+        fitIndex               = fitIndexWithName.indexGroupEntries;
+        const int fitIndexSize = fitIndex.size();
         if (trx_out_fn)
         {
             fprintf(stderr, "\nSelect group for output:\n");
             auto outputIndexWithName = getSingleIndexGroup(&(top.atoms), ftp2fn_null(efNDX, NFILE, fnm));
-            gmx::ArrayRef<const int> outputIndexGroup = outputIndexWithName.indexGroupEntries;
-            const int                outputIndexSize  = outputIndexGroup.size();
+            outputIndex              = outputIndexWithName.indexGroupEntries;
+            const int outputIndexSize = outputIndex.size();
             /* merge and convert both index groups: */
-            /* first copy outputIndexGroup to outputIndex. */
-            outputIndex.resize(outputIndexSize);
-            indexIntoOutputIndex.resize(outputIndexSize);
+            /* first copy outputIndex to index. */
+            index.resize(outputIndexSize);
             int isize = outputIndexSize;
             for (i = 0; i < outputIndexSize; i++)
             {
-                outputIndex[i]          = outputIndexGroup[i];
-                indexIntoOutputIndex[i] = i;
+                index[i]       = outputIndex[i];
+                outputIndex[i] = i;
             }
             /* now lookup elements from fitidx in index, add them if necessary
                and also let fitidx refer to elements in index */
-            indexIntoFitIndex.resize(fitIndexSize);
             for (i = 0; i < fitIndexSize; i++)
             {
                 j = 0;
-                while (j < isize && outputIndex[j] != fitIndexGroup[i])
+                while (j < isize && index[j] != fitIndex[i])
                 {
                     j++;
                 }
                 if (j >= isize)
                 {
                     /* slow this way, but doesn't matter much */
-                    outputIndex.resize(++isize);
+                    index.resize(++isize);
                 }
-                outputIndex[j]       = fitIndexGroup[i];
-                indexIntoFitIndex[j] = j;
+                index[j]    = fitIndex[i];
+                fitIndex[j] = j;
             }
         }
         else /* !trx_out_fn */
         {
             int isize = fitIndexSize;
-            outputIndex.resize(isize);
-            indexIntoFitIndex.resize(fitIndexSize);
+            index.resize(isize);
             for (i = 0; i < fitIndexSize; i++)
             {
-                outputIndex[i]       = fitIndexGroup[i];
-                indexIntoFitIndex[i] = i;
+                index[i]    = fitIndex[i];
+                fitIndex[i] = i;
             }
         }
     }
 
     const int outputIndexSize = outputIndex.size();
     const int fitIndexSize    = fitIndex.size();
+    const int indexSize       = index.size();
     if (bReadTraj)
     {
         /* Loop over first coordinate file */
         fn = opt2fn("-f", NFILE, fnm);
 
         xx = read_whole_trj(
-                fn, outputIndexSize, outputIndex.data(), skip, &nf, &time, &boxes, &frameindices, oenv, bPBC, gpbc);
+                fn, indexSize, index.data(), skip, &nf, &time, &boxes, &frameindices, oenv, bPBC, gpbc);
         output_env_conv_times(oenv, nf, time);
         if (!bRMSdist || bAnalyze)
         {
             /* Center all frames on zero */
-            snew(mass, outputIndexSize);
+            snew(mass, indexSize);
             for (i = 0; i < fitIndexSize; i++)
             {
-                mass[indexIntoFitIndex[i]] = top.atoms.atom[outputIndex[indexIntoFitIndex[i]]].m;
+                mass[fitIndex[i]] = top.atoms.atom[index[fitIndex[i]]].m;
             }
             if (bFit)
             {
                 for (i = 0; i < nf; i++)
                 {
-                    reset_x(fitIndexSize, indexIntoFitIndex.data(), outputIndexSize, nullptr, xx[i], mass);
+                    reset_x(fitIndexSize, fitIndex.data(), outputIndexSize, nullptr, xx[i], mass);
                 }
             }
         }
@@ -1273,20 +1270,20 @@ int gmx_cluster(int argc, char* argv[])
         {
             fprintf(stderr, "Computing %dx%d RMS deviation matrix\n", nf, nf);
             /* Initialize work array */
-            snew(x1, outputIndexSize);
+            snew(x1, indexSize);
             for (i1 = 0; i1 < nf; i1++)
             {
                 for (i2 = i1 + 1; i2 < nf; i2++)
                 {
-                    for (i = 0; i < outputIndexSize; i++)
+                    for (i = 0; i < indexSize; i++)
                     {
                         copy_rvec(xx[i1][i], x1[i]);
                     }
                     if (bFit)
                     {
-                        do_fit(outputIndexSize, mass, xx[i2], x1);
+                        do_fit(indexSize, mass, xx[i2], x1);
                     }
-                    rmsd = rmsdev(outputIndexSize, mass, xx[i2], x1);
+                    rmsd = rmsdev(indexSize, mass, xx[i2], x1);
                     set_mat_entry(rms, i1, i2, rmsd);
                 }
                 nrms -= nf - i1 - 1;
@@ -1303,20 +1300,20 @@ int gmx_cluster(int argc, char* argv[])
             fprintf(stderr, "Computing %dx%d RMS distance deviation matrix\n", nf, nf);
 
             /* Initiate work arrays */
-            snew(d1, outputIndexSize);
-            snew(d2, outputIndexSize);
-            for (i = 0; (i < outputIndexSize); i++)
+            snew(d1, indexSize);
+            snew(d2, indexSize);
+            for (i = 0; (i < indexSize); i++)
             {
-                snew(d1[i], outputIndexSize);
-                snew(d2[i], outputIndexSize);
+                snew(d1[i], indexSize);
+                snew(d2[i], indexSize);
             }
             for (i1 = 0; i1 < nf; i1++)
             {
-                calc_dist(outputIndexSize, xx[i1], d1);
+                calc_dist(indexSize, xx[i1], d1);
                 for (i2 = i1 + 1; (i2 < nf); i2++)
                 {
-                    calc_dist(outputIndexSize, xx[i2], d2);
-                    set_mat_entry(rms, i1, i2, rms_dist(outputIndexSize, d1, d2));
+                    calc_dist(indexSize, xx[i2], d2);
+                    set_mat_entry(rms, i1, i2, rms_dist(indexSize, d1, d2));
                 }
                 nrms -= nf - i1 - 1;
                 fprintf(stderr,
@@ -1326,7 +1323,7 @@ int gmx_cluster(int argc, char* argv[])
                 fflush(stderr);
             }
             /* Clean up work arrays */
-            for (i = 0; (i < outputIndexSize); i++)
+            for (i = 0; (i < indexSize); i++)
             {
                 sfree(d1[i]);
                 sfree(d2[i]);
@@ -1433,21 +1430,21 @@ int gmx_cluster(int argc, char* argv[])
         {
             mark_clusters(nf, rms->mat, rms->maxrms, &clust);
         }
-        init_t_atoms(&useatoms, outputIndexSize, FALSE);
-        snew(usextps, outputIndexSize);
+        init_t_atoms(&useatoms, indexSize, FALSE);
+        snew(usextps, indexSize);
         useatoms.resinfo = top.atoms.resinfo;
-        for (i = 0; i < outputIndexSize; i++)
+        for (i = 0; i < indexSize; i++)
         {
-            useatoms.atomname[i]    = top.atoms.atomname[outputIndex[i]];
-            useatoms.atom[i].resind = top.atoms.atom[outputIndex[i]].resind;
+            useatoms.atomname[i]    = top.atoms.atomname[index[i]];
+            useatoms.atom[i].resind = top.atoms.atom[index[i]].resind;
             useatoms.nres           = std::max(useatoms.nres, useatoms.atom[i].resind + 1);
-            copy_rvec(xtps[outputIndex[i]], usextps[i]);
+            copy_rvec(xtps[index[i]], usextps[i]);
         }
-        useatoms.nr = outputIndexSize;
+        useatoms.nr = indexSize;
         analyze_clusters(nf,
                          &clust,
                          rms->mat,
-                         outputIndexSize,
+                         indexSize,
                          &useatoms,
                          usextps,
                          mass,
@@ -1456,9 +1453,9 @@ int gmx_cluster(int argc, char* argv[])
                          boxes,
                          frameindices,
                          fitIndexSize,
-                         indexIntoFitIndex.data(),
+                         fitIndex.data(),
                          outputIndexSize,
-                         indexIntoOutputIndex.data(),
+                         outputIndex.data(),
                          bReadTraj ? trx_out_fn : nullptr,
                          opt2fn_null("-sz", NFILE, fnm),
                          opt2fn_null("-tr", NFILE, fnm),
