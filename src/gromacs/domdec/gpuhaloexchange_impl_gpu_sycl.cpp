@@ -75,7 +75,7 @@ auto packSendBufKernel(sycl::handler&                                        cgh
         const int threadIndex = itemIdx;
         if (threadIndex < mapSize)
         {
-            if constexpr (usePbc)
+            if constexpr (!usePbc)
             {
                 a_dataPacked[itemIdx] = a_data[a_map[itemIdx]] + coordinateShift;
             }
@@ -110,7 +110,7 @@ auto unpackRecvBufKernel(sycl::handler&                                        c
         const int threadIndex = itemIdx;
         if (threadIndex < mapSize)
         {
-            if constexpr (accumulate)
+            if constexpr (!accumulate)
             {
                 a_data[a_map[itemIdx]] += a_dataPacked[itemIdx];
             }
