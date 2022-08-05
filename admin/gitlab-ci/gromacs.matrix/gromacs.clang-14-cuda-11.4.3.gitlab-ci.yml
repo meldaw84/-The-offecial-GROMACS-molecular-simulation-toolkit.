@@ -27,7 +27,7 @@ gromacs:clang-14-cuda-11.4.3:configure:
     CMAKE_SIMD_OPTIONS: "-DGMX_USE_SIMD_KERNELS=off"
     CMAKE_EXTRA_OPTIONS: "-DGMX_CLANG_CUDA=ON"
     CMAKE_BUILD_TYPE_OPTIONS: "-DCMAKE_BUILD_TYPE=RelWithDebInfo"
-    COMPILER_MAJOR_VERSION: 12
+    COMPILER_MAJOR_VERSION: 14
 
 gromacs:clang-14-cuda-11.4.3:build:
   extends:
