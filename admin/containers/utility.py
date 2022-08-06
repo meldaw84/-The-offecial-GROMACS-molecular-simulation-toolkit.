@@ -144,7 +144,7 @@ parser.add_argument('--cp2k', type=str, nargs='?', const='8.2', default=None,
                     help='Add build environment for CP2K QM/MM support')
 
 # Supported Python versions for maintained branches.
-_python_versions = ['3.7.7', '3.8.2', '3.9.1']
+_python_versions = ['3.7.13', '3.10.5']
 parser.add_argument('--venvs', nargs='*', type=str, default=_python_versions,
                     help='List of Python versions ("major.minor.patch") for which to install venvs. (default: %(default)s)')
 

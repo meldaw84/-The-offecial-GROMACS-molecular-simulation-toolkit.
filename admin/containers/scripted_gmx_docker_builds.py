@@ -69,9 +69,9 @@ import argparse
 import collections
 import collections.abc
 import copy
+import packaging.version
 import shlex
 import typing
-from distutils.version import StrictVersion
 
 try:
     import utility
@@ -684,10 +684,10 @@ def add_intel_llvm_compiler_build_stage(input_args, output_stages: typing.Mappin
 
     output_stages['compiler_build'] = llvm_stage
 
-def prepare_venv(version: StrictVersion) -> typing.Sequence[str]:
+def prepare_venv(version: packaging.version.Version) -> typing.Sequence[str]:
     """Get shell commands to set up the venv for the requested Python version."""
-    major = version.version[0]
-    minor = version.version[1]  # type: int
+    major = version.major
+    minor = version.minor  # type: int
 
     pyenv = '$HOME/.pyenv/bin/pyenv'
 
@@ -701,9 +701,12 @@ def prepare_venv(version: StrictVersion) -> typing.Sequence[str]:
     # TODO: Get requirements.txt from an input argument.
     commands.append(f"""{venv_path}/bin/python -m pip install --upgrade \
             'breathe' \
+            'build' \
             'cmake>=3.16.3' \
             'flake8>=3.7.7' \
+            'furo' \
             'gcovr>=4.2' \
+            'importlib-resources;python_version<"3.10"' \
             'mpi4py>=3.0.3' \
             'networkx>=2.0' \
             'numpy>1.7' \
@@ -712,9 +715,12 @@ def prepare_venv(version: StrictVersion) -> typing.Sequence[str]:
             'pybind11>2.6' \
             'Pygments>=2.2.0' \
             'pytest>=4.6' \
-            'setuptools>=42' \
+            'setuptools>=61' \
             'Sphinx>=4.0' \
+            'sphinx-copybutton' \
+            'sphinx_inline_tabs' \
             'sphinxcontrib-plantuml>=0.14' \
+            'versioningit>=2' \
             'wheel'""")
     return commands
 
@@ -745,7 +751,7 @@ def add_python_stages(input_args: argparse.Namespace, *,
                                               _as='pyenv')
     pyenv_stage += hpccm.building_blocks.packages(ospackages=_python_extra_packages)
 
-    for version in [StrictVersion(py_ver) for py_ver in sorted(input_args.venvs)]:
+    for version in [packaging.version.parse(py_ver) for py_ver in sorted(input_args.venvs)]:
         stage_name = 'py' + str(version)
         stage = hpccm.Stage()
         stage += hpccm.primitives.baseimage(image=base,
