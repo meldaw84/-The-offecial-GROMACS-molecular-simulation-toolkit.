@@ -129,17 +129,16 @@ static int get_electrons(t_electron** eltab, const char* fn)
     return nr;
 }
 
-static void center_coords(t_atoms* atoms, const int* index_center, int ncenter, matrix box, rvec x0[])
+static void center_coords(t_atoms* atoms, gmx::ArrayRef<const int> centerIndex, matrix box, rvec x0[])
 {
-    int  i, k, m;
     real tmass, mm;
     rvec com, shift, box_center;
 
     tmass = 0;
     clear_rvec(com);
-    for (k = 0; (k < ncenter); k++)
+    for (int k = 0; (k < gmx::ssize(centerIndex)); k++)
     {
-        i = index_center[k];
+        int i = centerIndex[k];
         if (i >= atoms->nr)
         {
             gmx_fatal(FARGS,
@@ -150,12 +149,12 @@ static void center_coords(t_atoms* atoms, const int* index_center, int ncenter, 
         }
         mm = atoms->atom[i].m;
         tmass += mm;
-        for (m = 0; (m < DIM); m++)
+        for (int m = 0; (m < DIM); m++)
         {
             com[m] += mm * x0[i][m];
         }
     }
-    for (m = 0; (m < DIM); m++)
+    for (int m = 0; (m < DIM); m++)
     {
         com[m] /= tmass;
     }
@@ -163,28 +162,27 @@ static void center_coords(t_atoms* atoms, const int* index_center, int ncenter, 
     rvec_sub(com, box_center, shift);
 
     /* Important - while the center was calculated based on a group, we should move all atoms */
-    for (i = 0; (i < atoms->nr); i++)
+    for (int i = 0; (i < atoms->nr); i++)
     {
         rvec_dec(x0[i], shift);
     }
 }
 
-static void calc_electron_density(const char*             fn,
-                                  int**                   index,
-                                  const int               gnx[],
-                                  double***               slDensity,
-                                  int*                    nslices,
-                                  t_topology*             top,
-                                  PbcType                 pbcType,
-                                  int                     axis,
-                                  int                     nr_grps,
-                                  real*                   slWidth,
-                                  t_electron              eltab[],
-                                  int                     nr,
-                                  gmx_bool                bCenter,
-                                  int*                    index_center,
-                                  int                     ncenter,
-                                  const gmx_output_env_t* oenv)
+static void calc_electron_density(const char*              fn,
+                                  int**                    index,
+                                  const int                gnx[],
+                                  double***                slDensity,
+                                  int*                     nslices,
+                                  t_topology*              top,
+                                  PbcType                  pbcType,
+                                  int                      axis,
+                                  int                      nr_grps,
+                                  real*                    slWidth,
+                                  t_electron               eltab[],
+                                  int                      nr,
+                                  gmx_bool                 bCenter,
+                                  gmx::ArrayRef<const int> centerIndex,
+                                  const gmx_output_env_t*  oenv)
 {
     rvec*        x0;  /* coordinates without pbc */
     matrix       box; /* box (3x3) */
@@ -238,7 +236,7 @@ static void calc_electron_density(const char*             fn,
          */
         if (bCenter)
         {
-            center_coords(&top->atoms, index_center, ncenter, box, x0);
+            center_coords(&top->atoms, centerIndex, box, x0);
         }
 
         invvol = *nslices / (box[XX][XX] * box[YY][YY] * box[ZZ][ZZ]);
@@ -329,21 +327,20 @@ static void calc_electron_density(const char*             fn,
     sfree(x0); /* free memory used by coordinate array */
 }
 
-static void calc_density(const char*             fn,
-                         int**                   index,
-                         const int               gnx[],
-                         double***               slDensity,
-                         int*                    nslices,
-                         t_topology*             top,
-                         PbcType                 pbcType,
-                         int                     axis,
-                         int                     nr_grps,
-                         real*                   slWidth,
-                         gmx_bool                bCenter,
-                         int*                    index_center,
-                         int                     ncenter,
-                         const gmx_output_env_t* oenv,
-                         const char**            dens_opt)
+static void calc_density(const char*              fn,
+                         int**                    index,
+                         const int                gnx[],
+                         double***                slDensity,
+                         int*                     nslices,
+                         t_topology*              top,
+                         PbcType                  pbcType,
+                         int                      axis,
+                         int                      nr_grps,
+                         real*                    slWidth,
+                         gmx_bool                 bCenter,
+                         gmx::ArrayRef<const int> centerIndex,
+                         const gmx_output_env_t*  oenv,
+                         const char**             dens_opt)
 {
     rvec*        x0;  /* coordinates without pbc */
     matrix       box; /* box (3x3) */
@@ -419,7 +416,7 @@ static void calc_density(const char*             fn,
          */
         if (bCenter)
         {
-            center_coords(&top->atoms, index_center, ncenter, box, x0);
+            center_coords(&top->atoms, centerIndex, box, x0);
         }
 
         invvol = *nslices / (box[XX][XX] * box[YY][YY] * box[ZZ][ZZ]);
@@ -658,18 +655,15 @@ int gmx_density(int argc, char* argv[])
         "When calculating electron densities, atomnames are used instead of types. This is bad.",
     };
 
-    double**    density;        /* density per slice          */
-    real        slWidth;        /* width of one slice         */
-    char*       grpname_center; /* centering group name     */
-    char**      grpname;        /* groupnames                 */
-    int         nr_electrons;   /* nr. electrons              */
-    int         ncenter;        /* size of centering group    */
-    int*        ngx;            /* sizes of groups            */
-    t_electron* el_tab;         /* tabel with nr. of electrons*/
-    t_topology* top;            /* topology               */
+    double**    density;      /* density per slice          */
+    real        slWidth;      /* width of one slice         */
+    char**      grpname;      /* groupnames                 */
+    int         nr_electrons; /* nr. electrons              */
+    int*        ngx;          /* sizes of groups            */
+    t_electron* el_tab;       /* tabel with nr. of electrons*/
+    t_topology* top;          /* topology               */
     PbcType     pbcType;
-    int*        index_center; /* index for centering group  */
-    int**       index;        /* indices for all groups     */
+    int**       index; /* indices for all groups     */
 
     t_filenm fnm[] = {
         /* files for g_density       */
@@ -704,6 +698,8 @@ int gmx_density(int argc, char* argv[])
     snew(index, ngrps);
     snew(ngx, ngrps);
 
+    SingleIndexWithName indexWithName;
+
     if (bCenter)
     {
         fprintf(stderr,
@@ -711,13 +707,9 @@ int gmx_density(int argc, char* argv[])
                 "any special periodicity. If necessary, it is your responsibility to first use\n"
                 "trjconv to make sure atoms in this group are placed in the right periodicity.\n\n"
                 "Select the group to center density profiles around:\n");
-        get_index(&top->atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &ncenter, &index_center, &grpname_center);
+        indexWithName = getSingleIndexGroup(&top->atoms, ftp2fn_null(efNDX, NFILE, fnm));
     }
-    else
-    {
-        ncenter      = 0;
-        index_center = nullptr;
-    }
+    gmx::ArrayRef<int> centerIndex = indexWithName.indexGroupEntries;
 
     fprintf(stderr, "\nSelect %d group%s to calculate density for:\n", ngrps, (ngrps > 1) ? "s" : "");
     get_index(&top->atoms, ftp2fn_null(efNDX, NFILE, fnm), ngrps, ngx, index, grpname);
@@ -740,8 +732,7 @@ int gmx_density(int argc, char* argv[])
                               el_tab,
                               nr_electrons,
                               bCenter,
-                              index_center,
-                              ncenter,
+                              centerIndex,
                               oenv);
     }
     else
@@ -757,8 +748,7 @@ int gmx_density(int argc, char* argv[])
                      ngrps,
                      &slWidth,
                      bCenter,
-                     index_center,
-                     ncenter,
+                     centerIndex,
                      oenv,
                      dens_opt);
     }

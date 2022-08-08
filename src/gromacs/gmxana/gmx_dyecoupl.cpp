@@ -44,6 +44,7 @@
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/trajectory/trajectoryframe.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
@@ -95,9 +96,6 @@ int gmx_dyecoupl(int argc, char* argv[])
                              *out_xvgrhistfile = nullptr, *out_xvgkhistfile = nullptr,
                              *out_datfile = nullptr;
     gmx_bool     bHaveFirstFrame, bHaveNextFrame, indexOK = TRUE;
-    int          ndon, nacc;
-    int *        donindex, *accindex;
-    char*        grpnm;
     t_trxstatus* status;
     t_trxframe   fr;
 
@@ -171,19 +169,23 @@ int gmx_dyecoupl(int argc, char* argv[])
     }
 
     printf("Select group with donor atom pairs defining the transition moment\n");
-    get_index(nullptr, ftp2fn_null(efNDX, NFILE, fnm), 1, &ndon, &donindex, &grpnm);
+    auto donorIndexWithName       = getSingleIndexGroup(nullptr, ftp2fn_null(efNDX, NFILE, fnm));
+    gmx::ArrayRef<int> donorIndex = donorIndexWithName.indexGroupEntries;
+    const int          donorIndexSize = donorIndex.size();
 
     printf("Select group with acceptor atom pairs defining the transition moment\n");
-    get_index(nullptr, ftp2fn_null(efNDX, NFILE, fnm), 1, &nacc, &accindex, &grpnm);
+    auto acceptorIndexWithName       = getSingleIndexGroup(nullptr, ftp2fn_null(efNDX, NFILE, fnm));
+    gmx::ArrayRef<int> acceptorIndex = acceptorIndexWithName.indexGroupEntries;
+    const int          acceptorIndexSize = acceptorIndex.size();
 
     /*check if groups are identical*/
     grident = TRUE;
 
-    if (ndon == nacc)
+    if (donorIndexSize == acceptorIndexSize)
     {
-        for (i = 0; i < nacc; i++)
+        for (i = 0; i < acceptorIndexSize; i++)
         {
-            if (accindex[i] != donindex[i])
+            if (acceptorIndex[i] != donorIndex[i])
             {
                 grident = FALSE;
                 break;
@@ -206,22 +208,22 @@ int gmx_dyecoupl(int argc, char* argv[])
     {
         printf("First frame is OK\n");
         natoms = fr.natoms;
-        if ((ndon % 2 != 0) || (nacc % 2 != 0))
+        if ((donorIndexSize % 2 != 0) || (acceptorIndexSize % 2 != 0))
         {
             indexOK = FALSE;
         }
         else
         {
-            for (i = 0; i < ndon; i++)
+            for (i = 0; i < donorIndexSize; i++)
             {
-                if (donindex[i] >= natoms)
+                if (donorIndex[i] >= natoms)
                 {
                     indexOK = FALSE;
                 }
             }
-            for (i = 0; i < nacc; i++)
+            for (i = 0; i < acceptorIndexSize; i++)
             {
-                if (accindex[i] >= natoms)
+                if (acceptorIndex[i] >= natoms)
                 {
                     indexOK = FALSE;
                 }
@@ -277,27 +279,27 @@ int gmx_dyecoupl(int argc, char* argv[])
                 clear_rvec(accvec);
                 clear_rvec(donpos);
                 clear_rvec(accpos);
-                for (i = 0; i < ndon / 2; i++)
+                for (i = 0; i < donorIndexSize / 2; i++)
                 {
-                    rvec_sub(donvec, fr.x[donindex[2 * i]], donvec);
-                    rvec_add(donvec, fr.x[donindex[2 * i + 1]], donvec);
-                    rvec_add(donpos, fr.x[donindex[2 * i]], donpos);
-                    rvec_add(donpos, fr.x[donindex[2 * i + 1]], donpos);
+                    rvec_sub(donvec, fr.x[donorIndex[2 * i]], donvec);
+                    rvec_add(donvec, fr.x[donorIndex[2 * i + 1]], donvec);
+                    rvec_add(donpos, fr.x[donorIndex[2 * i]], donpos);
+                    rvec_add(donpos, fr.x[donorIndex[2 * i + 1]], donpos);
                 }
 
-                for (i = 0; i < nacc / 2; i++)
+                for (i = 0; i < acceptorIndexSize / 2; i++)
                 {
-                    rvec_sub(accvec, fr.x[accindex[2 * i]], accvec);
-                    rvec_add(accvec, fr.x[accindex[2 * i + 1]], accvec);
-                    rvec_add(accpos, fr.x[accindex[2 * i]], accpos);
-                    rvec_add(accpos, fr.x[accindex[2 * i + 1]], accpos);
+                    rvec_sub(accvec, fr.x[acceptorIndex[2 * i]], accvec);
+                    rvec_add(accvec, fr.x[acceptorIndex[2 * i + 1]], accvec);
+                    rvec_add(accpos, fr.x[acceptorIndex[2 * i]], accpos);
+                    rvec_add(accpos, fr.x[acceptorIndex[2 * i + 1]], accpos);
                 }
 
                 unitv(donvec, donvec);
                 unitv(accvec, accvec);
 
-                svmul(1.0 / ndon, donpos, donpos);
-                svmul(1.0 / nacc, accpos, accpos);
+                svmul(1.0 / donorIndexSize, donpos, donpos);
+                svmul(1.0 / acceptorIndexSize, accpos, accpos);
 
                 if (bPBCdist)
                 {

@@ -56,6 +56,7 @@
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
 #include "gromacs/trajectory/trajectoryframe.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
@@ -76,14 +77,14 @@ enum
     DOS_NR
 };
 
-static int calcMoleculesInIndexGroup(const t_block* mols, int natoms, const int* index, int nindex)
+static int calcMoleculesInIndexGroup(const t_block* mols, int natoms, gmx::ArrayRef<const int> index)
 {
     int i    = 0;
     int mol  = 0;
     int nMol = 0;
     int j;
 
-    while (i < nindex)
+    while (i < index.ssize())
     {
         while (index[i] > mols->index[mol])
         {
@@ -282,9 +283,6 @@ int gmx_dos(int argc, char* argv[])
     gmx_fft_t         fft;
     double            cP, DiffCoeff, Delta, f, y, z, sigHS, Shs, Sig, DoS0, recip_fac;
     double            wCdiff, wSdiff, wAdiff, wEdiff;
-    int               grpNatoms;
-    int*              index;
-    char*             grpname;
     double            invNormalize;
     gmx_bool          normalizeAutocorrelation;
 
@@ -349,17 +347,19 @@ int gmx_dos(int argc, char* argv[])
     read_tps_conf(ftp2fn(efTPR, NFILE, fnm), &top, &pbcType, nullptr, nullptr, box, TRUE);
 
     /* Handle index groups */
-    get_index(&top.atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &grpNatoms, &index, &grpname);
+    auto singleIndexWithName      = getSingleIndexGroup(&top.atoms, ftp2fn_null(efNDX, NFILE, fnm));
+    gmx::ArrayRef<int> indexGroup = singleIndexWithName.indexGroupEntries;
+    const int          indexGroupSize = indexGroup.size();
 
     V     = det(box);
     tmass = 0;
-    for (i = 0; i < grpNatoms; i++)
+    for (i = 0; i < indexGroupSize; i++)
     {
-        tmass += top.atoms.atom[index[i]].m;
+        tmass += top.atoms.atom[indexGroup[i]].m;
     }
 
-    Natom = grpNatoms;
-    Nmol  = calcMoleculesInIndexGroup(&top.mols, top.atoms.nr, index, grpNatoms);
+    Natom = indexGroupSize;
+    Nmol  = calcMoleculesInIndexGroup(&top.mols, top.atoms.nr, indexGroup);
     gnx   = Natom * DIM;
 
     /* Correlation stuff */
@@ -394,9 +394,9 @@ int gmx_dos(int argc, char* argv[])
         }
         for (i = 0; i < gnx; i += DIM)
         {
-            c1[i + XX][nframes] = fr.v[index[i / DIM]][XX];
-            c1[i + YY][nframes] = fr.v[index[i / DIM]][YY];
-            c1[i + ZZ][nframes] = fr.v[index[i / DIM]][ZZ];
+            c1[i + XX][nframes] = fr.v[indexGroup[i / DIM]][XX];
+            c1[i + YY][nframes] = fr.v[indexGroup[i / DIM]][YY];
+            c1[i + ZZ][nframes] = fr.v[indexGroup[i / DIM]][ZZ];
         }
 
         t1 = fr.time;
@@ -448,7 +448,7 @@ int gmx_dos(int argc, char* argv[])
     }
     for (i = 0; (i < gnx); i += DIM)
     {
-        mi = top.atoms.atom[index[i / DIM]].m;
+        mi = top.atoms.atom[indexGroup[i / DIM]].m;
         for (j = 0; (j < nframes / 2); j++)
         {
             c1j = (c1[i + XX][j] + c1[i + YY][j] + c1[i + ZZ][j]);

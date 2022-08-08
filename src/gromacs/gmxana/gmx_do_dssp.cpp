@@ -54,6 +54,7 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/dir_separator.h"
@@ -537,9 +538,6 @@ int gmx_do_dssp(int argc, char* argv[])
     real                       t;
     int                        natoms, nframe = 0;
     matrix                     box = { { 0 } };
-    int                        gnx;
-    char*                      grpnm;
-    int*                       index;
     rvec *                     xp, *x;
     int*                       average_area;
     real **                    accr, *accr_ptr = nullptr, *av_area, *norm_av_area;
@@ -584,14 +582,16 @@ int gmx_do_dssp(int argc, char* argv[])
     check_oo(atoms);
     bPhbres = bPhobics(atoms);
 
-    get_index(atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &gnx, &index, &grpnm);
-    nres = 0;
-    nr0  = -1;
-    for (int i = 0; (i < gnx); i++)
+    auto singleIndexWithName          = getSingleIndexGroup(atoms, ftp2fn_null(efNDX, NFILE, fnm));
+    gmx::ArrayRef<int> indexGroup     = singleIndexWithName.indexGroupEntries;
+    const int          indexGroupSize = indexGroup.size();
+    nres                              = 0;
+    nr0                               = -1;
+    for (int i = 0; (i < indexGroupSize); i++)
     {
-        if (atoms->atom[index[i]].resind != nr0)
+        if (atoms->atom[indexGroup[i]].resind != nr0)
         {
-            nr0 = atoms->atom[index[i]].resind;
+            nr0 = atoms->atom[indexGroup[i]].resind;
             nres++;
         }
     }
@@ -700,7 +700,7 @@ int gmx_do_dssp(int argc, char* argv[])
     {
         gmx_fatal(FARGS, "\nTrajectory does not match topology!");
     }
-    if (gnx > natoms)
+    if (indexGroupSize > natoms)
     {
         gmx_fatal(FARGS, "\nTrajectory does not match selected group!");
     }
@@ -727,7 +727,7 @@ int gmx_do_dssp(int argc, char* argv[])
         gmx_rmpbc(gpbc, natoms, box, x);
         tapein = gmx_ffopen(pdbfile, "w");
         write_pdbfile_indexed(
-                tapein, nullptr, atoms, x, pbcType, box, 'A', -1, gnx, index, nullptr, FALSE, true);
+                tapein, nullptr, atoms, x, pbcType, box, 'A', -1, indexGroupSize, indexGroup.data(), nullptr, FALSE, true);
         gmx_ffclose(tapein);
         /* strip_dssp returns the number of lines found in the dssp file, i.e.
          * the number of residues plus the separator lines */

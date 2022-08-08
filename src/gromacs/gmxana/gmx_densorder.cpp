@@ -55,6 +55,7 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/binaryinformation.h"
 #include "gromacs/utility/cstringutil.h"
@@ -104,23 +105,22 @@ static void center_coords(const t_atoms* atoms, matrix box, rvec x0[], int axis)
 }
 
 
-static void density_in_time(const char*             fn,
-                            int**                   index,
-                            const int               gnx[],
-                            real                    bw,
-                            real                    bwz,
-                            int                     nsttblock,
-                            real*****               Densdevel,
-                            int*                    xslices,
-                            int*                    yslices,
-                            int*                    zslices,
-                            int*                    tblock,
-                            const t_topology*       top,
-                            PbcType                 pbcType,
-                            int                     axis,
-                            gmx_bool                bCenter,
-                            gmx_bool                bps1d,
-                            const gmx_output_env_t* oenv)
+static void density_in_time(const char*              fn,
+                            gmx::ArrayRef<const int> index,
+                            real                     bw,
+                            real                     bwz,
+                            int                      nsttblock,
+                            real*****                Densdevel,
+                            int*                     xslices,
+                            int*                     yslices,
+                            int*                     zslices,
+                            int*                     tblock,
+                            const t_topology*        top,
+                            PbcType                  pbcType,
+                            int                      axis,
+                            gmx_bool                 bCenter,
+                            gmx_bool                 bps1d,
+                            const gmx_output_env_t*  oenv)
 
 {
     /*
@@ -236,11 +236,11 @@ static void density_in_time(const char*             fn,
         }
 
 
-        for (j = 0; j < gnx[0]; j++)
+        for (j = 0; j < gmx::ssize(index); j++)
         { /*Loop over all atoms in selected index*/
-            x = x0[index[0][j]][ax1];
-            y = x0[index[0][j]][ax2];
-            z = x0[index[0][j]][axis];
+            x = x0[index[j]][ax1];
+            y = x0[index[j]][ax2];
+            z = x0[index[j]][axis];
             while (x < 0)
             {
                 x += box[ax1][ax1];
@@ -271,7 +271,7 @@ static void density_in_time(const char*             fn,
             slicex = static_cast<int>(x / bbww[XX]) % *xslices;
             slicey = static_cast<int>(y / bbww[YY]) % *yslices;
             slicez = static_cast<int>(z / bbww[ZZ]) % *zslices;
-            Densslice[slicex][slicey][slicez] += (top->atoms.atom[index[0][j]].m * dscale);
+            Densslice[slicex][slicey][slicez] += (top->atoms.atom[index[j]].m * dscale);
         }
 
         framenr++;
@@ -721,9 +721,7 @@ int gmx_densorder(int argc, char* argv[])
 
     gmx_output_env_t*  oenv;
     t_topology*        top;
-    char**             grpname;
     PbcType            pbcType;
-    int*               ngx;
     static real        binw      = 0.2;
     static real        binwz     = 0.05;
     static real        dens1     = 0.00;
@@ -732,7 +730,6 @@ int gmx_densorder(int argc, char* argv[])
     static int         nsttblock = 100;
     static int         axis      = 2;
     static const char* axtitle   = "Z";
-    int**              index; /* Index list for single group*/
     int                xslices, yslices, zslices, tblock;
     static gmx_bool    bGraph   = FALSE;
     static gmx_bool    bCenter  = FALSE;
@@ -802,18 +799,15 @@ int gmx_densorder(int argc, char* argv[])
     bGraph   = opt2bSet("-og", NFILE, fnm);
     bOut     = opt2bSet("-o", NFILE, fnm);
     top      = read_top(ftp2fn(efTPR, NFILE, fnm), &pbcType);
-    snew(grpname, 1);
-    snew(index, 1);
-    snew(ngx, 1);
 
     /* Calculate axis */
     axis = toupper(axtitle[0]) - 'X';
 
-    get_index(&top->atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, ngx, index, grpname);
+    auto singleIndexWithName = getSingleIndexGroup(&top->atoms, ftp2fn_null(efNDX, NFILE, fnm));
+    gmx::ArrayRef<int> indexGroup = singleIndexWithName.indexGroupEntries;
 
     density_in_time(ftp2fn(efTRX, NFILE, fnm),
-                    index,
-                    ngx,
+                    indexGroup,
                     binw,
                     binwz,
                     nsttblock,
