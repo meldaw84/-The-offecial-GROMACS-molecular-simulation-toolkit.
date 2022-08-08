@@ -235,6 +235,7 @@ macro (gmx_c_flags)
                 GMX_TEST_CFLAG(CFLAGS_WARN_SUBSCRIPT "-Wno-char-subscripts" GMXC_CFLAGS)
             endif()
             GMX_TEST_CFLAG(CFLAGS_STRINGOP_TRUNCATION "-Werror=stringop-truncation" GMXC_CFLAGS)
+            GMX_TEST_CFLAG(CFLAGS_FLAGS_WARN_SHADOW "-Wshadow" GMXC_CFLAGS)
         endif()
         GMX_TEST_CFLAG(CFLAGS_WARN_NO_MISSING_FIELD_INITIALIZERS "-Wno-missing-field-initializers" GMXC_CFLAGS)
         # new in gcc 4.5
