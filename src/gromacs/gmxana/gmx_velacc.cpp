@@ -35,6 +35,8 @@
 
 #include <cstdio>
 
+#include <vector>
+
 #include "gromacs/commandline/pargs.h"
 #include "gromacs/commandline/viewit.h"
 #include "gromacs/correlationfunctions/autocorr.h"
@@ -55,38 +57,36 @@
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/smalloc.h"
 
-static void index_atom2mol(int* n, int* index, const t_block* mols)
+static void index_atom2mol(std::vector<int>* index, const t_block* mols)
 {
-    int nat, i, nmol, mol, j;
+    int nmol, mol, j;
 
-    nat  = *n;
-    i    = 0;
-    nmol = 0;
-    mol  = 0;
-    while (i < nat)
+    size_t i = 0;
+    nmol     = 0;
+    mol      = 0;
+    while (i < index->size())
     {
-        while (index[i] > mols->index[mol])
+        while ((*index)[i] > mols->index[mol])
         {
             mol++;
             if (mol >= mols->nr)
             {
-                gmx_fatal(FARGS, "Atom index out of range: %d", index[i] + 1);
+                gmx_fatal(FARGS, "Atom index out of range: %d", (*index)[i] + 1);
             }
         }
         for (j = mols->index[mol]; j < mols->index[mol + 1]; j++)
         {
-            if (i >= nat || index[i] != j)
+            if (i >= index->size() || (*index)[i] != j)
             {
                 gmx_fatal(FARGS, "The index group does not consist of whole molecules");
             }
             i++;
         }
-        index[nmol++] = mol;
+        (*index)[nmol++] = mol;
     }
 
-    fprintf(stderr, "\nSplit group of %d atoms into %d molecules\n", nat, nmol);
-
-    *n = nmol;
+    fprintf(stderr, "\nSplit group of %ld atoms into %d molecules\n", index->size(), nmol);
+    index->resize(nmol);
 }
 
 static void precalc(const t_topology& top, real normm[])
@@ -196,9 +196,6 @@ int gmx_velacc(int argc, char* argv[])
     t_trxframe fr;
     matrix     box;
     gmx_bool   bTPS = FALSE, bTop = FALSE;
-    int        gnx;
-    int*       index;
-    char*      grpname;
     /* t0, t1 are the beginning and end time respectively.
      * dt is the time step, mass is temp variable for atomic mass.
      */
@@ -237,12 +234,9 @@ int gmx_velacc(int argc, char* argv[])
     if (bTPS)
     {
         bTop = read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, nullptr, nullptr, box, TRUE);
-        get_index(&top.atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &gnx, &index, &grpname);
     }
-    else
-    {
-        rd_index(ftp2fn(efNDX, NFILE, fnm), 1, &gnx, &index, &grpname);
-    }
+    auto indexWithName = getSingleIndexGroup(bTPS ? &top.atoms : nullptr, ftp2fn_null(efNDX, NFILE, fnm));
+    std::vector<int>& indexGroup = indexWithName.indexGroupEntries;
 
     if (bMol)
     {
@@ -252,12 +246,12 @@ int gmx_velacc(int argc, char* argv[])
         }
         snew(normm, top.atoms.nr);
         precalc(top, normm);
-        index_atom2mol(&gnx, index, &top.mols);
+        index_atom2mol(&indexGroup, &top.mols);
     }
-
+    const int indexGroupSize = indexGroup.size();
     /* Correlation stuff */
-    snew(c1, gnx);
-    for (i = 0; (i < gnx); i++)
+    snew(c1, indexGroupSize);
+    for (i = 0; (i < indexGroupSize); i++)
     {
         c1[i] = nullptr;
     }
@@ -272,7 +266,7 @@ int gmx_velacc(int argc, char* argv[])
         if (counter >= n_alloc)
         {
             n_alloc += 100;
-            for (i = 0; i < gnx; i++)
+            for (i = 0; i < indexGroupSize; i++)
             {
                 srenew(c1[i], DIM * n_alloc);
             }
@@ -280,11 +274,11 @@ int gmx_velacc(int argc, char* argv[])
         counter_dim = DIM * counter;
         if (bMol)
         {
-            for (i = 0; i < gnx; i++)
+            for (i = 0; i < indexGroupSize; i++)
             {
                 clear_rvec(mv_mol);
-                k = top.mols.index[index[i]];
-                l = top.mols.index[index[i] + 1];
+                k = top.mols.index[indexGroup[i]];
+                l = top.mols.index[indexGroup[i] + 1];
                 for (j = k; j < l; j++)
                 {
                     if (bMass)
@@ -306,19 +300,19 @@ int gmx_velacc(int argc, char* argv[])
         }
         else
         {
-            for (i = 0; i < gnx; i++)
+            for (i = 0; i < indexGroupSize; i++)
             {
                 if (bMass)
                 {
-                    mass = top.atoms.atom[index[i]].m;
+                    mass = top.atoms.atom[indexGroup[i]].m;
                 }
                 else
                 {
                     mass = 1;
                 }
-                c1[i][counter_dim + XX] = mass * fr.v[index[i]][XX];
-                c1[i][counter_dim + YY] = mass * fr.v[index[i]][YY];
-                c1[i][counter_dim + ZZ] = mass * fr.v[index[i]][ZZ];
+                c1[i][counter_dim + XX] = mass * fr.v[indexGroup[i]][XX];
+                c1[i][counter_dim + YY] = mass * fr.v[indexGroup[i]][YY];
+                c1[i][counter_dim + ZZ] = mass * fr.v[indexGroup[i]][ZZ];
             }
         }
 
@@ -337,7 +331,7 @@ int gmx_velacc(int argc, char* argv[])
                     oenv,
                     bMass ? "Momentum Autocorrelation Function" : "Velocity Autocorrelation Function",
                     counter,
-                    gnx,
+                    indexGroupSize,
                     c1,
                     dt,
                     eacVector,

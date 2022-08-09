@@ -50,6 +50,7 @@
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/futil.h"
@@ -132,10 +133,8 @@ int gmx_vanhove(int argc, char* argv[])
     PbcType                  pbcType;
     matrix                   boxtop, box, *sbox, avbox, corr;
     rvec *                   xtop, *x, **sx;
-    int                      isize, nalloc, nallocn;
+    int                      nalloc, nallocn;
     t_trxstatus*             status;
-    int*                     index;
-    char*                    grpname;
     int                      nfr, f, ff, i, m, mat_nx = 0, nbin = 0, bin, mbin, fbin;
     real *                   time, t, invbin = 0, rmax2 = 0, rint2 = 0, d2;
     real                     invsbin = 0, matmax, normfac, dt, *tickx, *ticky;
@@ -176,7 +175,9 @@ int gmx_vanhove(int argc, char* argv[])
     }
 
     read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, &xtop, nullptr, boxtop, FALSE);
-    get_index(&top.atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &isize, &index, &grpname);
+    auto indexWithName = getSingleIndexGroup(&top.atoms, ftp2fn_null(efNDX, NFILE, fnm));
+    gmx::ArrayRef<const int> indexGroup     = indexWithName.indexGroupEntries;
+    const int                indexGroupSize = indexGroup.size();
 
     nalloc = 0;
     time   = nullptr;
@@ -204,10 +205,10 @@ int gmx_vanhove(int argc, char* argv[])
          * are not affected by jumps across the periodic boundaries.
          */
         m_add(avbox, box, avbox);
-        snew(sx[nfr], isize);
-        for (i = 0; i < isize; i++)
+        snew(sx[nfr], indexGroupSize);
+        for (i = 0; i < indexGroupSize; i++)
         {
-            copy_rvec(x[index[i]], sx[nfr][i]);
+            copy_rvec(x[indexGroup[i]], sx[nfr][i]);
         }
 
         nfr++;
@@ -249,7 +250,7 @@ int gmx_vanhove(int argc, char* argv[])
         }
         rmax2 = gmx::square(nbin * rbin);
         /* Initialize time zero */
-        mat[0][0] = nfr * isize;
+        mat[0][0] = nfr * indexGroupSize;
         mcount[0] += nfr;
     }
     else
@@ -274,7 +275,7 @@ int gmx_vanhove(int argc, char* argv[])
         snew(pt, nfr);
         rint2 = rint * rint;
         /* Initialize time zero */
-        pt[0] = nfr * isize;
+        pt[0] = nfr * indexGroupSize;
         tcount[0] += nfr;
     }
     else
@@ -295,7 +296,7 @@ int gmx_vanhove(int argc, char* argv[])
             /* Scale all the configuration to the average box */
             gmx::invertBoxMatrix(sbox[f], corr);
             mmul_ur0(avbox, corr, corr);
-            for (i = 0; i < isize; i++)
+            for (i = 0; i < indexGroupSize; i++)
             {
                 mvmul_ur0(corr, sx[f][i], sx[f][i]);
                 if (f > 0)
@@ -328,7 +329,7 @@ int gmx_vanhove(int argc, char* argv[])
                 {
                     mbin = gmx::roundToInt(std::sqrt(fbin * dt) * invsbin);
                 }
-                for (i = 0; i < isize; i++)
+                for (i = 0; i < indexGroupSize; i++)
                 {
                     d2 = distance2(sx[f][i], sx[ff][i]);
                     if (mbin < mat_nx && d2 < rmax2)
@@ -361,7 +362,7 @@ int gmx_vanhove(int argc, char* argv[])
                 ff = f - (fbin + 1) * fshift;
                 if (ff >= 0)
                 {
-                    for (i = 0; i < isize; i++)
+                    for (i = 0; i < indexGroupSize; i++)
                     {
                         d2  = distance2(sx[f][i], sx[ff][i]);
                         bin = gmx::roundToInt(std::sqrt(d2) * invbin);
@@ -392,7 +393,7 @@ int gmx_vanhove(int argc, char* argv[])
         matmax = 0;
         for (f = 0; f < mat_nx; f++)
         {
-            normfac = 1.0 / (mcount[f] * isize * rbin);
+            normfac = 1.0 / (mcount[f] * indexGroupSize * rbin);
             for (i = 0; i < nbin; i++)
             {
                 mat[f][i] *= normfac;
@@ -449,7 +450,7 @@ int gmx_vanhove(int argc, char* argv[])
         fp = xvgropen(orfile, "Van Hove function", "r (nm)", "G (nm\\S-1\\N)", oenv);
         if (output_env_get_print_xvgr_codes(oenv))
         {
-            fprintf(fp, "@ subtitle \"for particles in group %s\"\n", grpname);
+            fprintf(fp, "@ subtitle \"for particles in group %s\"\n", indexWithName.indexGroupName.c_str());
         }
         for (fbin = 0; fbin < nr; fbin++)
         {
@@ -464,7 +465,7 @@ int gmx_vanhove(int argc, char* argv[])
                 fprintf(fp,
                         " %g",
                         static_cast<real>(pr[fbin][i]
-                                          / (rcount[fbin] * isize * rbin * (i == 0 ? 0.5 : 1.0))));
+                                          / (rcount[fbin] * indexGroupSize * rbin * (i == 0 ? 0.5 : 1.0))));
             }
             fprintf(fp, "\n");
         }
@@ -477,11 +478,11 @@ int gmx_vanhove(int argc, char* argv[])
         fp       = xvgropen(otfile, buf.c_str(), "t (ps)", "", oenv);
         if (output_env_get_print_xvgr_codes(oenv))
         {
-            fprintf(fp, "@ subtitle \"for particles in group %s\"\n", grpname);
+            fprintf(fp, "@ subtitle \"for particles in group %s\"\n", indexWithName.indexGroupName.c_str());
         }
         for (f = 0; f <= ftmax; f++)
         {
-            fprintf(fp, "%g %g\n", f * dt, static_cast<real>(pt[f]) / (tcount[f] * isize));
+            fprintf(fp, "%g %g\n", f * dt, static_cast<real>(pt[f]) / (tcount[f] * indexGroupSize));
         }
         xvgrclose(fp);
     }
