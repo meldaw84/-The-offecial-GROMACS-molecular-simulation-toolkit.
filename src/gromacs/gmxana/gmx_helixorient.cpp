@@ -46,6 +46,7 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
@@ -82,11 +83,6 @@ int gmx_helixorient(int argc, char* argv[])
     real         theta1, theta2, theta3;
 
     int   i, j, teller = 0;
-    int   iCA, iSC;
-    int*  ind_CA;
-    int*  ind_SC;
-    char* gn_CA;
-    char* gn_SC;
     rvec  v1, v2;
     rvec *x_CA, *x_SC;
     rvec* r12;
@@ -173,42 +169,52 @@ int gmx_helixorient(int argc, char* argv[])
 
     /* read index files */
     printf("Select a group of Calpha atoms corresponding to a single continuous helix:\n");
-    get_index(&(top->atoms), ftp2fn_null(efNDX, NFILE, fnm), 1, &iCA, &ind_CA, &gn_CA);
-    snew(x_CA, iCA);
-    snew(x_SC, iCA); /* sic! */
+    auto indexWithNameCA = getSingleIndexGroup(&(top->atoms), ftp2fn_null(efNDX, NFILE, fnm));
+    gmx::ArrayRef<const int> indexGroupCA     = indexWithNameCA.indexGroupEntries;
+    const int                indexGroupSizeCA = indexGroupCA.size();
+    snew(x_CA, indexGroupSizeCA);
+    snew(x_SC, indexGroupSizeCA); /* sic! */
 
-    snew(r12, iCA - 3);
-    snew(r23, iCA - 3);
-    snew(r34, iCA - 3);
-    snew(diff13, iCA - 3);
-    snew(diff24, iCA - 3);
-    snew(helixaxis, iCA - 3);
-    snew(twist, iCA);
-    snew(residuetwist, iCA);
-    snew(radius, iCA);
-    snew(residueradius, iCA);
-    snew(rise, iCA);
-    snew(residuerise, iCA);
-    snew(residueorigin, iCA);
-    snew(residuehelixaxis, iCA);
-    snew(residuevector, iCA);
-    snew(sidechainvector, iCA);
-    snew(residuebending, iCA);
-    snew(residuehelixaxis_t0, iCA);
-    snew(residuevector_t0, iCA);
-    snew(axis3_t0, iCA);
-    snew(residuehelixaxis_tlast, iCA);
-    snew(residuevector_tlast, iCA);
-    snew(axis3_tlast, iCA);
-    snew(axis3, iCA);
+    snew(r12, indexGroupSizeCA - 3);
+    snew(r23, indexGroupSizeCA - 3);
+    snew(r34, indexGroupSizeCA - 3);
+    snew(diff13, indexGroupSizeCA - 3);
+    snew(diff24, indexGroupSizeCA - 3);
+    snew(helixaxis, indexGroupSizeCA - 3);
+    snew(twist, indexGroupSizeCA);
+    snew(residuetwist, indexGroupSizeCA);
+    snew(radius, indexGroupSizeCA);
+    snew(residueradius, indexGroupSizeCA);
+    snew(rise, indexGroupSizeCA);
+    snew(residuerise, indexGroupSizeCA);
+    snew(residueorigin, indexGroupSizeCA);
+    snew(residuehelixaxis, indexGroupSizeCA);
+    snew(residuevector, indexGroupSizeCA);
+    snew(sidechainvector, indexGroupSizeCA);
+    snew(residuebending, indexGroupSizeCA);
+    snew(residuehelixaxis_t0, indexGroupSizeCA);
+    snew(residuevector_t0, indexGroupSizeCA);
+    snew(axis3_t0, indexGroupSizeCA);
+    snew(residuehelixaxis_tlast, indexGroupSizeCA);
+    snew(residuevector_tlast, indexGroupSizeCA);
+    snew(axis3_tlast, indexGroupSizeCA);
+    snew(axis3, indexGroupSizeCA);
 
+    SingleIndexWithName      indexWithNameSC;
+    gmx::ArrayRef<const int> indexGroupSC;
+    int                      indexGroupSizeSC;
     if (bSC)
     {
         printf("Select a group of atoms defining the sidechain direction (1/residue):\n");
-        get_index(&(top->atoms), ftp2fn_null(efNDX, NFILE, fnm), 1, &iSC, &ind_SC, &gn_SC);
-        if (iSC != iCA)
+        indexWithNameSC  = getSingleIndexGroup(&(top->atoms), ftp2fn_null(efNDX, NFILE, fnm));
+        indexGroupSC     = indexWithNameSC.indexGroupEntries;
+        indexGroupSizeSC = indexGroupSC.size();
+        if (indexGroupSizeSC != indexGroupSizeCA)
         {
-            gmx_fatal(FARGS, "Number of sidechain atoms (%d) != number of CA atoms (%d)", iSC, iCA);
+            gmx_fatal(FARGS,
+                      "Number of sidechain atoms (%d) != number of CA atoms (%d)",
+                      indexGroupSizeSC,
+                      indexGroupSizeCA);
         }
     }
 
@@ -267,16 +273,16 @@ int gmx_helixorient(int argc, char* argv[])
         gmx_rmpbc(gpbc, natoms, box, x);
 
         /* copy coords to our smaller arrays */
-        for (i = 0; i < iCA; i++)
+        for (i = 0; i < indexGroupSizeCA; i++)
         {
-            copy_rvec(x[ind_CA[i]], x_CA[i]);
+            copy_rvec(x[indexGroupCA[i]], x_CA[i]);
             if (bSC)
             {
-                copy_rvec(x[ind_SC[i]], x_SC[i]);
+                copy_rvec(x[indexGroupSC[i]], x_SC[i]);
             }
         }
 
-        for (i = 0; i < iCA - 3; i++)
+        for (i = 0; i < indexGroupSizeCA - 3; i++)
         {
             rvec_sub(x_CA[i + 1], x_CA[i], r12[i]);
             rvec_sub(x_CA[i + 2], x_CA[i + 1], r23[i]);
@@ -305,21 +311,22 @@ int gmx_helixorient(int argc, char* argv[])
         residuerise[1]   = rise[0];
 
         residuebending[0] = residuebending[1] = 0;
-        for (i = 2; i < iCA - 2; i++)
+        for (i = 2; i < indexGroupSizeCA - 2; i++)
         {
             residueradius[i] = 0.5 * (radius[i - 2] + radius[i - 1]);
             residuetwist[i]  = 0.5 * (twist[i - 2] + twist[i - 1]);
             residuerise[i]   = 0.5 * (rise[i - 2] + rise[i - 1]);
             residuebending[i] = 180.0 / M_PI * std::acos(cos_angle(helixaxis[i - 2], helixaxis[i - 1]));
         }
-        residueradius[iCA - 2] = radius[iCA - 4];
-        residuetwist[iCA - 2]  = twist[iCA - 4];
-        residuerise[iCA - 2]   = rise[iCA - 4];
-        residueradius[iCA - 1] = residuetwist[iCA - 1] = residuerise[iCA - 1] = 0;
-        residuebending[iCA - 2] = residuebending[iCA - 1] = 0;
+        residueradius[indexGroupSizeCA - 2]       = radius[indexGroupSizeCA - 4];
+        residuetwist[indexGroupSizeCA - 2]        = twist[indexGroupSizeCA - 4];
+        residuerise[indexGroupSizeCA - 2]         = rise[indexGroupSizeCA - 4];
+        residueradius[indexGroupSizeCA - 1]       = residuetwist[indexGroupSizeCA - 1] =
+                residuerise[indexGroupSizeCA - 1] = 0;
+        residuebending[indexGroupSizeCA - 2] = residuebending[indexGroupSizeCA - 1] = 0;
 
         clear_rvec(residueorigin[0]);
-        clear_rvec(residueorigin[iCA - 1]);
+        clear_rvec(residueorigin[indexGroupSizeCA - 1]);
 
         /* average helix axes to define them on the residues.
          * Just extrapolate second first/list atom.
@@ -327,16 +334,16 @@ int gmx_helixorient(int argc, char* argv[])
         copy_rvec(helixaxis[0], residuehelixaxis[0]);
         copy_rvec(helixaxis[0], residuehelixaxis[1]);
 
-        for (i = 2; i < iCA - 2; i++)
+        for (i = 2; i < indexGroupSizeCA - 2; i++)
         {
             rvec_add(helixaxis[i - 2], helixaxis[i - 1], residuehelixaxis[i]);
             svmul(0.5, residuehelixaxis[i], residuehelixaxis[i]);
         }
-        copy_rvec(helixaxis[iCA - 4], residuehelixaxis[iCA - 2]);
-        copy_rvec(helixaxis[iCA - 4], residuehelixaxis[iCA - 1]);
+        copy_rvec(helixaxis[indexGroupSizeCA - 4], residuehelixaxis[indexGroupSizeCA - 2]);
+        copy_rvec(helixaxis[indexGroupSizeCA - 4], residuehelixaxis[indexGroupSizeCA - 1]);
 
         /* Normalize the axis */
-        for (i = 0; i < iCA; i++)
+        for (i = 0; i < indexGroupSizeCA; i++)
         {
             svmul(1.0 / norm(residuehelixaxis[i]), residuehelixaxis[i], residuehelixaxis[i]);
         }
@@ -349,9 +356,9 @@ int gmx_helixorient(int argc, char* argv[])
         fprintf(fptwist, "%15.12g  ", t);
         fprintf(fpbending, "%15.12g  ", t);
 
-        for (i = 0; i < iCA; i++)
+        for (i = 0; i < indexGroupSizeCA; i++)
         {
-            if (i == 0 || i == iCA - 1)
+            if (i == 0 || i == indexGroupSizeCA - 1)
             {
                 fprintf(fpaxis, "%15.12g %15.12g %15.12g       ", 0.0, 0.0, 0.0);
                 fprintf(fpcenter, "%15.12g %15.12g %15.12g       ", 0.0, 0.0, 0.0);
@@ -391,7 +398,7 @@ int gmx_helixorient(int argc, char* argv[])
 
         if (teller == 0)
         {
-            for (i = 0; i < iCA; i++)
+            for (i = 0; i < indexGroupSizeCA; i++)
             {
                 copy_rvec(residuehelixaxis[i], residuehelixaxis_t0[i]);
                 copy_rvec(residuevector[i], residuevector_t0[i]);
@@ -406,9 +413,9 @@ int gmx_helixorient(int argc, char* argv[])
             fprintf(fptheta2, "%15.12g      ", t);
             fprintf(fptheta3, "%15.12g      ", t);
 
-            for (i = 0; i < iCA; i++)
+            for (i = 0; i < indexGroupSizeCA; i++)
             {
-                if (i == 0 || i == iCA - 1)
+                if (i == 0 || i == indexGroupSizeCA - 1)
                 {
                     tilt = rotation = 0;
                 }
@@ -468,7 +475,7 @@ int gmx_helixorient(int argc, char* argv[])
             fprintf(fptheta3, "\n");
         }
 
-        for (i = 0; i < iCA; i++)
+        for (i = 0; i < indexGroupSizeCA; i++)
         {
             copy_rvec(residuehelixaxis[i], residuehelixaxis_tlast[i]);
             copy_rvec(residuevector[i], residuevector_tlast[i]);

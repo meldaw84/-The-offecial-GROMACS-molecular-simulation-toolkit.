@@ -51,6 +51,7 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/fatalerror.h"
@@ -281,9 +282,7 @@ static void calc_tetra_order_interface(const char*       fnNDX,
     rvec *       xtop, *x;
     matrix       box;
     real         sg, sk, sgintf;
-    int**        index   = nullptr;
-    char**       grpname = nullptr;
-    int          i, j, k, n, *isize, ng, nslicez, framenr;
+    int          i, j, k, n, nslicez, framenr;
     real ***sg_grid = nullptr, ***sk_grid = nullptr, ***sg_fravg = nullptr, ***sk_fravg = nullptr,
          ****sk_4d = nullptr, ****sg_4d = nullptr;
     int*       perm;
@@ -301,14 +300,12 @@ static void calc_tetra_order_interface(const char*       fnNDX,
     nslicez  = static_cast<int>(box[ZZ][ZZ] / binw + onehalf);
 
 
-    ng = 1;
     /* get index groups */
     printf("Select the group that contains the atoms you want to use for the tetrahedrality order "
            "parameter calculation:\n");
-    snew(grpname, ng);
-    snew(index, ng);
-    snew(isize, ng);
-    get_index(&top.atoms, fnNDX, ng, isize, index, grpname);
+    auto               indexWithName  = getSingleIndexGroup(&top.atoms, fnNDX);
+    gmx::ArrayRef<int> indexGroup     = indexWithName.indexGroupEntries;
+    const int          indexGroupSize = indexGroup.size();
 
     /* Analyze trajectory */
     natoms = read_first_x(oenv, &status, fnTRX, &t, &x, box);
@@ -316,7 +313,7 @@ static void calc_tetra_order_interface(const char*       fnNDX,
     {
         gmx_fatal(FARGS, "Topology (%d atoms) does not match trajectory (%d atoms)", top.atoms.nr, natoms);
     }
-    check_index(nullptr, ng, index[0], nullptr, natoms);
+    check_index(nullptr, 1, indexGroup.data(), nullptr, natoms);
 
 
     /*Prepare structures for temporary storage of frame info*/
@@ -361,7 +358,7 @@ static void calc_tetra_order_interface(const char*       fnNDX,
         }
 
         find_tetra_order_grid(
-                top, pbcType, natoms, box, x, isize[0], index[0], &sg, &sk, *nslicex, *nslicey, nslicez, sg_grid, sk_grid);
+                top, pbcType, natoms, box, x, indexGroupSize, indexGroup.data(), &sg, &sk, *nslicex, *nslicey, nslicez, sg_grid, sk_grid);
         GMX_RELEASE_ASSERT(sk_fravg != nullptr, "Trying to dereference NULL sk_fravg pointer");
         for (i = 0; i < *nslicex; i++)
         {
@@ -387,10 +384,6 @@ static void calc_tetra_order_interface(const char*       fnNDX,
 
     } while (read_next_x(oenv, status, &t, x, box));
     close_trx(status);
-
-    sfree(grpname);
-    sfree(index);
-    sfree(isize);
 
     /*Debugging for printing out the entire order parameter meshes.*/
     if (debug)

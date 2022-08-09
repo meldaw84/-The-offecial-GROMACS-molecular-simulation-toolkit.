@@ -52,6 +52,7 @@
 #include "gromacs/math/vec.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/fatalerror.h"
@@ -572,20 +573,24 @@ static void init_edx(struct edix* edx)
     snew(edx->anrs, 1);
 }
 
-static void
-filter2edx(struct edix* edx, int nindex, int index[], int ngro, const int igro[], const rvec* x, const char* structure)
+static void filter2edx(struct edix*             edx,
+                       gmx::ArrayRef<const int> index,
+                       gmx::ArrayRef<const int> igro,
+                       const rvec*              x,
+                       const char*              structure)
 {
     /* filter2edx copies coordinates from x to edx which are given in index
      */
 
     int pos, i;
     int ix = edx->nr;
-    edx->nr += nindex;
+    edx->nr += index.size();
     srenew(edx->x, edx->nr);
     srenew(edx->anrs, edx->nr);
-    for (i = 0; i < nindex; i++, ix++)
+    for (i = 0; i < gmx::ssize(index); i++, ix++)
     {
-        for (pos = 0; pos < ngro - 1 && igro[pos] != index[i]; ++pos) {} /*search element in igro*/
+        for (pos = 0; pos < igro.ssize() - 1 && igro[pos] != index[i]; ++pos) {
+        } /*search element in igro*/
         if (igro[pos] != index[i])
         {
             gmx_fatal(FARGS, "Couldn't find atom with index %d in structure %s", index[i], structure);
@@ -595,39 +600,35 @@ filter2edx(struct edix* edx, int nindex, int index[], int ngro, const int igro[]
     }
 }
 
-static void get_structure(const t_atoms* atoms,
-                          const char*    IndexFile,
-                          const char*    StructureFile,
-                          struct edix*   edx,
-                          int            nfit,
-                          int            ifit[],
-                          int            nav,
-                          int            index[])
+static void get_structure(const t_atoms*           atoms,
+                          const char*              IndexFile,
+                          const char*              StructureFile,
+                          struct edix*             edx,
+                          gmx::ArrayRef<const int> ifit,
+                          gmx::ArrayRef<const int> index)
 {
-    int*  igro; /*index corresponding to target or origin structure*/
-    int   ngro;
-    int   ntar;
     rvec* xtar;
-    char* grpname;
 
 
-    ntar = read_conffile(StructureFile, &xtar);
+    const int ntar = read_conffile(StructureFile, &xtar);
     printf("Select an index group of %d elements that corresponds to the atoms in the structure "
            "file %s\n",
            ntar,
            StructureFile);
-    get_index(atoms, IndexFile, 1, &ngro, &igro, &grpname);
-    if (ngro != ntar)
+    auto                     structureIndexWithName = getSingleIndexGroup(atoms, IndexFile);
+    gmx::ArrayRef<const int> structureIndex         = structureIndexWithName.indexGroupEntries;
+    const int                structureIndexSize     = structureIndex.size();
+    if (structureIndexSize != ntar)
     {
-        gmx_fatal(FARGS, "You selected an index group with %d elements instead of %d", ngro, ntar);
+        gmx_fatal(FARGS, "You selected an index group with %d elements instead of %d", structureIndexSize, ntar);
     }
     init_edx(edx);
-    filter2edx(edx, nfit, ifit, ngro, igro, xtar, StructureFile);
+    filter2edx(edx, ifit, structureIndex, xtar, StructureFile);
 
     /* If average and reference/fitting structure differ, append the average structure as well */
-    if (ifit != index) /*if fit structure is different append these coordinates, too -- don't mind duplicates*/
+    if (ifit.data() != index.data()) /*if fit structure is different append these coordinates, too -- don't mind duplicates*/
     {
-        filter2edx(edx, nav, index, ngro, igro, xtar, StructureFile);
+        filter2edx(edx, index, structureIndex, xtar, StructureFile);
     }
 }
 
@@ -898,11 +899,7 @@ int gmx_make_edi(int argc, char* argv[])
     rvec *      xav1, **eigvec1 = nullptr;
     t_atoms*    atoms = nullptr;
     int         nav; /* Number of atoms in the average structure */
-    char*       grpname;
     const char* indexfile;
-    int         i;
-    int *       index, *ifit;
-    int         nfit;     /* Number of atoms in the reference/fit structure */
     int         ev_class; /* parameter _class i.e. evMON, evRADFIX etc. */
     int         nvecs;
     real*       eigval1 = nullptr; /* in V3.3 this is parameter of read_eigenvectors */
@@ -958,7 +955,7 @@ int gmx_make_edi(int argc, char* argv[])
                 else /*if list is not given fill with zeros */
                 {
                     snew(evStepList[ev_class], nvecs);
-                    for (i = 0; i < nvecs; i++)
+                    for (int i = 0; i < nvecs; i++)
                     {
                         evStepList[ev_class][i] = 0.0;
                     }
@@ -967,7 +964,7 @@ int gmx_make_edi(int argc, char* argv[])
             else if (ev_class == evRADFIX)
             {
                 snew(evStepList[ev_class], nvecs);
-                for (i = 0; i < nvecs; i++)
+                for (int i = 0; i < nvecs; i++)
                 {
                     evStepList[ev_class][i] = radstep;
                 }
@@ -1000,7 +997,7 @@ int gmx_make_edi(int argc, char* argv[])
     for (ev_class = 0; ev_class < evNr; ++ev_class)
     {
         printf("Eigenvector list %7s consists of the indices: ", evOptions[ev_class]);
-        i = 0;
+        int i = 0;
         while (listen[ev_class][i])
         {
             printf("%d ", listen[ev_class][i++]);
@@ -1019,14 +1016,20 @@ int gmx_make_edi(int argc, char* argv[])
 
 
     printf("\nSelect an index group of %d elements that corresponds to the eigenvectors\n", nav);
-    get_index(atoms, indexfile, 1, &i, &index, &grpname); /*if indexfile != NULL parameter 'atoms' is ignored */
-    if (i != nav)
+    auto eigenVectorIndexWithName = getSingleIndexGroup(
+            atoms, indexfile); /*if indexfile != NULL parameter 'atoms' is ignored */
+    gmx::ArrayRef<int> eigenVectorIndex     = eigenVectorIndexWithName.indexGroupEntries;
+    const int          eigenVectorIndexSize = eigenVectorIndex.size();
+    if (eigenVectorIndexSize != nav)
     {
-        gmx_fatal(FARGS, "you selected a group with %d elements instead of %d", i, nav);
+        gmx_fatal(FARGS, "you selected a group with %d elements instead of %d", eigenVectorIndexSize, nav);
     }
     printf("\n");
 
 
+    SingleIndexWithName fittingIndexWithName;
+    gmx::ArrayRef<int>  fittingIndex;
+    int                 fittingIndexSize;
     if (xref1 == nullptr)
     {
         if (bFit1)
@@ -1042,17 +1045,19 @@ int gmx_make_edi(int argc, char* argv[])
             printf("\nNote: Apparently no fitting was done in g_covar.\n"
                    "      However, you need to select a reference group for fitting in mdrun\n");
         }
-        get_index(atoms, indexfile, 1, &nfit, &ifit, &grpname);
-        snew(xref1, nfit);
-        for (i = 0; i < nfit; i++)
+        fittingIndexWithName = getSingleIndexGroup(atoms, indexfile);
+        fittingIndex         = fittingIndexWithName.indexGroupEntries;
+        fittingIndexSize     = fittingIndex.size();
+        snew(xref1, fittingIndexSize);
+        for (int i = 0; i < fittingIndexSize; i++)
         {
-            copy_rvec(xtop[ifit[i]], xref1[i]);
+            copy_rvec(xtop[fittingIndex[i]], xref1[i]);
         }
     }
     else
     {
-        nfit = nav;
-        ifit = index;
+        fittingIndexSize = nav;
+        fittingIndex     = eigenVectorIndex;
     }
 
     if (opt2parg_bSet("-constF", NPA, pa))
@@ -1097,8 +1102,8 @@ int gmx_make_edi(int argc, char* argv[])
 
 
     /*store reference and average structure in edi_params*/
-    make_t_edx(&edi_params.sref, nfit, xref1, ifit);
-    make_t_edx(&edi_params.sav, nav, xav1, index);
+    make_t_edx(&edi_params.sref, fittingIndexSize, xref1, fittingIndex.data());
+    make_t_edx(&edi_params.sav, nav, xav1, eigenVectorIndex.data());
 
 
     /* Store target positions in edi_params */
@@ -1110,21 +1115,21 @@ int gmx_make_edi(int argc, char* argv[])
                     "\nNote: Providing a TARGET structure has no effect when using flooding.\n"
                     "      You may want to use -ori to define the flooding potential center.\n\n");
         }
-        get_structure(atoms, indexfile, TargetFile, &edi_params.star, nfit, ifit, nav, index);
+        get_structure(atoms, indexfile, TargetFile, &edi_params.star, fittingIndex, eigenVectorIndex);
     }
     else
     {
-        make_t_edx(&edi_params.star, 0, nullptr, index);
+        make_t_edx(&edi_params.star, 0, nullptr, eigenVectorIndex.data());
     }
 
     /* Store origin positions */
     if (opt2bSet("-ori", NFILE, fnm))
     {
-        get_structure(atoms, indexfile, OriginFile, &edi_params.sori, nfit, ifit, nav, index);
+        get_structure(atoms, indexfile, OriginFile, &edi_params.sori, fittingIndex, eigenVectorIndex);
     }
     else
     {
-        make_t_edx(&edi_params.sori, 0, nullptr, index);
+        make_t_edx(&edi_params.sori, 0, nullptr, eigenVectorIndex.data());
     }
 
     /* Write edi-file */

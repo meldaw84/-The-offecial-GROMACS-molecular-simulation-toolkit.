@@ -53,21 +53,21 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/smalloc.h"
 
-static real calc_gyro(rvec     x[],
-                      int      gnx,
-                      int      index[],
-                      t_atom   atom[],
-                      real     tm,
-                      rvec     gvec,
-                      rvec     d,
-                      gmx_bool bQ,
-                      gmx_bool bRot,
-                      gmx_bool bMOI,
-                      matrix   trans)
+static real calc_gyro(rvec                     x[],
+                      gmx::ArrayRef<const int> index,
+                      t_atom                   atom[],
+                      real                     tm,
+                      rvec                     gvec,
+                      rvec                     d,
+                      gmx_bool                 bQ,
+                      gmx_bool                 bRot,
+                      gmx_bool                 bMOI,
+                      matrix                   trans)
 {
     int  i, ii, m;
     real gyro, dx2, m0, Itot;
@@ -75,7 +75,7 @@ static real calc_gyro(rvec     x[],
 
     if (bRot)
     {
-        principal_comp(gnx, index, atom, x, trans, d);
+        principal_comp(index.size(), index.data(), atom, x, trans, d);
         Itot = norm(d);
         if (bMOI)
         {
@@ -88,7 +88,7 @@ static real calc_gyro(rvec     x[],
         /* rotate_atoms(gnx,index,x,trans); */
     }
     clear_rvec(comp);
-    for (i = 0; (i < gnx); i++)
+    for (i = 0; (i < gmx::ssize(index)); i++)
     {
         ii = index[i];
         if (bQ)
@@ -115,7 +115,8 @@ static real calc_gyro(rvec     x[],
     return std::sqrt(gyro / tm);
 }
 
-static void calc_gyro_z(rvec x[], matrix box, int gnx, const int index[], t_atom atom[], int nz, real time, FILE* out)
+static void
+calc_gyro_z(rvec x[], matrix box, gmx::ArrayRef<const int> index, t_atom atom[], int nz, real time, FILE* out)
 {
     static std::vector<gmx::DVec> inertia;
     static std::vector<double>    tm;
@@ -134,7 +135,7 @@ static void calc_gyro_z(rvec x[], matrix box, int gnx, const int index[], t_atom
         tm[i] = 0;
     }
 
-    for (i = 0; (i < gnx); i++)
+    for (i = 0; (i < gmx::ssize(index)); i++)
     {
         ii = index[i];
         zf = nz * x[ii][ZZ] / box[ZZ][ZZ];
@@ -229,9 +230,7 @@ int gmx_gyrate(int argc, char* argv[])
     rvec                       d, d1; /* eigenvalues of inertia tensor */
     real                       t, t0, tm, gyro;
     int                        natoms;
-    char*                      grpname;
-    int                        j, m, gnx, nam, mol;
-    int*                       index;
+    int                        j, m, nam, mol;
     gmx_output_env_t*          oenv;
     gmx_rmpbc_t                gpbc = nullptr;
     std::array<std::string, 4> leg  = { "Rg", "Rg\\sX\\N", "Rg\\sY\\N", "Rg\\sZ\\N" };
@@ -281,13 +280,18 @@ int gmx_gyrate(int argc, char* argv[])
     }
 
     read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, &x, nullptr, box, TRUE);
-    get_index(&top.atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &gnx, &index, &grpname);
+    auto indexWithName = getSingleIndexGroup(&top.atoms, ftp2fn_null(efNDX, NFILE, fnm));
+    gmx::ArrayRef<const int> indexGroup     = indexWithName.indexGroupEntries;
+    const int                indexGroupSize = indexGroup.size();
 
-    if (nmol > gnx || gnx % nmol != 0)
+    if (nmol > indexGroupSize || indexGroupSize % nmol != 0)
     {
-        gmx_fatal(FARGS, "The number of atoms in the group (%d) is not a multiple of nmol (%d)", gnx, nmol);
+        gmx_fatal(FARGS,
+                  "The number of atoms in the group (%d) is not a multiple of nmol (%d)",
+                  indexGroupSize,
+                  nmol);
     }
-    nam = gnx / nmol;
+    nam = indexGroupSize / nmol;
 
     natoms = read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
     snew(x_s, natoms);
@@ -350,15 +354,15 @@ int gmx_gyrate(int argc, char* argv[])
         clear_rvec(d1);
         for (mol = 0; mol < nmol; mol++)
         {
-            tm = sub_xcm(nz == 0 ? x_s : x, nam, index + mol * nam, top.atoms.atom, xcm, bQ);
+            tm = sub_xcm(nz == 0 ? x_s : x, nam, indexGroup.data() + mol * nam, top.atoms.atom, xcm, bQ);
             if (nz == 0)
             {
                 gyro += calc_gyro(
-                        x_s, nam, index + mol * nam, top.atoms.atom, tm, gvec1, d1, bQ, bRot, bMOI, trans);
+                        x_s, indexGroup.subArray(mol * nam, nam), top.atoms.atom, tm, gvec1, d1, bQ, bRot, bMOI, trans);
             }
             else
             {
-                calc_gyro_z(x, box, nam, index + mol * nam, top.atoms.atom, nz, t, out);
+                calc_gyro_z(x, box, indexGroup.subArray(mol * nam, nam), top.atoms.atom, nz, t, out);
             }
             rvec_inc(gvec, gvec1);
             rvec_inc(d, d1);
