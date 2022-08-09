@@ -149,7 +149,7 @@ void PmePpCommGpu::Impl::receiveForceFromPmeGpuAwareMpi(Float3* pmeForcePtr, int
     else
     {
         // Receive data from remote GPU in memory of local GPU
-        MPI_Recv(d_pmeForces_, recvSize * DIM, MPI_FLOAT, pmeRank_, 0, comm_, MPI_STATUS_IGNORE);
+        MPI_Recv(asMpiPointer(d_pmeForces_), recvSize * DIM, MPI_FLOAT, pmeRank_, 0, comm_, MPI_STATUS_IGNORE);
         if (pmeForcePtr != asMpiPointer(d_pmeForces_)) // destination is CPU memory, so finalize transfer with local D2H
         {
             copyFromDeviceBuffer(reinterpret_cast<RVec*>(pmeForcePtr),
