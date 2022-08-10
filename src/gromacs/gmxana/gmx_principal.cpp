@@ -42,18 +42,19 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringutil.h"
 
 
-static void calc_principal_axes(const t_topology* top, rvec* x, int* index, int n, matrix axes, rvec inertia)
+static void calc_principal_axes(const t_topology* top, rvec* x, gmx::ArrayRef<const int> index, matrix axes, rvec inertia)
 {
     rvec xcm;
 
-    sub_xcm(x, n, index, top->atoms.atom, xcm, FALSE);
-    principal_comp(n, index, top->atoms.atom, x, axes, inertia);
+    sub_xcm(x, index, top->atoms.atom, xcm, FALSE);
+    principal_comp(index, top->atoms.atom, x, axes, inertia);
 }
 
 int gmx_principal(int argc, char* argv[])
@@ -76,9 +77,7 @@ int gmx_principal(int argc, char* argv[])
     rvec*        x;
 
     int                      natoms;
-    char*                    grpname;
-    int                      i, gnx;
-    int*                     index;
+    int                      i;
     rvec                     moi;
     FILE*                    axis1;
     FILE*                    axis2;
@@ -150,7 +149,8 @@ int gmx_principal(int argc, char* argv[])
 
     read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, nullptr, nullptr, box, TRUE);
 
-    get_index(&top.atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &gnx, &index, &grpname);
+    auto indexWithName = getSingleIndexGroup(&top.atoms, ftp2fn_null(efNDX, NFILE, fnm));
+    gmx::ArrayRef<const int> indexGroup = indexWithName.indexGroupEntries;
 
     natoms = read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
 
@@ -160,7 +160,7 @@ int gmx_principal(int argc, char* argv[])
     {
         gmx_rmpbc(gpbc, natoms, box, x);
 
-        calc_principal_axes(&top, x, index, gnx, axes, moi);
+        calc_principal_axes(&top, x, indexGroup, axes, moi);
 
         fprintf(axis1, "%15.10f     %15.10f  %15.10f  %15.10f\n", t, axes[XX][XX], axes[XX][YY], axes[XX][ZZ]);
         fprintf(axis2, "%15.10f     %15.10f  %15.10f  %15.10f\n", t, axes[YY][XX], axes[YY][YY], axes[YY][ZZ]);

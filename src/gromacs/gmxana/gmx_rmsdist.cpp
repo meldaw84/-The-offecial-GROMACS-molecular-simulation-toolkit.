@@ -51,6 +51,7 @@
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/fatalerror.h"
@@ -281,20 +282,19 @@ is_equiv(int neq, t_equiv** equiv, char** nname, int rnr1, char* rname1, char* a
     return bFound;
 }
 
-static int analyze_noe_equivalent(const char*    eq_fn,
-                                  const t_atoms* atoms,
-                                  int            isize,
-                                  const int*     index,
-                                  gmx_bool       bSumH,
-                                  int*           noe_index,
-                                  t_noe_gr*      noe_gr)
+static int analyze_noe_equivalent(const char*              eq_fn,
+                                  const t_atoms*           atoms,
+                                  gmx::ArrayRef<const int> index,
+                                  gmx_bool                 bSumH,
+                                  gmx::ArrayRef<int>       noe_index,
+                                  t_noe_gr*                noe_gr)
 {
     int       i, j, anmil, anmjl, rnri, rnrj, gi, groupnr, neq;
     char *    anmi, *anmj, **nnm;
     gmx_bool  bMatch, bEquiv;
     t_equiv** equiv;
 
-    snew(nnm, isize);
+    snew(nnm, index.size());
     if (bSumH)
     {
         if (eq_fn)
@@ -312,9 +312,9 @@ static int analyze_noe_equivalent(const char*    eq_fn,
         }
 
         groupnr = 0;
-        for (i = 0; i < isize; i++)
+        for (i = 0; i < gmx::ssize(index); i++)
         {
-            if (equiv && i < isize - 1)
+            if (equiv && i < gmx::ssize(index) - 1)
             {
                 /* check explicit list of equivalent atoms */
                 do
@@ -342,7 +342,7 @@ static int analyze_noe_equivalent(const char*    eq_fn,
                         /* skip matching atom */
                         i = j;
                     }
-                } while (bEquiv && i < isize - 1);
+                } while (bEquiv && i < gmx::ssize(index) - 1);
             }
             else
             {
@@ -355,7 +355,7 @@ static int analyze_noe_equivalent(const char*    eq_fn,
                    This is supposed to cover all CH3 groups and the like */
                 anmi   = *atoms->atomname[index[i]];
                 anmil  = std::strlen(anmi);
-                bMatch = i <= isize - 3 && anmi[anmil - 1] == '1';
+                bMatch = i <= gmx::ssize(index) - 3 && anmi[anmil - 1] == '1';
                 if (bMatch)
                 {
                     for (j = 1; j < 3; j++)
@@ -386,18 +386,18 @@ static int analyze_noe_equivalent(const char*    eq_fn,
     else
     {
         /* make index without looking for equivalent atoms */
-        for (i = 0; i < isize; i++)
+        for (i = 0; i < gmx::ssize(index); i++)
         {
             noe_index[i] = i;
         }
-        groupnr = isize;
+        groupnr = index.size();
     }
-    noe_index[isize] = groupnr;
+    noe_index[index.size()] = groupnr;
 
     if (debug)
     {
         /* dump new names */
-        for (i = 0; i < isize; i++)
+        for (i = 0; i < gmx::ssize(index); i++)
         {
             rnri = atoms->atom[index[i]].resind;
             fprintf(debug,
@@ -409,7 +409,7 @@ static int analyze_noe_equivalent(const char*    eq_fn,
         }
     }
 
-    for (i = 0; i < isize; i++)
+    for (i = 0; i < gmx::ssize(index); i++)
     {
         gi = noe_index[i];
         if (!noe_gr[gi].aname)
@@ -445,7 +445,7 @@ static int analyze_noe_equivalent(const char*    eq_fn,
             }
         }
     }
-    for (i = 0; i < isize; i++)
+    for (i = 0; i < gmx::ssize(index); i++)
     {
         sfree(nnm[i]);
     }
@@ -484,15 +484,15 @@ static char* noe2scale(real r3, real r6, real rmax)
     return buf;
 }
 
-static void calc_noe(int isize, const int* noe_index, real** dtot1_3, real** dtot1_6, int gnr, t_noe** noe)
+static void calc_noe(gmx::ArrayRef<const int> noe_index, real** dtot1_3, real** dtot1_6, int gnr, t_noe** noe)
 {
     int i, j, gi, gj;
 
     /* make half matrix of noe-group distances from atom distances */
-    for (i = 0; i < isize; i++)
+    for (i = 0; i < gmx::ssize(noe_index); i++)
     {
         gi = noe_index[i];
-        for (j = i; j < isize; j++)
+        for (j = i; j < gmx::ssize(noe_index); j++)
         {
             gj = noe_index[j];
             noe[gi][gj].nr++;
@@ -720,9 +720,7 @@ int gmx_rmsdist(int argc, char* argv[])
     FILE*      fp;
 
     t_trxstatus* status;
-    int          isize, gnr = 0;
-    int *        index, *noe_index;
-    char*        grpname;
+    int          gnr = 0;
     real **      d_r, **d, **dtot, **dtot2, **mean, **rms, **rmsc, *resnr;
     real **      dtot1_3 = nullptr, **dtot1_6 = nullptr;
     real         rmsnow, meanmax, rmsmax, rmscmax;
@@ -794,48 +792,50 @@ int gmx_rmsdist(int argc, char* argv[])
     }
     atoms = &(top.atoms);
 
-    get_index(atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &isize, &index, &grpname);
+    auto indexWithName = getSingleIndexGroup(atoms, ftp2fn_null(efNDX, NFILE, fnm));
+    gmx::ArrayRef<const int> indexGroup     = indexWithName.indexGroupEntries;
+    const int                indexGroupSize = indexGroup.size();
 
     /* initialize arrays */
-    snew(d, isize);
-    snew(dtot, isize);
-    snew(dtot2, isize);
+    snew(d, indexGroupSize);
+    snew(dtot, indexGroupSize);
+    snew(dtot2, indexGroupSize);
     if (bNMR)
     {
-        snew(dtot1_3, isize);
-        snew(dtot1_6, isize);
+        snew(dtot1_3, indexGroupSize);
+        snew(dtot1_6, indexGroupSize);
     }
-    snew(mean, isize);
-    snew(rms, isize);
-    snew(rmsc, isize);
-    snew(d_r, isize);
-    snew(resnr, isize);
-    for (i = 0; (i < isize); i++)
+    snew(mean, indexGroupSize);
+    snew(rms, indexGroupSize);
+    snew(rmsc, indexGroupSize);
+    snew(d_r, indexGroupSize);
+    snew(resnr, indexGroupSize);
+    for (i = 0; (i < indexGroupSize); i++)
     {
-        snew(d[i], isize);
-        snew(dtot[i], isize);
-        snew(dtot2[i], isize);
+        snew(d[i], indexGroupSize);
+        snew(dtot[i], indexGroupSize);
+        snew(dtot2[i], indexGroupSize);
         if (bNMR)
         {
-            snew(dtot1_3[i], isize);
-            snew(dtot1_6[i], isize);
+            snew(dtot1_3[i], indexGroupSize);
+            snew(dtot1_6[i], indexGroupSize);
         }
-        snew(mean[i], isize);
-        snew(rms[i], isize);
-        snew(rmsc[i], isize);
-        snew(d_r[i], isize);
+        snew(mean[i], indexGroupSize);
+        snew(rms[i], indexGroupSize);
+        snew(rmsc[i], indexGroupSize);
+        snew(d_r[i], indexGroupSize);
         resnr[i] = i + 1;
     }
 
     /*set box type*/
-    calc_dist(isize, index, x, pbcType, box, d_r);
+    calc_dist(indexGroupSize, indexGroup.data(), x, pbcType, box, d_r);
     sfree(x);
 
     /*open output files*/
     fp = xvgropen(ftp2fn(efXVG, NFILE, fnm), "RMS Deviation", "Time (ps)", "RMSD (nm)", oenv);
     if (output_env_get_print_xvgr_codes(oenv))
     {
-        fprintf(fp, "@ subtitle \"of distances between %s atoms\"\n", grpname);
+        fprintf(fp, "@ subtitle \"of distances between %s atoms\"\n", indexWithName.indexGroupName.c_str());
     }
 
     /*do a first step*/
@@ -844,9 +844,9 @@ int gmx_rmsdist(int argc, char* argv[])
 
     do
     {
-        calc_dist_tot(isize, index, x, pbcType, box, d, dtot, dtot2, bNMR, dtot1_3, dtot1_6);
+        calc_dist_tot(indexGroupSize, indexGroup.data(), x, pbcType, box, d, dtot, dtot2, bNMR, dtot1_3, dtot1_6);
 
-        rmsnow = rms_diff(isize, d, d_r);
+        rmsnow = rms_diff(indexGroupSize, d, d_r);
         fprintf(fp, "%g  %g\n", t, rmsnow);
         teller++;
     } while (read_next_x(oenv, status, &t, x, box));
@@ -856,12 +856,12 @@ int gmx_rmsdist(int argc, char* argv[])
 
     close_trx(status);
 
-    calc_rms(isize, teller, dtot, dtot2, rms, &rmsmax, rmsc, &rmscmax, mean, &meanmax);
+    calc_rms(indexGroupSize, teller, dtot, dtot2, rms, &rmsmax, rmsc, &rmscmax, mean, &meanmax);
     fprintf(stderr, "rmsmax = %g, rmscmax = %g\n", rmsmax, rmscmax);
 
     if (bNMR)
     {
-        calc_nmr(isize, teller, dtot1_3, dtot1_6, &max1_3, &max1_6);
+        calc_nmr(indexGroupSize, teller, dtot1_3, dtot1_6, &max1_3, &max1_6);
     }
 
     if (scalemax > -1.0)
@@ -875,19 +875,19 @@ int gmx_rmsdist(int argc, char* argv[])
 
     if (bNOE)
     {
+        std::vector<int> noeIndex(indexGroupSize + 1);
         /* make list of noe atom groups */
-        snew(noe_index, isize + 1);
-        snew(noe_gr, isize);
+        snew(noe_gr, indexGroupSize);
         gnr = analyze_noe_equivalent(
-                opt2fn_null("-equiv", NFILE, fnm), atoms, isize, index, bSumH, noe_index, noe_gr);
-        fprintf(stdout, "Found %d non-equivalent atom-groups in %d atoms\n", gnr, isize);
+                opt2fn_null("-equiv", NFILE, fnm), atoms, indexGroup, bSumH, noeIndex, noe_gr);
+        fprintf(stdout, "Found %d non-equivalent atom-groups in %d atoms\n", gnr, indexGroupSize);
         /* make half matrix of of noe-group distances from atom distances */
         snew(noe, gnr);
         for (i = 0; i < gnr; i++)
         {
             snew(noe[i], gnr);
         }
-        calc_noe(isize, noe_index, dtot1_3, dtot1_6, gnr, noe);
+        calc_noe(noeIndex, dtot1_3, dtot1_6, gnr, noe);
     }
 
     rlo.r = 1.0;
@@ -905,8 +905,8 @@ int gmx_rmsdist(int argc, char* argv[])
                   "RMS (nm)",
                   "Atom Index",
                   "Atom Index",
-                  isize,
-                  isize,
+                  indexGroupSize,
+                  indexGroupSize,
                   resnr,
                   resnr,
                   rms,
@@ -925,8 +925,8 @@ int gmx_rmsdist(int argc, char* argv[])
                   "RMS",
                   "Atom Index",
                   "Atom Index",
-                  isize,
-                  isize,
+                  indexGroupSize,
+                  indexGroupSize,
                   resnr,
                   resnr,
                   rmsc,
@@ -945,8 +945,8 @@ int gmx_rmsdist(int argc, char* argv[])
                   "Distance (nm)",
                   "Atom Index",
                   "Atom Index",
-                  isize,
-                  isize,
+                  indexGroupSize,
+                  indexGroupSize,
                   resnr,
                   resnr,
                   mean,
@@ -965,8 +965,8 @@ int gmx_rmsdist(int argc, char* argv[])
                   "Distance (nm)",
                   "Atom Index",
                   "Atom Index",
-                  isize,
-                  isize,
+                  indexGroupSize,
+                  indexGroupSize,
                   resnr,
                   resnr,
                   dtot1_3,
@@ -984,8 +984,8 @@ int gmx_rmsdist(int argc, char* argv[])
                   "Distance (nm)",
                   "Atom Index",
                   "Atom Index",
-                  isize,
-                  isize,
+                  indexGroupSize,
+                  indexGroupSize,
                   resnr,
                   resnr,
                   dtot1_6,

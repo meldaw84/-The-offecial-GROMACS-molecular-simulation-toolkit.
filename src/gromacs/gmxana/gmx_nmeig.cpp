@@ -342,20 +342,20 @@ static void analyzeThermochemistry(FILE*                    fp,
 {
     std::vector<int> index(atom_index.begin(), atom_index.end());
 
-    rvec   xcm;
-    double tmass  = calc_xcm(top_x, index.size(), index.data(), top.atoms.atom, xcm, FALSE);
-    double Strans = calcTranslationalEntropy(tmass, T, P);
+    rvec                   xcm;
+    double                 tmass  = calc_xcm(top_x, index, top.atoms.atom, xcm, FALSE);
+    double                 Strans = calcTranslationalEntropy(tmass, T, P);
     std::vector<gmx::RVec> x_com;
     x_com.resize(top.atoms.nr);
     for (int i = 0; i < top.atoms.nr; i++)
     {
         copy_rvec(top_x[i], x_com[i]);
     }
-    (void)sub_xcm(as_rvec_array(x_com.data()), index.size(), index.data(), top.atoms.atom, xcm, FALSE);
+    (void)sub_xcm(as_rvec_array(x_com.data()), index, top.atoms.atom, xcm, FALSE);
 
     rvec   inertia;
     matrix trans;
-    principal_comp(index.size(), index.data(), top.atoms.atom, as_rvec_array(x_com.data()), trans, inertia);
+    principal_comp(index, top.atoms.atom, as_rvec_array(x_com.data()), trans, inertia);
     bool linear = (inertia[XX] / inertia[YY] < linear_toler && inertia[XX] / inertia[ZZ] < linear_toler);
     // (kJ/mol ps)^2/(Dalton nm^2 kJ/mol K) =
     // c_kilo kg m^2 ps^2/(s^2 mol g/mol nm^2 K) =

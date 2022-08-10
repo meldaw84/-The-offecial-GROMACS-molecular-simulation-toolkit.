@@ -38,10 +38,13 @@
 
 #include <cmath>
 
+#include <numeric>
+
 #include "gromacs/linearalgebra/nrjac.h"
 #include "gromacs/math/functions.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/smalloc.h"
 
 #define NDIM 4
@@ -91,7 +94,7 @@ void t_trans(matrix trans, real d[], real** ev)
 }
 #endif
 
-void principal_comp(int n, const int index[], t_atom atom[], rvec x[], matrix trans, rvec d)
+void principal_comp(gmx::ArrayRef<const int> index, t_atom atom[], rvec x[], matrix trans, rvec d)
 {
     int      i, j, ai, m, nrot;
     real     mm, rx, ry, rz;
@@ -120,7 +123,7 @@ void principal_comp(int n, const int index[], t_atom atom[], rvec x[], matrix tr
             inten[i][m] = 0;
         }
     }
-    for (i = 0; (i < n); i++)
+    for (i = 0; (i < gmx::ssize(index)); i++)
     {
         ai = index[i];
         mm = atom[ai].m;
@@ -201,14 +204,14 @@ void principal_comp(int n, const int index[], t_atom atom[], rvec x[], matrix tr
     sfree(ev);
 }
 
-void rotate_atoms(int gnx, const int* index, rvec x[], matrix trans)
+void rotate_atoms(gmx::ArrayRef<const int> index, rvec x[], matrix trans)
 {
     real xt, yt, zt;
     int  i, ii;
 
-    for (i = 0; (i < gnx); i++)
+    for (i = 0; (i < gmx::ssize(index)); i++)
     {
-        ii        = index ? index[i] : i;
+        ii        = index[i];
         xt        = x[ii][XX];
         yt        = x[ii][YY];
         zt        = x[ii][ZZ];
@@ -218,16 +221,16 @@ void rotate_atoms(int gnx, const int* index, rvec x[], matrix trans)
     }
 }
 
-real calc_xcm(const rvec x[], int gnx, const int* index, const t_atom* atom, rvec xcm, gmx_bool bQ)
+real calc_xcm(const rvec x[], gmx::ArrayRef<const int> index, const t_atom* atom, rvec xcm, gmx_bool bQ)
 {
     int  i, ii, m;
     real m0, tm;
 
     clear_rvec(xcm);
     tm = 0;
-    for (i = 0; (i < gnx); i++)
+    for (i = 0; (i < gmx::ssize(index)); i++)
     {
-        ii = index ? index[i] : i;
+        ii = index[i];
         if (atom)
         {
             if (bQ)
@@ -257,32 +260,32 @@ real calc_xcm(const rvec x[], int gnx, const int* index, const t_atom* atom, rve
     return tm;
 }
 
-real sub_xcm(rvec x[], int gnx, const int* index, const t_atom atom[], rvec xcm, gmx_bool bQ)
+real sub_xcm(rvec x[], gmx::ArrayRef<const int> index, const t_atom atom[], rvec xcm, gmx_bool bQ)
 {
     int  i, ii;
     real tm;
 
-    tm = calc_xcm(x, gnx, index, atom, xcm, bQ);
-    for (i = 0; (i < gnx); i++)
+    tm = calc_xcm(x, index, atom, xcm, bQ);
+    for (i = 0; (i < gmx::ssize(index)); i++)
     {
-        ii = index ? index[i] : i;
+        ii = index[i];
         rvec_dec(x[ii], xcm);
     }
     return tm;
 }
 
-void orient_princ(const t_atoms* atoms, int isize, const int* index, int natoms, rvec x[], rvec* v, rvec d)
+void orient_princ(const t_atoms* atoms, gmx::ArrayRef<const int> index, int natoms, rvec x[], rvec* v, rvec d)
 {
     int    i, m;
     rvec   xcm, prcomp;
     matrix trans;
 
-    calc_xcm(x, isize, index, atoms->atom, xcm, FALSE);
+    calc_xcm(x, index, atoms->atom, xcm, FALSE);
     for (i = 0; i < natoms; i++)
     {
         rvec_dec(x[i], xcm);
     }
-    principal_comp(isize, index, atoms->atom, x, trans, prcomp);
+    principal_comp(index, atoms->atom, x, trans, prcomp);
     if (d)
     {
         copy_rvec(prcomp, d);
@@ -296,10 +299,12 @@ void orient_princ(const t_atoms* atoms, int isize, const int* index, int natoms,
             trans[ZZ][m] = -trans[ZZ][m];
         }
     }
-    rotate_atoms(natoms, nullptr, x, trans);
+    std::vector<int> allAtoms(natoms);
+    std::iota(allAtoms.begin(), allAtoms.end(), 0);
+    rotate_atoms(allAtoms, x, trans);
     if (v)
     {
-        rotate_atoms(natoms, nullptr, v, trans);
+        rotate_atoms(allAtoms, v, trans);
     }
 
     for (i = 0; i < natoms; i++)

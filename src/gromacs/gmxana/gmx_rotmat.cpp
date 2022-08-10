@@ -48,22 +48,22 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/smalloc.h"
 
-static void get_refx(gmx_output_env_t* oenv,
-                     const char*       trxfn,
-                     int               nfitdim,
-                     int               skip,
-                     int               gnx,
-                     int*              index,
-                     gmx_bool          bMW,
-                     const t_topology* top,
-                     PbcType           pbcType,
-                     rvec*             x_ref)
+static void get_refx(gmx_output_env_t*        oenv,
+                     const char*              trxfn,
+                     int                      nfitdim,
+                     int                      skip,
+                     gmx::ArrayRef<const int> index,
+                     gmx_bool                 bMW,
+                     const t_topology*        top,
+                     PbcType                  pbcType,
+                     rvec*                    x_ref)
 {
     int          natoms, nfr_all, nfr, i, j, a, r, c, min_fr;
     t_trxstatus* status;
@@ -82,9 +82,9 @@ static void get_refx(gmx_output_env_t* oenv,
     snew(xi, 100);
     natoms = read_first_x(oenv, &status, trxfn, &ti[nfr], &x, box);
 
-    snew(w_rls, gnx);
+    snew(w_rls, index.size());
     tot_mass = 0;
-    for (a = 0; a < gnx; a++)
+    for (a = 0; a < gmx::ssize(index); a++)
     {
         if (index[a] >= natoms)
         {
@@ -103,12 +103,12 @@ static void get_refx(gmx_output_env_t* oenv,
         if (nfr_all % skip == 0)
         {
             gmx_rmpbc(gpbc, natoms, box, x);
-            snew(xi[nfr], gnx);
-            for (i = 0; i < gnx; i++)
+            snew(xi[nfr], index.size());
+            for (i = 0; i < gmx::ssize(index); i++)
             {
                 copy_rvec(x[index[i]], xi[nfr][i]);
             }
-            reset_x(gnx, nullptr, gnx, nullptr, xi[nfr], w_rls);
+            reset_x(index.size(), nullptr, index.size(), nullptr, xi[nfr], w_rls);
             nfr++;
             if (nfr % 100 == 0)
             {
@@ -130,10 +130,10 @@ static void get_refx(gmx_output_env_t* oenv,
         fflush(stdout);
         for (j = i + 1; j < nfr; j++)
         {
-            calc_fit_R(nfitdim, gnx, w_rls, xi[i], xi[j], R);
+            calc_fit_R(nfitdim, index.size(), w_rls, xi[i], xi[j], R);
 
             msd = 0;
-            for (a = 0; a < gnx; a++)
+            for (a = 0; a < gmx::ssize(index); a++)
             {
                 for (r = 0; r < DIM; r++)
                 {
@@ -174,7 +174,7 @@ static void get_refx(gmx_output_env_t* oenv,
     printf("Average RMSD between all structures: %.3f\n", srmsd_tot / nfr);
     printf("Structure with lowest RMSD to all others: time %g, av. RMSD %.3f\n", min_t, min_srmsd);
 
-    for (a = 0; a < gnx; a++)
+    for (a = 0; a < gmx::ssize(index); a++)
     {
         copy_rvec(xi[min_fr][a], x_ref[index[a]]);
     }
@@ -231,10 +231,7 @@ int gmx_rotmat(int argc, char* argv[])
     matrix                     box, R;
     real                       t;
     int                        natoms, i;
-    char*                      grpname;
-    int                        gnx;
     gmx_rmpbc_t                gpbc = nullptr;
-    int*                       index;
     gmx_output_env_t*          oenv;
     real*                      w_rls;
     std::array<std::string, 9> leg = { "xx", "xy", "xz", "yx", "yy", "yz", "zx", "zy", "zz" };
@@ -257,32 +254,34 @@ int gmx_rotmat(int argc, char* argv[])
 
     gmx_rmpbc(gpbc, top.atoms.nr, box, x_ref);
 
-    get_index(&top.atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &gnx, &index, &grpname);
+    auto indexWithName = getSingleIndexGroup(&top.atoms, ftp2fn_null(efNDX, NFILE, fnm));
+    gmx::ArrayRef<const int> indexGroup     = indexWithName.indexGroupEntries;
+    const int                indexGroupSize = indexGroup.size();
 
     GMX_RELEASE_ASSERT(reffit[0] != nullptr, "Options inconsistency; reffit[0] is NULL");
     if (reffit[0][0] != 'n')
     {
-        get_refx(oenv, ftp2fn(efTRX, NFILE, fnm), reffit[0][2] == 'z' ? 3 : 2, skip, gnx, index, bMW, &top, pbcType, x_ref);
+        get_refx(oenv, ftp2fn(efTRX, NFILE, fnm), reffit[0][2] == 'z' ? 3 : 2, skip, indexGroup, bMW, &top, pbcType, x_ref);
     }
 
     natoms = read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
 
     snew(w_rls, natoms);
-    for (i = 0; i < gnx; i++)
+    for (i = 0; i < indexGroupSize; i++)
     {
-        if (index[i] >= natoms)
+        if (indexGroup[i] >= natoms)
         {
             gmx_fatal(FARGS,
                       "Atom index (%d) is larger than the number of atoms in the trajecory (%d)",
-                      index[i] + 1,
+                      indexGroup[i] + 1,
                       natoms);
         }
-        w_rls[index[i]] = (bMW ? top.atoms.atom[index[i]].m : 1.0);
+        w_rls[indexGroup[i]] = (bMW ? top.atoms.atom[indexGroup[i]].m : 1.0);
     }
 
     if (reffit[0][0] == 'n')
     {
-        reset_x(gnx, index, natoms, nullptr, x_ref, w_rls);
+        reset_x(indexGroupSize, indexGroup.data(), natoms, nullptr, x_ref, w_rls);
     }
 
     out = xvgropen(ftp2fn(efXVG, NFILE, fnm), "Fit matrix", "Time (ps)", "", oenv);
@@ -292,7 +291,7 @@ int gmx_rotmat(int argc, char* argv[])
     {
         gmx_rmpbc(gpbc, natoms, box, x);
 
-        reset_x(gnx, index, natoms, nullptr, x, w_rls);
+        reset_x(indexGroupSize, indexGroup.data(), natoms, nullptr, x, w_rls);
 
         if (bFitXY)
         {

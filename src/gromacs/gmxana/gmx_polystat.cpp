@@ -50,6 +50,7 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/booltype.h"
 #include "gromacs/utility/cstringutil.h"
@@ -146,8 +147,7 @@ int gmx_polystat(int argc, char* argv[])
     t_topology*                top;
     gmx_output_env_t*          oenv;
     PbcType                    pbcType;
-    int                        isize, *index, nmol, *molind, mol, nat_min = 0, nat_max = 0;
-    char*                      grpname;
+    int                        nmol, *molind, mol, nat_min = 0, nat_max = 0;
     t_trxstatus*               status;
     real                       t;
     rvec *                     x, *bond = nullptr;
@@ -188,20 +188,22 @@ int gmx_polystat(int argc, char* argv[])
     pbcType = read_tpx_top(ftp2fn(efTPR, NFILE, fnm), nullptr, box, &natoms, nullptr, nullptr, top);
 
     fprintf(stderr, "Select a group of polymer mainchain atoms:\n");
-    get_index(&top->atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &isize, &index, &grpname);
+    auto indexWithName = getSingleIndexGroup(&top->atoms, ftp2fn_null(efNDX, NFILE, fnm));
+    gmx::ArrayRef<const int> indexGroup     = indexWithName.indexGroupEntries;
+    const int                indexGroupSize = indexGroup.size();
 
     snew(molind, top->mols.nr + 1);
     nmol = 0;
     mol  = -1;
-    for (i = 0; i < isize; i++)
+    for (i = 0; i < indexGroupSize; i++)
     {
-        if (i == 0 || index[i] >= top->mols.index[mol + 1])
+        if (i == 0 || indexGroup[i] >= top->mols.index[mol + 1])
         {
             molind[nmol++] = i;
             do
             {
                 mol++;
-            } while (index[i] >= top->mols.index[mol + 1]);
+            } while (indexGroup[i] >= top->mols.index[mol + 1]);
         }
     }
     molind[nmol] = i;
@@ -212,7 +214,7 @@ int gmx_polystat(int argc, char* argv[])
         nat_min = std::min(nat_min, molind[mol + 1] - molind[mol]);
         nat_max = std::max(nat_max, molind[mol + 1] - molind[mol]);
     }
-    fprintf(stderr, "Group %s consists of %d molecules\n", grpname, nmol);
+    fprintf(stderr, "Group %s consists of %d molecules\n", indexWithName.indexGroupName.c_str(), nmol);
     fprintf(stderr, "Group size per molecule, min: %d atoms, max %d atoms\n", nat_min, nat_max);
 
     sprintf(title, "Size of %d polymers", nmol);
@@ -260,7 +262,7 @@ int gmx_polystat(int argc, char* argv[])
     {
         outi = xvgropen(
                 opt2fn("-i", NFILE, fnm), "Internal distances", "n", "<R\\S2\\N(n)>/n (nm\\S2\\N)", oenv);
-        i = index[molind[1] - 1] - index[molind[0]]; /* Length of polymer -1 */
+        i = indexGroup[molind[1] - 1] - indexGroup[molind[0]]; /* Length of polymer -1 */
         snew(intd, i);
     }
     else
@@ -318,12 +320,12 @@ int gmx_polystat(int argc, char* argv[])
             ind1 = molind[mol + 1];
 
             /* Determine end to end distance */
-            sum_eed2 += distance2(x[index[ind0]], x[index[ind1 - 1]]);
+            sum_eed2 += distance2(x[indexGroup[ind0]], x[indexGroup[ind1 - 1]]);
 
             /* Determine internal distances */
             if (outi)
             {
-                calc_int_dist(intd, x, index[ind0], index[ind1 - 1]);
+                calc_int_dist(intd, x, indexGroup[ind0], indexGroup[ind1 - 1]);
             }
 
             /* Determine the radius of gyration */
@@ -336,7 +338,7 @@ int gmx_polystat(int argc, char* argv[])
 
             for (i = ind0; i < ind1; i++)
             {
-                a = index[i];
+                a = indexGroup[i];
                 if (bMW)
                 {
                     m = top->atoms.atom[a].m;
@@ -376,7 +378,7 @@ int gmx_polystat(int argc, char* argv[])
             {
                 for (i = ind0; i < ind1 - 1; i++)
                 {
-                    rvec_sub(x[index[i + 1]], x[index[i]], bond[i - ind0]);
+                    rvec_sub(x[indexGroup[i + 1]], x[indexGroup[i]], bond[i - ind0]);
                     unitv(bond[i - ind0], bond[i - ind0]);
                 }
                 for (i = ind0; i < ind1 - 1; i++)
@@ -498,7 +500,7 @@ int gmx_polystat(int argc, char* argv[])
         }
         ymax = -1;
         ymin = 1e300;
-        j    = index[molind[1] - 1] - index[molind[0]]; /* Polymer length -1. */
+        j    = indexGroup[molind[1] - 1] - indexGroup[molind[0]]; /* Polymer length -1. */
         for (i = 0; i < j; i++)
         {
             intd[i] /= (i + 1) * frame * nmol;

@@ -49,6 +49,7 @@
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
 #include "gromacs/trajectory/trajectoryframe.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/gmxassert.h"
@@ -163,9 +164,6 @@ int gmx_spatial(int argc, char* argv[])
     t_pbc             pbc;
     t_atoms*          atoms;
     int               natoms;
-    char *            grpnm, *grpnmp;
-    int *             index, *indexp;
-    int               nidx, nidxp;
     int               v;
     int               nbin[3];
     FILE*             flp;
@@ -196,9 +194,13 @@ int gmx_spatial(int argc, char* argv[])
 
     atoms = &(top.atoms);
     printf("Select group to generate SDF:\n");
-    get_index(atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &nidx, &index, &grpnm);
+    auto sdfIndexWithName             = getSingleIndexGroup(atoms, ftp2fn_null(efNDX, NFILE, fnm));
+    gmx::ArrayRef<const int> sdfIndex = sdfIndexWithName.indexGroupEntries;
+    const int                sdfIndexSize = sdfIndex.size();
     printf("Select group to output coords (e.g. solute):\n");
-    get_index(atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &nidxp, &indexp, &grpnmp);
+    auto outputIndexWithName = getSingleIndexGroup(atoms, ftp2fn_null(efNDX, NFILE, fnm));
+    gmx::ArrayRef<const int> outputIndex     = outputIndexWithName.indexGroupEntries;
+    const int                outputIndexSize = outputIndex.size();
 
     /* The first time we read data is a little special */
     read_first_frame(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &fr, flags);
@@ -265,11 +267,11 @@ int gmx_spatial(int argc, char* argv[])
             set_pbc(&pbc, pbcType, box_pbc);
         }
 
-        for (int i = 0; i < nidx; i++)
+        for (int i = 0; i < sdfIndexSize; i++)
         {
-            int x = static_cast<int>(std::floor((fr.x[index[i]][XX] - MINBIN[XX]) / rBINWIDTH));
-            int y = static_cast<int>(std::floor((fr.x[index[i]][YY] - MINBIN[YY]) / rBINWIDTH));
-            int z = static_cast<int>(std::floor((fr.x[index[i]][ZZ] - MINBIN[ZZ]) / rBINWIDTH));
+            int x = static_cast<int>(std::floor((fr.x[sdfIndex[i]][XX] - MINBIN[XX]) / rBINWIDTH));
+            int y = static_cast<int>(std::floor((fr.x[sdfIndex[i]][YY] - MINBIN[YY]) / rBINWIDTH));
+            int z = static_cast<int>(std::floor((fr.x[sdfIndex[i]][ZZ] - MINBIN[ZZ]) / rBINWIDTH));
             if (x < 0 || x >= nbin[XX] || y < 0 || y >= nbin[YY] || z < 0 || z >= nbin[ZZ])
             {
                 printf("There was an item outside of the allocated memory. Increase the value "
@@ -282,9 +284,9 @@ int gmx_spatial(int argc, char* argv[])
                        MAXBIN[YY],
                        MAXBIN[ZZ]);
                 printf("Memory was required for [%f,%f,%f]\n",
-                       fr.x[index[i]][XX],
-                       fr.x[index[i]][YY],
-                       fr.x[index[i]][ZZ]);
+                       fr.x[sdfIndex[i]][XX],
+                       fr.x[sdfIndex[i]][YY],
+                       fr.x[sdfIndex[i]][ZZ]);
                 exit(1);
             }
 
@@ -352,7 +354,7 @@ int gmx_spatial(int argc, char* argv[])
    */
     fprintf(flp,
             "%5d%12.6f%12.6f%12.6f\n",
-            nidxp,
+            outputIndexSize,
             (MINBIN[XX] + (outputStarts[XX] + 0.5) * rBINWIDTH) * 10. / bohr,
             (MINBIN[YY] + (outputStarts[YY] + 0.5) * rBINWIDTH) * 10. / bohr,
             (MINBIN[ZZ] + (outputStarts[ZZ] + 0.5) * rBINWIDTH) * 10. / bohr);
@@ -360,26 +362,26 @@ int gmx_spatial(int argc, char* argv[])
     fprintf(flp, "%5d%12.6f%12.6f%12.6f\n", outputEnds[YY] - outputStarts[YY], 0., rBINWIDTH * 10. / bohr, 0.);
     fprintf(flp, "%5d%12.6f%12.6f%12.6f\n", outputEnds[ZZ] - outputStarts[ZZ], 0., 0., rBINWIDTH * 10. / bohr);
 
-    for (int i = 0; i < nidxp; i++)
+    for (int i = 0; i < outputIndexSize; i++)
     {
         v = 2;
-        if (*(top.atoms.atomname[indexp[i]][0]) == 'C')
+        if (*(top.atoms.atomname[outputIndex[i]][0]) == 'C')
         {
             v = 6;
         }
-        if (*(top.atoms.atomname[indexp[i]][0]) == 'N')
+        if (*(top.atoms.atomname[outputIndex[i]][0]) == 'N')
         {
             v = 7;
         }
-        if (*(top.atoms.atomname[indexp[i]][0]) == 'O')
+        if (*(top.atoms.atomname[outputIndex[i]][0]) == 'O')
         {
             v = 8;
         }
-        if (*(top.atoms.atomname[indexp[i]][0]) == 'H')
+        if (*(top.atoms.atomname[outputIndex[i]][0]) == 'H')
         {
             v = 1;
         }
-        if (*(top.atoms.atomname[indexp[i]][0]) == 'S')
+        if (*(top.atoms.atomname[outputIndex[i]][0]) == 'S')
         {
             v = 16;
         }
@@ -387,9 +389,9 @@ int gmx_spatial(int argc, char* argv[])
                 "%5d%12.6f%12.6f%12.6f%12.6f\n",
                 v,
                 0.,
-                fr.x[indexp[i]][XX] * 10.0 / bohr,
-                fr.x[indexp[i]][YY] * 10.0 / bohr,
-                fr.x[indexp[i]][ZZ] * 10.0 / bohr);
+                fr.x[outputIndex[i]][XX] * 10.0 / bohr,
+                fr.x[outputIndex[i]][YY] * 10.0 / bohr,
+                fr.x[outputIndex[i]][ZZ] * 10.0 / bohr);
     }
 
     tot = 0;

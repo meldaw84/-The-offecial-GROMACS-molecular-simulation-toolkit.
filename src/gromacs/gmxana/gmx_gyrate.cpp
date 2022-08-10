@@ -75,7 +75,7 @@ static real calc_gyro(rvec                     x[],
 
     if (bRot)
     {
-        principal_comp(index.size(), index.data(), atom, x, trans, d);
+        principal_comp(index, atom, x, trans, d);
         Itot = norm(d);
         if (bMOI)
         {
@@ -354,7 +354,7 @@ int gmx_gyrate(int argc, char* argv[])
         clear_rvec(d1);
         for (mol = 0; mol < nmol; mol++)
         {
-            tm = sub_xcm(nz == 0 ? x_s : x, nam, indexGroup.data() + mol * nam, top.atoms.atom, xcm, bQ);
+            tm = sub_xcm(nz == 0 ? x_s : x, indexGroup.subArray(mol * nam, nam), top.atoms.atom, xcm, bQ);
             if (nz == 0)
             {
                 gyro += calc_gyro(

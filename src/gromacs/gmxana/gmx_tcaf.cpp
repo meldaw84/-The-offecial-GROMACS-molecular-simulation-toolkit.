@@ -53,6 +53,7 @@
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
 #include "gromacs/trajectory/trajectoryframe.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
@@ -340,9 +341,7 @@ int gmx_tcaf(int argc, char* argv[])
     t_trxframe        fr;
     matrix            box;
     gmx_bool          bTop;
-    int               gnx;
-    int *             index, *atndx = nullptr, at;
-    char*             grpname;
+    int *             atndx = nullptr, at;
     char              title[256];
     real              t0, t1, dt, m, mtot, sysmass, rho, sx, cx;
     t_trxstatus*      status;
@@ -372,7 +371,9 @@ int gmx_tcaf(int argc, char* argv[])
     }
 
     bTop = read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, nullptr, nullptr, box, TRUE);
-    get_index(&top.atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &gnx, &index, &grpname);
+    auto indexWithName = getSingleIndexGroup(&top.atoms, ftp2fn_null(efNDX, NFILE, fnm));
+    gmx::ArrayRef<const int> indexGroup     = indexWithName.indexGroupEntries;
+    const int                indexGroupSize = indexGroup.size();
 
     if (bMol)
     {
@@ -395,7 +396,7 @@ int gmx_tcaf(int argc, char* argv[])
     GMX_ASSERT(nk >= 16, "Has to be over 16 because nkc is either NKC or NKC0.");
     ntc = nk * NPK;
 
-    sprintf(title, "Velocity Autocorrelation Function for %s", grpname);
+    sprintf(title, "Velocity Autocorrelation Function for %s", indexWithName.indexGroupName.c_str());
 
     sysmass = 0;
     for (i = 0; i < nk; i++)
@@ -453,16 +454,16 @@ int gmx_tcaf(int argc, char* argv[])
             tc[i][nframes] = 0;
         }
 
-        for (i = 0; i < gnx; i++)
+        for (i = 0; i < indexGroupSize; i++)
         {
             if (bMol)
             {
                 clear_rvec(mv_mol);
                 clear_rvec(cm_mol);
                 mtot = 0;
-                for (j = 0; j < atndx[index[i] + 1] - atndx[index[i]]; j++)
+                for (j = 0; j < atndx[indexGroup[i] + 1] - atndx[indexGroup[i]]; j++)
                 {
-                    at = atndx[index[i]] + j;
+                    at = atndx[indexGroup[i]] + j;
                     m  = top.atoms.atom[at].m;
                     mv_mol[XX] += m * fr.v[at][XX];
                     mv_mol[YY] += m * fr.v[at][YY];
@@ -476,12 +477,12 @@ int gmx_tcaf(int argc, char* argv[])
             }
             else
             {
-                svmul(top.atoms.atom[index[i]].m, fr.v[index[i]], mv_mol);
+                svmul(top.atoms.atom[indexGroup[i]].m, fr.v[indexGroup[i]], mv_mol);
             }
 
             if (!bMol)
             {
-                copy_rvec(fr.x[index[i]], cm_mol);
+                copy_rvec(fr.x[indexGroup[i]], cm_mol);
             }
             j = 0;
             for (k = 0; k < nk; k++)

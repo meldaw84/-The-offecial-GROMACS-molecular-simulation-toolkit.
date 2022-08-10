@@ -46,6 +46,7 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
@@ -137,7 +138,7 @@ static void calc_h2order(const char*             fn,
 
         if (bMicel)
         {
-            calc_xcm(x0, nmic, micel, top->atoms.atom, com, FALSE);
+            calc_xcm(x0, gmx::arrayRefFromArray(micel, nmic), top->atoms.atom, com, FALSE);
         }
 
         for (i = 0; i < ngx / 3; i++)

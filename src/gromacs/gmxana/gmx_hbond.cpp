@@ -2796,20 +2796,24 @@ int gmx_hbond(int argc, char* argv[])
     shatom = 0;
     if (rshell > 0)
     {
-        int   shisz;
-        int*  shidx;
-        char* shgrpnm;
+        int groupSize = 0;
+        int index     = -1;
         /* get index group with atom for shell */
         do
         {
             printf("Select atom for shell (1 atom):\n");
-            get_index(&(top.atoms), ftp2fn_null(efNDX, NFILE, fnm), 1, &shisz, &shidx, &shgrpnm);
-            if (shisz != 1)
+            auto indexWithName = getSingleIndexGroup(&(top.atoms), ftp2fn_null(efNDX, NFILE, fnm));
+            groupSize          = indexWithName.indexGroupEntries.size();
+            if (groupSize != 1)
             {
-                printf("group contains %d atoms, should be 1 (one)\n", shisz);
+                printf("group contains %d atoms, should be 1 (one)\n", groupSize);
             }
-        } while (shisz != 1);
-        shatom = shidx[0];
+            else
+            {
+                index = indexWithName.indexGroupEntries[0];
+            }
+        } while (groupSize != 1);
+        shatom = index;
         printf("Will calculate hydrogen bonds within a shell "
                "of %g nm around atom %i\n",
                rshell,

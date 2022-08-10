@@ -56,6 +56,7 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/futil.h"
@@ -107,13 +108,12 @@ static void correlate_aniso(const char* fn, t_atoms* ref, t_atoms* calc, const g
     xvgrclose(fp);
 }
 
-static void average_residues(double         f[],
-                             double**       U,
-                             int            uind,
-                             int            isize,
-                             const int      index[],
-                             const real     w_rls[],
-                             const t_atoms* atoms)
+static void average_residues(double                   f[],
+                             double**                 U,
+                             int                      uind,
+                             gmx::ArrayRef<const int> index,
+                             const real               w_rls[],
+                             const t_atoms*           atoms)
 {
     int    i, j, start;
     double av, m;
@@ -125,11 +125,11 @@ static void average_residues(double         f[],
     {
         assert(U);
     }
-    for (i = 0; i < isize; i++)
+    for (i = 0; i < gmx::ssize(index); i++)
     {
         av += w_rls[index[i]] * (f != nullptr ? f[i] : U[i][uind]);
         m += w_rls[index[i]];
-        if (i + 1 == isize || atoms->atom[index[i]].resind != atoms->atom[index[i + 1]].resind)
+        if (i + 1 == gmx::ssize(index) || atoms->atom[index[i]].resind != atoms->atom[index[i + 1]].resind)
         {
             av /= m;
             if (f != nullptr)
@@ -252,9 +252,6 @@ int gmx_rmsf(int argc, char* argv[])
     int         resind;
 
     gmx_bool bReadPDB;
-    int*     index;
-    int      isize;
-    char*    grpnames;
 
     real        bfac, pdb_bfac, *Uaver;
     double **   U, *xav;
@@ -292,25 +289,27 @@ int gmx_rmsf(int argc, char* argv[])
     snew(w_rls, top.atoms.nr);
 
     fprintf(stderr, "Select group(s) for root mean square calculation\n");
-    get_index(&top.atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &isize, &index, &grpnames);
+    auto indexWithName = getSingleIndexGroup(&top.atoms, ftp2fn_null(efNDX, NFILE, fnm));
+    gmx::ArrayRef<const int> indexGroup     = indexWithName.indexGroupEntries;
+    const int                indexGroupSize = indexGroup.size();
 
     /* Set the weight */
-    for (i = 0; i < isize; i++)
+    for (i = 0; i < indexGroupSize; i++)
     {
-        w_rls[index[i]] = top.atoms.atom[index[i]].m;
+        w_rls[indexGroup[i]] = top.atoms.atom[indexGroup[i]].m;
     }
 
     /* Malloc the rmsf arrays */
-    snew(xav, isize * DIM);
-    snew(U, isize);
-    for (i = 0; i < isize; i++)
+    snew(xav, indexGroupSize * DIM);
+    snew(U, indexGroupSize);
+    for (i = 0; i < indexGroupSize; i++)
     {
         snew(U[i], DIM * DIM);
     }
-    snew(rmsf, isize);
+    snew(rmsf, indexGroupSize);
     if (devfn)
     {
-        snew(rmsd_x, isize);
+        snew(rmsd_x, indexGroupSize);
     }
 
     if (bReadPDB)
@@ -341,7 +340,7 @@ int gmx_rmsf(int argc, char* argv[])
 
     if (bFit)
     {
-        sub_xcm(xref, isize, index, top.atoms.atom, xcm, FALSE);
+        sub_xcm(xref, indexGroup, top.atoms.atom, xcm, FALSE);
     }
 
     natom = read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
@@ -360,16 +359,16 @@ int gmx_rmsf(int argc, char* argv[])
             gmx_rmpbc(gpbc, natom, box, x);
 
             /* Set center of mass to zero */
-            sub_xcm(x, isize, index, top.atoms.atom, xcm, FALSE);
+            sub_xcm(x, indexGroup, top.atoms.atom, xcm, FALSE);
 
             /* Fit to reference structure */
             do_fit(natom, w_rls, xref, x);
         }
 
         /* Calculate Anisotropic U Tensor */
-        for (i = 0; i < isize; i++)
+        for (i = 0; i < indexGroupSize; i++)
         {
-            aid = index[i];
+            aid = indexGroup[i];
             for (d = 0; d < DIM; d++)
             {
                 xav[i * DIM + d] += x[aid][d];
@@ -383,9 +382,9 @@ int gmx_rmsf(int argc, char* argv[])
         if (devfn)
         {
             /* Calculate RMS Deviation */
-            for (i = 0; (i < isize); i++)
+            for (i = 0; (i < indexGroupSize); i++)
             {
-                aid = index[i];
+                aid = indexGroup[i];
                 for (d = 0; (d < DIM); d++)
                 {
                     rmsd_x[i][d] += gmx::square(x[aid][d] - xref[aid][d]);
@@ -405,7 +404,7 @@ int gmx_rmsf(int argc, char* argv[])
     invcount = 1.0 / count;
     snew(Uaver, DIM * DIM);
     totmass = 0;
-    for (i = 0; i < isize; i++)
+    for (i = 0; i < indexGroupSize; i++)
     {
         for (d = 0; d < DIM; d++)
         {
@@ -416,10 +415,10 @@ int gmx_rmsf(int argc, char* argv[])
             for (m = 0; m < DIM; m++)
             {
                 U[i][d * DIM + m] = U[i][d * DIM + m] * invcount - xav[i * DIM + d] * xav[i * DIM + m];
-                Uaver[3 * d + m] += top.atoms.atom[index[i]].m * U[i][d * DIM + m];
+                Uaver[3 * d + m] += top.atoms.atom[indexGroup[i]].m * U[i][d * DIM + m];
             }
         }
-        totmass += top.atoms.atom[index[i]].m;
+        totmass += top.atoms.atom[indexGroup[i]].m;
     }
     for (d = 0; d < DIM * DIM; d++)
     {
@@ -430,15 +429,15 @@ int gmx_rmsf(int argc, char* argv[])
     {
         for (d = 0; d < DIM * DIM; d++)
         {
-            average_residues(nullptr, U, d, isize, index, w_rls, &top.atoms);
+            average_residues(nullptr, U, d, indexGroup, w_rls, &top.atoms);
         }
     }
 
     if (bAniso)
     {
-        for (i = 0; i < isize; i++)
+        for (i = 0; i < indexGroupSize; i++)
         {
-            aid                                 = index[i];
+            aid                                 = indexGroup[i];
             pdbatoms->pdbinfo[aid].bAnisotropic = TRUE;
             pdbatoms->pdbinfo[aid].uij[U11]     = static_cast<int>(1e6 * U[i][XX * DIM + XX]);
             pdbatoms->pdbinfo[aid].uij[U22]     = static_cast<int>(1e6 * U[i][YY * DIM + YY]);
@@ -457,7 +456,7 @@ int gmx_rmsf(int argc, char* argv[])
         label = "Atom";
     }
 
-    for (i = 0; i < isize; i++)
+    for (i = 0; i < indexGroupSize; i++)
     {
         rmsf[i] = U[i][XX * DIM + XX] + U[i][YY * DIM + YY] + U[i][ZZ * DIM + ZZ];
     }
@@ -471,7 +470,7 @@ int gmx_rmsf(int argc, char* argv[])
         gmx_ffclose(fp);
     }
 
-    for (i = 0; i < isize; i++)
+    for (i = 0; i < indexGroupSize; i++)
     {
         sfree(U[i]);
     }
@@ -483,18 +482,19 @@ int gmx_rmsf(int argc, char* argv[])
         bfac = 8.0 * M_PI * M_PI / 3.0 * 100;
         fp = xvgropen(ftp2fn(efXVG, NFILE, fnm), "B-Factors", label, "(A\\b\\S\\So\\N\\S2\\N)", oenv);
         xvgrLegend(fp, leg, oenv);
-        for (i = 0; (i < isize); i++)
+        for (i = 0; (i < indexGroupSize); i++)
         {
-            if (!bRes || i + 1 == isize
-                || top.atoms.atom[index[i]].resind != top.atoms.atom[index[i + 1]].resind)
+            if (!bRes || i + 1 == indexGroupSize
+                || top.atoms.atom[indexGroup[i]].resind != top.atoms.atom[indexGroup[i + 1]].resind)
             {
-                resind   = top.atoms.atom[index[i]].resind;
+                resind   = top.atoms.atom[indexGroup[i]].resind;
                 pdb_bfac = find_pdb_bfac(
-                        pdbatoms, &top.atoms.resinfo[resind], *(top.atoms.atomname[index[i]]));
+                        pdbatoms, &top.atoms.resinfo[resind], *(top.atoms.atomname[indexGroup[i]]));
 
                 fprintf(fp,
                         "%5d  %10.5f  %10.5f\n",
-                        bRes ? top.atoms.resinfo[top.atoms.atom[index[i]].resind].nr : index[i] + 1,
+                        bRes ? top.atoms.resinfo[top.atoms.atom[indexGroup[i]].resind].nr
+                             : indexGroup[i] + 1,
                         rmsf[i] * bfac,
                         pdb_bfac);
             }
@@ -504,45 +504,47 @@ int gmx_rmsf(int argc, char* argv[])
     else
     {
         fp = xvgropen(ftp2fn(efXVG, NFILE, fnm), "RMS fluctuation", label, "(nm)", oenv);
-        for (i = 0; i < isize; i++)
+        for (i = 0; i < indexGroupSize; i++)
         {
-            if (!bRes || i + 1 == isize
-                || top.atoms.atom[index[i]].resind != top.atoms.atom[index[i + 1]].resind)
+            if (!bRes || i + 1 == indexGroupSize
+                || top.atoms.atom[indexGroup[i]].resind != top.atoms.atom[indexGroup[i + 1]].resind)
             {
                 fprintf(fp,
                         "%5d %8.4f\n",
-                        bRes ? top.atoms.resinfo[top.atoms.atom[index[i]].resind].nr : index[i] + 1,
+                        bRes ? top.atoms.resinfo[top.atoms.atom[indexGroup[i]].resind].nr
+                             : indexGroup[i] + 1,
                         std::sqrt(rmsf[i]));
             }
         }
         xvgrclose(fp);
     }
 
-    for (i = 0; i < isize; i++)
+    for (i = 0; i < indexGroupSize; i++)
     {
-        pdbatoms->pdbinfo[index[i]].bfac = 800 * M_PI * M_PI / 3.0 * rmsf[i];
+        pdbatoms->pdbinfo[indexGroup[i]].bfac = 800 * M_PI * M_PI / 3.0 * rmsf[i];
     }
 
     if (devfn)
     {
-        for (i = 0; i < isize; i++)
+        for (i = 0; i < indexGroupSize; i++)
         {
             rmsf[i] = (rmsd_x[i][XX] + rmsd_x[i][YY] + rmsd_x[i][ZZ]) / count;
         }
         if (bRes)
         {
-            average_residues(rmsf, nullptr, 0, isize, index, w_rls, &top.atoms);
+            average_residues(rmsf, nullptr, 0, indexGroup, w_rls, &top.atoms);
         }
         /* Write RMSD output */
         fp = xvgropen(devfn, "RMS Deviation", label, "(nm)", oenv);
-        for (i = 0; i < isize; i++)
+        for (i = 0; i < indexGroupSize; i++)
         {
-            if (!bRes || i + 1 == isize
-                || top.atoms.atom[index[i]].resind != top.atoms.atom[index[i + 1]].resind)
+            if (!bRes || i + 1 == indexGroupSize
+                || top.atoms.atom[indexGroup[i]].resind != top.atoms.atom[indexGroup[i + 1]].resind)
             {
                 fprintf(fp,
                         "%5d %8.4f\n",
-                        bRes ? top.atoms.resinfo[top.atoms.atom[index[i]].resind].nr : index[i] + 1,
+                        bRes ? top.atoms.resinfo[top.atoms.atom[indexGroup[i]].resind].nr
+                             : indexGroup[i] + 1,
                         std::sqrt(rmsf[i]));
             }
         }
@@ -552,27 +554,41 @@ int gmx_rmsf(int argc, char* argv[])
     if (opt2bSet("-oq", NFILE, fnm))
     {
         /* Write a .pdb file with B-factors and optionally anisou records */
-        for (i = 0; i < isize; i++)
+        for (i = 0; i < indexGroupSize; i++)
         {
-            rvec_inc(pdbx[index[i]], xcm);
+            rvec_inc(pdbx[indexGroup[i]], xcm);
         }
-        write_sto_conf_indexed(
-                opt2fn("-oq", NFILE, fnm), title, pdbatoms, pdbx, nullptr, pbcType, pdbbox, isize, index);
+        write_sto_conf_indexed(opt2fn("-oq", NFILE, fnm),
+                               title,
+                               pdbatoms,
+                               pdbx,
+                               nullptr,
+                               pbcType,
+                               pdbbox,
+                               indexGroupSize,
+                               indexGroup.data());
     }
     if (opt2bSet("-ox", NFILE, fnm))
     {
         rvec* bFactorX;
         snew(bFactorX, top.atoms.nr);
-        for (i = 0; i < isize; i++)
+        for (i = 0; i < indexGroupSize; i++)
         {
             for (d = 0; d < DIM; d++)
             {
-                bFactorX[index[i]][d] = xcm[d] + xav[i * DIM + d];
+                bFactorX[indexGroup[i]][d] = xcm[d] + xav[i * DIM + d];
             }
         }
         /* Write a .pdb file with B-factors and optionally anisou records */
-        write_sto_conf_indexed(
-                opt2fn("-ox", NFILE, fnm), title, pdbatoms, bFactorX, nullptr, pbcType, pdbbox, isize, index);
+        write_sto_conf_indexed(opt2fn("-ox", NFILE, fnm),
+                               title,
+                               pdbatoms,
+                               bFactorX,
+                               nullptr,
+                               pbcType,
+                               pdbbox,
+                               indexGroupSize,
+                               indexGroup.data());
         sfree(bFactorX);
     }
     if (bAniso)

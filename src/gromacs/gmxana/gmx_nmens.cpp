@@ -49,6 +49,7 @@
 #include "gromacs/random/uniformintdistribution.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/fatalerror.h"
@@ -89,11 +90,9 @@ int gmx_nmens(int argc, char* argv[])
     matrix              box;
     real *              eigval, *invsqrtm, t, disp;
     int                 natoms;
-    char*               grpname;
     const char*         indexfile;
-    int                 i, j, d, s, v;
+    int                 j, d, s, v;
     int                 nout, *iout, noutvec, *outvec;
-    int*                index;
     real                rfac, rhalf, jr;
     gmx_output_env_t*   oenv;
     int                 jran;
@@ -123,24 +122,26 @@ int gmx_nmens(int argc, char* argv[])
     atoms = &top.atoms;
 
     printf("\nSelect an index group of %d elements that corresponds to the eigenvectors\n", natoms);
-    get_index(atoms, indexfile, 1, &i, &index, &grpname);
-    if (i != natoms)
+    auto                     indexWithName  = getSingleIndexGroup(atoms, indexfile);
+    gmx::ArrayRef<const int> indexGroup     = indexWithName.indexGroupEntries;
+    const int                indexGroupSize = indexGroup.size();
+    if (indexGroupSize != natoms)
     {
-        gmx_fatal(FARGS, "you selected a group with %d elements instead of %d", i, natoms);
+        gmx_fatal(FARGS, "you selected a group with %d elements instead of %d", indexGroupSize, natoms);
     }
     printf("\n");
 
     snew(invsqrtm, natoms);
     if (bDMA)
     {
-        for (i = 0; (i < natoms); i++)
+        for (int i = 0; (i < natoms); i++)
         {
-            invsqrtm[i] = gmx::invsqrt(atoms->atom[index[i]].m);
+            invsqrtm[i] = gmx::invsqrt(atoms->atom[indexGroup[i]].m);
         }
     }
     else
     {
-        for (i = 0; (i < natoms); i++)
+        for (int i = 0; (i < natoms); i++)
         {
             invsqrtm[i] = 1.0;
         }
@@ -155,7 +156,7 @@ int gmx_nmens(int argc, char* argv[])
         /* make an index from first to last */
         nout = last - first + 1;
         snew(iout, nout);
-        for (i = 0; i < nout; i++)
+        for (int i = 0; i < nout; i++)
         {
             iout[i] = first - 1 + i;
         }
@@ -181,7 +182,7 @@ int gmx_nmens(int argc, char* argv[])
     /* make an index of the eigenvectors which are present */
     snew(outvec, nout);
     noutvec = 0;
-    for (i = 0; i < nout; i++)
+    for (int i = 0; i < nout; i++)
     {
         j = 0;
         while ((j < nvec) && (eignr[j] != iout[i]))
@@ -218,7 +219,7 @@ int gmx_nmens(int argc, char* argv[])
 
     for (s = 0; s < nstruct; s++)
     {
-        for (i = 0; i < natoms; i++)
+        for (int i = 0; i < natoms; i++)
         {
             copy_rvec(xav[i], xout1[i]);
         }
@@ -242,7 +243,7 @@ int gmx_nmens(int argc, char* argv[])
             jr += jran;
             disp = rfac * jr - rhalf;
 
-            for (i = 0; i < natoms; i++)
+            for (int i = 0; i < natoms; i++)
             {
                 for (d = 0; d < DIM; d++)
                 {
@@ -250,12 +251,12 @@ int gmx_nmens(int argc, char* argv[])
                 }
             }
         }
-        for (i = 0; i < natoms; i++)
+        for (int i = 0; i < natoms; i++)
         {
-            copy_rvec(xout1[i], xout2[index[i]]);
+            copy_rvec(xout1[i], xout2[indexGroup[i]]);
         }
         t = s + 1;
-        write_trx(out, natoms, index, atoms, 0, t, box, xout2, nullptr, nullptr);
+        write_trx(out, natoms, indexGroup.data(), atoms, 0, t, box, xout2, nullptr, nullptr);
         fprintf(stderr, "\rGenerated %d structures", s + 1);
         fflush(stderr);
     }

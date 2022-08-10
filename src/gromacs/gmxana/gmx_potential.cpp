@@ -215,7 +215,7 @@ static void calc_potential(const char*             fn,
         }
 
         /* calculate position of center of mass based on group 1 */
-        calc_xcm(x0, gnx[0], index[0], top->atoms.atom, xcm, FALSE);
+        calc_xcm(x0, gmx::arrayRefFromArray(index[0], gnx[0]), top->atoms.atom, xcm, FALSE);
         svmul(-1, xcm, xcm);
 
         boxSize    = box[axis][axis];

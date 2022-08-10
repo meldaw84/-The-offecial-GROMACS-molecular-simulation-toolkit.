@@ -52,6 +52,7 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/fatalerror.h"
@@ -206,9 +207,6 @@ int gmx_mdmat(int argc, char* argv[])
     t_topology top;
     PbcType    pbcType;
     t_atoms    useatoms;
-    int        isize;
-    int*       index;
-    char*      grpname;
     int *      rndx, *natm, prevres, newres;
 
     int               i, j, nres, natoms, nframes, trxnat;
@@ -243,20 +241,22 @@ int gmx_mdmat(int argc, char* argv[])
     read_tps_conf(ftp2fn(efTPS, NFILE, fnm), &top, &pbcType, &x, nullptr, box, FALSE);
 
     fprintf(stderr, "Select group for analysis\n");
-    get_index(&top.atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &isize, &index, &grpname);
+    auto indexWithName = getSingleIndexGroup(&top.atoms, ftp2fn_null(efNDX, NFILE, fnm));
+    gmx::ArrayRef<const int> indexGroup     = indexWithName.indexGroupEntries;
+    const int                indexGroupSize = indexGroup.size();
 
-    natoms = isize;
+    natoms = indexGroupSize;
     snew(useatoms.atom, natoms);
     snew(useatoms.atomname, natoms);
 
     useatoms.nres = 0;
     snew(useatoms.resinfo, natoms);
 
-    prevres = top.atoms.atom[index[0]].resind;
+    prevres = top.atoms.atom[indexGroup[0]].resind;
     newres  = 0;
-    for (i = 0; (i < isize); i++)
+    for (i = 0; (i < indexGroupSize); i++)
     {
-        int ii               = index[i];
+        int ii               = indexGroup[i];
         useatoms.atomname[i] = top.atoms.atomname[ii];
         if (top.atoms.atom[ii].resind != prevres)
         {
@@ -277,7 +277,7 @@ int gmx_mdmat(int argc, char* argv[])
         useatoms.atom[i].resind = newres;
     }
     useatoms.nres = newres + 1;
-    useatoms.nr   = isize;
+    useatoms.nr   = indexGroupSize;
 
     rndx = res_ndx(&(useatoms));
     natm = res_natm(&(useatoms));
@@ -324,7 +324,7 @@ int gmx_mdmat(int argc, char* argv[])
     {
         gmx_rmpbc(gpbc, trxnat, box, x);
         nframes++;
-        calc_mat(nres, natoms, rndx, x, index, truncate, mdmat, nmat, pbcType, box);
+        calc_mat(nres, natoms, rndx, x, indexGroup.data(), truncate, mdmat, nmat, pbcType, box);
         for (i = 0; (i < nres); i++)
         {
             for (j = 0; (j < natoms); j++)

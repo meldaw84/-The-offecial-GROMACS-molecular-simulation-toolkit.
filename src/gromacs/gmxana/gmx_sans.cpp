@@ -49,6 +49,7 @@
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/fatalerror.h"
@@ -128,9 +129,6 @@ int gmx_sans(int argc, char* argv[])
     rvec*                                x;
     int                                  natoms;
     real                                 t;
-    char**                               grpname = nullptr;
-    int*                                 index   = nullptr;
-    int                                  isize;
     int                                  i;
     char*                                hdr            = nullptr;
     char*                                suffix         = nullptr;
@@ -211,13 +209,13 @@ int gmx_sans(int argc, char* argv[])
     fprintf(stderr, "Read %d atom names from %s with neutron scattering parameters\n\n", gnsf->nratoms, fnDAT);
 
     snew(top, 1);
-    snew(grpname, 1);
-    snew(index, 1);
 
     read_tps_conf(fnTPX, top, &pbcType, &x, nullptr, box, TRUE);
 
     printf("\nPlease select group for SANS spectra calculation:\n");
-    get_index(&(top->atoms), ftp2fn_null(efNDX, NFILE, fnm), 1, &isize, &index, grpname);
+    auto indexWithName = getSingleIndexGroup(&(top->atoms), ftp2fn_null(efNDX, NFILE, fnm));
+    gmx::ArrayRef<const int> indexGroup     = indexWithName.indexGroupEntries;
+    const int                indexGroupSize = indexGroup.size();
 
     gsans = gmx_sans_init(top, gnsf);
 
@@ -251,7 +249,7 @@ int gmx_sans(int argc, char* argv[])
         }
         /*  realy calc p(r) */
         prframecurrent = calc_radial_distribution_histogram(
-                gsans, x, box, index, isize, binwidth, bMC, bNORM, mcover, seed);
+                gsans, x, box, indexGroup.data(), indexGroupSize, binwidth, bMC, bNORM, mcover, seed);
         /* copy prframecurrent -> pr and summ up pr->gr[i] */
         /* allocate and/or resize memory for pr->gr[i] and pr->r[i] */
         if (pr->gr == nullptr)

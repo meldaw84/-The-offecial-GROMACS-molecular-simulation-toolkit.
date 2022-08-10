@@ -57,30 +57,31 @@
 #include "gromacs/topology/ifunc.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/pleasecite.h"
 #include "gromacs/utility/smalloc.h"
 
-static void norm_princ(const t_atoms* atoms, int isize, int* index, int natoms, rvec* x)
+static void norm_princ(const t_atoms* atoms, gmx::ArrayRef<const int> index, int natoms, rvec* x)
 {
     int  i, m;
     rvec princ, vec;
 
     /* equalize principal components: */
     /* orient principal axes, get principal components */
-    orient_princ(atoms, isize, index, natoms, x, nullptr, princ);
+    orient_princ(atoms, index, natoms, x, nullptr, princ);
 
     /* calc our own principal components */
     clear_rvec(vec);
     for (m = 0; m < DIM; m++)
     {
-        for (i = 0; i < isize; i++)
+        for (i = 0; i < gmx::ssize(index); i++)
         {
             vec[m] += gmx::square(x[index[i]][m]);
         }
-        vec[m] = std::sqrt(vec[m] / static_cast<real>(isize));
+        vec[m] = std::sqrt(vec[m] / static_cast<real>(index.size()));
         /* calculate scaling constants */
         vec[m] = 1.0 / (std::sqrt(3.0) * vec[m]);
     }
@@ -217,14 +218,14 @@ int gmx_rms(int argc, char* argv[])
     real         rlstot = 0, **rls, **rlsm = nullptr, *time, *time2, *rlsnorm = nullptr,
          **rmsd_mat = nullptr, **bond_mat = nullptr, *axis, *axis2, *del_xaxis, *del_yaxis,
          rmsd_max, rmsd_min, rmsd_avg, bond_max, bond_min, ang;
-    real **  rmsdav_mat = nullptr, av_tot, weight, weight_tot;
-    real **  delta = nullptr, delta_max, delta_scalex = 0, delta_scaley = 0, *delta_tot;
-    int      delta_xsize = 0, del_lev = 100, mx, my, abs_my;
-    gmx_bool bA1, bA2, bPrev, bTop, *bInMat = nullptr;
-    int      ifit, *irms, ibond = 0, *ind_bond1 = nullptr, *ind_bond2 = nullptr, n_ind_m = 0;
-    int *    ind_fit, **ind_rms, *ind_m = nullptr, *rev_ind_m = nullptr, *ind_rms_m = nullptr;
-    char *   gn_fit, **gn_rms;
-    t_rgb    rlo, rhi;
+    real **           rmsdav_mat = nullptr, av_tot, weight, weight_tot;
+    real **           delta = nullptr, delta_max, delta_scalex = 0, delta_scaley = 0, *delta_tot;
+    int               delta_xsize = 0, del_lev = 100, mx, my, abs_my;
+    gmx_bool          bA1, bA2, bPrev, bTop, *bInMat = nullptr;
+    int *             irms, ibond = 0, *ind_bond1 = nullptr, *ind_bond2 = nullptr, n_ind_m = 0;
+    int **            ind_rms, *ind_m = nullptr, *rev_ind_m = nullptr, *ind_rms_m = nullptr;
+    char**            gn_rms;
+    t_rgb             rlo, rhi;
     gmx_output_env_t* oenv;
     gmx_rmpbc_t       gpbc = nullptr;
 
@@ -346,42 +347,41 @@ int gmx_rms(int argc, char* argv[])
         bBond = FALSE;
     }
 
+    SingleIndexWithName fitIndexWithName;
     if (bReset)
     {
         fprintf(stderr, "Select group for %s fit\n", bFit ? "least squares" : "translational");
-        get_index(&(top.atoms), ftp2fn_null(efNDX, NFILE, fnm), 1, &ifit, &ind_fit, &gn_fit);
+        fitIndexWithName = getSingleIndexGroup(&(top.atoms), ftp2fn_null(efNDX, NFILE, fnm));
     }
-    else
-    {
-        ifit = 0;
-    }
+    gmx::ArrayRef<const int> fitIndexGroup     = fitIndexWithName.indexGroupEntries;
+    const int                fitIndexGroupSize = fitIndexGroup.size();
 
     if (bReset)
     {
-        if (bFit && ifit < 3)
+        if (bFit && fitIndexGroupSize < 3)
         {
             gmx_fatal(FARGS, "Need >= 3 points to fit!\n");
         }
 
         bMass = FALSE;
-        for (i = 0; i < ifit; i++)
+        for (i = 0; i < fitIndexGroupSize; i++)
         {
             if (bMassWeighted)
             {
-                w_rls[ind_fit[i]] = top.atoms.atom[ind_fit[i]].m;
-                bMass             = bMass || (top.atoms.atom[ind_fit[i]].m != 0);
+                w_rls[fitIndexGroup[i]] = top.atoms.atom[fitIndexGroup[i]].m;
+                bMass                   = bMass || (top.atoms.atom[fitIndexGroup[i]].m != 0);
             }
             else
             {
-                w_rls[ind_fit[i]] = 1;
+                w_rls[fitIndexGroup[i]] = 1;
             }
         }
         if (bMassWeighted && !bMass)
         {
             fprintf(stderr, "All masses in the fit group are 0, using masses of 1\n");
-            for (i = 0; i < ifit; i++)
+            for (i = 0; i < fitIndexGroupSize; i++)
             {
-                w_rls[ind_fit[i]] = 1;
+                w_rls[fitIndexGroup[i]] = 1;
             }
         }
     }
@@ -448,7 +448,7 @@ int gmx_rms(int argc, char* argv[])
     }
     if (bReset)
     {
-        reset_x(ifit, ind_fit, top.atoms.nr, nullptr, xp, w_rls);
+        reset_x(fitIndexGroupSize, fitIndexGroup.data(), top.atoms.nr, nullptr, xp, w_rls);
     }
     if (bMirror)
     {
@@ -462,7 +462,7 @@ int gmx_rms(int argc, char* argv[])
     }
     if (ewhat == ewRhoSc)
     {
-        norm_princ(&top.atoms, ifit, ind_fit, top.atoms.nr, xp);
+        norm_princ(&top.atoms, fitIndexGroup, top.atoms.nr, xp);
     }
 
     /* read first frame */
@@ -485,11 +485,11 @@ int gmx_rms(int argc, char* argv[])
         {
             /* Check which atoms we need (fit/rms) */
             snew(bInMat, natoms);
-            for (i = 0; i < ifit; i++)
+            for (i = 0; i < fitIndexGroupSize; i++)
             {
-                bInMat[ind_fit[i]] = TRUE;
+                bInMat[fitIndexGroup[i]] = TRUE;
             }
-            n_ind_m = ifit;
+            n_ind_m = fitIndexGroupSize;
             for (i = 0; i < irms[0]; i++)
             {
                 if (!bInMat[ind_rms[0][i]])
@@ -515,9 +515,9 @@ int gmx_rms(int argc, char* argv[])
         snew(w_rls_m, n_ind_m);
         snew(ind_rms_m, irms[0]);
         snew(w_rms_m, n_ind_m);
-        for (i = 0; i < ifit; i++)
+        for (i = 0; i < fitIndexGroupSize; i++)
         {
-            w_rls_m[rev_ind_m[ind_fit[i]]] = w_rls[ind_fit[i]];
+            w_rls_m[rev_ind_m[fitIndexGroup[i]]] = w_rls[fitIndexGroup[i]];
         }
         for (i = 0; i < irms[0]; i++)
         {
@@ -591,11 +591,11 @@ int gmx_rms(int argc, char* argv[])
 
         if (bReset)
         {
-            reset_x(ifit, ind_fit, natoms, nullptr, x, w_rls);
+            reset_x(fitIndexGroupSize, fitIndexGroup.data(), natoms, nullptr, x, w_rls);
         }
         if (ewhat == ewRhoSc)
         {
-            norm_princ(&top.atoms, ifit, ind_fit, natoms, x);
+            norm_princ(&top.atoms, fitIndexGroup, natoms, x);
         }
 
         if (bFit)
@@ -635,7 +635,7 @@ int gmx_rms(int argc, char* argv[])
                 }
                 if (bReset)
                 {
-                    reset_x(ifit, ind_fit, natoms, nullptr, xp, w_rls);
+                    reset_x(fitIndexGroupSize, fitIndexGroup.data(), natoms, nullptr, xp, w_rls);
                 }
                 if (bFit)
                 {
@@ -720,11 +720,11 @@ int gmx_rms(int argc, char* argv[])
 
             if (bReset)
             {
-                reset_x(ifit, ind_fit, natoms, nullptr, x, w_rls);
+                reset_x(fitIndexGroupSize, fitIndexGroup.data(), natoms, nullptr, x, w_rls);
             }
             if (ewhat == ewRhoSc)
             {
-                norm_princ(&top.atoms, ifit, ind_fit, natoms, x);
+                norm_princ(&top.atoms, fitIndexGroup, natoms, x);
             }
 
             if (bFit)
@@ -1160,7 +1160,7 @@ int gmx_rms(int argc, char* argv[])
                 gn_rms[0],
                 fitgraphlabel[efit],
                 bFit ? " to " : "",
-                bFit ? gn_fit : "");
+                bFit ? fitIndexWithName.indexGroupName.c_str() : "");
     }
     if (nrms != 1)
     {
@@ -1195,14 +1195,19 @@ int gmx_rms(int argc, char* argv[])
         {
             if (output_env_get_print_xvgr_codes(oenv))
             {
-                fprintf(fp, "@ subtitle \"of %s after lsq fit to mirror of %s\"\n", gn_rms[0], bFit ? gn_fit : "");
+                fprintf(fp,
+                        "@ subtitle \"of %s after lsq fit to mirror of %s\"\n",
+                        gn_rms[0],
+                        bFit ? fitIndexWithName.indexGroupName.c_str() : "");
             }
         }
         else
         {
             if (output_env_get_print_xvgr_codes(oenv))
             {
-                fprintf(fp, "@ subtitle \"after lsq fit to mirror %s\"\n", bFit ? gn_fit : "");
+                fprintf(fp,
+                        "@ subtitle \"after lsq fit to mirror %s\"\n",
+                        bFit ? fitIndexWithName.indexGroupName.c_str() : "");
             }
             xvgrLegend(fp, names, oenv);
         }

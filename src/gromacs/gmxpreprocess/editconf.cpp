@@ -58,6 +58,7 @@
 #include "gromacs/topology/atomprop.h"
 #include "gromacs/topology/index.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/fatalerror.h"
@@ -980,17 +981,12 @@ int gmx_editconf(int argc, char* argv[])
 
     if (bOrient)
     {
-        int*  index;
-        char* grpnames;
-
         /* Get a group for principal component analysis */
         fprintf(stderr, "\nSelect group for the determining the orientation\n");
-        get_index(&atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &isize, &index, &grpnames);
+        auto indexWithName = getSingleIndexGroup(&atoms, ftp2fn_null(efNDX, NFILE, fnm));
 
         /* Orient the principal axes along the coordinate axes */
-        orient_princ(&atoms, isize, index, natom, x, bHaveV ? v : nullptr, nullptr);
-        sfree(index);
-        sfree(grpnames);
+        orient_princ(&atoms, indexWithName.indexGroupEntries, natom, x, bHaveV ? v : nullptr, nullptr);
     }
 
     if (bScale)
@@ -1053,7 +1049,7 @@ int gmx_editconf(int argc, char* argv[])
         }
         /*now determine transform and rotate*/
         /*will this work?*/
-        principal_comp(numAlignmentAtoms, aindex, atoms.atom, x, trans, princd);
+        principal_comp(gmx::arrayRefFromArray(aindex, numAlignmentAtoms), atoms.atom, x, trans, princd);
 
         unitv(targetvec, targetvec);
         printf("Using %g %g %g as principal axis\n", trans[0][2], trans[1][2], trans[2][2]);

@@ -155,13 +155,12 @@ int gmx_filter(int argc, char* argv[])
         {
             w_rls[indexGroup[i]] = top.atoms.atom[indexGroup[i]].m;
         }
-        calc_xcm(xtop, indexGroup.size(), indexGroup.data(), top.atoms.atom, xcmtop, FALSE);
+        calc_xcm(xtop, indexGroup, top.atoms.atom, xcmtop, FALSE);
         for (j = 0; j < top.atoms.nr; j++)
         {
             rvec_dec(xtop[j], xcmtop);
         }
     }
-    const int indexGroupSize = indexGroup.size();
 
     /* The actual filter length flen can actually be any real number */
     flen = 2 * nf;
@@ -259,7 +258,7 @@ int gmx_filter(int argc, char* argv[])
         }
         if (bFit)
         {
-            calc_xcm(xn, indexGroupSize, indexGroup.data(), top.atoms.atom, xcm, FALSE);
+            calc_xcm(xn, indexGroup, top.atoms.atom, xcm, FALSE);
             for (j = 0; j < nat; j++)
             {
                 rvec_dec(xn[j], xcm);
