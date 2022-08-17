@@ -108,7 +108,7 @@ auto nbnxmKernelPruneOnly(sycl::handler&                                cgh,
         const unsigned bidx  = itemIdx.get_group(0);
 
         const sycl::sub_group sg   = itemIdx.get_sub_group();
-        const unsigned        widx = tidx / warpSize;
+        const unsigned        widx = 0; //tidx / warpSize;
 
         // my i super-cluster's index = sciOffset + current bidx * numParts + part
         const nbnxn_sci_t nbSci     = a_plistSci[bidx * numParts + part];
