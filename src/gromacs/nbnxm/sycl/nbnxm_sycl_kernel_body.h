@@ -1014,7 +1014,13 @@ static auto nbnxmKernel(sycl::handler&                                          
         // loop over the j clusters = seen by any of the atoms in the current super-cluster
         for (int j4 = cij4Start + tidxz; j4 < cij4End; j4 += 1)
         {
+#if GMX_SYCL_HIPSYCL && HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP
+            unsigned imask = __builtin_amdgcn_readfirstlane(a_plistCJ4[j4].imei[imeiIdx].imask);
+            // __hipsycl_if_target_hip (imask = (c_clSize * c_clSize) == warpSize ? __builtin_amdgcn_readfirstlane(imask) : imask;)
+#else
             unsigned imask = a_plistCJ4[j4].imei[imeiIdx].imask;
+#endif
+
             if (!doPruneNBL && !imask)
             {
                 continue;
