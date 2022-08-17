@@ -874,8 +874,11 @@ static auto nbnxmKernel(sycl::handler&                                          
      */
     constexpr bool haveAnyLocalMemoryForceReduction =
             !useShuffleReductionForceI || !useShuffleReductionForceJ;
+    // need extra element for energy reduction (or dummy for DPCC)
+    constexpr bool needExtraElementForReduction = doCalcEnergies || (GMX_SYCL_DPCPP != 0);
     constexpr int sm_reductionBufferSize =
-            haveAnyLocalMemoryForceReduction ? c_clSize * c_clSize * DIM : 1;
+            haveAnyLocalMemoryForceReduction ? c_clSize * c_clSize * DIM :
+            ( needExtraElementForReduction ? 1 : 0);
     sycl_2020::local_accessor<float, 1> sm_reductionBuffer(sycl::range<1>(sm_reductionBufferSize), cgh);
 
     /* Flag to control the calculation of exclusion forces in the kernel
