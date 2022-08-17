@@ -534,9 +534,9 @@ static void add_hbond(HydrogenBondData* hb,
             {
                 try
                 {
-                    if (hb->hbmap.count(std::make_pair(id, ia)) == 0)
+                    if (!hb->hbmap[std::make_pair(id, ia)].isSet)
                     {
-                        auto phb  = hb->hbmap[std::make_pair(id, ia)];
+                        auto& phb = hb->hbmap[std::make_pair(id, ia)];
                         phb.isSet = true;
                         snew(phb.h, hb->maxhydro);
                         snew(phb.g, hb->maxhydro);
