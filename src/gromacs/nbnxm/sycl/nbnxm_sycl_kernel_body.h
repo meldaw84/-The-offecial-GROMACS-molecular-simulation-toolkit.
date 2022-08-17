@@ -1015,7 +1015,12 @@ static auto nbnxmKernel(sycl::handler&                                          
         // loop over the j clusters = seen by any of the atoms in the current super-cluster
         for (int jPacked = cijPackedBegin; jPacked < cijPackedEnd; jPacked += 1)
         {
-            unsigned imask = a_plistCJPacked[jPacked].imei[imeiIdx].imask;
+            unsigned imask =
+#if GMX_SYCL_HIPSYCL && HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP
+                (c_nbnxnGpuClusterpairSplit == 1) ? __builtin_amdgcn_readfirstlane(a_plistCJPacked[jPacked].imei[imeiIdx].imask) :
+#endif
+                a_plistCJPacked[jPacked].imei[imeiIdx].imask;
+
             if (!doPruneNBL && !imask)
             {
                 continue;
