@@ -1188,13 +1188,30 @@ static auto nbnxmKernel(sycl::handler&                                          
                                 imask &= ~maskJI;
                             }
                         }
+
+#if 0
+                        // old
                         const float pairExclMask = (wexcl & maskJI) ? 1.0F : 0.0F;
+#else
+                        // new
+                        // const unsigned pairExclBit = (wexcl & maskJI) & 1;
+                        const unsigned pairExclBit =
+                                (wexcl >> (jm * c_nbnxnGpuNumClusterPerSupercluster + i)) & 1;
+#endif
 
-                        // cutoff & exclusion check
 
+#if 0
+                        // old
                         const bool notExcluded = doExclusionForces ? (nonSelfInteraction | (ci != cj))
                                                                    : (wexcl & maskJI);
+#else
+                        // new
+                        // const bool notExcluded = doExclusionForces ? (ci != (nonSelfInteraction ? -1 : cj))
+                        const bool notExcluded =
+                                doExclusionForces ? (nonSelfInteraction || (ci != cj)) : pairExclBit;
+#endif
 
+                        // cutoff & exclusion check
                         // SYCL-TODO: Check optimal way of branching here.
                         if ((r2 < rCoulombSq) && notExcluded)
                         {
@@ -1242,7 +1259,8 @@ static auto nbnxmKernel(sycl::handler&                                          
                             // SYCL-TODO: sycl::half_precision::rsqrt?
                             const float rInv = sycl::native::rsqrt(r2);
 #endif
-                            const float r2Inv = rInv * rInv;
+                            const float pairExclMask = pairExclBit;
+                            const float r2Inv        = rInv * rInv;
                             float       r6Inv, fInvR, energyLJPair;
                             if constexpr (!props.vdwCombLB || doCalcEnergies)
                             {
