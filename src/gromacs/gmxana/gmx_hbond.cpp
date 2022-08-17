@@ -139,9 +139,10 @@ struct HydrogenGridCell
 using InteractionCell = gmx::EnumerationArray<HydrogenExchangeGroup, int>;
 using hydrogenID      = std::array<int, sc_maxNumHydrogens>;
 
-typedef struct
+struct HydrogenBond
 {
-    int history[sc_maxNumHydrogens];
+    std::array<int, sc_maxNumHydrogens> history;
+    bool                                isSet = false;
     /* Has this hbond existed ever? If so as hbDist or hbHB or both.
      * Result is stored as a bitmap (1 = hbDist) || (2 = hbHB)
      */
@@ -150,14 +151,14 @@ typedef struct
      */
     int            n0;                 /* First frame a HB was found     */
     int            nframes, maxframes; /* Amount of frames in this hbond */
-    unsigned int** h;
-    unsigned int** g;
+    unsigned int** h = nullptr;
+    unsigned int** g = nullptr;
     /* See Xu and Berne, JPCB 105 (2001), p. 11929. We define the
      * function g(t) = [1-h(t)] H(t) where H(t) is one when the donor-
      * acceptor distance is less than the user-specified distance (typically
      * 0.35 nm).
      */
-} t_hbond;
+};
 
 struct t_acceptors
 {
@@ -216,8 +217,8 @@ struct HydrogenBondData
     t_donors    d;
     t_acceptors a;
     /* This holds a matrix with all possible hydrogen bonds */
-    int                                                       nrhb = 0, nrdist = 0;
-    std::map<HydrogenInsertionKey, t_hbond*, HydrogenKeyLess> hbmap;
+    int                                                           nrhb = 0, nrdist = 0;
+    std::map<HydrogenInsertionKey, HydrogenBond, HydrogenKeyLess> hbmap;
 };
 
 HydrogenBondData::HydrogenBondData(bool useHBondMap, bool useDAnr, bool useOneHBond) :
@@ -296,59 +297,59 @@ static void set_hb(HydrogenBondData* hb, int id, int ih, int ia, int frame, int 
 
     if (ihb == hbHB)
     {
-        ghptr = hb->hbmap[std::make_pair(id, ia)]->h[ih];
+        ghptr = hb->hbmap[std::make_pair(id, ia)].h[ih];
     }
     else if (ihb == hbDist)
     {
-        ghptr = hb->hbmap[std::make_pair(id, ia)]->g[ih];
+        ghptr = hb->hbmap[std::make_pair(id, ia)].g[ih];
     }
     else
     {
         gmx_fatal(FARGS, "Incomprehensible iValue %d in set_hb", ihb);
     }
 
-    set_hb_function(ghptr, frame - hb->hbmap[std::make_pair(id, ia)]->n0, TRUE);
+    set_hb_function(ghptr, frame - hb->hbmap[std::make_pair(id, ia)].n0, TRUE);
 }
 
 static void add_ff(HydrogenBondData* hbd, int id, int h, int ia, int frame, int ihb)
 {
-    int      i, j, n;
-    t_hbond* hb       = hbd->hbmap[std::make_pair(id, ia)];
-    int      maxhydro = std::min(hbd->maxhydro, hbd->d.nhydro[id]);
-    int      wlen     = hbd->wordlen;
-    int      delta    = 32 * wlen;
+    int           i, j, n;
+    HydrogenBond& hb       = hbd->hbmap[std::make_pair(id, ia)];
+    int           maxhydro = std::min(hbd->maxhydro, hbd->d.nhydro[id]);
+    int           wlen     = hbd->wordlen;
+    int           delta    = 32 * wlen;
 
-    if (!hb->h[0])
+    if (!hb.h[0])
     {
-        hb->n0        = frame;
-        hb->maxframes = delta;
+        hb.n0        = frame;
+        hb.maxframes = delta;
         for (i = 0; (i < maxhydro); i++)
         {
-            snew(hb->h[i], hb->maxframes / wlen);
-            snew(hb->g[i], hb->maxframes / wlen);
+            snew(hb.h[i], hb.maxframes / wlen);
+            snew(hb.g[i], hb.maxframes / wlen);
         }
     }
     else
     {
-        hb->nframes = frame - hb->n0;
+        hb.nframes = frame - hb.n0;
         /* We need a while loop here because hbonds may be returning
          * after a long time.
          */
-        while (hb->nframes >= hb->maxframes)
+        while (hb.nframes >= hb.maxframes)
         {
-            n = hb->maxframes + delta;
+            n = hb.maxframes + delta;
             for (i = 0; (i < maxhydro); i++)
             {
-                srenew(hb->h[i], n / wlen);
-                srenew(hb->g[i], n / wlen);
-                for (j = hb->maxframes / wlen; (j < n / wlen); j++)
+                srenew(hb.h[i], n / wlen);
+                srenew(hb.g[i], n / wlen);
+                for (j = hb.maxframes / wlen; (j < n / wlen); j++)
                 {
-                    hb->h[i][j] = 0;
-                    hb->g[i][j] = 0;
+                    hb.h[i][j] = 0;
+                    hb.g[i][j] = 0;
                 }
             }
 
-            hb->maxframes = n;
+            hb.maxframes = n;
         }
     }
     if (frame >= 0)
@@ -535,11 +536,10 @@ static void add_hbond(HydrogenBondData* hb,
                 {
                     if (hb->hbmap.count(std::make_pair(id, ia)) == 0)
                     {
-                        t_hbond* phb;
-                        snew(phb, 1);
-                        snew(phb->h, hb->maxhydro);
-                        snew(phb->g, hb->maxhydro);
-                        hb->hbmap[std::make_pair(id, ia)] = phb;
+                        auto phb  = hb->hbmap[std::make_pair(id, ia)];
+                        phb.isSet = true;
+                        snew(phb.h, hb->maxhydro);
+                        snew(phb.g, hb->maxhydro);
                     }
                     add_ff(hb, id, k, ia, frame, ihb);
                 }
@@ -553,13 +553,13 @@ static void add_hbond(HydrogenBondData* hb,
          */
         if (frame >= 0)
         {
-            hh = hb->hbmap[std::make_pair(id, ia)]->history[k];
+            hh = hb->hbmap[std::make_pair(id, ia)].history[k];
             if (ihb == hbHB)
             {
                 hb->nhb[frame]++;
                 if (!(ISHB(hh)))
                 {
-                    hb->hbmap[std::make_pair(id, ia)]->history[k] = hh | 2;
+                    hb->hbmap[std::make_pair(id, ia)].history[k] = hh | 2;
                     hb->nrhb++;
                 }
             }
@@ -570,7 +570,7 @@ static void add_hbond(HydrogenBondData* hb,
                     hb->ndist[frame]++;
                     if (!(ISDIST(hh)))
                     {
-                        hb->hbmap[std::make_pair(id, ia)]->history[k] = hh | 1;
+                        hb->hbmap[std::make_pair(id, ia)].history[k] = hh | 1;
                         hb->nrdist++;
                     }
                 }
@@ -1340,7 +1340,7 @@ static int is_hbond(HydrogenBondData* hb,
 /* Merging is now done on the fly, so do_merge is most likely obsolete now.
  * Will do some more testing before removing the function entirely.
  * - Erik Marklund, MAY 10 2010 */
-static void do_merge(HydrogenBondData* hb, int ntmp, bool htmp[], bool gtmp[], t_hbond* hb0, t_hbond* hb1)
+static void do_merge(HydrogenBondData* hb, int ntmp, bool htmp[], bool gtmp[], HydrogenBond* hb0, HydrogenBond* hb1)
 {
     /* Here we need to make sure we're treating periodicity in
      * the right way for the geminate recombination kinetics. */
@@ -1401,9 +1401,8 @@ static void do_merge(HydrogenBondData* hb, int ntmp, bool htmp[], bool gtmp[], t
 
 static void merge_hb(HydrogenBondData* hb, gmx_bool bTwo, gmx_bool bContact)
 {
-    int      i, inrnew, indnew, j, ii, jj, id, ia, ntmp;
-    bool *   htmp, *gtmp;
-    t_hbond *hb0, *hb1;
+    int   i, inrnew, indnew, j, ii, jj, id, ia, ntmp;
+    bool *htmp, *gtmp;
 
     inrnew = hb->nrhb;
     indnew = hb->nrdist;
@@ -1430,19 +1429,19 @@ static void merge_hb(HydrogenBondData* hb, gmx_bool bTwo, gmx_bool bContact)
                 auto mapIter1 = hb->hbmap.find(std::make_pair(i, j));
                 if (mapIter1 != hb->hbmap.end())
                 {
-                    hb0           = mapIter1->second;
-                    auto mapIter2 = hb->hbmap.find(std::make_pair(jj, ii));
+                    auto& hb0      = mapIter1->second;
+                    auto  mapIter2 = hb->hbmap.find(std::make_pair(jj, ii));
                     if (mapIter2 != hb->hbmap.end())
                     {
-                        hb1 = mapIter2->second;
-                        if (hb0 && hb1 && ISHB(hb0->history[0]) && ISHB(hb1->history[0]))
+                        auto& hb1 = mapIter2->second;
+                        if (hb0.isSet && hb1.isSet && ISHB(hb0.history[0]) && ISHB(hb1.history[0]))
                         {
-                            do_merge(hb, ntmp, htmp, gtmp, hb0, hb1);
-                            if (ISHB(hb1->history[0]))
+                            do_merge(hb, ntmp, htmp, gtmp, &hb0, &hb1);
+                            if (ISHB(hb1.history[0]))
                             {
                                 inrnew--;
                             }
-                            else if (ISDIST(hb1->history[0]))
+                            else if (ISDIST(hb1.history[0]))
                             {
                                 indnew--;
                             }
@@ -1454,11 +1453,11 @@ static void merge_hb(HydrogenBondData* hb, gmx_bool bTwo, gmx_bool bContact)
                             {
                                 gmx_incons("Neither hydrogen bond nor distance");
                             }
-                            sfree(hb1->h[0]);
-                            sfree(hb1->g[0]);
-                            hb1->h[0]       = nullptr;
-                            hb1->g[0]       = nullptr;
-                            hb1->history[0] = hbNo;
+                            sfree(hb1.h[0]);
+                            sfree(hb1.g[0]);
+                            hb1.h[0]       = nullptr;
+                            hb1.g[0]       = nullptr;
+                            hb1.history[0] = hbNo;
                         }
                     }
                 }
@@ -1511,19 +1510,18 @@ static void do_hblife(const char* fn, HydrogenBondData* hb, gmx_bool bMerge, gmx
     unsigned int**             h;
     real                       t, x1, dt;
     double                     sum, integral;
-    t_hbond*                   hbh;
 
     snew(h, hb->maxhydro);
     snew(histo, nframes + 1);
     /* Total number of hbonds analyzed here */
     for (auto iter = hb->hbmap.begin(); iter != hb->hbmap.end(); ++iter)
     {
-        hbh = iter->second;
+        auto& hbh = iter->second;
         if (bMerge)
         {
-            if (hbh->h[0])
+            if (hbh.h[0])
             {
-                h[0]   = hbh->h[0];
+                h[0]   = hbh.h[0];
                 nhydro = 1;
             }
             else
@@ -1536,9 +1534,9 @@ static void do_hblife(const char* fn, HydrogenBondData* hb, gmx_bool bMerge, gmx
             nhydro = 0;
             for (m = 0; (m < hb->maxhydro); m++)
             {
-                if (hbh->h[m])
+                if (hbh.h[m])
                 {
-                    h[nhydro++] = bContact ? hbh->g[m] : hbh->h[m];
+                    h[nhydro++] = bContact ? hbh.g[m] : hbh.h[m];
                 }
             }
         }
@@ -1547,7 +1545,7 @@ static void do_hblife(const char* fn, HydrogenBondData* hb, gmx_bool bMerge, gmx
             ohb = 0;
             j0  = 0;
 
-            for (j = 0; (j <= hbh->nframes); j++)
+            for (j = 0; (j <= hbh.nframes); j++)
             {
                 ihb = static_cast<int>(is_hb(h[nh], j));
                 if (debug && (ndump < 10))
@@ -1618,7 +1616,6 @@ static void dump_ac(HydrogenBondData* hb, gmx_bool oneHB, int nDump)
     int      i, j, k, m, nd, ihb, idist;
     int      nframes = hb->nFrames();
     gmx_bool bPrint;
-    t_hbond* hbh;
 
     if (nDump <= 0)
     {
@@ -1637,13 +1634,13 @@ static void dump_ac(HydrogenBondData* hb, gmx_bool oneHB, int nDump)
                 auto iter   = hb->hbmap.find(std::make_pair(i, k));
                 if (iter != hb->hbmap.end())
                 {
-                    hbh = iter->second;
+                    auto& hbh = iter->second;
                     if (oneHB)
                     {
-                        if (hbh->h[0])
+                        if (hbh.h[0])
                         {
-                            ihb    = static_cast<int>(is_hb(hbh->h[0], j));
-                            idist  = static_cast<int>(is_hb(hbh->g[0], j));
+                            ihb    = static_cast<int>(is_hb(hbh.h[0], j));
+                            idist  = static_cast<int>(is_hb(hbh.g[0], j));
                             bPrint = TRUE;
                         }
                     }
@@ -1651,10 +1648,10 @@ static void dump_ac(HydrogenBondData* hb, gmx_bool oneHB, int nDump)
                     {
                         for (m = 0; (m < hb->maxhydro) && !ihb; m++)
                         {
-                            ihb = static_cast<int>(
-                                    (ihb != 0) || (((hbh->h[m]) != nullptr) && is_hb(hbh->h[m], j)));
+                            ihb   = static_cast<int>((ihb != 0)
+                                                   || (((hbh.h[m]) != nullptr) && is_hb(hbh.h[m], j)));
                             idist = static_cast<int>(
-                                    (idist != 0) || (((hbh->g[m]) != nullptr) && is_hb(hbh->g[m], j)));
+                                    (idist != 0) || (((hbh.g[m]) != nullptr) && is_hb(hbh.g[m], j)));
                         }
                         /* This is not correct! */
                         /* What isn't correct? -Erik M */
@@ -1950,7 +1947,6 @@ static void do_hbac(const char*             fn,
     int                        nframes = hb->nFrames();
     unsigned int **            h = nullptr, **g = nullptr;
     int                        nh, nhbonds, nhydro;
-    t_hbond*                   hbh;
     int                        acType;
     int*                       dondata = nullptr;
 
@@ -2027,14 +2023,14 @@ static void do_hbac(const char*             fn,
             auto iter = hb->hbmap.find(std::make_pair(i, k));
             if (iter != hb->hbmap.end())
             {
-                hbh = iter->second;
+                auto& hbh = iter->second;
 
                 if (bMerge || bContact)
                 {
-                    if (ISHB(hbh->history[0]))
+                    if (ISHB(hbh.history[0]))
                     {
-                        h[0]   = hbh->h[0];
-                        g[0]   = hbh->g[0];
+                        h[0]   = hbh.h[0];
+                        g[0]   = hbh.g[0];
                         nhydro = 1;
                     }
                 }
@@ -2042,16 +2038,16 @@ static void do_hbac(const char*             fn,
                 {
                     for (m = 0; (m < hb->maxhydro); m++)
                     {
-                        if (bContact ? ISDIST(hbh->history[m]) : ISHB(hbh->history[m]))
+                        if (bContact ? ISDIST(hbh.history[m]) : ISHB(hbh.history[m]))
                         {
-                            g[nhydro] = hbh->g[m];
-                            h[nhydro] = hbh->h[m];
+                            g[nhydro] = hbh.g[m];
+                            h[nhydro] = hbh.h[m];
                             nhydro++;
                         }
                     }
                 }
 
-                int nf = hbh->nframes;
+                int nf = hbh.nframes;
                 for (nh = 0; (nh < nhydro); nh++)
                 {
                     int nrint = bContact ? hb->nrdist : hb->nrhb;
@@ -2241,8 +2237,8 @@ static void analyse_donor_properties(FILE* fp, HydrogenBondData* hb, int nframes
             for (j = 0; (j < gmx::ssize(hb->a.acc)) && (nb == 0); j++)
             {
                 auto iter = hb->hbmap.find(std::make_pair(i, j));
-                if (iter != hb->hbmap.end() && iter->second->h[k] != nullptr
-                    && is_hb(iter->second->h[k], nframes))
+                if (iter != hb->hbmap.end() && iter->second.h[k] != nullptr
+                    && is_hb(iter->second.h[k], nframes))
                 {
                     nb = 1;
                 }
@@ -2336,7 +2332,7 @@ static void dump_hbmap(HydrogenBondData* hb,
         aaa = hb->a.acc[k];
         for (m = 0; (m < hb->d.nhydro[i]); m++)
         {
-            if (iter->second->history[m])
+            if (iter->second.history[m])
             {
                 sprintf(ds, "%s", mkatomname(atoms, ddd));
                 sprintf(as, "%s", mkatomname(atoms, aaa));
@@ -3310,14 +3306,14 @@ int gmx_hbond(int argc, char* argv[])
                 {
                     for (hh = 0; (hh < hb.maxhydro); hh++)
                     {
-                        if (ISHB(iter->second->history[hh]))
+                        if (ISHB(iter->second.history[hh]))
                         {
-                            for (x = 0; (x <= iter->second->nframes); x++)
+                            for (x = 0; (x <= iter->second.nframes); x++)
                             {
-                                int nn0 = iter->second->n0;
+                                int nn0 = iter->second.n0;
                                 range_check(y, 0, mat.ny);
                                 mat.matrix(x + nn0, y) =
-                                        static_cast<t_matelmt>(is_hb(iter->second->h[hh], x));
+                                        static_cast<t_matelmt>(is_hb(iter->second.h[hh], x));
                             }
                             y++;
                         }
