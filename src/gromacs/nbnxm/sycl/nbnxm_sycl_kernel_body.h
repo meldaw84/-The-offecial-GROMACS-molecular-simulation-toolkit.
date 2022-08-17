@@ -1020,7 +1020,13 @@ static auto nbnxmKernel(sycl::handler&                                          
             {
                 continue;
             }
+#if GMX_SYCL_HIPSYCL && HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP
+            const int wexclIdx = (c_nbnxnGpuClusterpairSplit == 1) ? 
+                __builtin_amdgcn_readfirstlane(a_plistCJPacked[jPacked].imei[imeiIdx].excl_ind) :
+                a_plistCJPacked[jPacked].imei[imeiIdx].excl_ind;
+#else
             const int wexclIdx = a_plistCJPacked[jPacked].imei[imeiIdx].excl_ind;
+#endif
             static_assert(gmx::isPowerOfTwo(prunedClusterPairSize));
             const unsigned wexcl = a_plistExcl[wexclIdx].pair[tidx & (prunedClusterPairSize - 1)];
             for (int jm = 0; jm < c_nbnxnGpuJgroupSize; jm++)
