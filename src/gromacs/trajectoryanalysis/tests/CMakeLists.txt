@@ -55,7 +55,7 @@ gmx_add_gtest_executable(trajectoryanalysis-test
         )
 gmx_register_gtest_test(TrajectoryAnalysisUnitTests trajectoryanalysis-test SLOW_TEST)
 target_link_libraries(trajectoryanalysis-test PRIVATE analysisdata-test-shared)
-target_link_libraries(trajectoryanalysis-test PRIVATE common)
+target_link_libraries(trajectoryanalysis-test PRIVATE common utility)
 
 add_executable(test_selection ${UNITTEST_TARGET_OPTIONS} test_selection.cpp)
 target_link_libraries(test_selection PRIVATE

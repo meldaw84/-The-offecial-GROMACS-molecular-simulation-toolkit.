@@ -42,3 +42,4 @@ gmx_add_unit_test(RandomUnitTests random-test
         uniformintdistribution.cpp
         uniformrealdistribution.cpp
         )
+target_link_libraries(random-test PRIVATE utility)

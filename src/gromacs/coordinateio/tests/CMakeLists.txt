@@ -43,4 +43,4 @@ gmx_add_unit_test(CoordinateIOTests coordinateio-test
         settimestep.cpp
         testmodule.cpp
         )
-
+target_link_libraries(coordinateio-test PRIVATE utility)

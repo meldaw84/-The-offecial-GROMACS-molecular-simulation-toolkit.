@@ -41,4 +41,4 @@ gmx_add_unit_test(OnlineHelpUnitTests onlinehelp-test
         helpmanager.cpp
         helpwritercontext.cpp
         )
-target_link_libraries(onlinehelp-test PRIVATE onlinehelp-test-shared)
+target_link_libraries(onlinehelp-test PRIVATE onlinehelp-test-shared utility)

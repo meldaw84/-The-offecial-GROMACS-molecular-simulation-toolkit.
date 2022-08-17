@@ -33,14 +33,14 @@
 
 gmx_add_unit_test_library(mdrunutility-test-shared
                           threadaffinitytest.cpp)
-target_link_libraries(mdrunutility-test-shared PRIVATE common legacy_api)
+target_link_libraries(mdrunutility-test-shared PRIVATE common legacy_api utility)
 target_compile_definitions(mdrunutility-test-shared PRIVATE TMPI_USE_VISIBILITY)
 
 gmx_add_unit_test(MdrunUtilityUnitTests mdrunutility-test
     CPP_SOURCE_FILES
         threadaffinity.cpp
         )
-target_link_libraries(mdrunutility-test PRIVATE mdrunutility-test-shared)
+target_link_libraries(mdrunutility-test PRIVATE mdrunutility-test-shared utility)
 
 gmx_add_mpi_unit_test(MdrunUtilityMpiUnitTests mdrunutility-mpi-test 4
     CPP_SOURCE_FILES
@@ -50,5 +50,5 @@ gmx_add_mpi_unit_test(MdrunUtilityMpiUnitTests mdrunutility-mpi-test 4
 # to change functions like gmx_add_mpi_unit_test to add link-time dependencies
 # as well as source files.
 if (GMX_MPI OR (GMX_THREAD_MPI AND GTEST_IS_THREADSAFE))
-    target_link_libraries(mdrunutility-mpi-test PRIVATE mdrunutility-test-shared)
+    target_link_libraries(mdrunutility-mpi-test PRIVATE mdrunutility-test-shared utility)
 endif()

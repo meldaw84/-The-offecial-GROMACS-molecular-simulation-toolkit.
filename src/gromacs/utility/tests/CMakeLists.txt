@@ -67,3 +67,6 @@ gmx_add_mpi_unit_test(UtilityMpiUnitTests utility-mpi-test 2
     CPP_SOURCE_FILES
         physicalnodecommunicator_mpi.cpp
         )
+if (GMX_MPI OR GMX_THREAD_MPI)
+    target_link_libraries(utility-mpi-test PRIVATE utility)
+endif()

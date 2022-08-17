@@ -37,6 +37,7 @@ if (GMX_BUILD_UNITTESTS)
             mp11.cpp
             pointers.cpp
             )
+    target_link_libraries(compat-test PRIVATE utility)
     # Maintainer note: The files here may be borrowed from other projects, and
     # can require additional handling for compiler flags, warning suppression,
     # etcetera. Rather than documenting best practices and tips here, we refer

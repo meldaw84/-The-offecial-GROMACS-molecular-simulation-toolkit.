@@ -44,4 +44,4 @@ gmx_add_unit_test(AnalysisDataUnitTests analysisdata-test
         histogram.cpp
         lifetime.cpp
         )
-target_link_libraries(analysisdata-test PRIVATE analysisdata-test-shared)
+target_link_libraries(analysisdata-test PRIVATE analysisdata-test-shared utility)

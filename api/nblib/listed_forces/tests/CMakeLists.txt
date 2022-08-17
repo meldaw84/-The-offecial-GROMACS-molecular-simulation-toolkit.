@@ -57,6 +57,6 @@ gmx_add_gtest_executable(
         shiftforces.cpp
         transformations.cpp
 )
-target_link_libraries(${exename} PRIVATE nblib_test_infrastructure nblib)
+target_link_libraries(${exename} PRIVATE nblib_test_infrastructure nblib utility)
 gmx_register_gtest_test(${testname} ${exename} INTEGRATION_TEST)
 add_dependencies(check-nblib ${exename})

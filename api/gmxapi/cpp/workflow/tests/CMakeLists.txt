@@ -46,7 +46,8 @@ target_link_libraries(workflow-details-test
                         Gromacs::gmxapi
                         gmxapi-detail
                         gmxapi-testsupport
-                        mdrun_test_infrastructure)
+                        mdrun_test_infrastructure
+                        utility)
 
 gmx_register_gtest_test(GmxapiInternalInterfaceTests workflow-details-test OPENMP_THREADS 2 INTEGRATION_TEST IGNORE_LEAKS QUICK_GPU_TEST)
 
