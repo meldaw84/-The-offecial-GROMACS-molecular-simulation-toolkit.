@@ -39,12 +39,12 @@
 set(argon "argon-forces-integration")
 add_executable(${argon} argon-forces-integration.cpp)
 
-target_link_libraries(${argon} PRIVATE nblib)
+target_link_libraries(${argon} PRIVATE nblib libgromacs utility)
 
 set(methane "methane-water-integration")
 add_executable(${methane} methane-water-integration.cpp)
 
-target_link_libraries(${methane} PRIVATE nblib)
+target_link_libraries(${methane} PRIVATE nblib libgromacs utility)
 
 if(BUILD_TESTING)
     add_test(NAME NbLibSamplesTestArgon COMMAND ${argon})
