@@ -297,7 +297,13 @@ static inline float interpolateCoulombForceR(const sycl::global_ptr<const float>
 {
     const float normalized = coulombTabScale * r;
     const int   index      = static_cast<int>(normalized);
+    // with clang 13 this used to improve per, with clang 15 (rocm 5.3) it causes a massive regression
+    //__builtin_assume(index >= 0); 
+#if GMX_SYCL_HIPSYCL && HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP
+    const float fraction   = __builtin_amdgcn_fractf(normalized);
+#else
     const float fraction   = normalized - index;
+#endif
 
     const float left  = a_coulombTab[index];
     const float right = a_coulombTab[index + 1];
