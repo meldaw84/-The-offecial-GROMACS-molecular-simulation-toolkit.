@@ -360,9 +360,10 @@ void destroyParamLookupTable(DeviceBuffer<ValueType>* deviceBuffer, const Device
 #endif
 
 template<typename ValueType>
-ValueType* asMpiPointer(DeviceBuffer<ValueType>& buffer)
+ValueType* asMpiPointer(DeviceBuffer<ValueType>& /*buffer*/)
 {
     assert(false);
+    return nullptr;
 }
 
 #endif

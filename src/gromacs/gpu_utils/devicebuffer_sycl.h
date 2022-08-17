@@ -687,6 +687,8 @@ ValueType* asMpiPointer(DeviceBuffer<ValueType>& buffer)
     return buffer ? buffer.buffer_->ptr_ : nullptr;
 #else
     assert(false);
+    GMX_UNUSED_VALUE(buffer);
+    return nullptr;
 #endif
 }
 
