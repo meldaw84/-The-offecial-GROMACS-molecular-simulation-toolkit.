@@ -88,11 +88,11 @@ template void convertPmeGridToFftGrid<false>(const PmeGpu* /*pmeGpu*/,
                                              const int /*gridIndex*/);
 
 template void convertPmeGridToFftGrid<true>(const PmeGpu* /*pmeGpu*/,
-                                            DeviceBuffer<float>* /*d_fftRealGrid*/,
+                                            DeviceBuffer<__half>* /*d_fftRealGrid*/,
                                             const int /*gridIndex*/);
 
 template void convertPmeGridToFftGrid<false>(const PmeGpu* /*pmeGpu*/,
-                                             DeviceBuffer<float>* /*d_fftRealGrid*/,
+                                             DeviceBuffer<__half>* /*d_fftRealGrid*/,
                                              const int /*gridIndex*/);
 
 #if defined(__clang__)

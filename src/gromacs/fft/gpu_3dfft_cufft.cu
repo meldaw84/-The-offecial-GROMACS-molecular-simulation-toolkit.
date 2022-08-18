@@ -41,7 +41,7 @@
  */
 
 #include "gmxpre.h"
-
+#include <cufftXt.h>
 #include "gpu_3dfft_cufft.h"
 
 #include "gromacs/gpu_utils/device_stream.h"
@@ -49,6 +49,8 @@
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/gmxassert.h"
+
+#include <iostream>
 
 namespace gmx
 {
@@ -71,23 +73,28 @@ Gpu3dFft::ImplCuFft::ImplCuFft(bool allocateRealGrid,
                                ivec                 realGridSize,
                                ivec                 realGridSizePadded,
                                ivec                 complexGridSizePadded,
-                               DeviceBuffer<float>* realGrid,
-                               DeviceBuffer<float>* complexGrid) :
-    Gpu3dFft::Impl::Impl(performOutOfPlaceFFT), realGrid_(reinterpret_cast<cufftReal*>(*realGrid))
+                               DeviceBuffer<__half>* realGrid,
+                               DeviceBuffer<__half>* complexGrid) :
+    Gpu3dFft::Impl::Impl(performOutOfPlaceFFT)
 {
-    GMX_RELEASE_ASSERT(allocateRealGrid == false, "Grids needs to be pre-allocated");
+    GMX_RELEASE_ASSERT(allocateRealGrid == true, "Grids cannot be pre-allocated");
     GMX_RELEASE_ASSERT(gridSizesInXForEachRank.size() == 1 && gridSizesInYForEachRank.size() == 1,
                        "FFT decomposition not implemented with cuFFT backend");
-
-    allocateComplexGrid(complexGridSizePadded, realGrid, complexGrid, context);
 
     const int complexGridSizePaddedTotal =
             complexGridSizePadded[XX] * complexGridSizePadded[YY] * complexGridSizePadded[ZZ];
     const int realGridSizePaddedTotal =
             realGridSizePadded[XX] * realGridSizePadded[YY] * realGridSizePadded[ZZ];
 
+    allocateDeviceBuffer(realGrid, realGridSizePaddedTotal, context);
+    allocateComplexGrid(complexGridSizePadded, realGrid, complexGrid, context);
+
+    realGrid_ = reinterpret_cast<__half*>(*realGrid);
+
     GMX_RELEASE_ASSERT(realGrid_, "Bad (null) input real-space grid");
     GMX_RELEASE_ASSERT(complexGrid_, "Bad (null) input complex grid");
+
+    std::cout << "FFT grid " << realGridSize[XX] << " " << realGridSize[YY] << " " << realGridSize[ZZ] << std::endl;
 
     cufftResult_t result;
     /* Commented code for a simple 3D grid with no padding */
@@ -100,31 +107,63 @@ Gpu3dFft::ImplCuFft::ImplCuFft(bool allocateRealGrid,
      */
 
     const int rank = 3, batch = 1;
-    result = cufftPlanMany(&planR2C_,
-                           rank,
-                           realGridSize,
-                           realGridSizePadded,
-                           1,
-                           realGridSizePaddedTotal,
-                           complexGridSizePadded,
-                           1,
-                           complexGridSizePaddedTotal,
-                           CUFFT_R2C,
-                           batch);
-    handleCufftError(result, "cufftPlanMany R2C plan failure");
+    size_t workSize = 0;
+    result = cufftCreate(&planR2C_);
+    handleCufftError(result, "cufftCreate failure");
 
-    result = cufftPlanMany(&planC2R_,
-                           rank,
-                           realGridSize,
-                           complexGridSizePadded,
-                           1,
-                           complexGridSizePaddedTotal,
-                           realGridSizePadded,
-                           1,
-                           realGridSizePaddedTotal,
-                           CUFFT_C2R,
-                           batch);
-    handleCufftError(result, "cufftPlanMany C2R plan failure");
+    long long int rgsize[DIM];
+    rgsize[0] = realGridSize[0];
+    rgsize[1] = realGridSize[1];
+    rgsize[2] = realGridSize[2];
+
+    long long int rgsizepad[DIM];
+    rgsizepad[0] = realGridSizePadded[0];
+    rgsizepad[1] = realGridSizePadded[1];
+    rgsizepad[2] = realGridSizePadded[2];
+
+    long long int cgsizepad[DIM];
+    cgsizepad[0] = complexGridSizePadded[0];
+    cgsizepad[1] = complexGridSizePadded[1];
+    cgsizepad[2] = complexGridSizePadded[2];
+
+    result = cufftXtMakePlanMany(planR2C_, rank, rgsize, rgsizepad, 1, realGridSizePaddedTotal,
+                                CUDA_R_16F, cgsizepad, 1, complexGridSizePaddedTotal, CUDA_C_16F, batch, 
+                                &workSize, CUDA_C_16F);
+    handleCufftError(result, "cufftXtMakePlanMany R2C plan failure");
+
+    // result = cufftPlanMany(&planR2C_,
+    //                        rank,
+    //                        realGridSize,
+    //                        realGridSizePadded,
+    //                        1,
+    //                        realGridSizePaddedTotal,
+    //                        complexGridSizePadded,
+    //                        1,
+    //                        complexGridSizePaddedTotal,
+    //                        CUFFT_R2C,
+    //                        batch);
+    // handleCufftError(result, "cufftPlanMany R2C plan failure");
+
+    result = cufftCreate(&planC2R_);
+    handleCufftError(result, "cufftCreate failure");
+
+    result = cufftXtMakePlanMany(planC2R_, rank, rgsize, cgsizepad, 1, complexGridSizePaddedTotal,
+                                CUDA_C_16F, rgsizepad, 1, realGridSizePaddedTotal, CUDA_R_16F, batch, 
+                                &workSize, CUDA_R_16F);
+    handleCufftError(result, "cufftXtMakePlanMany C2R plan failure");
+
+    // result = cufftPlanMany(&planC2R_,
+    //                        rank,
+    //                        realGridSize,
+    //                        complexGridSizePadded,
+    //                        1,
+    //                        complexGridSizePaddedTotal,
+    //                        realGridSizePadded,
+    //                        1,
+    //                        realGridSizePaddedTotal,
+    //                        CUFFT_C2R,
+    //                        batch);
+    // handleCufftError(result, "cufftPlanMany C2R plan failure");
 
     cudaStream_t stream = pmeStream.stream();
     GMX_RELEASE_ASSERT(stream, "Can not use the default CUDA stream for PME cuFFT");
@@ -152,12 +191,12 @@ void Gpu3dFft::ImplCuFft::perform3dFft(gmx_fft_direction dir, CommandEvent* /*ti
     cufftResult_t result;
     if (dir == GMX_FFT_REAL_TO_COMPLEX)
     {
-        result = cufftExecR2C(planR2C_, realGrid_, reinterpret_cast<cufftComplex*>(complexGrid_));
+        result = cufftXtExec(planR2C_, realGrid_, complexGrid_, CUFFT_FORWARD);
         handleCufftError(result, "cuFFT R2C execution failure");
     }
     else
     {
-        result = cufftExecC2R(planC2R_, reinterpret_cast<cufftComplex*>(complexGrid_), realGrid_);
+        result = cufftXtExec(planC2R_, complexGrid_, realGrid_, CUFFT_INVERSE);
         handleCufftError(result, "cuFFT C2R execution failure");
     }
 }

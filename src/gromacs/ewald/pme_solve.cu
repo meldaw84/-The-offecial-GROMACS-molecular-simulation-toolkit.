@@ -40,6 +40,8 @@
 
 #include "gmxpre.h"
 
+#include <cuda_fp16.h>
+
 #include <math_constants.h>
 
 #include <cassert>
@@ -87,8 +89,8 @@ __launch_bounds__(c_solveMaxThreadsPerBlock) CLANG_DISABLE_OPTIMIZATION_ATTRIBUT
     const float* __restrict__ gm_splineValueMinor = kernelParams.grid.d_splineModuli[gridIndex]
                                                     + kernelParams.grid.splineValuesOffset[minorDim];
     float* __restrict__ gm_virialAndEnergy = kernelParams.constants.d_virialAndEnergy[gridIndex];
-    float2* __restrict__ gm_grid =
-            reinterpret_cast<float2*>(kernelParams.grid.d_fftComplexGrid[gridIndex]);
+    __half2* __restrict__ gm_grid =
+            reinterpret_cast<__half2*>(kernelParams.grid.d_fftComplexGrid[gridIndex]);
 
     /* Various grid sizes and indices */
     const int localOffsetMinor  = kernelParams.grid.kOffsets[minorDim];
@@ -136,7 +138,7 @@ __launch_bounds__(c_solveMaxThreadsPerBlock) CLANG_DISABLE_OPTIMIZATION_ATTRIBUT
         /* The offset should be equal to the global thread index for coalesced access */
         const int gridThreadIndex =
                 (indexMajor * localSizeMiddle + indexMiddle) * localSizeMinor + indexMinor;
-        float2* __restrict__ gm_gridCell = gm_grid + gridThreadIndex;
+        __half2* __restrict__ gm_gridCell = gm_grid + gridThreadIndex;
 
         const int kMajor = indexMajor + localOffsetMajor;
         /* Checking either X in XYZ, or Y in YZX cases */
@@ -219,8 +221,8 @@ __launch_bounds__(c_solveMaxThreadsPerBlock) CLANG_DISABLE_OPTIMIZATION_ATTRIBUT
             const float tmp1   = expf(-kernelParams.grid.ewaldFactor * m2k);
             const float etermk = kernelParams.constants.elFactor * tmp1 / denom;
 
-            float2       gridValue    = *gm_gridCell;
-            const float2 oldGridValue = gridValue;
+            __half2       gridValue    = *gm_gridCell;
+            const __half2 oldGridValue = gridValue;
             gridValue.x *= etermk;
             gridValue.y *= etermk;
             *gm_gridCell = gridValue;
@@ -228,7 +230,7 @@ __launch_bounds__(c_solveMaxThreadsPerBlock) CLANG_DISABLE_OPTIMIZATION_ATTRIBUT
             if (computeEnergyAndVirial)
             {
                 const float tmp1k =
-                        2.0F * (gridValue.x * oldGridValue.x + gridValue.y * oldGridValue.y);
+                        2.0F * float(gridValue.x * oldGridValue.x + gridValue.y * oldGridValue.y);
 
                 float vfactor = (kernelParams.grid.ewaldFactor + 1.0F / m2k) * 2.0F;
                 float ets2    = corner_fac * tmp1k;

@@ -91,8 +91,8 @@ public:
          ivec                 realGridSize,
          ivec                 realGridSizePadded,
          ivec                 complexGridSizePadded,
-         DeviceBuffer<float>* realGrid,
-         DeviceBuffer<float>* complexGrid);
+         DeviceBuffer<__half>* realGrid,
+         DeviceBuffer<__half>* complexGrid);
 
     /*! \brief Default destructor */
     virtual ~Impl();
@@ -103,8 +103,8 @@ public:
 protected:
     //! Allocate and assign complexGrid
     void allocateComplexGrid(const ivec           complexGridSizePadded,
-                             DeviceBuffer<float>* realGrid,
-                             DeviceBuffer<float>* complexGrid,
+                             DeviceBuffer<__half>* realGrid,
+                             DeviceBuffer<__half>* complexGrid,
                              const DeviceContext& context);
 
     //! free complexGrid
@@ -113,7 +113,7 @@ protected:
     /*! \brief A boolean which tells whether the complex and real grids are different or same. Currenty true. */
     bool performOutOfPlaceFFT_ = false;
     /*! \brief FFT complex grid */
-    DeviceBuffer<float> complexGrid_;
+    DeviceBuffer<__half> complexGrid_;
 };
 
 } // namespace gmx

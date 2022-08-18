@@ -70,6 +70,8 @@
  * TODO: what we should be doing is providing separate device-side views of the same structures -
  * then there would be no need for macro.
  */
+#include <cuda_fp16.h>
+
 #ifndef __OPENCL_C_VERSION__
 #    include "gromacs/gpu_utils/devicebuffer.h"
 #    define HIDE_FROM_OPENCL_COMPILER(x) x
@@ -144,7 +146,7 @@ struct PmeGpuGridParams
     /*! \brief Real space PME grid. */
     HIDE_FROM_OPENCL_COMPILER(DeviceBuffer<float>) d_realGrid[NUMFEPSTATES];
     /*! \brief Complex grid - used in FFT/solve. If inplace cu/clFFT is used, then it is the same handle as fftRealGrid. */
-    HIDE_FROM_OPENCL_COMPILER(DeviceBuffer<float>) d_fftComplexGrid[NUMFEPSTATES];
+    HIDE_FROM_OPENCL_COMPILER(DeviceBuffer<__half>) d_fftComplexGrid[NUMFEPSTATES];
 
     /*! \brief Grid spline values as in pme->bsp_mod
      * (laid out sequentially (XXX....XYYY......YZZZ.....Z))

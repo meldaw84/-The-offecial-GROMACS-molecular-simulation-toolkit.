@@ -889,7 +889,7 @@ void pme_gpu_reinit_3dfft(const PmeGpu* pmeGpu)
             gridSizesInYForEachRank[i] = pmeGpu->common->s2g0Y[i + 1] - pmeGpu->common->s2g0Y[i];
         }
 
-        const bool allocateRealGrid = pmeGpu->settings.useDecomposition;
+        const bool allocateRealGrid = true;//pmeGpu->settings.useDecomposition;
 
         const gmx::FftBackend backend = getFftBackend(pmeGpu);
 
@@ -899,9 +899,9 @@ void pme_gpu_reinit_3dfft(const PmeGpu* pmeGpu)
             const bool useDecomposition = pmeGpu->settings.useDecomposition;
 
             // grid needs to be alloacted only with decomposition
-            GMX_RELEASE_ASSERT(
-                    allocateRealGrid == useDecomposition,
-                    "Separate FFT real grid needs to be allocated only with decomposition");
+            // GMX_RELEASE_ASSERT(
+            //         allocateRealGrid == useDecomposition,
+            //         "Separate FFT real grid needs to be allocated only with decomposition");
 
             if (!useDecomposition)
             {
@@ -912,7 +912,7 @@ void pme_gpu_reinit_3dfft(const PmeGpu* pmeGpu)
                 memcpy(grid.localComplexGridSizePadded, grid.complexGridSizePadded, DIM * sizeof(int));
 
                 // PME grid is same as FFT real grid in case of no decomposition
-                pmeGpu->archSpecific->d_fftRealGrid[gridIndex] = grid.d_realGrid[gridIndex];
+                //pmeGpu->archSpecific->d_fftRealGrid[gridIndex] = grid.d_realGrid[gridIndex];
             }
 
             pmeGpu->archSpecific->fftSetup.push_back(std::make_unique<gmx::Gpu3dFft>(
@@ -935,20 +935,20 @@ void pme_gpu_reinit_3dfft(const PmeGpu* pmeGpu)
             memcpy(grid.localComplexGridSize, grid.localComplexGridSizePadded, DIM * sizeof(int));
         }
     }
-    else
-    {
-        // Initialize fft complex grid and size.
-        // These values needs to be initialized for unit tests which run pme_gpu_solve even in mixed
-        // mode. In real world cases, pme_gpu_solve is never called in mixed mode.
-        PmeGpuGridParams& grid = pme_gpu_get_kernel_params_base_ptr(pmeGpu)->grid;
-        memcpy(grid.localComplexGridSizePadded, grid.complexGridSizePadded, DIM * sizeof(int));
-        memcpy(grid.localComplexGridSize, grid.complexGridSize, DIM * sizeof(int));
+    // else
+    // {
+    //     // Initialize fft complex grid and size.
+    //     // These values needs to be initialized for unit tests which run pme_gpu_solve even in mixed
+    //     // mode. In real world cases, pme_gpu_solve is never called in mixed mode.
+    //     PmeGpuGridParams& grid = pme_gpu_get_kernel_params_base_ptr(pmeGpu)->grid;
+    //     memcpy(grid.localComplexGridSizePadded, grid.complexGridSizePadded, DIM * sizeof(int));
+    //     memcpy(grid.localComplexGridSize, grid.complexGridSize, DIM * sizeof(int));
 
-        for (int gridIndex = 0; gridIndex < pmeGpu->common->ngrids; gridIndex++)
-        {
-            grid.d_fftComplexGrid[gridIndex] = grid.d_realGrid[gridIndex];
-        }
-    }
+    //     for (int gridIndex = 0; gridIndex < pmeGpu->common->ngrids; gridIndex++)
+    //     {
+    //         grid.d_fftComplexGrid[gridIndex] = grid.d_realGrid[gridIndex];
+    //     }
+    // }
 }
 
 void pme_gpu_destroy_3dfft(const PmeGpu* pmeGpu)
@@ -1896,7 +1896,7 @@ void pme_gpu_spread(const PmeGpu*                  pmeGpu,
     wallcycle_sub_start_nocount(wcycle, WallCycleSubCounter::LaunchGpuPme);
 
     // full PME GPU decomposition
-    const bool convertPmeToFftGridOnGpu = settings.performGPUFFT && settings.useDecomposition;
+    const bool convertPmeToFftGridOnGpu = settings.performGPUFFT;// && settings.useDecomposition;
     if (convertPmeToFftGridOnGpu)
     {
         // non-contiguous data - need to run kernel
@@ -1960,16 +1960,16 @@ void pme_gpu_solve(const PmeGpu* pmeGpu,
     const int localComplexGridElements = kernelParamsPtr->grid.localComplexGridSizePadded[XX]
                                          * kernelParamsPtr->grid.localComplexGridSizePadded[YY]
                                          * kernelParamsPtr->grid.localComplexGridSizePadded[ZZ] * 2;
-    if (copyInputAndOutputGrid)
-    {
-        copyToDeviceBuffer(&kernelParamsPtr->grid.d_fftComplexGrid[gridIndex],
-                           h_gridFloat,
-                           0,
-                           localComplexGridElements,
-                           pmeGpu->archSpecific->pmeStream_,
-                           pmeGpu->settings.transferKind,
-                           nullptr);
-    }
+    // if (copyInputAndOutputGrid)
+    // {
+    //     copyToDeviceBuffer(&kernelParamsPtr->grid.d_fftComplexGrid[gridIndex],
+    //                        h_gridFloat,
+    //                        0,
+    //                        localComplexGridElements,
+    //                        pmeGpu->archSpecific->pmeStream_,
+    //                        pmeGpu->settings.transferKind,
+    //                        nullptr);
+    // }
 
     int majorDim = -1, middleDim = -1, minorDim = -1;
     switch (gridOrdering)
@@ -2097,16 +2097,16 @@ void pme_gpu_solve(const PmeGpu* pmeGpu,
                              nullptr);
     }
 
-    if (copyInputAndOutputGrid)
-    {
-        copyFromDeviceBuffer(h_gridFloat,
-                             &kernelParamsPtr->grid.d_fftComplexGrid[gridIndex],
-                             0,
-                             localComplexGridElements,
-                             pmeGpu->archSpecific->pmeStream_,
-                             pmeGpu->settings.transferKind,
-                             nullptr);
-    }
+    // if (copyInputAndOutputGrid)
+    // {
+    //     copyFromDeviceBuffer(h_gridFloat,
+    //                          &kernelParamsPtr->grid.d_fftComplexGrid[gridIndex],
+    //                          0,
+    //                          localComplexGridElements,
+    //                          pmeGpu->archSpecific->pmeStream_,
+    //                          pmeGpu->settings.transferKind,
+    //                          nullptr);
+    // }
 }
 
 /*! \brief
@@ -2197,7 +2197,7 @@ void pme_gpu_gather(PmeGpu*               pmeGpu,
     wallcycle_sub_start_nocount(wcycle, WallCycleSubCounter::LaunchGpuPme);
 
     // full PME GPU decomposition
-    const bool convertFftToPmeGridOnGpu = settings.performGPUFFT && settings.useDecomposition;
+    const bool convertFftToPmeGridOnGpu = settings.performGPUFFT;// && settings.useDecomposition;
     if (convertFftToPmeGridOnGpu)
     {
         // non-contiguous data - need to run kernel

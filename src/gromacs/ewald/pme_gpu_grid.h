@@ -100,7 +100,7 @@ void convertPmeGridToFftGrid(const PmeGpu*         pmeGpu,
  * \tparam  pmeToFft                  A boolean which tells if this is conversion from PME grid to FFT grid or reverse
  */
 template<bool pmetofft>
-void convertPmeGridToFftGrid(const PmeGpu* pmeGpu, DeviceBuffer<float>* d_fftRealGrid, int gridIndex);
+void convertPmeGridToFftGrid(const PmeGpu* pmeGpu, DeviceBuffer<__half>* d_fftRealGrid, int gridIndex);
 
 extern template void convertPmeGridToFftGrid<true>(const PmeGpu* /*pmeGpu*/,
                                                    float* /*h_fftRealGrid*/,
@@ -113,11 +113,11 @@ extern template void convertPmeGridToFftGrid<false>(const PmeGpu* /*pmeGpu*/,
                                                     int /*gridIndex*/);
 
 extern template void convertPmeGridToFftGrid<true>(const PmeGpu* /*pmeGpu*/,
-                                                   DeviceBuffer<float>* /*d_fftRealGrid*/,
+                                                   DeviceBuffer<__half>* /*d_fftRealGrid*/,
                                                    int /*gridIndex*/);
 
 extern template void convertPmeGridToFftGrid<false>(const PmeGpu* /*pmeGpu*/,
-                                                    DeviceBuffer<float>* /*d_fftRealGrid*/,
+                                                    DeviceBuffer<__half>* /*d_fftRealGrid*/,
                                                     int /*gridIndex*/);
 
 #endif

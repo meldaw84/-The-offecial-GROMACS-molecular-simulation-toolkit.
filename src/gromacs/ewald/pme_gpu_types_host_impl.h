@@ -154,7 +154,7 @@ struct PmeGpuSpecific
     /*! \brief Local Real-space grid dimensions (padded). */
     int localRealGridSizePadded[DIM];
     /*! \brief real grid - used in FFT. If single PME rank is used, then it is the same handle as realGrid. */
-    DeviceBuffer<float> d_fftRealGrid[NUMFEPSTATES];
+    DeviceBuffer<__half> d_fftRealGrid[NUMFEPSTATES];
 
     /* GPU arrays element counts (not the arrays sizes in bytes!).
      * They might be larger than the actual meaningful data sizes.

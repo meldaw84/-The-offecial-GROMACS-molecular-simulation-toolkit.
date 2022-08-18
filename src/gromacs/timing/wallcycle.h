@@ -100,6 +100,9 @@ enum class WallCycleCounter : int
     WaitGpuPmeSpread, /* Time taken to finish PME spread on GPU. Used only when PME halo-exchange is active with PME decomposition*/
     WaitGpuFftToPmeGrid, /* Time taken to convert to PME grid after FFTs are complete. Used only when PME halo-exchange is active with PME decomposition*/
     PmeHaloExchangeComm, /* Time taken in PME halo-exchange, active with PME decomposition*/
+    PmeWaitX,
+    PmeWaitF,
+    PmeSendF,
     PmeWaitComm, /* PmeWaitComm = Run - PmeMesh. Without GPU direct comm, this includes time spent in waiting for coord and force comm.
                  With GPU direct comm, waiting for coord comm is part of PME mesh and is measured with WaitGpuPmePPRecvX sub-counter*/
     PpPmeWaitRecvF,

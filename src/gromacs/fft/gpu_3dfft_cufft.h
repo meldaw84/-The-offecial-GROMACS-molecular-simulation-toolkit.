@@ -79,8 +79,8 @@ public:
               ivec                 realGridSize,
               ivec                 realGridSizePadded,
               ivec                 complexGridSizePadded,
-              DeviceBuffer<float>* realGrid,
-              DeviceBuffer<float>* complexGrid);
+              DeviceBuffer<__half>* realGrid,
+              DeviceBuffer<__half>* complexGrid);
 
     //! \copydoc Gpu3dFft::Impl::~Impl
     ~ImplCuFft() override;
@@ -91,7 +91,7 @@ public:
 private:
     cufftHandle planR2C_;
     cufftHandle planC2R_;
-    cufftReal*  realGrid_;
+    __half*  realGrid_;
 };
 
 } // namespace gmx

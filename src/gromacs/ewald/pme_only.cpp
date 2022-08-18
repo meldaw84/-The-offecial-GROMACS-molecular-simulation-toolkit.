@@ -256,7 +256,8 @@ static int gmx_pme_recv_coeffs_coords(struct gmx_pme_t*            pme,
                                       real*                        ewaldcoeff_lj,
                                       bool                         useGpuForPme,
                                       gmx::StatePropagatorDataGpu* stateGpu,
-                                      PmeRunMode gmx_unused        runMode)
+                                      PmeRunMode gmx_unused        runMode,
+                                      gmx_wallcycle*            wcycle)
 {
     int status = -1;
     int nat    = 0;
@@ -455,6 +456,11 @@ static int gmx_pme_recv_coeffs_coords(struct gmx_pme_t*            pme,
             /* Receive the coordinates in place */
             nat             = 0;
             int senderCount = 0;
+
+            // wallcycle_start(wcycle, WallCycleCounter::PmeWaitX);
+            // MPI_Barrier(pme_pp->mpi_comm_mysim);
+            // wallcycle_stop(wcycle, WallCycleCounter::PmeWaitX);
+
             for (const auto& sender : pme_pp->ppRanks)
             {
                 if (sender.numAtoms > 0)
@@ -534,7 +540,7 @@ static int gmx_pme_recv_coeffs_coords(struct gmx_pme_t*            pme,
 }
 
 /*! \brief Send the PME mesh force, virial and energy to the PP-only ranks. */
-static void gmx_pme_send_force_vir_ener(const gmx_pme_t& pme, gmx_pme_pp* pme_pp, const PmeOutput& output, float cycles)
+static void gmx_pme_send_force_vir_ener(const gmx_pme_t& pme, gmx_pme_pp* pme_pp, const PmeOutput& output, float cycles, gmx_wallcycle* wcycle)
 {
 #if GMX_MPI
     gmx_pme_comm_vir_ene_t cve;
@@ -565,6 +571,21 @@ static void gmx_pme_send_force_vir_ener(const gmx_pme_t& pme, gmx_pme_pp* pme_pp
     }
     else
     {
+        wallcycle_start(wcycle, WallCycleCounter::WaitGpuPmeGather);
+
+        // Synchronize the whole PME stream at once, including D2H result transfers
+        // if there are outputs we need to wait for at this step; we still call getOutputs
+        // for uniformity and because it sets the PmeOutput.haveForceOutput_.
+        pme_gpu_synchronize(pme.gpu);
+
+        wallcycle_stop(wcycle, WallCycleCounter::WaitGpuPmeGather);
+
+        // wallcycle_start(wcycle, WallCycleCounter::PmeWaitF);
+        // MPI_Barrier(pme_pp->mpi_comm_mysim);
+        // wallcycle_stop(wcycle, WallCycleCounter::PmeWaitF);
+
+        wallcycle_start(wcycle, WallCycleCounter::PmeSendF);
+
         for (const auto& receiver : pme_pp->ppRanks)
         {
             ind_start = ind_end;
@@ -613,6 +634,8 @@ static void gmx_pme_send_force_vir_ener(const gmx_pme_t& pme, gmx_pme_pp* pme_pp
 
     /* Wait for the forces to arrive */
     MPI_Waitall(messages, pme_pp->req.data(), pme_pp->stat.data());
+
+    wallcycle_stop(wcycle, WallCycleCounter::PmeSendF);
 #else
     GMX_RELEASE_ASSERT(false, "Invalid call to gmx_pme_send_force_vir_ener");
     GMX_UNUSED_VALUE(pme);
@@ -708,7 +731,8 @@ int gmx_pmeonly(struct gmx_pme_t*               pme,
                                              &ewaldcoeff_lj,
                                              useGpuForPme,
                                              stateGpu.get(),
-                                             runMode);
+                                             runMode,
+                                             wcycle);
 
             if (ret == pmerecvqxSWITCHGRID)
             {
@@ -812,7 +836,7 @@ int gmx_pmeonly(struct gmx_pme_t*               pme,
         cycles = wallcycle_stop(
                 wcycle, useGpuForPme ? WallCycleCounter::PmeGpuMesh : WallCycleCounter::PmeMesh);
 
-        gmx_pme_send_force_vir_ener(*pme, pme_pp.get(), output, cycles);
+        gmx_pme_send_force_vir_ener(*pme, pme_pp.get(), output, cycles, wcycle);
 
         count++;
     } /***** end of quasi-loop, we stop with the break above */

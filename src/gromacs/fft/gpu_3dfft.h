@@ -46,6 +46,8 @@
 
 #include <memory>
 
+#include <cuda_fp16.h>
+
 #include "gromacs/fft/fft.h"
 #include "gromacs/gpu_utils/devicebuffer_datatype.h"
 #include "gromacs/gpu_utils/gputraits.h"
@@ -113,8 +115,8 @@ public:
              ivec                 realGridSize,
              ivec                 realGridSizePadded,
              ivec                 complexGridSizePadded,
-             DeviceBuffer<float>* realGrid,
-             DeviceBuffer<float>* complexGrid);
+             DeviceBuffer<__half>* realGrid,
+             DeviceBuffer<__half>* complexGrid);
 
     /*! \brief Destroys the FFT plans. */
     ~Gpu3dFft();

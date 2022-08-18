@@ -43,6 +43,8 @@
 
 #include "gmxpre.h"
 
+#include <cuda_fp16.h>
+
 #include "pme_gpu_grid.h"
 
 #include "config.h"
@@ -495,7 +497,7 @@ static __global__ void pmeGpuPackHaloInternal(const float* __restrict__ gm_realG
  */
 template<bool pmeToFft>
 static __global__ void pmegrid_to_fftgrid(float* __restrict__ gm_realGrid,
-                                          float* __restrict__ gm_fftGrid,
+                                          __half* __restrict__ gm_fftGrid,
                                           int3 fftNData,
                                           int3 fftSize,
                                           int3 pmeSize)
@@ -1455,7 +1457,7 @@ void convertPmeGridToFftGrid(const PmeGpu*         pmeGpu,
 }
 
 template<bool pmeToFft>
-void convertPmeGridToFftGrid(const PmeGpu* pmeGpu, DeviceBuffer<float>* d_fftRealGrid, const int gridIndex)
+void convertPmeGridToFftGrid(const PmeGpu* pmeGpu, DeviceBuffer<__half>* d_fftRealGrid, const int gridIndex)
 {
     ivec localPmeSize;
 
@@ -1474,29 +1476,29 @@ void convertPmeGridToFftGrid(const PmeGpu* pmeGpu, DeviceBuffer<float>* d_fftRea
     localFftSize[ZZ] = pmeGpu->archSpecific->localRealGridSizePadded[ZZ];
 
     // this is true in case of slab decomposition
-    if (localPmeSize[ZZ] == localFftSize[ZZ] && localPmeSize[YY] == localFftSize[YY])
-    {
-        int fftSize = localFftSize[ZZ] * localFftSize[YY] * localFftNData[XX];
-        if (pmeToFft)
-        {
-            copyBetweenDeviceBuffers(d_fftRealGrid,
-                                     &pmeGpu->kernelParams->grid.d_realGrid[gridIndex],
-                                     fftSize,
-                                     pmeGpu->archSpecific->pmeStream_,
-                                     pmeGpu->settings.transferKind,
-                                     nullptr);
-        }
-        else
-        {
-            copyBetweenDeviceBuffers(&pmeGpu->kernelParams->grid.d_realGrid[gridIndex],
-                                     d_fftRealGrid,
-                                     fftSize,
-                                     pmeGpu->archSpecific->pmeStream_,
-                                     pmeGpu->settings.transferKind,
-                                     nullptr);
-        }
-    }
-    else
+    // if (localPmeSize[ZZ] == localFftSize[ZZ] && localPmeSize[YY] == localFftSize[YY])
+    // {
+    //     int fftSize = localFftSize[ZZ] * localFftSize[YY] * localFftNData[XX];
+    //     if (pmeToFft)
+    //     {
+    //         copyBetweenDeviceBuffers(d_fftRealGrid,
+    //                                  &pmeGpu->kernelParams->grid.d_realGrid[gridIndex],
+    //                                  fftSize,
+    //                                  pmeGpu->archSpecific->pmeStream_,
+    //                                  pmeGpu->settings.transferKind,
+    //                                  nullptr);
+    //     }
+    //     else
+    //     {
+    //         copyBetweenDeviceBuffers(&pmeGpu->kernelParams->grid.d_realGrid[gridIndex],
+    //                                  d_fftRealGrid,
+    //                                  fftSize,
+    //                                  pmeGpu->archSpecific->pmeStream_,
+    //                                  pmeGpu->settings.transferKind,
+    //                                  nullptr);
+    //     }
+    // }
+    // else
     {
         // launch copy kernel
         // keeping same as warp size for better coalescing
@@ -1544,9 +1546,9 @@ template void convertPmeGridToFftGrid<false>(const PmeGpu*         pmeGpu,
                                              const int             gridIndex);
 
 template void convertPmeGridToFftGrid<true>(const PmeGpu*        pmeGpu,
-                                            DeviceBuffer<float>* d_fftRealGrid,
+                                            DeviceBuffer<__half>* d_fftRealGrid,
                                             const int            gridIndex);
 
 template void convertPmeGridToFftGrid<false>(const PmeGpu*        pmeGpu,
-                                             DeviceBuffer<float>* d_fftRealGrid,
+                                             DeviceBuffer<__half>* d_fftRealGrid,
                                              const int            gridIndex);

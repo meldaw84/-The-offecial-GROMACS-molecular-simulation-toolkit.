@@ -92,8 +92,8 @@ Gpu3dFft::Gpu3dFft(FftBackend           backend,
                    ivec                 realGridSize,
                    ivec                 realGridSizePadded,
                    ivec                 complexGridSizePadded,
-                   DeviceBuffer<float>* realGrid,
-                   DeviceBuffer<float>* complexGrid)
+                   DeviceBuffer<__half>* realGrid,
+                   DeviceBuffer<__half>* complexGrid)
 {
 #if GMX_GPU_CUDA
     switch (backend)

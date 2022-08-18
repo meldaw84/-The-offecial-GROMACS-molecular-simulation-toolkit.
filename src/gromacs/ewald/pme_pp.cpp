@@ -263,6 +263,8 @@ static void gmx_pme_send_coeffs_coords(t_forcerec*                    fr,
                 fr->pmePpCommGpu->reinit(n);
             }
 
+            //MPI_Barrier(cr->mpi_comm_mysim);
+
             if (useGpuPmePpComms && (fr != nullptr))
             {
                 if (sendCoordinatesFromGpu)
@@ -515,6 +517,8 @@ static void recvFFromPme(gmx::PmePpCommGpu* pmePpCommGpu,
                          bool               useGpuPmePpComms,
                          bool               receivePmeForceToGpu)
 {
+    //MPI_Barrier(cr->mpi_comm_mysim);
+
     if (useGpuPmePpComms)
     {
         GMX_ASSERT(pmePpCommGpu != nullptr, "Need valid pmePpCommGpu");

@@ -57,8 +57,8 @@ Gpu3dFft::Impl::Impl(bool performOutOfPlaceFFT) :
 }
 
 void Gpu3dFft::Impl::allocateComplexGrid(const ivec           complexGridSizePadded,
-                                         DeviceBuffer<float>* realGrid,
-                                         DeviceBuffer<float>* complexGrid,
+                                         DeviceBuffer<__half>* realGrid,
+                                         DeviceBuffer<__half>* complexGrid,
                                          const DeviceContext& context)
 {
     if (performOutOfPlaceFFT_)
