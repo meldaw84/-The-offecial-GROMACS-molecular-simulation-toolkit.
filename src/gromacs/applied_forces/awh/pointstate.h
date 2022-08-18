@@ -432,6 +432,7 @@ public:
      */
     double updateTargetWeight(const BiasParams& params, double freeEnergyCutoff)
     {
+        constexpr double minNormalizedFriction = 1e-6;
         switch (params.eTarget)
         {
             case AwhTargetType::Constant: target_ = 1; break;
@@ -446,7 +447,7 @@ public:
                 break;
             case AwhTargetType::LocalBoltzmann: target_ = weightSumRef_; break;
             case AwhTargetType::FrictionOptimized:
-                target_ = std::sqrt(normalizedSharedFriction_);
+                target_ = std::sqrt(std::max(normalizedSharedFriction_, minNormalizedFriction));
                 break;
             default: GMX_RELEASE_ASSERT(false, "Unhandled enum");
         }
