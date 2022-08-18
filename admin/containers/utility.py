@@ -122,7 +122,7 @@ parser.add_argument('--tsan', type=str, nargs='?', const='llvm', default=None,
 parser.add_argument('--hipsycl', type=str, nargs='?', default=None,
                     help='Select hipSYCL repository tag/commit/branch.')
 
-parser.add_argument('--rocm', type=str, nargs='?', const='debian', default=None,
+parser.add_argument('--rocm', type=str, nargs='?', const='3.5.1', default=None,
                     help='Select AMD compute engine version.')
 
 parser.add_argument('--intel-compute-runtime', action='store_true', default=False,
@@ -182,7 +182,7 @@ def image_name(configuration: argparse.Namespace) -> str:
     if configuration.intel_compute_runtime:
         elements.append('intel-compute-runtime')
     if configuration.rocm is not None:
-        if (configuration.rocm != 'debian'):
+        if (configuration.rocm != '3.5.1'):
             elements.append('rocm-' + configuration.rocm)
     if configuration.cp2k is not None:
         elements.append('cp2k-' + configuration.cp2k)

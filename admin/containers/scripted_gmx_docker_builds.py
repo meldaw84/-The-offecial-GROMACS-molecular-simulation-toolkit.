@@ -132,6 +132,17 @@ _rocm_extra_packages = [
     'rocm-dev',
 ]
 
+_rocm_legacy_extra_packages = [
+    # The following require
+    #             apt_keys=['http://repo.radeon.com/rocm/rocm.gpg.key'],
+    #             apt_repositories=['deb [arch=amd64] http://repo.radeon.com/rocm/apt/X.Y.Z/ ubuntu main']
+    'clinfo',
+    'libelf1',
+    'rocfft',
+    'rocm-opencl',
+    'rocm-dev',
+]
+
 # Extra packages required to build CP2K
 _cp2k_extra_packages = [
                         'autoconf',
@@ -289,6 +300,10 @@ def get_rocm_packages(args) -> typing.List[str]:
     if (args.rocm is None):
         return []
     else:
+        if (args.rocm != 'debian'):
+            if (packaging.version.parse(args.rocm) < packaging.version.parse(str(4.2))):
+                return _rocm_legacy_extra_packages
+
         return _rocm_extra_packages
 
 
@@ -918,9 +933,13 @@ def build_stages(args) -> typing.Iterable['hpccm.Stage']:
         )
         os_packages += _intel_compute_runtime_extra_packages
     if args.rocm is not None:
+        dist_string = 'ubuntu'
+        if (args.rocm != 'debian'):
+            if (packaging.version.parse(args.rocm) < packaging.version.parse(str(4.2))):
+                dist_string = 'xenial'
         building_blocks['extra_packages'] += hpccm.building_blocks.packages(
             apt_keys=['http://repo.radeon.com/rocm/rocm.gpg.key'],
-            apt_repositories=[f'deb [arch=amd64] http://repo.radeon.com/rocm/apt/{args.rocm}/ ubuntu main']
+            apt_repositories=[f'deb [arch=amd64] http://repo.radeon.com/rocm/apt/{args.rocm}/ '+dist_string+' main']
         )
     building_blocks['extra_packages'] += hpccm.building_blocks.packages(
         ospackages=os_packages,
