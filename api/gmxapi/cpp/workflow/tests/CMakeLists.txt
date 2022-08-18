@@ -77,7 +77,9 @@ if (GMX_MPI)
                           Gromacs::gmxapi
                           gmxapi-detail
                           gmxapi-testsupport
-                          mdrun_test_infrastructure)
+                          mdrun_test_infrastructure
+                          utility
+                          )
 
     gmx_register_gtest_test(GmxapiInternalsMpiTests workflow-details-mpi-test MPI_RANKS 2 OPENMP_THREADS 2 INTEGRATION_TEST IGNORE_LEAKS)
 
