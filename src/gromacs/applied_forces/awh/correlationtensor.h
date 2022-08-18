@@ -191,8 +191,8 @@ private:
 class CorrelationTensor
 {
 public:
-    /*! \brief 64 blocks is a good trade-off between signal and noise */
-    static constexpr int c_numCorrelationBlocks = 64;
+    /*! \brief 64 blocks is a good trade-off between signal and noise, but 256 blocks are used to avoid loss of data. */
+    static constexpr int c_numCorrelationBlocks = 256;
 
     /*! \brief Constructor.
      *
