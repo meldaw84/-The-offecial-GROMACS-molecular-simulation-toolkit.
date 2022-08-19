@@ -730,6 +730,7 @@ def prepare_venv(version: packaging.version.Version) -> typing.Sequence[str]:
             'pybind11>2.6' \
             'Pygments>=2.2.0' \
             'pytest>=4.6' \
+            'python-gitlab' \
             'setuptools>=61' \
             'Sphinx>=4.0' \
             'sphinx-argparse' \
