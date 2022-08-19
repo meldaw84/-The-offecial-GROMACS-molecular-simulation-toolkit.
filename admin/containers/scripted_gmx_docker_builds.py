@@ -509,9 +509,9 @@ def get_cp2k(args):
     if args.gcc is None:
         raise RuntimeError('CP2K build requires GNU compilers')
 
-    make_commands = ['make -j ARCH=local VERSION=ssmp libcp2k']
+    make_commands = ['make -j$(nproc) ARCH=local VERSION=ssmp libcp2k']
     if args.mpi is not None:
-        make_commands += ['make -j ARCH=local VERSION=psmp libcp2k']
+        make_commands += ['make -j$(nproc) ARCH=local VERSION=psmp libcp2k']
     make_commands += ['rm -rf ./obj']
 
     return hpccm.building_blocks.generic_build(
