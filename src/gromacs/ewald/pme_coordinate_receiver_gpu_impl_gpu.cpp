@@ -33,7 +33,7 @@
  */
 /*! \internal \file
  *
- * \brief Implements class which recieves coordinates to GPU memory on PME task using CUDA
+ * \brief Implements class which receives coordinates to GPU memory on PME task using CUDA/SYCL.
  *
  *
  * \author Alan Gray <alang@nvidia.com>

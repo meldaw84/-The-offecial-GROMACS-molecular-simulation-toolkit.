@@ -33,10 +33,12 @@
  */
 /*! \internal \file
  *
- * \brief Implements PME-PP communication using CUDA
+ * \brief Implements backend-specific code for PME-PP communication using SYCL.
  *
+ * Does not actually implement anything, since the only backend-specific part is for peer-to-peer
+ * communication, which is not supported with SYCL yet.
  *
- * \author Alan Gray <alang@nvidia.com>
+ * \author Andrey Alekseenko <al42and@gmail.com>
  *
  * \ingroup module_ewald
  */

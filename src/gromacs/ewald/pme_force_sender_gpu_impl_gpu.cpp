@@ -33,7 +33,7 @@
  */
 /*! \internal \file
  *
- * \brief Implements PME-PP communication using CUDA
+ * \brief Implements backend-agnostic part of GPU-direct PME-PP communication.
  *
  *
  * \author Alan Gray <alang@nvidia.com>
