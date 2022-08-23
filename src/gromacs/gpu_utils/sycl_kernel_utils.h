@@ -47,14 +47,19 @@
 static constexpr unsigned int c_cudaFullWarpMask = 0xffffffff;
 
 #if defined(SYCL_EXT_ONEAPI_ASSERT) && SYCL_EXT_ONEAPI_ASSERT
-#    define SYCL_ASSERT(condition) assert(condition)
+#    define SYCL_ASSERT(condition)       \
+        do                               \
+        {                                \
+            __builtin_assume(condition); \
+            assert(condition);           \
+        } while (0)
 #else
 /* Assertions are not defined in SYCL standard, but they are available as oneAPI extension sycl_ext_oneapi_assert.
  * Technically, asserts should work just fine with hipSYCL, since they are supported by CUDA since sm_20.
  * But with some settings (Clang 14, hipSYCL 0.9.2, RelWithAssert), CUDA build fails at link time:
  * ptxas fatal   : Unresolved extern function '__assert_fail'
  * So, we just disable kernel asserts unless they are promised to be available. */
-#    define SYCL_ASSERT(condition)
+#    define SYCL_ASSERT(condition) __builtin_assume(condition)
 #endif
 
 #if GMX_SYCL_HIPSYCL && HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP

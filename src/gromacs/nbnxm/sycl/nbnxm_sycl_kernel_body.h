@@ -288,6 +288,7 @@ static inline float pmeCorrF(const float z2)
 template<typename T>
 static inline T lerp(T d0, T d1, T t)
 {
+    __builtin_assume(t >= 0 && t <= 1);
     return sycl::fma(t, d1, sycl::fma(-t, d0, d0));
 }
 
@@ -297,8 +298,10 @@ static inline float interpolateCoulombForceR(const sycl::global_ptr<const float>
                                              const float                         r)
 {
     const float normalized = coulombTabScale * r;
-    const int   index      = static_cast<int>(normalized);
-    const float fraction   = normalized - index;
+    __builtin_assume(normalized >= 0);
+    const int index = static_cast<int>(normalized);
+    __builtin_assume(index >= 0);
+    const float fraction = normalized - index;
 
     const float left  = a_coulombTab[index];
     const float right = a_coulombTab[index + 1];
@@ -405,9 +408,10 @@ static inline void reduceForceJGeneric(sycl::local_ptr<float>   sm_buf,
 {
     static constexpr int sc_fBufferStride = c_clSizeSq;
     int                  tidx             = tidxi + tidxj * c_clSize;
-    sm_buf[0 * sc_fBufferStride + tidx]   = f[0];
-    sm_buf[1 * sc_fBufferStride + tidx]   = f[1];
-    sm_buf[2 * sc_fBufferStride + tidx]   = f[2];
+    __builtin_assume(tidx >= 0 && tidx < c_clSizeSq);
+    sm_buf[0 * sc_fBufferStride + tidx] = f[0];
+    sm_buf[1 * sc_fBufferStride + tidx] = f[1];
+    sm_buf[2 * sc_fBufferStride + tidx] = f[2];
 
     subGroupBarrier(itemIdx);
 
@@ -569,8 +573,10 @@ static inline void reduceForceIAndFShiftShuffles(const Float3 fCiBuf[c_nbnxnGpuN
 {
     const sycl::sub_group sg = itemIdx.get_sub_group();
     static_assert(numShuffleReductionSteps == 2 || numShuffleReductionSteps == 3);
-    assert(sg.get_local_linear_range() >= 4 * c_clSize
-           && "Subgroup too small for two-step shuffle reduction, use 1-step");
+    __builtin_assume(tidxi >= 0 && tidxi < c_clSize);
+    __builtin_assume(tidxj >= 0 && tidxj < c_clSize);
+    SYCL_ASSERT(sg.get_local_linear_range() >= 4 * c_clSize
+                && "Subgroup too small for two-step shuffle reduction, use 1-step");
     // Thread mask to use to select first three threads (in tidxj) in each reduction "tree".
     // Two bits for two steps, three bits for three steps.
     constexpr int threadBitMask = (1U << numShuffleReductionSteps) - 1;
@@ -648,10 +654,12 @@ inline void reduceForceIAndFShiftShuffles<1>(const Float3 fCiBuf[c_nbnxnGpuNumCl
                                              sycl::global_ptr<Float3> a_fShift)
 {
     const sycl::sub_group sg = itemIdx.get_sub_group();
-    assert(sg.get_local_linear_range() >= 2 * c_clSize
-           && "Subgroup too small even for 1-step shuffle reduction");
-    assert(sg.get_local_linear_range() < 4 * c_clSize
-           && "One-step shuffle reduction inefficient, use two-step version");
+    SYCL_ASSERT(sg.get_local_linear_range() >= 2 * c_clSize
+                && "Subgroup too small even for 1-step shuffle reduction");
+    SYCL_ASSERT(sg.get_local_linear_range() < 4 * c_clSize
+                && "One-step shuffle reduction inefficient, use two-step version");
+    __builtin_assume(tidxi >= 0 && tidxi < c_clSize);
+    __builtin_assume(tidxj >= 0 && tidxj < c_clSize);
     float fShiftBufXY = 0.0F;
     float fShiftBufZ  = 0.0F;
 #pragma unroll c_nbnxnGpuNumClusterPerSupercluster
@@ -893,6 +901,7 @@ static auto nbnxmKernel(sycl::handler&                                          
         const unsigned tidxi = itemIdx.get_local_id(2);
         const unsigned tidxj = itemIdx.get_local_id(1);
         const unsigned tidx  = tidxj * c_clSize + tidxi;
+        __builtin_assume(tidx < c_clSizeSq);
         const unsigned tidxz = 0;
 
         const unsigned bidx = itemIdx.get_group(0);
@@ -901,6 +910,7 @@ static auto nbnxmKernel(sycl::handler&                                          
         // Could use sg.get_group_range to compute the imask & exclusion Idx, but too much of the logic relies on it anyway
         // and in cases where prunedClusterPairSize != subGroupSize we can't use it anyway
         const unsigned imeiIdx = tidx / prunedClusterPairSize;
+        __builtin_assume(imeiIdx < c_nbnxnGpuClusterpairSplit);
 
         Float3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster]; // i force buffer
         for (int i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i++)
@@ -1061,6 +1071,7 @@ static auto nbnxmKernel(sycl::handler&                                          
                         // distance between i and j atoms
                         const Float3 rv = xi - xj;
                         float        r2 = norm2(rv);
+                        __builtin_assume(r2 >= 0);
 
                         if constexpr (doPruneNBL)
                         {
