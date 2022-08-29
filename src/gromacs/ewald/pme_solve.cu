@@ -221,16 +221,16 @@ __launch_bounds__(c_solveMaxThreadsPerBlock) CLANG_DISABLE_OPTIMIZATION_ATTRIBUT
             const float tmp1   = expf(-kernelParams.grid.ewaldFactor * m2k);
             const float etermk = kernelParams.constants.elFactor * tmp1 / denom;
 
-            __half2       gridValue    = *gm_gridCell;
-            const __half2 oldGridValue = gridValue;
+            float2       gridValue    = __half22float2(*gm_gridCell);
+            const float2 oldGridValue = gridValue;
             gridValue.x *= etermk;
             gridValue.y *= etermk;
-            *gm_gridCell = gridValue;
+            *gm_gridCell = __half2(gridValue.x, gridValue.y);
 
             if (computeEnergyAndVirial)
             {
                 const float tmp1k =
-                        2.0F * float(gridValue.x * oldGridValue.x + gridValue.y * oldGridValue.y);
+                        2.0F * (gridValue.x * oldGridValue.x + gridValue.y * oldGridValue.y);
 
                 float vfactor = (kernelParams.grid.ewaldFactor + 1.0F / m2k) * 2.0F;
                 float ets2    = corner_fac * tmp1k;
