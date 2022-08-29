@@ -56,6 +56,23 @@ constexpr int grid_init[g_initNR] = { 6, 8, 10, 12, 14, 16, 20, 24, 25, 28, 32, 
 constexpr int g_baseNR            = 14;
 constexpr int grid_base[g_baseNR] = { 45, 48, 50, 52, 54, 56, 60, 64, 70, 72, 75, 80, 81, 84 };
 
+static int next_pow_of_2(int n)
+{
+    // decrement `n` (to handle the case when `n` itself
+    // is a power of 2)
+    n = n - 1;
+ 
+    // do till only one bit is left
+    while (n & (n - 1)) {
+        n = n & (n - 1);        // unset rightmost bit
+    }
+ 
+    // `n` is now a power of two (less than `n`)
+ 
+    // return next power of 2
+    return n << 1;
+}
+
 real calcFftGrid(FILE* fp, const matrix box, real gridSpacing, int minGridPointsPerDim, int* nx, int* ny, int* nz)
 {
     int  d, n[DIM];
@@ -155,9 +172,9 @@ real calcFftGrid(FILE* fp, const matrix box, real gridSpacing, int minGridPoints
         spacing[d]  = box_size[d] / n[d];
         max_spacing = std::max(max_spacing, spacing[d]);
     }
-    *nx = n[XX];
-    *ny = n[YY];
-    *nz = n[ZZ];
+    *nx = next_pow_of_2(n[XX]);
+    *ny = next_pow_of_2(n[YY]);
+    *nz = next_pow_of_2(n[ZZ]);
     if (nullptr != fp)
     {
         fprintf(fp,
