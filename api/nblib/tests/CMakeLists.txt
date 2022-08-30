@@ -64,7 +64,12 @@ gmx_add_gtest_executable(
         virials.cpp
     )
 target_link_libraries(${exename} PRIVATE mdrun_test_infrastructure libgromacs)
-target_link_libraries(${exename} PRIVATE nblib_test_infrastructure nblib simd)
+target_link_libraries(${exename} PRIVATE
+        nblib_test_infrastructure
+        nblib
+        simd
+        topology
+        )
 target_include_directories(${exename} PRIVATE ${PROJECT_SOURCE_DIR}/api)
 gmx_register_gtest_test(${testname} ${exename} INTEGRATION_TEST)
 add_dependencies(nblib-tests ${exename})
@@ -93,7 +98,11 @@ gmx_add_gtest_executable(
         nbkernelsystem.cpp
         simstate.cpp
     )
-target_link_libraries(${exename} PRIVATE nblib_test_infrastructure nblib libgromacs)
+target_link_libraries(${exename} PRIVATE
+        nblib_test_infrastructure
+        nblib
+        libgromacs
+        topology)
 gmx_register_gtest_test(${testname} ${exename} INTEGRATION_TEST)
 add_dependencies(nblib-tests ${exename})
 
