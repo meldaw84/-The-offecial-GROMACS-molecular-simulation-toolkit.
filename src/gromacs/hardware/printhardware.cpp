@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "printhardware.h"
+#include "gromacs/hardware/printhardware.h"
 
 #include "config.h"
 
@@ -42,6 +42,7 @@
 #include <string>
 #include <vector>
 
+#include "gromacs/hardware/architecture.h"
 #include "gromacs/hardware/cpuinfo.h"
 #include "gromacs/hardware/device_management.h"
 #include "gromacs/hardware/hardwaretopology.h"
@@ -49,7 +50,6 @@
 #include "gromacs/hardware/identifyavx512fmaunits.h"
 #include "gromacs/simd/support.h"
 #include "gromacs/utility/basedefinitions.h"
-#include "gromacs/utility/basenetwork.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/gmxmpi.h"
@@ -57,8 +57,6 @@
 #include "gromacs/utility/programcontext.h"
 #include "gromacs/utility/stringutil.h"
 #include "gromacs/utility/sysinfo.h"
-
-#include "architecture.h"
 
 //! Constant used to help minimize preprocessed code
 static constexpr bool bGPUBinary = (GMX_GPU != 0);

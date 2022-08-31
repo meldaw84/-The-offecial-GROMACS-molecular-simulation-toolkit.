@@ -38,9 +38,6 @@
 #include <string>
 #include <vector>
 
-#include "gromacs/hardware/device_management.h"
-#include "gromacs/utility/basedefinitions.h"
-
 namespace gmx
 {
 class CpuInfo;
@@ -84,8 +81,8 @@ struct gmx_hw_info_t
     int simd_suggest_min; /* Highest SIMD instruction set supported by all ranks */
     int simd_suggest_max; /* Highest SIMD instruction set supported by at least one rank */
 
-    gmx_bool bIdenticalGPUs; /* TRUE if all ranks have the same type(s) and order of GPUs */
-    bool     haveAmdZen1Cpu; /* TRUE when at least one CPU in any of the nodes is AMD Zen of the first generation */
+    bool bIdenticalGPUs; /* TRUE if all ranks have the same type(s) and order of GPUs */
+    bool haveAmdZen1Cpu; /* TRUE when at least one CPU in any of the nodes is AMD Zen of the first generation */
 
     //! Container of warning strings to log later when that is possible.
     std::vector<std::string> hardwareDetectionWarnings_;

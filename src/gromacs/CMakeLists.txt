@@ -281,13 +281,6 @@ endif()
 # TODO Perhaps generalize this for all headers from src/external
 target_include_directories(libgromacs SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/src/external)
 
-if(SIMD_AVX_512_CXX_SUPPORTED AND NOT ("${GMX_SIMD_ACTIVE}" STREQUAL "AVX_512_KNL"))
-    # Since we might be overriding -march=core-avx2, add a flag so we don't warn for this specific file.
-    # On KNL this can cause illegal instruction because the compiler might use non KNL AVX instructions
-    # with the SIMD_AVX_512_CXX_FLAGS flags.
-    set_source_files_properties(hardware/identifyavx512fmaunits.cpp PROPERTIES COMPILE_FLAGS "${SIMD_AVX_512_CXX_FLAGS} ${CXX_NO_UNUSED_OPTION_WARNING_FLAGS}")
-endif()
-
 # Do any special handling needed for .cpp files that use
 # CUDA runtime headers
 if (GMX_GPU_CUDA AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")

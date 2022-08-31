@@ -46,6 +46,7 @@ target_link_libraries(simd PRIVATE
                       legacy_modules
                       utility
                       )
+target_include_directories(simd PRIVATE ${PROJECT_SOURCE_DIR}/src/gromacs/hardware/include)
 
 if (BUILD_TESTING)
     add_subdirectory(tests)

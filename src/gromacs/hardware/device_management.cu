@@ -45,7 +45,7 @@
  */
 #include "gmxpre.h"
 
-#include "device_management.h"
+#include "gromacs/hardware/device_management.h"
 
 #include <assert.h>
 

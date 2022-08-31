@@ -71,7 +71,11 @@ gmx_add_gtest_executable(
         virials.cpp
     )
 target_link_libraries(${exename} PRIVATE mdrun_test_infrastructure)
-target_link_libraries(${exename} PRIVATE nblib_test_infrastructure nblib)
+target_link_libraries(${exename} PRIVATE
+        nblib_test_infrastructure
+        nblib
+        hardware
+        )
 target_include_directories(${exename} PRIVATE ${PROJECT_SOURCE_DIR}/api)
 gmx_register_gtest_test(${testname} ${exename} INTEGRATION_TEST)
 add_dependencies(nblib-tests ${exename})

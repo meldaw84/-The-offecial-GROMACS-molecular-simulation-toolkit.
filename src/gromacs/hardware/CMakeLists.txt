@@ -31,8 +31,8 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out https://www.gromacs.org.
 
-add_library(hardware INTERFACE)
-gmx_add_libgromacs_sources(
+add_library(hardware OBJECT)
+target_sources(hardware PRIVATE
     cpuinfo.cpp
     detecthardware.cpp
     device_management_common.cpp
@@ -40,14 +40,17 @@ gmx_add_libgromacs_sources(
     printhardware.cpp
     identifyavx512fmaunits.cpp
     )
+if (BUILD_SHARED_LIBS)
+    set_target_properties(hardware PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endif()
 
 if(GMX_GPU_OPENCL)
-    gmx_add_libgromacs_sources(
-        device_management_ocl.cpp
+    target_sources(hardware PRIVATE
+            device_management_ocl.cpp
         )
 elseif(GMX_GPU_CUDA)
-    gmx_add_libgromacs_sources(
-        device_management.cu
+    target_sources(hardware PRIVATE
+            device_management.cu
         )
     _gmx_add_files_to_property(CUDA_SOURCES
         # Must add these files so they can include device_information.h
@@ -55,8 +58,8 @@ elseif(GMX_GPU_CUDA)
         detecthardware.cpp
 	)
 elseif(GMX_GPU_SYCL)
-    gmx_add_libgromacs_sources(
-        device_management_sycl.cpp
+    target_sources(hardware PRIVATE
+            device_management_sycl.cpp
     )
     _gmx_add_files_to_property(SYCL_SOURCES
         device_management_sycl.cpp
@@ -66,34 +69,29 @@ elseif(GMX_GPU_SYCL)
         detecthardware.cpp
 	)
 else()
-    gmx_add_libgromacs_sources(
-        device_management.cpp
+    target_sources(hardware PRIVATE
+            device_management.cpp
     )
+endif()
+
+if(SIMD_AVX_512_CXX_SUPPORTED AND NOT ("${GMX_SIMD_ACTIVE}" STREQUAL "AVX_512_KNL"))
+    # Since we might be overriding -march=core-avx2, add a flag so we don't warn for this specific file.
+    # On KNL this can cause illegal instruction because the compiler might use non KNL AVX instructions
+    # with the SIMD_AVX_512_CXX_FLAGS flags.
+    set_source_files_properties(identifyavx512fmaunits.cpp PROPERTIES COMPILE_FLAGS "${SIMD_AVX_512_CXX_FLAGS} ${CXX_NO_UNUSED_OPTION_WARNING_FLAGS}")
 endif()
 
 # Source files have the following private module dependencies.
 target_link_libraries(hardware PRIVATE
+                      common
+                      gpu_utils
+                      simd
+                      utility
                       )
 
 # Public interface for modules, including dependencies and interfaces
-#target_include_directories(hardware PUBLIC
-target_include_directories(hardware INTERFACE
+target_include_directories(hardware PUBLIC
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-#target_link_libraries(hardware PUBLIC
-target_link_libraries(hardware INTERFACE
-                      legacy_api
-                      )
-# The interface conveys transitive dependence on other module(s)
-target_link_libraries(hardware INTERFACE utility)
-
-# TODO: when hardware is an OBJECT target
-#target_link_libraries(hardware PUBLIC legacy_api)
-#target_link_libraries(hardware PRIVATE common)
-
-# Source files have the following private module dependencies.
-#target_link_libraries(hardware PRIVATE tng_io)
-# TODO: Explicitly link specific modules.
-#target_link_libraries(hardware PRIVATE legacy_modules)
 
 if (BUILD_TESTING)
     add_subdirectory(tests)

@@ -47,6 +47,7 @@
 
 #include <gtest/gtest.h>
 
+#include "gromacs/hardware/device_management.h"
 #include "gromacs/hardware/hw_info.h"
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/message_string_collector.h"

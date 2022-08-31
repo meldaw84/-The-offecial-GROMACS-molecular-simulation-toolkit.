@@ -56,8 +56,7 @@ function(gmx_detect_avx_512_fma_units RESULT)
 
             if(SIMD_AVX_512_CXX_SUPPORTED AND GMX_X86_GCC_INLINE_ASM)
                 # Compile the detection program
-
-                set(_compile_definitions "-I${PROJECT_SOURCE_DIR}/src -DGMX_IDENTIFY_AVX512_FMA_UNITS_STANDALONE -DSIMD_AVX_512_CXX_SUPPORTED=1 -DGMX_X86_GCC_INLINE_ASM=1 ${SIMD_AVX_512_CXX_FLAGS}")
+                set(_compile_definitions "-I${PROJECT_SOURCE_DIR}/src/gromacs/hardware/include -DGMX_IDENTIFY_AVX512_FMA_UNITS_STANDALONE -DSIMD_AVX_512_CXX_SUPPORTED=1 -DGMX_X86_GCC_INLINE_ASM=1 ${SIMD_AVX_512_CXX_FLAGS}")
                 try_compile(AVX_512_FMA_UNIT_DETECTION_COMPILED
                     "${PROJECT_BINARY_DIR}"
                     "${PROJECT_SOURCE_DIR}/src/gromacs/hardware/identifyavx512fmaunits.cpp"

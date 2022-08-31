@@ -85,7 +85,7 @@ function(gmx_run_cpu_detection TYPE)
                 set(GCC_INLINE_ASM_DEFINE -DGMX_X86_GCC_INLINE_ASM=0)
             endif()
 
-            set(_compile_definitions ${GCC_INLINE_ASM_DEFINE};-I${PROJECT_SOURCE_DIR}/src;-DGMX_CPUINFO_STANDALONE=1;-DGMX_TARGET_X86=${GMX_TARGET_X86_VALUE})
+            set(_compile_definitions ${GCC_INLINE_ASM_DEFINE};-I${PROJECT_SOURCE_DIR}/src/gromacs/hardware/include;-DGMX_CPUINFO_STANDALONE=1;-DGMX_TARGET_X86=${GMX_TARGET_X86_VALUE})
             try_compile(CPU_DETECTION_COMPILED
                 "${PROJECT_BINARY_DIR}"
                 "${PROJECT_SOURCE_DIR}/src/gromacs/hardware/cpuinfo.cpp"

@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "detecthardware.h"
+#include "gromacs/hardware/detecthardware.h"
 
 #include "config.h"
 
@@ -43,7 +43,9 @@
 #include <string>
 #include <vector>
 
+#include "gromacs/hardware/architecture.h"
 #include "gromacs/hardware/cpuinfo.h"
+#include "gromacs/hardware/device_information.h"
 #include "gromacs/hardware/device_management.h"
 #include "gromacs/hardware/hardwaretopology.h"
 #include "gromacs/hardware/hw_info.h"
@@ -58,9 +60,6 @@
 #include "gromacs/utility/inmemoryserializer.h"
 #include "gromacs/utility/logger.h"
 #include "gromacs/utility/physicalnodecommunicator.h"
-
-#include "architecture.h"
-#include "device_information.h"
 
 #ifdef HAVE_UNISTD_H
 #    include <unistd.h> // sysconf()
@@ -133,7 +132,7 @@ static DeviceDetectionResult detectAllDeviceInformation(const PhysicalNodeCommun
     // Read-only access is enforced with providing those ranks with a
     // handle to a const object, so usage is also free of races.
     GMX_UNUSED_VALUE(physicalNodeComm);
-    isMasterRankOfPhysicalNode         = true;
+    isMasterRankOfPhysicalNode = true;
 #endif
 
     /* The SYCL and OpenCL support requires us to run detection on all

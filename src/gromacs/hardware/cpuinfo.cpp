@@ -59,7 +59,7 @@
 #    include "gmxpre.h"
 #endif
 
-#include "cpuinfo.h"
+#include "gromacs/hardware/cpuinfo.h"
 
 #ifndef GMX_CPUINFO_STANDALONE
 #    include "config.h"
@@ -99,7 +99,7 @@
 #    include "gromacs/utility/basedefinitions.h"
 #endif
 
-#include "architecture.h"
+#include "gromacs/hardware/architecture.h"
 
 //! Convenience macro to help us avoid ifdefs each time we use sysconf
 #if !defined(_SC_NPROCESSORS_ONLN) && defined(_SC_NPROC_ONLN)

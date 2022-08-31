@@ -34,6 +34,8 @@
 #ifndef GMX_SIMD_SUPPORT_H
 #define GMX_SIMD_SUPPORT_H
 
+#include <string>
+
 
 /*! \libinternal \file
  *
@@ -45,7 +47,7 @@
  * \ingroup module_simd
  */
 
-#include "gromacs/hardware/cpuinfo.h"
+class CpuInfo;
 
 namespace gmx
 {

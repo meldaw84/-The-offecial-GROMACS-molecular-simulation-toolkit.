@@ -43,6 +43,7 @@ target_link_libraries(mdrun_objlib PRIVATE
         common
         legacy_api
         legacy_modules
+        hardware
         utility
         )
 

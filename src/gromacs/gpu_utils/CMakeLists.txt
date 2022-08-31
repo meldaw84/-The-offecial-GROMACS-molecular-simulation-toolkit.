@@ -100,6 +100,7 @@ target_include_directories(gpu_utils INTERFACE
 #target_link_libraries(gpu_utils PUBLIC
 target_link_libraries(gpu_utils INTERFACE
                       legacy_api
+                      hardware
                       math
                       )
 

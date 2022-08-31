@@ -82,11 +82,14 @@ set_target_properties(gmxapi PROPERTIES
                       VERSION ${GMXAPI_RELEASE}
                       )
 
-target_link_libraries(gmxapi PRIVATE libgromacs)
-target_link_libraries(gmxapi PRIVATE common)
-# TODO: Remove `legacy_modules` once specific modules are explicitly linked.
-target_link_libraries(gmxapi PRIVATE legacy_modules)
-target_link_libraries(gmxapi PRIVATE math utility)
+target_link_libraries(gmxapi PRIVATE
+        libgromacs
+        common
+        legacy_modules
+        hardware
+        math
+        utility
+        )
 
 
 ################################################

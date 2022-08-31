@@ -50,13 +50,12 @@
 #include <tuple>
 
 #include "gromacs/gpu_utils/gmxsycl.h"
+#include "gromacs/hardware/device_information.h"
 #include "gromacs/hardware/device_management.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/strconvert.h"
 #include "gromacs/utility/stringutil.h"
-
-#include "device_information.h"
 
 static std::optional<std::tuple<int, int>> getHardwareVersionNvidia(const sycl::device& device)
 {

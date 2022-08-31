@@ -48,12 +48,12 @@
 
 #include <algorithm>
 
+#include "gromacs/hardware/device_information.h"
 #include "gromacs/hardware/device_management.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
-
-#include "device_information.h"
+#include "gromacs/utility/iserializer.h"
 
 bool canPerformDeviceDetection(std::string* errorMessage)
 {
