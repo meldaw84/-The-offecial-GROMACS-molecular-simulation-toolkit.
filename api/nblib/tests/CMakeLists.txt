@@ -67,6 +67,7 @@ target_link_libraries(${exename} PRIVATE mdrun_test_infrastructure libgromacs)
 target_link_libraries(${exename} PRIVATE
         nblib_test_infrastructure
         nblib
+        pbcutil
         simd
         topology
         )
