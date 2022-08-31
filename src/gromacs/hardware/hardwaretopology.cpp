@@ -46,8 +46,6 @@
 
 #include "config.h"
 
-#include <cstdio>
-
 #include <algorithm>
 #include <array>
 #include <fstream>
@@ -57,14 +55,11 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #if GMX_USE_HWLOC
 #    include <hwloc.h>
 #endif
-
-#include <sys/types.h>
 
 #include "gromacs/hardware/cpuinfo.h"
 #include "gromacs/utility/gmxassert.h"

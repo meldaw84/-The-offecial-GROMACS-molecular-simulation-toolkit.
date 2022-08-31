@@ -43,7 +43,6 @@
 #include <string>
 #include <vector>
 
-#include "gromacs/hardware/architecture.h"
 #include "gromacs/hardware/cpuinfo.h"
 #include "gromacs/hardware/device_information.h"
 #include "gromacs/hardware/device_management.h"
@@ -51,12 +50,7 @@
 #include "gromacs/hardware/hw_info.h"
 #include "gromacs/simd/support.h"
 #include "gromacs/utility/basedefinitions.h"
-#include "gromacs/utility/basenetwork.h"
-#include "gromacs/utility/baseversion.h"
 #include "gromacs/utility/cstringutil.h"
-#include "gromacs/utility/exceptions.h"
-#include "gromacs/utility/fatalerror.h"
-#include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/inmemoryserializer.h"
 #include "gromacs/utility/logger.h"
 #include "gromacs/utility/physicalnodecommunicator.h"
