@@ -50,12 +50,15 @@ endif()
 # If you find you want to do that, consider a preliminary
 # refactoring.
 
-# Source files have the following dependencies on library infrastructure.
-target_link_libraries(taskassignment PRIVATE common)
+target_compile_definitions(taskassignment PRIVATE HAVE_CONFIG_H)
 
 # Public interface for modules, including dependencies and interfaces
 target_include_directories(taskassignment PUBLIC
-                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                           $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/include>
+                           $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src/include>
+                           $<INSTALL_INTERFACE:${CMAKE_BINARY_DIR}/src/include>
+                           )
 target_link_libraries(taskassignment PRIVATE
                       legacy_api
                       legacy_modules
