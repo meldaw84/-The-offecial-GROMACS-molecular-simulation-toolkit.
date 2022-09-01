@@ -285,5 +285,10 @@ function(gmx_cuda_add_library TARGET)
         list(APPEND CMAKE_CXX_FLAGS_${build_type} ${CUDA_${TARGET}_CXXFLAGS_${build_type}})
     endforeach()
 
-    cuda_add_library(${TARGET} ${ARGN})
+    if(${CMAKE_VERSION} VERSION_LESS "3.17.0")
+        cuda_add_library(${TARGET} ${ARGN})
+    else()
+        add_library(${TARGET} ${ARGN})
+    endif()
+
 endfunction()

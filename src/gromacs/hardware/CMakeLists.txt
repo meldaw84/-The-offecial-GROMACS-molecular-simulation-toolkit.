@@ -52,11 +52,8 @@ elseif(GMX_GPU_CUDA)
     target_sources(hardware PRIVATE
             device_management.cu
         )
-    _gmx_add_files_to_property(CUDA_SOURCES
-        # Must add these files so they can include device_information.h
-        device_management_common.cpp
-        detecthardware.cpp
-	)
+    set_source_files_properties(device_management.cu device_management_common.cpp detecthardware.cpp PROPERTIES LANGUAGE CUDA)
+    target_link_libraries(hardware PUBLIC gpu_utils CUDA::cudart)
 elseif(GMX_GPU_SYCL)
     target_sources(hardware PRIVATE
             device_management_sycl.cpp
@@ -84,10 +81,13 @@ endif()
 # Source files have the following private module dependencies.
 target_link_libraries(hardware PRIVATE
                       common
-                      gpu_utils
+                      #gpu_utils
                       simd
                       utility
                       )
+target_link_libraries(hardware PUBLIC
+        #gpu_utils
+        )
 
 # Public interface for modules, including dependencies and interfaces
 target_include_directories(hardware PUBLIC

@@ -39,7 +39,11 @@ if(GMX_DOUBLE)
     message(FATAL_ERROR "CUDA acceleration is not available in double precision")
 endif()
 
-find_package(CUDA ${REQUIRED_CUDA_VERSION} REQUIRED)
+if(${CMAKE_VERSION} VERSION_LESS "3.17.0")
+    find_package(CUDA ${REQUIRED_CUDA_VERSION} REQUIRED)
+else()
+    find_package(CUDAToolkit)
+endif()
 
 # Try to execute ${CUDA_NVCC_EXECUTABLE} --version and set the output
 # (or an error string) in the argument variable.
@@ -94,8 +98,14 @@ if(GMX_CLANG_CUDA)
     link_directories("${GMX_CUDA_CLANG_LINK_DIRS}")
 else()
     # Using NVIDIA compiler
-    if(NOT CUDA_NVCC_EXECUTABLE)
-        message(FATAL_ERROR "nvcc is required for a CUDA build, please set CUDA_TOOLKIT_ROOT_DIR appropriately")
+    if(${CMAKE_VERSION} VERSION_LESS "3.17.0")
+        if(NOT CUDA_NVCC_EXECUTABLE)
+            message(FATAL_ERROR "nvcc is required for a CUDA build, please set CUDA_TOOLKIT_ROOT_DIR appropriately")
+        endif()
+    else()
+        if(NOT CUDAToolkit_NVCC_EXECUTABLE)
+            message(FATAL_ERROR "nvcc is required for a CUDA build, please set CUDA_TOOLKIT_ROOT_DIR appropriately")
+        endif()
     endif()
     # set up nvcc options
     include(gmxManageNvccConfig)
