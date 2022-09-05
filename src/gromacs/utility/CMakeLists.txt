@@ -35,7 +35,16 @@ add_library(utility INTERFACE)
 
 file(GLOB UTILITY_SOURCES *.cpp)
 if (GMX_GPU_CUDA)
-    gmx_add_libgromacs_sources(cuda_version_information.cu)
+  #gmx_add_libgromacs_sources(cuda_version_information.cu)
+  add_library(cuda_version OBJECT)
+  target_sources(cuda_version PRIVATE
+            cuda_version_information.cu)
+  set_target_properties(cuda_version PROPERTIES LANGUAGE CUDA)
+  target_link_libraries(cuda_version PRIVATE common legacy_api)
+  target_link_libraries(utility INTERFACE cuda_version)
+  if (BUILD_SHARED_LIBS)
+    set_target_properties(cuda_version PROPERTIES POSITION_INDEPENDENT_CODE ON)
+  endif()
 endif ()
 if (GMX_GPU_SYCL)
     _gmx_add_files_to_property(SYCL_SOURCES

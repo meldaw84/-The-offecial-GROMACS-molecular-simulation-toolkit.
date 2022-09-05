@@ -401,6 +401,12 @@ target_link_libraries(libgromacs PRIVATE lmfit)
 gmx_manage_muparser()
 target_link_libraries(libgromacs PRIVATE muparser)
 
+# This only lives here because libgromacs does not exist yet when the utility dir is added
+# Todo: move this to the correct level once libgromacs is sorted out
+if (GMX_GPU_CUDA)
+  target_link_libraries(libgromacs PRIVATE cuda_version)
+endif()
+
 # Make sure we fix "everything" found by compilers that support that
 gmx_warn_on_everything(libgromacs)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
