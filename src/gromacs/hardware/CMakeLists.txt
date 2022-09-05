@@ -46,14 +46,13 @@ if(GMX_GPU_OPENCL)
         device_management_ocl.cpp
         )
 elseif(GMX_GPU_CUDA)
-    gmx_add_libgromacs_sources(
-        device_management.cu
-        )
-    _gmx_add_files_to_property(CUDA_SOURCES
-        # Must add these files so they can include device_information.h
-        device_management_common.cpp
-        detecthardware.cpp
-	)
+    set_source_files_properties(device_management.cu PROPERTIES LANGUAGE CUDA)
+    set_property(GLOBAL APPEND PROPERTY GMX_LIBGROMACS_SOURCES
+      ${CMAKE_CURRENT_SOURCE_DIR}/device_management.cu)
+    set_source_files_properties(
+      device_management_common.cpp
+      detecthardware.cpp
+      PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
 elseif(GMX_GPU_SYCL)
     gmx_add_libgromacs_sources(
         device_management_sycl.cpp
