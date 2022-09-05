@@ -35,7 +35,6 @@ add_library(utility INTERFACE)
 
 file(GLOB UTILITY_SOURCES *.cpp)
 if (GMX_GPU_CUDA)
-  #gmx_add_libgromacs_sources(cuda_version_information.cu)
   add_library(cuda_version OBJECT)
   target_sources(cuda_version PRIVATE
             cuda_version_information.cu)
