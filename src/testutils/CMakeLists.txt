@@ -127,5 +127,8 @@ target_link_libraries(testutils PRIVATE
         hardware
         topology
         )
+if(GMX_GPU_CUDA)
+  target_link_libraries(testutils PRIVATE CUDA::cudart)
+endif()
 
 add_subdirectory(tests)

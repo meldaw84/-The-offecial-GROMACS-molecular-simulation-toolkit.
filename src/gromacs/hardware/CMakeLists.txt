@@ -57,6 +57,7 @@ elseif(GMX_GPU_CUDA)
         device_management_common.cpp
         detecthardware.cpp
 	)
+    target_link_libraries(hardware INTERFACE CUDA::cudart)
 elseif(GMX_GPU_SYCL)
     target_sources(hardware PRIVATE
             device_management_sycl.cpp

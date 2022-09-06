@@ -31,7 +31,7 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out https://www.gromacs.org.
 
-cmake_minimum_required(VERSION 3.16.3)
+cmake_minimum_required(VERSION 3.17.0)
 
 cmake_policy(SET CMP0022 NEW)
 cmake_policy(SET CMP0048 NEW) # As of CMake 3.22, default is still "OLD"
@@ -610,7 +610,7 @@ if(GMX_GPU)
 
     string(TOUPPER "${GMX_GPU}" _gmx_gpu_uppercase)
     if(${_gmx_gpu_uppercase} STREQUAL "CUDA")
-	enable_language(CUDA)
+        find_package(CUDAToolkit ${REQUIRED_CUDA_VERSION} REQUIRED)
         set(CMAKE_CUDA_STANDARD 14)
         set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 	# Avoid new cmake policy of enforcing CMAKE_CUDA_ARCHITECTURES initialization
@@ -808,8 +808,9 @@ endif()
 
 if (GMX_BUILD_FOR_COVERAGE)
     # Set flags for coverage build here instead having to do so manually
-    set(CMAKE_C_FLAGS "-g --coverage")
-    set(CMAKE_CXX_FLAGS "-g --coverage")
+    set(CMAKE_C_FLAGS "-g -fprofile-arcs -ftest-coverage")
+    set(CMAKE_CXX_FLAGS "-g -fprofile-arcs -ftest-coverage")
+    set(CMAKE_EXE_LINKER_FLAGS "-fprofile-arcs -ftest-coverage")
 endif()
 
 # # # # # # # # # # NO MORE TESTS AFTER THIS LINE! # # # # # # # # # # #

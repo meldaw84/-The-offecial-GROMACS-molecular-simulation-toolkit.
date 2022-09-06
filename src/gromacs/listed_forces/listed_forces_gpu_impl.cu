@@ -54,6 +54,7 @@
 #include "gromacs/gpu_utils/devicebuffer.h"
 #include "gromacs/gpu_utils/typecasts.cuh"
 #include "gromacs/mdtypes/enerdata.h"
+#include "gromacs/nbnxm/gpu_types_common.h"
 #include "gromacs/timing/wallcycle.h"
 #include "gromacs/topology/forcefieldparameters.h"
 
@@ -124,10 +125,10 @@ ListedForcesGpu::Impl::~Impl()
 {
     for (int fType : fTypesOnGpu)
     {
-        if (d_iLists_[fType].iatoms)
+        if (d_iAtoms_[fType])
         {
-            freeDeviceBuffer(&d_iLists_[fType].iatoms);
-            d_iLists_[fType].iatoms = nullptr;
+            freeDeviceBuffer(&d_iAtoms_[fType]);
+            d_iAtoms_[fType] = nullptr;
         }
     }
 
@@ -193,14 +194,12 @@ static inline int roundUpToFactor(const int input, const int factor)
  *  types are assigned in blocks sized as <warp_size>. The beginning and end (thread index) of each
  *  interaction type are stored in kernelParams_. Pointers to the relevant data structures on the
  *  GPU are also stored in kernelParams_.
- *
- * \todo Use DeviceBuffer for the d_xqPtr.
  */
 void ListedForcesGpu::Impl::updateInteractionListsAndDeviceBuffers(ArrayRef<const int> nbnxnAtomOrder,
                                                                    const InteractionDefinitions& idef,
-                                                                   void*              d_xqPtr,
-                                                                   DeviceBuffer<RVec> d_fPtr,
-                                                                   DeviceBuffer<RVec> d_fShiftPtr)
+                                                                   DeviceBuffer<Float4> d_xqPtr,
+                                                                   DeviceBuffer<RVec>   d_fPtr,
+                                                                   DeviceBuffer<RVec>   d_fShiftPtr)
 {
     // TODO wallcycle sub start
     haveInteractions_ = false;
@@ -231,12 +230,11 @@ void ListedForcesGpu::Impl::updateInteractionListsAndDeviceBuffers(ArrayRef<cons
         // end.
         if (iList.size() > 0)
         {
-            t_ilist& d_iList = d_iLists_[fType];
-
+            int newListSize;
             reallocateDeviceBuffer(
-                    &d_iList.iatoms, iList.size(), &d_iList.nr, &d_iList.nalloc, deviceContext_);
+                    &d_iAtoms_[fType], iList.size(), &newListSize, &d_iAtomsAlloc_[fType], deviceContext_);
 
-            copyToDeviceBuffer(&d_iList.iatoms,
+            copyToDeviceBuffer(&d_iAtoms_[fType],
                                iList.iatoms.data(),
                                0,
                                iList.size(),
@@ -244,11 +242,10 @@ void ListedForcesGpu::Impl::updateInteractionListsAndDeviceBuffers(ArrayRef<cons
                                GpuApiCallBehavior::Async,
                                nullptr);
         }
-        kernelParams_.fTypesOnGpu[fTypesCounter]    = fType;
-        kernelParams_.numFTypeIAtoms[fTypesCounter] = iList.size();
+        kernelParams_.fTypesOnGpu[fTypesCounter] = fType;
         int numBonds = iList.size() / (interaction_function[fType].nratoms + 1);
         kernelParams_.numFTypeBonds[fTypesCounter] = numBonds;
-        kernelParams_.d_iatoms[fTypesCounter]      = d_iLists_[fType].iatoms;
+        kernelParams_.d_iatoms[fTypesCounter]      = d_iAtoms_[fType];
         if (fTypesCounter == 0)
         {
             kernelParams_.fTypeRangeStart[fTypesCounter] = 0;
@@ -276,9 +273,9 @@ void ListedForcesGpu::Impl::updateInteractionListsAndDeviceBuffers(ArrayRef<cons
     int fTypeRangeEnd               = kernelParams_.fTypeRangeEnd[numFTypesOnGpu - 1];
     kernelLaunchConfig_.gridSize[0] = (fTypeRangeEnd + c_threadsPerBlock) / c_threadsPerBlock;
 
-    d_xq_     = static_cast<float4*>(d_xqPtr);
-    d_f_      = asFloat3(d_fPtr);
-    d_fShift_ = asFloat3(d_fShiftPtr);
+    d_xq_     = d_xqPtr;
+    d_f_      = d_fPtr;
+    d_fShift_ = d_fShiftPtr;
 
     kernelParams_.d_forceParams = d_forceParams_;
     kernelParams_.d_vTot        = d_vTot_;
@@ -360,11 +357,10 @@ ListedForcesGpu::~ListedForcesGpu() = default;
 
 void ListedForcesGpu::updateInteractionListsAndDeviceBuffers(ArrayRef<const int> nbnxnAtomOrder,
                                                              const InteractionDefinitions& idef,
-                                                             void*                         d_xq,
-                                                             DeviceBuffer<RVec>            d_f,
-                                                             DeviceBuffer<RVec>            d_fShift)
+                                                             NBAtomDataGpu* nbnxmAtomDataGpu)
 {
-    impl_->updateInteractionListsAndDeviceBuffers(nbnxnAtomOrder, idef, d_xq, d_f, d_fShift);
+    impl_->updateInteractionListsAndDeviceBuffers(
+            nbnxnAtomOrder, idef, nbnxmAtomDataGpu->xq, nbnxmAtomDataGpu->f, nbnxmAtomDataGpu->fShift);
 }
 
 void ListedForcesGpu::setPbc(PbcType pbcType, const matrix box, bool canMoleculeSpanPbc)

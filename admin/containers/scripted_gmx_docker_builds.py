@@ -717,7 +717,7 @@ def prepare_venv(version: packaging.version.Version) -> typing.Sequence[str]:
     commands.append(f"""{venv_path}/bin/python -m pip install --upgrade \
             'breathe' \
             'build' \
-            'cmake>=3.16.3' \
+            'cmake>=3.17.2' \
             'flake8>=3.7.7' \
             'furo' \
             'gcovr>=4.2' \

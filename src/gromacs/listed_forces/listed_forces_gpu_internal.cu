@@ -726,13 +726,13 @@ namespace gmx
 {
 
 template<bool calcVir, bool calcEner>
-__global__ void exec_kernel_gpu(BondedCudaKernelParameters kernelParams, float4* gm_xq, float3* gm_f, float3* gm_fShift)
+__global__ void bonded_kernel_gpu(BondedGpuKernelParameters kernelParams, float4* gm_xq, float3* gm_f, float3* gm_fShift)
 {
     assert(blockDim.y == 1 && blockDim.z == 1);
     const int tid          = blockIdx.x * blockDim.x + threadIdx.x;
-    float     vtot_loc     = 0;
-    float     vtotVdw_loc  = 0;
-    float     vtotElec_loc = 0;
+    float     vtot_loc     = 0.0F;
+    float     vtotVdw_loc  = 0.0F;
+    float     vtotElec_loc = 0.0F;
 
     extern __shared__ char sm_dynamicShmem[];
     char*                  sm_nextSlotPtr = sm_dynamicShmem;
@@ -873,9 +873,9 @@ __global__ void exec_kernel_gpu(BondedCudaKernelParameters kernelParams, float4*
         if (threadIdx.x % warpSize == 0)
         {
             // One thread per warp initializes to zero
-            sm_vTot[warpId]     = 0.;
-            sm_vTotVdw[warpId]  = 0.;
-            sm_vTotElec[warpId] = 0.;
+            sm_vTot[warpId]     = 0.0F;
+            sm_vTotVdw[warpId]  = 0.0F;
+            sm_vTotElec[warpId] = 0.0F;
         }
         __syncwarp(); // All threads in warp must wait for initialization
 
@@ -923,7 +923,7 @@ void ListedForcesGpu::Impl::launchKernel()
         return;
     }
 
-    auto kernelPtr = exec_kernel_gpu<calcVir, calcEner>;
+    auto kernelPtr = bonded_kernel_gpu<calcVir, calcEner>;
 
     const auto kernelArgs = prepareGpuKernelArguments(
             kernelPtr, kernelLaunchConfig_, &kernelParams_, &d_xq_, &d_f_, &d_fShift_);
@@ -932,7 +932,7 @@ void ListedForcesGpu::Impl::launchKernel()
                     kernelLaunchConfig_,
                     deviceStream_,
                     nullptr,
-                    "exec_kernel_gpu<calcVir, calcEner>",
+                    "bonded_kernel_gpu<calcVir, calcEner>",
                     kernelArgs);
 
     wallcycle_sub_stop(wcycle_, WallCycleSubCounter::LaunchGpuBonded);
