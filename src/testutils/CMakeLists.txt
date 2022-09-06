@@ -124,5 +124,7 @@ target_link_libraries(testutils PUBLIC common)
 target_link_libraries(testutils PUBLIC legacy_modules)
 target_link_libraries(testutils PUBLIC utility)
 target_link_libraries(testutils PRIVATE topology)
-
+if(GMX_GPU_CUDA)
+  target_link_libraries(testutils PRIVATE CUDA::cudart)
+endif()
 add_subdirectory(tests)

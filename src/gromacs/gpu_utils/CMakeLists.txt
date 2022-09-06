@@ -62,6 +62,7 @@ elseif(GMX_GPU_CUDA)
     _gmx_add_files_to_property(CUDA_SOURCES
         device_stream_manager.cpp
         )
+    target_link_libraries(gpu_utils INTERFACE CUDA::cudart)
 elseif(GMX_GPU_SYCL)
     gmx_add_libgromacs_sources(
         devicebuffer_sycl.cpp
