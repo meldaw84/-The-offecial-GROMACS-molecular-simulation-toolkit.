@@ -58,9 +58,9 @@
 #    include "gromacs/device_info/gmxsycl.h"
 #endif
 
+#include "gromacs/device_info/device_management.h"
 #include "gromacs/gpu_utils/gpu_utils.h"
 #include "gromacs/gpu_utils/pmalloc.h"
-#include "gromacs/device_info/device_management.h"
 #include "gromacs/utility/classhelpers.h"
 
 struct DeviceInformation;

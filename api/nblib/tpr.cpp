@@ -55,11 +55,11 @@
 #include "gromacs/mdtypes/iforceprovider.h"
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/mdatom.h"
-#include "gromacs/workload_flags/simulation_workload.h"
 #include "gromacs/mdtypes/state.h"
 #include "gromacs/topology/mtop_util.h"
 #include "gromacs/topology/topology.h"
 #include "gromacs/utility/logger.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 
 #include "nblib/box.h"
 

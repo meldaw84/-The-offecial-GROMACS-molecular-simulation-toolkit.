@@ -45,6 +45,7 @@ gmx_add_unit_test(EwaldUnitTests ewald-test
 target_link_libraries(
     ewald-test PRIVATE
         ewald
+        device_info
         domdec
         fft
         gpu_utils
@@ -54,4 +55,5 @@ target_link_libraries(
         testutils
         topology
         utility
+        workload_flags
 )

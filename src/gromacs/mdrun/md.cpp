@@ -125,7 +125,6 @@
 #include "gromacs/mdtypes/observableshistory.h"
 #include "gromacs/mdtypes/observablesreducer.h"
 #include "gromacs/mdtypes/pullhistory.h"
-#include "gromacs/workload_flags/simulation_workload.h"
 #include "gromacs/mdtypes/state.h"
 #include "gromacs/mdtypes/state_propagator_data_gpu.h"
 #include "gromacs/modularsimulator/energydata.h"
@@ -148,6 +147,7 @@
 #include "gromacs/utility/logger.h"
 #include "gromacs/utility/real.h"
 #include "gromacs/utility/smalloc.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 
 #include "legacysimulator.h"
 #include "replicaexchange.h"

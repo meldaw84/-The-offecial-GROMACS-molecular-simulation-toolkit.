@@ -49,9 +49,9 @@
 #include <optional>
 #include <tuple>
 
-#include "gromacs/gpu_utils/gmxsycl.h"
 #include "gromacs/device_info/device_information.h"
 #include "gromacs/device_info/device_management.h"
+#include "gromacs/gpu_utils/gmxsycl.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/strconvert.h"

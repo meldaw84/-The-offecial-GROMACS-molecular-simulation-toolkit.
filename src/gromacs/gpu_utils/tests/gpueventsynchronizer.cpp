@@ -46,9 +46,9 @@
 
 #include <gtest/gtest.h>
 
+#include "gromacs/device_info/device_management.h"
 #include "gromacs/gpu_utils/device_context.h"
 #include "gromacs/gpu_utils/device_stream.h"
-#include "gromacs/hardware/device_management.h"
 
 #include "testutils/test_hardware_environment.h"
 

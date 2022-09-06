@@ -49,7 +49,6 @@
 #include "gromacs/mdtypes/md_enums.h"
 #include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/mdtypes/nblist.h"
-#include "gromacs/workload_flags/simulation_workload.h"
 #include "gromacs/nbnxm/gpu_data_mgmt.h"
 #include "gromacs/nbnxm/nbnxm.h"
 #include "gromacs/simd/simd.h"
@@ -58,6 +57,7 @@
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/real.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 
 #include "kernel_common.h"
 #include "nbnxm_gpu.h"

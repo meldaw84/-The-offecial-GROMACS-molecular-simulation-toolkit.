@@ -35,4 +35,8 @@ gmx_add_unit_test(PullTest  pull-test
     CPP_SOURCE_FILES
         pull.cpp
         )
-target_link_libraries(pull-test PRIVATE pulling muparser)
+target_link_libraries(pull-test PRIVATE
+        pulling
+        mdtypes
+        muparser
+        )

@@ -500,7 +500,7 @@ bool parseHwLocNuma(hwloc_topology_t topo, HardwareTopology::Machine* machine)
         machine->numa.baseLatency = 1.0; // latencies still do not have any units in hwloc-2.x
         machine->numa.maxRelativeLatency = maxLatency / minLatency;
 
-#    else  // GMX_HWLOC_API_VERSION_IS_2XX == false, hwloc api is 1.x.x
+#    else // GMX_HWLOC_API_VERSION_IS_2XX == false, hwloc api is 1.x.x
         const int                       depth = hwloc_get_type_depth(topo, HWLOC_OBJ_NUMANODE);
         const struct hwloc_distances_s* dist = hwloc_get_whole_distance_matrix_by_depth(topo, depth);
         if (dist != nullptr && dist->nbobjs == hwlocNumaNodes.size())
@@ -599,7 +599,7 @@ bool parseHwLocDevices(hwloc_topology_t topo, HardwareTopology::Machine* machine
         {
             ancestor = parent->memory_first_child;
         }
-#    else  // GMX_HWLOC_API_VERSION_IS_2XX = false, api v 1.x.x
+#    else // GMX_HWLOC_API_VERSION_IS_2XX = false, api v 1.x.x
         // numa nodes are normal part of tree, can use hwloc ancestor function
         const hwloc_obj* const ancestor =
                 hwloc_get_ancestor_obj_by_type(topo, HWLOC_OBJ_NUMANODE, const_cast<hwloc_obj_t>(p));

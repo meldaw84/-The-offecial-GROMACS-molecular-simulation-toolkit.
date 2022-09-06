@@ -55,11 +55,10 @@
 #include "gromacs/gpu_utils/devicebuffer_datatype.h"
 #include "gromacs/gpu_utils/gpu_utils.h"
 #include "gromacs/math/vectypes.h"
-#include "gromacs/workload_flags/simulation_workload.h"
+#include "gromacs/mdtypes/locality.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/classhelpers.h"
-
-#include "gromacs/mdtypes/locality.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 
 class DeviceContext;
 class DeviceStream;

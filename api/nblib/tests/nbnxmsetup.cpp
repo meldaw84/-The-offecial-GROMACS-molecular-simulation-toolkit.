@@ -42,12 +42,12 @@
  */
 #include <cmath>
 
-#include "gromacs/hardware/device_management.h"
+#include "gromacs/device_info/device_management.h"
 #include "gromacs/mdtypes/forcerec.h"
 #include "gromacs/mdtypes/interaction_const.h"
-#include "gromacs/mdtypes/simulation_workload.h"
 #include "gromacs/nbnxm/nbnxm.h"
 #include "gromacs/nbnxm/nbnxm_simd.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 
 #include "testutils/test_hardware_environment.h"
 #include "testutils/testasserts.h"

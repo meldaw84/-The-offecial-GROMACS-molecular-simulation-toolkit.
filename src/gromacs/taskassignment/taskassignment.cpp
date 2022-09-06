@@ -57,13 +57,12 @@
 #include <string>
 #include <vector>
 
+#include "gromacs/device_info/device_management.h"
 #include "gromacs/domdec/domdec.h"
 #include "gromacs/gmxlib/network.h"
-#include "gromacs/device_info/device_management.h"
 #include "gromacs/hardware/hw_info.h"
 #include "gromacs/mdrunutility/multisim.h"
 #include "gromacs/mdtypes/commrec.h"
-#include "gromacs/workload_flags/simulation_workload.h"
 #include "gromacs/taskassignment/usergpuids.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/exceptions.h"
@@ -74,6 +73,7 @@
 #include "gromacs/utility/physicalnodecommunicator.h"
 #include "gromacs/utility/stringutil.h"
 #include "gromacs/utility/sysinfo.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 
 #include "findallgputasks.h"
 #include "reportgpuusage.h"

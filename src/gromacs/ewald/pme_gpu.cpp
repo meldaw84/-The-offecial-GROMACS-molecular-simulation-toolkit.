@@ -54,11 +54,11 @@
 #include "gromacs/mdtypes/enerdata.h"
 #include "gromacs/mdtypes/forceoutput.h"
 #include "gromacs/mdtypes/inputrec.h"
-#include "gromacs/workload_flags/simulation_workload.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/stringutil.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 
 #include "pme_gpu_internal.h"
 #include "pme_gpu_settings.h"

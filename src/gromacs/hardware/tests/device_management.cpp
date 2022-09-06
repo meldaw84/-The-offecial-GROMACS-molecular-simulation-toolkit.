@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/hardware/device_management.h"
+#include "gromacs/device_info/device_management.h"
 
 #include "config.h"
 
@@ -48,7 +48,7 @@
 
 #include <gtest/gtest.h>
 
-#include "gromacs/hardware/device_information.h"
+#include "gromacs/device_info/device_information.h"
 #include "gromacs/utility/inmemoryserializer.h"
 #include "gromacs/utility/stringutil.h"
 

@@ -50,10 +50,9 @@
 #    include "gromacs/gpu_utils/gpueventsynchronizer.h"
 #    include "gromacs/math/vectypes.h"
 #    include "gromacs/mdtypes/state_propagator_data_gpu.h"
+#    include "gromacs/mdtypes/state_propagator_data_gpu_impl.h"
 #    include "gromacs/timing/wallcycle.h"
 #    include "gromacs/utility/classhelpers.h"
-
-#    include "gromacs/mdtypes/state_propagator_data_gpu_impl.h"
 
 
 namespace gmx

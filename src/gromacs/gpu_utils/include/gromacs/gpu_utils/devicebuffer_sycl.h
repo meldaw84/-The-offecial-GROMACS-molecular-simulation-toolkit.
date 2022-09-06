@@ -421,7 +421,7 @@ void copyToDeviceBuffer(DeviceBuffer<ValueType>* buffer,
 #else
     sycl::buffer<ValueType>& syclBuffer = *buffer->buffer_;
 
-    ev                                  = deviceStream.stream().submit([&](sycl::handler& cgh) {
+    ev = deviceStream.stream().submit([&](sycl::handler& cgh) {
         /* Here and elsewhere in this file, accessor constructor is user instead of a more common
          * buffer::get_access, since the compiler (icpx 2021.1-beta09) occasionally gets confused
          * by all the overloads */

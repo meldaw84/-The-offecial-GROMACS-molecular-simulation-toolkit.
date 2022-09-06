@@ -45,12 +45,12 @@
 #include "gromacs/math/vec.h"
 #include "gromacs/mdtypes/interaction_const.h"
 #include "gromacs/mdtypes/md_enums.h"
-#include "gromacs/workload_flags/simulation_workload.h"
 #include "gromacs/nbnxm/atomdata.h"
 #include "gromacs/nbnxm/nbnxm.h"
 #include "gromacs/nbnxm/pairlist.h"
 #include "gromacs/pbcutil/ishift.h"
 #include "gromacs/utility/fatalerror.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 
 static constexpr int c_clSize = c_nbnxnGpuClusterSize;
 

@@ -58,12 +58,11 @@
 #    include "sycl/nbnxm_sycl_types.h"
 #endif
 
+#include "gromacs/device_info/device_information.h"
 #include "gromacs/gpu_utils/device_stream_manager.h"
 #include "gromacs/gpu_utils/gputraits.h"
 #include "gromacs/gpu_utils/pmalloc.h"
-#include "gromacs/device_info/device_information.h"
 #include "gromacs/mdtypes/interaction_const.h"
-#include "gromacs/workload_flags/simulation_workload.h"
 #include "gromacs/nbnxm/gpu_common_utils.h"
 #include "gromacs/nbnxm/gpu_data_mgmt.h"
 #include "gromacs/nbnxm/gridset.h"
@@ -72,6 +71,7 @@
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 
 #include "nbnxm_gpu.h"
 #include "nbnxm_gpu_data_mgmt.h"

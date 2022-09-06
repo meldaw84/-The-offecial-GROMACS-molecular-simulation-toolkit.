@@ -48,9 +48,9 @@
 #include <memory>
 #include <mutex>
 
+#include "gromacs/device_info/device_management.h"
 #include "gromacs/gpu_utils/gpu_utils.h"
 #include "gromacs/hardware/detecthardware.h"
-#include "gromacs/device_info/device_management.h"
 #include "gromacs/hardware/hw_info.h"
 #include "gromacs/utility/basenetwork.h"
 #include "gromacs/utility/exceptions.h"

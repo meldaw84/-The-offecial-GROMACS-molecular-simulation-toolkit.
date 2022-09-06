@@ -52,7 +52,7 @@
 
 #include <gtest/gtest.h>
 
-#include "gromacs/hardware/device_management.h"
+#include "gromacs/device_info/device_management.h"
 #include "gromacs/utility/baseversion.h"
 
 #include "testutils/test_hardware_environment.h"

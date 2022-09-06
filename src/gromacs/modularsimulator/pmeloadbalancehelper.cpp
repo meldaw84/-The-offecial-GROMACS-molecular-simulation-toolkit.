@@ -48,9 +48,9 @@
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/interaction_const.h"
 #include "gromacs/mdtypes/mdrunoptions.h"
-#include "gromacs/workload_flags/simulation_workload.h"
 #include "gromacs/mdtypes/state.h"
 #include "gromacs/nbnxm/nbnxm.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 
 #include "statepropagatordata.h"
 

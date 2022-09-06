@@ -46,11 +46,11 @@
 
 #include "gromacs/gpu_utils/device_context.h"
 #include "gromacs/gpu_utils/device_stream.h"
-#include "gromacs/workload_flags/simulation_workload.h"
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/stringutil.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 
 namespace gmx
 {

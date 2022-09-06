@@ -38,7 +38,7 @@
 #if GMX_SIMD_J_UNROLL_SIZE == 1
     constexpr KernelLayout kernelLayout = KernelLayout::r4xM;
 #else
-    constexpr KernelLayout            kernelLayout         = KernelLayout::r2xMM;
+    constexpr KernelLayout kernelLayout = KernelLayout::r2xMM;
 #endif
 
     /* The number of 'i' SIMD registers */
@@ -59,7 +59,7 @@
     constexpr LJCombinationRule ljCombinationRule = LJCombinationRule::Geometric;
 #else
 #    ifdef LJ_COMB_LB
-    constexpr LJCombinationRule       ljCombinationRule    = LJCombinationRule::LorentzBerthelot;
+    constexpr LJCombinationRule ljCombinationRule = LJCombinationRule::LorentzBerthelot;
 #    else
     constexpr LJCombinationRule ljCombinationRule = LJCombinationRule::None;
 #    endif
@@ -68,7 +68,7 @@
     constexpr InteractionModifiers vdwModifier = InteractionModifiers::PotSwitch;
 #else
 #    ifdef LJ_FORCE_SWITCH
-    constexpr InteractionModifiers    vdwModifier          = InteractionModifiers::ForceSwitch;
+    constexpr InteractionModifiers vdwModifier = InteractionModifiers::ForceSwitch;
 #    else
     /* Note the we also use the potential-shift kernel for LJ without shift */
     constexpr InteractionModifiers vdwModifier = InteractionModifiers::PotShift;
@@ -77,22 +77,22 @@
 #ifdef LJ_EWALD_GEOM
     constexpr bool haveLJEwaldGeometric = true;
 #else
-    constexpr bool                    haveLJEwaldGeometric = false;
+    constexpr bool haveLJEwaldGeometric = false;
 #endif
 #ifdef CALC_ENERGIES
     constexpr bool calculateEnergies = true;
 #else
-    constexpr bool                    calculateEnergies    = false;
+    constexpr bool calculateEnergies = false;
 #endif
 #if defined CALC_ENEGIES && defined ENERGY_GROUPS
     constexpr bool useEnergyGroups = true;
 #else
-    constexpr bool                    useEnergyGroups      = false;
+    constexpr bool useEnergyGroups = false;
 #endif
 #ifdef VDW_CUTOFF_CHECK
     constexpr bool haveVdwCutoffCheck = true;
 #else
-    constexpr bool                    haveVdwCutoffCheck   = false;
+    constexpr bool haveVdwCutoffCheck = false;
 #endif
 
     /* Unpack pointers for output */

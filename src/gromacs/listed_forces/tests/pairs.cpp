@@ -70,7 +70,6 @@
 #include "gromacs/mdtypes/interaction_const.h"
 #include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/mdtypes/nblist.h"
-#include "gromacs/mdtypes/simulation_workload.h"
 #include "gromacs/pbcutil/ishift.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/tables/forcetable.h"
@@ -80,6 +79,7 @@
 #include "gromacs/utility/strconvert.h"
 #include "gromacs/utility/stringstream.h"
 #include "gromacs/utility/textwriter.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 
 #include "testutils/refdata.h"
 #include "testutils/testasserts.h"

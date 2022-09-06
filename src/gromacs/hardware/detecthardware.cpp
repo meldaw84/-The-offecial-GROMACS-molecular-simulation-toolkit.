@@ -43,9 +43,9 @@
 #include <string>
 #include <vector>
 
-#include "gromacs/hardware/cpuinfo.h"
 #include "gromacs/device_info/device_information.h"
 #include "gromacs/device_info/device_management.h"
+#include "gromacs/hardware/cpuinfo.h"
 #include "gromacs/hardware/hardwaretopology.h"
 #include "gromacs/hardware/hw_info.h"
 #include "gromacs/simd/support.h"
@@ -126,7 +126,7 @@ static DeviceDetectionResult detectAllDeviceInformation(const PhysicalNodeCommun
     // Read-only access is enforced with providing those ranks with a
     // handle to a const object, so usage is also free of races.
     GMX_UNUSED_VALUE(physicalNodeComm);
-    isMasterRankOfPhysicalNode         = true;
+    isMasterRankOfPhysicalNode = true;
 #endif
 
     /* The SYCL and OpenCL support requires us to run detection on all

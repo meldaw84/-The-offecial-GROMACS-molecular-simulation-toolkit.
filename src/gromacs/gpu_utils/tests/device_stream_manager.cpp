@@ -50,8 +50,8 @@
 
 #include <gtest/gtest.h>
 
-#include "gromacs/mdtypes/simulation_workload.h"
 #include "gromacs/utility/enumerationhelpers.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 
 #include "testutils/test_hardware_environment.h"
 

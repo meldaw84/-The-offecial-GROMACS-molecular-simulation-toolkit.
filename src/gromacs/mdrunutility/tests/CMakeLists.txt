@@ -37,6 +37,7 @@ target_link_libraries(mdrunutility-test-shared PRIVATE
         common
         legacy_api
         hardware
+        mdtypes
         )
 target_compile_definitions(mdrunutility-test-shared PRIVATE TMPI_USE_VISIBILITY)
 

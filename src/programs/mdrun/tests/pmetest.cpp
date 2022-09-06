@@ -50,8 +50,8 @@
 
 #include <gtest/gtest-spi.h>
 
+#include "gromacs/device_info/device_management.h"
 #include "gromacs/ewald/pme.h"
-#include "gromacs/hardware/device_management.h"
 #include "gromacs/hardware/hw_info.h"
 #include "gromacs/trajectory/energyframe.h"
 #include "gromacs/utility/basenetwork.h"

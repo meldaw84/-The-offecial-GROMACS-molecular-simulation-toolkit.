@@ -55,6 +55,7 @@
 #include <optional>
 
 #include "gromacs/commandline/filenm.h"
+#include "gromacs/device_info/device_management.h"
 #include "gromacs/domdec/builder.h"
 #include "gromacs/domdec/domdec.h"
 #include "gromacs/domdec/domdec_struct.h"
@@ -77,7 +78,6 @@
 #include "gromacs/gpu_utils/device_stream_manager.h"
 #include "gromacs/hardware/cpuinfo.h"
 #include "gromacs/hardware/detecthardware.h"
-#include "gromacs/device_info/device_management.h"
 #include "gromacs/hardware/hardwaretopology.h"
 #include "gromacs/hardware/printhardware.h"
 #include "gromacs/imd/imd.h"
@@ -128,7 +128,6 @@
 #include "gromacs/mdtypes/multipletimestepping.h"
 #include "gromacs/mdtypes/observableshistory.h"
 #include "gromacs/mdtypes/observablesreducer.h"
-#include "gromacs/workload_flags/simulation_workload.h"
 #include "gromacs/mdtypes/state.h"
 #include "gromacs/mdtypes/state_propagator_data_gpu.h"
 #include "gromacs/modularsimulator/modularsimulator.h"
@@ -171,6 +170,7 @@
 #include "gromacs/utility/programcontext.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringutil.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 
 #include "isimulator.h"
 #include "membedholder.h"

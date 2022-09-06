@@ -48,8 +48,8 @@
 
 #include <gtest/gtest.h>
 
+#include "gromacs/device_info/device_management.h"
 #include "gromacs/gpu_utils/gpu_utils.h"
-#include "gromacs/hardware/device_management.h"
 #include "gromacs/math/tests/testarrayrefs.h"
 #include "gromacs/math/vectypes.h"
 #include "gromacs/utility/arrayref.h"

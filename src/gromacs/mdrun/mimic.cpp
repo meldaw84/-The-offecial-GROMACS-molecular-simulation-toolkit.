@@ -115,7 +115,6 @@
 #include "gromacs/mdtypes/mdrunoptions.h"
 #include "gromacs/mdtypes/observableshistory.h"
 #include "gromacs/mdtypes/observablesreducer.h"
-#include "gromacs/workload_flags/simulation_workload.h"
 #include "gromacs/mdtypes/state.h"
 #include "gromacs/mimic/communicator.h"
 #include "gromacs/mimic/utilities.h"
@@ -133,6 +132,7 @@
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/logger.h"
 #include "gromacs/utility/real.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 
 #include "legacysimulator.h"
 #include "replicaexchange.h"

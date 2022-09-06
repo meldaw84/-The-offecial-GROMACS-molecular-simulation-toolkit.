@@ -47,11 +47,11 @@
 #include "gromacs/mdtypes/enerdata.h"
 #include "gromacs/mdtypes/forcerec.h"
 #include "gromacs/mdtypes/interaction_const.h"
-#include "gromacs/workload_flags/simulation_workload.h"
 #include "gromacs/nbnxm/nbnxm.h"
 #include "gromacs/timing/wallcycle.h"
 #include "gromacs/utility/listoflists.h"
 #include "gromacs/utility/range.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 
 #include "nblib/kerneloptions.h"
 #include "nblib/nbnxmsetuphelpers.h"

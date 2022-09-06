@@ -63,9 +63,9 @@
 #if GMX_GPU_SYCL
 #    include "gromacs/gpu_utils/syclutils.h"
 #endif
+#include "gromacs/device_info/device_information.h"
 #include "gromacs/ewald/pme.h"
 #include "gromacs/ewald/pme_coordinate_receiver_gpu.h"
-#include "gromacs/device_info/device_information.h"
 #include "gromacs/math/boxmatrix.h"
 #include "gromacs/math/units.h"
 #include "gromacs/timing/gpu_timing.h"

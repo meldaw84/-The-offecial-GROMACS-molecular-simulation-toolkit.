@@ -57,7 +57,6 @@
 #include "gromacs/mdtypes/forcerec.h"
 #include "gromacs/mdtypes/interaction_const.h"
 #include "gromacs/mdtypes/mdatom.h"
-#include "gromacs/workload_flags/simulation_workload.h"
 #include "gromacs/nbnxm/atomdata.h"
 #include "gromacs/nbnxm/gridset.h"
 #include "gromacs/nbnxm/nbnxm.h"
@@ -72,6 +71,7 @@
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/logger.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 
 #include "bench_system.h"
 

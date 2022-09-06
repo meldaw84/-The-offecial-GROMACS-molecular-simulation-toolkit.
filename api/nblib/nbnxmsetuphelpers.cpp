@@ -49,7 +49,6 @@
 #include "gromacs/mdlib/rf_util.h"
 #include "gromacs/mdtypes/forcerec.h"
 #include "gromacs/mdtypes/interaction_const.h"
-#include "gromacs/workload_flags/simulation_workload.h"
 #include "gromacs/nbnxm/atomdata.h"
 #include "gromacs/nbnxm/gpu_data_mgmt.h"
 #include "gromacs/nbnxm/nbnxm.h"
@@ -61,6 +60,7 @@
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/utility/logger.h"
 #include "gromacs/utility/smalloc.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 
 #include "nblib/exception.h"
 #include "nblib/kerneloptions.h"

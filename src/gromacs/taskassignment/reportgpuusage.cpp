@@ -46,13 +46,13 @@
 
 #include "gromacs/ewald/pme.h"
 #include "gromacs/gpu_utils/gpu_utils.h"
-#include "gromacs/workload_flags/simulation_workload.h"
 #include "gromacs/taskassignment/taskassignment.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/logger.h"
 #include "gromacs/utility/stringutil.h"
 #include "gromacs/utility/sysinfo.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 
 namespace gmx
 {

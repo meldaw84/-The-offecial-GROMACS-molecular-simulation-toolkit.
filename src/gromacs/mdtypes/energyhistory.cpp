@@ -36,10 +36,9 @@
 
 #include "gromacs/mdtypes/energyhistory.h"
 
+#include "gromacs/mdtypes/checkpointdata.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/stringutil.h"
-
-#include "gromacs/mdtypes/checkpointdata.h"
 
 //! \cond INTERNAL
 // mirroring the \cond from energyhistory.h to avoid Doxygen errors
