@@ -128,6 +128,57 @@ def upload_files(*, path: typing.Union[str, Path], options: typing.List[str], se
             exit(ret.returncode)
 
 
+def make_server_symlinks(*, path: typing.Union[str, Path], server: str, version: str, dry_run=False):
+    """Set new symlinks on remote server.
+
+    Replaces current symlinks on remote server for current manual, and release specific current versions.
+    Checks version string to see if it is a major version update, then the `current` symlink is set
+    to a new version. For all patch versions of a release series, only the `<version>-current` symlinks
+    are remade. In case of alpha, beta, rc releases, no symlinks are made.
+    """
+    if ('alpha' in version or 'beta' in version or 'rc' in version):
+        print(R'Not setting new symlinks for pre-release version ', version)
+        return
+
+    is_major_release = False
+    if ('.' in version):
+        print(R'Only setting version specific symlink for patch release ', version)
+    else:
+        print(R'Re-setting all symlinks for major release ', version)
+        is_major_release = True
+
+    version_string = version # Need to change this to remove patch identifier
+    if not (is_major_release):
+        version_string = version.split('.', 1)[0]
+
+    print(R'Going to set the following symlinks for version ', version)
+    symlink_command_base = ['ssh', server]
+
+    symlink_minor = 'ln -f -s ' + str(path) + '/'+ version_string + '-current ' + str(path) + '/' + version
+    print(symlink_minor)
+    symlink_command_minor = symlink_command_base
+    symlink_command_minor.append(symlink_minor)
+    print(symlink_command_minor)
+    if (is_major_release):
+        symlink_major = 'ln -f -s ' + str(path) + '/current ' + version + '/' + str(path)
+        print(symlink_major)
+        symlink_command_major = symlink_command_base
+        symlink_command_major.append(symlink_major)
+        print(symlink_command_major)
+
+    if not (dry_run):
+        ret = subprocess.run(symlink_command_minor, capture_output=True)
+        if ret.returncode != 0:
+            print(ret.stdout)
+            print(ret.stderr)
+            exit(ret.returncode)
+        if (is_major_release):
+            ret = subprocess.run(symlink_command_major, capture_output=True)
+            if ret.returncode != 0:
+                print(ret.stdout)
+                print(ret.stderr)
+                exit(ret.returncode)
+
 def upload_release_artifacts():
     """Upload files to server.
 
@@ -268,6 +319,8 @@ def upload_release_artifacts():
                  server=frontpage_path_on_server,
                  dry_run=dry_run)
     os.chdir(current_dir)
+
+    make_server_symlinks(path=upload_location, server=manual_server, version=version, dry_run=dry_run)
 
 
 parser = argparse.ArgumentParser(
