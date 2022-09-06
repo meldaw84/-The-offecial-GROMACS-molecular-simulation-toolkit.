@@ -54,6 +54,8 @@
 #include <string>
 #include <vector>
 
+#include "external/expected/include/tl/expected.hpp"
+
 #include "gromacs/utility/basedefinitions.h"
 #include "gromacs/utility/iserializer.h"
 
@@ -87,7 +89,7 @@ void warnWhenDeviceNotTargeted(const gmx::MDLogger& mdlog, const DeviceInformati
  *                           the string contains a descriptive message about
  *                           why GPUs cannot be detected.
  */
-bool canPerformDeviceDetection(std::string* errorMessage);
+tl::expected<std::true_type, std::string> canPerformDeviceDetection();
 
 /*! \brief Return whether GPU detection is enabled
  *
@@ -115,7 +117,7 @@ bool isDeviceDetectionEnabled();
  *
  * Does not throw.
  */
-bool isDeviceDetectionFunctional(std::string* errorMessage);
+tl::expected<std::true_type, std::string> isDeviceDetectionFunctional();
 
 /*! \brief Returns an DeviceVendor value corresponding to the input OpenCL vendor name.
  *

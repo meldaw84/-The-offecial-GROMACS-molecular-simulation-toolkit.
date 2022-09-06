@@ -55,9 +55,13 @@
 
 #include "device_information.h"
 
-bool canPerformDeviceDetection(std::string* errorMessage)
+tl::expected<std::true_type, std::string> canPerformDeviceDetection()
 {
-    return isDeviceDetectionEnabled() && isDeviceDetectionFunctional(errorMessage);
+    if (!isDeviceDetectionEnabled())
+    {
+        return tl::make_unexpected("Device detection disabled");
+    }
+    return isDeviceDetectionFunctional();
 }
 
 bool isDeviceDetectionEnabled()

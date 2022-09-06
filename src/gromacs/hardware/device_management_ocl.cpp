@@ -240,7 +240,7 @@ static bool runningOnCompatibleHWForAmd(const DeviceInformation& deviceInfo)
  * \param[in]  deviceInfo  The device info pointer.
  * \returns                The status enumeration value for the checked device:
  */
-static DeviceStatus isDeviceFunctional(const DeviceInformation& deviceInfo)
+static DeviceStatus checkDeviceSupportStatus(const DeviceInformation& deviceInfo)
 {
     if (getenv("GMX_GPU_DISABLE_COMPATIBILITY_CHECK") != nullptr)
     {
@@ -332,11 +332,10 @@ inline std::string makeOpenClInternalErrorString(const char* message, cl_int sta
  *
  *
  * \param[in]  deviceInfo      The device info pointer.
- * \param[out] errorMessage    An error message related to a failing OpenCL API call.
  * \throws     std::bad_alloc  When out of memory.
  * \returns                    Whether the device passed sanity checks
  */
-static bool isDeviceFunctional(const DeviceInformation& deviceInfo, std::string* errorMessage)
+static tl::expected<std::true_type, std::string> isDeviceFunctional(const DeviceInformation& deviceInfo)
 {
     cl_context_properties properties[] = {
         CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties>(deviceInfo.oclPlatformId), 0
@@ -347,14 +346,12 @@ static bool isDeviceFunctional(const DeviceInformation& deviceInfo, std::string*
     ClContext context(clCreateContext(properties, 1, &deviceId, nullptr, nullptr, &status));
     if (status != CL_SUCCESS)
     {
-        errorMessage->assign(makeOpenClInternalErrorString("clCreateContext", status));
-        return false;
+        return tl::make_unexpected(makeOpenClInternalErrorString("clCreateContext", status));
     }
     ClCommandQueue commandQueue(clCreateCommandQueue(context, deviceId, 0, &status));
     if (status != CL_SUCCESS)
     {
-        errorMessage->assign(makeOpenClInternalErrorString("clCreateCommandQueue", status));
-        return false;
+        return tl::make_unexpected(makeOpenClInternalErrorString("clCreateCommandQueue", status));
     }
 
     // Some compilers such as Apple's require kernel functions to have at least one argument
@@ -362,21 +359,18 @@ static bool isDeviceFunctional(const DeviceInformation& deviceInfo, std::string*
     ClProgram   program(clCreateProgramWithSource(context, 1, lines, nullptr, &status));
     if (status != CL_SUCCESS)
     {
-        errorMessage->assign(makeOpenClInternalErrorString("clCreateProgramWithSource", status));
-        return false;
+        return tl::make_unexpected(makeOpenClInternalErrorString("clCreateProgramWithSource", status));
     }
 
     if ((status = clBuildProgram(program, 0, nullptr, nullptr, nullptr, nullptr)) != CL_SUCCESS)
     {
-        errorMessage->assign(makeOpenClInternalErrorString("clBuildProgram", status));
-        return false;
+        return tl::make_unexpected(makeOpenClInternalErrorString("clBuildProgram", status));
     }
 
     ClKernel kernel(clCreateKernel(program, "dummyKernel", &status));
     if (status != CL_SUCCESS)
     {
-        errorMessage->assign(makeOpenClInternalErrorString("clCreateKernel", status));
-        return false;
+        return tl::make_unexpected(makeOpenClInternalErrorString("clCreateKernel", status));
     }
 
     clSetKernelArg(kernel, 0, sizeof(void*), nullptr);
@@ -386,10 +380,9 @@ static bool isDeviceFunctional(const DeviceInformation& deviceInfo, std::string*
                  commandQueue, kernel, 1, nullptr, &globalWorkSize, &localWorkSize, 0, nullptr, nullptr))
         != CL_SUCCESS)
     {
-        errorMessage->assign(makeOpenClInternalErrorString("clEnqueueNDRangeKernel", status));
-        return false;
+        return tl::make_unexpected(makeOpenClInternalErrorString("clEnqueueNDRangeKernel", status));
     }
-    return true;
+    return std::true_type{};
 }
 
 /*! \brief Check whether the \c ocl_gpu_device is suitable for use by mdrun
@@ -407,16 +400,15 @@ static bool isDeviceFunctional(const DeviceInformation& deviceInfo, std::string*
 static DeviceStatus checkGpu(size_t deviceId, const DeviceInformation& deviceInfo)
 {
 
-    DeviceStatus supportStatus = isDeviceFunctional(deviceInfo);
+    DeviceStatus supportStatus = checkDeviceSupportStatus(deviceInfo);
     if (supportStatus != DeviceStatus::Compatible)
     {
         return supportStatus;
     }
 
-    std::string errorMessage;
-    if (!isDeviceFunctional(deviceInfo, &errorMessage))
+    if (auto deviceCheckResult = isDeviceFunctional(deviceInfo); !deviceCheckResult)
     {
-        gmx_warning("While sanity checking device #%zu, %s", deviceId, errorMessage.c_str());
+        gmx_warning("While sanity checking device #%zu, %s", deviceId, deviceCheckResult.error().c_str());
         return DeviceStatus::NonFunctional;
     }
 
@@ -425,7 +417,7 @@ static DeviceStatus checkGpu(size_t deviceId, const DeviceInformation& deviceInf
 
 } // namespace gmx
 
-bool isDeviceDetectionFunctional(std::string* errorMessage)
+tl::expected<std::true_type, std::string> isDeviceDetectionFunctional()
 {
     cl_uint numPlatforms;
     cl_int  status = clGetPlatformIDs(0, nullptr, &numPlatforms);
@@ -434,11 +426,7 @@ bool isDeviceDetectionFunctional(std::string* errorMessage)
     if (status == CL_PLATFORM_NOT_FOUND_KHR)
     {
         // No valid ICDs found
-        if (errorMessage != nullptr)
-        {
-            errorMessage->assign("No valid OpenCL driver found");
-        }
-        return false;
+        return tl::make_unexpected("No valid OpenCL driver found");
     }
 #endif
     GMX_RELEASE_ASSERT(
@@ -448,11 +436,11 @@ bool isDeviceDetectionFunctional(std::string* errorMessage)
                               ocl_get_error_string(status).c_str())
                     .c_str());
     bool foundPlatform = (numPlatforms > 0);
-    if (!foundPlatform && errorMessage != nullptr)
+    if (!foundPlatform)
     {
-        errorMessage->assign("No OpenCL platforms found even though the driver was valid");
+        return tl::make_unexpected("No OpenCL platforms found even though the driver was valid");
     }
-    return foundPlatform;
+    return std::true_type{};
 }
 
 std::vector<std::unique_ptr<DeviceInformation>> findDevices()

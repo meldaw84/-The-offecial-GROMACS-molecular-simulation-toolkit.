@@ -109,8 +109,8 @@ TEST(UpdateGroupsCog, ComputesCogs)
 
     // Run the test
     auto result = gmx::makeUpdateGroupingsPerMoleculeType(mtop);
-    ASSERT_EQ(std::holds_alternative<std::string>(result), false);
-    auto updateGroupingsPerMoleculeType = std::get<std::vector<RangePartitioning>>(result);
+    ASSERT_TRUE(result.has_value());
+    auto updateGroupingsPerMoleculeType = result.value();
     real temperature                    = 300;
 
     UpdateGroupsCog updateGroupsCog(mtop, updateGroupingsPerMoleculeType, temperature, numAtoms);

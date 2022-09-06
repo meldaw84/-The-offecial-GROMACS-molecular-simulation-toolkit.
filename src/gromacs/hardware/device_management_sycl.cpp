@@ -51,6 +51,8 @@
 #include <tuple>
 #include <vector>
 
+#include "external/expected/include/tl/expected.hpp"
+
 #include "gromacs/gpu_utils/gmxsycl.h"
 #include "gromacs/hardware/device_management.h"
 #include "gromacs/hardware/device_management_sycl_intel_device_ids.h"
@@ -198,26 +200,25 @@ void warnWhenDeviceNotTargeted(const gmx::MDLogger& /* mdlog */, const DeviceInf
 {
 }
 
-bool isDeviceDetectionFunctional(std::string* errorMessage)
+tl::expected<std::true_type, std::string> isDeviceDetectionFunctional()
 {
     try
     {
         const std::vector<sycl::platform> platforms = sycl::platform::get_platforms();
         // SYCL should always have the "host" platform, but just in case:
-        if (platforms.empty() && errorMessage != nullptr)
+        if (platforms.empty())
         {
-            errorMessage->assign("No SYCL platforms found.");
+            return tl::make_unexpected("No SYCL platforms found.");
         }
-        return !platforms.empty();
+        else
+        {
+            return std::true_type{};
+        }
     }
     catch (const std::exception& e)
     {
-        if (errorMessage != nullptr)
-        {
-            errorMessage->assign(
-                    gmx::formatString("Unable to get the list of SYCL platforms: %s", e.what()));
-        }
-        return false;
+        return tl::make_unexpected(
+                gmx::formatString("Unable to get the list of SYCL platforms: %s", e.what()));
     }
 }
 
@@ -322,11 +323,10 @@ class DummyKernel;
  *
  *
  * \param[in]  syclDevice      The device info pointer.
- * \param[out] errorMessage    An error message related to a SYCL error.
  * \throws     std::bad_alloc  When out of memory.
  * \returns                    Whether the device passed sanity checks
  */
-static bool isDeviceFunctional(const sycl::device& syclDevice, std::string* errorMessage)
+static tl::expected<std::true_type, std::string> isDeviceFunctional(const sycl::device& syclDevice)
 {
     static const int numThreads = 8;
     try
@@ -344,26 +344,18 @@ static bool isDeviceFunctional(const sycl::device& syclDevice, std::string* erro
         {
             if (h_Buffer[i] != i)
             {
-                if (errorMessage != nullptr)
-                {
-                    errorMessage->assign("Dummy kernel produced invalid values");
-                }
-                return false;
+                return tl::make_unexpected("Dummy kernel produced invalid values");
             }
         }
     }
     catch (const std::exception& e)
     {
-        if (errorMessage != nullptr)
-        {
-            errorMessage->assign(gmx::formatString("Unable to run dummy kernel on device %s: %s",
-                                                   syclDevice.get_info<sycl::info::device::name>().c_str(),
-                                                   e.what()));
-        }
-        return false;
+        return tl::make_unexpected(gmx::formatString("Unable to run dummy kernel on device %s: %s",
+                                                     syclDevice.get_info<sycl::info::device::name>().c_str(),
+                                                     e.what()));
     }
 
-    return true;
+    return std::true_type{};
 }
 
 /*!
@@ -387,10 +379,9 @@ static DeviceStatus checkDevice(size_t deviceId, const DeviceInformation& device
         return supportStatus;
     }
 
-    std::string errorMessage;
-    if (!isDeviceFunctional(deviceInfo.syclDevice, &errorMessage))
+    if (auto deviceCheckResult = isDeviceFunctional(deviceInfo.syclDevice); !deviceCheckResult)
     {
-        gmx_warning("While sanity checking device #%zu, %s", deviceId, errorMessage.c_str());
+        gmx_warning("While sanity checking device #%zu, %s", deviceId, deviceCheckResult.error().c_str());
         return DeviceStatus::NonFunctional;
     }
 

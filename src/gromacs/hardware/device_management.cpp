@@ -65,7 +65,7 @@ std::string getDeviceInformationString(const DeviceInformation& /* deviceInfo */
     gmx_fatal(FARGS, "Device information requested in CPU build.");
 }
 
-bool isDeviceDetectionFunctional(std::string* /* errorMessage */)
+tl::expected<std::true_type, std::string> isDeviceDetectionFunctional()
 {
-    return false;
+    return tl::unexpected<std::string>("CPU build");
 }

@@ -97,15 +97,15 @@ TEST(DevicesAvailable, ShouldBeAbleToRunOnDevice)
         std::string platformString(getGpuImplementationString());
 
         std::string errorMessage = "Can't perform device detection in " + platformString + ":\n";
-        std::string detectionErrorMessage;
 
         // Test if the detection is working
         ASSERT_TRUE(isDeviceDetectionEnabled())
                 << errorMessage << "GPU device detection is disabled by "
                 << "GMX_DISABLE_GPU_DETECTION environment variable.";
-        ASSERT_TRUE(isDeviceDetectionFunctional(&detectionErrorMessage))
-                << errorMessage
-                << "GPU device checks failed with the following message: " << detectionErrorMessage;
+        auto deviceDetectionResult = isDeviceDetectionFunctional();
+        ASSERT_TRUE(deviceDetectionResult.has_value())
+                << errorMessage << "GPU device checks failed with the following message: "
+                << deviceDetectionResult.error();
 
         // This is to test that the GPU detection test environment is working
         const std::vector<std::unique_ptr<TestDevice>>& testDeviceList =

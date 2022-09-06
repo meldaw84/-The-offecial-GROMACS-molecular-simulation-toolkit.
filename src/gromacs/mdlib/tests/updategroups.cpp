@@ -179,9 +179,9 @@ TEST_F(UpdateGroupsTest, WithEthaneUA)
 
     auto result = gmx::makeUpdateGroupingsPerMoleculeType(mtop_);
 
-    ASSERT_EQ(std::holds_alternative<std::string>(result), false);
+    ASSERT_TRUE(result.has_value());
 
-    auto updateGroupingsPerMoleculeType = std::get<std::vector<RangePartitioning>>(result);
+    auto updateGroupingsPerMoleculeType = result.value();
 
     ASSERT_EQ(updateGroupingsPerMoleculeType.size(), 1);
     EXPECT_EQ(updateGroupingsPerMoleculeType[0].numBlocks(), 1);
@@ -205,9 +205,9 @@ TEST_F(UpdateGroupsTest, WithMethane)
 
     auto result = gmx::makeUpdateGroupingsPerMoleculeType(mtop_);
 
-    ASSERT_EQ(std::holds_alternative<std::string>(result), false);
+    ASSERT_TRUE(result.has_value());
 
-    auto updateGroupingsPerMoleculeType = std::get<std::vector<RangePartitioning>>(result);
+    auto updateGroupingsPerMoleculeType = result.value();
 
     ASSERT_EQ(updateGroupingsPerMoleculeType.size(), 1);
     EXPECT_EQ(updateGroupingsPerMoleculeType[0].numBlocks(), 1);
@@ -233,9 +233,9 @@ TEST_F(UpdateGroupsTest, WithEthane)
 
     auto result = gmx::makeUpdateGroupingsPerMoleculeType(mtop_);
 
-    ASSERT_EQ(std::holds_alternative<std::string>(result), false);
+    ASSERT_TRUE(result.has_value());
 
-    auto updateGroupingsPerMoleculeType = std::get<std::vector<RangePartitioning>>(result);
+    auto updateGroupingsPerMoleculeType = result.value();
 
     ASSERT_EQ(updateGroupingsPerMoleculeType.size(), 1);
     EXPECT_EQ(updateGroupingsPerMoleculeType[0].numBlocks(), 2);
@@ -261,9 +261,9 @@ TEST_F(UpdateGroupsTest, CheckRadiusCalculationAtDifferentTemperaturesWithEthane
 
     auto result = gmx::makeUpdateGroupingsPerMoleculeType(mtop_);
 
-    ASSERT_EQ(std::holds_alternative<std::string>(result), false);
+    ASSERT_TRUE(result.has_value());
 
-    auto updateGroupingsPerMoleculeType = std::get<std::vector<RangePartitioning>>(result);
+    auto updateGroupingsPerMoleculeType = result.value();
 
     ASSERT_EQ(updateGroupingsPerMoleculeType.size(), 1);
     EXPECT_EQ(updateGroupingsPerMoleculeType[0].numBlocks(), 2);
@@ -292,10 +292,9 @@ TEST_F(UpdateGroupsTest, WithButaneUALogsThatUnsuitableForUpdateGroups)
 
     auto result = gmx::makeUpdateGroupingsPerMoleculeType(mtop_);
 
-    ASSERT_EQ(std::holds_alternative<std::string>(result), true);
+    ASSERT_FALSE(result.has_value());
 
-    EXPECT_EQ(std::get<std::string>(result),
-              "there are three or more consecutively coupled constraints");
+    EXPECT_EQ(result.error(), "there are three or more consecutively coupled constraints");
 
     std::vector<RangePartitioning> updateGroupingsPerMoleculeType;
 
@@ -314,9 +313,9 @@ TEST_F(UpdateGroupsTest, WithWaterThreeSite)
 
     auto result = gmx::makeUpdateGroupingsPerMoleculeType(mtop_);
 
-    ASSERT_EQ(std::holds_alternative<std::string>(result), false);
+    ASSERT_TRUE(result.has_value());
 
-    auto updateGroupingsPerMoleculeType = std::get<std::vector<RangePartitioning>>(result);
+    auto updateGroupingsPerMoleculeType = result.value();
 
     ASSERT_EQ(updateGroupingsPerMoleculeType.size(), 1);
     EXPECT_EQ(updateGroupingsPerMoleculeType[0].numBlocks(), 1);
@@ -343,9 +342,9 @@ TEST_F(UpdateGroupsTest, WithWaterFourSite)
 
     auto result = gmx::makeUpdateGroupingsPerMoleculeType(mtop_);
 
-    ASSERT_EQ(std::holds_alternative<std::string>(result), false);
+    ASSERT_TRUE(result.has_value());
 
-    auto updateGroupingsPerMoleculeType = std::get<std::vector<RangePartitioning>>(result);
+    auto updateGroupingsPerMoleculeType = result.value();
 
     ASSERT_EQ(updateGroupingsPerMoleculeType.size(), 1);
     EXPECT_EQ(updateGroupingsPerMoleculeType[0].numBlocks(), 1);
@@ -372,9 +371,9 @@ TEST_F(UpdateGroupsTest, WithFourAtomsWithSettle)
 
     auto result = gmx::makeUpdateGroupingsPerMoleculeType(mtop_);
 
-    ASSERT_EQ(std::holds_alternative<std::string>(result), false);
+    ASSERT_TRUE(result.has_value());
 
-    auto updateGroupingsPerMoleculeType = std::get<std::vector<RangePartitioning>>(result);
+    auto updateGroupingsPerMoleculeType = result.value();
 
     ASSERT_EQ(updateGroupingsPerMoleculeType.size(), 1);
     EXPECT_EQ(updateGroupingsPerMoleculeType[0].numBlocks(), 2);
@@ -401,9 +400,9 @@ TEST_F(UpdateGroupsTest, WithWaterFlexAngle)
 
     auto result = gmx::makeUpdateGroupingsPerMoleculeType(mtop_);
 
-    ASSERT_EQ(std::holds_alternative<std::string>(result), false);
+    ASSERT_TRUE(result.has_value());
 
-    auto updateGroupingsPerMoleculeType = std::get<std::vector<RangePartitioning>>(result);
+    auto updateGroupingsPerMoleculeType = result.value();
 
     ASSERT_EQ(updateGroupingsPerMoleculeType.size(), 1);
     EXPECT_EQ(updateGroupingsPerMoleculeType[0].numBlocks(), 1);
@@ -429,9 +428,9 @@ TEST_F(UpdateGroupsTest, CheckRadiusCalculationAtDifferentTemperaturesWithWaterF
 
     auto result = gmx::makeUpdateGroupingsPerMoleculeType(mtop_);
 
-    ASSERT_EQ(std::holds_alternative<std::string>(result), false);
+    ASSERT_TRUE(result.has_value());
 
-    auto updateGroupingsPerMoleculeType = std::get<std::vector<RangePartitioning>>(result);
+    auto updateGroupingsPerMoleculeType = result.value();
 
     ASSERT_EQ(updateGroupingsPerMoleculeType.size(), 1);
     EXPECT_EQ(updateGroupingsPerMoleculeType[0].numBlocks(), 1);
@@ -463,9 +462,9 @@ TEST_F(UpdateGroupsTest, WithTwoMoltypes)
 
     auto result = gmx::makeUpdateGroupingsPerMoleculeType(mtop_);
 
-    ASSERT_EQ(std::holds_alternative<std::string>(result), false);
+    ASSERT_TRUE(result.has_value());
 
-    auto updateGroupingsPerMoleculeType = std::get<std::vector<RangePartitioning>>(result);
+    auto updateGroupingsPerMoleculeType = result.value();
 
     ASSERT_EQ(updateGroupingsPerMoleculeType.size(), 2);
     EXPECT_EQ(updateGroupingsPerMoleculeType[0].numBlocks(), 1);
@@ -490,9 +489,9 @@ TEST_F(UpdateGroupsTest, LogsWhenSizesAreInvalid)
 
     auto result = gmx::makeUpdateGroupingsPerMoleculeType(mtop_);
 
-    ASSERT_EQ(std::holds_alternative<std::string>(result), false);
+    ASSERT_TRUE(result.has_value());
 
-    auto updateGroupingsPerMoleculeType = std::get<std::vector<RangePartitioning>>(result);
+    auto updateGroupingsPerMoleculeType = result.value();
 
     logHelper_.expectEntryMatchingRegex(MDLogger::LogLevel::Info,
                                         "The combination of rlist and box size prohibits");
@@ -511,9 +510,9 @@ TEST_F(UpdateGroupsTest, LogsWhenUpdateGroupsAreNotUseful)
 
     auto result = gmx::makeUpdateGroupingsPerMoleculeType(mtop_);
 
-    ASSERT_EQ(std::holds_alternative<std::string>(result), false);
+    ASSERT_TRUE(result.has_value());
 
-    auto updateGroupingsPerMoleculeType = std::get<std::vector<RangePartitioning>>(result);
+    auto updateGroupingsPerMoleculeType = result.value();
 
     ASSERT_EQ(updateGroupingsPerMoleculeType.size(), 1);
     EXPECT_EQ(updateGroupingsPerMoleculeType[0].numBlocks(), 2);

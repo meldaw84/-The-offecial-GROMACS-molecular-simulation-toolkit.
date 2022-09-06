@@ -45,6 +45,8 @@
 #include <variant>
 #include <vector>
 
+#include "external/expected/include/tl/expected.hpp"
+
 #include "gromacs/math/vectypes.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/real.h"
@@ -76,7 +78,7 @@ class RangePartitioning;
  *
  * \param[in] mtop  The system topology
  */
-std::variant<std::vector<RangePartitioning>, std::string> makeUpdateGroupingsPerMoleculeType(const gmx_mtop_t& mtop);
+tl::expected<std::vector<RangePartitioning>, std::string> makeUpdateGroupingsPerMoleculeType(const gmx_mtop_t& mtop);
 
 /*! \brief Returns the maximum update group radius
  *

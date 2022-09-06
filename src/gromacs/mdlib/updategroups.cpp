@@ -259,7 +259,7 @@ static std::vector<bool> buildIsParticleVsite(const gmx_moltype_t& moltype)
 }
 
 /*! \brief Returns the size of the update group starting at \p firstAtom or an incompatibility reason */
-static std::variant<int, IncompatibilityReasons> detectGroup(int                     firstAtom,
+static tl::expected<int, IncompatibilityReasons> detectGroup(int                     firstAtom,
                                                              const gmx_moltype_t&    moltype,
                                                              const ListOfLists<int>& at2con,
                                                              const InteractionList& ilistConstraints)
@@ -296,7 +296,7 @@ static std::variant<int, IncompatibilityReasons> detectGroup(int                
                 /* A constructing atom is outside the group,
                  * we can not use update groups.
                  */
-                return IncompatibilityReasons::VsiteConstructingAtomsSplit;
+                return tl::make_unexpected(IncompatibilityReasons::VsiteConstructingAtomsSplit);
             }
             lastAtom = std::max(lastAtom, extremes.maxAtom);
         }
@@ -306,7 +306,7 @@ static std::variant<int, IncompatibilityReasons> detectGroup(int                
             if (numConstraints == 0)
             {
                 /* We can not have unconstrained atoms in an update group */
-                return IncompatibilityReasons::ConstrainedAtomOrder;
+                return tl::make_unexpected(IncompatibilityReasons::ConstrainedAtomOrder);
             }
             /* This atom has at least one constraint.
              * Check whether all constraints are within the group
@@ -319,7 +319,7 @@ static std::variant<int, IncompatibilityReasons> detectGroup(int                
             if (extremes.minAtom < firstAtom)
             {
                 /* Constraint to atom outside the "group" */
-                return IncompatibilityReasons::ConstrainedAtomOrder;
+                return tl::make_unexpected(IncompatibilityReasons::ConstrainedAtomOrder);
             }
             lastAtom = std::max(lastAtom, extremes.maxAtom);
         }
@@ -336,7 +336,7 @@ static std::variant<int, IncompatibilityReasons> detectGroup(int                
         if (extremes.minAtom < firstAtom)
         { // NOLINT bugprone-branch-clone
             /* Constructing atom precedes the group */
-            return IncompatibilityReasons::VsiteConstructingAtomsSplit;
+            return tl::make_unexpected(IncompatibilityReasons::VsiteConstructingAtomsSplit);
         }
         else if (extremes.maxAtom <= lastAtom)
         {
@@ -346,7 +346,7 @@ static std::variant<int, IncompatibilityReasons> detectGroup(int                
         else if (extremes.minAtom <= lastAtom)
         {
             /* Some, but not all constructing atoms are in the group */
-            return IncompatibilityReasons::VsiteConstructingAtomsSplit;
+            return tl::make_unexpected(IncompatibilityReasons::VsiteConstructingAtomsSplit);
         }
     }
 
@@ -356,14 +356,14 @@ static std::variant<int, IncompatibilityReasons> detectGroup(int                
     /* Check that at least one atom is constrained to all others */
     if (maxConstraintsPerAtom != numAtomsWithConstraints - 1)
     {
-        return IncompatibilityReasons::NoCentralConstraintAtom;
+        return tl::make_unexpected(IncompatibilityReasons::NoCentralConstraintAtom);
     }
 
     return lastAtom - firstAtom + 1;
 }
 
 /*! \brief Returns a list of update groups for \p moltype or an incompatibility reason */
-static std::variant<RangePartitioning, IncompatibilityReasons>
+static tl::expected<RangePartitioning, IncompatibilityReasons>
 makeUpdateGroupingsPerMoleculeType(const gmx_moltype_t& moltype, gmx::ArrayRef<const t_iparams> iparams)
 {
     RangePartitioning groups;
@@ -375,11 +375,11 @@ makeUpdateGroupingsPerMoleculeType(const gmx_moltype_t& moltype, gmx::ArrayRef<c
      */
     if (hasFlexibleConstraints(moltype, iparams))
     {
-        return IncompatibilityReasons::FlexibleConstraint;
+        return tl::make_unexpected(IncompatibilityReasons::FlexibleConstraint);
     }
     if (hasIncompatibleVsites(moltype, iparams))
     {
-        return IncompatibilityReasons::IncompatibleVsite;
+        return tl::make_unexpected(IncompatibilityReasons::IncompatibleVsite);
     }
 
     /* Combine all constraint ilists into a single one */
@@ -393,14 +393,12 @@ makeUpdateGroupingsPerMoleculeType(const gmx_moltype_t& moltype, gmx::ArrayRef<c
     while (firstAtom < moltype.atoms.nr)
     {
         const auto detectionResult = detectGroup(firstAtom, moltype, at2con, ilistsCombined[F_CONSTR]);
-
-        if (std::holds_alternative<IncompatibilityReasons>(detectionResult))
+        if (!detectionResult)
         {
-            // Can not use update groups, return the reason for incompatiblity
-            return std::get<IncompatibilityReasons>(detectionResult);
+            return tl::make_unexpected(detectionResult.error());
         }
 
-        const int numAtomsInGroup = std::get<int>(detectionResult);
+        const int numAtomsInGroup = detectionResult.value();
 
         groups.appendBlock(numAtomsInGroup);
 
@@ -410,21 +408,18 @@ makeUpdateGroupingsPerMoleculeType(const gmx_moltype_t& moltype, gmx::ArrayRef<c
     return groups;
 }
 
-std::variant<std::vector<RangePartitioning>, std::string> makeUpdateGroupingsPerMoleculeType(const gmx_mtop_t& mtop)
+tl::expected<std::vector<RangePartitioning>, std::string> makeUpdateGroupingsPerMoleculeType(const gmx_mtop_t& mtop)
 {
     std::vector<RangePartitioning> updateGroupingsPerMoleculeType;
 
     for (const gmx_moltype_t& moltype : mtop.moltype)
     {
-        const auto detectionResult = makeUpdateGroupingsPerMoleculeType(moltype, mtop.ffparams.iparams);
-
-        if (std::holds_alternative<IncompatibilityReasons>(detectionResult))
+        const auto updateGroups = makeUpdateGroupingsPerMoleculeType(moltype, mtop.ffparams.iparams);
+        if (!updateGroups.has_value())
         {
-            // Can not use update groups, return a string with the reason for incompatiblity
-            return reasonStrings[std::get<IncompatibilityReasons>(detectionResult)];
+            return tl::make_unexpected(reasonStrings[updateGroups.error()]);
         }
-
-        updateGroupingsPerMoleculeType.push_back(std::get<RangePartitioning>(detectionResult));
+        updateGroupingsPerMoleculeType.push_back(updateGroups.value());
     }
 
     return updateGroupingsPerMoleculeType;

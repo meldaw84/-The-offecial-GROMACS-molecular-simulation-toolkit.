@@ -1341,18 +1341,17 @@ int Mdrunner::mdrunner()
     // inter-domain communication distances.
     auto         updateGroupingsPerMoleculeTypeResult = makeUpdateGroupingsPerMoleculeType(mtop);
     UpdateGroups updateGroups;
-    if (std::holds_alternative<std::string>(updateGroupingsPerMoleculeTypeResult))
+    if (!updateGroupingsPerMoleculeTypeResult)
     {
         GMX_LOG(mdlog.warning)
                 .asParagraph()
                 .appendTextFormatted("Update groups can not be used for this system because %s",
-                                     std::get<std::string>(updateGroupingsPerMoleculeTypeResult).c_str());
+                                     updateGroupingsPerMoleculeTypeResult.error().c_str());
     }
     else
     {
-        auto updateGroupingsPerMoleculeType =
-                std::get<std::vector<RangePartitioning>>(updateGroupingsPerMoleculeTypeResult);
-        const real maxUpdateGroupRadius = computeMaxUpdateGroupRadius(
+        auto       updateGroupingsPerMoleculeType = updateGroupingsPerMoleculeTypeResult.value();
+        const real maxUpdateGroupRadius           = computeMaxUpdateGroupRadius(
                 mtop, updateGroupingsPerMoleculeType, maxReferenceTemperature(*inputrec));
         const real cutoffMargin = std::sqrt(max_cutoff2(inputrec->pbcType, box)) - inputrec->rlist;
         updateGroups            = makeUpdateGroups(mdlog,

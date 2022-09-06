@@ -147,12 +147,14 @@ static DeviceDetectionResult detectAllDeviceInformation(const PhysicalNodeCommun
     bool           gpusCanBeDetected      = false;
     if (isMainRankOfPhysicalNode || allRanksMustDetectGpus)
     {
-        std::string errorMessage;
-        gpusCanBeDetected = isDeviceDetectionFunctional(&errorMessage);
-        if (!gpusCanBeDetected)
+        if (auto deviceDetectionWorks = isDeviceDetectionFunctional(); deviceDetectionWorks)
+        {
+            gpusCanBeDetected = true;
+        }
+        else
         {
             deviceDetectionResult.deviceDetectionWarnings_.emplace_back(
-                    "Detection of GPUs failed. The API reported:\n" + errorMessage);
+                    "Detection of GPUs failed. The API reported:\n" + deviceDetectionWorks.error());
         }
     }
 

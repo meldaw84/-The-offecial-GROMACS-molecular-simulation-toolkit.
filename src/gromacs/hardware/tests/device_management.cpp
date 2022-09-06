@@ -57,7 +57,7 @@ namespace
 
 TEST(DevicesManagerTest, Serialization)
 {
-    if (canPerformDeviceDetection(nullptr) && c_canSerializeDeviceInformation)
+    if (canPerformDeviceDetection() && c_canSerializeDeviceInformation)
     {
         std::vector<std::unique_ptr<DeviceInformation>> deviceInfoListIn = findDevices();
         gmx::InMemorySerializer                         writer;

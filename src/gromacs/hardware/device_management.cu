@@ -209,7 +209,7 @@ static DeviceStatus checkDeviceStatus(const DeviceInformation& deviceInfo)
     return DeviceStatus::Compatible;
 }
 
-bool isDeviceDetectionFunctional(std::string* errorMessage)
+tl::expected<std::true_type, std::string> isDeviceDetectionFunctional()
 {
     cudaError_t stat;
     int         driverVersion = -1;
@@ -224,43 +224,34 @@ bool isDeviceDetectionFunctional(std::string* errorMessage)
     if (!foundDriver)
     {
         // Can't detect GPUs if there is no driver
-        if (errorMessage != nullptr)
-        {
-            errorMessage->assign("No valid CUDA driver found");
-        }
-        return false;
+        return tl::make_unexpected("No valid CUDA driver found");
     }
 
     int numDevices;
     stat = cudaGetDeviceCount(&numDevices);
     if (stat != cudaSuccess)
     {
-        if (errorMessage != nullptr)
-        {
-            /* cudaGetDeviceCount failed which means that there is
-             * something wrong with the machine: driver-runtime
-             * mismatch, all GPUs being busy in exclusive mode,
-             * invalid CUDA_VISIBLE_DEVICES, or some other condition
-             * which should result in GROMACS issuing at least a
-             * warning. */
-            errorMessage->assign(cudaGetErrorString(stat));
-        }
-
-        // Consume the error now that we have prepared to handle
-        // it. This stops it reappearing next time we check for
-        // errors. Note that if CUDA_VISIBLE_DEVICES does not contain
-        // valid devices, then cudaGetLastError returns the
-        // (undocumented) cudaErrorNoDevice, but this should not be a
-        // problem as there should be no future CUDA API calls.
-        // NVIDIA bug report #2038718 has been filed.
+        /* cudaGetDeviceCount failed which means that there is
+         * something wrong with the machine: driver-runtime
+         * mismatch, all GPUs being busy in exclusive mode,
+         * invalid CUDA_VISIBLE_DEVICES, or some other condition
+         * which should result in GROMACS issuing at least a
+         * warning.
+         * Consume the error now that we have prepared to handle
+         * it. This stops it reappearing next time we check for
+         * errors. Note that if CUDA_VISIBLE_DEVICES does not contain
+         * valid devices, then cudaGetLastError returns the
+         * (undocumented) cudaErrorNoDevice, but this should not be a
+         * problem as there should be no future CUDA API calls.
+         * NVIDIA bug report #2038718 has been filed. */
         cudaGetLastError();
         // Can't detect GPUs
-        return false;
+        return tl::make_unexpected(cudaGetErrorString(stat));
     }
 
     // We don't actually use numDevices here, that's not the job of
     // this function.
-    return true;
+    return std::true_type{};
 }
 
 std::vector<std::unique_ptr<DeviceInformation>> findDevices()
