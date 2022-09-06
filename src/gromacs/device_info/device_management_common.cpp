@@ -48,8 +48,8 @@
 
 #include <algorithm>
 
-#include "gromacs/hardware/device_information.h"
-#include "gromacs/hardware/device_management.h"
+#include "gromacs/device_info/device_information.h"
+#include "gromacs/device_info/device_management.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"

@@ -35,7 +35,6 @@ add_library(hardware OBJECT)
 target_sources(hardware PRIVATE
     cpuinfo.cpp
     detecthardware.cpp
-    device_management_common.cpp
     hardwaretopology.cpp
     printhardware.cpp
     identifyavx512fmaunits.cpp
@@ -44,35 +43,8 @@ if (BUILD_SHARED_LIBS)
     set_target_properties(hardware PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
-if(GMX_GPU_OPENCL)
-    target_sources(hardware PRIVATE
-            device_management_ocl.cpp
-        )
-elseif(GMX_GPU_CUDA)
-    target_sources(hardware PRIVATE
-            device_management.cu
-        )
-    _gmx_add_files_to_property(CUDA_SOURCES
-        # Must add these files so they can include device_information.h
-        device_management_common.cpp
-        detecthardware.cpp
-	)
-    target_link_libraries(hardware INTERFACE CUDA::cudart)
-elseif(GMX_GPU_SYCL)
-    target_sources(hardware PRIVATE
-            device_management_sycl.cpp
-    )
-    _gmx_add_files_to_property(SYCL_SOURCES
-        device_management_sycl.cpp
-        # Must add these files so they can include device_information.h
-        device_management.cpp
-        device_management_common.cpp
-        detecthardware.cpp
-	)
-else()
-    target_sources(hardware PRIVATE
-            device_management.cpp
-    )
+if(GMX_GPU_CUDA)
+  target_link_libraries(hardware PRIVATE CUDA::cudart)
 endif()
 
 if(SIMD_AVX_512_CXX_SUPPORTED AND NOT ("${GMX_SIMD_ACTIVE}" STREQUAL "AVX_512_KNL"))
@@ -85,7 +57,8 @@ endif()
 # Source files have the following private module dependencies.
 target_link_libraries(hardware PRIVATE
                       common
-                      gpu_utils
+		      device_info
+                      #gpu_utils
                       simd
                       utility
                       )
@@ -94,6 +67,8 @@ target_link_libraries(hardware PRIVATE
 target_include_directories(hardware PUBLIC
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
+target_include_directories(hardware INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/gromacs/device_info>)
+			 
 if (BUILD_TESTING)
     add_subdirectory(tests)
 endif()

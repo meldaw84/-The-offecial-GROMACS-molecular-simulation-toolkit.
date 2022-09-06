@@ -48,6 +48,7 @@ endif()
 target_link_libraries(pulling PRIVATE
                       common
                       legacy_modules
+		      gpu_utils
         math
         utility
         muparser
@@ -55,7 +56,9 @@ target_link_libraries(pulling PRIVATE
         topology
         utility
 )
-
+#execute_process(COMMAND ls WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/src/gromacs/gpu_utils/include/gromacs/gpu_utils OUTPUT_VARIABLE outvar)
+#message("gpu|${PROJECT_SOURCE_DIR}/src/gromacs/gpu_utils/include/gromacs/gpu_utils|${outvar}|")
+#target_include_directories(pulling INTERFACE ${PROJECT_SOURCE_DIR}/src/gromacs/gpu_utils/include)
 # Public interface for modules, including dependencies and interfaces
 target_include_directories(pulling PUBLIC
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)

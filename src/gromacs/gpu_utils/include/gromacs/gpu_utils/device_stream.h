@@ -53,9 +53,9 @@
 #    include <cuda_runtime.h>
 
 #elif GMX_GPU_OPENCL
-#    include "gromacs/gpu_utils/gmxopencl.h"
+#    include "gromacs/device_info/gmxopencl.h"
 #elif GMX_GPU_SYCL
-#    include "gromacs/gpu_utils/gmxsycl.h"
+#    include "gromacs/device_info/gmxsycl.h"
 #endif
 
 #include "gromacs/utility/classhelpers.h"

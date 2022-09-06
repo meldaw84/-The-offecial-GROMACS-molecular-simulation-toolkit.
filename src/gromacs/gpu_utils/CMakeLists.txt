@@ -35,9 +35,9 @@
 # the incidence of textual clashes when adding/moving files that
 # otherwise make the end of the list a hotspot.
 
-add_library(gpu_utils INTERFACE)
+add_library(gpu_utils OBJECT)
 
-gmx_add_libgromacs_sources(
+target_sources(gpu_utils PRIVATE
         clfftinitializer.cpp
         device_stream_manager.cpp
         hostallocator.cpp
@@ -62,7 +62,7 @@ elseif(GMX_GPU_CUDA)
     _gmx_add_files_to_property(CUDA_SOURCES
         device_stream_manager.cpp
         )
-    target_link_libraries(gpu_utils INTERFACE CUDA::cudart)
+    target_link_libraries(gpu_utils PRIVATE CUDA::cudart)
 elseif(GMX_GPU_SYCL)
     gmx_add_libgromacs_sources(
         devicebuffer_sycl.cpp
@@ -95,19 +95,28 @@ target_link_libraries(gpu_utils PRIVATE
                       )
 
 # Public interface for modules, including dependencies and interfaces
-#target_include_directories(gpu_utils PUBLIC
-target_include_directories(gpu_utils INTERFACE
+target_include_directories(gpu_utils PUBLIC
+#target_include_directories(gpu_utils INTERFACE
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 #target_link_libraries(gpu_utils PUBLIC
 target_link_libraries(gpu_utils INTERFACE
                       legacy_api
-                      hardware
-                      math
+                      #hardware
+                      #math
                       )
 
 # TODO: when gpu_utils is an OBJECT target
 #target_link_libraries(gpu_utils PUBLIC legacy_api)
-#target_link_libraries(gpu_utils PRIVATE common)
+target_link_libraries(gpu_utils PRIVATE
+  common
+  device_info
+  #hardware
+  math
+  utility
+  )
+
+target_include_directories(gpu_utils INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/gromacs/device_info/include/gromacs/device_info>)
+#target_include_directories(gpu_utils INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/gromacs/mdtypes>)
 
 # Source files have the following private module dependencies.
 #target_link_libraries(gpu_utils PRIVATE tng_io)
