@@ -48,33 +48,22 @@ endif()
 target_link_libraries(pulling PRIVATE
                       common
                       legacy_modules
-		      gpu_utils
-        math
-	mdtypes
-        muparser
-        timing
-        topology
-        utility
+		              gpu_utils
+                      math
+	                  mdtypes
+                      muparser
+                      timing
+                      topology
+                      utility
 )
-#execute_process(COMMAND ls WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/src/gromacs/gpu_utils/include/gromacs/gpu_utils OUTPUT_VARIABLE outvar)
-#message("gpu|${PROJECT_SOURCE_DIR}/src/gromacs/gpu_utils/include/gromacs/gpu_utils|${outvar}|")
-#target_include_directories(pulling INTERFACE ${PROJECT_SOURCE_DIR}/src/gromacs/gpu_utils/include)
+
 # Public interface for modules, including dependencies and interfaces
 target_include_directories(pulling PUBLIC
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-#target_link_libraries(pulling PUBLIC
+
 target_link_libraries(pulling INTERFACE
                       legacy_api
                       )
-
-# TODO: when pulling is an OBJECT target
-#target_link_libraries(pulling PUBLIC legacy_api)
-#target_link_libraries(pulling PRIVATE common)
-
-# Source files have the following private module dependencies.
-#target_link_libraries(pulling PRIVATE NOTHING)
-# TODO: Explicitly link specific modules.
-#target_link_libraries(pulling PRIVATE legacy_modules)
 
 if (BUILD_TESTING)
     add_subdirectory(tests)

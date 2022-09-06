@@ -76,33 +76,29 @@ endif()
 
 # Source files have the following private module dependencies.
 target_link_libraries(mdtypes PRIVATE
-                      #                      gmxlib
-		      legacy_modules
+                      common
+		              legacy_modules
                       gpu_utils
-                                            math
-					    utility
-					    pbcutil
-					    workload_flags
-                      #                      tng_io
+                      math
+                      utility
+                      pbcutil
+                      workload_flags
                       )
 
 # Public interface for modules, including dependencies and interfaces
 target_include_directories(mdtypes PUBLIC
-#target_include_directories(mdtypes INTERFACE
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 #target_link_libraries(mdtypes PUBLIC
 target_link_libraries(mdtypes INTERFACE
                       legacy_api
                       gpu_utils
                       math
-		      #workload_flags
                       )
 # Interface conveys transitive dependence on other interface(s)
 target_link_libraries(mdtypes INTERFACE utility)
 
 # TODO: when fileio is an OBJECT target
 #target_link_libraries(mdtypes PUBLIC legacy_api)
-target_link_libraries(mdtypes PRIVATE common)
 
 # Source files have the following private module dependencies.
 #target_link_libraries(mdtypes PRIVATE tng_io)

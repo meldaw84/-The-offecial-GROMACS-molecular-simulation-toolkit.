@@ -43,7 +43,7 @@ if (BUILD_SHARED_LIBS)
     set_target_properties(device_info PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
-target_include_directories(device_info PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/include)
+target_include_directories(device_info PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
 if(GMX_GPU_OPENCL)
     target_sources(device_info PRIVATE

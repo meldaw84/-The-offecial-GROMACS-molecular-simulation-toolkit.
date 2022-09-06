@@ -57,8 +57,7 @@ endif()
 # Source files have the following private module dependencies.
 target_link_libraries(hardware PRIVATE
                       common
-		      device_info
-                      #gpu_utils
+		              device_info
                       simd
                       utility
                       )

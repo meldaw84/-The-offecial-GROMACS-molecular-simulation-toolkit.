@@ -126,7 +126,7 @@ target_link_libraries(testutils PUBLIC utility)
 target_link_libraries(testutils PRIVATE
         device_info
         hardware
-	gpu_utils
+	    gpu_utils
         topology
         )
 if(GMX_GPU_CUDA)

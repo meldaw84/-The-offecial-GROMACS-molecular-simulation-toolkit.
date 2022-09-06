@@ -248,7 +248,6 @@ target_link_libraries(${exename} PRIVATE
         gpu_utils
         hardware
         )
-#target_include_directories(${exename} PRIVATE ${PROJECT_SOURCE_DIR}/src/gromacs/hardware/include)
 gmx_register_gtest_test(MdrunMpi1RankPmeTests ${exename} MPI_RANKS 1 OPENMP_THREADS 2 INTEGRATION_TEST IGNORE_LEAKS)
 gmx_register_gtest_test(MdrunMpi2RankPmeTests ${exename} MPI_RANKS 2 OPENMP_THREADS 2 INTEGRATION_TEST IGNORE_LEAKS)
 

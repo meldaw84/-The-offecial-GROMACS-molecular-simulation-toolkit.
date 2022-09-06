@@ -90,34 +90,18 @@ if (BUILD_SHARED_LIBS)
     set_target_properties(gpu_utils PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
-# Source files have the following private module dependencies.
-target_link_libraries(gpu_utils PRIVATE
-#                      gmxlib
-#                      math
-#                      mdtypes
-#                      tng_io
-                      )
-
 # Public interface for modules, including dependencies and interfaces
 target_include_directories(gpu_utils PUBLIC
-#target_include_directories(gpu_utils INTERFACE
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 #target_link_libraries(gpu_utils PUBLIC
 target_link_libraries(gpu_utils INTERFACE
                       legacy_api
-                      #hardware
-		      #workload_flags
-                      #math
                       )
 
-# TODO: when gpu_utils is an OBJECT target
-#target_link_libraries(gpu_utils PUBLIC legacy_api)
 target_link_libraries(gpu_utils PRIVATE
   common
   device_info
-  #hardware
   math
-  #mdtypes
   utility
   workload_flags
   )
