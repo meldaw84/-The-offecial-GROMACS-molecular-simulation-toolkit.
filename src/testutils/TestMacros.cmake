@@ -158,7 +158,7 @@ function (gmx_add_gtest_executable EXENAME)
             # Work around FindCUDA that prevents using target_link_libraries()
             # with keywords otherwise...
             set(CUDA_LIBRARIES PRIVATE ${CUDA_LIBRARIES})
-            cuda_add_executable(${EXENAME} ${UNITTEST_TARGET_OPTIONS}
+            add_executable(${EXENAME} ${UNITTEST_TARGET_OPTIONS}
                 ${ARG_CPP_SOURCE_FILES}
                 ${ARG_CUDA_CU_SOURCE_FILES}
                 ${ARG_GPU_CPP_SOURCE_FILES})
