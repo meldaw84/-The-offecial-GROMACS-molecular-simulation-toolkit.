@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "iforceprovider.h"
+#include "gromacs/mdtypes/iforceprovider.h"
 
 #include <vector>
 

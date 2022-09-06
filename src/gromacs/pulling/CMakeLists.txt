@@ -50,7 +50,7 @@ target_link_libraries(pulling PRIVATE
                       legacy_modules
 		      gpu_utils
         math
-        utility
+	mdtypes
         muparser
         timing
         topology

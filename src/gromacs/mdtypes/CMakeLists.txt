@@ -32,9 +32,9 @@
 # the research papers on the package. Check out https://www.gromacs.org.
 
 # Set up the module library
-add_library(mdtypes INTERFACE)
+add_library(mdtypes OBJECT)
 
-file(GLOB MDTYPES_SOURCES
+target_sources(mdtypes PRIVATE
     awh_history.cpp
     checkpointdata.cpp
     df_history.cpp
@@ -50,6 +50,9 @@ file(GLOB MDTYPES_SOURCES
     observablesreducer.cpp
     state.cpp
     threaded_force_buffer.cpp)
+if (BUILD_SHARED_LIBS)
+    set_target_properties(mdtypes PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endif()
 
 if(GMX_GPU)
     gmx_add_libgromacs_sources(
@@ -74,27 +77,32 @@ endif()
 # Source files have the following private module dependencies.
 target_link_libraries(mdtypes PRIVATE
                       #                      gmxlib
-                      #                      math
-                      #                      mdtypes
+		      legacy_modules
+                      gpu_utils
+                                            math
+					    utility
+					    pbcutil
+					    workload_flags
                       #                      tng_io
                       )
 
 # Public interface for modules, including dependencies and interfaces
-#target_include_directories(mdtypes PUBLIC
-target_include_directories(mdtypes INTERFACE
+target_include_directories(mdtypes PUBLIC
+#target_include_directories(mdtypes INTERFACE
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 #target_link_libraries(mdtypes PUBLIC
 target_link_libraries(mdtypes INTERFACE
                       legacy_api
                       gpu_utils
                       math
+		      #workload_flags
                       )
 # Interface conveys transitive dependence on other interface(s)
 target_link_libraries(mdtypes INTERFACE utility)
 
 # TODO: when fileio is an OBJECT target
 #target_link_libraries(mdtypes PUBLIC legacy_api)
-#target_link_libraries(mdtypes PRIVATE common)
+target_link_libraries(mdtypes PRIVATE common)
 
 # Source files have the following private module dependencies.
 #target_link_libraries(mdtypes PRIVATE tng_io)
@@ -103,4 +111,3 @@ if (BUILD_TESTING)
     add_subdirectory(tests)
 endif()
 
-set(LIBGROMACS_SOURCES ${LIBGROMACS_SOURCES} ${MDTYPES_SOURCES} PARENT_SCOPE)

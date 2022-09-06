@@ -39,7 +39,7 @@
 #include "config.h"
 
 #if GMX_GPU_SYCL
-#    include "gromacs/gpu_utils/gmxsycl.h"
+#    include "gromacs/device_info/gmxsycl.h"
 #endif
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/stringutil.h"

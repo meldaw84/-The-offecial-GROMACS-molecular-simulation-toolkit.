@@ -53,7 +53,7 @@
 #    include "gromacs/timing/wallcycle.h"
 #    include "gromacs/utility/classhelpers.h"
 
-#    include "state_propagator_data_gpu_impl.h"
+#    include "gromacs/mdtypes/state_propagator_data_gpu_impl.h"
 
 
 namespace gmx

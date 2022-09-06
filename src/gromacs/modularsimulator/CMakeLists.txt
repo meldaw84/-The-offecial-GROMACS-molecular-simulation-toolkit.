@@ -77,6 +77,7 @@ target_link_libraries(modularsimulator PRIVATE
                       tng_io
                       topology
                       utility
+		      workload_flags
 )
 
 # Public interface for modules, including dependencies and interfaces

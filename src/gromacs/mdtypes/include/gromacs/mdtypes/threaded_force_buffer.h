@@ -63,7 +63,6 @@
 #include "gromacs/math/arrayrefwithpadding.h"
 #include "gromacs/math/vectypes.h"
 #include "gromacs/mdtypes/enerdata.h"
-#include "gromacs/mdtypes/simulation_workload.h"
 #include "gromacs/topology/ifunc.h"
 #include "gromacs/utility/alignedallocator.h"
 #include "gromacs/utility/arrayref.h"

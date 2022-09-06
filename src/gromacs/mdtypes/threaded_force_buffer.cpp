@@ -41,7 +41,7 @@
  */
 #include "gmxpre.h"
 
-#include "threaded_force_buffer.h"
+#include "gromacs/mdtypes/threaded_force_buffer.h"
 
 #include "gromacs/math/vec.h"
 #include "gromacs/mdtypes/forceoutput.h"
@@ -49,6 +49,7 @@
 #include "gromacs/utility/alignedallocator.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 
 namespace gmx
 {

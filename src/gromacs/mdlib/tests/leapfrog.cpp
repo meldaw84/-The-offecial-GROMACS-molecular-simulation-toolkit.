@@ -56,7 +56,7 @@
 
 #include <gtest/gtest.h>
 
-#include "gromacs/hardware/device_management.h"
+#include "gromacs/device_info/device_management.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/math/vectypes.h"
 #include "gromacs/mdtypes/mdatom.h"

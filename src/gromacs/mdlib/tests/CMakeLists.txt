@@ -60,8 +60,16 @@ gmx_add_unit_test(MdlibUnitTest mdlib-test HARDWARE_DETECTION
         settletestrunners_gpu.cpp
 	wholemoleculetransform.cpp
         )
+
+if(GMX_GPU_CUDA)
+  target_link_libraries(mdlib-test PRIVATE CUDA::cudart)
+endif()
+	
 target_link_libraries(mdlib-test PRIVATE
 		mdlib
+		device_info
+		gpu_utils
 		hardware
 		math
+		mdtypes
 )

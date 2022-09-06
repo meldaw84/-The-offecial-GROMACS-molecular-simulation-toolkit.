@@ -34,7 +34,7 @@
 /* This file is completely threadsafe - keep it that way! */
 #include "gmxpre.h"
 
-#include "df_history.h"
+#include "gromacs/mdtypes/df_history.h"
 
 #include "gromacs/mdtypes/state.h"
 #include "gromacs/utility/smalloc.h"

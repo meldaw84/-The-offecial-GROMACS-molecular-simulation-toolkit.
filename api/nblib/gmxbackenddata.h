@@ -47,7 +47,7 @@
 #include "gromacs/mdtypes/enerdata.h"
 #include "gromacs/mdtypes/forcerec.h"
 #include "gromacs/mdtypes/interaction_const.h"
-#include "gromacs/mdtypes/simulation_workload.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 #include "gromacs/nbnxm/nbnxm.h"
 #include "gromacs/timing/wallcycle.h"
 #include "gromacs/utility/listoflists.h"

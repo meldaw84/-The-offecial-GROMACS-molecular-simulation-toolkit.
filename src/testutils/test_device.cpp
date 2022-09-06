@@ -47,7 +47,7 @@
 #include "gromacs/gpu_utils/device_context.h"
 #include "gromacs/gpu_utils/device_stream.h"
 #include "gromacs/gpu_utils/gpu_utils.h"
-#include "gromacs/hardware/device_information.h"
+#include "gromacs/device_info/device_information.h"
 
 namespace gmx
 {

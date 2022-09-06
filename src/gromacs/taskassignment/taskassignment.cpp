@@ -59,11 +59,11 @@
 
 #include "gromacs/domdec/domdec.h"
 #include "gromacs/gmxlib/network.h"
-#include "gromacs/hardware/device_management.h"
+#include "gromacs/device_info/device_management.h"
 #include "gromacs/hardware/hw_info.h"
 #include "gromacs/mdrunutility/multisim.h"
 #include "gromacs/mdtypes/commrec.h"
-#include "gromacs/mdtypes/simulation_workload.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 #include "gromacs/taskassignment/usergpuids.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/exceptions.h"

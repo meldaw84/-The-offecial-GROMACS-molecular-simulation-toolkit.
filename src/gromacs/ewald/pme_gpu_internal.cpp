@@ -65,7 +65,7 @@
 #endif
 #include "gromacs/ewald/pme.h"
 #include "gromacs/ewald/pme_coordinate_receiver_gpu.h"
-#include "gromacs/hardware/device_information.h"
+#include "gromacs/device_info/device_information.h"
 #include "gromacs/math/boxmatrix.h"
 #include "gromacs/math/units.h"
 #include "gromacs/timing/gpu_timing.h"

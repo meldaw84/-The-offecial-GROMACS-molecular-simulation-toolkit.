@@ -44,7 +44,7 @@
 #include <vector>
 
 #include "gromacs/mdtypes/inputrec.h"
-#include "gromacs/mdtypes/simulation_workload.h"
+#include "gromacs/workload_flags/simulation_workload.h"
 
 enum class PmeRunMode;
 

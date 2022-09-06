@@ -43,7 +43,7 @@
  */
 #include "gmxpre.h"
 
-#include "observablesreducer.h"
+#include "gromacs/mdtypes/observablesreducer.h"
 
 #include <algorithm>
 #include <numeric>

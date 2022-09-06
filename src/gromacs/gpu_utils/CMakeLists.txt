@@ -86,6 +86,10 @@ else()
     )
 endif()
 
+if (BUILD_SHARED_LIBS)
+    set_target_properties(gpu_utils PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endif()
+
 # Source files have the following private module dependencies.
 target_link_libraries(gpu_utils PRIVATE
 #                      gmxlib
@@ -102,6 +106,7 @@ target_include_directories(gpu_utils PUBLIC
 target_link_libraries(gpu_utils INTERFACE
                       legacy_api
                       #hardware
+		      #workload_flags
                       #math
                       )
 
@@ -112,11 +117,12 @@ target_link_libraries(gpu_utils PRIVATE
   device_info
   #hardware
   math
+  #mdtypes
   utility
+  workload_flags
   )
 
 target_include_directories(gpu_utils INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/gromacs/device_info/include/gromacs/device_info>)
-#target_include_directories(gpu_utils INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/gromacs/mdtypes>)
 
 # Source files have the following private module dependencies.
 #target_link_libraries(gpu_utils PRIVATE tng_io)

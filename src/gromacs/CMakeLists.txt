@@ -85,6 +85,7 @@ add_subdirectory(domdec)
 add_subdirectory(ewald)
 add_subdirectory(fft)
 add_subdirectory(device_info)
+add_subdirectory(workload_flags)
 add_subdirectory(gpu_utils)
 add_subdirectory(hardware)
 add_subdirectory(linearalgebra)
@@ -339,6 +340,7 @@ target_link_libraries(libgromacs PRIVATE
                       $<BUILD_INTERFACE:compat>
                       $<BUILD_INTERFACE:coordinateio>
                       $<BUILD_INTERFACE:correlationfunctions>
+		      $<BUILD_INTERFACE:device_info>
                       $<BUILD_INTERFACE:domdec>
 #                      $<BUILD_INTERFACE:energyanalysis>
                       $<BUILD_INTERFACE:essentialdynamics>
@@ -380,6 +382,7 @@ target_link_libraries(libgromacs PRIVATE
                       $<BUILD_INTERFACE:trajectory>
                       $<BUILD_INTERFACE:trajectoryanalysis>
                       $<BUILD_INTERFACE:utility>
+		      $<BUILD_INTERFACE:workload_flags>
     )
 if (GMX_OPENMP)
     target_link_libraries(libgromacs PUBLIC OpenMP::OpenMP_CXX)

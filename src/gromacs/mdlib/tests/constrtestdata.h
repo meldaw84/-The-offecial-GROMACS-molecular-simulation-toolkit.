@@ -49,7 +49,7 @@
 #include <vector>
 
 #include "gromacs/gmxlib/nrnb.h"
-#include "gromacs/hardware/device_management.h"
+#include "gromacs/device_info/device_management.h"
 #include "gromacs/math/paddedvector.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/math/vectypes.h"

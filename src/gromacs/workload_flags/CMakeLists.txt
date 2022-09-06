@@ -1,7 +1,7 @@
 #
 # This file is part of the GROMACS molecular simulation package.
 #
-# Copyright 2017- The GROMACS Authors
+# Copyright 2022- The GROMACS Authors
 # and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
 # Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
 #
@@ -31,46 +31,11 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out https://www.gromacs.org.
 
-# Set up the module library
-add_library(taskassignment OBJECT)
-target_sources(taskassignment PRIVATE
-               decidegpuusage.cpp
-               decidesimulationworkload.cpp
-               findallgputasks.cpp
-               reportgpuusage.cpp
-               resourcedivision.cpp
-               taskassignment.cpp
-               usergpuids.cpp)
-if (BUILD_SHARED_LIBS)
-    set_target_properties(taskassignment PROPERTIES POSITION_INDEPENDENT_CODE ON)
-endif()
+# Note, source files should be listed in alphabetical order, to reduce
+# the incidence of textual clashes when adding/moving files that
+# otherwise make the end of the list a hotspot.
 
-# Note that this is a higher-level module that should not need
-# special compilation to suit e.g. GPU or MPI dependencies.
-# If you find you want to do that, consider a preliminary
-# refactoring.
+add_library(workload_flags INTERFACE)
 
-# Source files have the following dependencies on library infrastructure.
-target_link_libraries(taskassignment PRIVATE common)
+target_include_directories(workload_flags INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-# Public interface for modules, including dependencies and interfaces
-target_include_directories(taskassignment PUBLIC
-                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-target_link_libraries(taskassignment PRIVATE
-                      legacy_api
-                      legacy_modules
-		      device_info
-		      gpu_utils
-                      hardware
-                      math
-		      mdtypes
-                      pulling
-                      timing
-                      topology
-                      utility
-		      workload_flags
-                      )
-
-if (BUILD_TESTING)
-    add_subdirectory(tests)
-endif()

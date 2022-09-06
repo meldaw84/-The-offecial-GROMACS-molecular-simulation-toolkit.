@@ -112,7 +112,9 @@ target_link_libraries(nblib PRIVATE
                       pbcutil
                       simd
                       topology
-                      utility)
+                      utility
+		      workload_flags
+)
 
 # There are transitive interface dependencies on the legacy GROMACS headers.
 # TODO(#3288): Explicitly link specific modules for public API dependencies as legacy_api is removed.

@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "group.h"
+#include "gromacs/mdtypes/group.h"
 
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/smalloc.h"

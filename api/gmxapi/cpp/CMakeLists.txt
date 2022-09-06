@@ -88,6 +88,7 @@ target_link_libraries(gmxapi PRIVATE
         legacy_modules
         hardware
         math
+	mdtypes
         utility
         )
 

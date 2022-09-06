@@ -41,6 +41,7 @@ if(GMX_GPU_SYCL)
     _gmx_add_files_to_property(SYCL_SOURCES gpuhaloexchange_impl_gpu.cpp gpuhaloexchange_impl_gpu_sycl.cpp)
 endif()
 if(GMX_GPU_CUDA)
+  target_link_libraries(domdec INTERFACE CUDA::cudart)
   file(GLOB DOMDEC_GPU_SOURCES gpuhaloexchange_impl_gpu.cpp gpuhaloexchange_impl_gpu.cu)
   _gmx_add_files_to_property(CUDA_SOURCES gpuhaloexchange_impl_gpu.cpp)
 endif()
@@ -60,6 +61,7 @@ target_include_directories(domdec INTERFACE
 #target_link_libraries(domdec PUBLIC
 target_link_libraries(domdec INTERFACE
                       legacy_api
+		      device_info
                       gpu_utils
                       mdlib
                       timing
