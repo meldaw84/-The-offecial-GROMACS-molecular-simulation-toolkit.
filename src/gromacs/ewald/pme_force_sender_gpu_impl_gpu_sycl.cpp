@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright 1991- The GROMACS Authors
+ * Copyright 2019- The GROMACS Authors
  * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
  * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
@@ -31,28 +31,31 @@
  * To help us fund GROMACS development, we humbly ask that you cite
  * the research papers on the package. Check out https://www.gromacs.org.
  */
-#ifndef GMX_LINEARALGEBRA_MATRIX_H
-#define GMX_LINEARALGEBRA_MATRIX_H
-
-#include <stdio.h>
-
-double** alloc_matrix(int n, int m);
-
-void free_matrix(double** a);
-
-void matrix_multiply(FILE* fp, int n, int m, double** x, double** y, double** z);
-
-/* Return 0 if OK or row number where inversion failed otherwise. */
-int matrix_invert(FILE* fp, int n, double** a);
-
-double multi_regression(FILE* fp, int ny, double* y, int nx, double** xx, double* a0);
-/* Perform a regression analysis to fit
- * y' = a0[0] xx[0] + a0[1] xx[1] ... + a0[nx-1] xx[nx-1]
- * with ny data points in each vector.
- * The coefficients are returned in vector a0.
- * The return value of the function is the chi2 value:
- * sum_{j=0}^{ny-1} (y[j] - y'[j])^2
- * If fp is not NULL debug information will be written to it.
+/*! \internal \file
+ *
+ * \brief Implements backend-specific code for PME-PP communication using SYCL.
+ *
+ * Does not actually implement anything, since the only backend-specific part is for peer-to-peer
+ * communication, which is not supported with SYCL yet.
+ *
+ * \author Andrey Alekseenko <al42and@gmail.com>
+ *
+ * \ingroup module_ewald
  */
+#include "gmxpre.h"
 
-#endif
+#include "gromacs/utility/gmxassert.h"
+
+#include "pme_force_sender_gpu_impl.h"
+
+namespace gmx
+{
+
+/*! \brief Send PME synchronizer directly to the peer devices. Not implemented with SYCL. */
+void PmeForceSenderGpu::Impl::sendFToPpPeerToPeer(int /*ppRank*/, int /*numAtoms*/, bool /*sendForcesDirectToPpGpu*/)
+{
+    GMX_RELEASE_ASSERT(false,
+                       "Direct peer-to-peer communications not supported with SYCL and threadMPI.");
+}
+
+} // namespace gmx

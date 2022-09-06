@@ -52,6 +52,7 @@ target_link_libraries(pulling PRIVATE
                       math
 	                  mdtypes
                       muparser
+                      linearalgebra
                       timing
                       topology
                       utility

@@ -65,6 +65,7 @@ elseif(GMX_GPU_SYCL)
     )
     _gmx_add_files_to_property(SYCL_SOURCES
         device_management_sycl.cpp
+        device_management_sycl_intel_device_ids.cpp
         # Must add these files so they can include device_information.h                                                                                                                                                                                                                                                       
         device_management.cpp
         device_management_common.cpp
