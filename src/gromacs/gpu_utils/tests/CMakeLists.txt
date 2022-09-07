@@ -70,3 +70,8 @@ target_link_libraries(gpu_utils-test PRIVATE
         workload_flags
         )
 target_include_directories(gpu_utils-test PRIVATE ${PROJECT_SOURCE_DIR}/src/gromacs/math/tests)
+
+if(GMX_GPU_CUDA)
+    target_link_libraries(gpu_utils-test PRIVATE CUDA::cudart)
+endif()
+      

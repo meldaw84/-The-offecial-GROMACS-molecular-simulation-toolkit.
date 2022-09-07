@@ -51,13 +51,9 @@ if(GMX_GPU_OPENCL)
         )
 elseif(GMX_GPU_CUDA)
     target_sources(device_info PRIVATE
-            device_management.cu
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/device_management.cu>
         )
-    _gmx_add_files_to_property(CUDA_SOURCES
-        # Must add these files so they can include device_information.h                                                                                                                                                                                                                                                       
-        device_management_common.cpp
-        detecthardware.cpp
-        )
+    set_source_files_properties($<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/device_management_common.cpp> PROPERTIES LANGUAGE CUDA)
     target_link_libraries(device_info PRIVATE CUDA::cudart)
 elseif(GMX_GPU_SYCL)
     target_sources(device_info PRIVATE

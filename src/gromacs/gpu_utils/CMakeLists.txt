@@ -53,16 +53,15 @@ if(GMX_GPU_OPENCL)
         oclutils.cpp
         )
 elseif(GMX_GPU_CUDA)
-    gmx_add_libgromacs_sources(
-        device_context.cpp
-        device_stream.cu
-        gpu_utils.cu
-        pmalloc.cu
+      set(gpu_utils_cuda_sources
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/device_context.cpp>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/device_stream.cu>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/gpu_utils.cu>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/pmalloc.cu>
         )
-    _gmx_add_files_to_property(CUDA_SOURCES
-        device_stream_manager.cpp
-        )
-    target_link_libraries(gpu_utils PRIVATE CUDA::cudart)
+      target_sources(gpu_utils PRIVATE  ${gpu_utils_cuda_sources})
+      set_source_files_properties(${gpu_utils_cuda_sources} PROPERTIES LANGUAGE CUDA)
+      target_link_libraries(gpu_utils PRIVATE CUDA::cudart)
 elseif(GMX_GPU_SYCL)
     gmx_add_libgromacs_sources(
         devicebuffer_sycl.cpp
@@ -79,7 +78,7 @@ elseif(GMX_GPU_SYCL)
         pmalloc_sycl.cpp
         )
 else()
-    gmx_add_libgromacs_sources(
+    target_sources(gpu_utils PRIVATE
         device_context.cpp
         device_stream.cpp
         pmalloc.cpp

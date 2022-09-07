@@ -44,6 +44,7 @@ if (BUILD_SHARED_LIBS)
 endif()
 
 if(GMX_GPU_CUDA)
+  set_source_files_properties($<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/detecthardware.cpp> PROPERTIES LANGUAGE CUDA)
   target_link_libraries(hardware PRIVATE CUDA::cudart)
 endif()
 
