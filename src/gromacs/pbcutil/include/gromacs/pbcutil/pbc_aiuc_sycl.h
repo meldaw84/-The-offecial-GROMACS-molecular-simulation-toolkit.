@@ -79,9 +79,8 @@ static constexpr inline int xyzToShiftIndex(int x, int y, int z)
  * \param[out] dr       Resulting distance.
  */
 template<bool returnShift>
-static int
 // NOLINTNEXTLINE(google-runtime-references)
-pbcDxAiucSycl(const PbcAiuc& pbcAiuc, const sycl::float4& r1, const sycl::float4& r2, Float3& dr)
+int pbcDxAiucSycl(const PbcAiuc& pbcAiuc, const sycl::float4& r1, const sycl::float4& r2, Float3& dr)
 {
     dr[XX] = r1[XX] - r2[XX];
     dr[YY] = r1[YY] - r2[YY];
