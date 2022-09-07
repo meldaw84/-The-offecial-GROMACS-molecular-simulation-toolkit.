@@ -61,21 +61,16 @@
 
 #include "listed_forces_gpu_impl.h"
 
-/*-------------------------------- CUDA kernels-------------------------------- */
-/*------------------------------------------------------------------------------*/
-
 static constexpr float c_deg2RadF = gmx::c_deg2Rad;
 constexpr float        c_Pi       = M_PI;
 
-/*---------------- BONDED SYCL kernels--------------*/
-
 /* Harmonic */
 template<bool calcEner>
-static void harmonic_gpu(const float              kA,
-                         const float              xA,
-                         const float              x,
-                         sycl::private_ptr<float> V,
-                         sycl::private_ptr<float> F)
+static inline void harmonic_gpu(const float              kA,
+                                const float              xA,
+                                const float              x,
+                                sycl::private_ptr<float> V,
+                                sycl::private_ptr<float> F)
 {
     constexpr float half = 0.5F;
     float           dx   = x - xA;
@@ -89,22 +84,21 @@ static void harmonic_gpu(const float              kA,
 }
 
 template<bool calcVir, bool calcEner>
-static void bonds_gpu(const int                                  i,
-                      sycl::private_ptr<float>                   vtot_loc,
-                      const int                                  numBonds,
-                      const sycl::global_ptr<const t_iatom>      d_forceatoms,
-                      const sycl::global_ptr<const t_iparams>    d_forceparams,
-                      const sycl::global_ptr<const sycl::float4> gm_xq,
-                      sycl::global_ptr<Float3>                   gm_f,
-                      sycl::local_ptr<Float3>                    sm_fShiftLoc,
-                      const PbcAiuc&                             pbcAiuc)
+static inline void bonds_gpu(const int                                  i,
+                             sycl::private_ptr<float>                   vtot_loc,
+                             const int                                  numBonds,
+                             const sycl::global_ptr<const t_iatom>      d_forceatoms,
+                             const sycl::global_ptr<const t_iparams>    d_forceparams,
+                             const sycl::global_ptr<const sycl::float4> gm_xq,
+                             sycl::global_ptr<Float3>                   gm_f,
+                             sycl::local_ptr<Float3>                    sm_fShiftLoc,
+                             const PbcAiuc&                             pbcAiuc)
 {
     if (i < numBonds)
     {
-        // TODO: Best way to load
-        const int type = d_forceatoms[3 * i + XX];
-        const int ai   = d_forceatoms[3 * i + YY];
-        const int aj   = d_forceatoms[3 * i + ZZ];
+        const int type = d_forceatoms[3 * i];
+        const int ai   = d_forceatoms[3 * i + 1];
+        const int aj   = d_forceatoms[3 * i + 2];
 
         /* dx = xi - xj, corrected for periodic boundary conditions. */
         Float3 dx;
@@ -154,7 +148,7 @@ static void bonds_gpu(const int                                  i,
  * \param[in] b  Second vector.
  * \returns Cosine between a and b.
  */
-static float cos_angle(const Float3 a, const Float3 b)
+static inline float cos_angle(const Float3& a, const Float3& b)
 {
     float cosval;
 
@@ -182,7 +176,7 @@ static float cos_angle(const Float3 a, const Float3 b)
     return cosval;
 }
 
-/* \brief Compute the angle between two vectors.
+/*! \brief Compute the angle between two vectors.
  *
  * Uses atan( |axb| / a.b ) formula.
  *
@@ -190,14 +184,14 @@ static float cos_angle(const Float3 a, const Float3 b)
  * \param[in] b  Second vector.
  * \returns Angle between vectors in radians.
  */
-static float angle(const Float3 a, const Float3 b)
+static inline float angle(const Float3& a, const Float3& b)
 {
     Float3 w = a.cross(b);
 
     float wlen = sycl::sqrt(w.norm2());
     float s    = a.dot(b);
 
-    return sycl::atan2(wlen, s); // requires float
+    return sycl::atan2(wlen, s);
 }
 
 template<bool returnShift>
@@ -210,12 +204,12 @@ static float bond_angle_gpu(const sycl::float4        xi,
                             sycl::private_ptr<float>  costh,
                             sycl::private_ptr<int>    t1,
                             sycl::private_ptr<int>    t2)
-/* Return value is the angle between the bonds i-j and j-k */
 {
     *t1 = pbcDxAiucSycl<returnShift>(pbcAiuc, xi, xj, *r_ij);
     *t2 = pbcDxAiucSycl<returnShift>(pbcAiuc, xk, xj, *r_kj);
 
     *costh = cos_angle(*r_ij, *r_kj);
+    // Return value is the angle between the bonds i-j and j-k
     return sycl::acos(*costh);
 }
 
@@ -589,7 +583,6 @@ static void rbdihs_gpu(const int                                  i,
         {
             phi -= c_Pi;
         }
-        // TODO: Use sycl::sincos
         float cos_phi = sycl::cos(phi);
         /* Beware of accuracy loss, cannot use 1-sqrt(cos^2) ! */
         float sin_phi = sycl::sin(phi);
@@ -653,16 +646,21 @@ static void rbdihs_gpu(const int                                  i,
     }
 }
 
-static void make_dp_periodic_gpu(sycl::local_ptr<float> dp)
+//! Wrap angle from range [-3*pi; 3*pi) to [-pi; pi)
+static constexpr float wrapAngle(float a)
 {
-    /* dp cannot be outside (-pi,pi) */
-    if (*dp >= c_Pi)
+    constexpr float c_twoPi = 2.0F * c_Pi;
+    if (a >= c_Pi)
     {
-        *dp -= 2.0F * c_Pi;
+        return a - c_twoPi;
     }
-    else if (*dp < -c_Pi)
+    else if (a < -c_Pi)
     {
-        *dp += 2.0F * c_Pi;
+        return a + c_twoPi;
+    }
+    else
+    {
+        return a;
     }
 }
 
@@ -708,9 +706,7 @@ static void idihs_gpu(const int                                  i,
 
         float phi0 = pA * c_deg2RadF;
 
-        float dp = phi - phi0;
-
-        make_dp_periodic_gpu(&dp);
+        float dp = wrapAngle(phi - phi0);
 
         float ddphi = -kA * dp;
 
@@ -732,17 +728,16 @@ static void pairs_gpu(const int                                  i,
                       const sycl::global_ptr<const sycl::float4> gm_xq,
                       sycl::global_ptr<Float3>                   gm_f,
                       sycl::local_ptr<Float3>                    sm_fShiftLoc,
-                      const PbcAiuc                              pbcAiuc,
+                      const PbcAiuc&                             pbcAiuc,
                       const float                                scale_factor,
                       sycl::private_ptr<float>                   vtotVdw_loc,
                       sycl::private_ptr<float>                   vtotElec_loc)
 {
     if (i < numBonds)
     {
-        // TODO: Best way to load?
-        int type = d_forceatoms[3 * i + XX];
-        int ai   = d_forceatoms[3 * i + YY];
-        int aj   = d_forceatoms[3 * i + ZZ];
+        int type = d_forceatoms[3 * i];
+        int ai   = d_forceatoms[3 * i + 1];
+        int aj   = d_forceatoms[3 * i + 2];
 
         float qq  = gm_xq[ai].w() * gm_xq[aj].w();
         float c6  = iparams[type].lj14.c6A;
@@ -797,8 +792,8 @@ constexpr static int c_threadsPerBlock = 256;
 
 template<bool calcVir, bool calcEner>
 auto bondedKernel(sycl::handler&                                        cgh,
-                  BondedGpuKernelParameters                             kernelParams,
-                  DeviceBuffer<t_iatom>                                 d_iatoms[numFTypesOnGpu],
+                  const BondedGpuKernelParameters&                      kernelParams,
+                  const DeviceBuffer<t_iatom>                           d_iatoms[numFTypesOnGpu],
                   DeviceAccessor<float, sycl::access_mode::read_write>  a_vTot,
                   DeviceAccessor<t_iparams, sycl::access_mode::read>    a_forceParams,
                   DeviceAccessor<sycl::float4, sycl::access_mode::read> a_xq,
@@ -834,7 +829,6 @@ auto bondedKernel(sycl::handler&                                        cgh,
         const int tid          = itemIdx.get_global_linear_id();
         const int localId      = itemIdx.get_local_linear_id();
         float     vtot_loc     = 0.0F;
-        float     vtotVdw_loc  = 0.0F;
         float     vtotElec_loc = 0.0F;
 
         if constexpr (calcVir)
@@ -854,10 +848,10 @@ auto bondedKernel(sycl::handler&                                        cgh,
         {
             if (tid >= kernelParams.fTypeRangeStart[j] && tid <= kernelParams.fTypeRangeEnd[j])
             {
-                const int                       numBonds = kernelParams.numFTypeBonds[j];
-                int                             fTypeTid = tid - kernelParams.fTypeRangeStart[j];
-                sycl::global_ptr<const t_iatom> iatoms   = a_iatoms[j]->get_pointer();
-                fType                                    = fTypesOnGpu[j];
+                const int numBonds = kernelParams.numFTypeBonds[j];
+                const int fTypeTid = tid - kernelParams.fTypeRangeStart[j];
+                const sycl::global_ptr<const t_iatom> iatoms = a_iatoms[j]->get_pointer();
+                fType                                        = fTypesOnGpu[j];
                 if (calcEner)
                 {
                     threadComputedPotential = true;
@@ -900,7 +894,7 @@ auto bondedKernel(sycl::handler&                                        cgh,
                                                      sm_fShiftLoc,
                                                      pbcAiuc,
                                                      kernelParams.electrostaticsScaleFactor,
-                                                     &vtotVdw_loc,
+                                                     &vtot_loc,
                                                      &vtotElec_loc);
                         break;
                 }
@@ -913,13 +907,14 @@ auto bondedKernel(sycl::handler&                                        cgh,
             subGroupBarrier(itemIdx); // Should not be needed, but https://github.com/illuhad/hipSYCL/issues/823
             sycl::sub_group sg = itemIdx.get_sub_group();
             vtot_loc           = sycl::reduce_over_group(sg, vtot_loc, sycl::plus<float>());
-            vtotVdw_loc        = sycl::reduce_over_group(sg, vtotVdw_loc, sycl::plus<float>());
             vtotElec_loc       = sycl::reduce_over_group(sg, vtotElec_loc, sycl::plus<float>());
             if (sg.leader())
             {
                 atomicFetchAdd(a_vTot[fType], vtot_loc);
-                atomicFetchAdd(a_vTot[F_LJ14], vtotVdw_loc);
-                atomicFetchAdd(a_vTot[F_COUL14], vtotElec_loc);
+                if (fType == F_LJ14)
+                {
+                    atomicFetchAdd(a_vTot[F_COUL14], vtotElec_loc);
+                }
             }
         }
         /* Accumulate shift vectors from shared memory to global memory on the first c_numShiftVectors threads of the block. */
@@ -936,9 +931,6 @@ auto bondedKernel(sycl::handler&                                        cgh,
 }
 
 
-/*-------------------------------- End CUDA kernels-----------------------------*/
-
-
 template<bool calcVir, bool calcEner>
 void ListedForcesGpu::Impl::launchKernel()
 {
@@ -948,9 +940,7 @@ void ListedForcesGpu::Impl::launchKernel()
     wallcycle_start_nocount(wcycle_, WallCycleCounter::LaunchGpu);
     wallcycle_sub_start(wcycle_, WallCycleSubCounter::LaunchGpuBonded);
 
-    int fTypeRangeEnd = kernelParams_.fTypeRangeEnd[numFTypesOnGpu - 1];
-
-    if (fTypeRangeEnd < 0)
+    if (kernelParams_.fTypeRangeEnd[numFTypesOnGpu - 1] < 0)
     {
         return;
     }
@@ -972,7 +962,6 @@ void ListedForcesGpu::Impl::launchKernel()
                                                       d_fShift_);
         cgh.parallel_for<kernelNameType>(rangeAll, kernel);
     });
-    e.wait(); // TODO: Remove
 
     wallcycle_sub_stop(wcycle_, WallCycleSubCounter::LaunchGpuBonded);
     wallcycle_stop(wcycle_, WallCycleCounter::LaunchGpu);
