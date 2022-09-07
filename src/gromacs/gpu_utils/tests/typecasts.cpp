@@ -43,8 +43,8 @@
 
 #if GMX_GPU_CUDA
 
-#    include "gromacs/gpu_utils/gputraits.h"
 #    include "gromacs/device_info/device_management.h"
+#    include "gromacs/gpu_utils/gputraits.h"
 #    include "gromacs/utility/arrayref.h"
 #    include "gromacs/utility/exceptions.h"
 
