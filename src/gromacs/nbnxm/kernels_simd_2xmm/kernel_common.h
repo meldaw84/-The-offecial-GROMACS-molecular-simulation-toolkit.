@@ -33,6 +33,7 @@
  */
 #include "gromacs/nbnxm/simd_coulomb_functions.h"
 #include "gromacs/nbnxm/simd_diagonal_masker.h"
+#include "gromacs/nbnxm/simd_energy_accumulator.h"
 #include "gromacs/nbnxm/simd_lennardjones_functions.h"
 #include "gromacs/nbnxm/simd_load_store_functions.h"
 #include "gromacs/pbcutil/ishift.h"

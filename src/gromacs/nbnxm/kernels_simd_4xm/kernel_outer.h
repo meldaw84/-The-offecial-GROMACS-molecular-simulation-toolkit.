@@ -98,21 +98,6 @@
     /* Unpack pointers for output */
     real* f      = out->f.data();
     real* fshift = out->fshift.data();
-    real* Vvdw;
-    real* Vc;
-    if constexpr (calculateEnergies)
-    {
-        if constexpr (useEnergyGroups)
-        {
-            Vvdw = out->VSvdw.data();
-            Vc   = out->VSc.data();
-        }
-        else
-        {
-            Vvdw = out->Vvdw.data();
-            Vc   = out->Vc.data();
-        }
-    }
 
     SimdBitMask filter_S0, filter_S1, filter_S2, filter_S3;
 
@@ -207,15 +192,8 @@
     const real* gmx_restrict shiftvec = shift_vec[0];
     const real* gmx_restrict x        = nbat->x().data();
 
-
-    // These constants are only used when useEnergyGroups==true
-    const int egps_ishift  = nbatParams.neg_2log;
-    const int egps_imask   = (1 << egps_ishift) - 1;
-    const int egps_jshift  = 2 * nbatParams.neg_2log;
-    const int egps_jmask   = (1 << egps_jshift) - 1;
-    const int egps_jstride = (UNROLLJ >> 1) * UNROLLJ;
-    /* Major division is over i-particle energy groups, determine the stride */
-    const int Vstride_i = nbatParams.nenergrp * (1 << nbatParams.neg_2log) * egps_jstride;
+    EnergyAccumulator<UNROLLI, useEnergyGroups, calculateEnergies> energyAccumulator(
+            nbatParams, UNROLLJ, out);
 
     const nbnxn_cj_t* l_cj = nbl->cj.list_.data();
 
@@ -258,19 +236,7 @@
         const bool do_coul = ((ciEntry.shift & NBNXN_CI_DO_COUL(0)) != 0);
         const bool half_LJ = (((ciEntry.shift & NBNXN_CI_HALF_LJ(0)) != 0) || !do_LJ) && do_coul;
 
-        std::array<real*, useEnergyGroups ? UNROLLI : 0> vvdwtp;
-        std::array<real*, useEnergyGroups ? UNROLLI : 0> vctp;
-        int                                              egps_i;
-        if constexpr (useEnergyGroups)
-        {
-            egps_i = nbatParams.energrp[ci];
-            for (int ia = 0; ia < UNROLLI; ia++)
-            {
-                int egp_ia = (egps_i >> (ia * egps_ishift)) & egps_imask;
-                vvdwtp[ia] = Vvdw + egp_ia * Vstride_i;
-                vctp[ia]   = Vc + egp_ia * Vstride_i;
-            }
-        }
+        energyAccumulator.initICluster(ci);
 
         if constexpr (calculateEnergies)
         {
@@ -294,15 +260,8 @@
                             for (int ia = 0; ia < UNROLLI; ia++)
                             {
                                 const real qi = q[sci + ia];
-                                if constexpr (useEnergyGroups)
-                                {
-                                    vctp[ia][((egps_i >> (ia * egps_ishift)) & egps_imask) * egps_jstride] -=
-                                            facel * qi * qi * Vc_sub_self;
-                                }
-                                else
-                                {
-                                    Vc[0] -= facel * qi * qi * Vc_sub_self;
-                                }
+
+                                energyAccumulator.addCoulombEnergy(ia, -facel * qi * qi * Vc_sub_self);
                             }
                         }
 
@@ -313,15 +272,7 @@
                                 real c6_i =
                                         nbatParams.nbfp[nbatParams.type[sci + ia] * (nbatParams.numTypes + 1) * 2]
                                         / 6;
-                                if constexpr (useEnergyGroups)
-                                {
-                                    vvdwtp[ia][((egps_i >> (ia * egps_ishift)) & egps_imask) * egps_jstride] +=
-                                            0.5 * c6_i * lj_ewaldcoeff6_6;
-                                }
-                                else
-                                {
-                                    Vvdw[0] += 0.5 * c6_i * lj_ewaldcoeff6_6;
-                                }
+                                energyAccumulator.addVdwEnergy(ia, 0.5 * c6_i * lj_ewaldcoeff6_6);
                             }
                         }
                     }
@@ -384,15 +335,6 @@
             {
                 c6GeomV[i] = loadIAtomData<kernelLayout>(ljc, sci2, i);
             }
-        }
-
-        SimdReal Vvdwtot_S;
-        SimdReal vctot_S;
-        if constexpr (calculateEnergies)
-        {
-            /* Zero the potential energy for this list */
-            Vvdwtot_S = setZero();
-            vctot_S   = setZero();
         }
 
         /* Declare and clear i atom forces */
@@ -496,15 +438,7 @@
         fshift[ish3 + 2] += fShiftZ;
 #endif
 
-        if constexpr (calculateEnergies)
-        {
-            if (do_coul)
-            {
-                *Vc += reduce(vctot_S);
-            }
-
-            *Vvdw += reduce(Vvdwtot_S);
-        }
+        energyAccumulator.reduceIEnergies(do_coul);
 
         /* Outer loop uses 6 flops/iteration */
     }
