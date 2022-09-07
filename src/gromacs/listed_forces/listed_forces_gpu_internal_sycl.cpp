@@ -781,14 +781,14 @@ static void pairs_gpu(const int                                  i,
 template<bool calcVir, bool calcEner>
 class BondedKernel;
 
+// Number of work-items in a work-group
+constexpr static int c_threadsPerBlock = 256;
+
 namespace gmx
 {
 
 using sycl::access::fence_space;
 using mode = sycl::access_mode;
-
-// Number of work-items in a work-group
-constexpr static int c_threadsPerBlock = 256;
 
 template<bool calcVir, bool calcEner>
 auto bondedKernel(sycl::handler&                                        cgh,
