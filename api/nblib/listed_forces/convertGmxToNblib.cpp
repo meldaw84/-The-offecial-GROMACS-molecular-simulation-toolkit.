@@ -49,7 +49,7 @@
 #ifndef NBLIB_LISTEDFORCES_CONVERTGMXTONBLIB_H
 #define NBLIB_LISTEDFORCES_CONVERTGMXTONBLIB_H
 
-#include <memory>
+#include <algorithm>
 
 #include "listed_forces/conversionscommon.h"
 

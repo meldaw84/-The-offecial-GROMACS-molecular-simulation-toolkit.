@@ -41,18 +41,18 @@
 #ifndef GMX_UTILITY_COMPARE_H
 #define GMX_UTILITY_COMPARE_H
 
+#include <cstdint>
 #include <cstdio>
 
 #include "gromacs/mdtypes/md_enums.h"
-#include "gromacs/utility/basedefinitions.h"
 #include "gromacs/utility/real.h"
 
 //! Compares two real values for equality.
-gmx_bool equal_real(real i1, real i2, real ftol, real abstol);
+bool equal_real(real i1, real i2, real ftol, real abstol);
 //! Compares two float values for equality.
-gmx_bool equal_float(float i1, float i2, float ftol, float abstol);
+bool equal_float(float i1, float i2, float ftol, float abstol);
 //! Compares two double values for equality.
-gmx_bool equal_double(double i1, double i2, real ftol, real abstol);
+bool equal_double(double i1, double i2, real ftol, real abstol);
 
 //! Compares two integers and prints differences.
 void cmp_int(FILE* fp, const char* s, int index, int i1, int i2);
@@ -67,7 +67,7 @@ void cmp_us(FILE* fp, const char* s, int index, unsigned short i1, unsigned shor
 void cmp_uc(FILE* fp, const char* s, int index, unsigned char i1, unsigned char i2);
 
 //! Compares two boolean values and prints differences, and returns whether both are true.
-gmx_bool cmp_bool(FILE* fp, const char* s, int index, gmx_bool b1, gmx_bool b2);
+bool cmp_bool(FILE* fp, const char* s, int index, bool b1, bool b2);
 
 //! Compares two strings and prints differences.
 void cmp_str(FILE* fp, const char* s, int index, const char* s1, const char* s2);

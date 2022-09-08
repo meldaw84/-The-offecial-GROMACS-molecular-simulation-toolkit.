@@ -47,16 +47,16 @@
 #define GMX_UTILITY_EXCEPTIONS_H
 
 #include <cstdio>
-#include <cstdlib>
 
 #include <exception>
 #include <memory>
 #include <string>
 #include <type_traits>
 #include <typeindex>
+#include <utility>
 #include <vector>
 
-#include "gromacs/utility/basedefinitions.h"
+#include "gromacs/utility/current_function.h"
 #include "gromacs/utility/gmxassert.h"
 
 namespace gmx

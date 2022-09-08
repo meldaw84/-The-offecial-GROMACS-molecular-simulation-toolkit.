@@ -36,9 +36,7 @@
 
 #include <cassert>
 #include <cmath>
-#include <cstdint>
 
-#include <algorithm>
 #include <type_traits>
 
 #include "gromacs/utility/real.h"

@@ -47,8 +47,8 @@
 
 #include <cstddef>
 
-#include <memory>
 #include <new>
+#include <type_traits>
 
 #include "gromacs/utility/basedefinitions.h"
 

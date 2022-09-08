@@ -36,6 +36,7 @@
 
 #include <cstdio>
 
+#include <memory>
 #include <vector>
 
 #include "gromacs/math/vectypes.h"
@@ -47,7 +48,7 @@
 #include "gromacs/topology/topology_enums.h"
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/listoflists.h"
-#include "gromacs/utility/unique_cptr.h"
+#include "gromacs/utility/real.h"
 
 /*! \brief Molecules type data: atoms, interactions and exclusions */
 struct gmx_moltype_t

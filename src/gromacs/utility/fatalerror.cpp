@@ -80,7 +80,7 @@ void gmx_init_debug(const int dbglevel, const char* dbgfile)
         bDebug = true;
         if (dbglevel >= 2)
         {
-            gmx_debug_at = TRUE;
+            gmx_debug_at = true;
         }
     }
 }
@@ -201,13 +201,7 @@ void gmx_exit_on_fatal_error(ExitType exitType, int returnValue)
     }
 }
 
-void gmx_fatal_mpi_va(int /*f_errno*/,
-                      const char* file,
-                      int         line,
-                      gmx_bool    bMaster,
-                      gmx_bool    bFinalize,
-                      const char* fmt,
-                      va_list     ap)
+void gmx_fatal_mpi_va(int /*f_errno*/, const char* file, int line, bool bMaster, bool bFinalize, const char* fmt, va_list ap)
 {
     if (bMaster)
     {

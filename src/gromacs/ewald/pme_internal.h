@@ -52,6 +52,8 @@
 
 #include "config.h"
 
+#include <array>
+#include <memory>
 #include <vector>
 
 #include "gromacs/math/gmxcomplex.h"

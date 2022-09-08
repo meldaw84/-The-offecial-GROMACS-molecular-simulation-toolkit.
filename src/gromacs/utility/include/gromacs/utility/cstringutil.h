@@ -40,9 +40,8 @@
 #ifndef GMX_UTILITY_CSTRINGUTIL_H
 #define GMX_UTILITY_CSTRINGUTIL_H
 
+#include <cstdint>
 #include <cstdio>
-
-#include "gromacs/utility/basedefinitions.h"
 
 /** Continuation character. */
 #define CONTINUE '\\'
@@ -150,7 +149,7 @@ unsigned int gmx_string_hash_func(const char* s, unsigned int hash_init);
  * If \p bIndentFirst is FALSE, then the first line will not be indented, only
  * the lines that are created due to wapping.
  */
-char* wrap_lines(const char* buf, int line_width, int indent, gmx_bool bIndentFirst);
+char* wrap_lines(const char* buf, int line_width, int indent, bool bIndentFirst);
 
 /*! \brief
  * Convert a string to int64_t.

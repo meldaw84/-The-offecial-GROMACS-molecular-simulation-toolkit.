@@ -43,9 +43,9 @@
 #ifndef GMX_UTILITY_TEMPLATE_MP_H
 #define GMX_UTILITY_TEMPLATE_MP_H
 
-#include <cassert>
 #include <cstddef>
 
+#include <type_traits>
 #include <utility>
 
 #include "gromacs/compat/mp11.h"

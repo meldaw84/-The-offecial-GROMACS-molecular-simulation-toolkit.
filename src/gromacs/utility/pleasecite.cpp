@@ -582,8 +582,8 @@ void please_cite(FILE* fp, const char* key)
     if (index < NSTR)
     {
         /* Insert newlines */
-        char* author = wrap_lines(citedb[index].author, sc_lineWidth, 0, FALSE);
-        char* title  = wrap_lines(citedb[index].title, sc_lineWidth, 0, FALSE);
+        char* author = wrap_lines(citedb[index].author, sc_lineWidth, 0, false);
+        char* title  = wrap_lines(citedb[index].title, sc_lineWidth, 0, false);
         fprintf(fp,
                 "%s\n%s\n%s %d (%d) pp. %s\n",
                 author,

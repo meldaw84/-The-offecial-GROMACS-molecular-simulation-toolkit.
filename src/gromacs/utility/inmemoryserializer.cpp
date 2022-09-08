@@ -45,6 +45,7 @@
 #include "config.h"
 
 #include <algorithm>
+#include <array>
 #include <vector>
 
 namespace gmx

@@ -45,7 +45,6 @@
 #include <string>
 #include <vector>
 
-#include "gromacs/utility/basedefinitions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
@@ -380,7 +379,7 @@ int gmx_wcmatch(const char* pattern, const char* str)
     return (*str == 0) ? 0 : GMX_NO_WCMATCH;
 }
 
-char* wrap_lines(const char* buf, int line_width, int indent, gmx_bool bIndentFirst)
+char* wrap_lines(const char* buf, int line_width, int indent, bool bIndentFirst)
 {
     int i = 0;
 

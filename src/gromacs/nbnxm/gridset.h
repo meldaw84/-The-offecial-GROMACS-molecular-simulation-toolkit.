@@ -47,6 +47,7 @@
 #ifndef GMX_NBNXM_GRIDSET_H
 #define GMX_NBNXM_GRIDSET_H
 
+#include <array>
 #include <memory>
 #include <vector>
 

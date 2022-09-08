@@ -48,6 +48,7 @@
 #include "gromacs/math/multidimarray.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/utility/arrayref.h"
+#include "gromacs/utility/basedefinitions.h"
 #include "gromacs/utility/exceptions.h"
 
 namespace gmx

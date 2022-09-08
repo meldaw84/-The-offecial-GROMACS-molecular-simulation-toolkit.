@@ -44,7 +44,8 @@
 #include <cstdarg>
 #include <cstdio>
 
-#include "gromacs/utility/basedefinitions.h"
+#include <string>
+
 #include "gromacs/utility/stringutil.h"
 
 /*! \brief
@@ -61,7 +62,7 @@
  */
 extern FILE* debug; //NOLINT(cppcoreguidelines-avoid-non-const-global-variables,-warnings-as-errors)
 /** Whether extra debugging is enabled. */
-extern gmx_bool gmx_debug_at; //NOLINT(cppcoreguidelines-avoid-non-const-global-variables,-warnings-as-errors)
+extern bool gmx_debug_at; //NOLINT(cppcoreguidelines-avoid-non-const-global-variables,-warnings-as-errors)
 
 /*! \brief
  * Initializes debugging variables.
@@ -74,7 +75,7 @@ extern gmx_bool gmx_debug_at; //NOLINT(cppcoreguidelines-avoid-non-const-global-
 void gmx_init_debug(int dbglevel, const char* dbgfile);
 
 /** Returns TRUE when the program was started in debug mode */
-gmx_bool bDebugMode();
+bool bDebugMode();
 
 /** Sets the log file for printing error messages. */
 void gmx_fatal_set_log_file(FILE* fp);
@@ -148,8 +149,8 @@ enum ExitType
 [[noreturn]] void gmx_fatal_mpi_va(int         fatal_errno,
                                    const char* file,
                                    int         line,
-                                   gmx_bool    bMaster,
-                                   gmx_bool    bFinalize,
+                                   bool        bMaster,
+                                   bool        bFinalize,
                                    const char* fmt,
                                    va_list     ap);
 

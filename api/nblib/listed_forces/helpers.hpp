@@ -46,6 +46,7 @@
 #ifndef NBLIB_LISTEDFORCSES_HELPERS_HPP
 #define NBLIB_LISTEDFORCSES_HELPERS_HPP
 
+#include <algorithm>
 #include <unordered_map>
 
 #include "gromacs/utility/arrayref.h"

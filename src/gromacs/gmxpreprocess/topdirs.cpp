@@ -410,13 +410,13 @@ int DS_Check_Order(DirStack* DS, Directive d)
     /* Check if parameter definitions appear after a moleculetype directive */
     if (d < Directive::d_moleculetype && DS_Search(DS, Directive::d_moleculetype))
     {
-        return FALSE;
+        return false;
     }
 
     /* Check if all the necessary directives have appeared before directive d */
     if (necessary[d][0] == Directive::d_none)
     {
-        return TRUE;
+        return true;
     }
     else
     {
@@ -425,9 +425,9 @@ int DS_Check_Order(DirStack* DS, Directive d)
             d0 = necessary[d][i++];
             if (DS_Search(DS, d0))
             {
-                return TRUE;
+                return true;
             }
         } while (d0 != Directive::d_none);
     }
-    return FALSE;
+    return false;
 }

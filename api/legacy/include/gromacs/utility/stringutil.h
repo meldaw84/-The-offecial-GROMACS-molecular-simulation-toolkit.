@@ -43,6 +43,7 @@
 #define GMX_UTILITY_STRINGUTIL_H
 
 #include <cstdarg>
+#include <cstddef>
 #include <cstring>
 
 #include <string>
@@ -476,8 +477,6 @@ std::string toUpperCase(const std::string& text);
  */
 std::string toLowerCase(const std::string& text);
 
-
-class TextLineWrapper;
 
 /*! \brief
  * Stores settings for line wrapping.

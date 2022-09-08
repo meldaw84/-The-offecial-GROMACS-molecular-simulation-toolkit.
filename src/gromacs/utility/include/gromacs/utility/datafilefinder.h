@@ -42,8 +42,6 @@
 #ifndef GMX_UTILITY_LIBFILEFINDER_H
 #define GMX_UTILITY_LIBFILEFINDER_H
 
-#include <cstdio>
-
 #include <memory>
 #include <string>
 #include <vector>

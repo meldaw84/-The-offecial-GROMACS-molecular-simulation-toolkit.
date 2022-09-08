@@ -48,10 +48,9 @@
 #include <cassert>
 #include <cstddef>
 
-#include <array>
 #include <iterator>
 #include <stdexcept>
-#include <utility>
+#include <type_traits>
 #include <vector>
 
 #if __has_include(<boost/stl_interfaces/iterator_interface.hpp>)

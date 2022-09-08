@@ -100,7 +100,7 @@ void cmp_uc(FILE* fp, const char* s, int index, unsigned char i1, unsigned char 
     }
 }
 
-gmx_bool cmp_bool(FILE* fp, const char* s, int index, gmx_bool b1, gmx_bool b2)
+bool cmp_bool(FILE* fp, const char* s, int index, bool b1, bool b2)
 {
     if (b1 != b2)
     {
@@ -131,18 +131,18 @@ void cmp_str(FILE* fp, const char* s, int index, const char* s1, const char* s2)
     }
 }
 
-gmx_bool equal_real(real i1, real i2, real ftol, real abstol)
+bool equal_real(real i1, real i2, real ftol, real abstol)
 {
     return ((2 * std::fabs(i1 - i2) <= (fabs(i1) + fabs(i2)) * ftol) || std::fabs(i1 - i2) <= abstol);
 }
 
-gmx_bool equal_float(float i1, float i2, float ftol, float abstol)
+bool equal_float(float i1, float i2, float ftol, float abstol)
 {
     return ((2 * std::fabs(i1 - i2) <= (std::fabs(i1) + std::fabs(i2)) * ftol)
             || std::fabs(i1 - i2) <= abstol);
 }
 
-gmx_bool equal_double(double i1, double i2, real ftol, real abstol)
+bool equal_double(double i1, double i2, real ftol, real abstol)
 {
     return ((2 * fabs(i1 - i2) <= (fabs(i1) + fabs(i2)) * ftol) || fabs(i1 - i2) <= abstol);
 }

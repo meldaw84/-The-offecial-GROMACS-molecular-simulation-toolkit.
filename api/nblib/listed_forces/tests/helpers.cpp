@@ -44,6 +44,8 @@
 
 #include "listed_forces/helpers.hpp"
 
+#include <algorithm>
+
 #include <gtest/gtest.h>
 
 #include "listed_forces/traits.h"

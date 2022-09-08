@@ -43,7 +43,7 @@
 #ifndef GMX_UTILITY_INT64_TO_INT_H
 #define GMX_UTILITY_INT64_TO_INT_H
 
-#include "gromacs/utility/futil.h"
+#include <cstdint>
 
 /*! \brief Convert a int64_t value to int.
  *
