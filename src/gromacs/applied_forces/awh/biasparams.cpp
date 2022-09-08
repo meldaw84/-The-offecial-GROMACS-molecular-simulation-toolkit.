@@ -86,7 +86,6 @@ int64_t calcTargetUpdateInterval(const AwhParams& awhParams, const AwhBiasParams
         case AwhTargetType::Constant: numStepsUpdateTarget = 0; break;
         case AwhTargetType::Cutoff:
         case AwhTargetType::Boltzmann:
-        case AwhTargetType::FrictionOptimized:
             /* Updating the target generally requires updating the whole grid so to keep the cost
                down we generally update the target less often than the free energy (unless the free
                energy update step is set to > 100 samples). */

@@ -119,7 +119,7 @@ void parallelTestFunction(const void gmx_unused* dummy)
  *
  * Sets ups sharing and tests that the number of samples are counted correctly
  */
-void sharingSamplesTest(const void* nStepsArg)
+void sharingSamplesFrictionTest(const void* nStepsArg)
 {
     int numRanks;
     MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
@@ -137,7 +137,7 @@ void sharingSamplesTest(const void* nStepsArg)
     auto                awhDimArrayRef = gmx::arrayRefFromArray(&serializedAwhParametersPerDim, 1);
     AwhTestParameters   params = getAwhTestParameters(AwhHistogramGrowthType::ExponentialLinear,
                                                     AwhPotentialType::Convolved,
-                                                    AwhTargetType::FrictionOptimized,
+                                                    AwhTargetType::Constant,
                                                     awhDimArrayRef,
                                                     false,
                                                     0.4,
@@ -242,7 +242,7 @@ void sharingSamplesTest(const void* nStepsArg)
         checker.checkSequence(localFriction.begin(), localFriction.end(), "localFriction");
         checker.checkSequence(normalizedSharedFriction.begin(),
                               normalizedSharedFriction.end(),
-                              "normalizedNormalizedSharedFriction");
+                              "normalizedSharedFriction");
     }
     else
     {
@@ -265,19 +265,14 @@ TEST(BiasSharingTest, SharingWorks)
     }
 }
 
-TEST(BiasSharingTest, SharingSamplesWorks)
-{
-    int64_t nSteps = 22;
-    int     result = tMPI_Init_fn(
-            FALSE, c_numRanks, TMPI_AFFINITY_NONE, sharingSamplesTest, static_cast<const void*>(&nSteps));
-    ASSERT_EQ(result, TMPI_SUCCESS);
-}
-
-TEST(BiasSharingTest, SharingFrictionWorks)
+TEST(BiasSharingTest, SharingSamplesAndFrictionWorks)
 {
     int64_t nSteps = 2002;
-    int     result = tMPI_Init_fn(
-            FALSE, c_numRanks, TMPI_AFFINITY_NONE, sharingSamplesTest, static_cast<const void*>(&nSteps));
+    int     result = tMPI_Init_fn(FALSE,
+                              c_numRanks,
+                              TMPI_AFFINITY_NONE,
+                              sharingSamplesFrictionTest,
+                              static_cast<const void*>(&nSteps));
     ASSERT_EQ(result, TMPI_SUCCESS);
 }
 

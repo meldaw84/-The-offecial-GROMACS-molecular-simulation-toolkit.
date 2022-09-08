@@ -209,14 +209,7 @@ gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         
     if (params_.isUpdateFreeEnergyStep(step))
     {
         state_.updateFreeEnergyAndAddSamplesToHistogram(
-                dimParams_,
-                grid_,
-                params_,
-                params_.eTarget == AwhTargetType::FrictionOptimized ? &forceCorrelationGrid() : nullptr,
-                t,
-                step,
-                fplog,
-                &updateList_);
+                dimParams_, grid_, params_, &forceCorrelationGrid(), t, step, fplog, &updateList_);
 
         if (params_.convolveForce)
         {
@@ -395,26 +388,22 @@ Bias::Bias(int                            biasIndexInCollection,
     state_.initGridPointState(
             awhBiasParams, dimParams_, grid_, params_, biasInitFilename, awhParams.numBias());
 
-    if (thisRankDoesIO_ || params_.eTarget == AwhTargetType::FrictionOptimized)
+    /* Set up the force correlation object. */
+
+    /* We let the correlation init function set its parameters
+     * to something useful for now.
+     */
+    double blockLength = 0;
+    /* Construct the force correlation object. */
+    forceCorrelationGrid_ = std::make_unique<CorrelationGrid>(state_.points().size(),
+                                                              ndim(),
+                                                              blockLength,
+                                                              CorrelationGrid::BlockLengthMeasure::Time,
+                                                              awhParams.nstSampleCoord() * mdTimeStep);
+
+    if (thisRankDoesIO_)
     {
-        /* Set up the force correlation object. */
-
-        /* We let the correlation init function set its parameters
-         * to something useful for now.
-         */
-        double blockLength = 0;
-        /* Construct the force correlation object. */
-        forceCorrelationGrid_ =
-                std::make_unique<CorrelationGrid>(state_.points().size(),
-                                                  ndim(),
-                                                  blockLength,
-                                                  CorrelationGrid::BlockLengthMeasure::Time,
-                                                  awhParams.nstSampleCoord() * mdTimeStep);
-
-        if (thisRankDoesIO_)
-        {
-            writer_ = std::make_unique<BiasWriter>(*this);
-        }
+        writer_ = std::make_unique<BiasWriter>(*this);
     }
 }
 

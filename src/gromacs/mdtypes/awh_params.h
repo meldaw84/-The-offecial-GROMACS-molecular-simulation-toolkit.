@@ -72,7 +72,6 @@ enum class AwhTargetType : int
     Cutoff,
     Boltzmann,
     LocalBoltzmann,
-    FrictionOptimized,
     Count,
     Default = Constant
 };

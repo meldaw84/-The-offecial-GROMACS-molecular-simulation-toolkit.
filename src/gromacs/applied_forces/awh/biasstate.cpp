@@ -1194,10 +1194,6 @@ void BiasState::updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParam
     /* Update target distribution? */
     bool needToUpdateTargetDistribution =
             (params.eTarget != AwhTargetType::Constant && params.isUpdateTargetStep(step));
-    if (params.eTarget == AwhTargetType::FrictionOptimized && inInitialStage())
-    {
-        needToUpdateTargetDistribution = false;
-    }
 
     /* In the initial stage, the histogram grows dynamically as a function of the number of coverings. */
     bool detectedCovering = false;
@@ -1273,13 +1269,10 @@ void BiasState::updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParam
         normalizeFreeEnergyAndPmfSum(&points_);
     }
 
+    updateNormalizedSharedFriction(
+            points_, forceCorrelation, params.numSharedUpdate, biasSharing_, params.biasIndex);
     if (needToUpdateTargetDistribution)
     {
-        if (params.eTarget == AwhTargetType::FrictionOptimized)
-        {
-            updateNormalizedSharedFriction(
-                    points_, forceCorrelation, params.numSharedUpdate, biasSharing_, params.biasIndex);
-        }
         /* The target distribution is always updated for all points at once. */
         updateTargetDistribution(points_, params);
     }
