@@ -750,9 +750,12 @@ binary size and build time, you can alter the target CUDA architectures.
 This can be done either with the ``GMX_CUDA_TARGET_SM`` or
 ``GMX_CUDA_TARGET_COMPUTE`` CMake variables, which take a semicolon delimited
 string with the two digit suffixes of CUDA (virtual) architectures names, for
-instance "35;50;51;52;53;60". For details, see the "Options for steering GPU
-code generation" section of the nvcc man / help or Chapter 6. of the nvcc
-manual.
+instance "35;50;51;52;53;60". For details, see the `"Options for steering GPU
+code generation" section of the nvcc manual 
+<https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#options-for-steering-gpu-code-generation>`_ 
+or `Chapter 6 of the nvcc manual 
+<https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#using-separate-compilation-in-cuda>`_
+for the full overview of the compilation process.
 
 The GPU acceleration has been tested on AMD64/x86-64 platforms with
 Linux, Mac OS X and Windows operating systems, but Linux is the
@@ -760,7 +763,7 @@ best-tested and supported of these. Linux running on POWER 8 and ARM v8
 CPUs also works well.
 
 Experimental support is available for compiling CUDA code, both for host and
-device, using clang (version 6.0 or later).
+device, using clang.
 A CUDA toolkit is still required but it is used only for GPU device code
 generation and to link against the CUDA runtime library.
 The clang CUDA support simplifies compilation and provides benefits for development
@@ -770,12 +773,13 @@ to avoid compatibility issues between the GNU toolchain and the CUDA toolkit.
 clang for CUDA can be triggered using the ``GMX_CLANG_CUDA=ON`` CMake option.
 Target architectures can be selected with  ``GMX_CUDA_TARGET_SM``,
 virtual architecture code is always embedded for all requested architectures
-(hence GMX_CUDA_TARGET_COMPUTE is ignored).
+(hence ``GMX_CUDA_TARGET_COMPUTE`` is ignored).
 Note that this is mainly a developer-oriented feature and it is not recommended
 for production use as the performance can be significantly lower than that
 of code compiled with nvcc (and it has also received less testing).
-However, note that since clang 5.0 the performance gap is only moderate
-(at the time of writing, about 20% slower GPU kernels), so this version
+However, note that since clang 12.0 the performance gap is only moderate
+(at the time of writing, GPU kernels are no more than 10% slower than nvcc, 
+and in some cases can even be a few percents faster), so this version 
 could be considered in non performance-critical use-cases.
 
 
