@@ -135,7 +135,7 @@ auto nbnxmKernelPruneOnly(sycl::handler&                                cgh,
                 sm_xq[(tidxj + i) * c_clSize + tidxi] = xi;
             }
         }
-        itemIdx.barrier(fence_space::local_space);
+        workGroupBarrier<3>();
 
         /* loop over the j clusters = seen by any of the atoms in the current super-cluster.
          * The loop stride c_syclPruneKernelJ4Concurrency ensures that consecutive warps-pairs are

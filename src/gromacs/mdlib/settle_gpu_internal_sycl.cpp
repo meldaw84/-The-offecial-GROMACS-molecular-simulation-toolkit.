@@ -309,9 +309,10 @@ auto settleKernel(sycl::handler&                                               c
         if constexpr (computeVirial)
         {
             // This is to ensure that all threads saved the data before reduction starts
-            itemIdx.barrier(fence_space::local_space);
-            constexpr int blockSize    = sc_workGroupSize;
-            const int     subGroupSize = itemIdx.get_sub_group().get_max_local_range()[0];
+            workGroupBarrier<1>();
+            constexpr int         blockSize    = sc_workGroupSize;
+            const sycl::sub_group subGroup     = itemIdx.get_sub_group();
+            const int             subGroupSize = subGroup.get_max_local_range()[0];
             // Reduce up to one virial per thread block
             // All blocks are divided by half, the first half of threads sums
             // two virials. Then the first half is divided by two and the first half
@@ -331,11 +332,11 @@ auto settleKernel(sycl::handler&                                               c
                 }
                 if (dividedAt > subGroupSize / 2)
                 {
-                    itemIdx.barrier(fence_space::local_space);
+                    workGroupBarrier<1>();
                 }
                 else
                 {
-                    subGroupBarrier(itemIdx);
+                    subGroupBarrier();
                 }
             }
             // First 6 threads in the block add the 6 components of virial to the global memory address

@@ -310,25 +310,20 @@ static inline float interpolateCoulombForceR(const sycl::global_ptr<const float>
  * c_clSize consecutive threads hold the force components of a j-atom which we
  * reduced in log2(cl_Size) steps using shift and atomically accumulate them into \p a_f.
  */
-static inline void reduceForceJShuffle(Float3                   f,
-                                       const sycl::nd_item<3>   itemIdx,
-                                       const int                tidxi,
-                                       const int                aidx,
-                                       sycl::global_ptr<Float3> a_f)
+static inline void reduceForceJShuffle(Float3 f, const int tidxi, const int aidx, sycl::global_ptr<Float3> a_f)
 {
     static_assert(c_clSize == 8 || c_clSize == 4);
-    sycl::sub_group sg = itemIdx.get_sub_group();
 
-    f[0] += sycl_2020::shift_left(sg, f[0], 1);
-    f[1] += sycl_2020::shift_right(sg, f[1], 1);
-    f[2] += sycl_2020::shift_left(sg, f[2], 1);
+    f[0] += shiftLeft(f[0], 1);
+    f[1] += shiftRight(f[1], 1);
+    f[2] += shiftLeft(f[2], 1);
     if (tidxi & 1)
     {
         f[0] = f[1];
     }
 
-    f[0] += sycl_2020::shift_left(sg, f[0], 2);
-    f[2] += sycl_2020::shift_right(sg, f[2], 2);
+    f[0] += shiftLeft(f[0], 2);
+    f[2] += shiftRight(f[2], 2);
     if (tidxi & 2)
     {
         f[0] = f[2];
@@ -336,7 +331,7 @@ static inline void reduceForceJShuffle(Float3                   f,
 
     if constexpr (c_clSize == 8)
     {
-        f[0] += sycl_2020::shift_left(sg, f[0], 4);
+        f[0] += shiftLeft(f[0], 4);
     }
 
     if (tidxi < 3)
@@ -362,15 +357,14 @@ static inline void reduceForceJShuffle(Float3                   f,
  * \return For thread with \p tidxi 0: sum of all \p valueToReduce. Other threads: unspecified.
  */
 template<int subGroupSize, int groupSize>
-static inline float groupReduce(const sycl::nd_item<3> itemIdx,
+static inline float groupReduce(const sycl::sub_group  sg,
                                 const unsigned int     tidxi,
                                 sycl::local_ptr<float> sm_buf,
                                 float                  valueToReduce)
 {
     constexpr int numSubGroupsInGroup = groupSize / subGroupSize;
     static_assert(numSubGroupsInGroup == 1 || numSubGroupsInGroup == 2);
-    sycl::sub_group sg = itemIdx.get_sub_group();
-    valueToReduce      = sycl::reduce_over_group(sg, valueToReduce, sycl::plus<float>());
+    valueToReduce = sycl::reduce_over_group(sg, valueToReduce, sycl::plus<float>());
     // If we have two sub-groups, we should reduce across them.
     if constexpr (numSubGroupsInGroup == 2)
     {
@@ -378,7 +372,7 @@ static inline float groupReduce(const sycl::nd_item<3> itemIdx,
         {
             sm_buf[0] = valueToReduce;
         }
-        itemIdx.barrier(fence_space::local_space);
+        workGroupBarrier<3>();
         if (tidxi == 0)
         {
             valueToReduce += sm_buf[0];
@@ -396,7 +390,6 @@ static inline float groupReduce(const sycl::nd_item<3> itemIdx,
  */
 static inline void reduceForceJGeneric(sycl::local_ptr<float>   sm_buf,
                                        Float3                   f,
-                                       const sycl::nd_item<3>   itemIdx,
                                        const int                tidxi,
                                        const int                tidxj,
                                        const int                aidx,
@@ -408,10 +401,7 @@ static inline void reduceForceJGeneric(sycl::local_ptr<float>   sm_buf,
     sm_buf[1 * sc_fBufferStride + tidx]   = f[1];
     sm_buf[2 * sc_fBufferStride + tidx]   = f[2];
 
-    subGroupBarrier(itemIdx);
-
-    // reducing data 8-by-by elements on the leader of same threads as those storing above
-    SYCL_ASSERT(itemIdx.get_sub_group().get_local_range().size() >= c_clSize);
+    subGroupBarrier();
 
     if (tidxi < 3)
     {
@@ -431,7 +421,6 @@ static inline void reduceForceJGeneric(sycl::local_ptr<float>   sm_buf,
 template<bool useShuffleReduction>
 static inline void reduceForceJ(sycl::local_ptr<float>   sm_buf,
                                 Float3                   f,
-                                const sycl::nd_item<3>   itemIdx,
                                 const int                tidxi,
                                 const int                tidxj,
                                 const int                aidx,
@@ -439,11 +428,11 @@ static inline void reduceForceJ(sycl::local_ptr<float>   sm_buf,
 {
     if constexpr (!useShuffleReduction)
     {
-        reduceForceJGeneric(sm_buf, f, itemIdx, tidxi, tidxj, aidx, a_f);
+        reduceForceJGeneric(sm_buf, f, tidxi, tidxj, aidx, a_f);
     }
     else
     {
-        reduceForceJShuffle(f, itemIdx, tidxi, aidx, a_f);
+        reduceForceJShuffle(f, tidxi, aidx, a_f);
     }
 }
 
@@ -455,7 +444,6 @@ static inline void reduceForceJ(sycl::local_ptr<float>   sm_buf,
 static inline void reduceForceIAndFShiftGeneric(sycl::local_ptr<float> sm_buf,
                                                 const Float3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster],
                                                 const bool               calcFShift,
-                                                const sycl::nd_item<3>   itemIdx,
                                                 const int                tidxi,
                                                 const int                tidxj,
                                                 const int                sci,
@@ -475,7 +463,7 @@ static inline void reduceForceIAndFShiftGeneric(sycl::local_ptr<float> sm_buf,
         sm_buf[tidx]                 = fCiBuf[ciOffset][0];
         sm_buf[bufStride + tidx]     = fCiBuf[ciOffset][1];
         sm_buf[2 * bufStride + tidx] = fCiBuf[ciOffset][2];
-        itemIdx.barrier(fence_space::local_space);
+        workGroupBarrier<3>();
 
         // Reduce the initial c_clSize values for each i atom to half every step by using c_clSize * i threads.
         int i = c_clSize / 2;
@@ -490,7 +478,7 @@ static inline void reduceForceIAndFShiftGeneric(sycl::local_ptr<float> sm_buf,
                         sm_buf[2 * bufStride + (tidxj + i) * c_clSize + tidxi];
             }
             i >>= 1;
-            itemIdx.barrier(fence_space::local_space);
+            workGroupBarrier<3>();
         }
 
         /* i == 1, last reduction step, combined with writing to global mem.
@@ -507,7 +495,7 @@ static inline void reduceForceIAndFShiftGeneric(sycl::local_ptr<float> sm_buf,
                 fShiftBuf += f;
             }
         }
-        itemIdx.barrier(fence_space::local_space);
+        workGroupBarrier<3>();
     }
     /* add up local shift forces into global mem */
     if (calcFShift)
@@ -525,9 +513,8 @@ static inline void reduceForceIAndFShiftGeneric(sycl::local_ptr<float> sm_buf,
                  * Such optimization might be slightly beneficial for NVIDIA and AMD as well,
                  * but it is unlikely to make a big difference and thus was not evaluated.
                  */
-                auto sg = itemIdx.get_sub_group();
-                fShiftBuf += sycl_2020::shift_left(sg, fShiftBuf, 1);
-                fShiftBuf += sycl_2020::shift_left(sg, fShiftBuf, 2);
+                fShiftBuf += shiftLeft(fShiftBuf, 1);
+                fShiftBuf += shiftLeft(fShiftBuf, 2);
                 if (tidxi == 0)
                 {
                     atomicFetchAdd(a_fShift[shift][tidxj], fShiftBuf);
@@ -558,7 +545,6 @@ static inline void reduceForceIAndFShiftGeneric(sycl::local_ptr<float> sm_buf,
 template<int numShuffleReductionSteps>
 static inline void reduceForceIAndFShiftShuffles(const Float3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster],
                                                  const bool               calcFShift,
-                                                 const sycl::nd_item<3>   itemIdx,
                                                  const int                tidxi,
                                                  const int                tidxj,
                                                  const int                sci,
@@ -566,10 +552,7 @@ static inline void reduceForceIAndFShiftShuffles(const Float3 fCiBuf[c_nbnxnGpuN
                                                  sycl::global_ptr<Float3> a_f,
                                                  sycl::global_ptr<Float3> a_fShift)
 {
-    const sycl::sub_group sg = itemIdx.get_sub_group();
     static_assert(numShuffleReductionSteps == 2 || numShuffleReductionSteps == 3);
-    assert(sg.get_local_linear_range() >= 4 * c_clSize
-           && "Subgroup too small for two-step shuffle reduction, use 1-step");
     // Thread mask to use to select first three threads (in tidxj) in each reduction "tree".
     // Two bits for two steps, three bits for three steps.
     constexpr int threadBitMask = (1U << numShuffleReductionSteps) - 1;
@@ -582,16 +565,16 @@ static inline void reduceForceIAndFShiftShuffles(const Float3 fCiBuf[c_nbnxnGpuN
         float     fy   = fCiBuf[ciOffset][1];
         float     fz   = fCiBuf[ciOffset][2];
         // First reduction step
-        fx += sycl_2020::shift_left(sg, fx, c_clSize);
-        fy += sycl_2020::shift_right(sg, fy, c_clSize);
-        fz += sycl_2020::shift_left(sg, fz, c_clSize);
+        fx += shiftLeft(fx, c_clSize);
+        fy += shiftRight(fy, c_clSize);
+        fz += shiftLeft(fz, c_clSize);
         if (tidxj & 1)
         {
             fx = fy;
         }
         // Second reduction step
-        fx += sycl_2020::shift_left(sg, fx, 2 * c_clSize);
-        fz += sycl_2020::shift_right(sg, fz, 2 * c_clSize);
+        fx += shiftLeft(fx, 2 * c_clSize);
+        fz += shiftRight(fz, 2 * c_clSize);
         if (tidxj & 2)
         {
             fx = fz;
@@ -599,7 +582,7 @@ static inline void reduceForceIAndFShiftShuffles(const Float3 fCiBuf[c_nbnxnGpuN
         // Third reduction step if possible
         if constexpr (numShuffleReductionSteps == 3)
         {
-            fx += sycl_2020::shift_left(sg, fx, 4 * c_clSize);
+            fx += shiftLeft(fx, 4 * c_clSize);
         }
         // Threads 0,1,2 (and 4,5,6 in case of numShuffleReductionSteps == 2) increment X, Y, Z for their sub-groups
         if ((tidxj & threadBitMask) < 3)
@@ -638,19 +621,13 @@ static inline void reduceForceIAndFShiftShuffles(const Float3 fCiBuf[c_nbnxnGpuN
 template<>
 inline void reduceForceIAndFShiftShuffles<1>(const Float3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster],
                                              const bool   calcFShift,
-                                             const sycl::nd_item<3>   itemIdx,
-                                             const int                tidxi,
-                                             const int                tidxj,
-                                             const int                sci,
-                                             const int                shift,
+                                             const int    tidxi,
+                                             const int    tidxj,
+                                             const int    sci,
+                                             const int    shift,
                                              sycl::global_ptr<Float3> a_f,
                                              sycl::global_ptr<Float3> a_fShift)
 {
-    const sycl::sub_group sg = itemIdx.get_sub_group();
-    assert(sg.get_local_linear_range() >= 2 * c_clSize
-           && "Subgroup too small even for 1-step shuffle reduction");
-    assert(sg.get_local_linear_range() < 4 * c_clSize
-           && "One-step shuffle reduction inefficient, use two-step version");
     float fShiftBufXY = 0.0F;
     float fShiftBufZ  = 0.0F;
 #pragma unroll c_nbnxnGpuNumClusterPerSupercluster
@@ -661,9 +638,9 @@ inline void reduceForceIAndFShiftShuffles<1>(const Float3 fCiBuf[c_nbnxnGpuNumCl
         float     fy   = fCiBuf[ciOffset][1];
         float     fz   = fCiBuf[ciOffset][2];
         // First reduction step
-        fx += sycl_2020::shift_left(sg, fx, c_clSize);
-        fy += sycl_2020::shift_right(sg, fy, c_clSize);
-        fz += sycl_2020::shift_left(sg, fz, c_clSize);
+        fx += shiftLeft(fx, c_clSize);
+        fy += shiftRight(fy, c_clSize);
+        fz += shiftLeft(fz, c_clSize);
         if (tidxj & 1)
         {
             fx = fy;
@@ -684,7 +661,7 @@ inline void reduceForceIAndFShiftShuffles<1>(const Float3 fCiBuf[c_nbnxnGpuNumCl
                 fShiftBufZ += fz;
             }
         }
-        subGroupBarrier(itemIdx);
+        subGroupBarrier();
     }
     /* add up local shift forces into global mem */
     if (calcFShift)
@@ -710,11 +687,10 @@ template<bool useShuffleReduction, int subGroupSize>
 static inline void reduceForceIAndFShift(sycl::local_ptr<float> sm_buf,
                                          const Float3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster],
                                          const bool   calcFShift,
-                                         const sycl::nd_item<3>   itemIdx,
-                                         const int                tidxi,
-                                         const int                tidxj,
-                                         const int                sci,
-                                         const int                shift,
+                                         const int    tidxi,
+                                         const int    tidxj,
+                                         const int    sci,
+                                         const int    shift,
                                          sycl::global_ptr<Float3> a_f,
                                          sycl::global_ptr<Float3> a_fShift)
 {
@@ -726,13 +702,11 @@ static inline void reduceForceIAndFShift(sycl::local_ptr<float> sm_buf,
         constexpr int numSteps = gmx::StaticLog2<subGroupSize / c_clSize>::value;
         static_assert(numSteps > 0 && numSteps <= 3,
                       "Invalid combination of sub-group size and cluster size");
-        reduceForceIAndFShiftShuffles<numSteps>(
-                fCiBuf, calcFShift, itemIdx, tidxi, tidxj, sci, shift, a_f, a_fShift);
+        reduceForceIAndFShiftShuffles<numSteps>(fCiBuf, calcFShift, tidxi, tidxj, sci, shift, a_f, a_fShift);
     }
     else
     {
-        reduceForceIAndFShiftGeneric(
-                sm_buf, fCiBuf, calcFShift, itemIdx, tidxi, tidxj, sci, shift, a_f, a_fShift);
+        reduceForceIAndFShiftGeneric(sm_buf, fCiBuf, calcFShift, tidxi, tidxj, sci, shift, a_f, a_fShift);
     }
 }
 
@@ -946,7 +920,7 @@ static auto nbnxmKernel(sycl::handler&                                          
                 }
             }
         }
-        itemIdx.barrier(fence_space::local_space);
+        workGroupBarrier<3>();
 
         float ewaldCoeffLJ_2, ewaldCoeffLJ_6_6; // Only needed if (props.vdwEwald)
         if constexpr (props.vdwEwald)
@@ -1257,7 +1231,7 @@ static auto nbnxmKernel(sycl::handler&                                          
                 } // for (int i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i++)
                 /* reduce j forces */
                 reduceForceJ<useShuffleReductionForceJ>(
-                        sm_reductionBuffer, fCjBuf, itemIdx, tidxi, tidxj, aj, a_f.get_pointer());
+                        sm_reductionBuffer, fCjBuf, tidxi, tidxj, aj, a_f.get_pointer());
             } // for (int jm = 0; jm < c_nbnxnGpuJgroupSize; jm++)
             if constexpr (doPruneNBL)
             {
@@ -1273,7 +1247,6 @@ static auto nbnxmKernel(sycl::handler&                                          
         reduceForceIAndFShift<useShuffleReductionForceI, subGroupSize>(sm_reductionBuffer,
                                                                        fCiBuf,
                                                                        doCalcShift,
-                                                                       itemIdx,
                                                                        tidxi,
                                                                        tidxj,
                                                                        sci,
@@ -1283,11 +1256,11 @@ static auto nbnxmKernel(sycl::handler&                                          
 
         if constexpr (doCalcEnergies)
         {
-            const float energyVdwGroup =
-                    groupReduce<subGroupSize, c_clSizeSq>(itemIdx, tidx, sm_reductionBuffer, energyVdw);
-            itemIdx.barrier(fence_space::local_space); // Prevent the race on sm_reductionBuffer.
+            const float energyVdwGroup = groupReduce<subGroupSize, c_clSizeSq>(
+                    itemIdx.get_sub_group(), tidx, sm_reductionBuffer, energyVdw);
+            workGroupBarrier<3>(); // Prevent the race on sm_reductionBuffer.
             const float energyElecGroup = groupReduce<subGroupSize, c_clSizeSq>(
-                    itemIdx, tidx, sm_reductionBuffer, energyElec);
+                    itemIdx.get_sub_group(), tidx, sm_reductionBuffer, energyElec);
 
             if (tidx == 0)
             {

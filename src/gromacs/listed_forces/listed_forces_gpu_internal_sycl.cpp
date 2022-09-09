@@ -838,7 +838,7 @@ auto bondedKernel(sycl::handler&                                        cgh,
             {
                 sm_fShiftLoc[localId] = { 0.0F, 0.0F, 0.0F };
             }
-            itemIdx.barrier(fence_space::local_space);
+            workGroupBarrier<1>();
         }
 
         int  fType;
@@ -904,10 +904,10 @@ auto bondedKernel(sycl::handler&                                        cgh,
 
         if (calcEner && threadComputedPotential)
         {
-            subGroupBarrier(itemIdx); // Should not be needed, but https://github.com/illuhad/hipSYCL/issues/823
-            sycl::sub_group sg = itemIdx.get_sub_group();
-            vtot_loc           = sycl::reduce_over_group(sg, vtot_loc, sycl::plus<float>());
-            vtotElec_loc       = sycl::reduce_over_group(sg, vtotElec_loc, sycl::plus<float>());
+            const sycl::sub_group sg = itemIdx.get_sub_group();
+            subGroupBarrier(); // Should not be needed, but https://github.com/illuhad/hipSYCL/issues/823
+            vtot_loc     = sycl::reduce_over_group(sg, vtot_loc, sycl::plus<float>());
+            vtotElec_loc = sycl::reduce_over_group(sg, vtotElec_loc, sycl::plus<float>());
             if (sg.leader())
             {
                 atomicFetchAdd(a_vTot[fType], vtot_loc);
@@ -920,7 +920,7 @@ auto bondedKernel(sycl::handler&                                        cgh,
         /* Accumulate shift vectors from shared memory to global memory on the first c_numShiftVectors threads of the block. */
         if constexpr (calcVir)
         {
-            itemIdx.barrier(fence_space::local_space);
+            workGroupBarrier<1>();
             if (localId < c_numShiftVectors)
             {
                 const Float3 tmp = sm_fShiftLoc[localId];

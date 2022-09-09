@@ -77,11 +77,13 @@ inline void spread_charges(const float                  atomCharge,
                            sycl::global_ptr<float>      gm_grid,
                            const sycl::local_ptr<int>   sm_gridlineIndices,
                            const sycl::local_ptr<float> sm_theta,
-                           const sycl::nd_item<3>&      itemIdx)
+                           const int                    threadLocalIdX,
+                           const int                    threadLocalIdY,
+                           const int                    threadLocalIdZ)
 {
     // Number of atoms processed by a single warp in spread and gather
-    const int threadsPerAtomValue = (threadsPerAtom == ThreadsPerAtom::Order) ? order : order * order;
-    const int atomsPerWarp        = subGroupSize / threadsPerAtomValue;
+    constexpr int threadsPerAtomValue = (threadsPerAtom == ThreadsPerAtom::Order) ? order : order * order;
+    constexpr int atomsPerWarp        = subGroupSize / threadsPerAtomValue;
 
     const int nx  = realGridSize[XX];
     const int ny  = realGridSize[YY];
@@ -89,14 +91,14 @@ inline void spread_charges(const float                  atomCharge,
     const int pny = realGridSizePadded[YY];
     const int pnz = realGridSizePadded[ZZ];
 
-    const int atomIndexLocal = itemIdx.get_local_id(0);
+    const int atomIndexLocal = threadLocalIdX;
 
     const int chargeCheck = pmeGpuCheckAtomCharge(atomCharge);
 
     if (chargeCheck)
     {
         // Spline Z coordinates
-        const int ithz = itemIdx.get_local_id(2);
+        const int ithz = threadLocalIdZ;
 
         const int ixBase = sm_gridlineIndices[atomIndexLocal * DIM + XX];
         const int iyBase = sm_gridlineIndices[atomIndexLocal * DIM + YY];
@@ -115,9 +117,8 @@ inline void spread_charges(const float                  atomCharge,
         const float thetaZ     = sm_theta[splineIndexZ];
 
         /* loop not used if order*order threads per atom */
-        const int ithyMin = (threadsPerAtom == ThreadsPerAtom::Order) ? 0 : itemIdx.get_local_id(YY);
-        const int ithyMax =
-                (threadsPerAtom == ThreadsPerAtom::Order) ? order : itemIdx.get_local_id(YY) + 1;
+        const int ithyMin = (threadsPerAtom == ThreadsPerAtom::Order) ? 0 : threadLocalIdY;
+        const int ithyMax = (threadsPerAtom == ThreadsPerAtom::Order) ? order : threadLocalIdY + 1;
         for (int ithy = ithyMin; ithy < ithyMax; ithy++)
         {
             int iy = iyBase + ithy;
@@ -250,6 +251,7 @@ auto pmeSplineAndSpreadKernel(
 
     return [=](sycl::nd_item<3> itemIdx) [[intel::reqd_sub_group_size(subGroupSize)]]
     {
+        const int groupRangeZ     = itemIdx.get_group_range(ZZ);
         const int blockIndex      = itemIdx.get_group_linear_id();
         const int atomIndexOffset = blockIndex * atomsPerBlock;
 
@@ -264,6 +266,9 @@ auto pmeSplineAndSpreadKernel(
         const int atomIndexLocal = warpIndex * atomsPerWarp + atomWarpIndex;
         /* Atom index w.r.t. global memory */
         const int atomIndexGlobal = atomIndexOffset + atomIndexLocal;
+        const int localIdX        = itemIdx.get_local_id(XX);
+        const int localIdY        = itemIdx.get_local_id(YY);
+        const int localIdZ        = itemIdx.get_local_id(ZZ);
 
         /* Early return for fully empty blocks at the end
          * (should only happen for billions of input atoms) */
@@ -274,15 +279,15 @@ auto pmeSplineAndSpreadKernel(
 
         /* Charges, required for both spline and spread */
         pmeGpuStageAtomData<float, atomsPerBlock, 1>(
-                sm_coefficients.get_pointer(), a_coefficients_0.get_pointer(), itemIdx);
-        itemIdx.barrier(fence_space::local_space);
+                sm_coefficients.get_pointer(), a_coefficients_0.get_pointer(), blockIndex, threadLocalId);
+        workGroupBarrier<3>();
         const float atomCharge = sm_coefficients[atomIndexLocal];
 
         if constexpr (computeSplines)
         {
             // SYCL-TODO: Use prefetching? Issue #4153.
             const Float3 atomX = a_coordinates[atomIndexGlobal];
-            calculateSplines<order, atomsPerBlock, atomsPerWarp, false, writeGlobal, numGrids, subGroupSize>(
+            calculateSplines<order, atomsPerBlock, atomsPerWarp, false, writeGlobal, numGrids>(
                     atomIndexOffset,
                     atomX,
                     atomCharge,
@@ -300,8 +305,12 @@ auto pmeSplineAndSpreadKernel(
                     nullptr,
                     sm_gridlineIndices.get_pointer(),
                     sm_fractCoords.get_pointer(),
-                    itemIdx);
-            subGroupBarrier(itemIdx);
+                    localIdX,
+                    localIdY,
+                    localIdZ,
+                    warpIndex,
+                    groupRangeZ);
+            subGroupBarrier();
         }
         else
         {
@@ -311,12 +320,12 @@ auto pmeSplineAndSpreadKernel(
              */
             /* Spline data - only thetas (dthetas will only be needed in gather) */
             pmeGpuStageAtomData<float, atomsPerBlock, DIM * order>(
-                    sm_theta.get_pointer(), a_theta.get_pointer(), itemIdx);
+                    sm_theta.get_pointer(), a_theta.get_pointer(), blockIndex, threadLocalId);
             /* Gridline indices */
             pmeGpuStageAtomData<int, atomsPerBlock, DIM>(
-                    sm_gridlineIndices.get_pointer(), a_gridlineIndices.get_pointer(), itemIdx);
+                    sm_gridlineIndices.get_pointer(), a_gridlineIndices.get_pointer(), blockIndex, threadLocalId);
 
-            itemIdx.barrier(fence_space::local_space);
+            workGroupBarrier<3>();
         }
 
         /* Spreading */
@@ -329,14 +338,15 @@ auto pmeSplineAndSpreadKernel(
                     a_realGrid_0.get_pointer(),
                     sm_gridlineIndices.get_pointer(),
                     sm_theta.get_pointer(),
-                    itemIdx);
+                    localIdX,
+                    localIdY,
+                    localIdZ);
         }
         if constexpr (numGrids == 2 && spreadCharges)
         {
-            itemIdx.barrier(fence_space::local_space);
+            workGroupBarrier<3>();
             pmeGpuStageAtomData<float, atomsPerBlock, 1>(
-                    sm_coefficients.get_pointer(), a_coefficients_1.get_pointer(), itemIdx);
-            itemIdx.barrier(fence_space::local_space);
+                    sm_coefficients.get_pointer(), a_coefficients_1.get_pointer(), blockIndex, threadLocalId);
             const float atomCharge = sm_coefficients[atomIndexLocal];
 
             spread_charges<order, wrapX, wrapY, threadsPerAtom, subGroupSize>(
@@ -346,7 +356,9 @@ auto pmeSplineAndSpreadKernel(
                     a_realGrid_1.get_pointer(),
                     sm_gridlineIndices.get_pointer(),
                     sm_theta.get_pointer(),
-                    itemIdx);
+                    localIdX,
+                    localIdY,
+                    localIdZ);
         }
     };
 }

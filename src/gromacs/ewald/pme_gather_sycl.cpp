@@ -98,8 +98,7 @@ inline float readGridSize(const float* realGridSizeFP, const int dimIndex)
  * \param[in]  fz                 Input force partial component Z
  */
 template<int order, int atomDataSize, int workGroupSize, int subGroupSize>
-inline void reduceAtomForces(sycl::nd_item<3>        itemIdx,
-                             sycl::local_ptr<Float3> sm_forces,
+inline void reduceAtomForces(sycl::local_ptr<Float3> sm_forces,
                              const int               atomIndexLocal,
                              const int               splineIndex,
                              const int gmx_unused    lineIndex,
@@ -112,21 +111,19 @@ inline void reduceAtomForces(sycl::nd_item<3>        itemIdx,
     // TODO: find out if this is the best in terms of transactions count
     static_assert(order == 4, "Only order of 4 is implemented");
 
-    sycl::sub_group sg = itemIdx.get_sub_group();
-
     static_assert(atomDataSize <= subGroupSize,
                   "TODO: rework for atomDataSize > subGroupSize (order 8 or larger)");
     static_assert(gmx::isPowerOfTwo(atomDataSize));
 
-    fx += sycl_2020::shift_left(sg, fx, 1);
-    fy += sycl_2020::shift_right(sg, fy, 1);
-    fz += sycl_2020::shift_left(sg, fz, 1);
+    fx += shiftLeft(fx, 1);
+    fy += shiftRight(fy, 1);
+    fz += shiftLeft(fz, 1);
     if (splineIndex & 1)
     {
         fx = fy;
     }
-    fx += sycl_2020::shift_left(sg, fx, 2);
-    fz += sycl_2020::shift_right(sg, fz, 2);
+    fx += shiftLeft(fx, 2);
+    fz += shiftRight(fz, 2);
     if (splineIndex & 2)
     {
         fx = fz;
@@ -135,7 +132,7 @@ inline void reduceAtomForces(sycl::nd_item<3>        itemIdx,
     // We have to just further reduce those groups of 4
     for (int delta = 4; delta < atomDataSize; delta *= 2)
     {
-        fx += sycl_2020::shift_left(sg, fx, delta);
+        fx += shiftLeft(fx, delta);
     }
     const int dimIndex = splineIndex;
     if (dimIndex < DIM)
@@ -423,22 +420,22 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
                 }
             }
 
-            itemIdx.barrier(fence_space::local_space);
+            workGroupBarrier<3>();
         }
         else
         {
             /* Recalculate  Splines  */
             /* Staging coefficients/charges */
             pmeGpuStageAtomData<float, atomsPerBlock, 1>(
-                    sm_coefficients.get_pointer(), a_coefficientsA.get_pointer(), itemIdx);
+                    sm_coefficients.get_pointer(), a_coefficientsA.get_pointer(), blockIndex, threadLocalId);
             /* Staging coordinates */
             pmeGpuStageAtomData<Float3, atomsPerBlock, 1>(
-                    sm_coordinates.get_pointer(), a_coordinates.get_pointer(), itemIdx);
-            itemIdx.barrier(fence_space::local_space);
+                    sm_coordinates.get_pointer(), a_coordinates.get_pointer(), blockIndex, threadLocalId);
+            workGroupBarrier<3>();
             const Float3 atomX      = sm_coordinates[atomIndexLocal];
             const float  atomCharge = sm_coefficients[atomIndexLocal];
 
-            calculateSplines<order, atomsPerBlock, atomsPerWarp, true, false, numGrids, subGroupSize>(
+            calculateSplines<order, atomsPerBlock, atomsPerWarp, true, false, numGrids>(
                     atomIndexOffset,
                     atomX,
                     atomCharge,
@@ -456,8 +453,12 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
                     sm_dtheta.get_pointer(),
                     sm_gridlineIndices.get_pointer(),
                     sm_fractCoords.get_pointer(),
-                    itemIdx);
-            subGroupBarrier(itemIdx);
+                    itemIdx.get_local_id(XX),
+                    itemIdx.get_local_id(YY),
+                    itemIdx.get_local_id(ZZ),
+                    itemIdx.get_local_linear_id() / subGroupSize,
+                    itemIdx.get_group_range(ZZ));
+            subGroupBarrier();
         }
         float fx = 0.0F;
         float fy = 0.0F;
@@ -511,8 +512,8 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
                                                                   a_gridA.get_pointer());
         }
         reduceAtomForces<order, atomDataSize, blockSize, subGroupSize>(
-                itemIdx, sm_forces.get_pointer(), atomIndexLocal, splineIndex, lineIndex, realGridSizeFP, fx, fy, fz);
-        itemIdx.barrier(fence_space::local_space);
+                sm_forces.get_pointer(), atomIndexLocal, splineIndex, lineIndex, realGridSizeFP, fx, fy, fz);
+        workGroupBarrier<3>();
 
         /* Calculating the final forces with no component branching, atomsPerBlock threads */
         const int forceIndexLocal  = threadLocalId;
@@ -528,7 +529,7 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
                                         scale,
                                         a_coefficientsA.get_pointer());
         }
-        itemIdx.barrier(fence_space::local_space);
+        workGroupBarrier<3>();
 
         static_assert(atomsPerBlock <= subGroupSize);
 
@@ -554,7 +555,7 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
         if constexpr (numGrids == 2)
         {
             /* We must sync here since the same shared memory is used as above. */
-            itemIdx.barrier(fence_space::local_space);
+            workGroupBarrier<3>();
             fx                     = 0.0F;
             fy                     = 0.0F;
             fz                     = 0.0F;
@@ -582,8 +583,8 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
             }
             // Reduction of partial force contributions
             reduceAtomForces<order, atomDataSize, blockSize, subGroupSize>(
-                    itemIdx, sm_forces.get_pointer(), atomIndexLocal, splineIndex, lineIndex, realGridSizeFP, fx, fy, fz);
-            itemIdx.barrier(fence_space::local_space);
+                    sm_forces.get_pointer(), atomIndexLocal, splineIndex, lineIndex, realGridSizeFP, fx, fy, fz);
+            workGroupBarrier<3>();
 
             /* Calculating the final forces with no component branching, atomsPerBlock threads */
             if (forceIndexLocal < atomsPerBlock)
@@ -598,7 +599,7 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
                                             a_coefficientsB.get_pointer());
             }
 
-            itemIdx.barrier(fence_space::local_space);
+            workGroupBarrier<3>();
 
             /* Writing or adding the final forces component-wise, single warp */
             if (threadLocalId < iterThreads)

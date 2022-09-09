@@ -87,7 +87,7 @@ static inline void atomicAddDefault(T& val, const T delta)
 template<typename T,
          sycl_2020::memory_scope     MemoryScope  = sycl_2020::memory_scope::device,
          sycl::access::address_space AddressSpace = sycl::access::address_space::global_space>
-static inline void atomicFetchAdd(T& val, const T delta)
+[[gnu::flatten]] static inline void atomicFetchAdd(T& val, const T delta)
 {
     using sycl::access::address_space;
     // Check if we need/can call the optimized atomicAdd for AMD devices, see #4465.
@@ -112,7 +112,7 @@ static inline void atomicFetchAdd(T& val, const T delta)
 }
 
 template<typename T>
-static inline void atomicFetchAddLocal(T& val, const T delta)
+[[gnu::flatten]] static inline void atomicFetchAddLocal(T& val, const T delta)
 {
     atomicFetchAdd<T, sycl_2020::memory_scope::work_group, sycl::access::address_space::local_space>(
             val, delta);
@@ -149,22 +149,42 @@ static inline T atomicLoad(T& val)
  * Equivalent with CUDA's \c syncwarp(c_cudaFullWarpMask).
  *
  */
-template<int Dim>
-static inline void subGroupBarrier(const sycl::nd_item<Dim> itemIdx)
-{
 #if GMX_SYCL_HIPSYCL
-    sycl::group_barrier(itemIdx.get_sub_group(), sycl::memory_scope::sub_group);
-#else
-    itemIdx.get_sub_group().barrier();
-#endif
+static inline __device__ void subGroupBarrier()
+{
+    __hipsycl_if_target_cuda(__syncwarp(););
 }
+static inline __host__ void subGroupBarrier() {}
+#else
+static inline void subGroupBarrier()
+{
+    sycl::group_barrier(sycl::ext::oneapi::experimental::this_sub_group(), sycl::memory_scope::sub_group);
+}
+#endif
 
-namespace sycl_2020
-{
 #if GMX_SYCL_HIPSYCL
-__device__ __host__ static inline float shift_left(sycl::sub_group, float var, sycl::sub_group::linear_id_type delta)
+template<int WorkGroupDim>
+static inline __device__ void workGroupBarrier()
 {
-    // No sycl::sub_group::shift_left / shuffle_down in hipSYCL yet
+    __hipsycl_if_target_cuda(__syncthreads(););
+    __hipsycl_if_target_hip(__syncthreads(););
+}
+template<int WorkGroupDim>
+static inline __host__ void workGroupBarrier()
+{
+}
+#else
+template<int WorkGroupDim>
+static inline void workGroupBarrier()
+{
+    sycl::group_barrier(sycl::ext::oneapi::experimental::this_group<WorkGroupDim>(),
+                        sycl::memory_scope::work_group);
+}
+#endif
+
+#if GMX_SYCL_HIPSYCL
+__device__ __host__ static inline float shiftLeft(float var, sycl::sub_group::linear_id_type delta)
+{
 #    ifdef SYCL_DEVICE_ONLY
 #        if defined(HIPSYCL_PLATFORM_CUDA) && defined(__HIPSYCL_ENABLE_CUDA_TARGET__)
     return __shfl_down_sync(c_cudaFullWarpMask, var, delta);
@@ -183,16 +203,15 @@ __device__ __host__ static inline float shift_left(sycl::sub_group, float var, s
 #    endif
 }
 #elif GMX_SYCL_DPCPP
-static inline float shift_left(sycl::sub_group sg, float var, sycl::sub_group::linear_id_type delta)
+static inline float shiftLeft(float var, sycl::sub_group::linear_id_type delta)
 {
-    return sg.shuffle_down(var, delta);
+    return sycl::ext::oneapi::experimental::this_sub_group().shuffle_down(var, delta);
 }
 #endif
 
 #if GMX_SYCL_HIPSYCL
-__device__ __host__ static inline float shift_right(sycl::sub_group, float var, sycl::sub_group::linear_id_type delta)
+__device__ __host__ static inline float shiftRight(float var, sycl::sub_group::linear_id_type delta)
 {
-    // No sycl::sub_group::shift_right / shuffle_up in hipSYCL yet
 #    ifdef SYCL_DEVICE_ONLY
 #        if defined(HIPSYCL_PLATFORM_CUDA) && defined(__HIPSYCL_ENABLE_CUDA_TARGET__)
     return __shfl_up_sync(c_cudaFullWarpMask, var, delta);
@@ -211,12 +230,14 @@ __device__ __host__ static inline float shift_right(sycl::sub_group, float var, 
 #    endif
 }
 #elif GMX_SYCL_DPCPP
-static inline float shift_right(sycl::sub_group sg, float var, sycl::sub_group::linear_id_type delta)
+static inline float shiftRight(float var, sycl::sub_group::linear_id_type delta)
 {
-    return sg.shuffle_up(var, delta);
+    return sycl::ext::oneapi::experimental::this_sub_group().shuffle_up(var, delta);
 }
 #endif
 
+namespace sycl_2020
+{
 #if GMX_SYCL_HIPSYCL
 /*! \brief Polyfill for sycl::isfinite missing from hipSYCL
  *

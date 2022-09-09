@@ -254,7 +254,7 @@ auto lincsKernel(sycl::handler&                       cgh,
          */
 
         // This will reuse the same buffer, because the old values are no longer needed.
-        itemIdx.barrier(fence_space::local_space);
+        workGroupBarrier<1>();
         sm_buffer[threadInBlock] = sol;
 
         // No need to iterate if there are no coupled constraints.
@@ -415,7 +415,7 @@ auto lincsKernel(sycl::handler&                       cgh,
             // 6 values are saved. Dummy threads will have zeroes in their virial: targetLength,
             // lagrangeScaled and rc are all set to zero for them in the beginning of the kernel.
             // We reuse the same shared memory buffer, so we make sure we don't need its old values:
-            itemIdx.barrier(fence_space::local_space);
+            workGroupBarrier<1>();
             float mult                                       = targetLength * lagrangeScaled;
             sm_buffer[0 * c_threadsPerBlock + threadInBlock] = mult * rc[XX] * rc[XX];
             sm_buffer[1 * c_threadsPerBlock + threadInBlock] = mult * rc[XX] * rc[YY];
@@ -424,11 +424,12 @@ auto lincsKernel(sycl::handler&                       cgh,
             sm_buffer[4 * c_threadsPerBlock + threadInBlock] = mult * rc[YY] * rc[ZZ];
             sm_buffer[5 * c_threadsPerBlock + threadInBlock] = mult * rc[ZZ] * rc[ZZ];
 
-            itemIdx.barrier(fence_space::local_space);
+            workGroupBarrier<1>();
             // This casts unsigned into signed integers to avoid clang warnings
-            const int tib          = static_cast<int>(threadInBlock);
-            const int blockSize    = static_cast<int>(c_threadsPerBlock);
-            const int subGroupSize = itemIdx.get_sub_group().get_max_local_range()[0];
+            const int             tib          = static_cast<int>(threadInBlock);
+            const int             blockSize    = static_cast<int>(c_threadsPerBlock);
+            const sycl::sub_group subGroup     = itemIdx.get_sub_group();
+            const int             subGroupSize = subGroup.get_max_local_range()[0];
 
             // Reduce up to one virial per thread block
             // All blocks are divided by half, the first half of threads sums
@@ -447,11 +448,11 @@ auto lincsKernel(sycl::handler&                       cgh,
                 }
                 if (dividedAt > subGroupSize / 2)
                 {
-                    itemIdx.barrier(fence_space::local_space);
+                    workGroupBarrier<1>();
                 }
                 else
                 {
-                    subGroupBarrier(itemIdx);
+                    subGroupBarrier();
                 }
             }
             // First 6 threads in the block add the 6 components of virial to the global memory address

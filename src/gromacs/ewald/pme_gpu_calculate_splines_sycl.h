@@ -164,11 +164,10 @@ static inline bool pmeGpuCheckAtomCharge(const float charge)
 template<typename T, int atomsPerWorkGroup, int dataCountPerAtom>
 static inline void pmeGpuStageAtomData(sycl::local_ptr<T>              sm_destination,
                                        const sycl::global_ptr<const T> gm_source,
-                                       sycl::nd_item<3>                itemIdx)
+                                       const int                       groupIndex,
+                                       const int                       localIndex)
 {
-    const int blockIndex      = itemIdx.get_group_linear_id();
-    const int localIndex      = itemIdx.get_local_linear_id();
-    const int globalIndexBase = blockIndex * atomsPerWorkGroup * dataCountPerAtom;
+    const int globalIndexBase = groupIndex * atomsPerWorkGroup * dataCountPerAtom;
     const int globalIndex     = globalIndexBase + localIndex;
     if (localIndex < atomsPerWorkGroup * dataCountPerAtom)
     {
@@ -191,7 +190,6 @@ static inline void pmeGpuStageAtomData(sycl::local_ptr<T>              sm_destin
  * \tparam writeGlobal          A boolean which tells if the theta values and gridlines should
  *                              be written to global memory. Enables calculation of dtheta if set.
  * \tparam numGrids             The number of grids using the splines.
- * \tparam subGroupSize         The size of a sub-group (warp).
  * \param[in]  atomIndexOffset        Starting atom index for the execution block in the global
  *                                    memory.
  * \param[in]  atomX                  Coordinates of atom processed by thread.
@@ -217,7 +215,7 @@ static inline void pmeGpuStageAtomData(sycl::local_ptr<T>              sm_destin
  * \param[in]  itemIdx                SYCL thread ID.
  */
 
-template<int order, int atomsPerBlock, int atomsPerWarp, bool writeSmDtheta, bool writeGlobal, int numGrids, int subGroupSize>
+template<int order, int atomsPerBlock, int atomsPerWarp, bool writeSmDtheta, bool writeGlobal, int numGrids>
 static inline void calculateSplines(const int                           atomIndexOffset,
                                     const Float3                        atomX,
                                     const float                         atomCharge,
@@ -235,24 +233,25 @@ static inline void calculateSplines(const int                           atomInde
                                     sycl::local_ptr<float>              sm_dtheta,
                                     sycl::local_ptr<int>                sm_gridlineIndices,
                                     sycl::local_ptr<float>              sm_fractCoords,
-                                    sycl::nd_item<3>                    itemIdx)
+                                    const int                           localIdX,
+                                    const int                           localIdY,
+                                    const int                           localIdZ,
+                                    const int                           subGroupId,
+                                    const int                           groupRangeZ)
 {
     static_assert(numGrids == 1 || numGrids == 2);
     static_assert(numGrids == 1 || c_skipNeutralAtoms == false);
 
-    /* Thread index w.r.t. block */
-    const int threadLocalId = itemIdx.get_local_linear_id();
     /* Warp index w.r.t. block - could probably be obtained easier? */
-    const int warpIndex = threadLocalId / subGroupSize;
+    const int warpIndex = subGroupId;
     /* Atom index w.r.t. warp - alternating 0 1 0 1 ... */
-    const int atomWarpIndex = itemIdx.get_local_id(0) % atomsPerWarp;
+    const int atomWarpIndex = localIdX % atomsPerWarp;
     /* Atom index w.r.t. block/shared memory */
     const int atomIndexLocal = warpIndex * atomsPerWarp + atomWarpIndex;
 
     /* Spline contribution index in one dimension */
-    const int threadLocalIdXY =
-            (itemIdx.get_local_id(1) * itemIdx.get_group_range(2)) + itemIdx.get_local_id(2);
-    const int orderIndex = threadLocalIdXY / DIM;
+    const int threadLocalIdXY = (localIdY * groupRangeZ) + localIdZ;
+    const int orderIndex      = threadLocalIdXY / DIM;
     /* Dimension index */
     const int dimIndex = threadLocalIdXY % DIM;
 
