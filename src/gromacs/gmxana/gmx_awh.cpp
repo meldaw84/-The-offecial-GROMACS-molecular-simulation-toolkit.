@@ -240,7 +240,7 @@ enum class OutputFileType
  * the output that mdrun writes. It would be better to define these
  * values in a single location.
  */
-constexpr int maxAwhGraphs = 6;
+constexpr int maxAwhGraphs = 7;
 
 /*! \brief Constructs a legend for a standard awh output file */
 std::vector<std::string> makeLegend(const AwhBiasParams& awhBiasParams,
@@ -252,7 +252,8 @@ std::vector<std::string> makeLegend(const AwhBiasParams& awhBiasParams,
                                                                  "Coord distr",
                                                                  "Ref value distr",
                                                                  "Target ref value distr",
-                                                                 "Friction metric" } };
+                                                                 "Local friction metric",
+                                                                 "Shared friction metric" } };
 
     std::vector<std::string> legend;
     /* Give legends to dimensions higher than the first */
