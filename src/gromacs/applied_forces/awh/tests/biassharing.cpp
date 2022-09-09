@@ -89,7 +89,6 @@ void parallelTestFunction(const void gmx_unused* dummy)
     auto              awhDimArrayRef = gmx::arrayRefFromArray(&serializedAwhParametersPerDim, 1);
     AwhTestParameters params = getAwhTestParameters(AwhHistogramGrowthType::ExponentialLinear,
                                                     AwhPotentialType::Convolved,
-                                                    AwhTargetType::Constant,
                                                     awhDimArrayRef,
                                                     false,
                                                     0.4,
@@ -137,7 +136,6 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
     auto                awhDimArrayRef = gmx::arrayRefFromArray(&serializedAwhParametersPerDim, 1);
     AwhTestParameters   params = getAwhTestParameters(AwhHistogramGrowthType::ExponentialLinear,
                                                     AwhPotentialType::Convolved,
-                                                    AwhTargetType::Constant,
                                                     awhDimArrayRef,
                                                     false,
                                                     0.4,
@@ -164,14 +162,14 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
 
     const CorrelationGrid& forceCorrelation = bias.forceCorrelationGrid();
 
-    const int64_t* exitStep = static_cast<const int64_t*>(nStepsArg);
+    const int64_t exitStep = *static_cast<const int64_t*>(nStepsArg);
     /* We use a trajectory of the sum of two sines to cover the reaction
      * coordinate range in a semi-realistic way.
      */
     const double midPoint  = 0.5 * (awhDimParams.end() + awhDimParams.origin());
     const double halfWidth = 0.5 * (awhDimParams.end() - awhDimParams.origin());
 
-    for (int step = 0; step <= *exitStep; step++)
+    for (int step = 0; step <= exitStep; step++)
     {
         double t = step * mdTimeStep;
         double coord =
@@ -183,6 +181,7 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
         bias.calcForceAndUpdateBias(
                 coordValue, {}, {}, &potential, &potentialJump, step, step, params.awhParams.seed(), nullptr);
     }
+    double sumLocalNumVisits = 0, sumPointNumVisitsTot = 0, sumPointNumVisitsIteration = 0;
     std::vector<double> rankNumVisitsIteration, rankNumVisitsTot, rankLocalNumVisits,
             rankLocalFriction, rankNormalizedSharedFriction;
     for (size_t pointIndex = 0; pointIndex < bias.state().points().size(); pointIndex++)
@@ -193,6 +192,9 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
         rankLocalFriction.push_back(
                 forceCorrelation.tensors()[pointIndex].getVolumeElement(forceCorrelation.dtSample));
         rankNormalizedSharedFriction.push_back(bias.state().points()[pointIndex].normalizedSharedFriction());
+        sumPointNumVisitsIteration += bias.state().points()[pointIndex].numVisitsIteration();
+        sumPointNumVisitsTot += bias.state().points()[pointIndex].numVisitsTot();
+        sumLocalNumVisits += bias.state().points()[pointIndex].localNumVisits();
     }
     int nSamples = exitStep / params.awhParams.nstSampleCoord();
     int expectedUnaccountedNumSamples =

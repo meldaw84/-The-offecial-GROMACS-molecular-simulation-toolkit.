@@ -99,7 +99,6 @@ std::vector<char> awhDimParamSerialized(AwhCoordinateProviderType inputCoordinat
  * Prepare a memory buffer with serialized AwhBiasParams.
  *
  * \param[in] eawhgrowth Way to grow potential.
- * \param[in] awhTargetType The AWH target distribution to use.
  * \param[in] beta Value for 1/(kB*T).
  * \param[in] inputErrorScaling Factor for initial error scaling.
  * \param[in] dimensionParameterBuffers Buffers containing the dimension parameters.
@@ -107,7 +106,6 @@ std::vector<char> awhDimParamSerialized(AwhCoordinateProviderType inputCoordinat
  * \param[in] inputUserData If there is a user provided PMF estimate.
  */
 static std::vector<char> awhBiasParamSerialized(AwhHistogramGrowthType            eawhgrowth,
-                                                AwhTargetType                     awhTargetType,
                                                 double                            beta,
                                                 double                            inputErrorScaling,
                                                 ArrayRef<const std::vector<char>> dimensionParameterBuffers,
@@ -115,7 +113,7 @@ static std::vector<char> awhBiasParamSerialized(AwhHistogramGrowthType          
                                                 bool                              inputUserData)
 {
     int                    ndim                 = dimensionParameterBuffers.size();
-    AwhTargetType          eTarget              = awhTargetType;
+    AwhTargetType          eTarget              = AwhTargetType::Constant;
     double                 targetBetaScaling    = 0;
     double                 targetCutoff         = 0;
     AwhHistogramGrowthType eGrowth              = eawhgrowth;
@@ -149,7 +147,6 @@ static std::vector<char> awhBiasParamSerialized(AwhHistogramGrowthType          
  *
  * \param[in] eawhgrowth Way to grow potential.
  * \param[in] eawhpotential Which potential to use.
- * \param[in] awhTargetType The AWH target distribution to use.
  * \param[in] beta Value for 1/(kB*T).
  * \param[in] inputErrorScaling Factor for initial error scaling.
  * \param[in] inputSeed Seed value to use.
@@ -159,7 +156,6 @@ static std::vector<char> awhBiasParamSerialized(AwhHistogramGrowthType          
  */
 static std::vector<char> awhParamSerialized(AwhHistogramGrowthType            eawhgrowth,
                                             AwhPotentialType                  eawhpotential,
-                                            AwhTargetType                     awhTargetType,
                                             double                            beta,
                                             double                            inputErrorScaling,
                                             int64_t                           inputSeed,
@@ -186,7 +182,7 @@ static std::vector<char> awhParamSerialized(AwhHistogramGrowthType            ea
 
     auto awhParamBuffer = serializer.finishAndGetBuffer();
     auto awhBiasBuffer  = awhBiasParamSerialized(
-            eawhgrowth, awhTargetType, beta, inputErrorScaling, dimensionParameterBuffers, biasShareGroup, inputUserData);
+            eawhgrowth, beta, inputErrorScaling, dimensionParameterBuffers, biasShareGroup, inputUserData);
 
     awhParamBuffer.insert(awhParamBuffer.end(), awhBiasBuffer.begin(), awhBiasBuffer.end());
 
@@ -201,7 +197,6 @@ AwhTestParameters::AwhTestParameters(ISerializer* serializer) : awhParams(serial
  */
 AwhTestParameters getAwhTestParameters(AwhHistogramGrowthType            eawhgrowth,
                                        AwhPotentialType                  eawhpotential,
-                                       AwhTargetType                     awhTargetType,
                                        ArrayRef<const std::vector<char>> dimensionParameterBuffers,
                                        bool                              inputUserData,
                                        double                            beta,
@@ -214,15 +209,8 @@ AwhTestParameters getAwhTestParameters(AwhHistogramGrowthType            eawhgro
     double  k          = 1000;
     int64_t seed       = 93471803;
 
-    auto                      awhParamBuffer = awhParamSerialized(eawhgrowth,
-                                             eawhpotential,
-                                             awhTargetType,
-                                             beta,
-                                             inputErrorScaling,
-                                             seed,
-                                             dimensionParameterBuffers,
-                                             biasShareGroup,
-                                             inputUserData);
+    auto awhParamBuffer = awhParamSerialized(
+            eawhgrowth, eawhpotential, beta, inputErrorScaling, seed, dimensionParameterBuffers, biasShareGroup, inputUserData);
     gmx::InMemoryDeserializer deserializer(awhParamBuffer, false);
     AwhTestParameters         params(&deserializer);
 
@@ -264,7 +252,7 @@ TEST(SerializationTest, CanSerializeBiasParams)
     auto awhDimBuffer   = awhDimParamSerialized();
     auto awhDimArrayRef = gmx::arrayRefFromArray(&awhDimBuffer, 1);
     auto awhBiasBuffer  = awhBiasParamSerialized(
-            AwhHistogramGrowthType::ExponentialLinear, AwhTargetType::Constant, 0.4, 0.5, awhDimArrayRef, 0, false);
+            AwhHistogramGrowthType::ExponentialLinear, 0.4, 0.5, awhDimArrayRef, 0, false);
     gmx::InMemoryDeserializer deserializer(awhBiasBuffer, false);
     AwhBiasParams             awhBiasParams(&deserializer);
     EXPECT_EQ(awhBiasParams.ndim(), 1);
@@ -298,7 +286,6 @@ TEST(SerializationTest, CanSerializeAwhParams)
     auto awhDimArrayRef = gmx::arrayRefFromArray(&awhDimBuffer, 1);
     auto awhParamBuffer = awhParamSerialized(AwhHistogramGrowthType::ExponentialLinear,
                                              AwhPotentialType::Convolved,
-                                             AwhTargetType::Constant,
                                              0.4,
                                              0.5,
                                              1337,

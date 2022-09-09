@@ -114,7 +114,7 @@ public:
                 awhDimParamSerialized(coordinateProvider, coordIndex, origin, end, period, diffusion);
         const auto awhDimArrayRef = gmx::arrayRefFromArray(&awhDimBuffer, 1);
         params_                   = std::make_unique<AwhTestParameters>(getAwhTestParameters(
-                eawhgrowth, eawhpotential, AwhTargetType::Constant, awhDimArrayRef, false, 0.4, true, 1.0, c_numLambdaStates));
+                eawhgrowth, eawhpotential, awhDimArrayRef, false, 0.4, true, 1.0, c_numLambdaStates));
 
         seed_ = params_->awhParams.seed();
 
@@ -238,7 +238,6 @@ TEST(BiasFepLambdaStateTest, DetectsCovering)
     auto                    awhDimArrayRef = gmx::arrayRefFromArray(&awhDimBuffer, 1);
     const AwhTestParameters params(getAwhTestParameters(AwhHistogramGrowthType::ExponentialLinear,
                                                         AwhPotentialType::Umbrella,
-                                                        AwhTargetType::Constant,
                                                         awhDimArrayRef,
                                                         false,
                                                         0.4,
