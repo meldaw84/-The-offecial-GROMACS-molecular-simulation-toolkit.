@@ -434,7 +434,11 @@ public:
                 break;
             case AwhTargetType::LocalBoltzmann: target_ = weightSumRef_; break;
             case AwhTargetType::FrictionOptimized:
-                target_ = std::sqrt(normalizedSharedFriction_);
+                /* Do not update the target_ if there is not enough data to calculate the friction. */
+                if (sharedFriction_ != 0)
+                {
+                    target_ = sharedFriction_;
+                }
                 break;
             default: GMX_RELEASE_ASSERT(false, "Unhandled enum");
         }
