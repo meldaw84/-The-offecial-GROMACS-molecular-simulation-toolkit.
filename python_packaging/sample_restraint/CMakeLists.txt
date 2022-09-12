@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.17.0)
+cmake_minimum_required(VERSION 3.17.2)
 # If you are using this repository as a template, you should probably change the
 # project name and adopt your own versioning scheme.
 project(sample_restraint)

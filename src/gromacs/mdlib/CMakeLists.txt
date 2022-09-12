@@ -68,6 +68,7 @@ if(GMX_GPU_CUDA)
        settle_gpu.cpp
        update_constrain_gpu_impl.cpp
        )
+    target_link_libraries(mdlib INTERFACE CUDA::cudart)
 endif()
 
 if(GMX_GPU_SYCL)
