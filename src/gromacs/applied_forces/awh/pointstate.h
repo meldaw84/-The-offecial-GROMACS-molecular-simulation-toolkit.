@@ -448,6 +448,10 @@ public:
                 {
                     target_ = sharedFriction_;
                 }
+                else
+                {
+                    target_ /= targetConstantWeight_; /* Keep it unchanged, compensate for the multiplication below. */
+                }
                 break;
             default: GMX_RELEASE_ASSERT(false, "Unhandled enum");
         }
