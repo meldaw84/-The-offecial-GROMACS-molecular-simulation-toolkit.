@@ -111,6 +111,7 @@
 #include "gromacs/mdrun/simulationinputhandle.h"
 #include "gromacs/mdrunutility/handlerestart.h"
 #include "gromacs/mdrunutility/logging.h"
+#include "gromacs/mdrunutility/mdmodulesnotifiers.h"
 #include "gromacs/mdrunutility/multisim.h"
 #include "gromacs/mdrunutility/printtime.h"
 #include "gromacs/mdrunutility/threadaffinity.h"
@@ -164,7 +165,6 @@
 #include "gromacs/utility/keyvaluetree.h"
 #include "gromacs/utility/logger.h"
 #include "gromacs/utility/loggerbuilder.h"
-#include "gromacs/utility/mdmodulesnotifiers.h"
 #include "gromacs/utility/mpiinfo.h"
 #include "gromacs/utility/physicalnodecommunicator.h"
 #include "gromacs/utility/pleasecite.h"
@@ -1587,7 +1587,7 @@ int Mdrunner::mdrunner()
         }
         const bool useGpuTiming = decideGpuTimingsUsage();
         deviceStreamManager     = std::make_unique<DeviceStreamManager>(
-                *deviceInfo, havePPDomainDecomposition(cr), runScheduleWork.simulationWork, useGpuTiming);
+                *deviceInfo, runScheduleWork.simulationWork, useGpuTiming);
     }
 
     // If the user chose a task assignment, give them some hints
@@ -1806,12 +1806,12 @@ int Mdrunner::mdrunner()
             GMX_RELEASE_ASSERT(deviceStreamManager != nullptr,
                                "GPU device stream manager should be valid in order to use GPU "
                                "version of bonded forces.");
-            fr->listedForcesGpu = std::make_unique<ListedForcesGpu>(
-                    mtop.ffparams,
-                    fr->ic->epsfac * fr->fudgeQQ,
-                    deviceStreamManager->context(),
-                    deviceStreamManager->bondedStream(havePPDomainDecomposition(cr)),
-                    wcycle.get());
+            fr->listedForcesGpu = std::make_unique<ListedForcesGpu>(mtop.ffparams,
+                                                                    fr->ic->epsfac * fr->fudgeQQ,
+                                                                    *deviceInfo,
+                                                                    deviceStreamManager->context(),
+                                                                    deviceStreamManager->bondedStream(),
+                                                                    wcycle.get());
         }
         fr->longRangeNonbondeds = std::make_unique<CpuPpLongRangeNonbondeds>(fr->n_tpi,
                                                                              fr->ic->ewaldcoeff_q,

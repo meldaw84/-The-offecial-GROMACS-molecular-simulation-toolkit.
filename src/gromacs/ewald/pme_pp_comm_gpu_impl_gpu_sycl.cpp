@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright 2021- The GROMACS Authors
+ * Copyright 2019- The GROMACS Authors
  * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
  * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
@@ -31,23 +31,30 @@
  * To help us fund GROMACS development, we humbly ask that you cite
  * the research papers on the package. Check out https://www.gromacs.org.
  */
-/*! \file
- * \brief Implement Session launcher.
+/*! \internal \file
  *
- * \ingroup module_python
- * \author M. Eric Irrgang <ericirrgang@gmail.com>
+ * \brief Implements backend-specific part of PME-PP communication using SYCL.
+ *
+ *
+ * \author Andrey Alekseenko <al42and@gmail.com>
+ *
+ * \ingroup module_ewald
  */
+#include "gmxpre.h"
 
-#include "pycontext.h"
-#include "pysystem.h"
+#include "gromacs/utility/gmxassert.h"
 
-namespace gmxpy
+#include "pme_pp_comm_gpu_impl.h"
+
+namespace gmx
 {
 
-std::shared_ptr<gmxapi::Session> launch(::gmxapi::System* system, PyContext* context)
+void PmePpCommGpu::Impl::sendCoordinatesToPmePeerToPeer(Float3* /*sendPtr*/,
+                                                        int /*sendSize*/,
+                                                        GpuEventSynchronizer* /*coordinatesReadyOnDeviceEvent*/)
 {
-    auto newSession = system->launch(context->get());
-    return newSession;
+    GMX_RELEASE_ASSERT(false,
+                       "Direct peer-to-peer communications not supported with SYCL and threadMPI.");
 }
 
-} // namespace gmxpy
+} // namespace gmx
