@@ -247,9 +247,8 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
         checker.setDefaultTolerance(relativeToleranceAsUlp(1.0, ulpTol));
         checker.checkSequence(localFriction.begin(), localFriction.end(), "localFriction");
         checker.checkSequence(sharedFriction.begin(), sharedFriction.end(), "sharedFriction");
-        checker.checkSequence(targetDistribution.begin(),
-                              targetDistribution.end(),
-                              "targetDistribution");
+        checker.checkSequence(
+                targetDistribution.begin(), targetDistribution.end(), "targetDistribution");
     }
     else
     {
