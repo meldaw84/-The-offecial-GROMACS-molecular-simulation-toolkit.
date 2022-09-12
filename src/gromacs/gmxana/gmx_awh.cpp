@@ -253,7 +253,7 @@ std::vector<std::string> makeLegend(const AwhBiasParams& awhBiasParams,
                                                                  "Ref value distr",
                                                                  "Target ref value distr",
                                                                  "Local friction metric",
-                                                                 "Shared friction metric" } };
+                                                                 "sqrt(shared friction metric)" } };
 
     std::vector<std::string> legend;
     /* Give legends to dimensions higher than the first */

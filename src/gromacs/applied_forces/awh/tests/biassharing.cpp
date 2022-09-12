@@ -183,7 +183,7 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
     }
     double sumLocalNumVisits = 0, sumPointNumVisitsTot = 0, sumPointNumVisitsIteration = 0;
     std::vector<double> rankNumVisitsIteration, rankNumVisitsTot, rankLocalNumVisits,
-            rankLocalFriction, rankNormalizedSharedFriction;
+            rankLocalFriction, rankSharedFriction;
     for (size_t pointIndex = 0; pointIndex < bias.state().points().size(); pointIndex++)
     {
         rankNumVisitsIteration.push_back(bias.state().points()[pointIndex].numVisitsIteration());
@@ -191,7 +191,7 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
         rankLocalNumVisits.push_back(bias.state().points()[pointIndex].localNumVisits());
         rankLocalFriction.push_back(
                 forceCorrelation.tensors()[pointIndex].getVolumeElement(forceCorrelation.dtSample));
-        rankNormalizedSharedFriction.push_back(bias.state().points()[pointIndex].normalizedSharedFriction());
+        rankSharedFriction.push_back(bias.state().points()[pointIndex].sharedFriction());
         sumPointNumVisitsIteration += bias.state().points()[pointIndex].numVisitsIteration();
         sumPointNumVisitsTot += bias.state().points()[pointIndex].numVisitsTot();
         sumLocalNumVisits += bias.state().points()[pointIndex].localNumVisits();
@@ -215,21 +215,19 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
         std::vector<double> numVisitsTot(numPoints * numRanks);
         std::vector<double> localNumVisits(numPoints * numRanks);
         std::vector<double> localFriction(numPoints * numRanks);
-        std::vector<double> normalizedSharedFriction(numPoints * numRanks);
+        std::vector<double> sharedFriction(numPoints * numRanks);
         std::copy(rankNumVisitsIteration.begin(), rankNumVisitsIteration.end(), numVisitsIteration.begin());
         std::copy(rankNumVisitsTot.begin(), rankNumVisitsTot.end(), numVisitsTot.begin());
         std::copy(rankLocalNumVisits.begin(), rankLocalNumVisits.end(), localNumVisits.begin());
         std::copy(rankLocalFriction.begin(), rankLocalFriction.end(), localFriction.begin());
-        std::copy(rankNormalizedSharedFriction.begin(),
-                  rankNormalizedSharedFriction.end(),
-                  normalizedSharedFriction.begin());
+        std::copy(rankSharedFriction.begin(), rankSharedFriction.end(), sharedFriction.begin());
         for (int i = 1; i < numRanks; i++)
         {
             MPI_Recv(numVisitsIteration.data() + numPoints * i, numPoints, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(numVisitsTot.data() + numPoints * i, numPoints, MPI_DOUBLE, i, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(localNumVisits.data() + numPoints * i, numPoints, MPI_DOUBLE, i, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(localFriction.data() + numPoints * i, numPoints, MPI_DOUBLE, i, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            MPI_Recv(normalizedSharedFriction.data() + numPoints * i, numPoints, MPI_DOUBLE, i, 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(sharedFriction.data() + numPoints * i, numPoints, MPI_DOUBLE, i, 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
         gmx::test::TestReferenceData    data;
         gmx::test::TestReferenceChecker checker(data.rootChecker());
@@ -242,9 +240,7 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
         checker.checkSequence(localNumVisits.begin(), localNumVisits.end(), "localNumVisits");
         checker.setDefaultTolerance(relativeToleranceAsUlp(1.0, ulpTol));
         checker.checkSequence(localFriction.begin(), localFriction.end(), "localFriction");
-        checker.checkSequence(normalizedSharedFriction.begin(),
-                              normalizedSharedFriction.end(),
-                              "normalizedSharedFriction");
+        checker.checkSequence(sharedFriction.begin(), sharedFriction.end(), "sharedFriction");
     }
     else
     {
@@ -252,7 +248,7 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
         MPI_Send(rankNumVisitsTot.data(), numPoints, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
         MPI_Send(rankLocalNumVisits.data(), numPoints, MPI_DOUBLE, 0, 2, MPI_COMM_WORLD);
         MPI_Send(rankLocalFriction.data(), numPoints, MPI_DOUBLE, 0, 3, MPI_COMM_WORLD);
-        MPI_Send(rankNormalizedSharedFriction.data(), numPoints, MPI_DOUBLE, 0, 4, MPI_COMM_WORLD);
+        MPI_Send(rankSharedFriction.data(), numPoints, MPI_DOUBLE, 0, 4, MPI_COMM_WORLD);
     }
 }
 

@@ -72,8 +72,8 @@ const std::map<AwhOutputEntryType, Normalization> outputTypeToNormalization = {
     { AwhOutputEntryType::Weights, Normalization::Distribution },
     { AwhOutputEntryType::Target, Normalization::Distribution },
     { AwhOutputEntryType::ForceCorrelationVolume, Normalization::Distribution },
+    { AwhOutputEntryType::SharedForceCorrelationVolume, Normalization::None },
     { AwhOutputEntryType::FrictionTensor, Normalization::None },
-    { AwhOutputEntryType::NormalizedSharedFriction, Normalization::None },
 };
 
 /*! \brief
@@ -340,8 +340,8 @@ void BiasWriter::transferPointDataToWriter(AwhOutputEntryType         outputType
                 b++;
             }
             break;
-        case AwhOutputEntryType::NormalizedSharedFriction:
-            block_[b].data()[pointIndex] = bias.state().points()[pointIndex].normalizedSharedFriction();
+        case AwhOutputEntryType::SharedForceCorrelationVolume:
+            block_[b].data()[pointIndex] = bias.state().points()[pointIndex].sharedFriction();
             break;
         default: GMX_RELEASE_ASSERT(false, "Unknown AWH output variable"); break;
     }
