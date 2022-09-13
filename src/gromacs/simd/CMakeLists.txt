@@ -43,7 +43,6 @@ target_link_libraries(simd INTERFACE
                       legacy_modules
                       utility
                       )
-target_include_directories(simd INTERFACE ${PROJECT_SOURCE_DIR}/src/gromacs/hardware/include)
 
 if (BUILD_TESTING)
     add_subdirectory(tests)

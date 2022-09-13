@@ -34,9 +34,6 @@
 #ifndef GMX_SIMD_SUPPORT_H
 #define GMX_SIMD_SUPPORT_H
 
-#include <string>
-
-
 /*! \libinternal \file
  *
  * \brief Functions to query compiled and supported SIMD architectures
