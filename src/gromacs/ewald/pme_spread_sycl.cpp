@@ -77,11 +77,16 @@ inline void spread_charges(const float                  atomCharge,
                            sycl::global_ptr<float>      gm_grid,
                            const sycl::local_ptr<int>   sm_gridlineIndices,
                            const sycl::local_ptr<float> sm_theta,
-                           const sycl::nd_item<3>&      itemIdx)
+                           const int                    threadLocalIdAtom,
+                           const int                    threadLocalIdY,
+                           const int                    threadLocalIdZ)
 {
     // Number of atoms processed by a single warp in spread and gather
     const int threadsPerAtomValue = (threadsPerAtom == ThreadsPerAtom::Order) ? order : order * order;
     const int atomsPerWarp        = subGroupSize / threadsPerAtomValue;
+    __builtin_assume(threadLocalIdAtom >= 0);
+    __builtin_assume(threadLocalIdY >= 0 && threadLocalIdY < threadsPerAtomValue / order);
+    __builtin_assume(threadLocalIdZ >= 0 && threadLocalIdZ < order);
 
     const int nx  = realGridSize[XX];
     const int ny  = realGridSize[YY];
@@ -89,14 +94,14 @@ inline void spread_charges(const float                  atomCharge,
     const int pny = realGridSizePadded[YY];
     const int pnz = realGridSizePadded[ZZ];
 
-    const int atomIndexLocal = itemIdx.get_local_id(0);
+    const int atomIndexLocal = threadLocalIdAtom;
 
     const int chargeCheck = pmeGpuCheckAtomCharge(atomCharge);
 
     if (chargeCheck)
     {
         // Spline Z coordinates
-        const int ithz = itemIdx.get_local_id(2);
+        const int ithz = threadLocalIdZ;
 
         const int ixBase = sm_gridlineIndices[atomIndexLocal * DIM + XX];
         const int iyBase = sm_gridlineIndices[atomIndexLocal * DIM + YY];
@@ -115,9 +120,8 @@ inline void spread_charges(const float                  atomCharge,
         const float thetaZ     = sm_theta[splineIndexZ];
 
         /* loop not used if order*order threads per atom */
-        const int ithyMin = (threadsPerAtom == ThreadsPerAtom::Order) ? 0 : itemIdx.get_local_id(YY);
-        const int ithyMax =
-                (threadsPerAtom == ThreadsPerAtom::Order) ? order : itemIdx.get_local_id(YY) + 1;
+        const int ithyMin = (threadsPerAtom == ThreadsPerAtom::Order) ? 0 : threadLocalIdY;
+        const int ithyMax = (threadsPerAtom == ThreadsPerAtom::Order) ? order : threadLocalIdY + 1;
         for (int ithy = ithyMin; ithy < ithyMax; ithy++)
         {
             int iy = iyBase + ithy;
@@ -261,7 +265,7 @@ auto pmeSplineAndSpreadKernel(
         __builtin_assume(threadLocalIdAtom >= 0 && threadLocalIdAtom < atomsPerBlock);
         const int threadLocalIdSpline = itemIdx.get_local_id(YY) * order + itemIdx.get_local_id(ZZ);
         __builtin_assume(threadLocalIdSpline >= 0 && threadLocalIdSpline < threadsPerAtomValue);
-        const int threadLocalId = itemIdx.get_local_id(XX) * threadsPerAtomValue + threadLocalIdSpline;
+        const int threadLocalId = threadLocalIdAtom * threadsPerAtomValue + threadLocalIdSpline;
         /* Warp index w.r.t. block - could probably be obtained easier? */
         const int warpIndex = threadLocalId / subGroupSize;
 
@@ -338,7 +342,9 @@ auto pmeSplineAndSpreadKernel(
                     a_realGrid_0.get_pointer(),
                     sm_gridlineIndices.get_pointer(),
                     sm_theta.get_pointer(),
-                    itemIdx);
+                    threadLocalIdAtom,
+                    itemIdx.get_local_id(YY),
+                    itemIdx.get_local_id(ZZ));
         }
         if constexpr (numGrids == 2 && spreadCharges)
         {
@@ -355,7 +361,9 @@ auto pmeSplineAndSpreadKernel(
                     a_realGrid_1.get_pointer(),
                     sm_gridlineIndices.get_pointer(),
                     sm_theta.get_pointer(),
-                    itemIdx);
+                    threadLocalIdAtom,
+                    itemIdx.get_local_id(YY),
+                    itemIdx.get_local_id(ZZ));
         }
     };
 }

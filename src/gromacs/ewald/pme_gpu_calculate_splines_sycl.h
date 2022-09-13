@@ -215,7 +215,9 @@ static inline void pmeGpuStageAtomData(sycl::local_ptr<T>              sm_destin
  * \param[out] sm_dtheta              Derivatives of atom spline values in the local memory.
  * \param[out] sm_gridlineIndices     Atom gridline indices in the local memory.
  * \param[out] sm_fractCoords         Fractional coordinates in the local memory.
- * \param[in]  itemIdx                SYCL thread ID.
+ * \param[in]  threadLocalId          SYCL linearized local thread ID.
+ * \param[in]  threadLocalIdAtom      SYCL local thread ID in "atoms" dimension.
+ * \param[in]  threadLocalIdSpline    SYCL linearized local thread ID in "splines" plane.
  */
 
 template<int order, int atomsPerBlock, int atomsPerWarp, bool writeSmDtheta, bool writeGlobal, int numGrids, int subGroupSize>

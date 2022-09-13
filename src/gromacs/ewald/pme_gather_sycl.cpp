@@ -86,7 +86,7 @@ inline float readGridSize(const float* realGridSizeFP, const int dimIndex)
  * \tparam     workGroupSize      The size of a work-group.
  * \tparam     subGroupSize       The size of a sub-group.
  *
- * \param[in]  itemIdx            SYCL thread ID.
+ * \param[in]  sg                 SYCL sub-group (warp) handler.
  * \param[out] sm_forces          Shared memory array with the output forces (number of elements
  *                                is number of atoms per block).
  * \param[in]  atomIndexLocal     Local atom index.
@@ -98,7 +98,7 @@ inline float readGridSize(const float* realGridSizeFP, const int dimIndex)
  * \param[in]  fz                 Input force partial component Z
  */
 template<int order, int atomDataSize, int workGroupSize, int subGroupSize>
-inline void reduceAtomForces(sycl::nd_item<3>        itemIdx,
+inline void reduceAtomForces(const sycl::sub_group   sg,
                              sycl::local_ptr<Float3> sm_forces,
                              const int               atomIndexLocal,
                              const int               splineIndex,
@@ -111,8 +111,6 @@ inline void reduceAtomForces(sycl::nd_item<3>        itemIdx,
     static_assert(gmx::isPowerOfTwo(order));
     // TODO: find out if this is the best in terms of transactions count
     static_assert(order == 4, "Only order of 4 is implemented");
-
-    sycl::sub_group sg = itemIdx.get_sub_group();
 
     static_assert(atomDataSize <= subGroupSize,
                   "TODO: rework for atomDataSize > subGroupSize (order 8 or larger)");
@@ -397,7 +395,6 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
             const int localGridlineIndicesIndex = threadLocalId;
             const int globalGridlineIndicesIndex =
                     blockIndex * gridlineIndicesSize + localGridlineIndicesIndex;
-            // itemIdx.get_group(ZZ) * gridlineIndicesSize + localGridlineIndicesIndex;
             if (localGridlineIndicesIndex < gridlineIndicesSize)
             {
                 sm_gridlineIndices[localGridlineIndicesIndex] =
@@ -415,7 +412,6 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
                 // i will always be zero for order*order threads per atom
                 const int localSplineParamsIndex = threadLocalId + i * threadLocalIdMax;
                 const int globalSplineParamsIndex = blockIndex * splineParamsSize + localSplineParamsIndex;
-                // const int globalSplineParamsIndex = itemIdx.get_group(ZZ) * splineParamsSize + localSplineParamsIndex;
                 if (localSplineParamsIndex < splineParamsSize)
                 {
                     sm_theta[localSplineParamsIndex]  = a_theta[globalSplineParamsIndex];
@@ -514,7 +510,7 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
                                                                   sm_dtheta.get_pointer(),
                                                                   a_gridA.get_pointer());
         }
-        reduceAtomForces<order, atomDataSize, blockSize, subGroupSize>(itemIdx,
+        reduceAtomForces<order, atomDataSize, blockSize, subGroupSize>(itemIdx.get_sub_group(),
                                                                        sm_forces.get_pointer(),
                                                                        threadLocalIdAtom,
                                                                        threadLocalIdSpline,
@@ -592,7 +588,7 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
                                                                       a_gridB.get_pointer());
             }
             // Reduction of partial force contributions
-            reduceAtomForces<order, atomDataSize, blockSize, subGroupSize>(itemIdx,
+            reduceAtomForces<order, atomDataSize, blockSize, subGroupSize>(itemIdx.get_sub_group(),
                                                                            sm_forces.get_pointer(),
                                                                            threadLocalIdAtom,
                                                                            threadLocalIdSpline,
