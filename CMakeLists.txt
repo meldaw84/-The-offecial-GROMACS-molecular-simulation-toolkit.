@@ -31,7 +31,7 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out https://www.gromacs.org.
 
-cmake_minimum_required(VERSION 3.16.3)
+cmake_minimum_required(VERSION 3.18.4)
 
 cmake_policy(SET CMP0022 NEW)
 cmake_policy(SET CMP0048 NEW) # As of CMake 3.22, default is still "OLD"
@@ -371,6 +371,10 @@ set(GMX_CURRENT_CONTRIBUTORS ${CMAKE_MATCH_1})
 set(GMX_PREVIOUS_CONTRIBUTORS ${CMAKE_MATCH_2})
 set(GMX_CURRENT_PROJECT_LEADERS ${CMAKE_MATCH_3})
 
+string(REGEX REPLACE "\n" ", " GMX_CURRENT_CONTRIBUTORS_STRING "${GMX_CURRENT_CONTRIBUTORS}")
+string(REGEX REPLACE "\n" ", " GMX_PREVIOUS_CONTRIBUTORS_STRING "${GMX_PREVIOUS_CONTRIBUTORS}")
+string(REGEX REPLACE "\n" ", " GMX_CURRENT_PROJECT_LEADERS_STRING "${GMX_CURRENT_PROJECT_LEADERS}")
+
 string(REGEX REPLACE "([^\n]+)" "    \"\\1\"," GMX_CURRENT_CONTRIBUTORS "${GMX_CURRENT_CONTRIBUTORS}")
 string(REGEX REPLACE "([^\n]+)" "    \"\\1\"," GMX_PREVIOUS_CONTRIBUTORS "${GMX_PREVIOUS_CONTRIBUTORS}")
 string(REGEX REPLACE "([^\n]+)" "    \"\\1\"," GMX_CURRENT_PROJECT_LEADERS "${GMX_CURRENT_PROJECT_LEADERS}")
@@ -610,13 +614,12 @@ if(GMX_GPU)
 
     string(TOUPPER "${GMX_GPU}" _gmx_gpu_uppercase)
     if(${_gmx_gpu_uppercase} STREQUAL "CUDA")
-	enable_language(CUDA)
-        set(CMAKE_CUDA_STANDARD 14)
+        find_package(CUDAToolkit ${REQUIRED_CUDA_VERSION} REQUIRED)
+        enable_language(CUDA)
+	set(CMAKE_CUDA_STANDARD 17)
         set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 	# Avoid new cmake policy of enforcing CMAKE_CUDA_ARCHITECTURES initialization
-	if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.18.0")
-	  cmake_policy(SET CMP0104 OLD)
-	endif()
+	cmake_policy(SET CMP0104 OLD)
         include(gmxManageCuda)
     elseif(${_gmx_gpu_uppercase} STREQUAL "OPENCL")
         message(STATUS "GPU support with OpenCL is deprecated. It is still fully supported (and " 
@@ -667,13 +670,15 @@ if(GMX_GPU)
 
 endif()
 
-# For build with CUDA and Lib-MPI, check if underlying MPI implementation is CUDA-aware
-# CUDA-aware MPI allows direct GPU communication without staging data through host
-if(GMX_GPU_CUDA AND GMX_LIB_MPI)
-    include(gmxManageCudaAwareMPI)
+# For build with CUDA/SYCL and Lib-MPI, check if underlying MPI implementation is GPU-aware
+# GPU-aware MPI allows direct GPU communication without staging data through host
+if((GMX_GPU_CUDA OR GMX_GPU_SYCL) AND GMX_LIB_MPI)
+    include(gmxManageGpuAwareMpi)
 else()
     set(HAVE_MPI_EXT 0)
     set(MPI_SUPPORTS_CUDA_AWARE_DETECTION 0)
+    set(MPI_SUPPORTS_HIP_AWARE_DETECTION 0)
+    set(MPI_SUPPORTS_ZE_AWARE_DETECTION 0)
 endif()
 
 if(CYGWIN)
@@ -808,8 +813,9 @@ endif()
 
 if (GMX_BUILD_FOR_COVERAGE)
     # Set flags for coverage build here instead having to do so manually
-    set(CMAKE_C_FLAGS "-g --coverage")
-    set(CMAKE_CXX_FLAGS "-g --coverage")
+    set(CMAKE_C_FLAGS "-g -fprofile-arcs -ftest-coverage")
+    set(CMAKE_CXX_FLAGS "-g -fprofile-arcs -ftest-coverage")
+    set(CMAKE_EXE_LINKER_FLAGS "-fprofile-arcs -ftest-coverage")
 endif()
 
 # # # # # # # # # # NO MORE TESTS AFTER THIS LINE! # # # # # # # # # # #

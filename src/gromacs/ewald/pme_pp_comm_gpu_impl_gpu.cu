@@ -33,7 +33,7 @@
  */
 /*! \internal \file
  *
- * \brief Implements PME-PP communication using CUDA
+ * \brief Implements backend-specific part of PME-PP communication using CUDA.
  *
  *
  * \author Alan Gray <alang@nvidia.com>
@@ -62,7 +62,10 @@ void PmePpCommGpu::Impl::sendCoordinatesToPmePeerToPeer(Float3*               se
                                                         GpuEventSynchronizer* coordinatesReadyOnDeviceEvent)
 {
     // ensure stream waits until coordinate data is available on device
-    coordinatesReadyOnDeviceEvent->enqueueWaitEvent(pmePpCommStream_);
+    if (coordinatesReadyOnDeviceEvent)
+    {
+        coordinatesReadyOnDeviceEvent->enqueueWaitEvent(pmePpCommStream_);
+    }
 
     cudaError_t stat = cudaMemcpyAsync(remotePmeXBuffer_,
                                        sendPtr,

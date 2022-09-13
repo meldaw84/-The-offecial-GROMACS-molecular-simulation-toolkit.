@@ -54,6 +54,7 @@
 #include "gromacs/math/vec.h"
 #include "gromacs/math/vecdump.h"
 #include "gromacs/math/vectypes.h"
+#include "gromacs/mdrunutility/mdmodulesnotifiers.h"
 #include "gromacs/mdtypes/awh_correlation_history.h"
 #include "gromacs/mdtypes/awh_history.h"
 #include "gromacs/mdtypes/checkpointdata.h"
@@ -81,7 +82,6 @@
 #include "gromacs/utility/keyvaluetree.h"
 #include "gromacs/utility/keyvaluetreebuilder.h"
 #include "gromacs/utility/keyvaluetreeserializer.h"
-#include "gromacs/utility/mdmodulesnotifiers.h"
 #include "gromacs/utility/programcontext.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/sysinfo.h"
@@ -771,8 +771,11 @@ static int doVectorLow(XDR*                           xd,
         return -1;
     }
 
-    if (list == nullptr && (sflags & enumValueToBitMask(ecpt)))
+    if (list == nullptr)
     {
+        GMX_RELEASE_ASSERT(
+                sflags & enumValueToBitMask(ecpt),
+                "When not listing, the flag for the entry should be set when requesting i/o");
         if (nval >= 0)
         {
             if (numElemInTheFile != nval)
@@ -819,6 +822,7 @@ static int doVectorLow(XDR*                           xd,
         }
         else
         {
+            GMX_RELEASE_ASSERT(vector != nullptr, "Without list or v, vector should be supplied");
             /* This conditional ensures that we don't resize on write.
              * In particular in the state where this code was written
              * vector has a size of numElemInThefile and we
@@ -2218,7 +2222,7 @@ static void do_cpt_mdmodules(CheckPointVersion              fileVersion,
             gmx::dumpKeyValueTree(&textWriter, mdModuleCheckpointParameterTree);
         }
         gmx::MDModulesCheckpointReadingDataOnMaster mdModuleCheckpointReadingDataOnMaster = {
-            mdModuleCheckpointParameterTree, fileVersion
+            mdModuleCheckpointParameterTree
         };
         mdModulesNotifiers.checkpointingNotifier_.notify(mdModuleCheckpointReadingDataOnMaster);
     }
@@ -2440,8 +2444,7 @@ void write_checkpoint_data(t_fileio*                         fp,
     // Checkpointing MDModules
     {
         gmx::KeyValueTreeBuilder          builder;
-        gmx::MDModulesWriteCheckpointData mdModulesWriteCheckpoint = { builder.rootObject(),
-                                                                       headerContents.file_version };
+        gmx::MDModulesWriteCheckpointData mdModulesWriteCheckpoint = { builder.rootObject() };
         mdModulesNotifiers.checkpointingNotifier_.notify(mdModulesWriteCheckpoint);
         auto                     tree = builder.build();
         gmx::FileIOXdrSerializer serializer(fp);
@@ -2882,9 +2885,8 @@ void load_checkpoint(const char*                    fn,
     if (PAR(cr))
     {
         gmx_bcast(sizeof(headerContents.step), &headerContents.step, cr->mpiDefaultCommunicator);
-        gmx::MDModulesCheckpointReadingBroadcast broadcastCheckPointData = {
-            cr->mpiDefaultCommunicator, PAR(cr), headerContents.file_version
-        };
+        gmx::MDModulesCheckpointReadingBroadcast broadcastCheckPointData = { cr->mpiDefaultCommunicator,
+                                                                             PAR(cr) };
         mdModulesNotifiers.checkpointingNotifier_.notify(broadcastCheckPointData);
     }
     ir->bContinuation = TRUE;

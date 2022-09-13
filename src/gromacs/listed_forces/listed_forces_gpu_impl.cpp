@@ -140,6 +140,7 @@ class ListedForcesGpu::Impl
 
 ListedForcesGpu::ListedForcesGpu(const gmx_ffparams_t& /* ffparams */,
                                  const float /* electrostaticsScaleFactor */,
+                                 const DeviceInformation& /*deviceInfo*/,
                                  const DeviceContext& /* deviceContext */,
                                  const DeviceStream& /* deviceStream */,
                                  gmx_wallcycle* /* wcycle */) :
@@ -151,9 +152,7 @@ ListedForcesGpu::~ListedForcesGpu() = default;
 
 void ListedForcesGpu::updateInteractionListsAndDeviceBuffers(ArrayRef<const int> /* nbnxnAtomOrder */,
                                                              const InteractionDefinitions& /* idef */,
-                                                             void* /* xqDevice */,
-                                                             DeviceBuffer<RVec> /* forceDevice */,
-                                                             DeviceBuffer<RVec> /* fshiftDevice */)
+                                                             NBAtomDataGpu* /* nbnxmAtomDataGpu */)
 {
 }
 

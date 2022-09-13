@@ -42,7 +42,7 @@
 
 #include "config.h"
 
-#include <time.h>
+#include <ctime>
 
 #include <random>
 #include <string>
@@ -77,7 +77,7 @@ bool beCool()
 template<typename T>
 const T& getPseudoRandomElement(gmx::ArrayRef<const T> arrayRef)
 {
-    std::mt19937_64                       generator(time(nullptr));
+    std::mt19937_64                       generator(std::time(nullptr));
     std::uniform_int_distribution<size_t> distribution(0, arrayRef.size() - 1);
     return arrayRef[distribution(generator)];
 }
@@ -1695,7 +1695,14 @@ std::string getCoolQuote()
           "Tanadet Pipatpolkai, while discussing new features for GROMACS" },
         { "I came up with the new convergence method, it's called a deadline driven convergence. "
           "My simulation is converged when it hits the deadline.",
-          "Tanadet Pipatpolkai" }
+          "Tanadet Pipatpolkai" },
+        { "Lets get back to beer", "Yuxuan Zhuang, in a discussion about science communication" },
+        { "You ONLY have to do the coding ...",
+          "Anton Jansen, to core developer, on implementing new features" },
+        { "There are way too many quotes", "Sebastian Wingbermuehle" },
+        { "It is not critical to add the next quote to a patch release", "Paul Bauer" },
+        { "It is a cute toxin.", "Rebecca Howard" },
+
     };
 
     if (beCool())

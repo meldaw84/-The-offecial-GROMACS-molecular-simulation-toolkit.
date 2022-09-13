@@ -775,7 +775,6 @@ int gmx_pmeonly(struct gmx_pme_t*               pme,
             pme_gpu_launch_complex_transforms(pme, wcycle, stepWork);
             pme_gpu_launch_gather(pme, wcycle, lambda_q);
             output = pme_gpu_wait_finish_task(pme, computeEnergyAndVirial, lambda_q, wcycle);
-            pme_gpu_reinit_computation(pme, wcycle);
         }
         else
         {
@@ -814,10 +813,21 @@ int gmx_pmeonly(struct gmx_pme_t*               pme,
 
         gmx_pme_send_force_vir_ener(*pme, pme_pp.get(), output, cycles);
 
+        // Reinit after PME->PP force send so it is removed from the critical path
+        if (useGpuForPme)
+        {
+            pme_gpu_reinit_computation(pme, wcycle);
+        }
+
         count++;
     } /***** end of quasi-loop, we stop with the break above */
     while (TRUE);
 
+    // The first element, `pme`, will be freed outside this function
+    for (size_t i = 1; i < pmedata.size(); i++)
+    {
+        gmx_pme_destroy(pmedata[i], false);
+    }
     walltime_accounting_end_time(walltime_accounting);
 
     return 0;

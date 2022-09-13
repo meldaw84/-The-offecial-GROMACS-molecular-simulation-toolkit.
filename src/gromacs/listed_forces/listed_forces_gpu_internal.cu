@@ -51,6 +51,7 @@
 
 #include <cassert>
 
+#include "gromacs/gpu_utils/cuda_arch_utils.cuh"
 #include "gromacs/gpu_utils/cudautils.cuh"
 #include "gromacs/gpu_utils/typecasts.cuh"
 #include "gromacs/gpu_utils/vectype_ops.cuh"
@@ -726,13 +727,12 @@ namespace gmx
 {
 
 template<bool calcVir, bool calcEner>
-__global__ void exec_kernel_gpu(BondedCudaKernelParameters kernelParams, float4* gm_xq, float3* gm_f, float3* gm_fShift)
+__global__ void bonded_kernel_gpu(BondedGpuKernelParameters kernelParams, float4* gm_xq, float3* gm_f, float3* gm_fShift)
 {
     assert(blockDim.y == 1 && blockDim.z == 1);
     const int tid          = blockIdx.x * blockDim.x + threadIdx.x;
-    float     vtot_loc     = 0;
-    float     vtotVdw_loc  = 0;
-    float     vtotElec_loc = 0;
+    float     vtot_loc     = 0.0F;
+    float     vtotElec_loc = 0.0F; // Used only for F_LJ14
 
     extern __shared__ char sm_dynamicShmem[];
     char*                  sm_nextSlotPtr = sm_dynamicShmem;
@@ -843,7 +843,7 @@ __global__ void exec_kernel_gpu(BondedCudaKernelParameters kernelParams, float4*
                                                  sm_fShiftLoc,
                                                  kernelParams.pbcAiuc,
                                                  kernelParams.electrostaticsScaleFactor,
-                                                 &vtotVdw_loc,
+                                                 &vtot_loc,
                                                  &vtotElec_loc);
                     break;
             }
@@ -853,43 +853,30 @@ __global__ void exec_kernel_gpu(BondedCudaKernelParameters kernelParams, float4*
 
     if (threadComputedPotential)
     {
-        float* vtotVdw  = kernelParams.d_vTot + F_LJ14;
+        float* vtot     = kernelParams.d_vTot + fType;
         float* vtotElec = kernelParams.d_vTot + F_COUL14;
 
-        // Stage atomic accumulation through shared memory:
-        // each warp will accumulate its own partial sum
-        // and then a single thread per warp will accumulate this to the global sum
+        // Perform warp-local reduction
+        vtot_loc += __shfl_down_sync(c_fullWarpMask, vtot_loc, 1);
+        vtotElec_loc += __shfl_up_sync(c_fullWarpMask, vtotElec_loc, 1);
+        if (threadIdx.x & 1)
+        {
+            vtot_loc = vtotElec_loc;
+        }
+#pragma unroll 4
+        for (int i = 2; i < warpSize; i *= 2)
+        {
+            vtot_loc += __shfl_down_sync(c_fullWarpMask, vtot_loc, i);
+        }
 
-        int numWarps = blockDim.x / warpSize;
-        int warpId   = threadIdx.x / warpSize;
-
-        // Shared memory variables to hold block-local partial sum
-        float* sm_vTot = reinterpret_cast<float*>(sm_nextSlotPtr);
-        sm_nextSlotPtr += numWarps * sizeof(float);
-        float* sm_vTotVdw = reinterpret_cast<float*>(sm_nextSlotPtr);
-        sm_nextSlotPtr += numWarps * sizeof(float);
-        float* sm_vTotElec = reinterpret_cast<float*>(sm_nextSlotPtr);
-
+        // Write reduced warp results into global memory
         if (threadIdx.x % warpSize == 0)
         {
-            // One thread per warp initializes to zero
-            sm_vTot[warpId]     = 0.;
-            sm_vTotVdw[warpId]  = 0.;
-            sm_vTotElec[warpId] = 0.;
+            atomicAdd(vtot, vtot_loc);
         }
-        __syncwarp(); // All threads in warp must wait for initialization
-
-        // Perform warp-local accumulation in shared memory
-        atomicAdd(sm_vTot + warpId, vtot_loc);
-        atomicAdd(sm_vTotVdw + warpId, vtotVdw_loc);
-        atomicAdd(sm_vTotElec + warpId, vtotElec_loc);
-
-        __syncwarp(); // Ensure all threads in warp have completed
-        if (threadIdx.x % warpSize == 0)
-        { // One thread per warp accumulates partial sum into global sum
-            atomicAdd(kernelParams.d_vTot + fType, sm_vTot[warpId]);
-            atomicAdd(vtotVdw, sm_vTotVdw[warpId]);
-            atomicAdd(vtotElec, sm_vTotElec[warpId]);
+        else if ((threadIdx.x % warpSize == 1) && (fType == F_LJ14))
+        {
+            atomicAdd(vtotElec, vtot_loc);
         }
     }
     /* Accumulate shift vectors from shared memory to global memory on the first c_numShiftVectors threads of the block. */
@@ -923,7 +910,7 @@ void ListedForcesGpu::Impl::launchKernel()
         return;
     }
 
-    auto kernelPtr = exec_kernel_gpu<calcVir, calcEner>;
+    auto kernelPtr = bonded_kernel_gpu<calcVir, calcEner>;
 
     const auto kernelArgs = prepareGpuKernelArguments(
             kernelPtr, kernelLaunchConfig_, &kernelParams_, &d_xq_, &d_f_, &d_fShift_);
@@ -932,7 +919,7 @@ void ListedForcesGpu::Impl::launchKernel()
                     kernelLaunchConfig_,
                     deviceStream_,
                     nullptr,
-                    "exec_kernel_gpu<calcVir, calcEner>",
+                    "bonded_kernel_gpu<calcVir, calcEner>",
                     kernelArgs);
 
     wallcycle_sub_stop(wcycle_, WallCycleSubCounter::LaunchGpuBonded);

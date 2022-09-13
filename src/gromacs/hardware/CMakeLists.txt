@@ -39,6 +39,7 @@ target_sources(hardware PRIVATE
     hardwaretopology.cpp
     printhardware.cpp
     identifyavx512fmaunits.cpp
+    simd_support.cpp
     )
 if (BUILD_SHARED_LIBS)
     set_target_properties(hardware PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -57,9 +58,11 @@ elseif(GMX_GPU_CUDA)
         device_management_common.cpp
         detecthardware.cpp
 	)
+    target_link_libraries(hardware PRIVATE CUDA::cudart)
 elseif(GMX_GPU_SYCL)
-    target_sources(hardware PRIVATE
-            device_management_sycl.cpp
+    gmx_add_libgromacs_sources(
+        device_management_sycl.cpp
+        device_management_sycl_intel_device_ids.cpp
     )
     _gmx_add_files_to_property(SYCL_SOURCES
         device_management_sycl.cpp

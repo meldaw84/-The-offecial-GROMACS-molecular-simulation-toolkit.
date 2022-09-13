@@ -59,7 +59,7 @@ static constexpr unsigned int c_cudaFullWarpMask = 0xffffffff;
 
 #if GMX_SYCL_HIPSYCL && HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP
 HIPSYCL_UNIVERSAL_TARGET
-static inline void atomicAddOptimized(float gmx_unused* ptr, const float gmx_unused delta)
+static inline void atomicAddOptimizedAmd(float gmx_unused* ptr, const float gmx_unused delta)
 {
 #    if defined(__gfx908__) // Special function for AMD MI100
 #        pragma clang diagnostic push
@@ -74,32 +74,48 @@ static inline void atomicAddOptimized(float gmx_unused* ptr, const float gmx_unu
 }
 #endif
 
-template<typename T, sycl_2020::memory_scope MemoryScope = sycl_2020::memory_scope::device>
+template<typename T, sycl_2020::memory_scope MemoryScope, sycl::access::address_space AddressSpace>
 static inline void atomicAddDefault(T& val, const T delta)
 {
-    using sycl_2020::memory_order, sycl::access::address_space;
-    sycl_2020::atomic_ref<T, memory_order::relaxed, MemoryScope, address_space::global_space> ref(val);
+    using sycl_2020::memory_order;
+    sycl_2020::atomic_ref<T, memory_order::relaxed, MemoryScope, AddressSpace> ref(val);
     ref.fetch_add(delta);
 }
 
 /*! \brief Convenience wrapper to do atomic addition to a global buffer.
  */
-template<typename T, sycl_2020::memory_scope MemoryScope = sycl_2020::memory_scope::device>
+template<typename T,
+         sycl_2020::memory_scope     MemoryScope  = sycl_2020::memory_scope::device,
+         sycl::access::address_space AddressSpace = sycl::access::address_space::global_space>
 static inline void atomicFetchAdd(T& val, const T delta)
 {
-    if constexpr (GMX_SYCL_HIPSYCL && std::is_same_v<T, float>)
+    using sycl::access::address_space;
+    // Check if we need/can call the optimized atomicAdd for AMD devices, see #4465.
+    if constexpr (GMX_SYCL_HIPSYCL && std::is_same_v<T, float> && AddressSpace == address_space::global_space)
     {
 #if GMX_SYCL_HIPSYCL && HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP
-        atomicAddOptimized(&val, delta);
+        atomicAddOptimizedAmd(&val, delta);
 #else
-
-        atomicAddDefault<T, MemoryScope>(val, delta);
+        atomicAddDefault<T, MemoryScope, AddressSpace>(val, delta);
 #endif
+    }
+    else if constexpr (std::is_same_v<T, Float3>)
+    {
+        atomicFetchAdd<float, MemoryScope, AddressSpace>(val[XX], delta[XX]);
+        atomicFetchAdd<float, MemoryScope, AddressSpace>(val[YY], delta[YY]);
+        atomicFetchAdd<float, MemoryScope, AddressSpace>(val[ZZ], delta[ZZ]);
     }
     else
     {
-        atomicAddDefault<T, MemoryScope>(val, delta);
+        atomicAddDefault<T, MemoryScope, AddressSpace>(val, delta);
     }
+}
+
+template<typename T>
+static inline void atomicFetchAddLocal(T& val, const T delta)
+{
+    atomicFetchAdd<T, sycl_2020::memory_scope::work_group, sycl::access::address_space::local_space>(
+            val, delta);
 }
 
 /*! \brief Convenience wrapper to do atomic loads from a global buffer.
@@ -162,7 +178,7 @@ __device__ __host__ static inline float shift_left(sycl::sub_group, float var, s
     // Should never be called
     GMX_UNUSED_VALUE(var);
     GMX_UNUSED_VALUE(delta);
-    assert(false);
+    SYCL_ASSERT(false);
     return NAN;
 #    endif
 }
@@ -188,7 +204,7 @@ __device__ __host__ static inline float shift_right(sycl::sub_group, float var, 
 #        endif
 #    else
     // Should never be called
-    assert(false);
+    SYCL_ASSERT(false);
     GMX_UNUSED_VALUE(var);
     GMX_UNUSED_VALUE(delta);
     return NAN;
@@ -221,7 +237,7 @@ __device__ __host__ static inline bool isfinite(Real value)
 #        endif
 #    else
     // Should never be called
-    assert(false);
+    SYCL_ASSERT(false);
     GMX_UNUSED_VALUE(value);
     return false;
 #    endif
@@ -231,78 +247,6 @@ template<typename Real>
 static inline bool isfinite(Real value)
 {
     return sycl::isfinite(value);
-}
-
-#endif
-
-#if GMX_SYCL_HIPSYCL
-
-/*! \brief Polyfill for sycl::vec::load buggy in hipSYCL
- *
- * Loads from the address \c ptr offset in elements of type T by
- * NumElements * offset, into the components of \c v.
- *
- * Can probably be removed when
- * https://github.com/illuhad/hipSYCL/issues/647 is resolved. */
-template<sycl::access::address_space AddressSpace, typename T, int NumElements>
-static inline void loadToVec(size_t                                 offset,
-                             sycl::multi_ptr<const T, AddressSpace> ptr,
-                             sycl::vec<T, NumElements>*             v)
-{
-    for (int i = 0; i < NumElements; ++i)
-    {
-        (*v)[i] = ptr.get()[offset * NumElements + i];
-    }
-}
-
-/*! \brief Polyfill for sycl::vec::store buggy in hipSYCL
- *
- * Loads from the address \c ptr offset in elements of type T by
- * NumElements * offset, into the components of \c v.
- *
- * Can probably be removed when
- * https://github.com/illuhad/hipSYCL/issues/647 is resolved. */
-template<sycl::access::address_space AddressSpace, typename T, int NumElements>
-static inline void storeFromVec(const sycl::vec<T, NumElements>& v,
-                                size_t                           offset,
-                                sycl::multi_ptr<T, AddressSpace> ptr)
-{
-    for (int i = 0; i < NumElements; ++i)
-    {
-        ptr.get()[offset * NumElements + i] = v[i];
-    }
-}
-
-#elif GMX_SYCL_DPCPP
-
-/*! \brief Polyfill for sycl::vec::load buggy in hipSYCL
- *
- * Loads from the address \c ptr offset in elements of type T by
- * NumElements * offset, into the components of \c v.
- *
- * Can probably be removed when
- * https://github.com/illuhad/hipSYCL/issues/647 is resolved. */
-template<sycl::access::address_space AddressSpace, typename T, int NumElements>
-static inline void loadToVec(size_t                                 offset,
-                             sycl::multi_ptr<const T, AddressSpace> ptr,
-                             sycl::vec<T, NumElements>*             v)
-{
-    v->load(offset, ptr);
-}
-
-/*! \brief Polyfill for sycl::vec::store buggy in hipSYCL
- *
- * Loads from the address \c ptr offset in elements of type T by
- * NumElements * offset, into the components of \c v.
- *
- * Can probably be removed when
- * https://github.com/illuhad/hipSYCL/issues/647 is resolved. */
-template<sycl::access::address_space AddressSpace, typename T, int NumElements>
-static inline void storeFromVec(const sycl::vec<T, NumElements>& v,
-                                size_t                           offset,
-                                sycl::multi_ptr<T, AddressSpace> ptr)
-{
-    v.store(offset, ptr);
 }
 
 #endif

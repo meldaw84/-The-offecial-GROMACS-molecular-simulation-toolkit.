@@ -48,7 +48,7 @@
 #include "gromacs/hardware/device_management.h"
 #include "gromacs/hardware/hardwaretopology.h"
 #include "gromacs/hardware/hw_info.h"
-#include "gromacs/simd/support.h"
+#include "gromacs/hardware/simd_support.h"
 #include "gromacs/utility/basedefinitions.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/inmemoryserializer.h"
@@ -313,6 +313,17 @@ static void gmx_collect_hardware_mpi(const gmx::CpuInfo&             cpuInfo,
     hardwareInfo->haveAmdZen1Cpu       = cpuIsAmdZen1;
     GMX_UNUSED_VALUE(physicalNodeComm);
 #endif
+
+    // SIMD instruction sets are actually NOT incremental, even though the
+    // code above abuses the enum a bit and assumes that. FMA4 on old AMD
+    // CPUs is a particular exception since it is not present on later CPUs,
+    // so we at least catch that one explicitly and if there is also a mix
+    // nodes we set the lowest supported set to plain 256-bit AVX.
+    if (hardwareInfo->simd_suggest_min == static_cast<int>(gmx::SimdType::X86_Avx128Fma)
+        && hardwareInfo->simd_suggest_min != hardwareInfo->simd_suggest_max)
+    {
+        hardwareInfo->simd_suggest_min = static_cast<int>(gmx::SimdType::X86_Avx);
+    }
 }
 
 std::unique_ptr<gmx_hw_info_t> gmx_detect_hardware(const PhysicalNodeCommunicator& physicalNodeComm,

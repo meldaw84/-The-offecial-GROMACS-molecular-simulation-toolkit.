@@ -43,7 +43,7 @@
 
 #include "gmxpre.h"
 
-#include "gromacs/simd/support.h"
+#include "gromacs/hardware/simd_support.h"
 
 #include "config.h"
 
@@ -67,7 +67,7 @@ namespace gmx
 
 /*! \cond libapi */
 
-const std::string& simdString(SimdType s)
+static const std::string& simdString(SimdType s)
 {
     static const std::map<SimdType, std::string> name = { { SimdType::None, "None" },
                                                           { SimdType::Reference, "Reference" },
@@ -136,7 +136,7 @@ SimdType simdSuggested(const CpuInfo& c)
                 }
                 else if (c.feature(CpuInfo::Feature::X86_Avx))
                 {
-                    // Use 128-bit FMA SIMD if Fma4 flag is set, otherwise plain 256-bit AVX
+                    // Use 128-bit FMA4 SIMD if Fma4 flag is set, otherwise plain 256-bit AVX
                     if (c.feature(CpuInfo::Feature::X86_Fma4))
                     {
                         suggested = SimdType::X86_Avx128Fma;
@@ -192,7 +192,7 @@ SimdType simdSuggested(const CpuInfo& c)
     return suggested;
 }
 
-SimdType simdCompiled()
+static SimdType simdCompiled()
 {
 #if GMX_SIMD_X86_AVX_512_KNL
     return SimdType::X86_Avx512Knl;
@@ -285,9 +285,19 @@ bool simdCheck(gmx::SimdType wanted, FILE* log, bool warnToStdErr)
         logMsg = wrapper.wrapToString(
                 formatString("Highest SIMD level supported by all nodes in run: %s\n"
                              "SIMD instructions selected at compile time:       %s\n"
-                             "Compiled SIMD newer than supported; program might crash.",
+                             "Compiled SIMD likely not supported by hardware; program might crash.",
                              simdString(wanted).c_str(),
                              simdString(compiled).c_str()));
+        warnMsg = logMsg;
+    }
+    else if (compiled == SimdType::X86_Avx128Fma && wanted != compiled)
+    {
+        logMsg  = wrapper.wrapToString(formatString(
+                "Highest SIMD level supported by all nodes in run: %s\n"
+                "SIMD instructions selected at compile time:       %s\n"
+                "AMD's early FMA4 AVX extension do not work on modern CPUs; program might crash.",
+                simdString(wanted).c_str(),
+                simdString(compiled).c_str()));
         warnMsg = logMsg;
     }
     else if (wanted != compiled)

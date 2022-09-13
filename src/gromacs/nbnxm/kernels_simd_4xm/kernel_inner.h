@@ -77,7 +77,7 @@
 
     /* Interaction (non-exclusion) mask of all 1's or 0's */
     const auto interactV = loadSimdPairInteractionMasks<c_needToCheckExclusions, kernelLayout>(
-            static_cast<int>(l_cj[cjind].excl), exclusionFilterV, nbat->simdMasks.interaction_array.data());
+            static_cast<int>(l_cj[cjind].excl), exclusionFilterV);
 
     /* load j atom coordinates */
     SimdReal jx_S = loadJAtomData<kernelLayout>(x, ajx);
@@ -99,41 +99,8 @@
     {
         if constexpr (c_haveExclusionForces)
         {
-            /* Only remove the (sub-)diagonal to avoid double counting */
-            if constexpr (UNROLLJ == UNROLLI)
-            {
-                if (cj == ci_sh)
-                {
-                    withinCutoffV = genBoolArr<nR>(
-                            [&](int i) { return withinCutoffV[i] && diagonalMaskV[i]; });
-                }
-            }
-            else if constexpr (UNROLLJ < UNROLLI)
-            {
-                if (cj == ci_sh * 2)
-                {
-                    withinCutoffV = genBoolArr<nR>(
-                            [&](int i) { return withinCutoffV[i] && diagonalMask0V[i]; });
-                }
-                if (cj == ci_sh * 2 + 1)
-                {
-                    withinCutoffV = genBoolArr<nR>(
-                            [&](int i) { return withinCutoffV[i] && diagonalMask1V[i]; });
-                }
-            }
-            else
-            {
-                if (cj * 2 == ci_sh)
-                {
-                    withinCutoffV = genBoolArr<nR>(
-                            [&](int i) { return withinCutoffV[i] && diagonalMask0V[i]; });
-                }
-                else if (cj * 2 + 1 == ci_sh)
-                {
-                    withinCutoffV = genBoolArr<nR>(
-                            [&](int i) { return withinCutoffV[i] && diagonalMask1V[i]; });
-                }
-            }
+            /* Only remove the (sub-)diagonal to avoid double counting exclusion forces */
+            diagonalMasker.maskArray(ci_sh, cj, withinCutoffV);
         }
         else
         {

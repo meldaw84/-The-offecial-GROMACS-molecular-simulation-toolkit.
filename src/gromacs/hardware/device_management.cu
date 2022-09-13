@@ -47,7 +47,7 @@
 
 #include "gromacs/hardware/device_management.h"
 
-#include <assert.h>
+#include <cassert>
 
 #include "gromacs/gpu_utils/cudautils.cuh"
 #include "gromacs/gpu_utils/device_context.h"
@@ -59,7 +59,7 @@
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringutil.h"
 
-#include "device_information.h"
+#include "gromacs/hardware/device_information.h"
 
 /*! \internal \brief
  * Max number of devices supported by CUDA (for consistency checking).

@@ -170,20 +170,14 @@ if (GMX_GPU_CUDA)
         # needed as we need to inlude cufftmp include path before CUDA include path
         cuda_include_directories(${cuFFTMp_INCLUDE_DIR})
     endif()
-    # Work around FindCUDA that prevents using target_link_libraries()
-    # with keywords otherwise...
-    set(CUDA_LIBRARIES PRIVATE ${CUDA_LIBRARIES})
-    if (NOT GMX_CLANG_CUDA)
-        gmx_cuda_add_library(libgromacs ${LIBGROMACS_SOURCES})
-    else()
-        add_library(libgromacs ${LIBGROMACS_SOURCES})
-    endif()
+    add_library(libgromacs ${LIBGROMACS_SOURCES})
+    target_link_libraries(libgromacs PRIVATE ${CUDA_LIBRARIES})
 
     #we cannot link with both cufftmp and cufft
     if(GMX_USE_cuFFTMp)
         target_link_libraries(libgromacs PRIVATE ${cuFFTMp_LIBRARY})
     else()
-        target_link_libraries(libgromacs PRIVATE ${CUDA_CUFFT_LIBRARIES})
+        target_link_libraries(libgromacs PRIVATE CUDA::cufft)
     endif()
 else()
     add_library(libgromacs ${LIBGROMACS_SOURCES})

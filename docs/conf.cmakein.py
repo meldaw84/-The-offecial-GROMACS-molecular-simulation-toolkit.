@@ -71,7 +71,10 @@ variables = [
     ('GMX_TNG_MINIMUM_REQUIRED_VERSION', '@GMX_TNG_MINIMUM_REQUIRED_VERSION@'),
     ('GMX_LMFIT_REQUIRED_VERSION', '@GMX_LMFIT_REQUIRED_VERSION@'),
     ('GMX_MANUAL_DOI_STRING', '@GMX_MANUAL_DOI_STRING@'),
-    ('GMX_SOURCE_DOI_STRING', '@GMX_SOURCE_DOI_STRING@')
+    ('GMX_SOURCE_DOI_STRING', '@GMX_SOURCE_DOI_STRING@'),
+    ('GMX_CURRENT_CONTRIBUTORS', '@GMX_CURRENT_CONTRIBUTORS_STRING@'),
+    ('GMX_PREVIOUS_CONTRIBUTORS', '@GMX_PREVIOUS_CONTRIBUTORS_STRING@'),
+    ('GMX_CURRENT_PROJECT_LEADERS', '@GMX_CURRENT_PROJECT_LEADERS_STRING@')
 ]
 # End of build-time substitutions.
 
@@ -98,10 +101,9 @@ needs_sphinx = gmx_min_sphinx
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.graphviz',
-    'sphinx.ext.extlinks',
-    'sphinx.ext.napoleon',
     'sphinx.ext.doctest',
+    'sphinx.ext.extlinks',
+    'sphinx.ext.graphviz',
     'sphinx.ext.intersphinx',
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',

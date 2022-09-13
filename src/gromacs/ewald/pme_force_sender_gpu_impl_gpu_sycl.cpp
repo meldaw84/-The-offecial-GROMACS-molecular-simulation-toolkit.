@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright 1991- The GROMACS Authors
+ * Copyright 2019- The GROMACS Authors
  * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
  * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
@@ -31,40 +31,31 @@
  * To help us fund GROMACS development, we humbly ask that you cite
  * the research papers on the package. Check out https://www.gromacs.org.
  */
-#ifndef GMX_LINEARALGEBRA_NRJAC_H
-#define GMX_LINEARALGEBRA_NRJAC_H
-
-#include "gromacs/math/vectypes.h"
-#include "gromacs/utility/arrayref.h"
-#include "gromacs/utility/real.h"
-
-/* Diagonalizes a symmetric matrix
+/*! \internal \file
  *
- * \param[in,out] a           Input matrix a[0..n-1][0..n-1] must be symmetric, gets modified
- * \param[in]  numDimensions  Number of rows and columns
- * \param[out] eigenvalues    eigenvalues[0]..eigenvalues[n-1] are the eigenvalues of a
- * \param[out] eigenvectors   v[0..n-1][0..n-1] the eigenvectors: v[i][j] is component i of vector j
- * \param[out] numRotations   The number of jacobi rotations, can be nullptr
- */
-void jacobi(double** a, int numDimensions, double* eigenvalues, double** eigenvectors, int* numRotations);
-
-/* Like jacobi above, but specialized for n=3
+ * \brief Implements backend-specific code for PME-PP communication using SYCL.
  *
- * \param[in,out] a  The symmetric matrix to diagonalize, size 3, note that the contents gets modified
- * \param[out] eigenvalues  The eigenvalues, size 3
- * \param[out] eigenvectors The eigenvectors, size 3
-
- * Returns the number of jacobi rotations.
+ * Does not actually implement anything, since the only backend-specific part is for peer-to-peer
+ * communication, which is not supported with SYCL yet.
+ *
+ * \author Andrey Alekseenko <al42and@gmail.com>
+ *
+ * \ingroup module_ewald
  */
-int jacobi(gmx::ArrayRef<gmx::DVec> a, gmx::ArrayRef<double> eigenvalues, gmx::ArrayRef<gmx::DVec> eigenvectors);
+#include "gmxpre.h"
 
-int m_inv_gen(real* m, int n, real* minv);
-/* Produces minv, a generalized inverse of m, both stored as linear arrays.
- * Inversion is done via diagonalization,
- * eigenvalues smaller than 1e-6 times the average diagonal element
- * are assumed to be zero.
- * For zero eigenvalues 1/eigenvalue is set to zero for the inverse matrix.
- * Returns the number of zero eigenvalues.
- */
+#include "gromacs/utility/gmxassert.h"
 
-#endif
+#include "pme_force_sender_gpu_impl.h"
+
+namespace gmx
+{
+
+/*! \brief Send PME synchronizer directly to the peer devices. Not implemented with SYCL. */
+void PmeForceSenderGpu::Impl::sendFToPpPeerToPeer(int /*ppRank*/, int /*numAtoms*/, bool /*sendForcesDirectToPpGpu*/)
+{
+    GMX_RELEASE_ASSERT(false,
+                       "Direct peer-to-peer communications not supported with SYCL and threadMPI.");
+}
+
+} // namespace gmx
