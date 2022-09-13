@@ -87,7 +87,7 @@ endif()
 # Source files have the following private module dependencies.
 target_link_libraries(hardware PRIVATE
                       common
-		      legacy_modules
+		      gpu_utils
                       simd
                       utility
                       )
