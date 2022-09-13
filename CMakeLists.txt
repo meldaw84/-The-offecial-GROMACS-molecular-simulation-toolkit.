@@ -31,7 +31,7 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out https://www.gromacs.org.
 
-cmake_minimum_required(VERSION 3.17.2)
+cmake_minimum_required(VERSION 3.18.4)
 
 cmake_policy(SET CMP0022 NEW)
 cmake_policy(SET CMP0048 NEW) # As of CMake 3.22, default is still "OLD"
@@ -619,9 +619,7 @@ if(GMX_GPU)
 	set(CMAKE_CUDA_STANDARD 17)
         set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 	# Avoid new cmake policy of enforcing CMAKE_CUDA_ARCHITECTURES initialization
-	if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.18.0")
-	  cmake_policy(SET CMP0104 OLD)
-	endif()
+	cmake_policy(SET CMP0104 OLD)
         include(gmxManageCuda)
     elseif(${_gmx_gpu_uppercase} STREQUAL "OPENCL")
         message(STATUS "GPU support with OpenCL is deprecated. It is still fully supported (and " 

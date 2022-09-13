@@ -66,6 +66,3 @@ gmx_add_unit_test(GpuUtilsUnitTests gpu_utils-test HARDWARE_DETECTION
     )
 target_link_libraries(gpu_utils-test PRIVATE gpu_utils)
 target_include_directories(gpu_utils-test PRIVATE ${PROJECT_SOURCE_DIR}/src/gromacs/math/tests)
-if(GMX_GPU_CUDA)
-  target_compile_features(gpu_utils-test PRIVATE cuda_std_14)
-endif()
