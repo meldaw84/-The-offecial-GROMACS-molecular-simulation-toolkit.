@@ -45,8 +45,8 @@ if(GMX_CLANG_CUDA)
     link_directories("${GMX_CUDA_CLANG_LINK_DIRS}")
 else()
     # Using NVIDIA compiler
-    if(NOT CUDAToolkit_NVCC_EXECUTABLE)
-        message(FATAL_ERROR "nvcc is required for a CUDA build, please set CUDA_TOOLKIT_ROOT_DIR appropriately")
+    if(NOT CMAKE_CUDA_COMPILER)
+        message(FATAL_ERROR "nvcc is required for a CUDA build, but was not found automatically. Please set CMAKE_CUDA_COMPILER.")
     endif()
     # set up nvcc options
     include(gmxManageNvccConfig)
