@@ -41,7 +41,7 @@ if (GMX_GPU_CUDA)
     # with keywords otherwise...
     set(CUDA_LIBRARIES PRIVATE ${CUDA_LIBRARIES})
     if (NOT GMX_CLANG_CUDA)
-        gmx_cuda_add_library(testutils)
+        add_library(testutils)
     else()
         set_source_files_properties(test_device.cpp PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
         gmx_compile_cuda_file_with_clang(test_device.cpp)
