@@ -250,16 +250,23 @@ auto pmeSplineAndSpreadKernel(
 
     return [=](sycl::nd_item<3> itemIdx) [[intel::reqd_sub_group_size(subGroupSize)]]
     {
-        const int blockIndex      = itemIdx.get_group_linear_id();
+        // Work-group size is {atomsPerBlock,  threadsPerAtom == ThreadsPerAtom::Order ? 1 : order, order}
+        const int blockIndex =
+                itemIdx.get_group(YY) * itemIdx.get_group_range(ZZ) + itemIdx.get_group(ZZ);
+        __builtin_assume(blockIndex >= 0);
         const int atomIndexOffset = blockIndex * atomsPerBlock;
 
         /* Thread index w.r.t. block */
-        const int threadLocalId = itemIdx.get_local_linear_id();
+        const int threadLocalIdAtom = itemIdx.get_local_id(XX);
+        __builtin_assume(threadLocalIdAtom >= 0 && threadLocalIdAtom < atomsPerBlock);
+        const int threadLocalIdSpline = itemIdx.get_local_id(YY) * order + itemIdx.get_local_id(ZZ);
+        __builtin_assume(threadLocalIdSpline >= 0 && threadLocalIdSpline < threadsPerAtomValue);
+        const int threadLocalId = itemIdx.get_local_id(XX) * threadsPerAtomValue + threadLocalIdSpline;
         /* Warp index w.r.t. block - could probably be obtained easier? */
         const int warpIndex = threadLocalId / subGroupSize;
 
         /* Atom index w.r.t. warp */
-        const int atomWarpIndex = itemIdx.get_local_id(XX) % atomsPerWarp;
+        const int atomWarpIndex = threadLocalIdAtom % atomsPerWarp;
         /* Atom index w.r.t. block/shared memory */
         const int atomIndexLocal = warpIndex * atomsPerWarp + atomWarpIndex;
         /* Atom index w.r.t. global memory */
@@ -274,7 +281,7 @@ auto pmeSplineAndSpreadKernel(
 
         /* Charges, required for both spline and spread */
         pmeGpuStageAtomData<float, atomsPerBlock, 1>(
-                sm_coefficients.get_pointer(), a_coefficients_0.get_pointer(), itemIdx);
+                sm_coefficients.get_pointer(), a_coefficients_0.get_pointer(), blockIndex, threadLocalId);
         itemIdx.barrier(fence_space::local_space);
         const float atomCharge = sm_coefficients[atomIndexLocal];
 
@@ -300,7 +307,9 @@ auto pmeSplineAndSpreadKernel(
                     nullptr,
                     sm_gridlineIndices.get_pointer(),
                     sm_fractCoords.get_pointer(),
-                    itemIdx);
+                    threadLocalId,
+                    threadLocalIdAtom,
+                    threadLocalIdSpline);
             subGroupBarrier(itemIdx);
         }
         else
@@ -311,10 +320,10 @@ auto pmeSplineAndSpreadKernel(
              */
             /* Spline data - only thetas (dthetas will only be needed in gather) */
             pmeGpuStageAtomData<float, atomsPerBlock, DIM * order>(
-                    sm_theta.get_pointer(), a_theta.get_pointer(), itemIdx);
+                    sm_theta.get_pointer(), a_theta.get_pointer(), blockIndex, threadLocalId);
             /* Gridline indices */
             pmeGpuStageAtomData<int, atomsPerBlock, DIM>(
-                    sm_gridlineIndices.get_pointer(), a_gridlineIndices.get_pointer(), itemIdx);
+                    sm_gridlineIndices.get_pointer(), a_gridlineIndices.get_pointer(), blockIndex, threadLocalId);
 
             itemIdx.barrier(fence_space::local_space);
         }
@@ -335,7 +344,7 @@ auto pmeSplineAndSpreadKernel(
         {
             itemIdx.barrier(fence_space::local_space);
             pmeGpuStageAtomData<float, atomsPerBlock, 1>(
-                    sm_coefficients.get_pointer(), a_coefficients_1.get_pointer(), itemIdx);
+                    sm_coefficients.get_pointer(), a_coefficients_1.get_pointer(), blockIndex, threadLocalId);
             itemIdx.barrier(fence_space::local_space);
             const float atomCharge = sm_coefficients[atomIndexLocal];
 

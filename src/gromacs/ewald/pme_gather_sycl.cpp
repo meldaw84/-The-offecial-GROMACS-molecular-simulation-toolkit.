@@ -358,15 +358,18 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
 
     return [=](sycl::nd_item<3> itemIdx) [[intel::reqd_sub_group_size(subGroupSize)]]
     {
+        // Work-group size is {atomsPerBlock,  threadsPerAtom == ThreadsPerAtom::Order ? 1 : order, order}
         SYCL_ASSERT(blockSize == itemIdx.get_local_range().size());
+        SYCL_ASSERT(itemIdx.get_local_range(ZZ) * itemIdx.get_local_range(YY) == threadsPerAtomValue);
         /* These are the atom indices - for the shared and global memory */
-        const int atomIndexLocal = itemIdx.get_local_id(XX);
+        const int threadLocalIdAtom = itemIdx.get_local_id(XX);
+        __builtin_assume(threadLocalIdAtom >= 0 && threadLocalIdAtom < atomsPerBlock);
         const int blockIndex =
                 itemIdx.get_group(YY) * itemIdx.get_group_range(ZZ) + itemIdx.get_group(ZZ);
-        // itemIdx.get_group_linear_id();
+        __builtin_assume(blockIndex >= 0);
 
         const int atomIndexOffset = blockIndex * atomsPerBlock;
-        const int atomIndexGlobal = atomIndexOffset + atomIndexLocal;
+        const int atomIndexGlobal = atomIndexOffset + threadLocalIdAtom;
         /* Early return for fully empty blocks at the end
          * (should only happen for billions of input atoms)
          */
@@ -376,18 +379,17 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
         }
         /* Spline Z coordinates */
         const int ithz = itemIdx.get_local_id(ZZ);
+        __builtin_assume(ithz >= 0 && ithz < order);
         /* These are the spline contribution indices in shared memory */
-        const int splineIndex =
+        const int threadLocalIdSpline =
                 itemIdx.get_local_id(YY) * itemIdx.get_local_range(ZZ) + itemIdx.get_local_id(ZZ);
+        __builtin_assume(threadLocalIdSpline >= 0 && threadLocalIdSpline < threadsPerAtomValue);
 
-        const int threadLocalId    = itemIdx.get_local_linear_id();
+        const int threadLocalId    = threadLocalIdAtom * threadsPerAtomValue + threadLocalIdSpline;
         const int threadLocalIdMax = blockSize;
-        SYCL_ASSERT(threadLocalId < threadLocalIdMax);
+        __builtin_assume(threadLocalId >= 0 && threadLocalId < threadLocalIdMax);
 
-        const int lineIndex =
-                (itemIdx.get_local_id(XX) * (itemIdx.get_local_range(ZZ) * itemIdx.get_local_range(YY)))
-                + splineIndex; // And to all the block's particles
-        SYCL_ASSERT(lineIndex == threadLocalId);
+        const int lineIndex = threadLocalId; // And to all the block's particles
 
         if constexpr (readGlobal)
         {
@@ -430,13 +432,13 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
             /* Recalculate  Splines  */
             /* Staging coefficients/charges */
             pmeGpuStageAtomData<float, atomsPerBlock, 1>(
-                    sm_coefficients.get_pointer(), a_coefficientsA.get_pointer(), itemIdx);
+                    sm_coefficients.get_pointer(), a_coefficientsA.get_pointer(), blockIndex, threadLocalId);
             /* Staging coordinates */
             pmeGpuStageAtomData<Float3, atomsPerBlock, 1>(
-                    sm_coordinates.get_pointer(), a_coordinates.get_pointer(), itemIdx);
+                    sm_coordinates.get_pointer(), a_coordinates.get_pointer(), blockIndex, threadLocalId);
             itemIdx.barrier(fence_space::local_space);
-            const Float3 atomX      = sm_coordinates[atomIndexLocal];
-            const float  atomCharge = sm_coefficients[atomIndexLocal];
+            const Float3 atomX      = sm_coordinates[threadLocalIdAtom];
+            const float  atomCharge = sm_coefficients[threadLocalIdAtom];
 
             calculateSplines<order, atomsPerBlock, atomsPerWarp, true, false, numGrids, subGroupSize>(
                     atomIndexOffset,
@@ -456,7 +458,9 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
                     sm_dtheta.get_pointer(),
                     sm_gridlineIndices.get_pointer(),
                     sm_fractCoords.get_pointer(),
-                    itemIdx);
+                    threadLocalId,
+                    threadLocalIdAtom,
+                    threadLocalIdSpline);
             subGroupBarrier(itemIdx);
         }
         float fx = 0.0F;
@@ -471,15 +475,15 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
         const int pny = realGridSizePadded[YY];
         const int pnz = realGridSizePadded[ZZ];
 
-        const int atomWarpIndex = atomIndexLocal % atomsPerWarp;
-        const int warpIndex     = atomIndexLocal / atomsPerWarp;
+        const int atomWarpIndex = threadLocalIdAtom % atomsPerWarp;
+        const int warpIndex     = threadLocalIdAtom / atomsPerWarp;
 
         const int splineIndexBase = getSplineParamIndexBase<order, atomsPerWarp>(warpIndex, atomWarpIndex);
         const int splineIndexZ = getSplineParamIndex<order, atomsPerWarp>(splineIndexBase, ZZ, ithz);
         const sycl::float2 tdz{ sm_theta[splineIndexZ], sm_dtheta[splineIndexZ] };
 
-        int       iz     = sm_gridlineIndices[atomIndexLocal * DIM + ZZ] + ithz;
-        const int ixBase = sm_gridlineIndices[atomIndexLocal * DIM + XX];
+        int       iz     = sm_gridlineIndices[threadLocalIdAtom * DIM + ZZ] + ithz;
+        const int ixBase = sm_gridlineIndices[threadLocalIdAtom * DIM + XX];
 
         if (iz >= nz)
         {
@@ -502,7 +506,7 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
                                                                   ny,
                                                                   pny,
                                                                   pnz,
-                                                                  atomIndexLocal,
+                                                                  threadLocalIdAtom,
                                                                   splineIndexBase,
                                                                   tdz,
                                                                   sm_gridlineIndices.get_pointer(),
@@ -510,8 +514,15 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
                                                                   sm_dtheta.get_pointer(),
                                                                   a_gridA.get_pointer());
         }
-        reduceAtomForces<order, atomDataSize, blockSize, subGroupSize>(
-                itemIdx, sm_forces.get_pointer(), atomIndexLocal, splineIndex, lineIndex, realGridSizeFP, fx, fy, fz);
+        reduceAtomForces<order, atomDataSize, blockSize, subGroupSize>(itemIdx,
+                                                                       sm_forces.get_pointer(),
+                                                                       threadLocalIdAtom,
+                                                                       threadLocalIdSpline,
+                                                                       lineIndex,
+                                                                       realGridSizeFP,
+                                                                       fx,
+                                                                       fy,
+                                                                       fz);
         itemIdx.barrier(fence_space::local_space);
 
         /* Calculating the final forces with no component branching, atomsPerBlock threads */
@@ -572,7 +583,7 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
                                                                       ny,
                                                                       pny,
                                                                       pnz,
-                                                                      atomIndexLocal,
+                                                                      threadLocalIdAtom,
                                                                       splineIndexBase,
                                                                       tdz,
                                                                       sm_gridlineIndices.get_pointer(),
@@ -581,8 +592,15 @@ auto pmeGatherKernel(sycl::handler&                                     cgh,
                                                                       a_gridB.get_pointer());
             }
             // Reduction of partial force contributions
-            reduceAtomForces<order, atomDataSize, blockSize, subGroupSize>(
-                    itemIdx, sm_forces.get_pointer(), atomIndexLocal, splineIndex, lineIndex, realGridSizeFP, fx, fy, fz);
+            reduceAtomForces<order, atomDataSize, blockSize, subGroupSize>(itemIdx,
+                                                                           sm_forces.get_pointer(),
+                                                                           threadLocalIdAtom,
+                                                                           threadLocalIdSpline,
+                                                                           lineIndex,
+                                                                           realGridSizeFP,
+                                                                           fx,
+                                                                           fy,
+                                                                           fz);
             itemIdx.barrier(fence_space::local_space);
 
             /* Calculating the final forces with no component branching, atomsPerBlock threads */
