@@ -32,7 +32,14 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out http://www.gromacs.org.
 
-gmx_add_libgromacs_sources(msm.cpp)
+add_library(msm OBJECT)
+target_sources(msm PRIVATE
+        msm.cpp
+)
+
+target_link_libraries(msm PRIVATE
+        common
+)
 
 if (BUILD_TESTING)
     add_subdirectory(tests)

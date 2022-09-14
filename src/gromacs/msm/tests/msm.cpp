@@ -42,7 +42,7 @@
 
 #include "gmxpre.h"
 
-#include "msm.h"
+#include "gromacs/msm/msm.h"
 
 #include <gtest/gtest.h>
 
@@ -53,15 +53,17 @@ namespace test
 
 class MsmTest : public ::testing::Test
 {
-  void test()
-  {
-      printf("Hallo")
-  }
-}
+protected:
+    void SetUp() override
+    {
+        hallo = "hallo";
+    }
+    std::string hallo;
+};
 
-TEST(MsmTest, TestingBla)
+TEST_F(MsmTest, TestingBla)
 {
-  test()
+    printf("result: %s\n", hallo.c_str());
 }
 
 namespace

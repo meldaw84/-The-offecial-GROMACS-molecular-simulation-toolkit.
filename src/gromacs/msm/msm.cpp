@@ -41,8 +41,16 @@
  */
 #include "gmxpre.h"
 
+#include <cstdio>
+
 #include "msm.h"
 
-printf("It works!")
+namespace gmx
+{
 
-syntaxerror!!!!!!
+void func()
+{
+    printf("It works!");
+}
+
+} // namespace gmx
