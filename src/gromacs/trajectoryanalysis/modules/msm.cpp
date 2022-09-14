@@ -68,20 +68,47 @@ namespace
 void count_transitions()
 {
     // Create state-assigned trajectory vector for initial tesing
-    std::vector<int> traj = {0, 1, 3, 2, 3, 3, 3, 2};
-    
+    std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
+    // TODO: Take lag time as an argument
+    int lag = 1;
+    const int nstates = 4;
+
     //using static_extents = extents<3, 3>;
     //const double dynamicExtents2D extents<3,3>;
 
-    // Initialize TCM as MultiDimArray
+    // Initialize TCM as MultiDimArray with zeros
     // TODO: Move to initAnalysis
     // TODO: Make matrix unique?
-    MultiDimArray<std::array<int, 64>, extents<8, 8>> transitionCountsMatrix = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } };
+    MultiDimArray<std::array<int, nstates*nstates>, extents<nstates, nstates>> transitionCountsMatrix = { { } };
 
+    //Extract time-lagged trajectories
+    std::vector<int> rows(discretizedTraj.begin(), discretizedTraj.end() - lag);
+    std::vector<int> cols(discretizedTraj.begin() + lag, discretizedTraj.end());
 
-    for (int i = 0; i < traj.size(); i++)
+    printf("\n ");
+
+    const auto& dataView = transitionCountsMatrix.asConstView();
+    const int numRows = transitionCountsMatrix.extent(0);
+    const int numCols = transitionCountsMatrix.extent(1);
+
+    // Iterate over trajectory and count transitions
+    for (int i = 0; i < rows.size(); i++)
     {
-        printf("%d ", traj[i]);
+      printf("row: %d ", rows[i]);
+      printf("col: %d ", cols[i]);
+      printf("\n");
+
+      transitionCountsMatrix(rows[i], cols[i]) += 1;
+
+    }
+
+    for (int i = 0; i < numRows; i++)
+    {
+        printf("\n");
+        for (int j=0; j < numCols; j++)
+        {
+            printf("%d ", dataView[i][j]);
+        }
     }
 }
 
