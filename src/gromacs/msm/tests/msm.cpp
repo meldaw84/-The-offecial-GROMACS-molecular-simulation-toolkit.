@@ -66,6 +66,11 @@ TEST_F(MsmTest, TestingBla)
     printf("result: %s\n", hallo.c_str());
 }
 
+TEST(MoreMSMTest, HiAgain)
+{
+    printf("hallo\n");
+}
+
 namespace
 {
 
