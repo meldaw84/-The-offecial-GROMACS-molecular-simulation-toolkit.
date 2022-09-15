@@ -172,7 +172,7 @@ if (GMX_GPU_CUDA)
     endif()
     add_library(libgromacs ${LIBGROMACS_SOURCES})
     target_link_libraries(libgromacs PRIVATE ${CUDA_LIBRARIES})
-
+    target_compile_options(libgromacs PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${GMX_CUDA_NVCC_FLAGS}>)
     #we cannot link with both cufftmp and cufft
     if(GMX_USE_cuFFTMp)
         target_link_libraries(libgromacs PRIVATE ${cuFFTMp_LIBRARY})

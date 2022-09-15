@@ -287,6 +287,11 @@ __device__ void urey_bradley_gpu(const int       i,
         harmonic_gpu(kUBA, r13A, dr, &vbond, &fbond);
 
         float cos_theta2 = cos_theta * cos_theta;
+
+        float3 f_i = make_float3(0.0F);
+        float3 f_j = make_float3(0.0F);
+        float3 f_k = make_float3(0.0F);
+
         if (cos_theta2 < 1.0F)
         {
             float st  = dVdt * rsqrtf(1.0F - cos_theta2);
@@ -299,13 +304,9 @@ __device__ void urey_bradley_gpu(const int       i,
             float cii = sth / nrij2;
             float ckk = sth / nrkj2;
 
-            float3 f_i = cii * r_ij - cik * r_kj;
-            float3 f_k = ckk * r_kj - cik * r_ij;
-            float3 f_j = -f_i - f_k;
-
-            atomicAdd(&gm_f[ai], f_i);
-            atomicAdd(&gm_f[aj], f_j);
-            atomicAdd(&gm_f[ak], f_k);
+            f_i = cii * r_ij - cik * r_kj;
+            f_k = ckk * r_kj - cik * r_ij;
+            f_j = -f_i - f_k;
 
             if (calcVir)
             {
@@ -326,14 +327,24 @@ __device__ void urey_bradley_gpu(const int       i,
             fbond *= rsqrtf(dr2);
 
             float3 fik = fbond * r_ik;
-            atomicAdd(&gm_f[ai], fik);
-            atomicAdd(&gm_f[ak], -fik);
+            f_i += fik;
+            f_k -= fik;
 
             if (calcVir && ki != gmx::c_centralShiftIndex)
             {
                 atomicAdd(&sm_fShiftLoc[ki], fik);
                 atomicAdd(&sm_fShiftLoc[gmx::c_centralShiftIndex], -fik);
             }
+        }
+        if ((cos_theta2 < 1.0F) || (dr2 != 0.0F))
+        {
+            atomicAdd(gm_f[ai], f_i);
+            atomicAdd(gm_f[ak], f_k);
+        }
+
+        if (cos_theta2 < 1.0F)
+        {
+            atomicAdd(gm_f[aj], f_j);
         }
     }
 }
@@ -727,7 +738,11 @@ namespace gmx
 {
 
 template<bool calcVir, bool calcEner>
-__global__ void bonded_kernel_gpu(BondedGpuKernelParameters kernelParams, float4* gm_xq, float3* gm_f, float3* gm_fShift)
+__global__ void bonded_kernel_gpu(BondedGpuKernelParameters kernelParams,
+                                  BondedGpuKernelBuffers    kernelBuffers,
+                                  float4*                   gm_xq,
+                                  float3*                   gm_f,
+                                  float3*                   gm_fShift)
 {
     assert(blockDim.y == 1 && blockDim.z == 1);
     const int tid          = blockIdx.x * blockDim.x + threadIdx.x;
@@ -757,7 +772,7 @@ __global__ void bonded_kernel_gpu(BondedGpuKernelParameters kernelParams, float4
         {
             const int      numBonds = kernelParams.numFTypeBonds[j];
             int            fTypeTid = tid - kernelParams.fTypeRangeStart[j];
-            const t_iatom* iatoms   = kernelParams.d_iatoms[j];
+            const t_iatom* iatoms   = kernelBuffers.d_iatoms[j];
             fType                   = kernelParams.fTypesOnGpu[j];
             if (calcEner)
             {
@@ -771,7 +786,7 @@ __global__ void bonded_kernel_gpu(BondedGpuKernelParameters kernelParams, float4
                                                  &vtot_loc,
                                                  numBonds,
                                                  iatoms,
-                                                 kernelParams.d_forceParams,
+                                                 kernelBuffers.d_forceParams,
                                                  gm_xq,
                                                  gm_f,
                                                  sm_fShiftLoc,
@@ -782,7 +797,7 @@ __global__ void bonded_kernel_gpu(BondedGpuKernelParameters kernelParams, float4
                                                   &vtot_loc,
                                                   numBonds,
                                                   iatoms,
-                                                  kernelParams.d_forceParams,
+                                                  kernelBuffers.d_forceParams,
                                                   gm_xq,
                                                   gm_f,
                                                   sm_fShiftLoc,
@@ -793,7 +808,7 @@ __global__ void bonded_kernel_gpu(BondedGpuKernelParameters kernelParams, float4
                                                         &vtot_loc,
                                                         numBonds,
                                                         iatoms,
-                                                        kernelParams.d_forceParams,
+                                                        kernelBuffers.d_forceParams,
                                                         gm_xq,
                                                         gm_f,
                                                         sm_fShiftLoc,
@@ -805,7 +820,7 @@ __global__ void bonded_kernel_gpu(BondedGpuKernelParameters kernelParams, float4
                                                  &vtot_loc,
                                                  numBonds,
                                                  iatoms,
-                                                 kernelParams.d_forceParams,
+                                                 kernelBuffers.d_forceParams,
                                                  gm_xq,
                                                  gm_f,
                                                  sm_fShiftLoc,
@@ -816,7 +831,7 @@ __global__ void bonded_kernel_gpu(BondedGpuKernelParameters kernelParams, float4
                                                   &vtot_loc,
                                                   numBonds,
                                                   iatoms,
-                                                  kernelParams.d_forceParams,
+                                                  kernelBuffers.d_forceParams,
                                                   gm_xq,
                                                   gm_f,
                                                   sm_fShiftLoc,
@@ -827,7 +842,7 @@ __global__ void bonded_kernel_gpu(BondedGpuKernelParameters kernelParams, float4
                                                  &vtot_loc,
                                                  numBonds,
                                                  iatoms,
-                                                 kernelParams.d_forceParams,
+                                                 kernelBuffers.d_forceParams,
                                                  gm_xq,
                                                  gm_f,
                                                  sm_fShiftLoc,
@@ -837,7 +852,7 @@ __global__ void bonded_kernel_gpu(BondedGpuKernelParameters kernelParams, float4
                     pairs_gpu<calcVir, calcEner>(fTypeTid,
                                                  numBonds,
                                                  iatoms,
-                                                 kernelParams.d_forceParams,
+                                                 kernelBuffers.d_forceParams,
                                                  gm_xq,
                                                  gm_f,
                                                  sm_fShiftLoc,
@@ -853,8 +868,8 @@ __global__ void bonded_kernel_gpu(BondedGpuKernelParameters kernelParams, float4
 
     if (threadComputedPotential)
     {
-        float* vtot     = kernelParams.d_vTot + fType;
-        float* vtotElec = kernelParams.d_vTot + F_COUL14;
+        float* vtot     = kernelBuffers.d_vTot + fType;
+        float* vtotElec = kernelBuffers.d_vTot + F_COUL14;
 
         // Perform warp-local reduction
         vtot_loc += __shfl_down_sync(c_fullWarpMask, vtot_loc, 1);
@@ -913,7 +928,7 @@ void ListedForcesGpu::Impl::launchKernel()
     auto kernelPtr = bonded_kernel_gpu<calcVir, calcEner>;
 
     const auto kernelArgs = prepareGpuKernelArguments(
-            kernelPtr, kernelLaunchConfig_, &kernelParams_, &d_xq_, &d_f_, &d_fShift_);
+            kernelPtr, kernelLaunchConfig_, &kernelParams_, &kernelBuffers_, &d_xq_, &d_f_, &d_fShift_);
 
     launchGpuKernel(kernelPtr,
                     kernelLaunchConfig_,
