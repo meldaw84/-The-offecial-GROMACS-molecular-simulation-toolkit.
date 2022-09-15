@@ -234,5 +234,4 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     endforeach()
 endif()
 
-string(TOUPPER "${CMAKE_BUILD_TYPE}" _build_type)
-gmx_check_if_changed(_cuda_nvcc_executable_or_flags_changed CUDA_NVCC_EXECUTABLE CUDA_NVCC_FLAGS CUDA_NVCC_FLAGS_${_build_type})
+gmx_check_if_changed(_cuda_nvcc_executable_or_flags_changed CUDAToolkit_NVCC_EXECUTABLE CMAKE_CUDA_FLAGS)
