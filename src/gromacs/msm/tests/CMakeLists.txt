@@ -34,4 +34,6 @@
 
 gmx_add_unit_test(MsmTest msm-test CPP_SOURCE_FILES msm.cpp)
 
-target_link_libraries(msm-test PRIVATE math)
+target_link_libraries(msm-test PRIVATE
+        msm
+        )

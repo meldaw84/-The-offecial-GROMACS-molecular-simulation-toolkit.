@@ -42,6 +42,11 @@
 #ifndef MSM_H
 #define MSM_H
 
+namespace gmx
+{
+
 void myfunc();
+
+} // namespace gmx
 
 #endif
