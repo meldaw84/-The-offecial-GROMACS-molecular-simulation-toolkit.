@@ -34,6 +34,8 @@
 add_library(hardware OBJECT)
 target_sources(hardware PRIVATE
     cpuinfo.cpp
+    detecthardware.cpp
+    device_management_common.cpp
     hardwaretopology.cpp
     printhardware.cpp
     identifyavx512fmaunits.cpp
@@ -43,14 +45,8 @@ if (BUILD_SHARED_LIBS)
     set_target_properties(hardware PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
-# We would like to have device_management_common.cpp and detecthardware.cpp in the target_sources call abaove.
-# However, we instead put them in each branch below because they need to include device_information.h, which
-# in the case of SYCL means that they have to be in an add_sycl_to_target call to pick up <CL/sycl.hpp>.
 if(GMX_GPU_OPENCL)
     target_sources(hardware PRIVATE
-            device_management.cpp
-            detecthardware.cpp
-            device_management_common.cpp
             device_management_ocl.cpp
         )
 elseif(GMX_GPU_CUDA)
@@ -64,9 +60,15 @@ elseif(GMX_GPU_CUDA)
 	)
     target_link_libraries(hardware PRIVATE CUDA::cudart)
 elseif(GMX_GPU_SYCL)
-    add_sycl_to_target(TARGET hardware
+    target_sources(hardware PRIVATE
             device_management_sycl.cpp
             device_management_sycl_intel_device_ids.cpp
+            )
+    add_sycl_to_target(TARGET hardware
+            SOURCES
+            device_management_sycl.cpp
+            device_management_sycl_intel_device_ids.cpp
+            # Must add these files so they can include device_information.h
             device_management.cpp
             device_management_common.cpp
             detecthardware.cpp
@@ -74,8 +76,6 @@ elseif(GMX_GPU_SYCL)
 else()
     target_sources(hardware PRIVATE
             device_management.cpp
-            detecthardware.cpp
-            device_management_common.cpp
     )
 endif()
 
