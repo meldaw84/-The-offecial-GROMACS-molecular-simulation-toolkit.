@@ -50,7 +50,7 @@
 #include "nbnxm_sycl_types.h"
 
 //! \brief Class name for NBNXM kernel
-template<bool doPruneNBL, bool doCalcEnergies, enum Nbnxm::ElecType elecType, enum Nbnxm::VdwType vdwType>
+template<Nbnxm::GpuJGroupSize gpuJGroupSize, bool doPruneNBL, bool doCalcEnergies, enum Nbnxm::ElecType elecType, enum Nbnxm::VdwType vdwType>
 class NbnxmKernel;
 
 namespace Nbnxm
@@ -737,39 +737,40 @@ static inline void reduceForceIAndFShift(sycl::local_ptr<float> sm_buf,
 /*! \brief Main kernel for NBNXM.
  *
  */
-template<bool doPruneNBL, bool doCalcEnergies, enum ElecType elecType, enum VdwType vdwType>
-static auto nbnxmKernel(sycl::handler&                                            cgh,
-                        DeviceAccessor<Float4, mode::read>                        a_xq,
-                        DeviceAccessor<Float3, mode::read_write>                  a_f,
-                        DeviceAccessor<Float3, mode::read>                        a_shiftVec,
-                        DeviceAccessor<Float3, mode::read_write>                  a_fShift,
-                        OptionalAccessor<float, mode::read_write, doCalcEnergies> a_energyElec,
-                        OptionalAccessor<float, mode::read_write, doCalcEnergies> a_energyVdw,
-                        DeviceAccessor<nbnxn_cj_packed_t, doPruneNBL ? mode::read_write : mode::read> a_plistCJPacked,
-                        DeviceAccessor<nbnxn_sci_t, mode::read>                     a_plistSci,
-                        DeviceAccessor<nbnxn_excl_t, mode::read>                    a_plistExcl,
-                        OptionalAccessor<Float2, mode::read, ljComb<vdwType>>       a_ljComb,
-                        OptionalAccessor<int, mode::read, !ljComb<vdwType>>         a_atomTypes,
-                        OptionalAccessor<Float2, mode::read, !ljComb<vdwType>>      a_nbfp,
-                        OptionalAccessor<Float2, mode::read, ljEwald<vdwType>>      a_nbfpComb,
-                        OptionalAccessor<float, mode::read, elecEwaldTab<elecType>> a_coulombTab,
-                        const int                                                   numTypes,
-                        const float                                                 rCoulombSq,
-                        const float                                                 rVdwSq,
-                        const float                                                 twoKRf,
-                        const float                                                 ewaldBeta,
-                        const float                                                 rlistOuterSq,
-                        const float                                                 ewaldShift,
-                        const float                                                 epsFac,
-                        const float                                                 ewaldCoeffLJ,
-                        const float                                                 cRF,
-                        const shift_consts_t                                        dispersionShift,
-                        const shift_consts_t                                        repulsionShift,
-                        const switch_consts_t                                       vdwSwitch,
-                        const float                                                 rVdwSwitch,
-                        const float                                                 ljEwaldShift,
-                        const float                                                 coulombTabScale,
-                        const bool                                                  calcShift)
+template<Nbnxm::GpuJGroupSize gpuJGroupSize, bool doPruneNBL, bool doCalcEnergies, enum ElecType elecType, enum VdwType vdwType>
+static auto
+nbnxmKernel(sycl::handler&                                            cgh,
+            DeviceAccessor<Float4, mode::read>                        a_xq,
+            DeviceAccessor<Float3, mode::read_write>                  a_f,
+            DeviceAccessor<Float3, mode::read>                        a_shiftVec,
+            DeviceAccessor<Float3, mode::read_write>                  a_fShift,
+            OptionalAccessor<float, mode::read_write, doCalcEnergies> a_energyElec,
+            OptionalAccessor<float, mode::read_write, doCalcEnergies> a_energyVdw,
+            DeviceAccessor<nbnxn_cj_packed_t<gpuJGroupSize>, doPruneNBL ? mode::read_write : mode::read> a_plistCJPacked,
+            DeviceAccessor<nbnxn_sci_t, mode::read>                     a_plistSci,
+            DeviceAccessor<nbnxn_excl_t, mode::read>                    a_plistExcl,
+            OptionalAccessor<Float2, mode::read, ljComb<vdwType>>       a_ljComb,
+            OptionalAccessor<int, mode::read, !ljComb<vdwType>>         a_atomTypes,
+            OptionalAccessor<Float2, mode::read, !ljComb<vdwType>>      a_nbfp,
+            OptionalAccessor<Float2, mode::read, ljEwald<vdwType>>      a_nbfpComb,
+            OptionalAccessor<float, mode::read, elecEwaldTab<elecType>> a_coulombTab,
+            const int                                                   numTypes,
+            const float                                                 rCoulombSq,
+            const float                                                 rVdwSq,
+            const float                                                 twoKRf,
+            const float                                                 ewaldBeta,
+            const float                                                 rlistOuterSq,
+            const float                                                 ewaldShift,
+            const float                                                 epsFac,
+            const float                                                 ewaldCoeffLJ,
+            const float                                                 cRF,
+            const shift_consts_t                                        dispersionShift,
+            const shift_consts_t                                        repulsionShift,
+            const switch_consts_t                                       vdwSwitch,
+            const float                                                 rVdwSwitch,
+            const float                                                 ljEwaldShift,
+            const float                                                 coulombTabScale,
+            const bool                                                  calcShift)
 {
     static constexpr EnergyFunctionProperties<elecType, vdwType> props;
 
@@ -1013,7 +1014,7 @@ static auto nbnxmKernel(sycl::handler&                                          
             const int wexclIdx = a_plistCJPacked[jPacked].imei[imeiIdx].excl_ind;
             static_assert(gmx::isPowerOfTwo(prunedClusterPairSize));
             const unsigned wexcl = a_plistExcl[wexclIdx].pair[tidx & (prunedClusterPairSize - 1)];
-            for (int jm = 0; jm < c_nbnxnGpuJgroupSize; jm++)
+            for (int jm = 0; jm < int(Nbnxm::GpuJGroupSize::Four); jm++)
             {
                 const bool maskSet =
                         imask & (superClInteractionMask << (jm * c_nbnxnGpuNumClusterPerSupercluster));
@@ -1255,7 +1256,7 @@ static auto nbnxmKernel(sycl::handler&                                          
                 /* reduce j forces */
                 reduceForceJ<useShuffleReductionForceJ>(
                         sm_reductionBuffer, fCjBuf, itemIdx, tidxi, tidxj, aj, a_f.get_pointer());
-            } // for (int jm = 0; jm < c_nbnxnGpuJgroupSize; jm++)
+            } // for (int jm = 0; jm < Nbnxm::GpuJGroupSize::Four; jm++)
             if constexpr (doPruneNBL)
             {
                 /* Update the imask with the new one which does not contain the
@@ -1296,10 +1297,10 @@ static auto nbnxmKernel(sycl::handler&                                          
 }
 
 //! \brief NBNXM kernel launch code.
-template<bool doPruneNBL, bool doCalcEnergies, enum ElecType elecType, enum VdwType vdwType, class... Args>
+template<Nbnxm::GpuJGroupSize gpuJGroupSize, bool doPruneNBL, bool doCalcEnergies, enum ElecType elecType, enum VdwType vdwType, class... Args>
 static sycl::event launchNbnxmKernel(const DeviceStream& deviceStream, const int numSci, Args&&... args)
 {
-    using kernelNameType = NbnxmKernel<doPruneNBL, doCalcEnergies, elecType, vdwType>;
+    using kernelNameType = NbnxmKernel<gpuJGroupSize, doPruneNBL, doCalcEnergies, elecType, vdwType>;
 
     /* Kernel launch config:
      * - The thread block dimensions match the size of i-clusters, j-clusters,
@@ -1314,7 +1315,7 @@ static sycl::event launchNbnxmKernel(const DeviceStream& deviceStream, const int
     sycl::queue q = deviceStream.stream();
 
     sycl::event e = q.submit([&](sycl::handler& cgh) {
-        auto kernel = nbnxmKernel<doPruneNBL, doCalcEnergies, elecType, vdwType>(
+        auto kernel = nbnxmKernel<gpuJGroupSize, doPruneNBL, doCalcEnergies, elecType, vdwType>(
                 cgh, std::forward<Args>(args)...);
         cgh.parallel_for<kernelNameType>(range, kernel);
     });
@@ -1323,12 +1324,12 @@ static sycl::event launchNbnxmKernel(const DeviceStream& deviceStream, const int
 }
 
 //! \brief Select templated kernel and launch it.
-template<bool doPruneNBL, bool doCalcEnergies, class... Args>
+template<Nbnxm::GpuJGroupSize gpuJGroupSize, bool doPruneNBL, bool doCalcEnergies, class... Args>
 void chooseAndLaunchNbnxmKernel(enum ElecType elecType, enum VdwType vdwType, Args&&... args)
 {
     gmx::dispatchTemplatedFunction(
             [&](auto elecType_, auto vdwType_) {
-                return launchNbnxmKernel<doPruneNBL, doCalcEnergies, elecType_, vdwType_>(
+                return launchNbnxmKernel<gpuJGroupSize, doPruneNBL, doCalcEnergies, elecType_, vdwType_>(
                         std::forward<Args>(args)...);
             },
             elecType,
@@ -1346,41 +1347,42 @@ void launchNbnxmKernelHelper(NbnxmGpu* nb, const gmx::StepWorkload& stepWork, co
     GMX_ASSERT(doPruneNBL == (plist->haveFreshList && !nb->didPrune[iloc]), "Wrong template called");
     GMX_ASSERT(doCalcEnergies == stepWork.computeEnergy, "Wrong template called");
 
-    chooseAndLaunchNbnxmKernel<doPruneNBL, doCalcEnergies>(nbp->elecType,
-                                                           nbp->vdwType,
-                                                           deviceStream,
-                                                           plist->nsci,
-                                                           adat->xq,
-                                                           adat->f,
-                                                           adat->shiftVec,
-                                                           adat->fShift,
-                                                           adat->eElec,
-                                                           adat->eLJ,
-                                                           plist->cjPacked,
-                                                           plist->sci,
-                                                           plist->excl,
-                                                           adat->ljComb,
-                                                           adat->atomTypes,
-                                                           nbp->nbfp,
-                                                           nbp->nbfp_comb,
-                                                           nbp->coulomb_tab,
-                                                           adat->numTypes,
-                                                           nbp->rcoulomb_sq,
-                                                           nbp->rvdw_sq,
-                                                           nbp->two_k_rf,
-                                                           nbp->ewald_beta,
-                                                           nbp->rlistOuter_sq,
-                                                           nbp->sh_ewald,
-                                                           nbp->epsfac,
-                                                           nbp->ewaldcoeff_lj,
-                                                           nbp->c_rf,
-                                                           nbp->dispersion_shift,
-                                                           nbp->repulsion_shift,
-                                                           nbp->vdw_switch,
-                                                           nbp->rvdw_switch,
-                                                           nbp->sh_lj_ewald,
-                                                           nbp->coulomb_tab_scale,
-                                                           stepWork.computeVirial);
+    chooseAndLaunchNbnxmKernel<Nbnxm::GpuJGroupSize::Four, doPruneNBL, doCalcEnergies>(
+            nbp->elecType,
+            nbp->vdwType,
+            deviceStream,
+            plist->nsci,
+            adat->xq,
+            adat->f,
+            adat->shiftVec,
+            adat->fShift,
+            adat->eElec,
+            adat->eLJ,
+            plist->cjPacked,
+            plist->sci,
+            plist->excl,
+            adat->ljComb,
+            adat->atomTypes,
+            nbp->nbfp,
+            nbp->nbfp_comb,
+            nbp->coulomb_tab,
+            adat->numTypes,
+            nbp->rcoulomb_sq,
+            nbp->rvdw_sq,
+            nbp->two_k_rf,
+            nbp->ewald_beta,
+            nbp->rlistOuter_sq,
+            nbp->sh_ewald,
+            nbp->epsfac,
+            nbp->ewaldcoeff_lj,
+            nbp->c_rf,
+            nbp->dispersion_shift,
+            nbp->repulsion_shift,
+            nbp->vdw_switch,
+            nbp->rvdw_switch,
+            nbp->sh_lj_ewald,
+            nbp->coulomb_tab_scale,
+            stepWork.computeVirial);
 }
 
 } // namespace Nbnxm

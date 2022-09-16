@@ -63,11 +63,11 @@ namespace Nbnxm
  *
  */
 template<bool haveFreshList>
-auto nbnxmKernelPruneOnly(sycl::handler&                                      cgh,
-                          DeviceAccessor<Float4, mode::read>                  a_xq,
-                          DeviceAccessor<Float3, mode::read>                  a_shiftVec,
-                          DeviceAccessor<nbnxn_cj_packed_t, mode::read_write> a_plistCJPacked,
-                          DeviceAccessor<nbnxn_sci_t, mode::read>             a_plistSci,
+auto nbnxmKernelPruneOnly(sycl::handler&                     cgh,
+                          DeviceAccessor<Float4, mode::read> a_xq,
+                          DeviceAccessor<Float3, mode::read> a_shiftVec,
+                          DeviceAccessor<nbnxn_cj_packed_t<Nbnxm::GpuJGroupSize::Four>, mode::read_write> a_plistCJPacked,
+                          DeviceAccessor<nbnxn_sci_t, mode::read> a_plistSci,
                           DeviceAccessor<unsigned int, haveFreshList ? mode::write : mode::read> a_plistIMask,
                           const float rlistOuterSq,
                           const float rlistInnerSq,
@@ -165,7 +165,7 @@ auto nbnxmKernelPruneOnly(sycl::handler&                                      cg
 
             if (imaskCheck)
             {
-                for (int jm = 0; jm < c_nbnxnGpuJgroupSize; jm++)
+                for (int jm = 0; jm < int(Nbnxm::GpuJGroupSize::Four); jm++)
                 {
                     if (imaskCheck & (superClInteractionMask << (jm * c_nbnxnGpuNumClusterPerSupercluster)))
                     {
@@ -207,7 +207,7 @@ auto nbnxmKernelPruneOnly(sycl::handler&                                      cg
                             mask_ji += mask_ji;
                         } // (int i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i++)
                     } // (imaskCheck & (superClInteractionMask << (jm * c_nbnxnGpuNumClusterPerSupercluster)))
-                } // for (int jm = 0; jm < c_nbnxnGpuJgroupSize; jm++)
+                } // for (int jm = 0; jm < Nbnxm::GpuJGroupSize::Four; jm++)
 
                 if constexpr (haveFreshList)
                 {

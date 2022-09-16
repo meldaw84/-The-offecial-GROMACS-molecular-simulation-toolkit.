@@ -54,16 +54,16 @@
 
 static constexpr int c_clSize = c_nbnxnGpuClusterSize;
 
-void nbnxn_kernel_gpu_ref(const NbnxnPairlistGpu*        nbl,
-                          const nbnxn_atomdata_t*        nbat,
-                          const interaction_const_t*     iconst,
-                          gmx::ArrayRef<const gmx::RVec> shiftvec,
-                          const gmx::StepWorkload&       stepWork,
-                          int                            clearF,
-                          gmx::ArrayRef<real>            f,
-                          real*                          fshift,
-                          real*                          Vc,
-                          real*                          Vvdw)
+void nbnxn_kernel_gpu_ref(const NbnxnPairlistGpu<Nbnxm::GpuJGroupSize::Four>* nbl,
+                          const nbnxn_atomdata_t*                             nbat,
+                          const interaction_const_t*                          iconst,
+                          gmx::ArrayRef<const gmx::RVec>                      shiftvec,
+                          const gmx::StepWorkload&                            stepWork,
+                          int                                                 clearF,
+                          gmx::ArrayRef<real>                                 f,
+                          real*                                               fshift,
+                          real*                                               Vc,
+                          real*                                               Vvdw)
 {
     real                fscal = NAN;
     real                vcoul = 0;
@@ -149,7 +149,7 @@ void nbnxn_kernel_gpu_ref(const NbnxnPairlistGpu*        nbl,
             excl[0] = &nbl->excl[nbl->cjPacked.list_[cjPacked].imei[0].excl_ind];
             excl[1] = &nbl->excl[nbl->cjPacked.list_[cjPacked].imei[1].excl_ind];
 
-            for (int jm = 0; jm < c_nbnxnGpuJgroupSize; jm++)
+            for (int jm = 0; jm < int(Nbnxm::GpuJGroupSize::Four); jm++)
             {
                 const int cj = nbl->cjPacked.list_[cjPacked].cj[jm];
 
