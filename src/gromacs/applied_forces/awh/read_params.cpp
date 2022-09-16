@@ -765,8 +765,9 @@ AwhBiasParams::AwhBiasParams(std::vector<t_inpfile>* inp, const std::string& pre
 
     if (bComment)
     {
-        printStringNoNewline(
-                inp, "Target distribution type: constant, cutoff, boltzmann, local-boltzmann or friction-optimized");
+        printStringNoNewline(inp,
+                             "Target distribution type: constant, cutoff, boltzmann, "
+                             "local-boltzmann or friction-optimized");
     }
     opt      = prefix + "-target";
     eTarget_ = getEnum<AwhTargetType>(inp, opt.c_str(), wi);

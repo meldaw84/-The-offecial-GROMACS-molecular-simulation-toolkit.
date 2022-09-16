@@ -181,17 +181,19 @@ public:
     /*! \brief
      * Initialize the state of grid coordinate points.
      *
-     * \param[in] awhBiasParams   Bias parameters from inputrec.
-     * \param[in] dimParams       The dimension parameters.
-     * \param[in] grid            The grid.
-     * \param[in] params          The bias parameters.
-     * \param[in] filename        Name of file to read PMF and target from.
-     * \param[in] numBias         The number of biases.
+     * \param[in] awhBiasParams    Bias parameters from inputrec.
+     * \param[in] dimParams        The dimension parameters.
+     * \param[in] grid             The grid.
+     * \param[in] params           The bias parameters.
+     * \param[in] forceCorrelation The force correlation statistics for every grid point.
+     * \param[in] filename         Name of file to read PMF and target from.
+     * \param[in] numBias          The number of biases.
      */
     void initGridPointState(const AwhBiasParams&      awhBiasParams,
                             ArrayRef<const DimParams> dimParams,
                             const BiasGrid&           grid,
                             const BiasParams&         params,
+                            const CorrelationGrid&    forceCorrelation,
                             const std::string&        filename,
                             int                       numBias);
 
@@ -350,6 +352,17 @@ private:
                                  ArrayRef<const DimParams> dimParams,
                                  const BiasGrid&           grid) const;
 
+    /*! \brief
+     * Updates the target distribution for all points.
+     *
+     * The target distribution is always updated for all points
+     * at the same time.
+     *
+     * \param[in] params           The bias parameters.
+     * \param[in] forceCorrelation The force correlation statistics for every grid point.
+     */
+    void updateTargetDistribution(const BiasParams& params, const CorrelationGrid& forceCorrelation);
+
 public:
     /*! \brief
      * Update the reaction coordinate value.
@@ -379,6 +392,7 @@ public:
      * \param[in]     dimParams        The dimension parameters.
      * \param[in]     grid             The grid.
      * \param[in]     params           The bias parameters.
+     * \param[in]     forceCorrelation The force correlation statistics for every grid point.
      * \param[in]     t                Time.
      * \param[in]     step             Time step.
      * \param[in,out] fplog            Log file.
@@ -387,6 +401,7 @@ public:
     void updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParams> dimParams,
                                                   const BiasGrid&           grid,
                                                   const BiasParams&         params,
+                                                  const CorrelationGrid&    forceCorrelation,
                                                   double                    t,
                                                   int64_t                   step,
                                                   FILE*                     fplog,

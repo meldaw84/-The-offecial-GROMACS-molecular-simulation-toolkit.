@@ -293,39 +293,6 @@ void BiasState::calcConvolvedPmf(ArrayRef<const DimParams> dimParams,
 
 namespace
 {
-
-/*! \brief
- * Updates the target distribution for all points.
- *
- * The target distribution is always updated for all points
- * at the same time.
- *
- * \param[in,out] pointState  The state of all points.
- * \param[in]     params      The bias parameters.
- */
-void updateTargetDistribution(ArrayRef<PointState> pointState, const BiasParams& params)
-{
-    double freeEnergyCutoff = 0;
-    if (params.eTarget == AwhTargetType::Cutoff)
-    {
-        freeEnergyCutoff = freeEnergyMinimumValue(pointState) + params.freeEnergyCutoffInKT;
-    }
-
-    double sumTarget = 0;
-    for (PointState& ps : pointState)
-    {
-        sumTarget += ps.updateTargetWeight(params, freeEnergyCutoff);
-    }
-    GMX_RELEASE_ASSERT(sumTarget > 0, "We should have a non-zero distribution");
-
-    /* Normalize to 1 */
-    double invSum = 1.0 / sumTarget;
-    for (PointState& ps : pointState)
-    {
-        ps.scaleTarget(invSum);
-    }
-}
-
 /*! \brief
  * Puts together a string describing a grid point.
  *
@@ -356,6 +323,37 @@ std::string gridPointValueString(const BiasGrid& grid, int point)
 }
 
 } // namespace
+
+
+void BiasState::updateTargetDistribution(const BiasParams& params, const CorrelationGrid& forceCorrelation)
+{
+    double freeEnergyCutoff = 0;
+    if (params.eTarget == AwhTargetType::Cutoff)
+    {
+        freeEnergyCutoff = freeEnergyMinimumValue(points_) + params.freeEnergyCutoffInKT;
+    }
+
+    double sumTarget = 0;
+    for (size_t pointIndex = 0; pointIndex < points_.size(); pointIndex++)
+    {
+        PointState& ps                      = points_[pointIndex];
+        double      correlationTensorVolume = 0;
+        if (params.eTarget == AwhTargetType::FrictionOptimized)
+        {
+            correlationTensorVolume =
+                    getSharedCorrelationTensorVolumeElement(params, forceCorrelation, pointIndex);
+        }
+        sumTarget += ps.updateTargetWeight(params, freeEnergyCutoff, correlationTensorVolume);
+    }
+    GMX_RELEASE_ASSERT(sumTarget > 0, "We should have a non-zero distribution");
+
+    /* Normalize to 1 */
+    double invSum = 1.0 / sumTarget;
+    for (PointState& ps : points_)
+    {
+        ps.scaleTarget(invSum);
+    }
+}
 
 int BiasState::warnForHistogramAnomalies(const BiasGrid& grid, int biasIndex, double t, FILE* fplog, int maxNumWarnings) const
 {
@@ -1072,6 +1070,7 @@ static void normalizeFreeEnergyAndPmfSum(std::vector<PointState>* pointState)
 void BiasState::updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParams> dimParams,
                                                          const BiasGrid&           grid,
                                                          const BiasParams&         params,
+                                                         const CorrelationGrid&    forceCorrelation,
                                                          double                    t,
                                                          int64_t                   step,
                                                          FILE*                     fplog,
@@ -1202,7 +1201,7 @@ void BiasState::updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParam
     if (needToUpdateTargetDistribution)
     {
         /* The target distribution is always updated for all points at once. */
-        updateTargetDistribution(points_, params);
+        updateTargetDistribution(params, forceCorrelation);
     }
 
     /* Update the bias. The bias is updated separately and last since it simply a function of
@@ -1893,6 +1892,7 @@ void BiasState::initGridPointState(const AwhBiasParams&      awhBiasParams,
                                    ArrayRef<const DimParams> dimParams,
                                    const BiasGrid&           grid,
                                    const BiasParams&         params,
+                                   const CorrelationGrid&    forceCorrelation,
                                    const std::string&        filename,
                                    int                       numBias)
 {
@@ -1910,7 +1910,7 @@ void BiasState::initGridPointState(const AwhBiasParams&      awhBiasParams,
                        "AWH reference weight histogram not initialized properly with local "
                        "Boltzmann target distribution.");
 
-    updateTargetDistribution(points_, params);
+    updateTargetDistribution(params, forceCorrelation);
 
     for (PointState& pointState : points_)
     {

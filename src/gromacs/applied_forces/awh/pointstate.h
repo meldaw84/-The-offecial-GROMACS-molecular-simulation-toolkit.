@@ -418,7 +418,7 @@ public:
      * \param[in] freeEnergyCutoff  The cut-off for the free energy for target type "cutoff".
      * \returns the updated value of the target.
      */
-    double updateTargetWeight(const BiasParams& params, double freeEnergyCutoff)
+    double updateTargetWeight(const BiasParams& params, double freeEnergyCutoff, const double correlationTensorVolume)
     {
         switch (params.eTarget)
         {
@@ -435,9 +435,9 @@ public:
             case AwhTargetType::LocalBoltzmann: target_ = weightSumRef_; break;
             case AwhTargetType::FrictionOptimized:
                 /* Do not update the target_ if there is not enough data to calculate the friction. */
-                if (sharedFriction_ != 0)
+                if (correlationTensorVolume != 0)
                 {
-                    target_ = sharedFriction_;
+                    target_ = correlationTensorVolume;
                 }
                 else
                 {
