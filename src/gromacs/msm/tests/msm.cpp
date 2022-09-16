@@ -57,23 +57,20 @@ protected:
     void SetUp() override
     {
         hallo = "hallo";
+        myfunc();
     }
     std::string hallo;
 };
 
-TEST_F(MsmTest, TestingBla)
+TEST_F(MsmTest, BasicMsmTest)
 {
     printf("result: %s\n", hallo.c_str());
 }
 
-TEST(MoreMSMTest, HiAgain)
-{
-    printf("hallo\n");
-}
+//TEST(MoreMSMTest, HiAgain)
+//{
+//    printf("hallo\n");
+//}
 
-namespace
-{
-
-} //namespace
 } //namespace test
 } //namespace gmx

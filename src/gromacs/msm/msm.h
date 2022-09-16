@@ -39,3 +39,9 @@
  *
  * \author Cathrine Bergh
  */
+#ifndef MSM_H
+#define MSM_H
+
+void myfunc();
+
+#endif

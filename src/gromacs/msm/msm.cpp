@@ -48,9 +48,11 @@
 namespace gmx
 {
 
-void func()
+void myfunc()
 {
-    printf("It works!");
+    int d = 10;
+    printf("hello from msm.cpp file\n");
+    printf("This is my msm.cpp int %d\n", d);
 }
 
 } // namespace gmx
