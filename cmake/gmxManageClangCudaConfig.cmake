@@ -66,7 +66,7 @@ if (CUDAToolkit_VERSION VERSION_GREATER 10.1)
     endif()
     message(NOTICE "Using ${_support_status} version of CUDA with Clang.")
     message(NOTICE "If Clang fails to recognize CUDA version, consider creating doing "
-      "`echo \"CUDA Version ${CUDA_VERSION}\" | sudo tee \"${CUDA_TOOLKIT_ROOT_DIR}/version.txt\"`")
+      "`echo \"CUDA Version ${CUDAToolkit_VERSION}\" | sudo tee \"${CUDAToolkit_TARGET_DIR}/version.txt\"`")
     list(APPEND _CUDA_CLANG_FLAGS "-Wno-unknown-cuda-version")
 
 endif()
@@ -92,11 +92,11 @@ else()
         list(APPEND _CUDA_CLANG_GENCODE_FLAGS "--cuda-gpu-arch=sm_75")
     endif()
     # Enable this when clang (12.0 ?) properly recognizes CUDA 11.0
-    #if(NOT CUDA_VERSION VERSION_LESS 11.0)
+    #if(NOT CUDAToolkit_VERSION VERSION_LESS 11.0)
     #    list(APPEND _CUDA_CLANG_GENCODE_FLAGS "--cuda-gpu-arch=sm_80")
     #endif()
     # Enable this when clang (12.0 ?) introduces sm_86 support
-    #if(NOT CUDA_VERSION VERSION_LESS 11.1)
+    #if(NOT CUDAToolkit_VERSION VERSION_LESS 11.1)
     #    list(APPEND _CUDA_CLANG_GENCODE_FLAGS "--cuda-gpu-arch=sm_86")
     #endif()
 endif()

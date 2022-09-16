@@ -689,7 +689,8 @@ If you have the CUDA_ Toolkit installed, you can use ``cmake`` with:
 
 (or whichever path has your installation). In some cases, you might
 need to specify manually which of your C++ compilers should be used,
-e.g. with the advanced option ``CUDA_HOST_COMPILER``.
+e.g. with the CMake option
+`CMAKE_CUDA_HOST_COMPILER <https://cmake.org/cmake/help/latest/variable/CMAKE_CUDA_HOST_COMPILER.html>`__.
 
 By default, code will be generated for the most common CUDA architectures.
 However, to reduce build time and binary size we do not generate code for

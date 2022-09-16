@@ -33,13 +33,12 @@
 
 # Manage CUDA nvcc compilation configuration, try to be smart to ease the users'
 # pain as much as possible:
-# - use the CUDA_HOST_COMPILER if defined by the user, otherwise
-# - check if nvcc works with CUDA_HOST_COMPILER and the generated nvcc and C++ flags
+# - check if nvcc works with CMAKE_CUDA_HOST_COMPILER and the generated nvcc and C++ flags
 #
 # - (advanced) variables set:
-#   * CUDA_HOST_COMPILER_OPTIONS    - the full host-compiler related option list passed to nvcc
+#   * GMX_CUDA_HOST_COMPILER_OPTIONS    - the full host-compiler related option list passed to nvcc
 #
-# Note that from CMake 2.8.10 FindCUDA defines CUDA_HOST_COMPILER internally,
+# Note that from CMake 3.10 enable_language(CUDA) defines CMAKE_CUDA_HOST_COMPILER internally,
 # so we won't set it ourselves, but hope that the module does a good job.
 
 # glibc 2.23 changed string.h in a way that breaks CUDA compilation in
@@ -54,31 +53,31 @@ function(work_around_glibc_2_23)
     try_compile(IS_GLIBC_2_23_OR_HIGHER ${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR}/cmake/TestGlibcVersion.cpp)
     if(IS_GLIBC_2_23_OR_HIGHER)
         message(STATUS "Adding work-around for issue compiling CUDA code with glibc 2.23 string.h")
-        list(APPEND CUDA_HOST_COMPILER_OPTIONS "-D_FORCE_INLINES")
-        set(CUDA_HOST_COMPILER_OPTIONS ${CUDA_HOST_COMPILER_OPTIONS} PARENT_SCOPE)
+        list(APPEND GMX_CUDA_HOST_COMPILER_OPTIONS "-D_FORCE_INLINES")
+        set(GMX_CUDA_HOST_COMPILER_OPTIONS ${GMX_CUDA_HOST_COMPILER_OPTIONS} PARENT_SCOPE)
     endif()
 endfunction()
 
-gmx_check_if_changed(CUDA_HOST_COMPILER_CHANGED CUDA_HOST_COMPILER)
+gmx_check_if_changed(GMX_CUDA_HOST_COMPILER_CHANGED CMAKE_CUDA_HOST_COMPILER)
 
 # set up host compiler and its options
-if(CUDA_HOST_COMPILER_CHANGED)
-    set(CUDA_HOST_COMPILER_OPTIONS "")
+if(GMX_CUDA_HOST_COMPILER_CHANGED)
+    set(GMX_CUDA_HOST_COMPILER_OPTIONS "")
 
     if(APPLE AND CMAKE_C_COMPILER_ID MATCHES "GNU")
         # Some versions of gcc-4.8 and gcc-4.9 have produced errors
         # (in particular on OS X) if we do not use
         # -D__STRICT_ANSI__. It is harmless, so we might as well add
         # it for all versions.
-        list(APPEND CUDA_HOST_COMPILER_OPTIONS "-D__STRICT_ANSI__")
+        list(APPEND GMX_CUDA_HOST_COMPILER_OPTIONS "-D__STRICT_ANSI__")
     endif()
 
     work_around_glibc_2_23()
 
-    set(CUDA_HOST_COMPILER_OPTIONS "${CUDA_HOST_COMPILER_OPTIONS}"
+    set(GMX_CUDA_HOST_COMPILER_OPTIONS "${GMX_CUDA_HOST_COMPILER_OPTIONS}"
         CACHE STRING "Options for nvcc host compiler (do not edit!).")
 
-    mark_as_advanced(CUDA_HOST_COMPILER CUDA_HOST_COMPILER_OPTIONS)
+    mark_as_advanced(GMX_CUDA_HOST_COMPILER_OPTIONS)
 endif()
 
 
@@ -97,7 +96,7 @@ function(gmx_add_nvcc_flag_if_supported _output_variable_name_to_append_to _flag
     if (NOT ${_flags_cache_variable_name} AND NOT WIN32)
         message(STATUS "Checking if nvcc accepts flags ${ARGN}")
         execute_process(
-            COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} ${ARGN} -ccbin ${CUDA_HOST_COMPILER} "${CMAKE_SOURCE_DIR}/cmake/TestCUDA.cu"
+            COMMAND ${CMAKE_CUDA_COMPILER} ${ARGN} -ccbin ${CMAKE_CUDA_HOST_COMPILER} "${CMAKE_SOURCE_DIR}/cmake/TestCUDA.cu"
             RESULT_VARIABLE _cuda_success
             OUTPUT_QUIET
             ERROR_QUIET
@@ -108,10 +107,10 @@ function(gmx_add_nvcc_flag_if_supported _output_variable_name_to_append_to _flag
             message(STATUS "Checking if nvcc accepts flags ${ARGN} - Success")
         else()
             if(NOT(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 11))
-              set(CCBIN "-ccbin ${CUDA_HOST_COMPILER}")
+              set(CCBIN "-ccbin ${CMAKE_CUDA_HOST_COMPILER}")
             endif()
             execute_process(
-                COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} ${ARGN} ${CCBIN} "${CMAKE_SOURCE_DIR}/cmake/TestCUDA.cu"
+                COMMAND ${CMAKE_CUDA_COMPILER} ${ARGN} ${CCBIN} "${CMAKE_SOURCE_DIR}/cmake/TestCUDA.cu"
                 RESULT_VARIABLE _cuda_success
                 OUTPUT_QUIET
                 ERROR_QUIET
@@ -234,4 +233,4 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     endforeach()
 endif()
 
-gmx_check_if_changed(_cuda_nvcc_executable_or_flags_changed CUDAToolkit_NVCC_EXECUTABLE CMAKE_CUDA_FLAGS)
+gmx_check_if_changed(_cuda_nvcc_executable_or_flags_changed CMAKE_CUDA_COMPILER CMAKE_CUDA_FLAGS)
