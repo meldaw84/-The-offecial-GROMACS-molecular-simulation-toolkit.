@@ -47,10 +47,23 @@
 
 #include "pairlistparams.h"
 
+struct nbnxn_atomdata_t;
 struct NbnxnPairlistCpuWork;
 struct NbnxnPairlistGpuWork;
 struct t_nblist;
+enum class ClusterDistanceKernelType : int;
 
+namespace gmx
+{
+template<typename T>
+class ListOfLists;
+}
+
+namespace Nbnxm
+{
+class Grid;
+class GridSet;
+} // namespace Nbnxm
 
 //! Convenience type for vector with aligned memory
 template<typename T>
@@ -228,6 +241,12 @@ typedef struct
     nbnxn_im_ei_t imei[c_nbnxnGpuClusterpairSplit];
 } nbnxn_cj_packed_t;
 
+//! Return the index of an j-atom within a warp
+constexpr int jParticleIndexWithinWarp(gmx::index index)
+{
+    return index & (c_nbnxnGpuClusterSize / c_nbnxnGpuClusterpairSplit - 1);
+}
+
 /*! Packed j-cluster list
  *
  * Four j-cluster indices are stored per integer in an nbnxn_cj_packed_t.
@@ -241,10 +260,21 @@ public:
     }
     //! The list of packed j-cluster groups
     gmx::HostVector<nbnxn_cj_packed_t> list_;
+    //! Return the index of particle \c index within its group
+    constexpr gmx::index indexOfParticleWithinGroup(gmx::index index) const
+    {
+        return index & (c_nbnxnGpuJgroupSize - 1);
+    }
+    //! Convert a j-cluster index to a cjPacked group index
+    constexpr gmx::index clusterIndexToGroupIndex(gmx::index jClusterIndex) const
+    {
+        return jClusterIndex / c_nbnxnGpuJgroupSize;
+    }
+
     //! Return the j-cluster index for \c index from the pack list
     int cj(const int index) const
     {
-        return list_[index / c_nbnxnGpuJgroupSize].cj[index & (c_nbnxnGpuJgroupSize - 1)];
+        return list_[index / c_nbnxnGpuJgroupSize].cj[indexOfParticleWithinGroup(index)];
     }
     //! Return the i-cluster interaction mask for the first cluster in \c index
     unsigned int imask0(const int index) const
@@ -259,6 +289,9 @@ public:
     void resize(gmx::index count) { list_.resize(count); }
     //! Add a new element to the packed list
     void push_back(const decltype(list_)::value_type& value) { list_.push_back(value); }
+    static_assert(sizeof(list_[0].imei[0].imask) * 8 >= c_nbnxnGpuJgroupSize * c_gpuNumClusterPerCell,
+                  "The i super-cluster cluster interaction mask does not contain a sufficient "
+                  "number of bits");
 };
 
 //! Struct for storing the atom-pair interaction bits for a cluster pair in a GPU pairlist
@@ -283,6 +316,114 @@ struct nbnxn_excl_t
 struct NbnxnPairlistCpu
 {
     NbnxnPairlistCpu();
+
+    //! Print statistics of a pair list, used for debug output
+    void printNblistStatistics(FILE* fp, const Nbnxm::GridSet& gridSet, const real rl) const;
+    //! Makes the cluster list for each grid cell from \c firstCell to \c lastCell
+    void makeClusterListDispatcher(const Nbnxm::Grid&              iGrid,
+                                   const int                       ci,
+                                   const Nbnxm::Grid&              jGrid,
+                                   const int                       firstCell,
+                                   const int                       lastCell,
+                                   const bool                      excludeSubDiagonal,
+                                   const nbnxn_atomdata_t*         nbat,
+                                   const real                      rlist2,
+                                   const real                      rbb2,
+                                   const ClusterDistanceKernelType kernelType,
+                                   int*                            numDistanceChecks);
+    /*! \brief Make a pair list for the perturbed pairs, while excluding
+     * them from the Verlet list.
+     *
+     * This is only done to avoid singularities for overlapping particles
+     * (from 0/0), since the charges and LJ parameters have been zeroed in
+     * the nbnxn data structure. */
+    void makeFepList(gmx::ArrayRef<const int> atomIndices,
+                     const nbnxn_atomdata_t*  nbat,
+                     gmx_bool                 bDiagRemoved,
+                     real gmx_unused          shx,
+                     real gmx_unused          shy,
+                     real gmx_unused          shz,
+                     real gmx_unused          rlist_fep2,
+                     const Nbnxm::Grid&       iGrid,
+                     const Nbnxm::Grid&       jGrid,
+                     t_nblist*                nlist);
+    //! Make a new ci entry at the back
+    void addNewIEntry(int ciIndex, int shift, int flags);
+    //! Close this simple list i entry
+    void closeIEntry(int gmx_unused      sp_max_av,
+                     gmx_bool gmx_unused progBal,
+                     float gmx_unused    nsp_tot_est,
+                     int gmx_unused      thread,
+                     int gmx_unused      nthread);
+    //! Dummy function so this class works like NbnxmPairlistGpu
+    void syncWork();
+    //! Clears pairlists
+    void clear();
+    //! Debug list print function
+    void printNblist(FILE* fp);
+    //! Return whether the pairlist is simple (ie. not for a GPU)
+    bool isSimple() const;
+    /*! \brief SIMD code for checking and adding cluster-pairs to the list
+     * using coordinates in packed format.
+     *
+     * Checks bounding box distances and possibly atom pair distances.
+     *
+     * Three flavours are implemented that make cluster lists that suit
+     * respectively the plain-C, SIMD 4xn, and SIMD 4xnn kernel flavours.
+     *
+     * \param[in]     jGrid               The j-grid
+     * \param[in,out] nbl                 The pair-list to store the cluster pairs in
+     * \param[in]     icluster            The index of the i-cluster
+     * \param[in]     firstCell           The first cluster in the j-range, using i-cluster size indexing
+     * \param[in]     lastCell            The last cluster in the j-range, using i-cluster size indexing
+     * \param[in]     excludeSubDiagonal  Exclude atom pairs with i-index > j-index
+     * \param[in]     x_j                 Coordinates for the j-atom, in SIMD packed format
+     * \param[in]     rlist2              The squared list cut-off
+     * \param[in]     rbb2                The squared cut-off for putting cluster-pairs in the list based on bounding box distance only
+     * \param[in,out] numDistanceChecks   The number of distance checks performed
+     */
+    //! \{
+    void makeClusterListPlainC(const Nbnxm::Grid&       jGrid,
+                               int                      icluster,
+                               int                      jclusterFirst,
+                               int                      jclusterLast,
+                               bool                     excludeSubDiagonal,
+                               const real* gmx_restrict x_j,
+                               real                     rlist2,
+                               float                    rbb2,
+                               int* gmx_restrict        numDistanceChecks);
+    void makeClusterListSimd4xn(const Nbnxm::Grid&       jGrid,
+                                int                      icluster,
+                                int                      firstCell,
+                                int                      lastCell,
+                                bool                     excludeSubDiagonal,
+                                const real* gmx_restrict x_j,
+                                real                     rlist2,
+                                float                    rbb2,
+                                int* gmx_restrict        numDistanceChecks);
+    void makeClusterListSimd2xnn(const Nbnxm::Grid&       jGrid,
+                                 int                      icluster,
+                                 int                      firstCell,
+                                 int                      lastCell,
+                                 bool                     excludeSubDiagonal,
+                                 const real* gmx_restrict x_j,
+                                 real                     rlist2,
+                                 float                    rbb2,
+                                 int* gmx_restrict        numDistanceChecks);
+    //! \}
+    //! Return the number of simple j clusters in this list
+    int getNumSimpleJClustersInList() const;
+    //! Increment the number of simple j clusters in this list
+    void incrementNumSimpleJClustersInList(int ncj_old_j);
+    /*! \brief Set all atom-pair exclusions for the last i-cluster entry
+     * in the CPU list.
+     *
+     * All the atom-pair exclusions from the topology are
+     * converted to exclusion masks in the simple pairlist. */
+    void setExclusionsForIEntry(const Nbnxm::GridSet&        gridSet,
+                                gmx_bool                     diagRemoved,
+                                int gmx_unused               na_cj_2log,
+                                const gmx::ListOfLists<int>& exclusions);
 
     //! Cache protection
     gmx_cache_protect_t cp0;
@@ -325,6 +466,104 @@ struct NbnxnPairlistGpu
      * \param[in] pinningPolicy  Sets the pinning policy for all buffers used on the GPU
      */
     NbnxnPairlistGpu(gmx::PinningPolicy pinningPolicy);
+
+    //! Print statistics of a pair list, used for debug output
+    void printNblistStatistics(FILE* fp, const Nbnxm::GridSet& gridSet, const real rl) const;
+    /*! \brief Returns a reference to the exclusion mask for
+     * j-cluster group \p cjPackedIndex and warp \p warp
+     *
+     * Generates a new exclusion entry when the j-cluster group
+     * uses the default all-interaction mask at call time, so the
+     * returned mask can be modified when needed. */
+    nbnxn_excl_t& getExclusionMask(int cjPackedIndex, int warp);
+
+    /*! \brief Sets self exclusions and excludes half of the double pairs in the self cluster-pair \p cjPacked.list_[cjPackedIndex].cj[jOffsetInGroup]
+     *
+     * \param[in]     cjPackedIndex   The j-cluster group index into \p cjPacked
+     * \param[in]     jOffsetInGroup  The j-entry offset in \p cjPacked.list_[cjPackedIndex]
+     * \param[in]     iClusterInCell  The i-cluster index in the cell
+     */
+    void setSelfAndNewtonExclusionsGpu(const int cjPackedIndex, const int jOffsetInGroup, const int iClusterInCell);
+
+    /*! \brief Makes a pair list of super-cell sci vs scj.
+     *
+     * Checks bounding box distances and possibly atom pair distances.
+     *
+     * Has both a SIMD4 implementation (if supported) and a plain C
+     * fallback implementation. */
+    void makeClusterListSupersub(const Nbnxm::Grid& iGrid,
+                                 const Nbnxm::Grid& jGrid,
+                                 const int          sci,
+                                 const int          scj,
+                                 const bool         excludeSubDiagonal,
+                                 const int          stride,
+                                 const real*        x,
+                                 const real         rlist2,
+                                 const float        rbb2,
+                                 int*               numDistanceChecks);
+
+    //! Makes the cluster list for each grid cell from \c firstCell to \c lastCell
+    void makeClusterListDispatcher(const Nbnxm::Grid&        iGrid,
+                                   const int                 ci,
+                                   const Nbnxm::Grid&        jGrid,
+                                   const int                 firstCell,
+                                   const int                 lastCell,
+                                   const bool                excludeSubDiagonal,
+                                   const nbnxn_atomdata_t*   nbat,
+                                   const real                rlist2,
+                                   const real                rbb2,
+                                   ClusterDistanceKernelType kernelType,
+                                   int*                      numDistanceChecks);
+    /*! \brief Make a pair list for the perturbed pairs, while excluding
+     * them from the Verlet list.
+     *
+     * This is only done to avoid singularities for overlapping particles
+     * (from 0/0), since the charges and LJ parameters have been zeroed in
+     * the nbnxn data structure. */
+    void makeFepList(gmx::ArrayRef<const int> atomIndices,
+                     const nbnxn_atomdata_t*  nbat,
+                     gmx_bool                 bDiagRemoved,
+                     real gmx_unused          shx,
+                     real gmx_unused          shy,
+                     real gmx_unused          shz,
+                     real gmx_unused          rlist_fep2,
+                     const Nbnxm::Grid&       iGrid,
+                     const Nbnxm::Grid&       jGrid,
+                     t_nblist*                nlist);
+    /*! \brief Set all atom-pair exclusions for the last i-super-cluster
+     * entry in the GPU list
+     *
+     * All the atom-pair exclusions from the topology are
+     * converted to exclusion masks in the simple pairlist. */
+    void setExclusionsForIEntry(const Nbnxm::GridSet&        gridSet,
+                                gmx_bool                     diagRemoved,
+                                int gmx_unused               na_cj_2log,
+                                const gmx::ListOfLists<int>& exclusions);
+    //! Make a new sci entry at the back
+    void addNewIEntry(int sciIndex, int shift, int /* flags */);
+    /*! \brief Split sci entry for load balancing on the GPU.
+     *
+     * Splitting ensures we have enough lists to fully utilize the whole GPU.
+     * With progBal we generate progressively smaller lists, which improves
+     * load balancing. As we only know the current count on our own thread,
+     * we will need to estimate the current total amount of i-entries.
+     * As the lists get concatenated later, this estimate depends
+     * both on nthread and our own thread index. */
+    void splitSciEntry(int nsp_target_av, gmx_bool progBal, float nsp_tot_est, int thread, int nthread);
+    //! Close this super/sub list i entry
+    void closeIEntry(int nsp_max_av, gmx_bool progBal, float nsp_tot_est, int thread, int nthread);
+    //! Syncs the working array before adding another grid pair to the GPU list
+    void syncWork();
+    //! Clears pairlists
+    void clear();
+    //! Debug list print function
+    void printNblist(FILE* fp);
+    //! Return whether the pairlist is simple (ie. not for a GPU)
+    bool isSimple() const;
+    //! Return the number of simple j clusters in this list (ie. 0 for this GPU list)
+    int getNumSimpleJClustersInList() const;
+    //! Empty function because a GPU pairlist does not use simple j clusters.
+    void incrementNumSimpleJClustersInList(int);
 
     //! Cache protection
     gmx_cache_protect_t cp0;

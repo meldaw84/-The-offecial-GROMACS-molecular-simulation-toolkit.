@@ -72,36 +72,19 @@ static inline void icell_set_x_simd_4xn(int                   ci,
     store(x_ci_simd + 11 * GMX_SIMD_REAL_WIDTH, SimdReal(x[ia + 2 * c_xStride4xN + 3] + shz));
 }
 
-/*! \brief SIMD code for checking and adding cluster-pairs to the list using coordinates in packed format.
- *
- * Checks bounding box distances and possibly atom pair distances.
- * This is an accelerated version of make_cluster_list_simple.
- *
- * \param[in]     jGrid               The j-grid
- * \param[in,out] nbl                 The pair-list to store the cluster pairs in
- * \param[in]     icluster            The index of the i-cluster
- * \param[in]     firstCell           The first cluster in the j-range, using i-cluster size indexing
- * \param[in]     lastCell            The last cluster in the j-range, using i-cluster size indexing
- * \param[in]     excludeSubDiagonal  Exclude atom pairs with i-index > j-index
- * \param[in]     x_j                 Coordinates for the j-atom, in SIMD packed format
- * \param[in]     rlist2              The squared list cut-off
- * \param[in]     rbb2                The squared cut-off for putting cluster-pairs in the list based on bounding box distance only
- * \param[in,out] numDistanceChecks   The number of distance checks performed
- */
-static inline void makeClusterListSimd4xn(const Grid&              jGrid,
-                                          NbnxnPairlistCpu*        nbl,
-                                          int                      icluster,
-                                          int                      firstCell,
-                                          int                      lastCell,
-                                          bool                     excludeSubDiagonal,
-                                          const real* gmx_restrict x_j,
-                                          real                     rlist2,
-                                          float                    rbb2,
-                                          int* gmx_restrict        numDistanceChecks)
+inline void NbnxnPairlistCpu::makeClusterListSimd4xn(const Grid&              jGrid,
+                                                     int                      icluster,
+                                                     int                      firstCell,
+                                                     int                      lastCell,
+                                                     bool                     excludeSubDiagonal,
+                                                     const real* gmx_restrict x_j,
+                                                     real                     rlist2,
+                                                     float                    rbb2,
+                                                     int* gmx_restrict        numDistanceChecks)
 {
     using namespace gmx;
-    const real* gmx_restrict        x_ci_simd = nbl->work->iClusterData.xSimd.data();
-    const BoundingBox* gmx_restrict bb_ci     = nbl->work->iClusterData.bb.data();
+    const real* gmx_restrict        x_ci_simd = work->iClusterData.xSimd.data();
+    const BoundingBox* gmx_restrict bb_ci     = work->iClusterData.bb.data();
 
     SimdReal jx_S, jy_S, jz_S;
 
@@ -271,9 +254,9 @@ static inline void makeClusterListSimd4xn(const Grid&              jGrid,
             nbnxn_cj_t cjEntry;
             cjEntry.cj   = cjFromCi<NbnxnLayout::Simd4xN, 0>(jGrid.cellOffset()) + jcluster;
             cjEntry.excl = get_imask_simd_4xn(excludeSubDiagonal, icluster, jcluster);
-            nbl->cj.push_back(cjEntry);
+            cj.push_back(cjEntry);
         }
         /* Increase the closing index in the i list */
-        nbl->ci.back().cj_ind_end = nbl->cj.size();
+        ci.back().cj_ind_end = cj.size();
     }
 }
