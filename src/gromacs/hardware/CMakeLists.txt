@@ -49,7 +49,7 @@ if(GMX_GPU_OPENCL)
     target_sources(hardware PRIVATE
             device_management_ocl.cpp
         )
-    target_link_options(hardware PUBLIC -lOpenCL)
+    target_link_libraries(hardware PRIVATE OpenCL)
 elseif(GMX_GPU_CUDA)
     target_sources(hardware PRIVATE
             device_management.cu
@@ -74,7 +74,11 @@ elseif(GMX_GPU_SYCL)
             device_management_common.cpp
             detecthardware.cpp
             )
-    target_link_options(hardware PUBLIC -lsycl)
+    if(GMX_SYCL_HIPSYCL)
+      target_link_libraries(hardware PRIVATE hip::amdhip64)
+    else()
+      target_link_libraries(hardware PRIVATE sycl)
+    endif()
 else()
     target_sources(hardware PRIVATE
             device_management.cpp
