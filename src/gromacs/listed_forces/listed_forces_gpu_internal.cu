@@ -91,6 +91,31 @@ __device__ __forceinline__ void staggeredAtomicAddForce(float3 __restrict__* gm_
     atomicAdd(&gm_f->x + offset.z, f.z);
 }
 
+// \brief Staggered atomic force component accummulation into global memory to reduce clashes
+//
+// Reduce the number of atomic clashes by a theoretical max 3x by having consecutive threads
+// accumulate different force components at the same time.
+__device__ __forceinline__ void staggeredAtomicAddForceIj(float3 __restrict__* gm_fi, float3 __restrict__* gm_fj, float3 f)
+{
+    int3 offset = make_int3(0, 1, 2);
+
+    // Shift force components x, y, and z left by 2, 1, and 0, respectively
+    // to end up with zxy, yzx, xyz on consecutive threads.
+    f      = (threadIdx.x % 3 == 0) ? make_float3(f.y, f.z, f.x) : f;
+    offset = (threadIdx.x % 3 == 0) ? make_int3(offset.y, offset.z, offset.x) : offset;
+    f      = (threadIdx.x % 3 <= 1) ? make_float3(f.y, f.z, f.x) : f;
+    offset = (threadIdx.x % 3 <= 1) ? make_int3(offset.y, offset.z, offset.x) : offset;
+
+    atomicAdd(&gm_fi->x + offset.x, f.x);
+    atomicAdd(&gm_fj->x + offset.x, -f.x);
+    atomicAdd(&gm_fi->x + offset.y, f.y);
+    atomicAdd(&gm_fj->x + offset.y, -f.y);
+    atomicAdd(&gm_fi->x + offset.z, f.z);
+    atomicAdd(&gm_fj->x + offset.z, -f.z);
+}
+
+
+
 
 /*-------------------------------- CUDA kernels-------------------------------- */
 /*------------------------------------------------------------------------------*/
@@ -152,12 +177,14 @@ __device__ void bonds_gpu(const int       i,
             fbond *= rsqrtf(dr2);
 
             float3 fij = fbond * dx;
-            staggeredAtomicAddForce(&gm_f[ai], fij);
-            staggeredAtomicAddForce(&gm_f[aj], -fij);
+            //staggeredAtomicAddForce(&gm_f[ai], fij);
+            //staggeredAtomicAddForce(&gm_f[aj], -fij);
+            staggeredAtomicAddForceIj(&gm_f[ai], &gm_f[aj], fij);
             if (calcVir && ki != gmx::c_centralShiftIndex)
             {
-                staggeredAtomicAddForce(&sm_fShiftLoc[ki], fij);
-                staggeredAtomicAddForce(&sm_fShiftLoc[gmx::c_centralShiftIndex], -fij);
+                //staggeredAtomicAddForce(&sm_fShiftLoc[ki], fij);
+                //staggeredAtomicAddForce(&sm_fShiftLoc[gmx::c_centralShiftIndex], -fij);
+                staggeredAtomicAddForceIj(&sm_fShiftLoc[ki], &sm_fShiftLoc[gmx::c_centralShiftIndex] , fij);
             }
         }
     }
@@ -354,8 +381,9 @@ __device__ void urey_bradley_gpu(const int       i,
 
             if (calcVir && ki != gmx::c_centralShiftIndex)
             {
-                staggeredAtomicAddForce(&sm_fShiftLoc[ki], fik);
-                staggeredAtomicAddForce(&sm_fShiftLoc[gmx::c_centralShiftIndex], -fik);
+                //staggeredAtomicAddForce(&sm_fShiftLoc[ki], fik);
+                //staggeredAtomicAddForce(&sm_fShiftLoc[gmx::c_centralShiftIndex], -fik);
+                staggeredAtomicAddForceIj(&sm_fShiftLoc[ki], &sm_fShiftLoc[gmx::c_centralShiftIndex], fik);
             }
         }
         if ((cos_theta2 < 1.0F) || (dr2 != 0.0F))
@@ -740,12 +768,14 @@ __device__ void pairs_gpu(const int       i,
         float3 f     = finvr * dr;
 
         /* Add the forces */
-        staggeredAtomicAddForce(&gm_f[ai], f);
-        staggeredAtomicAddForce(&gm_f[aj], -f);
+        //staggeredAtomicAddForce(&gm_f[ai], f);
+        //staggeredAtomicAddForce(&gm_f[aj], -f);
+        staggeredAtomicAddForceIj(&gm_f[ai], &gm_f[aj], f);
         if (calcVir && fshift_index != gmx::c_centralShiftIndex)
         {
-            staggeredAtomicAddForce(&sm_fShiftLoc[fshift_index], f);
-            staggeredAtomicAddForce(&sm_fShiftLoc[gmx::c_centralShiftIndex], -f);
+            //staggeredAtomicAddForce(&sm_fShiftLoc[fshift_index], f);
+            //staggeredAtomicAddForce(&sm_fShiftLoc[gmx::c_centralShiftIndex], -f);
+            staggeredAtomicAddForceIj(&sm_fShiftLoc[fshift_index], &sm_fShiftLoc[gmx::c_centralShiftIndex], f);
         }
 
         if (calcEner)
