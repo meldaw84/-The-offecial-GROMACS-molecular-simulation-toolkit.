@@ -49,6 +49,7 @@ if(GMX_GPU_OPENCL)
     target_sources(hardware PRIVATE
             device_management_ocl.cpp
         )
+    target_link_options(hardware PUBLIC -lOpenCL)
 elseif(GMX_GPU_CUDA)
     target_sources(hardware PRIVATE
             device_management.cu
@@ -73,6 +74,7 @@ elseif(GMX_GPU_SYCL)
             device_management_common.cpp
             detecthardware.cpp
             )
+    target_link_options(hardware PUBLIC -lsycl)
 else()
     target_sources(hardware PRIVATE
             device_management.cpp
@@ -89,7 +91,7 @@ endif()
 # Source files have the following private module dependencies.
 target_link_libraries(hardware PRIVATE
                       common
-		      gpu_utils
+                      gpu_utils
                       simd
                       utility
                       )
