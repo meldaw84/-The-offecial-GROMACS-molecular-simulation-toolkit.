@@ -75,16 +75,16 @@
 //
 // Reduce the number of atomic clashes by a theoretical max 3x by having consecutive threads
 // accumulate different force components at the same time.
-__device__ __forceinline__ void staggeredAtomicAddForce(float3 __restrict__* gm_f, float3 f)
+__device__ __forceinline__ void staggeredAtomicAddForce(float3 __restrict__* gm_f, float3 f, int3 offset)
 {
-    int3 offset = make_int3(0, 1, 2);
+//    int3 offset = make_int3(0, 1, 2);
 
     // Shift force components x, y, and z left by 2, 1, and 0, respectively
     // to end up with zxy, yzx, xyz on consecutive threads.
     f      = (threadIdx.x % 3 == 0) ? make_float3(f.y, f.z, f.x) : f;
-    offset = (threadIdx.x % 3 == 0) ? make_int3(offset.y, offset.z, offset.x) : offset;
+//    offset = (threadIdx.x % 3 == 0) ? make_int3(offset.y, offset.z, offset.x) : offset;
     f      = (threadIdx.x % 3 <= 1) ? make_float3(f.y, f.z, f.x) : f;
-    offset = (threadIdx.x % 3 <= 1) ? make_int3(offset.y, offset.z, offset.x) : offset;
+//    offset = (threadIdx.x % 3 <= 1) ? make_int3(offset.y, offset.z, offset.x) : offset;
 
     atomicAdd(&gm_f->x + offset.x, f.x);
     atomicAdd(&gm_f->x + offset.y, f.y);
@@ -95,16 +95,16 @@ __device__ __forceinline__ void staggeredAtomicAddForce(float3 __restrict__* gm_
 //
 // Reduce the number of atomic clashes by a theoretical max 3x by having consecutive threads
 // accumulate different force components at the same time.
-__device__ __forceinline__ void staggeredAtomicAddForceIj(float3 __restrict__* gm_fi, float3 __restrict__* gm_fj, float3 f)
+__device__ __forceinline__ void staggeredAtomicAddForceIj(float3 __restrict__* gm_fi, float3 __restrict__* gm_fj, float3 f, int3 offset)
 {
-    int3 offset = make_int3(0, 1, 2);
+//    int3 offset = make_int3(0, 1, 2);
 
     // Shift force components x, y, and z left by 2, 1, and 0, respectively
     // to end up with zxy, yzx, xyz on consecutive threads.
     f      = (threadIdx.x % 3 == 0) ? make_float3(f.y, f.z, f.x) : f;
-    offset = (threadIdx.x % 3 == 0) ? make_int3(offset.y, offset.z, offset.x) : offset;
+//    offset = (threadIdx.x % 3 == 0) ? make_int3(offset.y, offset.z, offset.x) : offset;
     f      = (threadIdx.x % 3 <= 1) ? make_float3(f.y, f.z, f.x) : f;
-    offset = (threadIdx.x % 3 <= 1) ? make_int3(offset.y, offset.z, offset.x) : offset;
+//    offset = (threadIdx.x % 3 <= 1) ? make_int3(offset.y, offset.z, offset.x) : offset;
 
     atomicAdd(&gm_fi->x + offset.x, f.x);
     atomicAdd(&gm_fj->x + offset.x, -f.x);
@@ -114,6 +114,17 @@ __device__ __forceinline__ void staggeredAtomicAddForceIj(float3 __restrict__* g
     atomicAdd(&gm_fj->x + offset.z, -f.z);
 }
 
+__device__ __forceinline__ int3 prepareStaggeredAtomicAddForce()
+{
+    int3 offset = make_int3(0, 1, 2);
+
+    // Shift force components x, y, and z left by 2, 1, and 0, respectively
+    // to end up with zxy, yzx, xyz on consecutive threads.
+    offset = (threadIdx.x % 3 == 0) ? make_int3(offset.y, offset.z, offset.x) : offset;
+    offset = (threadIdx.x % 3 <= 1) ? make_int3(offset.y, offset.z, offset.x) : offset;
+
+    return offset;
+}
 
 
 
@@ -149,6 +160,8 @@ __device__ void bonds_gpu(const int       i,
                           float3          sm_fShiftLoc[],
                           const PbcAiuc   pbcAiuc)
 {
+    int3 offset = prepareStaggeredAtomicAddForce();
+
     if (i < numBonds)
     {
         const int3 bondData = *(reinterpret_cast<const int3*>(d_forceatoms + 3 * i));
@@ -179,12 +192,12 @@ __device__ void bonds_gpu(const int       i,
             float3 fij = fbond * dx;
             //staggeredAtomicAddForce(&gm_f[ai], fij);
             //staggeredAtomicAddForce(&gm_f[aj], -fij);
-            staggeredAtomicAddForceIj(&gm_f[ai], &gm_f[aj], fij);
+            staggeredAtomicAddForceIj(&gm_f[ai], &gm_f[aj], fij, offset);
             if (calcVir && ki != gmx::c_centralShiftIndex)
             {
                 //staggeredAtomicAddForce(&sm_fShiftLoc[ki], fij);
                 //staggeredAtomicAddForce(&sm_fShiftLoc[gmx::c_centralShiftIndex], -fij);
-                staggeredAtomicAddForceIj(&sm_fShiftLoc[ki], &sm_fShiftLoc[gmx::c_centralShiftIndex] , fij);
+                staggeredAtomicAddForceIj(&sm_fShiftLoc[ki], &sm_fShiftLoc[gmx::c_centralShiftIndex] , fij, offset);
             }
         }
     }
@@ -222,6 +235,8 @@ __device__ void angles_gpu(const int       i,
                            float3          sm_fShiftLoc[],
                            const PbcAiuc   pbcAiuc)
 {
+    int3 offset = prepareStaggeredAtomicAddForce();
+
     if (i < numBonds)
     {
         const int4 angleData = *(reinterpret_cast<const int4*>(d_forceatoms + 4 * i));
@@ -270,15 +285,15 @@ __device__ void angles_gpu(const int       i,
             float3 f_k = ckk * r_kj - cik * r_ij;
             float3 f_j = -f_i - f_k;
 
-            staggeredAtomicAddForce(&gm_f[ai], f_i);
-            staggeredAtomicAddForce(&gm_f[aj], f_j);
-            staggeredAtomicAddForce(&gm_f[ak], f_k);
+            staggeredAtomicAddForce(&gm_f[ai], f_i, offset);
+            staggeredAtomicAddForce(&gm_f[aj], f_j, offset);
+            staggeredAtomicAddForce(&gm_f[ak], f_k, offset);
 
             if (calcVir)
             {
-                staggeredAtomicAddForce(&sm_fShiftLoc[t1], f_i);
-                staggeredAtomicAddForce(&sm_fShiftLoc[gmx::c_centralShiftIndex], f_j);
-                staggeredAtomicAddForce(&sm_fShiftLoc[t2], f_k);
+                staggeredAtomicAddForce(&sm_fShiftLoc[t1], f_i, offset);
+                staggeredAtomicAddForce(&sm_fShiftLoc[gmx::c_centralShiftIndex], f_j, offset);
+                staggeredAtomicAddForce(&sm_fShiftLoc[t2], f_k, offset);
             }
         }
     }
@@ -295,6 +310,8 @@ __device__ void urey_bradley_gpu(const int       i,
                                  float3          sm_fShiftLoc[],
                                  const PbcAiuc   pbcAiuc)
 {
+    int3 offset = prepareStaggeredAtomicAddForce();
+
     if (i < numBonds)
     {
         const int4 ubData = *(reinterpret_cast<const int4*>(d_forceatoms + 4 * i));
@@ -359,9 +376,9 @@ __device__ void urey_bradley_gpu(const int       i,
 
             if (calcVir)
             {
-                staggeredAtomicAddForce(&sm_fShiftLoc[t1], f_i);
-                staggeredAtomicAddForce(&sm_fShiftLoc[gmx::c_centralShiftIndex], f_j);
-                staggeredAtomicAddForce(&sm_fShiftLoc[t2], f_k);
+                staggeredAtomicAddForce(&sm_fShiftLoc[t1], f_i, offset);
+                staggeredAtomicAddForce(&sm_fShiftLoc[gmx::c_centralShiftIndex], f_j, offset);
+                staggeredAtomicAddForce(&sm_fShiftLoc[t2], f_k, offset);
             }
         }
 
@@ -383,18 +400,18 @@ __device__ void urey_bradley_gpu(const int       i,
             {
                 //staggeredAtomicAddForce(&sm_fShiftLoc[ki], fik);
                 //staggeredAtomicAddForce(&sm_fShiftLoc[gmx::c_centralShiftIndex], -fik);
-                staggeredAtomicAddForceIj(&sm_fShiftLoc[ki], &sm_fShiftLoc[gmx::c_centralShiftIndex], fik);
+                staggeredAtomicAddForceIj(&sm_fShiftLoc[ki], &sm_fShiftLoc[gmx::c_centralShiftIndex], fik, offset);
             }
         }
         if ((cos_theta2 < 1.0F) || (dr2 != 0.0F))
         {
-            staggeredAtomicAddForce(&gm_f[ai], f_i);
-            staggeredAtomicAddForce(&gm_f[ak], f_k);
+            staggeredAtomicAddForce(&gm_f[ai], f_i, offset);
+            staggeredAtomicAddForce(&gm_f[ak], f_k, offset);
         }
 
         if (cos_theta2 < 1.0F)
         {
-            staggeredAtomicAddForce(&gm_f[aj], f_j);
+            staggeredAtomicAddForce(&gm_f[aj], f_j, offset);
         }
     }
 }
@@ -459,6 +476,8 @@ __device__ static void do_dih_fup_gpu(const int            i,
                                       const int            t2,
                                       const int gmx_unused t3)
 {
+    int3 offset = prepareStaggeredAtomicAddForce();
+
     float iprm  = norm2(m);
     float iprn  = norm2(n);
     float nrkj2 = norm2(r_kj);
@@ -482,20 +501,20 @@ __device__ static void do_dih_fup_gpu(const int            i,
         float3 f_j  = f_i - svec;
         float3 f_k  = f_l + svec;
 
-        staggeredAtomicAddForce(&gm_f[i], f_i);
-        staggeredAtomicAddForce(&gm_f[j], -f_j);
-        staggeredAtomicAddForce(&gm_f[k], -f_k);
-        staggeredAtomicAddForce(&gm_f[l], f_l);
+        staggeredAtomicAddForce(&gm_f[i], f_i, offset);
+        staggeredAtomicAddForce(&gm_f[j], -f_j, offset);
+        staggeredAtomicAddForce(&gm_f[k], -f_k, offset);
+        staggeredAtomicAddForce(&gm_f[l], f_l, offset);
 
         if (calcVir)
         {
             float3 dx_jl;
             int    t3 = pbcDxAiuc<calcVir>(pbcAiuc, gm_xq[l], gm_xq[j], dx_jl);
 
-            staggeredAtomicAddForce(&sm_fShiftLoc[t1], f_i);
-            staggeredAtomicAddForce(&sm_fShiftLoc[gmx::c_centralShiftIndex], -f_j);
-            staggeredAtomicAddForce(&sm_fShiftLoc[t2], -f_k);
-            staggeredAtomicAddForce(&sm_fShiftLoc[t3], f_l);
+            staggeredAtomicAddForce(&sm_fShiftLoc[t1], f_i, offset);
+            staggeredAtomicAddForce(&sm_fShiftLoc[gmx::c_centralShiftIndex], -f_j, offset);
+            staggeredAtomicAddForce(&sm_fShiftLoc[t2], -f_k, offset);
+            staggeredAtomicAddForce(&sm_fShiftLoc[t3], f_l, offset);
         }
     }
 }
@@ -737,6 +756,8 @@ __device__ void pairs_gpu(const int       i,
                           float*          vtotVdw_loc,
                           float*          vtotElec_loc)
 {
+    int3 offset = prepareStaggeredAtomicAddForce();
+
     if (i < numBonds)
     {
         // TODO this should be made into a separate type, the GPU and CPU sizes should be compared
@@ -770,12 +791,12 @@ __device__ void pairs_gpu(const int       i,
         /* Add the forces */
         //staggeredAtomicAddForce(&gm_f[ai], f);
         //staggeredAtomicAddForce(&gm_f[aj], -f);
-        staggeredAtomicAddForceIj(&gm_f[ai], &gm_f[aj], f);
+        staggeredAtomicAddForceIj(&gm_f[ai], &gm_f[aj], f, offset);
         if (calcVir && fshift_index != gmx::c_centralShiftIndex)
         {
             //staggeredAtomicAddForce(&sm_fShiftLoc[fshift_index], f);
             //staggeredAtomicAddForce(&sm_fShiftLoc[gmx::c_centralShiftIndex], -f);
-            staggeredAtomicAddForceIj(&sm_fShiftLoc[fshift_index], &sm_fShiftLoc[gmx::c_centralShiftIndex], f);
+            staggeredAtomicAddForceIj(&sm_fShiftLoc[fshift_index], &sm_fShiftLoc[gmx::c_centralShiftIndex], f, offset);
         }
 
         if (calcEner)
@@ -952,7 +973,9 @@ __global__ void bonded_kernel_gpu(BondedGpuKernelParameters kernelParams,
         __syncthreads();
         if (threadIdx.x < c_numShiftVectors)
         {
-            staggeredAtomicAddForce(&gm_fShift[threadIdx.x], sm_fShiftLoc[threadIdx.x]);
+            int3 offset = prepareStaggeredAtomicAddForce();
+
+            staggeredAtomicAddForce(&gm_fShift[threadIdx.x], sm_fShiftLoc[threadIdx.x], offset);
         }
     }
 }
