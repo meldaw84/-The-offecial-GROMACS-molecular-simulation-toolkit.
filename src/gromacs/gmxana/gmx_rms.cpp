@@ -45,7 +45,6 @@
 #include "gromacs/fileio/matio.h"
 #include "gromacs/fileio/trxio.h"
 #include "gromacs/fileio/xvgr.h"
-#include "cmat.h"
 #include "gromacs/gmxana/gmx_ana.h"
 #include "gromacs/gmxana/princ.h"
 #include "gromacs/math/do_fit.h"
@@ -62,6 +61,8 @@
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/pleasecite.h"
 #include "gromacs/utility/smalloc.h"
+
+#include "cmat.h"
 
 static void norm_princ(const t_atoms* atoms, int isize, int* index, int natoms, rvec* x)
 {

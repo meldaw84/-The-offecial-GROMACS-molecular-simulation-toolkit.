@@ -50,9 +50,8 @@
 #include "gromacs/commandline/pargs.h"
 #include "gromacs/domdec/options.h"
 #include "gromacs/hardware/hw_info.h"
-#include "gromacs/mdtypes/mdrunoptions.h"
-
 #include "gromacs/mdrun/replicaexchange.h"
+#include "gromacs/mdtypes/mdrunoptions.h"
 
 namespace gmx
 {

@@ -47,10 +47,10 @@
 
 #include "gromacs/analysisdata/dataframe.h"
 #include "gromacs/analysisdata/datamodule.h"
-#include "datamodulemanager.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/gmxassert.h"
 
+#include "datamodulemanager.h"
 #include "dataproxy.h"
 
 namespace gmx

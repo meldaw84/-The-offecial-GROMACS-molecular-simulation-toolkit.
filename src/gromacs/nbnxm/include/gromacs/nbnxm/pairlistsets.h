@@ -49,7 +49,6 @@
 #include <memory>
 
 #include "gromacs/mdtypes/locality.h"
-
 #include "gromacs/nbnxm/pairlistparams.h"
 
 struct nbnxn_atomdata_t;

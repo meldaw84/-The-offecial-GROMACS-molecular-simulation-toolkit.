@@ -45,6 +45,7 @@
 
 #include "config.h"
 
+#include "gromacs/domdec/distribute.h"
 #include "gromacs/domdec/domdec_network.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/mdtypes/state.h"
@@ -52,7 +53,6 @@
 #include "gromacs/utility/fatalerror.h"
 
 #include "atomdistribution.h"
-#include "gromacs/domdec/distribute.h"
 #include "domdec_internal.h"
 
 static void dd_collect_cg(gmx_domdec_t*            dd,

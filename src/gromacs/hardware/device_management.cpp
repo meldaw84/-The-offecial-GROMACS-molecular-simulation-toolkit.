@@ -47,9 +47,8 @@
 
 #include "gromacs/hardware/device_management.h"
 
-#include "gromacs/utility/fatalerror.h"
-
 #include "gromacs/hardware/device_information.h"
+#include "gromacs/utility/fatalerror.h"
 
 std::vector<std::unique_ptr<DeviceInformation>> findDevices()
 {

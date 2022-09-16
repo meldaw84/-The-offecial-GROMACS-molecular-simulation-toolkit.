@@ -34,10 +34,9 @@
 #include "gmxpre.h"
 
 #include "gromacs/math/units.h"
+#include "gromacs/mimic/communicator.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/exceptions.h"
-
-#include "gromacs/mimic/communicator.h"
 
 namespace gmx
 {

@@ -37,13 +37,14 @@
 
 #include "gromacs/fileio/matio.h"
 #include "gromacs/fileio/xvgr.h"
-#include "cmat.h"
 #include "gromacs/random/threefry.h"
 #include "gromacs/random/uniformintdistribution.h"
 #include "gromacs/random/uniformrealdistribution.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
+
+#include "cmat.h"
 
 void mc_optimize(FILE* log, t_mat* m, real* time, int maxiter, int nrandom, int seed, real kT, const char* conv, gmx_output_env_t* oenv)
 {

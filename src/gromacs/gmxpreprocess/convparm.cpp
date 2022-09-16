@@ -42,10 +42,7 @@
 
 #include <memory>
 
-#include "gpp_atomtype.h"
 #include "gromacs/gmxpreprocess/grompp_impl.h"
-#include "topio.h"
-#include "toputil.h"
 #include "gromacs/math/functions.h"
 #include "gromacs/math/units.h"
 #include "gromacs/math/utilities.h"
@@ -55,6 +52,10 @@
 #include "gromacs/topology/topology.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/smalloc.h"
+
+#include "gpp_atomtype.h"
+#include "topio.h"
+#include "toputil.h"
 
 static int round_check(real r, int limit, int ftype, const char* name)
 {

@@ -49,7 +49,6 @@
 #include <string>
 #include <vector>
 
-#include "domdec_internal.h"
 #include "gromacs/domdec/reversetopology.h"
 #include "gromacs/gmxlib/network.h"
 #include "gromacs/mdtypes/commrec.h"
@@ -65,6 +64,7 @@
 #include "gromacs/utility/stringstream.h"
 #include "gromacs/utility/textwriter.h"
 
+#include "domdec_internal.h"
 #include "dump.h"
 
 namespace gmx

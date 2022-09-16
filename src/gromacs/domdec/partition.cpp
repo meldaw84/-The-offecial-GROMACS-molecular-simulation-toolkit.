@@ -51,7 +51,9 @@
 
 #include <algorithm>
 
+#include "gromacs/domdec/box.h"
 #include "gromacs/domdec/collect.h"
+#include "gromacs/domdec/distribute.h"
 #include "gromacs/domdec/dlb.h"
 #include "gromacs/domdec/dlbtiming.h"
 #include "gromacs/domdec/domdec_network.h"
@@ -61,6 +63,7 @@
 #include "gromacs/domdec/localtopologychecker.h"
 #include "gromacs/domdec/mdsetup.h"
 #include "gromacs/domdec/nsgrid.h"
+#include "gromacs/domdec/redistribute.h"
 #include "gromacs/ewald/pme_pp.h"
 #include "gromacs/gmxlib/network.h"
 #include "gromacs/gmxlib/nrnb.h"
@@ -93,14 +96,11 @@
 #include "gromacs/utility/stringutil.h"
 #include "gromacs/utility/textwriter.h"
 
-#include "gromacs/domdec/box.h"
 #include "cellsizes.h"
-#include "gromacs/domdec/distribute.h"
 #include "domdec_constraints.h"
 #include "domdec_internal.h"
 #include "domdec_vsite.h"
 #include "dump.h"
-#include "gromacs/domdec/redistribute.h"
 #include "utility.h"
 
 /*! \brief Turn on DLB when the load imbalance causes this amount of total loss.

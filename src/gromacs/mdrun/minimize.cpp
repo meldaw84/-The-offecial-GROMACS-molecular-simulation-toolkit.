@@ -85,6 +85,7 @@
 #include "gromacs/mdlib/trajectory_writing.h"
 #include "gromacs/mdlib/update.h"
 #include "gromacs/mdlib/vsite.h"
+#include "gromacs/mdrun/shellfc.h"
 #include "gromacs/mdrunutility/handlerestart.h"
 #include "gromacs/mdrunutility/printtime.h"
 #include "gromacs/mdtypes/checkpointdata.h"
@@ -110,7 +111,6 @@
 #include "gromacs/utility/smalloc.h"
 
 #include "legacysimulator.h"
-#include "gromacs/mdrun/shellfc.h"
 
 using gmx::ArrayRef;
 using gmx::MdrunScheduleWorkload;

@@ -37,10 +37,9 @@
 #include "gromacs/nbnxm/nbnxm_geometry.h"
 
 #include "gromacs/nbnxm/nbnxm.h"
+#include "gromacs/nbnxm/pairlist.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/real.h"
-
-#include "gromacs/nbnxm/pairlist.h"
 
 /* Clusters at the cut-off only increase rlist by 60% of their size */
 static constexpr real c_nbnxnRlistIncreaseOutsideFactor = 0.6;

@@ -42,8 +42,9 @@
 
 #include "gromacs/analysisdata/modules/displacement.h"
 
-#include "gromacs/analysisdata/dataframe.h"
 #include "../datamodulemanager.h"
+
+#include "gromacs/analysisdata/dataframe.h"
 #include "gromacs/analysisdata/modules/histogram.h"
 #include "gromacs/math/utilities.h"
 #include "gromacs/utility/exceptions.h"

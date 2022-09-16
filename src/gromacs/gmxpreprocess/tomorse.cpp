@@ -41,14 +41,15 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "gpp_atomtype.h"
 #include "gromacs/gmxpreprocess/grompp_impl.h"
-#include "toputil.h"
 #include "gromacs/topology/ifunc.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
+
+#include "gpp_atomtype.h"
+#include "toputil.h"
 
 typedef struct
 {

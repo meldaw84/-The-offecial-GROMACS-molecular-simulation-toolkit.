@@ -46,7 +46,6 @@
 #include "gromacs/hardware/device_management.h"
 #include "gromacs/hardware/hardwaretopology.h"
 #include "gromacs/hardware/hw_info.h"
-#include "identifyavx512fmaunits.h"
 #include "gromacs/hardware/simd_support.h"
 #include "gromacs/utility/basedefinitions.h"
 #include "gromacs/utility/basenetwork.h"
@@ -59,6 +58,7 @@
 #include "gromacs/utility/sysinfo.h"
 
 #include "architecture.h"
+#include "identifyavx512fmaunits.h"
 
 //! Constant used to help minimize preprocessed code
 static constexpr bool bGPUBinary = (GMX_GPU != 0);

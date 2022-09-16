@@ -56,6 +56,7 @@
 #include "gromacs/domdec/partition.h"
 #include "gromacs/ewald/ewald_utils.h"
 #include "gromacs/ewald/pme.h"
+#include "gromacs/ewald/pme_pp.h"
 #include "gromacs/fft/calcgrid.h"
 #include "gromacs/gmxlib/network.h"
 #include "gromacs/math/functions.h"
@@ -82,7 +83,6 @@
 #include "gromacs/utility/strconvert.h"
 
 #include "pme_internal.h"
-#include "gromacs/ewald/pme_pp.h"
 
 /*! \brief Parameters and settings for one PP-PME setup */
 struct pme_setup_t

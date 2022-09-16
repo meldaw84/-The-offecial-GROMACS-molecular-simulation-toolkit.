@@ -45,13 +45,9 @@
 #include <string>
 
 #include "gromacs/fileio/warninp.h"
-#include "gpp_atomtype.h"
-#include "gpp_bond_atomtype.h"
 #include "gromacs/gmxpreprocess/grompp_impl.h"
 #include "gromacs/gmxpreprocess/notset.h"
 #include "gromacs/gmxpreprocess/readir.h"
-#include "topdirs.h"
-#include "toputil.h"
 #include "gromacs/math/functions.h"
 #include "gromacs/mdtypes/md_enums.h"
 #include "gromacs/topology/exclusionblocks.h"
@@ -65,6 +61,11 @@
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringtoenumvalueconverter.h"
 #include "gromacs/utility/stringutil.h"
+
+#include "gpp_atomtype.h"
+#include "gpp_bond_atomtype.h"
+#include "topdirs.h"
+#include "toputil.h"
 
 void generate_nbparams(CombinationRule         comb,
                        int                     ftype,

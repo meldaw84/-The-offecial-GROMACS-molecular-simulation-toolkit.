@@ -98,11 +98,14 @@
 #include "gromacs/mdlib/stat.h"
 #include "gromacs/mdlib/stophandler.h"
 #include "gromacs/mdlib/tgroup.h"
+#include "gromacs/mdlib/trajectory_writing.h"
 #include "gromacs/mdlib/update.h"
 #include "gromacs/mdlib/update_constrain_gpu.h"
 #include "gromacs/mdlib/update_vv.h"
 #include "gromacs/mdlib/vcm.h"
 #include "gromacs/mdlib/vsite.h"
+#include "gromacs/mdrun/replicaexchange.h"
+#include "gromacs/mdrun/shellfc.h"
 #include "gromacs/mdrunutility/freeenergy.h"
 #include "gromacs/mdrunutility/handlerestart.h"
 #include "gromacs/mdrunutility/multisim.h"
@@ -150,9 +153,6 @@
 #include "gromacs/utility/smalloc.h"
 
 #include "legacysimulator.h"
-#include "gromacs/mdrun/replicaexchange.h"
-#include "gromacs/mdrun/shellfc.h"
-#include "gromacs/mdlib/trajectory_writing.h"
 
 using gmx::SimulationSignaller;
 

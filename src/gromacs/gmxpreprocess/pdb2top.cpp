@@ -45,18 +45,8 @@
 #include <vector>
 
 #include "gromacs/fileio/pdbio.h"
-#include "add_par.h"
-#include "fflibutil.h"
-#include "gen_ad.h"
-#include "gen_vsite.h"
 #include "gromacs/gmxpreprocess/grompp_impl.h"
-#include "h_db.h"
 #include "gromacs/gmxpreprocess/notset.h"
-#include "pgutil.h"
-#include "specbond.h"
-#include "topdirs.h"
-#include "topio.h"
-#include "toputil.h"
 #include "gromacs/math/functions.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/topology/residuetypes.h"
@@ -78,8 +68,18 @@
 #include "gromacs/utility/stringutil.h"
 #include "gromacs/utility/textwriter.h"
 
+#include "add_par.h"
+#include "fflibutil.h"
+#include "gen_ad.h"
+#include "gen_vsite.h"
+#include "h_db.h"
 #include "hackblock.h"
+#include "pgutil.h"
 #include "resall.h"
+#include "specbond.h"
+#include "topdirs.h"
+#include "topio.h"
+#include "toputil.h"
 
 const char* enumValueToString(HistidineStates enumValue)
 {

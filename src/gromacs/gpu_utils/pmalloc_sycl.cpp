@@ -63,10 +63,9 @@
 
 #include "gromacs/gpu_utils/device_context.h"
 #include "gromacs/gpu_utils/gmxsycl.h"
+#include "gromacs/gpu_utils/pmalloc.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/smalloc.h"
-
-#include "gromacs/gpu_utils/pmalloc.h"
 
 //! Default context to use for pinning memory.
 static thread_local std::optional<const sycl::context> g_threadDefaultContext = std::nullopt;

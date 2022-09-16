@@ -42,9 +42,8 @@
 
 #include "gromacs/mdtypes/awh_history.h"
 
-#include "gromacs/utility/strconvert.h"
-
 #include "gromacs/mdtypes/checkpointdata.h"
+#include "gromacs/utility/strconvert.h"
 
 namespace gmx
 {

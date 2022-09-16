@@ -59,8 +59,6 @@
 #include "gromacs/math/vec.h"
 #include "gromacs/math/vectypes.h"
 #include "gromacs/mdlib/constr.h"
-#include "lincs.h"
-#include "shake.h"
 #include "gromacs/mdrunutility/multisim.h"
 #include "gromacs/mdtypes/commrec.h"
 #include "gromacs/mdtypes/inputrec.h"
@@ -72,6 +70,9 @@
 #include "gromacs/utility/unique_cptr.h"
 
 #include "testutils/testasserts.h"
+
+#include "lincs.h"
+#include "shake.h"
 
 namespace gmx
 {

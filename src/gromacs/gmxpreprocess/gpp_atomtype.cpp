@@ -44,14 +44,15 @@
 
 #include "gromacs/gmxpreprocess/grompp_impl.h"
 #include "gromacs/gmxpreprocess/notset.h"
-#include "topdirs.h"
-#include "toputil.h"
 #include "gromacs/math/vecdump.h"
 #include "gromacs/topology/ifunc.h"
 #include "gromacs/topology/symtab.h"
 #include "gromacs/topology/topology.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/smalloc.h"
+
+#include "topdirs.h"
+#include "toputil.h"
 
 struct AtomTypeData
 {

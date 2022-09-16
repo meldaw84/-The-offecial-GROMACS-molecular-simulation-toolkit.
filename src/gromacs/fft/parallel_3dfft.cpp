@@ -40,11 +40,12 @@
 #include <cstring>
 
 #include "gromacs/fft/fft.h"
-#include "fft5d.h"
 #include "gromacs/math/gmxcomplex.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/gmxmpi.h"
 #include "gromacs/utility/smalloc.h"
+
+#include "fft5d.h"
 
 struct gmx_parallel_3dfft
 {

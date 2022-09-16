@@ -40,12 +40,13 @@
 #include "gromacs/commandline/viewit.h"
 #include "gromacs/fileio/xvgr.h"
 #include "gromacs/gmxana/gmx_ana.h"
-#include "nrama.h"
 #include "gromacs/math/units.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
+
+#include "nrama.h"
 
 
 static void plot_rama(FILE* out, t_xrama* xr)

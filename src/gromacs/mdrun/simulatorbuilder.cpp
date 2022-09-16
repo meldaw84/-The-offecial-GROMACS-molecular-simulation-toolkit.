@@ -45,6 +45,7 @@
 #include <memory>
 
 #include "gromacs/mdlib/vsite.h"
+#include "gromacs/mdrun/replicaexchange.h"
 #include "gromacs/mdrunutility/mdmodulesnotifiers.h"
 #include "gromacs/mdtypes/checkpointdata.h"
 #include "gromacs/mdtypes/mdrunoptions.h"
@@ -54,7 +55,6 @@
 
 #include "legacysimulator.h"
 #include "membedholder.h"
-#include "gromacs/mdrun/replicaexchange.h"
 
 
 namespace gmx

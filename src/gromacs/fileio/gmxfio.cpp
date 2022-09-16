@@ -54,12 +54,12 @@
 #include "thread_mpi/threads.h"
 
 #include "gromacs/fileio/filetypes.h"
-#include "md5.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
 
 #include "gmxfio_impl.h"
+#include "md5.h"
 
 /* This is the new improved and thread safe version of gmxfio. */
 

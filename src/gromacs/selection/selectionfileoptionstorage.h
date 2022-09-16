@@ -42,6 +42,7 @@
 #define GMX_SELECTION_SELECTIONFILEOPTIONSTORAGE_H
 
 #include "gromacs/options/abstractoptionstorage.h"
+
 #include "selectionfileoption.h"
 
 namespace gmx

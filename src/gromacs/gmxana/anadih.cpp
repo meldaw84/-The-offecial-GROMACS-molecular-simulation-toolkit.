@@ -43,7 +43,6 @@
 #include "gromacs/fileio/confio.h"
 #include "gromacs/fileio/trxio.h"
 #include "gromacs/fileio/xvgr.h"
-#include "angle_correction.h"
 #include "gromacs/gmxana/gstat.h"
 #include "gromacs/listed_forces/bonded.h"
 #include "gromacs/math/functions.h"
@@ -54,6 +53,8 @@
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/smalloc.h"
+
+#include "angle_correction.h"
 
 void print_one(const gmx_output_env_t* oenv,
                const char*             base,

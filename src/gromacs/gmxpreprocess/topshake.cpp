@@ -42,15 +42,16 @@
 #include "gromacs/gmxpreprocess/grompp_impl.h"
 #include "gromacs/gmxpreprocess/notset.h"
 #include "gromacs/gmxpreprocess/readir.h"
-#include "topdirs.h"
-#include "toppush.h"
-#include "toputil.h"
 #include "gromacs/math/units.h"
 #include "gromacs/math/utilities.h"
 #include "gromacs/topology/ifunc.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/logger.h"
 #include "gromacs/utility/smalloc.h"
+
+#include "topdirs.h"
+#include "toppush.h"
+#include "toputil.h"
 
 static int count_hydrogens(char*** atomname, int nra, gmx::ArrayRef<const int> a)
 {

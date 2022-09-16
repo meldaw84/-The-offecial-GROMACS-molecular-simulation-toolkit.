@@ -40,11 +40,7 @@
 
 #include "gromacs/fileio/confio.h"
 #include "gromacs/gmxlib/network.h"
-#include "calch.h"
-#include "h_db.h"
 #include "gromacs/gmxpreprocess/notset.h"
-#include "pgutil.h"
-#include "ter_db.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/topology/atoms.h"
 #include "gromacs/topology/symtab.h"
@@ -54,8 +50,12 @@
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
 
+#include "calch.h"
+#include "h_db.h"
 #include "hackblock.h"
+#include "pgutil.h"
 #include "resall.h"
+#include "ter_db.h"
 
 static void copy_atom(const t_atoms* atoms1, int a1, t_atoms* atoms2, int a2, t_symtab* symtab)
 {

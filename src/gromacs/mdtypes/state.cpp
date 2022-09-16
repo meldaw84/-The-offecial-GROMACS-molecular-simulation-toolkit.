@@ -44,6 +44,7 @@
 #include "gromacs/math/vec.h"
 #include "gromacs/math/veccompare.h"
 #include "gromacs/mdtypes/awh_history.h"
+#include "gromacs/mdtypes/checkpointdata.h"
 #include "gromacs/mdtypes/df_history.h"
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/md_enums.h"
@@ -55,8 +56,6 @@
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringutil.h"
-
-#include "gromacs/mdtypes/checkpointdata.h"
 
 /* The source code in this file should be thread-safe.
       Please keep it that way. */

@@ -41,8 +41,6 @@
 #include <cstring>
 
 #include "gromacs/fileio/pdbio.h"
-#include "pdb2top.h"
-#include "toputil.h"
 #include "gromacs/math/functions.h"
 #include "gromacs/math/units.h"
 #include "gromacs/math/utilities.h"
@@ -53,6 +51,9 @@
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/smalloc.h"
+
+#include "pdb2top.h"
+#include "toputil.h"
 
 static int in_strings(char* key, int nstr, const char** str)
 {

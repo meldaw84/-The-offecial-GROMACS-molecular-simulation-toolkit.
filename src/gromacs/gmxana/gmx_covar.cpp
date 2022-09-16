@@ -41,7 +41,6 @@
 #include "gromacs/fileio/matio.h"
 #include "gromacs/fileio/trxio.h"
 #include "gromacs/fileio/xvgr.h"
-#include "eigio.h"
 #include "gromacs/gmxana/gmx_ana.h"
 #include "gromacs/linearalgebra/eigensolver.h"
 #include "gromacs/math/do_fit.h"
@@ -58,6 +57,8 @@
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/sysinfo.h"
+
+#include "eigio.h"
 
 
 namespace gmx

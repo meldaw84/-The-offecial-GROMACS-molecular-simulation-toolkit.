@@ -44,7 +44,6 @@
 #include "gromacs/fileio/mtxio.h"
 #include "gromacs/fileio/tpxio.h"
 #include "gromacs/fileio/xvgr.h"
-#include "eigio.h"
 #include "gromacs/gmxana/gmx_ana.h"
 #include "gromacs/gmxana/gstat.h"
 #include "gromacs/gmxana/princ.h"
@@ -64,6 +63,7 @@
 #include "gromacs/utility/pleasecite.h"
 #include "gromacs/utility/smalloc.h"
 
+#include "eigio.h"
 #include "thermochemistry.h"
 
 static double cv_corr(double nu, double T)

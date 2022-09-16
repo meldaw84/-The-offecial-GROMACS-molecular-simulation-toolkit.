@@ -48,13 +48,13 @@
 #include "gromacs/options/optionsassigner.h"
 #include "gromacs/selection/selection.h"
 #include "gromacs/selection/selectioncollection.h"
-#include "selectionfileoption.h"
 #include "gromacs/selection/selectionoptionmanager.h"
 #include "gromacs/utility/exceptions.h"
 
 #include "testutils/testasserts.h"
 #include "testutils/testfilemanager.h"
 
+#include "selectionfileoption.h"
 #include "toputils.h"
 
 using gmx::test::TestFileManager;

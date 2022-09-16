@@ -41,10 +41,8 @@
 
 #include <algorithm>
 
-#include "gpp_atomtype.h"
 #include "gromacs/gmxpreprocess/grompp_impl.h"
 #include "gromacs/gmxpreprocess/notset.h"
-#include "topdirs.h"
 #include "gromacs/topology/block.h"
 #include "gromacs/topology/ifunc.h"
 #include "gromacs/topology/symtab.h"
@@ -53,6 +51,9 @@
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/strconvert.h"
 #include "gromacs/utility/stringutil.h"
+
+#include "gpp_atomtype.h"
+#include "topdirs.h"
 
 /* UTILITIES */
 

@@ -45,10 +45,9 @@
 
 #include "gromacs/mdtypes/interaction_const.h"
 #include "gromacs/mdtypes/locality.h"
-#include "gromacs/utility/enumerationhelpers.h"
-
 #include "gromacs/nbnxm/nbnxm.h"
 #include "gromacs/nbnxm/pairlist.h"
+#include "gromacs/utility/enumerationhelpers.h"
 
 #if GMX_GPU_OPENCL
 #    include "gromacs/gpu_utils/gpuregiontimer_ocl.h"

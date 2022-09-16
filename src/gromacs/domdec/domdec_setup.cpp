@@ -52,6 +52,7 @@
 
 #include <numeric>
 
+#include "gromacs/domdec/box.h"
 #include "gromacs/domdec/domdec.h"
 #include "gromacs/domdec/domdec_struct.h"
 #include "gromacs/domdec/options.h"
@@ -71,7 +72,6 @@
 #include "gromacs/utility/logger.h"
 #include "gromacs/utility/stringutil.h"
 
-#include "gromacs/domdec/box.h"
 #include "domdec_internal.h"
 #include "utility.h"
 

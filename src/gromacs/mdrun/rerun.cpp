@@ -94,6 +94,8 @@
 #include "gromacs/mdlib/update.h"
 #include "gromacs/mdlib/vcm.h"
 #include "gromacs/mdlib/vsite.h"
+#include "gromacs/mdrun/replicaexchange.h"
+#include "gromacs/mdrun/shellfc.h"
 #include "gromacs/mdrunutility/handlerestart.h"
 #include "gromacs/mdrunutility/multisim.h"
 #include "gromacs/mdrunutility/printtime.h"
@@ -134,8 +136,6 @@
 #include "gromacs/utility/real.h"
 
 #include "legacysimulator.h"
-#include "gromacs/mdrun/replicaexchange.h"
-#include "gromacs/mdrun/shellfc.h"
 
 using gmx::SimulationSignaller;
 using gmx::VirtualSitesHandler;

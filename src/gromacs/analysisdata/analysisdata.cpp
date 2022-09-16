@@ -45,10 +45,11 @@
 #include <memory>
 
 #include "gromacs/analysisdata/dataframe.h"
-#include "datastorage.h"
 #include "gromacs/analysisdata/paralleloptions.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/gmxassert.h"
+
+#include "datastorage.h"
 
 namespace gmx
 {

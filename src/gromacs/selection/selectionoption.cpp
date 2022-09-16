@@ -46,12 +46,12 @@
 
 #include "gromacs/options/optionmanagercontainer.h"
 #include "gromacs/selection/selection.h"
-#include "selectionfileoption.h"
 #include "gromacs/selection/selectionoptionmanager.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/message_string_collector.h"
 
+#include "selectionfileoption.h"
 #include "selectionfileoptionstorage.h"
 #include "selectionoptionstorage.h"
 

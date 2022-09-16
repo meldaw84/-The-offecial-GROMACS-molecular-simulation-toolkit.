@@ -41,7 +41,6 @@
 #include <string>
 #include <vector>
 
-#include "fflibutil.h"
 #include "gromacs/gmxpreprocess/grompp_impl.h"
 #include "gromacs/topology/residuetypes.h"
 #include "gromacs/topology/symtab.h"
@@ -51,6 +50,7 @@
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/strdb.h"
 
+#include "fflibutil.h"
 #include "hackblock.h"
 
 typedef struct

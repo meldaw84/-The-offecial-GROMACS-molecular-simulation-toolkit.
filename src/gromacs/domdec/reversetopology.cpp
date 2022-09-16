@@ -50,9 +50,6 @@
 #include <memory>
 #include <vector>
 
-#include "domdec_constraints.h"
-#include "domdec_internal.h"
-#include "domdec_vsite.h"
 #include "gromacs/domdec/options.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/mdlib/gmx_omp_nthreads.h"
@@ -64,6 +61,10 @@
 #include "gromacs/topology/topsort.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/fatalerror.h"
+
+#include "domdec_constraints.h"
+#include "domdec_internal.h"
+#include "domdec_vsite.h"
 
 using gmx::ArrayRef;
 using gmx::DDBondedChecking;

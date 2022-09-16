@@ -40,11 +40,10 @@
 
 #include <cassert>
 
+#include "gromacs/mdrun/runner.h"
 #include "gromacs/mdrunutility/multisim.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/gmxmpi.h"
-
-#include "gromacs/mdrun/runner.h"
 
 namespace gmx
 {

@@ -39,11 +39,12 @@
 #include <cstdlib>
 
 #include "gromacs/gmxpreprocess/grompp_impl.h"
-#include "toputil.h"
 #include "gromacs/topology/ifunc.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/smalloc.h"
+
+#include "toputil.h"
 
 /* #define DEBUG_NNB */
 

@@ -72,7 +72,6 @@
 #include "gromacs/hardware/device_information.h"
 #include "gromacs/hardware/hw_info.h"
 #include "gromacs/mdtypes/simulation_workload.h"
-#include "atomdata.h"
 #include "gromacs/nbnxm/gpu_common.h"
 #include "gromacs/nbnxm/gpu_common_utils.h"
 #include "gromacs/nbnxm/gpu_data_mgmt.h"
@@ -84,6 +83,7 @@
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/gmxassert.h"
 
+#include "atomdata.h"
 #include "nbnxm_ocl_types.h"
 
 namespace Nbnxm

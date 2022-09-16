@@ -45,8 +45,6 @@
 #include "gromacs/fileio/matio.h"
 #include "gromacs/fileio/trxio.h"
 #include "gromacs/fileio/xvgr.h"
-#include "cluster_methods.h"
-#include "cmat.h"
 #include "gromacs/gmxana/gmx_ana.h"
 #include "gromacs/linearalgebra/eigensolver.h"
 #include "gromacs/math/do_fit.h"
@@ -64,6 +62,9 @@
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringutil.h"
+
+#include "cluster_methods.h"
+#include "cmat.h"
 
 /* print to two file pointers at once (i.e. stderr and log) */
 static inline void lo_ffprintf(FILE* fp1, FILE* fp2, const char* buf)

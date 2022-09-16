@@ -45,9 +45,10 @@
 #include <algorithm>
 
 #include "gromacs/analysisdata/dataframe.h"
-#include "datamodulemanager.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/gmxassert.h"
+
+#include "datamodulemanager.h"
 
 namespace gmx
 {

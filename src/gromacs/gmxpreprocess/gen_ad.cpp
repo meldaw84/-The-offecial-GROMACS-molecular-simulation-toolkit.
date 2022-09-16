@@ -45,12 +45,8 @@
 #include <numeric>
 
 #include "gromacs/fileio/confio.h"
-#include "gpp_nextnb.h"
 #include "gromacs/gmxpreprocess/grompp_impl.h"
 #include "gromacs/gmxpreprocess/notset.h"
-#include "pgutil.h"
-#include "topio.h"
-#include "toputil.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/topology/ifunc.h"
 #include "gromacs/utility/cstringutil.h"
@@ -58,8 +54,12 @@
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/smalloc.h"
 
+#include "gpp_nextnb.h"
 #include "hackblock.h"
+#include "pgutil.h"
 #include "resall.h"
+#include "topio.h"
+#include "toputil.h"
 
 #define DIHEDRAL_WAS_SET_IN_RTP 0
 static bool was_dihedral_set_in_rtp(const InteractionOfType& dih)

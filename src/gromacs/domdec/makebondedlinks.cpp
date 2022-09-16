@@ -47,7 +47,6 @@
 
 #include <algorithm>
 
-#include "domdec_internal.h"
 #include "gromacs/domdec/options.h"
 #include "gromacs/domdec/reversetopology.h"
 #include "gromacs/mdtypes/atominfo.h"
@@ -55,6 +54,8 @@
 #include "gromacs/topology/topology.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/listoflists.h"
+
+#include "domdec_internal.h"
 
 using gmx::ArrayRef;
 using gmx::DDBondedChecking;

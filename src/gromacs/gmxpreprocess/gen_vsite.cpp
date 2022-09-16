@@ -47,12 +47,8 @@
 #include <vector>
 
 #include "gromacs/fileio/pdbio.h"
-#include "add_par.h"
-#include "fflibutil.h"
-#include "gpp_atomtype.h"
 #include "gromacs/gmxpreprocess/grompp_impl.h"
 #include "gromacs/gmxpreprocess/notset.h"
-#include "toputil.h"
 #include "gromacs/math/functions.h"
 #include "gromacs/math/units.h"
 #include "gromacs/math/utilities.h"
@@ -68,8 +64,12 @@
 #include "gromacs/utility/real.h"
 #include "gromacs/utility/smalloc.h"
 
+#include "add_par.h"
+#include "fflibutil.h"
+#include "gpp_atomtype.h"
 #include "hackblock.h"
 #include "resall.h"
+#include "toputil.h"
 
 #define MAXNAME 32
 #define OPENDIR '['  /* starting sign for directive		*/

@@ -44,8 +44,6 @@
 #include <string>
 #include <vector>
 
-#include "fflibutil.h"
-#include "gpp_atomtype.h"
 #include "gromacs/gmxpreprocess/grompp_impl.h"
 #include "gromacs/topology/atoms.h"
 #include "gromacs/topology/symtab.h"
@@ -57,6 +55,8 @@
 #include "gromacs/utility/strdb.h"
 #include "gromacs/utility/stringtoenumvalueconverter.h"
 
+#include "fflibutil.h"
+#include "gpp_atomtype.h"
 #include "hackblock.h"
 
 PreprocessingAtomTypes read_atype(const char* ffdir)

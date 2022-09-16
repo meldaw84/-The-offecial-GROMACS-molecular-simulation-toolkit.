@@ -46,7 +46,6 @@
 #include "gromacs/gpu_utils/devicebuffer_datatype.h"
 #include "gromacs/gpu_utils/gputraits.h"
 #include "gromacs/math/vectypes.h"
-
 #include "gromacs/mdlib/gpuforcereduction.h"
 
 namespace gmx

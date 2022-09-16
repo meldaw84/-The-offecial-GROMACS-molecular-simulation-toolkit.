@@ -49,9 +49,11 @@
 #include <algorithm>
 #include <memory>
 
+#include "gromacs/domdec/box.h"
 #include "gromacs/domdec/builder.h"
 #include "gromacs/domdec/collect.h"
 #include "gromacs/domdec/computemultibodycutoffs.h"
+#include "gromacs/domdec/distribute.h"
 #include "gromacs/domdec/dlb.h"
 #include "gromacs/domdec/dlbtiming.h"
 #include "gromacs/domdec/domdec_network.h"
@@ -60,8 +62,8 @@
 #include "gromacs/domdec/localtopologychecker.h"
 #include "gromacs/domdec/options.h"
 #include "gromacs/domdec/partition.h"
+#include "gromacs/domdec/redistribute.h"
 #include "gromacs/domdec/reversetopology.h"
-#include "utility.h"
 #include "gromacs/ewald/pme.h"
 #include "gromacs/gmxlib/network.h"
 #include "gromacs/gmxlib/nrnb.h"
@@ -110,15 +112,12 @@
 #include "gromacs/utility/textwriter.h"
 
 #include "atomdistribution.h"
-#include "gromacs/domdec/box.h"
 #include "cellsizes.h"
-#include "gromacs/domdec/distribute.h"
 #include "domdec_constraints.h"
 #include "domdec_internal.h"
 #include "domdec_setup.h"
 #include "domdec_specatomcomm.h"
 #include "domdec_vsite.h"
-#include "gromacs/domdec/redistribute.h"
 #include "utility.h"
 
 // TODO remove this when moving domdec into gmx namespace

@@ -45,9 +45,10 @@
 #include <cstring>
 
 #include "gromacs/utility/filestream.h"
-#include "nodelete.h"
 #include "gromacs/utility/stringutil.h"
 #include "gromacs/utility/textstream.h"
+
+#include "nodelete.h"
 
 namespace gmx
 {

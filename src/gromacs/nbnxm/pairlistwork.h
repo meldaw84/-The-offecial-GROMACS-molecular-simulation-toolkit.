@@ -47,11 +47,11 @@
 #include <memory>
 #include <vector>
 
+#include "gromacs/nbnxm/pairlist.h"
 #include "gromacs/simd/simd.h"
 
 #include "boundingboxes.h"
 #include "grid.h"
-#include "gromacs/nbnxm/pairlist.h"
 
 //! Working data for the actual i-supercell during pair search \internal
 struct NbnxnPairlistCpuWork

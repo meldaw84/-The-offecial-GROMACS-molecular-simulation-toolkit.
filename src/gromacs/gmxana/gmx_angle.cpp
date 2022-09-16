@@ -42,7 +42,6 @@
 #include "gromacs/correlationfunctions/autocorr.h"
 #include "gromacs/fileio/trrio.h"
 #include "gromacs/fileio/xvgr.h"
-#include "angle_correction.h"
 #include "gromacs/gmxana/gmx_ana.h"
 #include "gromacs/gmxana/gstat.h"
 #include "gromacs/math/functions.h"
@@ -54,6 +53,8 @@
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/pleasecite.h"
 #include "gromacs/utility/smalloc.h"
+
+#include "angle_correction.h"
 
 static void dump_dih_trr(int nframes, int nangles, real** dih, const char* fn, real* time)
 {

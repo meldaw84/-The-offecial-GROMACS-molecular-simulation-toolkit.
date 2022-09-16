@@ -44,7 +44,6 @@
 #include <string>
 #include <vector>
 
-#include "fflibutil.h"
 #include "gromacs/gmxpreprocess/notset.h"
 #include "gromacs/topology/atoms.h"
 #include "gromacs/utility/arraysize.h"
@@ -54,6 +53,7 @@
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringutil.h"
 
+#include "fflibutil.h"
 #include "hackblock.h"
 
 /* Number of control atoms for each 'add' type.

@@ -50,11 +50,12 @@
 
 #include <gtest/gtest.h>
 
-#include "expanded_internal.h"
 #include "gromacs/mdtypes/md_enums.h"
 #include "gromacs/utility/enumerationhelpers.h"
 
 #include "testutils/testasserts.h"
+
+#include "expanded_internal.h"
 
 namespace gmx
 {

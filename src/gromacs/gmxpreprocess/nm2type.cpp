@@ -43,12 +43,8 @@
 #include <vector>
 
 #include "gromacs/fileio/confio.h"
-#include "fflibutil.h"
-#include "gpp_atomtype.h"
 #include "gromacs/gmxpreprocess/grompp_impl.h"
 #include "gromacs/gmxpreprocess/notset.h"
-#include "pdb2top.h"
-#include "toppush.h"
 #include "gromacs/math/utilities.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/mdtypes/md_enums.h"
@@ -56,6 +52,11 @@
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
+
+#include "fflibutil.h"
+#include "gpp_atomtype.h"
+#include "pdb2top.h"
+#include "toppush.h"
 
 static void rd_nm2type_file(const std::string& filename, int* nnm, t_nm2type** nmp)
 {
