@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2020- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 /*! \internal \file
@@ -50,9 +49,12 @@
 #include "nbnxm_sycl_kernel_utils.h"
 #include "nbnxm_sycl_types.h"
 
-using cl::sycl::access::fence_space;
-using cl::sycl::access::mode;
-using cl::sycl::access::target;
+using sycl::access::fence_space;
+using mode = sycl::access_mode;
+
+//! \brief Class name for NBNXM prune-only kernel
+template<bool haveFreshList>
+class NbnxmKernelPruneOnly;
 
 namespace Nbnxm
 {
@@ -61,7 +63,7 @@ namespace Nbnxm
  *
  */
 template<bool haveFreshList>
-auto nbnxmKernelPruneOnly(cl::sycl::handler&                            cgh,
+auto nbnxmKernelPruneOnly(sycl::handler&                                cgh,
                           DeviceAccessor<Float4, mode::read>            a_xq,
                           DeviceAccessor<Float3, mode::read>            a_shiftVec,
                           DeviceAccessor<nbnxn_cj4_t, mode::read_write> a_plistCJ4,
@@ -72,15 +74,15 @@ auto nbnxmKernelPruneOnly(cl::sycl::handler&                            cgh,
                           const int   numParts,
                           const int   part)
 {
-    cgh.require(a_xq);
-    cgh.require(a_shiftVec);
-    cgh.require(a_plistCJ4);
-    cgh.require(a_plistSci);
-    cgh.require(a_plistIMask);
+    a_xq.bind(cgh);
+    a_shiftVec.bind(cgh);
+    a_plistCJ4.bind(cgh);
+    a_plistSci.bind(cgh);
+    a_plistIMask.bind(cgh);
 
     /* shmem buffer for i x+q pre-loading */
-    cl::sycl::accessor<Float4, 2, mode::read_write, target::local> sm_xq(
-            cl::sycl::range<2>(c_nbnxnGpuNumClusterPerSupercluster, c_clSize), cgh);
+    sycl_2020::local_accessor<Float4, 1> sm_xq(
+            sycl::range<1>(c_nbnxnGpuNumClusterPerSupercluster * c_clSize), cgh);
 
     constexpr int warpSize = c_clSize * c_clSize / 2;
 
@@ -94,20 +96,19 @@ auto nbnxmKernelPruneOnly(cl::sycl::handler&                            cgh,
     constexpr int gmx_unused requiredSubGroupSize = (c_clSize == 4) ? 16 : warpSize;
 
     /* Requirements:
-     * Work group (block) must have range (c_clSize, c_clSize, ...) (for localId calculation, easy
+     * Work group (block) must have range (c_clSize, c_clSize, ...) (for itemIdx calculation, easy
      * to change). */
-    return [=](cl::sycl::nd_item<1> itemIdx) [[intel::reqd_sub_group_size(requiredSubGroupSize)]]
+    return [=](sycl::nd_item<3> itemIdx) [[intel::reqd_sub_group_size(requiredSubGroupSize)]]
     {
-        const cl::sycl::id<3> localId = unflattenId<c_clSize, c_clSize>(itemIdx.get_local_id());
         // thread/block/warp id-s
-        const unsigned tidxi = localId[0];
-        const unsigned tidxj = localId[1];
+        const unsigned tidxi = itemIdx.get_local_id(2);
+        const unsigned tidxj = itemIdx.get_local_id(1);
         const int      tidx  = tidxj * c_clSize + tidxi;
-        const unsigned tidxz = localId[2];
+        const unsigned tidxz = itemIdx.get_local_id(0);
         const unsigned bidx  = itemIdx.get_group(0);
 
-        const sycl_2020::sub_group sg   = itemIdx.get_sub_group();
-        const unsigned             widx = tidx / warpSize;
+        const sycl::sub_group sg   = itemIdx.get_sub_group();
+        const unsigned        widx = tidx / warpSize;
 
         // my i super-cluster's index = sciOffset + current bidx * numParts + part
         const nbnxn_sci_t nbSci     = a_plistSci[bidx * numParts + part];
@@ -115,7 +116,10 @@ auto nbnxmKernelPruneOnly(cl::sycl::handler&                            cgh,
         const int         cij4Start = nbSci.cj4_ind_start; /* first ...*/
         const int         cij4End   = nbSci.cj4_ind_end;   /* and last index of j clusters */
 
-        if (tidxz == 0)
+        // We may need only a subset of threads active for preloading i-atoms
+        // depending on the super-cluster and cluster / thread-block size.
+        constexpr bool c_loadUsingAllXYThreads = (c_clSize == c_nbnxnGpuNumClusterPerSupercluster);
+        if (tidxz == 0 && (c_loadUsingAllXYThreads || tidxj < c_nbnxnGpuNumClusterPerSupercluster))
         {
             for (int i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i += c_clSize)
             {
@@ -128,7 +132,7 @@ auto nbnxmKernelPruneOnly(cl::sycl::handler&                            cgh,
                 const Float4 xq    = a_xq[ai];
                 const Float3 shift = a_shiftVec[nbSci.shift];
                 const Float4 xi(xq[0] + shift[0], xq[1] + shift[1], xq[2] + shift[2], xq[3]);
-                sm_xq[tidxj + i][tidxi] = xi;
+                sm_xq[(tidxj + i) * c_clSize + tidxi] = xi;
             }
         }
         itemIdx.barrier(fence_space::local_space);
@@ -178,7 +182,7 @@ auto nbnxmKernelPruneOnly(cl::sycl::handler&                            cgh,
                             if (imaskCheck & mask_ji)
                             {
                                 // load i-cluster coordinates from shmem
-                                const Float4 xi = sm_xq[i][tidxi];
+                                const Float4 xi = sm_xq[i * c_clSize + tidxi];
                                 // distance between i and j atoms
                                 Float3 rv(xi[0], xi[1], xi[2]);
                                 rv -= xj;
@@ -187,13 +191,13 @@ auto nbnxmKernelPruneOnly(cl::sycl::handler&                            cgh,
                                 /* If _none_ of the atoms pairs are in rlistOuter
                                  * range, the bit corresponding to the current
                                  * cluster-pair in imask gets set to 0. */
-                                if (haveFreshList && !(sycl_2020::group_any_of(sg, r2 < rlistOuterSq)))
+                                if (haveFreshList && !(sycl::any_of_group(sg, r2 < rlistOuterSq)))
                                 {
                                     imaskFull &= ~mask_ji;
                                 }
                                 /* If any atom pair is within range, set the bit
                                  * corresponding to the current cluster-pair. */
-                                if (sycl_2020::group_any_of(sg, r2 < rlistInnerSq))
+                                if (sycl::any_of_group(sg, r2 < rlistInnerSq))
                                 {
                                     imaskNew |= mask_ji;
                                 }
@@ -216,40 +220,35 @@ auto nbnxmKernelPruneOnly(cl::sycl::handler&                            cgh,
     };
 }
 
-// SYCL 1.2.1 requires providing a unique type for a kernel. Should not be needed for SYCL2020.
-template<bool haveFreshList>
-class NbnxmKernelPruneOnlyName;
-
+//! \brief Leap Frog SYCL prune-only kernel launch code.
 template<bool haveFreshList, class... Args>
-cl::sycl::event launchNbnxmKernelPruneOnly(const DeviceStream& deviceStream,
-                                           const int           numSciInPart,
-                                           Args&&... args)
+sycl::event launchNbnxmKernelPruneOnly(const DeviceStream& deviceStream, const int numSciInPart, Args&&... args)
 {
-    // Should not be needed for SYCL2020.
-    using kernelNameType = NbnxmKernelPruneOnlyName<haveFreshList>;
+    using kernelNameType = NbnxmKernelPruneOnly<haveFreshList>;
 
     /* Kernel launch config:
      * - The thread block dimensions match the size of i-clusters, j-clusters,
      *   and j-cluster concurrency, in x, y, and z, respectively.
      * - The 1D block-grid contains as many blocks as super-clusters.
      */
-    const unsigned long         numBlocks = numSciInPart;
-    const cl::sycl::range<3>    blockSize{ c_clSize, c_clSize, c_syclPruneKernelJ4Concurrency };
-    const cl::sycl::range<3>    globalSize{ numBlocks * blockSize[0], blockSize[1], blockSize[2] };
-    const cl::sycl::nd_range<3> range{ globalSize, blockSize };
+    const unsigned long     numBlocks = numSciInPart;
+    const sycl::range<3>    blockSize{ c_syclPruneKernelJ4Concurrency, c_clSize, c_clSize };
+    const sycl::range<3>    globalSize{ numBlocks * blockSize[0], blockSize[1], blockSize[2] };
+    const sycl::nd_range<3> range{ globalSize, blockSize };
 
-    cl::sycl::queue q = deviceStream.stream();
+    sycl::queue q = deviceStream.stream();
 
-    cl::sycl::event e = q.submit([&](cl::sycl::handler& cgh) {
+    sycl::event e = q.submit([&](sycl::handler& cgh) {
         auto kernel = nbnxmKernelPruneOnly<haveFreshList>(cgh, std::forward<Args>(args)...);
-        cgh.parallel_for<kernelNameType>(flattenNDRange(range), kernel);
+        cgh.parallel_for<kernelNameType>(range, kernel);
     });
 
     return e;
 }
 
+//! \brief Select templated kernel and launch it.
 template<class... Args>
-cl::sycl::event chooseAndLaunchNbnxmKernelPruneOnly(bool haveFreshList, Args&&... args)
+sycl::event chooseAndLaunchNbnxmKernelPruneOnly(bool haveFreshList, Args&&... args)
 {
     return gmx::dispatchTemplatedFunction(
             [&](auto haveFreshList_) {
@@ -270,18 +269,18 @@ void launchNbnxmKernelPruneOnly(NbnxmGpu*                 nb,
     const bool          haveFreshList = plist->haveFreshList;
     const DeviceStream& deviceStream  = *nb->deviceStreams[iloc];
 
-    cl::sycl::event e = chooseAndLaunchNbnxmKernelPruneOnly(haveFreshList,
-                                                            deviceStream,
-                                                            numSciInPart,
-                                                            adat->xq,
-                                                            adat->shiftVec,
-                                                            plist->cj4,
-                                                            plist->sci,
-                                                            plist->imask,
-                                                            nbp->rlistOuter_sq,
-                                                            nbp->rlistInner_sq,
-                                                            numParts,
-                                                            part);
+    sycl::event e = chooseAndLaunchNbnxmKernelPruneOnly(haveFreshList,
+                                                        deviceStream,
+                                                        numSciInPart,
+                                                        adat->xq,
+                                                        adat->shiftVec,
+                                                        plist->cj4,
+                                                        plist->sci,
+                                                        plist->imask,
+                                                        nbp->rlistOuter_sq,
+                                                        nbp->rlistInner_sq,
+                                                        numParts,
+                                                        part);
 }
 
 } // namespace Nbnxm

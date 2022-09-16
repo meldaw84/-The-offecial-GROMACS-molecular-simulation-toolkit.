@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2018- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  *
@@ -56,6 +55,7 @@
 #include "gromacs/domdec/domdec.h"
 #include "gromacs/domdec/domdec_network.h"
 #include "gromacs/domdec/domdec_struct.h"
+#include "gromacs/domdec/localtopologychecker.h"
 #include "gromacs/domdec/mdsetup.h"
 #include "gromacs/domdec/partition.h"
 #include "gromacs/essentialdynamics/edsam.h"
@@ -71,7 +71,6 @@
 #include "gromacs/math/vec.h"
 #include "gromacs/math/vectypes.h"
 #include "gromacs/mdlib/checkpointhandler.h"
-#include "gromacs/mdlib/compute_io.h"
 #include "gromacs/mdlib/constr.h"
 #include "gromacs/mdlib/ebin.h"
 #include "gromacs/mdlib/enerdata_utils.h"
@@ -112,10 +111,12 @@
 #include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/mdtypes/mdrunoptions.h"
 #include "gromacs/mdtypes/observableshistory.h"
+#include "gromacs/mdtypes/observablesreducer.h"
 #include "gromacs/mdtypes/simulation_workload.h"
 #include "gromacs/mdtypes/state.h"
 #include "gromacs/mimic/utilities.h"
 #include "gromacs/pbcutil/pbc.h"
+#include "gromacs/pulling/output.h"
 #include "gromacs/pulling/pull.h"
 #include "gromacs/swap/swapcoords.h"
 #include "gromacs/timing/wallcycle.h"
@@ -127,6 +128,7 @@
 #include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/basedefinitions.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/logger.h"
 #include "gromacs/utility/real.h"
@@ -172,7 +174,6 @@ void gmx::LegacySimulator::do_rerun()
     // t_inputrec is being replaced by IMdpOptionsProvider, so this
     // will go away eventually.
     const t_inputrec* ir = inputrec;
-    int64_t           step, step_rel;
     double            t;
     bool              isLastStep               = false;
     bool              doFreeEnergyPerturbation = false;
@@ -181,7 +182,6 @@ void gmx::LegacySimulator::do_rerun()
     t_trxstatus*      status = nullptr;
     rvec              mu_tot;
     t_trxframe        rerun_fr;
-    gmx_localtop_t    top(top_global.ffparams);
     ForceBuffers      f;
     gmx_global_stat_t gstat;
     gmx_shellfc_t*    shellfc;
@@ -267,6 +267,8 @@ void gmx::LegacySimulator::do_rerun()
     int        nstglobalcomm = 1;
     const bool bNS           = true;
 
+    ObservablesReducer observablesReducer = observablesReducerBuilder->build();
+
     const SimulationGroups* groups = &top_global.groups;
     if (ir->eI == IntegrationAlgorithm::Mimic)
     {
@@ -316,25 +318,12 @@ void gmx::LegacySimulator::do_rerun()
                                  top_global,
                                  constr ? constr->numFlexibleConstraints() : 0,
                                  ir->nstcalcenergy,
-                                 DOMAINDECOMP(cr),
+                                 haveDDAtomOrdering(*cr),
                                  runScheduleWork->simulationWork.useGpuPme);
 
+    if (haveDDAtomOrdering(*cr))
     {
-        double io = compute_io(ir, top_global.natoms, *groups, energyOutput.numEnergyTerms(), 1);
-        if ((io > 2000) && MASTER(cr))
-        {
-            fprintf(stderr, "\nWARNING: This run will generate roughly %.0f Mb of data\n\n", io);
-        }
-    }
-
-    // Local state only becomes valid now.
-    std::unique_ptr<t_state> stateInstance;
-    t_state*                 state;
-
-    if (DOMAINDECOMP(cr))
-    {
-        stateInstance = std::make_unique<t_state>();
-        state         = stateInstance.get();
+        // Local state only becomes valid now.
         dd_init_local_state(*cr->dd, state_global, state);
 
         /* Distribute the charge groups over the nodes from the master node */
@@ -352,7 +341,7 @@ void gmx::LegacySimulator::do_rerun()
                             state,
                             &f,
                             mdAtoms,
-                            &top,
+                            top,
                             fr,
                             vsite,
                             constr,
@@ -366,10 +355,11 @@ void gmx::LegacySimulator::do_rerun()
         /* Copy the pointer to the global state */
         state = state_global;
 
-        mdAlgorithmsSetupAtomData(cr, *ir, top_global, &top, fr, &f, mdAtoms, constr, vsite, shellfc);
+        mdAlgorithmsSetupAtomData(cr, *ir, top_global, top, fr, &f, mdAtoms, constr, vsite, shellfc);
     }
 
     auto* mdatoms = mdAtoms->mdatoms();
+    fr->longRangeNonbondeds->updateAfterPartition(*mdatoms);
 
     // NOTE: The global state is no longer used at this point.
     // But state_global is still used as temporary storage space for writing
@@ -383,12 +373,11 @@ void gmx::LegacySimulator::do_rerun()
         doFreeEnergyPerturbation = true;
     }
 
+    int64_t step     = ir->init_step;
+    int64_t step_rel = 0;
+
     {
-        int cglo_flags = CGLO_GSTAT;
-        if (DOMAINDECOMP(cr) && shouldCheckNumberOfBondedInteractions(*cr->dd))
-        {
-            cglo_flags |= CGLO_CHECK_NUMBER_OF_BONDED_INTERACTIONS;
-        }
+        int    cglo_flags   = CGLO_GSTAT;
         bool   bSumEkinhOld = false;
         t_vcm* vcm          = nullptr;
         compute_globals(gstat,
@@ -408,16 +397,14 @@ void gmx::LegacySimulator::do_rerun()
                         shake_vir,
                         total_vir,
                         pres,
-                        gmx::ArrayRef<real>{},
                         &nullSignaller,
                         state->box,
                         &bSumEkinhOld,
-                        cglo_flags);
-        if (DOMAINDECOMP(cr))
-        {
-            checkNumberOfBondedInteractions(
-                    mdlog, cr, top_global, &top, makeConstArrayRef(state->x), state->box);
-        }
+                        cglo_flags,
+                        step,
+                        &observablesReducer);
+        // Clean up after pre-step use of compute_globals()
+        observablesReducer.markAsReadyToReduce();
     }
 
     if (MASTER(cr))
@@ -509,9 +496,6 @@ void gmx::LegacySimulator::do_rerun()
         calc_shifts(rerun_fr.box, fr->shift_vec);
     }
 
-    step     = ir->init_step;
-    step_rel = 0;
-
     auto stopHandler = stopHandlerBuilder->getStopHandlerMD(
             compat::not_null<SimulationSignal*>(&signals[eglsSTOPCOND]),
             false,
@@ -571,7 +555,7 @@ void gmx::LegacySimulator::do_rerun()
         if (MASTER(cr))
         {
             const bool constructVsites = ((vsite != nullptr) && mdrunOptions.rerunConstructVsites);
-            if (constructVsites && DOMAINDECOMP(cr))
+            if (constructVsites && haveDDAtomOrdering(*cr))
             {
                 gmx_fatal(FARGS,
                           "Vsite recalculation with -rerun is not implemented with domain "
@@ -583,7 +567,7 @@ void gmx::LegacySimulator::do_rerun()
 
         isLastStep = isLastStep || stopHandler->stoppingAfterCurrentStep(bNS);
 
-        if (DOMAINDECOMP(cr))
+        if (haveDDAtomOrdering(*cr))
         {
             /* Repartition the domain decomposition */
             const bool bMasterState = true;
@@ -601,7 +585,7 @@ void gmx::LegacySimulator::do_rerun()
                                 state,
                                 &f,
                                 mdAtoms,
-                                &top,
+                                top,
                                 fr,
                                 vsite,
                                 constr,
@@ -619,6 +603,8 @@ void gmx::LegacySimulator::do_rerun()
         {
             update_mdatoms(mdatoms, state->lambda[FreeEnergyPerturbationCouplingType::Mass]);
         }
+
+        fr->longRangeNonbondeds->updateAfterPartition(*mdatoms);
 
         force_flags = (GMX_FORCE_STATECHANGED | GMX_FORCE_DYNAMICBOX | GMX_FORCE_ALLFORCES
                        | GMX_FORCE_VIRIAL | // TODO: Get rid of this once #2649 and #3400 are solved
@@ -638,7 +624,7 @@ void gmx::LegacySimulator::do_rerun()
                                 pull_work,
                                 bNS,
                                 force_flags,
-                                &top,
+                                top,
                                 constr,
                                 enerd,
                                 state->natoms,
@@ -650,6 +636,7 @@ void gmx::LegacySimulator::do_rerun()
                                 &f.view(),
                                 force_vir,
                                 *mdatoms,
+                                fr->longRangeNonbondeds.get(),
                                 nrnb,
                                 wcycle,
                                 shellfc,
@@ -669,34 +656,46 @@ void gmx::LegacySimulator::do_rerun()
              */
             Awh*       awh = nullptr;
             gmx_edsam* ed  = nullptr;
-            do_force(fplog,
-                     cr,
-                     ms,
-                     *ir,
-                     awh,
-                     enforcedRotation,
-                     imdSession,
-                     pull_work,
-                     step,
-                     nrnb,
-                     wcycle,
-                     &top,
-                     state->box,
-                     state->x.arrayRefWithPadding(),
-                     &state->hist,
-                     &f.view(),
-                     force_vir,
-                     mdatoms,
-                     enerd,
-                     state->lambda,
-                     fr,
-                     runScheduleWork,
-                     vsite,
-                     mu_tot,
-                     t,
-                     ed,
-                     GMX_FORCE_NS | force_flags,
-                     ddBalanceRegionHandler);
+            try
+            {
+                do_force(fplog,
+                         cr,
+                         ms,
+                         *ir,
+                         awh,
+                         enforcedRotation,
+                         imdSession,
+                         pull_work,
+                         step,
+                         nrnb,
+                         wcycle,
+                         top,
+                         state->box,
+                         state->x.arrayRefWithPadding(),
+                         &state->hist,
+                         &f.view(),
+                         force_vir,
+                         mdatoms,
+                         enerd,
+                         state->lambda,
+                         fr,
+                         runScheduleWork,
+                         vsite,
+                         mu_tot,
+                         t,
+                         ed,
+                         fr->longRangeNonbondeds.get(),
+                         GMX_FORCE_NS | force_flags,
+                         ddBalanceRegionHandler);
+            }
+            catch (const gmx::InternalError&)
+            {
+                GMX_LOG(mdlog.warning)
+                        .asParagraph()
+                        .appendText(
+                                "Continuing with next frame after catching invalid force in "
+                                "previous frame");
+            };
         }
 
         /* Now we have the energies and forces corresponding to the
@@ -705,7 +704,6 @@ void gmx::LegacySimulator::do_rerun()
         {
             const bool isCheckpointingStep = false;
             const bool doRerun             = true;
-            const bool bSumEkinhOld        = false;
             do_md_trajectory_writing(fplog,
                                      cr,
                                      nfile,
@@ -727,7 +725,7 @@ void gmx::LegacySimulator::do_rerun()
                                      doRerun,
                                      isLastStep,
                                      mdrunOptions.writeConfout,
-                                     bSumEkinhOld);
+                                     EkindataState::NotUsed);
         }
 
         stopHandler->setSignal();
@@ -740,10 +738,6 @@ void gmx::LegacySimulator::do_rerun()
             SimulationSignaller signaller(&signals, cr, ms, doInterSimSignal, doIntraSimSignal);
 
             int cglo_flags = CGLO_GSTAT | CGLO_ENERGY;
-            if (DOMAINDECOMP(cr) && shouldCheckNumberOfBondedInteractions(*cr->dd))
-            {
-                cglo_flags |= CGLO_CHECK_NUMBER_OF_BONDED_INTERACTIONS;
-            }
             compute_globals(gstat,
                             cr,
                             ir,
@@ -761,16 +755,14 @@ void gmx::LegacySimulator::do_rerun()
                             shake_vir,
                             total_vir,
                             pres,
-                            constr != nullptr ? constr->rmsdData() : gmx::ArrayRef<real>{},
                             &signaller,
                             state->box,
                             &bSumEkinhOld,
-                            cglo_flags);
-            if (DOMAINDECOMP(cr))
-            {
-                checkNumberOfBondedInteractions(
-                        mdlog, cr, top_global, &top, makeConstArrayRef(state->x), state->box);
-            }
+                            cglo_flags,
+                            step,
+                            &observablesReducer);
+            // Clean up after pre-step use of compute_globals()
+            observablesReducer.markAsReadyToReduce();
         }
 
         /* Note: this is OK, but there are some numerical precision issues with using the convergence of
@@ -788,7 +780,6 @@ void gmx::LegacySimulator::do_rerun()
                                              mdatoms->tmass,
                                              enerd,
                                              ir->fepvals.get(),
-                                             ir->expandedvals.get(),
                                              state->box,
                                              PTCouplingArrays({ state->boxv,
                                                                 state->nosehoover_xi,
@@ -796,8 +787,6 @@ void gmx::LegacySimulator::do_rerun()
                                                                 state->nhpres_xi,
                                                                 state->nhpres_vxi }),
                                              state->fep_state,
-                                             shake_vir,
-                                             force_vir,
                                              total_vir,
                                              pres,
                                              ekind,
@@ -820,6 +809,11 @@ void gmx::LegacySimulator::do_rerun()
                                                t,
                                                fr->fcdata.get(),
                                                awh);
+
+            if (ir->bPull)
+            {
+                pull_print_output(pull_work, step, t);
+            }
 
             if (do_per_step(step, ir->nstlog))
             {
@@ -871,7 +865,7 @@ void gmx::LegacySimulator::do_rerun()
         }
 
         cycles = wallcycle_stop(wcycle, WallCycleCounter::Step);
-        if (DOMAINDECOMP(cr) && wcycle)
+        if (haveDDAtomOrdering(*cr) && wcycle)
         {
             dd_cycles_add(cr->dd, cycles, ddCyclStep);
         }
@@ -882,6 +876,7 @@ void gmx::LegacySimulator::do_rerun()
             step++;
             step_rel++;
         }
+        observablesReducer.markAsReadyToReduce();
     }
     /* End of main MD loop */
 

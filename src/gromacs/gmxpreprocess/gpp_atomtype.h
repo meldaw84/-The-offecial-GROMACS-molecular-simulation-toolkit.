@@ -1,12 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2011,2014,2015,2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -20,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -29,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \libinternal \file
  * \brief
@@ -56,10 +53,8 @@
 
 struct gmx_mtop_t;
 struct t_atom;
-struct t_atomtypes;
 class InteractionOfType;
 struct InteractionsOfType;
-struct t_symtab;
 enum class ParticleType : int;
 namespace gmx
 {
@@ -103,7 +98,7 @@ public:
      * \param[in] nt Internal number of atom type.
      * \returns The optional type name.
      */
-    std::optional<const char*> atomNameFromAtomType(int nt) const;
+    std::optional<const std::string> atomNameFromAtomType(int nt) const;
 
     /*! \brief
      * Get normal mass of atom from internal atom type number.
@@ -163,17 +158,9 @@ public:
     bool isSet(int nt) const;
 
     /*! \brief
-     * Print data to file.
-     *
-     * \param[in] out File pointer.
-     */
-    void printTypes(FILE* out);
-
-    /*! \brief
      * Set the values of an existing atom type \p nt.
      *
      * \param[in] nt Type that should be set.
-     * \param[in] tab Symbol table.
      * \param[in] a Atom information.
      * \param[in] name Atom name.
      * \param[in] nb Nonbonded parameters.
@@ -182,7 +169,6 @@ public:
      * \returns Optional number of the type set.
      */
     std::optional<int> setType(int                      nt,
-                               t_symtab*                tab,
                                const t_atom&            a,
                                const std::string&       name,
                                const InteractionOfType& nb,
@@ -192,7 +178,6 @@ public:
     /*! \brief
      * Add a unique type to the database.
      *
-     * \param[in] tab Symbol table.
      * \param[in] a Atom information.
      * \param[in] name Atom name.
      * \param[in] nb Nonbonded parameters.
@@ -201,12 +186,7 @@ public:
      * \returns Index to the type in the database. If the type shares
      *          a name with an existing type, return the index of that type.
      */
-    int addType(t_symtab*                tab,
-                const t_atom&            a,
-                const std::string&       name,
-                const InteractionOfType& nb,
-                int                      bondAtomType,
-                int                      atomNumber);
+    int addType(const t_atom& a, const std::string& name, const InteractionOfType& nb, int bondAtomType, int atomNumber);
 
     /*! \brief
      * Renumber existing atom type entries.
@@ -217,13 +197,6 @@ public:
      * \param[in] verbose If we want to print additional info.
      */
     void renumberTypes(gmx::ArrayRef<InteractionsOfType> plist, gmx_mtop_t* mtop, int* wallAtomType, bool verbose);
-
-    /*! \brief
-     * Copy information to other structure.
-     *
-     * \param[inout] atypes Other datastructure to copy to.
-     */
-    void copyTot_atomtypes(t_atomtypes* atypes) const;
 
 private:
     class Impl;

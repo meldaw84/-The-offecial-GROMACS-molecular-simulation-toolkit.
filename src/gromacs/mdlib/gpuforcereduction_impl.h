@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2020- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  *
@@ -78,8 +77,8 @@ public:
      * \param [in] wcycle        The wallclock counter
      */
     Impl(const DeviceContext& deviceContext, const DeviceStream& deviceStream, gmx_wallcycle* wcycle);
-    ~Impl();
 
+    ~Impl() = default;
     /*! \brief Register a nbnxm-format force to be reduced
      *
      * \param [in] forcePtr  Pointer to force to be reduced
@@ -96,7 +95,7 @@ public:
      *
      * \param [in] dependency   Dependency for this reduction
      */
-    void addDependency(GpuEventSynchronizer* const dependency);
+    void addDependency(GpuEventSynchronizer* dependency);
 
     /*! \brief Reinitialize the GPU force reduction
      *
@@ -108,10 +107,10 @@ public:
      * \param [in] completionMarker Event to be marked when launch of reduction is complete
      */
     void reinit(DeviceBuffer<Float3>  baseForcePtr,
-                const int             numAtoms,
+                int                   numAtoms,
                 ArrayRef<const int>   cell,
-                const int             atomStart,
-                const bool            accumulate,
+                int                   atomStart,
+                bool                  accumulate,
                 GpuEventSynchronizer* completionMarker = nullptr);
 
     /*! \brief Execute the force reduction */
@@ -125,7 +124,7 @@ private:
     //! number of atoms
     int numAtoms_ = 0;
     //! whether reduction is accumulated into base force buffer
-    int accumulate_ = true;
+    bool accumulate_ = true;
     //! cell information for any nbat-format forces
     struct cellInfo cellInfo_;
     //! GPU context object
@@ -138,7 +137,7 @@ private:
     DeviceBuffer<RVec> nbnxmForceToAdd_;
     //! Rvec-format force to be added in this reduction
     DeviceBuffer<RVec> rvecForceToAdd_;
-    //! event to be marked when redcution launch has been completed
+    //! event to be marked when reduction launch has been completed
     GpuEventSynchronizer* completionMarker_ = nullptr;
     //! The wallclock counter
     gmx_wallcycle* wcycle_ = nullptr;

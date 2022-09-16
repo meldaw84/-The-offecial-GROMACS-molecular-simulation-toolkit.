@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -1351,9 +1347,7 @@ static void do_dip(const t_topology*       top,
 
             if (fnadip)
             {
-                real aver;
-                gmx_stats_get_average(muframelsq, &aver);
-                fprintf(adip, "%10g %f \n", t, aver);
+                fprintf(adip, "%10g %f \n", t, gmx_stats_get_average(muframelsq));
             }
             /*if (dipole)
                printf("%f %f\n", norm(dipole[0]), norm(dipole[1]));
@@ -1472,25 +1466,21 @@ static void do_dip(const t_topology*       top,
     }
     if (!bMU)
     {
-        real aver, sigma, error;
-
-        gmx_stats_get_ase(mulsq, &aver, &sigma, &error);
+        auto [aver, sigma, error] = gmx_stats_get_ase(mulsq);
         printf("\nDipole moment (Debye)\n");
         printf("---------------------\n");
         printf("Average  = %8.4f  Std. Dev. = %8.4f  Error = %8.4f\n", aver, sigma, error);
         if (bQuad)
         {
-            rvec a, s, e;
-            for (m = 0; (m < DIM); m++)
-            {
-                gmx_stats_get_ase(mulsq, &(a[m]), &(s[m]), &(e[m]));
-            }
+            auto [averageXX, sigmaXX, errorXX] = gmx_stats_get_ase(Qlsq[XX]);
+            auto [averageYY, sigmaYY, errorYY] = gmx_stats_get_ase(Qlsq[YY]);
+            auto [averageZZ, sigmaZZ, errorZZ] = gmx_stats_get_ase(Qlsq[ZZ]);
 
             printf("\nQuadrupole moment (Debye-Ang)\n");
             printf("-----------------------------\n");
-            printf("Averages  = %8.4f  %8.4f  %8.4f\n", a[XX], a[YY], a[ZZ]);
-            printf("Std. Dev. = %8.4f  %8.4f  %8.4f\n", s[XX], s[YY], s[ZZ]);
-            printf("Error     = %8.4f  %8.4f  %8.4f\n", e[XX], e[YY], e[ZZ]);
+            printf("Averages  = %8.4f  %8.4f  %8.4f\n", averageXX, averageYY, averageZZ);
+            printf("Std. Dev. = %8.4f  %8.4f  %8.4f\n", sigmaXX, sigmaYY, sigmaZZ);
+            printf("Error     = %8.4f  %8.4f  %8.4f\n", errorXX, errorYY, errorZZ);
         }
         printf("\n");
     }

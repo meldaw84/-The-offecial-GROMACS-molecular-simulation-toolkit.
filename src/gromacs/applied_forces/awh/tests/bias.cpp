@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2017,2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2017- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -42,17 +41,17 @@
 #include <tuple>
 #include <vector>
 
-#include <gmock/gmock.h>
 #include <gmock/gmock-matchers.h>
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "gromacs/applied_forces/awh/correlationgrid.h"
 #include "gromacs/applied_forces/awh/pointstate.h"
+#include "gromacs/applied_forces/awh/tests/awh_setup.h"
 #include "gromacs/mdtypes/awh_params.h"
 #include "gromacs/utility/inmemoryserializer.h"
 #include "gromacs/utility/stringutil.h"
 
-#include "gromacs/applied_forces/awh/tests/awh_setup.h"
 #include "testutils/refdata.h"
 #include "testutils/testasserts.h"
 
@@ -134,7 +133,7 @@ public:
                                        params_->dimParams,
                                        params_->beta,
                                        mdTimeStep,
-                                       1,
+                                       nullptr,
                                        "",
                                        Bias::ThisRankWillDoIO::No,
                                        disableUpdateSkips);
@@ -170,7 +169,7 @@ TEST_P(BiasTest, ForcesBiasPmf)
         awh_dvec                    coordValue = { coord, 0, 0, 0 };
         double                      potential  = 0;
         gmx::ArrayRef<const double> biasForce  = bias.calcForceAndUpdateBias(
-                coordValue, {}, {}, &potential, &potentialJump, nullptr, nullptr, step, step, seed_, nullptr);
+                coordValue, {}, {}, &potential, &potentialJump, step, step, seed_, nullptr);
 
         force.push_back(biasForce[0]);
         pot.push_back(potential);
@@ -217,14 +216,14 @@ TEST_P(BiasTest, ForcesBiasPmf)
  * It would be nice if the test would explicitly check for this.
  * Currently this is tested through identical reference data.
  */
-INSTANTIATE_TEST_CASE_P(WithParameters,
-                        BiasTest,
-                        ::testing::Combine(::testing::Values(AwhHistogramGrowthType::Linear,
-                                                             AwhHistogramGrowthType::ExponentialLinear),
-                                           ::testing::Values(AwhPotentialType::Umbrella,
-                                                             AwhPotentialType::Convolved),
-                                           ::testing::Values(BiasParams::DisableUpdateSkips::yes,
-                                                             BiasParams::DisableUpdateSkips::no)));
+INSTANTIATE_TEST_SUITE_P(WithParameters,
+                         BiasTest,
+                         ::testing::Combine(::testing::Values(AwhHistogramGrowthType::Linear,
+                                                              AwhHistogramGrowthType::ExponentialLinear),
+                                            ::testing::Values(AwhPotentialType::Umbrella,
+                                                              AwhPotentialType::Convolved),
+                                            ::testing::Values(BiasParams::DisableUpdateSkips::yes,
+                                                              BiasParams::DisableUpdateSkips::no)));
 
 // Test that we detect coverings and exit the initial stage at the correct step
 TEST(BiasTest, DetectsCovering)
@@ -249,7 +248,7 @@ TEST(BiasTest, DetectsCovering)
               params.dimParams,
               params.beta,
               mdTimeStep,
-              1,
+              nullptr,
               "",
               Bias::ThisRankWillDoIO::No);
 
@@ -272,17 +271,8 @@ TEST(BiasTest, DetectsCovering)
         awh_dvec coordValue    = { coord, 0, 0, 0 };
         double   potential     = 0;
         double   potentialJump = 0;
-        bias.calcForceAndUpdateBias(coordValue,
-                                    {},
-                                    {},
-                                    &potential,
-                                    &potentialJump,
-                                    nullptr,
-                                    nullptr,
-                                    step,
-                                    step,
-                                    params.awhParams.seed(),
-                                    nullptr);
+        bias.calcForceAndUpdateBias(
+                coordValue, {}, {}, &potential, &potentialJump, step, step, params.awhParams.seed(), nullptr);
 
         inInitialStage = bias.state().inInitialStage();
         if (!inInitialStage)

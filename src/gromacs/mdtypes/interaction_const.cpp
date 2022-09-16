@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2020- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -53,7 +52,11 @@ interaction_const_t::SoftCoreParameters::SoftCoreParameters(const t_lambda& fepv
     alphaCoulomb(fepvals.bScCoul ? fepvals.sc_alpha : 0),
     lambdaPower(fepvals.sc_power),
     sigma6WithInvalidSigma(gmx::power6(fepvals.sc_sigma)),
-    sigma6Minimum(fepvals.bScCoul ? gmx::power6(fepvals.sc_sigma_min) : 0)
+    sigma6Minimum(fepvals.bScCoul ? gmx::power6(fepvals.sc_sigma_min) : 0),
+    softcoreType(fepvals.softcoreFunction),
+    gapsysScaleLinpointVdW(fepvals.scGapsysScaleLinpointLJ),
+    gapsysScaleLinpointCoul(fepvals.scGapsysScaleLinpointQ),
+    gapsysSigma6VdW(gmx::power6(fepvals.scGapsysSigmaLJ))
 {
     // This is checked during tpr reading, so we can assert here
     GMX_RELEASE_ASSERT(fepvals.sc_r_power == 6.0, "We only support soft-core r-power 6");
@@ -65,7 +68,7 @@ static void initCoulombEwaldParameters(FILE*                fp,
                                        bool                 systemHasNetCharge,
                                        interaction_const_t* ic)
 {
-    if (!EEL_PME_EWALD(ir.coulombtype))
+    if (!usingPmeOrEwald(ir.coulombtype))
     {
         return;
     }
@@ -120,7 +123,7 @@ static void initCoulombEwaldParameters(FILE*                fp,
 /*! \brief Print Van der Waals Ewald citations and set ewald coefficients */
 static void initVdwEwaldParameters(FILE* fp, const t_inputrec& ir, interaction_const_t* ic)
 {
-    if (!EVDW_PME(ir.vdwtype))
+    if (!usingLJPme(ir.vdwtype))
     {
         return;
     }
@@ -312,7 +315,7 @@ interaction_const_t init_interaction_const(FILE* fp, const t_inputrec& ir, const
     }
 
     /* Reaction-field */
-    if (EEL_RF(interactionConst.eeltype))
+    if (usingRF(interactionConst.eeltype))
     {
         GMX_RELEASE_ASSERT(interactionConst.eeltype != CoulombInteractionType::GRFNotused,
                            "GRF is no longer supported");
@@ -346,7 +349,7 @@ interaction_const_t init_interaction_const(FILE* fp, const t_inputrec& ir, const
         real dispersion_shift;
 
         dispersion_shift = interactionConst.dispersion_shift.cpot;
-        if (EVDW_PME(interactionConst.vdwtype))
+        if (usingLJPme(interactionConst.vdwtype))
         {
             dispersion_shift -= interactionConst.sh_lj_ewald;
         }
@@ -359,7 +362,7 @@ interaction_const_t init_interaction_const(FILE* fp, const t_inputrec& ir, const
         {
             fprintf(fp, ", Coulomb %.e", -interactionConst.reactionFieldShift);
         }
-        else if (EEL_PME(interactionConst.eeltype))
+        else if (usingPme(interactionConst.eeltype))
         {
             fprintf(fp, ", Ewald %.3e", -interactionConst.sh_ewald);
         }

@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2017,2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2017- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 /*! \internal \file
@@ -225,11 +224,10 @@ void increaseNstlist(FILE*               fp,
                        "with an appropriate message above");
 
     const bool  runningOnXeonPhi = (cpuinfo.brandString().find("Xeon Phi") != std::string::npos);
-    const float listfac_ok       = useOrEmulateGpuForNonbondeds
-                                     ? c_nbnxnListSizeFactorGPU
-                                     : runningOnXeonPhi ? c_nbnxnListSizeFactorIntelXeonPhi
-                                                        : c_nbnxnListSizeFactorCpu;
-    float listfac_max = listfac_ok + c_nbnxnListSizeFactorMargin;
+    const float listfac_ok       = useOrEmulateGpuForNonbondeds ? c_nbnxnListSizeFactorGPU
+                                   : runningOnXeonPhi           ? c_nbnxnListSizeFactorIntelXeonPhi
+                                                                : c_nbnxnListSizeFactorCpu;
+    float       listfac_max      = listfac_ok + c_nbnxnListSizeFactorMargin;
 
     const int nstlist_orig = ir->nstlist;
     if (nstlist_cmdline > 0)
@@ -281,12 +279,12 @@ void increaseNstlist(FILE*               fp,
         /* Does rlist fit in the box? */
         bBox = (gmx::square(rlist_new) < max_cutoff2(ir->pbcType, box));
         bDD  = true;
-        if (bBox && DOMAINDECOMP(cr))
+        if (bBox && haveDDAtomOrdering(*cr))
         {
             /* Currently (as of July 2020), the code in this if clause is never executed.
              * increaseNstlist(...) is only called from prepare_verlet_scheme, which in turns
-             * gets called by the runner _before_ setting up DD. DOMAINDECOMP(cr) will therefore
-             * always be false here. See #3334.
+             * gets called by the runner _before_ setting up DD. haveDDAtomOrdering(*cr) will
+             * therefore always be false here. See #3334.
              */
             /* Check if rlist fits in the domain decomposition */
             if (inputrec2nboundeddim(ir) < DIM)

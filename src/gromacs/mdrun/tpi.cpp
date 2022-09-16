@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  *
@@ -44,13 +40,13 @@
  */
 #include "gmxpre.h"
 
+#include <cfenv>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
 
 #include <algorithm>
-#include <cfenv>
 
 #include "gromacs/commandline/filenm.h"
 #include "gromacs/domdec/dlbtiming.h"
@@ -92,6 +88,7 @@
 #include "gromacs/timing/wallcycle.h"
 #include "gromacs/timing/walltime_accounting.h"
 #include "gromacs/topology/mtop_util.h"
+#include "gromacs/topology/topology.h"
 #include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/fatalerror.h"
@@ -166,7 +163,6 @@ void LegacySimulator::do_tpi()
     GMX_RELEASE_ASSERT(gmx_omp_nthreads_get(ModuleMultiThread::Default) == 1,
                        "TPI does not support OpenMP");
 
-    gmx_localtop_t    top(top_global.ffparams);
     gmx::ForceBuffers f;
     real              lambda, t, temp, beta, drmax, epot;
     double            embU, sum_embU, *sum_UgembU, V, V_all, VembU_all;
@@ -196,7 +192,7 @@ void LegacySimulator::do_tpi()
 
     GMX_UNUSED_VALUE(outputProvider);
 
-    if (EVDW_PME(inputrec->vdwtype))
+    if (usingLJPme(inputrec->vdwtype))
     {
         gmx_fatal(FARGS, "Test particle insertion not implemented with LJ-PME");
     }
@@ -222,7 +218,7 @@ void LegacySimulator::do_tpi()
 
     nnodes = cr->nnodes;
 
-    gmx_mtop_generate_local_top(top_global, &top, inputrec->efep != FreeEnergyPerturbationType::No);
+    gmx_mtop_generate_local_top(top_global, top, inputrec->efep != FreeEnergyPerturbationType::No);
 
     const SimulationGroups* groups = &top_global.groups;
 
@@ -320,9 +316,9 @@ void LegacySimulator::do_tpi()
 
     auto x = makeArrayRef(state_global->x);
 
-    if (EEL_PME(fr->ic->eeltype))
+    if (usingPme(fr->ic->eeltype))
     {
-        gmx_pme_reinit_atoms(fr->pmedata, a_tp0, nullptr, nullptr);
+        gmx_pme_reinit_atoms(fr->pmedata, a_tp0, {}, {});
     }
 
     /* With reacion-field we have distance dependent potentials
@@ -330,7 +326,7 @@ void LegacySimulator::do_tpi()
      * for the inserted molecule.
      */
     real rfExclusionEnergy = 0;
-    if (EEL_RF(fr->ic->eeltype))
+    if (usingRF(fr->ic->eeltype))
     {
         rfExclusionEnergy = reactionFieldExclusionCorrection(x, *mdatoms, *fr->ic, a_tp0);
         if (debug)
@@ -348,10 +344,9 @@ void LegacySimulator::do_tpi()
         /* Copy the coordinates of the molecule to be insterted */
         copy_rvec(x[i], x_mol[i - a_tp0]);
         /* Check if we need to print electrostatic energies */
-        bCharge |= (mdatoms->chargeA[i] != 0
-                    || ((mdatoms->chargeB != nullptr) && mdatoms->chargeB[i] != 0));
+        bCharge |= (mdatoms->chargeA[i] != 0 || (!mdatoms->chargeB.empty() && mdatoms->chargeB[i] != 0));
     }
-    bRFExcl = (bCharge && EEL_RF(fr->ic->eeltype));
+    bRFExcl = (bCharge && usingRF(fr->ic->eeltype));
 
     // Calculate the center of geometry of the molecule to insert
     rvec cog = { 0, 0, 0 };
@@ -435,19 +430,14 @@ void LegacySimulator::do_tpi()
      * inserted atoms located in the center of the sphere, so we need
      * a buffer of size of the sphere and molecule radius.
      */
-    {
-        // TODO: Avoid changing inputrec (#3854)
-        auto* nonConstInputrec  = const_cast<t_inputrec*>(inputrec);
-        nonConstInputrec->rlist = maxCutoff + 2 * inputrec->rtpi + 2 * molRadius;
-    }
-    fr->rlist = inputrec->rlist;
-    fr->nbv->changePairlistRadii(inputrec->rlist, inputrec->rlist);
+    fr->rlist = maxCutoff + inputrec->rtpi + molRadius;
+    fr->nbv->changePairlistRadii(fr->rlist, fr->rlist);
 
     ngid   = groups->groups[SimulationAtomGroupType::EnergyOutput].size();
-    gid_tp = GET_CGINFO_GID(fr->cginfo[a_tp0]);
+    gid_tp = fr->atomInfo[a_tp0] & gmx::sc_atomInfo_EnergyGroupIdMask;
     for (int a = a_tp0 + 1; a < a_tp1; a++)
     {
-        if (GET_CGINFO_GID(fr->cginfo[a]) != gid_tp)
+        if ((fr->atomInfo[a] & gmx::sc_atomInfo_EnergyGroupIdMask) != gid_tp)
         {
             fprintf(fplog,
                     "NOTE: Atoms in the molecule to insert belong to different energy groups.\n"
@@ -467,7 +457,7 @@ void LegacySimulator::do_tpi()
         {
             nener += 1;
         }
-        if (EEL_FULL(fr->ic->eeltype))
+        if (usingFullElectrostatics(fr->ic->eeltype))
         {
             nener += 1;
         }
@@ -527,7 +517,7 @@ void LegacySimulator::do_tpi()
                 sprintf(str, "f. <U\\sRF excl\\Ne\\S-\\betaU\\N>");
                 leg[e++] = gmx_strdup(str);
             }
-            if (EEL_FULL(fr->ic->eeltype))
+            if (usingFullElectrostatics(fr->ic->eeltype))
             {
                 sprintf(str, "f. <U\\sCoul recip\\Ne\\S-\\betaU\\N>");
                 leg[e++] = gmx_strdup(str);
@@ -619,7 +609,7 @@ void LegacySimulator::do_tpi()
         rvec vzero       = { 0, 0, 0 };
         rvec boxDiagonal = { box[XX][XX], box[YY][YY], box[ZZ][ZZ] };
         nbnxn_put_on_grid(
-                fr->nbv.get(), box, 0, vzero, boxDiagonal, nullptr, { 0, a_tp0 }, -1, fr->cginfo, x, 0, nullptr);
+                fr->nbv.get(), box, 0, vzero, boxDiagonal, nullptr, { 0, a_tp0 }, -1, fr->atomInfo, x, 0, nullptr);
 
         step = cr->nodeid * stepblocksize;
         while (step < nsteps)
@@ -691,14 +681,12 @@ void LegacySimulator::do_tpi()
 
                 /* Put the inserted molecule on it's own search grid */
                 nbnxn_put_on_grid(
-                        fr->nbv.get(), box, 1, x_init, x_init, nullptr, { a_tp0, a_tp1 }, -1, fr->cginfo, x, 0, nullptr);
+                        fr->nbv.get(), box, 1, x_init, x_init, nullptr, { a_tp0, a_tp1 }, -1, fr->atomInfo, x, 0, nullptr);
 
                 /* TODO: Avoid updating all atoms at every bNS step */
-                fr->nbv->setAtomProperties(gmx::constArrayRefFromArray(mdatoms->typeA, mdatoms->nr),
-                                           gmx::constArrayRefFromArray(mdatoms->chargeA, mdatoms->nr),
-                                           fr->cginfo);
+                fr->nbv->setAtomProperties(mdatoms->typeA, mdatoms->chargeA, fr->atomInfo);
 
-                fr->nbv->constructPairlist(InteractionLocality::Local, top.excls, step, nrnb);
+                fr->nbv->constructPairlist(InteractionLocality::Local, top->excls, step, nrnb);
 
                 bNS = FALSE;
             }
@@ -739,7 +727,9 @@ void LegacySimulator::do_tpi()
                 }
                 /* Rotate the molecule randomly */
                 real angleX = 2 * M_PI * dist(rng);
-                real angleY = 2 * M_PI * dist(rng);
+                /* Draw uniform random number for sin(angleY) instead of angleY itself in order to
+                 * achieve the uniform distribution in the solid angles space. */
+                real angleY = std::asin(2 * dist(rng) - 1);
                 real angleZ = 2 * M_PI * dist(rng);
                 rotate_conf(a_tp1 - a_tp0, state_global->x.rvec_array() + a_tp0, nullptr, angleX, angleY, angleZ);
                 /* Shift to the insertion location */
@@ -751,6 +741,7 @@ void LegacySimulator::do_tpi()
 
             /* Note: NonLocal refers to the inserted molecule */
             fr->nbv->convertCoordinates(AtomLocality::NonLocal, x);
+            fr->longRangeNonbondeds->updateAfterPartition(*mdatoms);
 
             /* Clear some matrix variables  */
             clear_mat(force_vir);
@@ -779,7 +770,7 @@ void LegacySimulator::do_tpi()
                      step,
                      nrnb,
                      wcycle,
-                     &top,
+                     top,
                      state_global->box,
                      state_global->x.arrayRefWithPadding(),
                      &state_global->hist,
@@ -794,6 +785,7 @@ void LegacySimulator::do_tpi()
                      mu_tot,
                      t,
                      nullptr,
+                     fr->longRangeNonbondeds.get(),
                      GMX_FORCE_NONBONDED | GMX_FORCE_ENERGY | (bStateChanged ? GMX_FORCE_STATECHANGED : 0),
                      DDBalanceRegionHandler(nullptr));
             std::feclearexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
@@ -817,7 +809,7 @@ void LegacySimulator::do_tpi()
             {
                 enerd->term[F_DISPCORR] = 0;
             }
-            if (EEL_RF(fr->ic->eeltype))
+            if (usingRF(fr->ic->eeltype))
             {
                 enerd->term[F_EPOT] += rfExclusionEnergy;
             }
@@ -897,7 +889,7 @@ void LegacySimulator::do_tpi()
                     {
                         sum_UgembU[e++] += rfExclusionEnergy * embU;
                     }
-                    if (EEL_FULL(fr->ic->eeltype))
+                    if (usingFullElectrostatics(fr->ic->eeltype))
                     {
                         sum_UgembU[e++] += enerd->term[F_COUL_RECIP] * embU;
                     }

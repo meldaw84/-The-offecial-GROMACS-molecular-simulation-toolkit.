@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2012,2013,2014,2015,2016 by the GROMACS development team.
- * Copyright (c) 2017,2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2012- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  *
@@ -44,7 +42,6 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/utility/enumerationhelpers.h"
 #include "pme_load_balancing.h"
 
 #include <cassert>
@@ -77,6 +74,7 @@
 #include "gromacs/timing/wallcycle.h"
 #include "gromacs/timing/walltime_accounting.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/logger.h"
@@ -220,15 +218,13 @@ void pme_loadbal_init(pme_load_balancing_t**     pme_lb_p,
 {
 
     pme_load_balancing_t* pme_lb;
-    real                  spm, sp;
-    int                   d;
 
     // Note that we don't (yet) support PME load balancing with LJ-PME only.
-    GMX_RELEASE_ASSERT(EEL_PME(ir.coulombtype),
+    GMX_RELEASE_ASSERT(usingPme(ir.coulombtype),
                        "pme_loadbal_init called without PME electrostatics");
     // To avoid complexity, we require a single cut-off with PME for q+LJ.
     // This is checked by grompp, but it doesn't hurt to check again.
-    GMX_RELEASE_ASSERT(!(EEL_PME(ir.coulombtype) && EVDW_PME(ir.vdwtype) && ir.rcoulomb != ir.rvdw),
+    GMX_RELEASE_ASSERT(!(usingPme(ir.coulombtype) && usingLJPme(ir.vdwtype) && ir.rcoulomb != ir.rvdw),
                        "With Coulomb and LJ PME, rcoulomb should be equal to rvdw");
 
     pme_lb = new pme_load_balancing_t;
@@ -251,7 +247,7 @@ void pme_loadbal_init(pme_load_balancing_t**     pme_lb_p,
     /* Scale box with Ewald wall factor; note that we pmedata->boxScaler
      * can't always usedd as it's not available with separate PME ranks.
      */
-    EwaldBoxZScaler boxScaler(ir);
+    EwaldBoxZScaler boxScaler(inputrecPbcXY2Walls(&ir), ir.wall_ewald_zfac);
     boxScaler.scaleBox(box, pme_lb->box_start);
 
     pme_lb->setup.resize(1);
@@ -275,16 +271,7 @@ void pme_loadbal_init(pme_load_balancing_t**     pme_lb_p,
         pme_lb->setup[0].pmedata = pmedata;
     }
 
-    spm = 0;
-    for (d = 0; d < DIM; d++)
-    {
-        sp = norm(pme_lb->box_start[d]) / pme_lb->setup[0].grid[d];
-        if (sp > spm)
-        {
-            spm = sp;
-        }
-    }
-    pme_lb->setup[0].spacing = spm;
+    pme_lb->setup[0].spacing = getGridSpacingFromBox(pme_lb->box_start, pme_lb->setup[0].grid);
 
     if (ir.fourier_spacing > 0)
     {
@@ -306,7 +293,7 @@ void pme_loadbal_init(pme_load_balancing_t**     pme_lb_p,
     pme_lb->cycles_n = 0;
     pme_lb->cycles_c = 0;
     // only master ranks do timing
-    if (!PAR(cr) || (DOMAINDECOMP(cr) && DDMASTER(cr->dd)))
+    if (!PAR(cr) || (haveDDAtomOrdering(*cr) && DDMASTER(cr->dd)))
     {
         pme_lb->startTime = gmx_gettime();
     }
@@ -335,7 +322,7 @@ void pme_loadbal_init(pme_load_balancing_t**     pme_lb_p,
     pme_lb->step_rel_stop = PMETunePeriod * ir.nstlist;
 
     /* Delay DD load balancing when GPUs are used */
-    if (pme_lb->bActive && DOMAINDECOMP(cr) && cr->dd->nnodes > 1 && bUseGPU)
+    if (pme_lb->bActive && haveDDAtomOrdering(*cr) && cr->dd->nnodes > 1 && bUseGPU)
     {
         /* Lock DLB=auto to off (does nothing when DLB=yes/no.
          * With GPUs and separate PME nodes, we want to first
@@ -399,7 +386,7 @@ static gmx_bool pme_loadbal_increase_cutoff(pme_load_balancing_t* pme_lb, int pm
          * per PME rank along x, which is not a strong restriction.
          */
         grid_ok = gmx_pme_check_restrictions(
-                pme_order, set.grid[XX], set.grid[YY], set.grid[ZZ], numPmeDomains.x, true, false);
+                pme_order, set.grid[XX], set.grid[YY], set.grid[ZZ], numPmeDomains.x, numPmeDomains.y, 0, false, true, false);
     } while (sp <= 1.001 * pme_lb->setup[pme_lb->cur].spacing || !grid_ok);
 
     set.rcut_coulomb = pme_lb->cut_spacing * sp;
@@ -651,7 +638,7 @@ static void pme_load_balance(pme_load_balancing_t*          pme_lb,
     {
         pme_lb->fastest = pme_lb->cur;
 
-        if (DOMAINDECOMP(cr))
+        if (haveDDAtomOrdering(*cr))
         {
             /* We found a new fastest setting, ensure that with subsequent
              * shorter cut-off's the dynamic load balancing does not make
@@ -726,7 +713,7 @@ static void pme_load_balance(pme_load_balancing_t*          pme_lb,
             {
                 pme_lb->cur++;
 
-                if (DOMAINDECOMP(cr))
+                if (haveDDAtomOrdering(*cr))
                 {
                     OK = change_dd_cutoff(cr, box, x, pme_lb->setup[pme_lb->cur].rlistOuter);
                     if (!OK)
@@ -793,7 +780,7 @@ static void pme_load_balance(pme_load_balancing_t*          pme_lb,
         }
     }
 
-    if (DOMAINDECOMP(cr) && pme_lb->stage > 0)
+    if (haveDDAtomOrdering(*cr) && pme_lb->stage > 0)
     {
         OK = change_dd_cutoff(cr, box, x, pme_lb->setup[pme_lb->cur].rlistOuter);
         if (!OK)
@@ -843,7 +830,7 @@ static void pme_load_balance(pme_load_balancing_t*          pme_lb,
         GMX_RELEASE_ASSERT(ic->rcoulomb != 0, "Cutoff radius cannot be zero");
         ic->sh_ewald = std::erfc(ic->ewaldcoeff_q * ic->rcoulomb) / ic->rcoulomb;
     }
-    if (EVDW_PME(ic->vdwtype))
+    if (usingLJPme(ic->vdwtype))
     {
         /* We have PME for both Coulomb and VdW, set rvdw equal to rcoulomb */
         ic->rvdw          = set->rcut_coulomb;
@@ -960,11 +947,11 @@ void pme_loadbal_do(pme_load_balancing_t*          pme_lb,
      * We also want to skip a number of steps and seconds while
      * the CPU and GPU, when used, performance stabilizes.
      */
-    if (!PAR(cr) || (DOMAINDECOMP(cr) && DDMASTER(cr->dd)))
+    if (!PAR(cr) || (haveDDAtomOrdering(*cr) && DDMASTER(cr->dd)))
     {
         pme_lb->startupTimeDelayElapsed = (gmx_gettime() - pme_lb->startTime < c_startupTimeDelay);
     }
-    if (DOMAINDECOMP(cr))
+    if (haveDDAtomOrdering(*cr))
     {
         dd_bcast(cr->dd, sizeof(bool), &pme_lb->startupTimeDelayElapsed);
     }
@@ -997,7 +984,7 @@ void pme_loadbal_do(pme_load_balancing_t*          pme_lb,
          */
         else if (step_rel >= c_numFirstTuningIntervalSkipWithSepPme * ir.nstlist)
         {
-            GMX_ASSERT(DOMAINDECOMP(cr), "Domain decomposition should be active here");
+            GMX_ASSERT(haveDDAtomOrdering(*cr), "Domain decomposition should be active here");
             if (DDMASTER(cr->dd))
             {
                 /* If PME rank load is too high, start tuning. If
@@ -1027,7 +1014,7 @@ void pme_loadbal_do(pme_load_balancing_t*          pme_lb,
     {
         pme_lb->bBalance = FALSE;
 
-        if (DOMAINDECOMP(cr) && dd_dlb_is_locked(cr->dd))
+        if (haveDDAtomOrdering(*cr) && dd_dlb_is_locked(cr->dd))
         {
             /* Unlock the DLB=auto, DLB is allowed to activate */
             dd_dlb_unlock(cr->dd);
@@ -1048,7 +1035,7 @@ void pme_loadbal_do(pme_load_balancing_t*          pme_lb,
             pme_lb->bActive = FALSE;
         }
 
-        if (DOMAINDECOMP(cr))
+        if (haveDDAtomOrdering(*cr))
         {
             /* Set the cut-off limit to the final selected cut-off,
              * so we don't have artificial DLB limits.
@@ -1096,7 +1083,7 @@ void pme_loadbal_do(pme_load_balancing_t*          pme_lb,
         pme_lb->bActive = FALSE;
     }
 
-    if (!(pme_lb->bActive) && DOMAINDECOMP(cr) && dd_dlb_is_locked(cr->dd))
+    if (!(pme_lb->bActive) && haveDDAtomOrdering(*cr) && dd_dlb_is_locked(cr->dd))
     {
         /* Make sure DLB is allowed when we deactivate PME tuning */
         dd_dlb_unlock(cr->dd);

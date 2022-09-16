@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,14 +26,13 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
-#include "gromacs/utility/enumerationhelpers.h"
 #include "topology.h"
 
 #include <cstdio>
@@ -51,6 +46,7 @@
 #include "gromacs/topology/symtab.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/compare.h"
+#include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/strconvert.h"
@@ -73,17 +69,6 @@ const char* shortName(SimulationAtomGroupType type)
 
     return sc_simulationAtomGroupTypeShortNames[type];
 }
-
-void init_top(t_topology* top)
-{
-    top->name = nullptr;
-    init_idef(&top->idef);
-    init_atom(&(top->atoms));
-    init_atomtypes(&(top->atomtypes));
-    init_block(&top->mols);
-    open_symtab(&top->symtab);
-}
-
 
 gmx_moltype_t::gmx_moltype_t() : name(nullptr)
 {
@@ -119,7 +104,6 @@ static int gmx_mtop_maxresnr(const gmx::ArrayRef<const gmx_moltype_t> moltypes, 
 
 gmx_mtop_t::gmx_mtop_t()
 {
-    init_atomtypes(&atomtypes);
     open_symtab(&symtab);
 }
 
@@ -129,7 +113,6 @@ gmx_mtop_t::~gmx_mtop_t()
 
     moltype.clear();
     molblock.clear();
-    done_atomtypes(&atomtypes);
 }
 
 void gmx_mtop_t::finalize()
@@ -201,9 +184,6 @@ void done_top(t_topology* top)
     done_idef(&top->idef);
     done_atom(&(top->atoms));
 
-    /* For GB */
-    done_atomtypes(&(top->atomtypes));
-
     done_symtab(&(top->symtab));
     done_block(&(top->mols));
 }
@@ -219,7 +199,6 @@ void done_top_mtop(t_topology* top, gmx_mtop_t* mtop)
             done_block(&top->mols);
             done_symtab(&top->symtab);
             open_symtab(&mtop->symtab);
-            done_atomtypes(&(top->atomtypes));
         }
 
         // Note that the rest of mtop will be freed by the destructor
@@ -246,25 +225,6 @@ bool gmx_mtop_has_charges(const gmx_mtop_t* mtop)
     return mtop->moltype.empty() || mtop->moltype[0].atoms.haveCharge;
 }
 
-bool gmx_mtop_has_perturbed_charges(const gmx_mtop_t& mtop)
-{
-    for (const gmx_moltype_t& moltype : mtop.moltype)
-    {
-        const t_atoms& atoms = moltype.atoms;
-        if (atoms.haveBState)
-        {
-            for (int a = 0; a < atoms.nr; a++)
-            {
-                if (atoms.atom[a].q != atoms.atom[a].qB)
-                {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
 bool gmx_mtop_has_atomtypes(const gmx_mtop_t* mtop)
 {
     if (mtop == nullptr)
@@ -283,7 +243,10 @@ bool gmx_mtop_has_pdbinfo(const gmx_mtop_t* mtop)
     return mtop->moltype.empty() || mtop->moltype[0].atoms.havePdbInfo;
 }
 
-static void pr_grps(FILE* fp, const char* title, gmx::ArrayRef<const AtomGroupIndices> grps, char*** grpname)
+static void pr_grps(FILE*                                 fp,
+                    const char*                           title,
+                    gmx::ArrayRef<const AtomGroupIndices> grps,
+                    const char* const* const*             grpname)
 {
     int index = 0;
     for (const auto& group : grps)
@@ -304,13 +267,8 @@ static void pr_grps(FILE* fp, const char* title, gmx::ArrayRef<const AtomGroupIn
 
 static void pr_groups(FILE* fp, int indent, const SimulationGroups& groups, gmx_bool bShowNumbers)
 {
-    pr_grps(fp, "grp", groups.groups, const_cast<char***>(groups.groupNames.data()));
-    pr_strings(fp,
-               indent,
-               "grpname",
-               const_cast<char***>(groups.groupNames.data()),
-               groups.groupNames.size(),
-               bShowNumbers);
+    pr_grps(fp, "grp", groups.groups, groups.groupNames.data());
+    pr_strings(fp, indent, "grpname", groups.groupNames.data(), groups.groupNames.size(), bShowNumbers);
 
     pr_indent(fp, indent);
     fprintf(fp, "groups          ");
@@ -436,7 +394,6 @@ void pr_mtop(FILE* fp, int indent, const char* title, const gmx_mtop_t* mtop, gm
             }
         }
         pr_ffparams(fp, indent, "ffparams", &(mtop->ffparams), bShowNumbers);
-        pr_atomtypes(fp, indent, "atomtypes", &(mtop->atomtypes), bShowNumbers);
         for (size_t mt = 0; mt < mtop->moltype.size(); mt++)
         {
             pr_moltype(fp, indent, "moltype", &mtop->moltype[mt], mt, &mtop->ffparams, bShowNumbers, bShowParameters);
@@ -453,7 +410,6 @@ void pr_top(FILE* fp, int indent, const char* title, const t_topology* top, gmx_
         pr_indent(fp, indent);
         fprintf(fp, "name=\"%s\"\n", *(top->name));
         pr_atoms(fp, indent, "atoms", &(top->atoms), bShowNumbers);
-        pr_atomtypes(fp, indent, "atomtypes", &(top->atomtypes), bShowNumbers);
         pr_block(fp, indent, "mols", &top->mols, bShowNumbers);
         pr_str(fp, indent, "bIntermolecularInteractions", gmx::boolToString(top->bIntermolecularInteractions));
         pr_idef(fp, indent, "idef", &top->idef, bShowNumbers, bShowParameters);
@@ -646,17 +602,6 @@ static void compareMolblocks(FILE*                               fp,
     }
 }
 
-static void compareAtomtypes(FILE* fp, const t_atomtypes& at1, const t_atomtypes& at2)
-{
-    fprintf(fp, "comparing atomtypes\n");
-    cmp_int(fp, "nr", -1, at1.nr, at2.nr);
-    int nr = std::min(at1.nr, at2.nr);
-    for (int i = 0; i < nr; i++)
-    {
-        cmp_int(fp, "atomtype", i, at1.atomnumber[i], at2.atomnumber[i]);
-    }
-}
-
 static void compareIntermolecularExclusions(FILE*                    fp,
                                             gmx::ArrayRef<const int> ime1,
                                             gmx::ArrayRef<const int> ime2)
@@ -705,7 +650,6 @@ void compareMtop(FILE* fp, const gmx_mtop_t& mtop1, const gmx_mtop_t& mtop2, rea
     compareMoltypes(fp, mtop1.moltype, mtop2.moltype, relativeTolerance, absoluteTolerance);
     compareMolblocks(fp, mtop1.molblock, mtop2.molblock);
     compareInteractionLists(fp, mtop1.intermolecular_ilist.get(), mtop2.intermolecular_ilist.get());
-    compareAtomtypes(fp, mtop1.atomtypes, mtop2.atomtypes);
     compareAtomGroups(fp, mtop1.groups, mtop2.groups, mtop1.natoms, mtop2.natoms);
     compareIntermolecularExclusions(
             fp, mtop1.intermolecularExclusionGroup, mtop2.intermolecularExclusionGroup);

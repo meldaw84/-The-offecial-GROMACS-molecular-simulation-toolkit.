@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2012,2013,2014,2015,2016, by the GROMACS development team.
- * Copyright (c) 2017,2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2012- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  *  \brief Defines the OpenCL implementations of the device management.
@@ -47,7 +45,15 @@
  */
 #include "gmxpre.h"
 
+#ifdef __APPLE__
+#    include <sys/sysctl.h>
+#endif
+
 #include "config.h"
+
+#ifdef __APPLE__
+#    include <sys/sysctl.h>
+#endif
 
 #include "gromacs/gpu_utils/oclraii.h"
 #include "gromacs/gpu_utils/oclutils.h"
@@ -58,6 +64,10 @@
 
 #include "device_information.h"
 
+void warnWhenDeviceNotTargeted(const gmx::MDLogger& /* mdlog */, const DeviceInformation& /* deviceInfo */)
+{
+}
+
 namespace gmx
 {
 
@@ -65,6 +75,8 @@ namespace gmx
  *
  * This is assumed to be true for OS X version of at least 10.10.4 and
  * all other OS flavors.
+ *
+ * Uses the BSD sysctl() interfaces to extract the kernel version.
  *
  * \return true if version is 14.4 or later (= OS X version 10.10.4),
  *         or OS is not Darwin.
@@ -77,6 +89,9 @@ static bool runningOnCompatibleOSForAmd()
     size_t len = sizeof(kernelVersion);
 
     mib[0] = CTL_KERN;
+    mib[1] = KERN_OSRELEASE;
+
+    sysctl(mib, sizeof(mib) / sizeof(mib[0]), kernelVersion, &len, NULL, 0);
 
     int major = strtod(kernelVersion, NULL);
     int minor = strtod(strchr(kernelVersion, '.') + 1, NULL);

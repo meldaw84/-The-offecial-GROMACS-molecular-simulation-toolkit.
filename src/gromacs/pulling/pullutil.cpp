@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -174,7 +170,7 @@ static void pull_set_pbcatoms(const t_commrec* cr, struct pull_t* pull, ArrayRef
 static void make_cyl_refgrps(const t_commrec*     cr,
                              pull_t*              pull,
                              ArrayRef<const real> masses,
-                             t_pbc*               pbc,
+                             const t_pbc&         pbc,
                              double               t,
                              ArrayRef<const RVec> x)
 {
@@ -238,7 +234,7 @@ static void make_cyl_refgrps(const t_commrec*     cr,
             {
                 int  atomIndex = localAtomIndices[indexInSet];
                 rvec dx;
-                pbc_dx_aiuc(pbc, x[atomIndex], reference, dx);
+                pbc_dx_aiuc(&pbc, x[atomIndex], reference, dx);
                 double axialLocation = iprod(direction, dx);
                 dvec   radialLocation;
                 double dr2 = 0;
@@ -353,22 +349,6 @@ static void make_cyl_refgrps(const t_commrec*     cr,
             {
                 spatialData.ffrad[m] = (buffer[6 + m] + buffer[3 + m] * spatialData.cyl_dev) / wmass;
             }
-
-            if (debug)
-            {
-                fprintf(debug,
-                        "Pull cylinder group %d:%8.3f%8.3f%8.3f m:%8.3f\n",
-                        pcrd.params.coordIndex,
-                        dynamicGroup0.x[0],
-                        dynamicGroup0.x[1],
-                        dynamicGroup0.x[2],
-                        1.0 / dynamicGroup0.invtm);
-                fprintf(debug,
-                        "ffrad %8.3f %8.3f %8.3f\n",
-                        spatialData.ffrad[XX],
-                        spatialData.ffrad[YY],
-                        spatialData.ffrad[ZZ]);
-            }
         }
     }
 }
@@ -391,7 +371,7 @@ static void sum_com_part(const pull_group_work_t* pgrp,
                          ArrayRef<const RVec>     x,
                          ArrayRef<const RVec>     xp,
                          ArrayRef<const real>     mass,
-                         const t_pbc*             pbc,
+                         const t_pbc&             pbc,
                          const rvec               x_pbc,
                          ComSums*                 sum_com)
 {
@@ -439,7 +419,7 @@ static void sum_com_part(const pull_group_work_t* pgrp,
             rvec dx;
 
             /* Sum the difference with the reference atom */
-            pbc_dx(pbc, x[ii], x_pbc, dx);
+            pbc_dx(&pbc, x[ii], x_pbc, dx);
             for (int d = 0; d < DIM; d++)
             {
                 sum_wmx[d] += wm * dx[d];
@@ -523,7 +503,7 @@ static void sum_com_part_cosweight(const pull_group_work_t* pgrp,
 void pull_calc_coms(const t_commrec*     cr,
                     pull_t*              pull,
                     ArrayRef<const real> masses,
-                    t_pbc*               pbc,
+                    const t_pbc&         pbc,
                     double               t,
                     ArrayRef<const RVec> x,
                     ArrayRef<RVec>       xp)
@@ -542,7 +522,7 @@ void pull_calc_coms(const t_commrec*     cr,
     {
         pull_set_pbcatoms(cr, pull, x, comm->pbcAtomBuffer);
 
-        if (cr != nullptr && DOMAINDECOMP(cr))
+        if (cr != nullptr && haveDDAtomOrdering(*cr))
         {
             /* We can keep these PBC reference coordinates fixed for nstlist
              * steps, since atoms won't jump over PBC.
@@ -563,12 +543,12 @@ void pull_calc_coms(const t_commrec*     cr,
 
         for (m = pull->cosdim + 1; m < pull->npbcdim; m++)
         {
-            if (pbc->box[m][pull->cosdim] != 0)
+            if (pbc.box[m][pull->cosdim] != 0)
             {
                 gmx_fatal(FARGS, "Can not do cosine weighting for trilinic dimensions");
             }
         }
-        twopi_box = 2.0 * M_PI / pbc->box[pull->cosdim][pull->cosdim];
+        twopi_box = 2.0 * M_PI / pbc.box[pull->cosdim][pull->cosdim];
     }
 
     for (size_t g = 0; g < pull->group.size(); g++)
@@ -804,10 +784,6 @@ void pull_calc_coms(const t_commrec*     cr,
                     pgrp->xp[pull->cosdim] = atan2_0_2pi(snw, csw) / twopi_box;
                 }
             }
-            if (debug)
-            {
-                fprintf(debug, "Pull group %zu wmass %f invtm %f\n", g, 1.0 / pgrp->mwscale, pgrp->invtm);
-            }
         }
     }
 
@@ -999,17 +975,77 @@ void setPrevStepPullComFromState(struct pull_t* pull, const t_state* state)
     }
 }
 
-void updatePrevStepPullCom(struct pull_t* pull, t_state* state)
+/*! \brief Whether pull functions save a backup to the t_state object
+ *
+ * Saving to the state object is only used for checkpointing in the legacy simulator.
+ * Modular simulator doesn't use the t_state object for checkpointing.
+ */
+enum class PullBackupCOM
 {
-    for (size_t g = 0; g < pull->group.size(); g++)
+    Yes, //<! Save a copy of the previous step COM to state
+    No,  //<! Don't save a copy of the previous step COM to state
+};
+
+/*! \brief Sets the previous step COM in pull to the current COM and optionally
+ *         stores it in the provided ArrayRef
+ *
+ * \tparam     pullBackupToState  Whether we're storing the previous COM to state
+ * \param[in]  pull  The COM pull force calculation data structure
+ * \param[in]   comPreviousStep  The COM of the previous step of each pull group
+ */
+template<PullBackupCOM pullBackupToState>
+static void updatePrevStepPullComImpl(pull_t* pull, gmx::ArrayRef<double> comPreviousStep)
+{
+    for (gmx::index g = 0; g < gmx::ssize(pull->group); g++)
     {
         if (pull->group[g].needToCalcCom)
         {
             for (int j = 0; j < DIM; j++)
             {
-                pull->group[g].x_prev_step[j]          = pull->group[g].x[j];
-                state->pull_com_prev_step[g * DIM + j] = pull->group[g].x[j];
+                pull->group[g].x_prev_step[j] = pull->group[g].x[j];
+                if (pullBackupToState == PullBackupCOM::Yes)
+                {
+                    comPreviousStep[g * DIM + j] = pull->group[g].x[j];
+                }
             }
+        }
+    }
+}
+
+void updatePrevStepPullCom(pull_t* pull, std::optional<gmx::ArrayRef<double>> comPreviousStep)
+{
+    if (comPreviousStep.has_value())
+    {
+        updatePrevStepPullComImpl<PullBackupCOM::Yes>(pull, comPreviousStep.value());
+    }
+    else
+    {
+        updatePrevStepPullComImpl<PullBackupCOM::No>(pull, gmx::ArrayRef<double>());
+    }
+}
+
+std::vector<double> prevStepPullCom(const pull_t* pull)
+{
+    std::vector<double> pullCom(pull->group.size() * DIM, 0.0);
+    for (gmx::index g = 0; g < gmx::ssize(pull->group); g++)
+    {
+        for (int j = 0; j < DIM; j++)
+        {
+            pullCom[g * DIM + j] = pull->group[g].x_prev_step[j];
+        }
+    }
+    return pullCom;
+}
+
+void setPrevStepPullCom(pull_t* pull, gmx::ArrayRef<const double> prevStepPullCom)
+{
+    GMX_RELEASE_ASSERT(prevStepPullCom.size() >= pull->group.size() * DIM,
+                       "Pull COM vector size mismatch.");
+    for (gmx::index g = 0; g < gmx::ssize(pull->group); g++)
+    {
+        for (int j = 0; j < DIM; j++)
+        {
+            pull->group[g].x_prev_step[j] = prevStepPullCom[g * DIM + j];
         }
     }
 }
@@ -1031,7 +1067,7 @@ void allocStatePrevStepPullCom(t_state* state, const pull_t* pull)
 void initPullComFromPrevStep(const t_commrec*     cr,
                              pull_t*              pull,
                              ArrayRef<const real> masses,
-                             t_pbc*               pbc,
+                             const t_pbc&         pbc,
                              ArrayRef<const RVec> x)
 {
     pull_comm_t* comm   = &pull->comm;
@@ -1063,16 +1099,6 @@ void initPullComFromPrevStep(const t_commrec*     cr,
 
             RVec x_pbc = { 0, 0, 0 };
             copy_rvec(comm->pbcAtomBuffer[g], x_pbc);
-
-            if (debug)
-            {
-                fprintf(debug, "Initialising prev step COM of pull group %zu. x_pbc =", g);
-                for (int m = 0; m < DIM; m++)
-                {
-                    fprintf(debug, " %f", x_pbc[m]);
-                }
-                fprintf(debug, "\n");
-            }
 
             /* The following is to a large extent similar to pull_calc_coms() */
 
@@ -1151,16 +1177,6 @@ void initPullComFromPrevStep(const t_commrec*     cr,
                 {
                     pgrp->x[m] = localSums[0][m] * pgrp->mwscale;
                     pgrp->x[m] += comm->pbcAtomBuffer[g][m];
-                }
-                if (debug)
-                {
-                    fprintf(debug, "Pull group %zu wmass %f invtm %f\n", g, 1.0 / pgrp->mwscale, pgrp->invtm);
-                    fprintf(debug, "Initialising prev step COM of pull group %zu to", g);
-                    for (int m = 0; m < DIM; m++)
-                    {
-                        fprintf(debug, " %f", pgrp->x[m]);
-                    }
-                    fprintf(debug, "\n");
                 }
                 copy_dvec(pgrp->x, pgrp->x_prev_step);
             }

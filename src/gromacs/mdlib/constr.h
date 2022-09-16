@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \libinternal \file
  * \brief Declares interface to constraint code.
@@ -54,7 +50,6 @@
 #include "gromacs/math/vectypes.h"
 #include "gromacs/topology/idef.h"
 #include "gromacs/utility/arrayref.h"
-#include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/real.h"
 
 struct gmx_edsam;
@@ -77,6 +72,7 @@ template<typename T>
 class ArrayRefWithPadding;
 template<typename>
 class ListOfLists;
+class ObservablesReducerBuilder;
 
 //! Describes supported flavours of constrained updates.
 enum class ConstraintVariable : int
@@ -102,17 +98,19 @@ private:
      *
      * Private to enforce use of makeConstraints() factory
      * function. */
-    Constraints(const gmx_mtop_t&     mtop,
-                const t_inputrec&     ir,
-                pull_t*               pull_work,
-                FILE*                 log,
-                const t_commrec*      cr,
-                const gmx_multisim_t* ms,
-                t_nrnb*               nrnb,
-                gmx_wallcycle*        wcycle,
-                bool                  pbcHandlingRequired,
-                int                   numConstraints,
-                int                   numSettles);
+    Constraints(const gmx_mtop_t&          mtop,
+                const t_inputrec&          ir,
+                pull_t*                    pull_work,
+                FILE*                      log,
+                const t_commrec*           cr,
+                bool                       useUpdateGroups,
+                const gmx_multisim_t*      ms,
+                t_nrnb*                    nrnb,
+                gmx_wallcycle*             wcycle,
+                bool                       pbcHandlingRequired,
+                ObservablesReducerBuilder* observablesReducerBuilder,
+                int                        numConstraints,
+                int                        numSettles);
 
 public:
     /*! \brief This member type helps implement a factory
@@ -197,10 +195,6 @@ public:
     //! Getter for use by domain decomposition.
     ArrayRef<const std::vector<int>> atom2settle_moltype() const;
 
-    /*! \brief Return the data for reduction for determining
-     * constraint RMS relative deviations, or an empty ArrayRef
-     * when not supported for any active constraints. */
-    ArrayRef<real> rmsdData() const;
     /*! \brief Return the RMSD of the constraints when available. */
     real rmsd() const;
 
@@ -299,12 +293,6 @@ inline const int* constr_iatomptr(gmx::ArrayRef<const int> iatom_constr,
         return iatom_constrnc.data() + con * 3 - iatom_constr.size();
     }
 };
-
-/*! \brief Returns whether there are inter charge group constraints */
-bool inter_charge_group_constraints(const gmx_mtop_t& mtop);
-
-/*! \brief Returns whether there are inter charge group settles */
-bool inter_charge_group_settles(const gmx_mtop_t& mtop);
 
 /*! \brief Constrain the initial coordinates and velocities */
 void do_constrain_first(FILE*                     log,

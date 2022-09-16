@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2019- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  *
@@ -205,7 +204,7 @@ __launch_bounds__(sc_maxThreadsPerBlock) __global__
 
 
         float sinphi = a1d_z * rsqrt(pars.ra * pars.ra);
-        float tmp2   = 1.0f - sinphi * sinphi;
+        float tmp2   = 1.0F - sinphi * sinphi;
 
         if (almost_zero > tmp2)
         {
@@ -215,7 +214,7 @@ __launch_bounds__(sc_maxThreadsPerBlock) __global__
         float tmp    = rsqrt(tmp2);
         float cosphi = tmp2 * tmp;
         float sinpsi = (b1d.z - c1d.z) * pars.irc2 * tmp;
-        tmp2         = 1.0f - sinpsi * sinpsi;
+        tmp2         = 1.0F - sinpsi * sinpsi;
 
         float cospsi = tmp2 * rsqrt(tmp2);
 
@@ -235,7 +234,7 @@ __launch_bounds__(sc_maxThreadsPerBlock) __global__
         float sinthe = (alpha * gamma - beta * tmp2 * rsqrt(tmp2)) * rsqrt(al2be2 * al2be2);
 
         /*  --- Step4  A3' --- */
-        tmp2         = 1.0f - sinthe * sinthe;
+        tmp2         = 1.0F - sinthe * sinthe;
         float costhe = tmp2 * rsqrt(tmp2);
 
         float3 a3d, b3d, c3d;
@@ -318,7 +317,7 @@ __launch_bounds__(sc_maxThreadsPerBlock) __global__
         {
             for (int d = 0; d < 6; d++)
             {
-                sm_threadVirial[d * blockDim.x + threadIdx.x] = 0.0f;
+                sm_threadVirial[d * blockDim.x + threadIdx.x] = 0.0F;
             }
         }
     }
@@ -351,6 +350,10 @@ __launch_bounds__(sc_maxThreadsPerBlock) __global__
             {
                 __syncthreads();
             }
+            else
+            {
+                __syncwarp();
+            }
         }
         // First 6 threads in the block add the 6 components of virial to the global memory address
         if (tib < 6)
@@ -358,8 +361,6 @@ __launch_bounds__(sc_maxThreadsPerBlock) __global__
             atomicAdd(&(gm_virialScaled[tib]), sm_threadVirial[tib * blockSize]);
         }
     }
-
-    return;
 }
 
 /*! \brief Select templated kernel.
@@ -394,18 +395,18 @@ inline auto getSettleKernelPtr(const bool updateVelocities, const bool computeVi
     return kernelPtr;
 }
 
-void launchSettleGpuKernel(const int                         numSettles,
-                           const DeviceBuffer<WaterMolecule> d_atomIds,
-                           const SettleParameters            settleParameters,
-                           const DeviceBuffer<Float3>        d_x,
-                           DeviceBuffer<Float3>              d_xp,
-                           const bool                        updateVelocities,
-                           DeviceBuffer<Float3>              d_v,
-                           const real                        invdt,
-                           const bool                        computeVirial,
-                           DeviceBuffer<float>               virialScaled,
-                           const PbcAiuc                     pbcAiuc,
-                           const DeviceStream&               deviceStream)
+void launchSettleGpuKernel(const int                          numSettles,
+                           const DeviceBuffer<WaterMolecule>& d_atomIds,
+                           const SettleParameters&            settleParameters,
+                           const DeviceBuffer<Float3>&        d_x,
+                           DeviceBuffer<Float3>               d_xp,
+                           const bool                         updateVelocities,
+                           DeviceBuffer<Float3>               d_v,
+                           const real                         invdt,
+                           const bool                         computeVirial,
+                           DeviceBuffer<float>                virialScaled,
+                           const PbcAiuc&                     pbcAiuc,
+                           const DeviceStream&                deviceStream)
 {
     static_assert(
             gmx::isPowerOfTwo(sc_threadsPerBlock),
@@ -449,8 +450,6 @@ void launchSettleGpuKernel(const int                         numSettles,
                     nullptr,
                     "settle_kernel<updateVelocities, computeVirial>",
                     kernelArgs);
-
-    return;
 }
 
 } // namespace gmx

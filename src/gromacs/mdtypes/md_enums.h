@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \file
  * \brief
@@ -186,14 +182,14 @@ enum
 };
 
 //! Sequenced parts of the trotter decomposition.
-enum
+enum class TrotterSequence : int
 {
-    ettTSEQ0,
-    ettTSEQ1,
-    ettTSEQ2,
-    ettTSEQ3,
-    ettTSEQ4,
-    ettTSEQMAX
+    Zero,
+    One,
+    Two,
+    Three,
+    Four,
+    Count
 };
 
 //! Pressure coupling type
@@ -276,24 +272,39 @@ enum class EwaldGeometry : int
 //! String corresponding to Ewald geometry
 const char* enumValueToString(EwaldGeometry enumValue);
 
-//! Macro telling us whether we use reaction field
-#define EEL_RF(e)                                                                   \
-    ((e) == CoulombInteractionType::RF || (e) == CoulombInteractionType::GRFNotused \
-     || (e) == CoulombInteractionType::RFNecUnsupported || (e) == CoulombInteractionType::RFZero)
+//! Returns whether we use reaction field
+static inline bool usingRF(const CoulombInteractionType& cit)
+{
+    return (cit == CoulombInteractionType::RF || cit == CoulombInteractionType::GRFNotused
+            || cit == CoulombInteractionType::RFNecUnsupported || cit == CoulombInteractionType::RFZero);
+};
 
-//! Macro telling us whether we use PME
-#define EEL_PME(e)                                                                             \
-    ((e) == CoulombInteractionType::Pme || (e) == CoulombInteractionType::PmeSwitch            \
-     || (e) == CoulombInteractionType::PmeUser || (e) == CoulombInteractionType::PmeUserSwitch \
-     || (e) == CoulombInteractionType::P3mAD)
-//! Macro telling us whether we use PME or full Ewald
-#define EEL_PME_EWALD(e) (EEL_PME(e) || (e) == CoulombInteractionType::Ewald)
-//! Macro telling us whether we use full electrostatics of any sort
-#define EEL_FULL(e) (EEL_PME_EWALD(e) || (e) == CoulombInteractionType::Poisson)
-//! Macro telling us whether we use user defined electrostatics
-#define EEL_USER(e)                                                                \
-    ((e) == CoulombInteractionType::User || (e) == CoulombInteractionType::PmeUser \
-     || (e) == (CoulombInteractionType::PmeUserSwitch))
+//! Returns whether we use PME
+static inline bool usingPme(const CoulombInteractionType& cit)
+{
+    return (cit == CoulombInteractionType::Pme || cit == CoulombInteractionType::PmeSwitch
+            || cit == CoulombInteractionType::PmeUser
+            || cit == CoulombInteractionType::PmeUserSwitch || cit == CoulombInteractionType::P3mAD);
+}
+
+//! Returns whether we use PME or full Ewald
+static inline bool usingPmeOrEwald(const CoulombInteractionType& cit)
+{
+    return (usingPme(cit) || cit == CoulombInteractionType::Ewald);
+};
+
+//! Returns whether we use full electrostatics of any sort
+static inline bool usingFullElectrostatics(const CoulombInteractionType& cit)
+{
+    return (usingPmeOrEwald(cit) || cit == CoulombInteractionType::Poisson);
+}
+
+//! Returns whether we use user defined electrostatics
+static inline bool usingUserTableElectrostatics(const CoulombInteractionType& cit)
+{
+    return (cit == CoulombInteractionType::User || cit == CoulombInteractionType::PmeUser
+            || cit == CoulombInteractionType::PmeUserSwitch);
+}
 
 //! Van der Waals interaction treatment
 enum class VanDerWaalsType : int
@@ -321,8 +332,11 @@ enum class LongRangeVdW : int
 //! String for LJPME combination rule treatment
 const char* enumValueToString(LongRangeVdW enumValue);
 
-//! Macro to tell us whether we use LJPME
-#define EVDW_PME(e) ((e) == VanDerWaalsType::Pme)
+//! Returns whether we use LJPME
+static inline bool usingLJPme(const VanDerWaalsType& vanDerWaalsType)
+{
+    return vanDerWaalsType == VanDerWaalsType::Pme;
+};
 
 /*! \brief Integrator algorithm
  *
@@ -457,7 +471,7 @@ enum class FreeEnergyPerturbationType : int
     Static,
     //! then the states change monotonically throughout the simulation
     SlowGrowth,
-    //! then expanded ensemble simulations are occuring
+    //! then expanded ensemble simulations are occurring
     Expanded,
     Count,
     Default = No
@@ -465,7 +479,7 @@ enum class FreeEnergyPerturbationType : int
 //! String corresponding to FEP type.
 const char* enumValueToString(FreeEnergyPerturbationType enumValue);
 
-//! Free energy pertubation coupling types.
+//! Free energy perturbation coupling types.
 enum class FreeEnergyPerturbationCouplingType : int
 {
     Fep,
@@ -605,6 +619,36 @@ enum class DhDlDerivativeCalculation : int
 //! String for DHDL derivatives
 const char* enumValueToString(DhDlDerivativeCalculation enumValue);
 
+/*! \brief soft-core function \
+ *
+ * Distinguishes between soft-core functions in the input.
+ */
+enum class SoftcoreType : int
+{
+    Beutler,
+    Gapsys,
+    Count,
+    Default = Beutler
+};
+//! Strings for softcore function names
+const char* enumValueToString(SoftcoreType enumValue);
+
+/*! \brief soft-core function as parameter to the nb-fep kernel/14-interaction.\
+ *
+ * Distinguishes between soft-core functions internally. This is different
+ * from SoftcoreType in that it offers 'None' which is not exposed to the user.
+ */
+enum class KernelSoftcoreType : int
+{
+    Beutler,
+    Gapsys,
+    None,
+    Count,
+    Default = Beutler
+};
+//! Strings for softcore function names
+const char* enumValueToString(KernelSoftcoreType enumValue);
+
 /*! \brief Solvent model
  *
  * Distinguishes classical water types with 3 or 4 particles
@@ -633,19 +677,6 @@ enum class DispersionCorrectionType : int
 };
 //! String corresponding to dispersion corrections
 const char* enumValueToString(DispersionCorrectionType enumValue);
-
-//! Center of mass motion removal algorithm.
-enum class ComRemovalAlgorithm : int
-{
-    Linear,
-    Angular,
-    No,
-    LinearAccelerationCorrection,
-    Count,
-    Default = Linear
-};
-//! String corresponding to COM removal
-const char* enumValueToString(ComRemovalAlgorithm enumValue);
 
 //! Algorithm for simulated annealing.
 enum class SimulatedAnnealing : int
@@ -698,6 +729,7 @@ enum class PullGroupGeometry : int
     Angle,
     Dihedral,
     AngleAxis,
+    Transformation,
     Count,
     Default = Distance
 };
@@ -808,5 +840,30 @@ enum class NbkernelVdwType : int
 };
 //! String corresponding to VdW kernels
 const char* enumValueToString(NbkernelVdwType enumValue);
+
+//! Center of mass motion removal algorithm.
+enum class ComRemovalAlgorithm : int
+{
+    Linear,
+    Angular,
+    No,
+    LinearAccelerationCorrection,
+    Count,
+    Default = Linear
+};
+//! String corresponding to COM removal
+const char* enumValueToString(ComRemovalAlgorithm enumValue);
+
+//! Enumeration that contains all supported periodic boundary setups.
+enum class PbcType : int
+{
+    Xyz     = 0, //!< Periodic boundaries in all dimensions.
+    No      = 1, //!< No periodic boundaries.
+    XY      = 2, //!< Only two dimensions are periodic.
+    Screw   = 3, //!< Screw.
+    Unset   = 4, //!< The type of PBC is not set or invalid.
+    Count   = 5,
+    Default = Xyz
+};
 
 #endif /* GMX_MDTYPES_MD_ENUMS_H */

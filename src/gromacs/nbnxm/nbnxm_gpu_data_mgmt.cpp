@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2012,2013,2014,2015,2016 by the GROMACS development team.
- * Copyright (c) 2017,2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2012- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  *  \brief Define common implementation of nbnxm_gpu_data_mgmt.h
@@ -60,8 +58,6 @@
 #    include "sycl/nbnxm_sycl_types.h"
 #endif
 
-#include "nbnxm_gpu_data_mgmt.h"
-
 #include "gromacs/gpu_utils/device_stream_manager.h"
 #include "gromacs/gpu_utils/gputraits.h"
 #include "gromacs/gpu_utils/pmalloc.h"
@@ -73,12 +69,12 @@
 #include "gromacs/nbnxm/gridset.h"
 #include "gromacs/pbcutil/ishift.h"
 #include "gromacs/timing/gpu_timing.h"
-#include "gromacs/pbcutil/ishift.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 
 #include "nbnxm_gpu.h"
+#include "nbnxm_gpu_data_mgmt.h"
 #include "pairlistsets.h"
 
 namespace Nbnxm
@@ -107,7 +103,7 @@ static inline void init_ewald_coulomb_force_table(const EwaldCorrectionTables& t
 {
     if (nbp->coulomb_tab)
     {
-        destroyParamLookupTable(&nbp->coulomb_tab, nbp->coulomb_tab_texobj);
+        destroyParamLookupTable(&nbp->coulomb_tab, &nbp->coulomb_tab_texobj);
     }
 
     nbp->coulomb_tab_scale = tables.scale;
@@ -331,11 +327,11 @@ static inline ElecType nbnxmGpuPickElectrostaticsKernelType(const interaction_co
     {
         return ElecType::Cut;
     }
-    else if (EEL_RF(ic.eeltype))
+    else if (usingRF(ic.eeltype))
     {
         return ElecType::RF;
     }
-    else if ((EEL_PME(ic.eeltype) || ic.eeltype == CoulombInteractionType::Ewald))
+    else if ((usingPme(ic.eeltype) || ic.eeltype == CoulombInteractionType::Ewald))
     {
         return nbnxn_gpu_pick_ewald_kernel_type(ic, deviceInfo);
     }
@@ -431,18 +427,7 @@ NbnxmGpu* gpu_init(const gmx::DeviceStreamManager& deviceStreamManager,
     nb->timers = new Nbnxm::GpuTimers();
     snew(nb->timings, 1);
 
-    /* WARNING: CUDA timings are incorrect with multiple streams.
-     * This is the main reason why they are disabled by default.
-     * Can be enabled by setting GMX_ENABLE_GPU_TIMING environment variable.
-     * TODO: Consider turning on by default when we can detect nr of streams.
-     *
-     * OpenCL timing is enabled by default and can be disabled by
-     * GMX_DISABLE_GPU_TIMING environment variable.
-     *
-     * Timing is disabled in SYCL.
-     */
-    nb->bDoTime = (GMX_GPU_CUDA && (getenv("GMX_ENABLE_GPU_TIMING") != nullptr))
-                  || (GMX_GPU_OPENCL && (getenv("GMX_DISABLE_GPU_TIMING") == nullptr));
+    nb->bDoTime = decideGpuTimingsUsage();
 
     if (nb->bDoTime)
     {
@@ -746,7 +731,9 @@ bool gpu_is_kernel_ewald_analytical(const NbnxmGpu* nb)
             || (nb->nbparam->elecType == ElecType::EwaldAnaTwin));
 }
 
-void setupGpuShortRangeWork(NbnxmGpu* nb, const gmx::GpuBonded* gpuBonded, const gmx::InteractionLocality iLocality)
+void setupGpuShortRangeWork(NbnxmGpu*                      nb,
+                            const gmx::ListedForcesGpu*    listedForcesGpu,
+                            const gmx::InteractionLocality iLocality)
 {
     GMX_ASSERT(nb, "Need a valid nbnxn_gpu object");
 
@@ -754,7 +741,7 @@ void setupGpuShortRangeWork(NbnxmGpu* nb, const gmx::GpuBonded* gpuBonded, const
     // interaction locality contains entries or if there is any
     // bonded work (as this is not split into local/nonlocal).
     nb->haveWork[iLocality] = ((nb->plist[iLocality]->nsci != 0)
-                               || (gpuBonded != nullptr && gpuBonded->haveInteractions()));
+                               || (listedForcesGpu != nullptr && listedForcesGpu->haveInteractions()));
 }
 
 bool haveGpuShortRangeWork(const NbnxmGpu* nb, const gmx::InteractionLocality interactionLocality)
@@ -1132,17 +1119,17 @@ void gpu_free(NbnxmGpu* nb)
     /* Free nbparam */
     if (nbparam->elecType == ElecType::EwaldTab || nbparam->elecType == ElecType::EwaldTabTwin)
     {
-        destroyParamLookupTable(&nbparam->coulomb_tab, nbparam->coulomb_tab_texobj);
+        destroyParamLookupTable(&nbparam->coulomb_tab, &nbparam->coulomb_tab_texobj);
     }
 
     if (!useLjCombRule(nb->nbparam->vdwType))
     {
-        destroyParamLookupTable(&nbparam->nbfp, nbparam->nbfp_texobj);
+        destroyParamLookupTable(&nbparam->nbfp, &nbparam->nbfp_texobj);
     }
 
     if (nbparam->vdwType == VdwType::EwaldGeom || nbparam->vdwType == VdwType::EwaldLB)
     {
-        destroyParamLookupTable(&nbparam->nbfp_comb, nbparam->nbfp_comb_texobj);
+        destroyParamLookupTable(&nbparam->nbfp_comb, &nbparam->nbfp_comb_texobj);
     }
 
     /* Free plist */
@@ -1180,6 +1167,13 @@ void gpu_free(NbnxmGpu* nb)
     {
         fprintf(debug, "Cleaned up NBNXM GPU data structures.\n");
     }
+}
+
+DeviceBuffer<gmx::RVec> gpu_get_f(NbnxmGpu* nb)
+{
+    GMX_ASSERT(nb != nullptr, "nb pointer must be valid");
+
+    return nb->atdat->f;
 }
 
 } // namespace Nbnxm

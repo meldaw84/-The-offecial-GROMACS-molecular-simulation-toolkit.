@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2019- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief Defines the state for the modular simulator
@@ -41,7 +40,6 @@
 
 #include "gmxpre.h"
 
-#include "gromacs/utility/enumerationhelpers.h"
 #include "statepropagatordata.h"
 
 #include "gromacs/commandline/filenm.h"
@@ -66,6 +64,7 @@
 #include "gromacs/topology/atoms.h"
 #include "gromacs/topology/topology.h"
 #include "gromacs/trajectory/trajectoryframe.h"
+#include "gromacs/utility/enumerationhelpers.h"
 
 #include "freeenergyperturbationdata.h"
 #include "modularsimulator.h"
@@ -73,10 +72,79 @@
 
 namespace gmx
 {
+/*! \internal
+ * \brief Helper object to scale velocities according to reference temperature change
+ */
+class StatePropagatorData::ReferenceTemperatureHelper
+{
+public:
+    //! Constructor
+    ReferenceTemperatureHelper(const t_inputrec*    inputrec,
+                               StatePropagatorData* statePropagatorData,
+                               const t_mdatoms*     mdatoms) :
+        numTemperatureGroups_(inputrec->opts.ngtc),
+        referenceTemperature_(inputrec->opts.ref_t, inputrec->opts.ref_t + inputrec->opts.ngtc),
+        velocityScalingFactors_(numTemperatureGroups_),
+        statePropagatorData_(statePropagatorData),
+        mdatoms_(mdatoms)
+    {
+    }
+
+    /*! \brief Update the reference temperature
+     *
+     * Changing the reference temperature requires scaling the velocities, which
+     * is done here.
+     *
+     * \param temperatures  New reference temperatures
+     * \param algorithm     The algorithm which initiated the temperature update
+     */
+    void updateReferenceTemperature(ArrayRef<const real>                           temperatures,
+                                    ReferenceTemperatureChangeAlgorithm gmx_unused algorithm)
+    {
+        // Currently, we don't know about any temperature change algorithms, so we assert this never gets called
+        GMX_ASSERT(false, "StatePropagatorData: Unknown ReferenceTemperatureChangeAlgorithm.");
+        for (int temperatureGroup = 0; temperatureGroup < numTemperatureGroups_; ++temperatureGroup)
+        {
+            velocityScalingFactors_[temperatureGroup] =
+                    std::sqrt(temperatures[temperatureGroup] / referenceTemperature_[temperatureGroup]);
+        }
+
+        auto velocities = statePropagatorData_->velocitiesView().unpaddedArrayRef();
+        int  nth        = gmx_omp_nthreads_get(ModuleMultiThread::Update);
+#pragma omp parallel for num_threads(nth) schedule(static) default(none) shared(nth, velocities)
+        for (int threadIndex = 0; threadIndex < nth; threadIndex++)
+        {
+            int startAtom = 0;
+            int endAtom   = 0;
+            getThreadAtomRange(nth, threadIndex, statePropagatorData_->localNAtoms_, &startAtom, &endAtom);
+            for (int atomIdx = startAtom; atomIdx < endAtom; ++atomIdx)
+            {
+                const int temperatureGroup = !mdatoms_->cTC.empty() ? mdatoms_->cTC[atomIdx] : 0;
+                velocities[atomIdx] *= velocityScalingFactors_[temperatureGroup];
+            }
+        }
+        std::copy(temperatures.begin(), temperatures.end(), referenceTemperature_.begin());
+    }
+
+private:
+    //! The number of temperature groups
+    const int numTemperatureGroups_;
+    //! Coupling temperature per group
+    std::vector<real> referenceTemperature_;
+    //! Working array used at every temperature update
+    std::vector<real> velocityScalingFactors_;
+
+    //! Pointer to StatePropagatorData to scale velocities
+    StatePropagatorData* statePropagatorData_;
+    //! Atom parameters for this domain (temperature group information)
+    const t_mdatoms* mdatoms_;
+};
+
 StatePropagatorData::StatePropagatorData(int                numAtoms,
                                          FILE*              fplog,
                                          const t_commrec*   cr,
                                          t_state*           globalState,
+                                         t_state*           localState,
                                          bool               useGPU,
                                          bool               canMoleculesBeDistributedOverPBC,
                                          bool               writeFinalConfiguration,
@@ -101,6 +169,7 @@ StatePropagatorData::StatePropagatorData(int                numAtoms,
                                        finalConfigurationFilename,
                                        inputrec,
                                        globalTop)),
+    referenceTemperatureHelper_(std::make_unique<ReferenceTemperatureHelper>(inputrec, this, mdatoms)),
     vvResetVelocities_(false),
     isRegularSimulationEnd_(false),
     lastStep_(-1),
@@ -108,12 +177,11 @@ StatePropagatorData::StatePropagatorData(int                numAtoms,
 {
     bool stateHasVelocities;
     // Local state only becomes valid now.
-    if (DOMAINDECOMP(cr))
+    if (haveDDAtomOrdering(*cr))
     {
-        auto localState = std::make_unique<t_state>();
-        dd_init_local_state(*cr->dd, globalState, localState.get());
+        dd_init_local_state(*cr->dd, globalState, localState);
         stateHasVelocities = ((localState->flags & enumValueToBitMask(StateEntry::V)) != 0);
-        setLocalState(std::move(localState));
+        setLocalState(localState);
     }
     else
     {
@@ -133,7 +201,7 @@ StatePropagatorData::StatePropagatorData(int                numAtoms,
         changePinningPolicy(&x_, gmx::PinningPolicy::PinnedIfSupported);
     }
 
-    if (DOMAINDECOMP(cr) && MASTER(cr))
+    if (haveDDAtomOrdering(*cr) && MASTER(cr))
     {
         xGlobal_.resizeWithPadding(totalNumAtoms_);
         previousXGlobal_.resizeWithPadding(totalNumAtoms_);
@@ -153,7 +221,7 @@ StatePropagatorData::StatePropagatorData(int                numAtoms,
                 {
                     clear_rvec(v[i]);
                 }
-                else if (mdatoms->cFREEZE)
+                else if (!mdatoms->cFREEZE.empty())
                 {
                     for (int m = 0; m < DIM; m++)
                     {
@@ -171,6 +239,8 @@ StatePropagatorData::StatePropagatorData(int                numAtoms,
         }
     }
 }
+
+StatePropagatorData::~StatePropagatorData() = default;
 
 StatePropagatorData::Element* StatePropagatorData::element()
 {
@@ -255,29 +325,41 @@ int StatePropagatorData::totalNumAtoms() const
     return totalNumAtoms_;
 }
 
-std::unique_ptr<t_state> StatePropagatorData::localState()
+t_state* StatePropagatorData::localState()
 {
-    auto state   = std::make_unique<t_state>();
-    state->flags = enumValueToBitMask(StateEntry::X) | enumValueToBitMask(StateEntry::V)
-                   | enumValueToBitMask(StateEntry::Box);
-    state_change_natoms(state.get(), localNAtoms_);
-    state->x = x_;
-    state->v = v_;
-    copy_mat(box_, state->box);
-    state->ddp_count       = ddpCount_;
-    state->ddp_count_cg_gl = ddpCountCgGl_;
-    state->cg_gl           = cgGl_;
-    return state;
+    localState_->flags = enumValueToBitMask(StateEntry::X) | enumValueToBitMask(StateEntry::V)
+                         | enumValueToBitMask(StateEntry::Box);
+    state_change_natoms(localState_, localNAtoms_);
+    std::swap(localState_->x, x_);
+    std::swap(localState_->v, v_);
+    copy_mat(box_, localState_->box);
+    localState_->ddp_count       = ddpCount_;
+    localState_->ddp_count_cg_gl = ddpCountCgGl_;
+    localState_->cg_gl           = cgGl_;
+    return localState_;
 }
 
-void StatePropagatorData::setLocalState(std::unique_ptr<t_state> state)
+std::unique_ptr<t_state> StatePropagatorData::copyLocalState(std::unique_ptr<t_state> copy)
 {
+    copy->flags = enumValueToBitMask(StateEntry::X) | enumValueToBitMask(StateEntry::V)
+                  | enumValueToBitMask(StateEntry::Box);
+    state_change_natoms(copy.get(), localNAtoms_);
+    copy->x = x_;
+    copy->v = v_;
+    copy_mat(box_, copy->box);
+    copy->ddp_count       = ddpCount_;
+    copy->ddp_count_cg_gl = ddpCountCgGl_;
+    copy->cg_gl           = cgGl_;
+    return copy;
+}
+
+void StatePropagatorData::setLocalState(t_state* state)
+{
+    localState_  = state;
     localNAtoms_ = state->natoms;
-    x_.resizeWithPadding(localNAtoms_);
     previousX_.resizeWithPadding(localNAtoms_);
-    v_.resizeWithPadding(localNAtoms_);
-    x_ = state->x;
-    v_ = state->v;
+    std::swap(x_, state->x);
+    std::swap(v_, state->v);
     copy_mat(state->box, box_);
     copyPosition();
     ddpCount_     = state->ddp_count;
@@ -335,7 +417,13 @@ void StatePropagatorData::copyPosition(int start, int end)
     }
 }
 
-void StatePropagatorData::Element::scheduleTask(Step step,
+void StatePropagatorData::updateReferenceTemperature(ArrayRef<const real> temperatures,
+                                                     ReferenceTemperatureChangeAlgorithm algorithm)
+{
+    referenceTemperatureHelper_->updateReferenceTemperature(temperatures, algorithm);
+}
+
+void StatePropagatorData::Element::scheduleTask(Step                       step,
                                                 Time gmx_unused            time,
                                                 const RegisterRunFunction& registerRunFunction)
 {
@@ -355,8 +443,9 @@ void StatePropagatorData::Element::scheduleTask(Step step,
 
 void StatePropagatorData::Element::saveState()
 {
-    GMX_ASSERT(!localStateBackup_, "Save state called again before previous state was written.");
-    localStateBackup_ = statePropagatorData_->localState();
+    GMX_ASSERT(!localStateBackupValid_,
+               "Save state called again before previous state was written.");
+    localStateBackup_ = statePropagatorData_->copyLocalState(std::move(localStateBackup_));
     if (freeEnergyPerturbationData_)
     {
         localStateBackup_->fep_state    = freeEnergyPerturbationData_->currentFEPState();
@@ -365,6 +454,7 @@ void StatePropagatorData::Element::saveState()
         localStateBackup_->flags |=
                 enumValueToBitMask(StateEntry::Lambda) | enumValueToBitMask(StateEntry::FepState);
     }
+    localStateBackupValid_ = true;
 }
 
 std::optional<SignallerCallback> StatePropagatorData::Element::registerTrajectorySignallerCallback(TrajectoryEvent event)
@@ -433,7 +523,7 @@ void StatePropagatorData::Element::write(gmx_mdoutf_t outf, Step currentStep, Ti
         wallcycle_stop(mdoutf_get_wcycle(outf), WallCycleCounter::Traj);
         return;
     }
-    GMX_ASSERT(localStateBackup_, "Trajectory writing called, but no state saved.");
+    GMX_ASSERT(localStateBackupValid_, "Trajectory writing called, but no state saved.");
 
     // TODO: This is only used for CPT - needs to be filled when we turn CPT back on
     ObservablesHistory* observablesHistory = nullptr;
@@ -453,7 +543,7 @@ void StatePropagatorData::Element::write(gmx_mdoutf_t outf, Step currentStep, Ti
 
     if (currentStep != lastStep_ || !isRegularSimulationEnd_)
     {
-        localStateBackup_.reset();
+        localStateBackupValid_ = false;
     }
     wallcycle_stop(mdoutf_get_wcycle(outf), WallCycleCounter::Traj);
 }
@@ -513,7 +603,7 @@ void StatePropagatorData::doCheckpointData(CheckpointData<operation>* checkpoint
 void StatePropagatorData::Element::saveCheckpointState(std::optional<WriteCheckpointData> checkpointData,
                                                        const t_commrec*                   cr)
 {
-    if (DOMAINDECOMP(cr))
+    if (haveDDAtomOrdering(*cr))
     {
         // Collect state from all ranks into global vectors
         dd_collect_vec(cr->dd,
@@ -578,7 +668,7 @@ void StatePropagatorData::Element::restoreCheckpointState(std::optional<ReadChec
     }
 
     // Copy data to global state to be distributed by DD at setup stage
-    if (DOMAINDECOMP(cr) && MASTER(cr))
+    if (haveDDAtomOrdering(*cr) && MASTER(cr))
     {
         updateGlobalState(statePropagatorData_->globalState_,
                           statePropagatorData_->xGlobal_,
@@ -589,7 +679,7 @@ void StatePropagatorData::Element::restoreCheckpointState(std::optional<ReadChec
                           statePropagatorData_->cgGl_);
     }
     // Everything is local - copy global vectors to local ones
-    if (!DOMAINDECOMP(cr))
+    if (!haveDDAtomOrdering(*cr))
     {
         statePropagatorData_->x_.resizeWithPadding(statePropagatorData_->totalNumAtoms_);
         statePropagatorData_->v_.resizeWithPadding(statePropagatorData_->totalNumAtoms_);
@@ -617,10 +707,10 @@ void StatePropagatorData::Element::trajectoryWriterTeardown(gmx_mdoutf* gmx_unus
         return;
     }
 
-    GMX_ASSERT(localStateBackup_, "Final trajectory writing called, but no state saved.");
+    GMX_ASSERT(localStateBackupValid_, "Final trajectory writing called, but no state saved.");
 
     wallcycle_start(mdoutf_get_wcycle(outf), WallCycleCounter::Traj);
-    if (DOMAINDECOMP(cr_))
+    if (haveDDAtomOrdering(*cr_))
     {
         auto globalXRef =
                 MASTER(cr_) ? statePropagatorData_->globalState_->x : gmx::ArrayRef<gmx::RVec>();
@@ -692,6 +782,7 @@ StatePropagatorData::Element::Element(StatePropagatorData* statePropagatorData,
     nstvout_(nstvout),
     nstfout_(nstfout),
     nstxout_compressed_(nstxout_compressed),
+    localStateBackup_(std::make_unique<t_state>()),
     writeOutStep_(-1),
     freeEnergyPerturbationData_(nullptr),
     isRegularSimulationEnd_(false),
@@ -718,7 +809,8 @@ ISimulatorElement* StatePropagatorData::Element::getElementPointerImpl(
         StatePropagatorData*                               statePropagatorData,
         EnergyData gmx_unused*      energyData,
         FreeEnergyPerturbationData* freeEnergyPerturbationData,
-        GlobalCommunicationHelper gmx_unused* globalCommunicationHelper)
+        GlobalCommunicationHelper gmx_unused* globalCommunicationHelper,
+        ObservablesReducer* /*observablesReducer*/)
 {
     statePropagatorData->element()->setFreeEnergyPerturbationData(freeEnergyPerturbationData);
     return statePropagatorData->element();

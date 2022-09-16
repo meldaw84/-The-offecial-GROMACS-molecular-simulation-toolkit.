@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -55,6 +51,7 @@
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
+#include "gromacs/utility/listoflists.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/strdb.h"
 
@@ -562,20 +559,20 @@ void analyse(const t_atoms* atoms, t_blocka* gb, char*** gn, gmx_bool bASK, gmx_
     add_grp(gb, gn, aid, "System");
 
     /* For every residue, get a pointer to the residue type name */
-    ResidueType rt;
+    ResidueTypeMap residueTypeMap = residueTypeMapFromLibraryFile("residuetypes.dat");
 
     std::vector<std::string> restype;
     std::vector<std::string> previousTypename;
     if (atoms->nres > 0)
     {
         const char* resnm = *atoms->resinfo[0].name;
-        restype.emplace_back(rt.typeOfNamedDatabaseResidue(resnm));
+        restype.emplace_back(typeOfNamedDatabaseResidue(residueTypeMap, resnm));
         previousTypename.push_back(restype.back());
 
         for (int i = 1; i < atoms->nres; i++)
         {
             const char* resnm = *atoms->resinfo[i].name;
-            restype.emplace_back(rt.typeOfNamedDatabaseResidue(resnm));
+            restype.emplace_back(typeOfNamedDatabaseResidue(residueTypeMap, resnm));
 
             /* Note that this does not lead to a N*N loop, but N*K, where
              * K is the number of residue _types_, which is small and independent of N.
@@ -984,39 +981,51 @@ void get_index(const t_atoms* atoms, const char* fnm, int ngrps, int isize[], in
     sfree(grps);
 }
 
-t_cluster_ndx* cluster_index(FILE* fplog, const char* ndx)
+t_cluster_ndx cluster_index(FILE* fplog, const char* ndx)
 {
-    t_cluster_ndx* c = nullptr;
+    t_cluster_ndx c;
 
-    snew(c, 1);
-    c->clust    = init_index(ndx, &c->grpname);
-    c->maxframe = -1;
-    for (int i = 0; (i < c->clust->nra); i++)
+    c.clust    = init_index(ndx, &c.grpname);
+    c.maxframe = -1;
+    for (int i = 0; (i < c.clust->nra); i++)
     {
-        c->maxframe = std::max(c->maxframe, c->clust->a[i]);
+        c.maxframe = std::max(c.maxframe, c.clust->a[i]);
     }
     fprintf(fplog ? fplog : stdout,
             "There are %d clusters containing %d structures, highest framenr is %d\n",
-            c->clust->nr,
-            c->clust->nra,
-            c->maxframe);
+            c.clust->nr,
+            c.clust->nra,
+            c.maxframe);
     if (debug)
     {
-        pr_blocka(debug, 0, "clust", c->clust, TRUE);
-        for (int i = 0; (i < c->clust->nra); i++)
+        pr_blocka(debug, 0, "clust", c.clust, TRUE);
+        for (int i = 0; (i < c.clust->nra); i++)
         {
-            if ((c->clust->a[i] < 0) || (c->clust->a[i] > c->maxframe))
+            if ((c.clust->a[i] < 0) || (c.clust->a[i] > c.maxframe))
             {
                 gmx_fatal(FARGS,
-                          "Range check error for c->clust->a[%d] = %d\n"
+                          "Range check error for c.clust->a[%d] = %d\n"
                           "should be within 0 and %d",
                           i,
-                          c->clust->a[i],
-                          c->maxframe + 1);
+                          c.clust->a[i],
+                          c.maxframe + 1);
             }
         }
     }
-    c->inv_clust = make_invblocka(c->clust, c->maxframe);
+
+    GMX_RELEASE_ASSERT(c.clust->index != nullptr, "Keep clang-tidy happy");
+    std::vector<int> listRanges(c.clust->nr + 1);
+    for (int i = 0; i < c.clust->nr + 1; i++)
+    {
+        listRanges[i] = c.clust->index[i];
+    }
+    std::vector<int> elements(c.clust->nra);
+    for (int i = 0; i < c.clust->nra; i++)
+    {
+        elements[i] = c.clust->a[i];
+    }
+    gmx::ListOfLists<int> clusters(std::move(listRanges), std::move(elements));
+    c.inv_clust = make_invblock(clusters, c.maxframe);
 
     return c;
 }

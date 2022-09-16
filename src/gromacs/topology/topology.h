@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2011,2014,2015,2016,2018, The GROMACS development team.
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #ifndef GMX_TOPOLOGY_TOPOLOGY_H
 #define GMX_TOPOLOGY_TOPOLOGY_H
@@ -48,29 +44,10 @@
 #include "gromacs/topology/forcefieldparameters.h"
 #include "gromacs/topology/idef.h"
 #include "gromacs/topology/symtab.h"
+#include "gromacs/topology/topology_enums.h"
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/listoflists.h"
 #include "gromacs/utility/unique_cptr.h"
-
-enum class SimulationAtomGroupType : int
-{
-    TemperatureCoupling,
-    EnergyOutput,
-    AccelerationUnused,
-    Freeze,
-    User1,
-    User2,
-    MassCenterVelocityRemoval,
-    CompressedPositionOutput,
-    OrientationRestraintsFit,
-    QuantumMechanics,
-    Count
-};
-
-//! Short strings used for describing atom groups in log and energy files
-const char* shortName(SimulationAtomGroupType type);
-
-// const char *shortName(int type); // if necessary
 
 /*! \brief Molecules type data: atoms, interactions and exclusions */
 struct gmx_moltype_t
@@ -178,8 +155,6 @@ struct gmx_mtop_t //NOLINT(clang-analyzer-optin.performance.Padding)
     std::unique_ptr<InteractionLists> intermolecular_ilist = nullptr;
     //! Number of global atoms.
     int natoms = 0;
-    //! Atomtype properties
-    t_atomtypes atomtypes;
     //! Groups of atoms for different purposes
     SimulationGroups groups;
     //! The legacy symbol table
@@ -239,17 +214,15 @@ struct gmx_localtop_t
 /* The old topology struct, completely written out, used in analysis tools */
 typedef struct t_topology
 {
-    char**      name;                        /* Name of the topology                 */
-    t_idef      idef;                        /* The interaction function definition  */
-    t_atoms     atoms;                       /* The atoms                            */
-    t_atomtypes atomtypes;                   /* Atomtype properties                  */
-    t_block     mols;                        /* The molecules                        */
-    gmx_bool    bIntermolecularInteractions; /* Inter.mol. int. ?   */
+    char**  name;                        /* Name of the topology                 */
+    t_idef  idef;                        /* The interaction function definition  */
+    t_atoms atoms;                       /* The atoms                            */
+    t_block mols;                        /* The molecules                        */
+    bool    bIntermolecularInteractions; /* Inter.mol. int. ?   */
     /* Note that the exclusions are not stored in t_topology */
     t_symtab symtab; /* The symbol table                     */
 } t_topology;
 
-void init_top(t_topology* top);
 void done_top(t_topology* top);
 // Frees both t_topology and gmx_mtop_t when the former has been created from
 // the latter.
@@ -257,12 +230,11 @@ void done_top_mtop(t_topology* top, gmx_mtop_t* mtop);
 
 bool gmx_mtop_has_masses(const gmx_mtop_t* mtop);
 bool gmx_mtop_has_charges(const gmx_mtop_t* mtop);
-bool gmx_mtop_has_perturbed_charges(const gmx_mtop_t& mtop);
 bool gmx_mtop_has_atomtypes(const gmx_mtop_t* mtop);
 bool gmx_mtop_has_pdbinfo(const gmx_mtop_t* mtop);
 
-void pr_mtop(FILE* fp, int indent, const char* title, const gmx_mtop_t* mtop, gmx_bool bShowNumbers, gmx_bool bShowParameters);
-void pr_top(FILE* fp, int indent, const char* title, const t_topology* top, gmx_bool bShowNumbers, gmx_bool bShowParameters);
+void pr_mtop(FILE* fp, int indent, const char* title, const gmx_mtop_t* mtop, bool bShowNumbers, bool bShowParameters);
+void pr_top(FILE* fp, int indent, const char* title, const t_topology* top, bool bShowNumbers, bool bShowParameters);
 
 /*! \brief Compare two mtop topologies.
  *

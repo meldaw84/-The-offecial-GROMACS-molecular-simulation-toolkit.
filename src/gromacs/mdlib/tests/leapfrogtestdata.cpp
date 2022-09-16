@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2019- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief Defines the class to accumulate the data needed for the Leap-Frog integrator tests
@@ -113,11 +112,11 @@ LeapFrogTestData::LeapFrogTestData(int        numAtoms,
             inverseMassesPerDim_[i][d] = inverseMasses_[i];
         }
     }
-    mdAtoms_.invmass       = inverseMasses_.data();
-    mdAtoms_.invMassPerDim = as_rvec_array(inverseMassesPerDim_.data());
+    mdAtoms_.invmass       = inverseMasses_;
+    mdAtoms_.invMassPerDim = inverseMassesPerDim_;
 
     // Temperature coupling
-    snew(mdAtoms_.cTC, numAtoms_);
+    mdAtoms_.cTC.resize(numAtoms_);
 
     // To do temperature coupling at each step
     inputRecord_.nsttcouple = 1;
@@ -169,20 +168,20 @@ LeapFrogTestData::LeapFrogTestData(int        numAtoms,
     mdAtoms_.homenr                   = numAtoms_;
     mdAtoms_.haveVsites               = false;
     mdAtoms_.havePartiallyFrozenAtoms = false;
-    mdAtoms_.cFREEZE                  = nullptr;
 
     update_ = std::make_unique<Update>(inputRecord_, nullptr);
     update_->updateAfterPartition(numAtoms,
                                   gmx::ArrayRef<const unsigned short>(),
-                                  gmx::arrayRefFromArray(mdAtoms_.cTC, mdAtoms_.nr));
+                                  mdAtoms_.cTC,
+                                  gmx::ArrayRef<const unsigned short>());
 
     doPressureCouple_ = (nstpcouple != 0);
 
     if (doPressureCouple_)
     {
-        inputRecord_.epc        = PressureCoupling::ParrinelloRahman;
-        inputRecord_.nstpcouple = nstpcouple;
-        dtPressureCouple_       = inputRecord_.nstpcouple * inputRecord_.delta_t;
+        inputRecord_.pressureCouplingOptions.epc        = PressureCoupling::ParrinelloRahman;
+        inputRecord_.pressureCouplingOptions.nstpcouple = nstpcouple;
+        dtPressureCouple_ = inputRecord_.pressureCouplingOptions.nstpcouple * inputRecord_.delta_t;
 
         velocityScalingMatrix_[XX][XX] = 1.2;
         velocityScalingMatrix_[XX][YY] = 0.0;
@@ -198,10 +197,10 @@ LeapFrogTestData::LeapFrogTestData(int        numAtoms,
     }
     else
     {
-        inputRecord_.epc               = PressureCoupling::No;
-        velocityScalingMatrix_[XX][XX] = 1.0;
-        velocityScalingMatrix_[XX][YY] = 0.0;
-        velocityScalingMatrix_[XX][ZZ] = 0.0;
+        inputRecord_.pressureCouplingOptions.epc = PressureCoupling::No;
+        velocityScalingMatrix_[XX][XX]           = 1.0;
+        velocityScalingMatrix_[XX][YY]           = 0.0;
+        velocityScalingMatrix_[XX][ZZ]           = 0.0;
 
         velocityScalingMatrix_[YY][XX] = 0.0;
         velocityScalingMatrix_[YY][YY] = 1.0;
@@ -211,11 +210,6 @@ LeapFrogTestData::LeapFrogTestData(int        numAtoms,
         velocityScalingMatrix_[ZZ][YY] = 0.0;
         velocityScalingMatrix_[ZZ][ZZ] = 1.0;
     }
-}
-
-LeapFrogTestData::~LeapFrogTestData()
-{
-    sfree(mdAtoms_.cTC);
 }
 
 } // namespace test

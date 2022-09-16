@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2019- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  *
@@ -43,72 +42,82 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/ewald/pme_pp_communication.h"
 #include "pme_pp_comm_gpu_impl.h"
 
 #include "config.h"
 
+#include "gromacs/ewald/pme_pp_communication.h"
 #include "gromacs/gpu_utils/cudautils.cuh"
 #include "gromacs/gpu_utils/device_context.h"
 #include "gromacs/gpu_utils/device_stream.h"
 #include "gromacs/gpu_utils/devicebuffer.h"
-#include "gromacs/gpu_utils/gpueventsynchronizer.cuh"
+#include "gromacs/gpu_utils/gpueventsynchronizer.h"
 #include "gromacs/gpu_utils/typecasts.cuh"
 #include "gromacs/utility/gmxmpi.h"
 
 namespace gmx
 {
 
-PmePpCommGpu::Impl::Impl(MPI_Comm             comm,
-                         int                  pmeRank,
-                         const DeviceContext& deviceContext,
-                         const DeviceStream&  deviceStream) :
+PmePpCommGpu::Impl::Impl(MPI_Comm                    comm,
+                         int                         pmeRank,
+                         gmx::HostVector<gmx::RVec>* pmeCpuForceBuffer,
+                         const DeviceContext&        deviceContext,
+                         const DeviceStream&         deviceStream) :
     deviceContext_(deviceContext),
     pmePpCommStream_(deviceStream),
     comm_(comm),
     pmeRank_(pmeRank),
+    pmeCpuForceBuffer_(pmeCpuForceBuffer),
     d_pmeForces_(nullptr)
 {
+    stageLibMpiGpuCpuComm_ = (getenv("GMX_DISABLE_STAGED_GPU_TO_CPU_PMEPP_COMM") == nullptr);
 }
 
 PmePpCommGpu::Impl::~Impl() = default;
 
 void PmePpCommGpu::Impl::reinit(int size)
 {
+    // Reallocate device buffer used for staging PME force
+    reallocateDeviceBuffer(&d_pmeForces_, size, &d_pmeForcesSize_, &d_pmeForcesSizeAlloc_, deviceContext_);
+
     // This rank will access PME rank memory directly, so needs to receive the remote PME buffer addresses.
 #if GMX_MPI
 
     if (GMX_THREAD_MPI)
     {
-        // receive device buffer address from PME rank
+        // receive device coordinate buffer address from PME rank
         MPI_Recv(&remotePmeXBuffer_, sizeof(float3*), MPI_BYTE, pmeRank_, 0, comm_, MPI_STATUS_IGNORE);
-        MPI_Recv(&remotePmeFBuffer_, sizeof(float3*), MPI_BYTE, pmeRank_, 0, comm_, MPI_STATUS_IGNORE);
+        // send host and device force buffer addresses to PME rank
+        MPI_Send(&d_pmeForces_, sizeof(float3*), MPI_BYTE, pmeRank_, 0, comm_);
+        RVec* pmeCpuForceBufferData = pmeCpuForceBuffer_->data();
+        MPI_Send(&pmeCpuForceBufferData, sizeof(RVec*), MPI_BYTE, pmeRank_, 0, comm_);
+        // Receive address of event and associated flag from PME rank, to allow sync to local stream after force transfer
+        // NOLINTNEXTLINE(bugprone-sizeof-expression)
+        MPI_Recv(&remotePmeForceSendEvent_, sizeof(GpuEventSynchronizer*), MPI_BYTE, pmeRank_, 0, comm_, MPI_STATUS_IGNORE);
+        MPI_Recv(&remotePmeForceSendEventRecorded_, sizeof(std::atomic<bool>*), MPI_BYTE, pmeRank_, 0, comm_, MPI_STATUS_IGNORE);
     }
 
 #endif
-
-    // Reallocate buffer used for staging PME force on GPU
-    reallocateDeviceBuffer(&d_pmeForces_, size, &d_pmeForcesSize_, &d_pmeForcesSizeAlloc_, deviceContext_);
-    return;
 }
 
-void PmePpCommGpu::Impl::receiveForceFromPmeCudaDirect(float3* pmeForcePtr, int recvSize, bool receivePmeForceToGpu)
+void PmePpCommGpu::Impl::receiveForceFromPmeCudaDirect(bool receivePmeForceToGpu)
 {
 #if GMX_MPI
-    // Receive event from PME task and add to stream, to ensure pull of data doesn't
-    // occur before PME force calc is completed
-    GpuEventSynchronizer* pmeSync;
-    MPI_Recv(&pmeSync, sizeof(GpuEventSynchronizer*), MPI_BYTE, pmeRank_, 0, comm_, MPI_STATUS_IGNORE);
-    pmeSync->enqueueWaitEvent(pmePpCommStream_);
-#endif
+    // Wait until remote PME task has pushed data, and then enqueue remote event to local stream.
 
-    // Pull force data from remote GPU
-    cudaError_t stat = cudaMemcpyAsync(pmeForcePtr,
-                                       remotePmeFBuffer_,
-                                       recvSize * DIM * sizeof(float),
-                                       cudaMemcpyDefault,
-                                       pmePpCommStream_.stream());
-    CU_RET_ERR(stat, "cudaMemcpyAsync on Recv from PME CUDA direct data transfer failed");
+    if (d_pmeForcesSize_ <= 0)
+    {
+        return;
+    }
+
+    // Spin until PME rank sets flag
+    while (!(remotePmeForceSendEventRecorded_->load(std::memory_order_acquire))) {};
+
+    // Enqueue remote event
+    remotePmeForceSendEvent_->enqueueWaitEvent(pmePpCommStream_);
+
+    // Reset the flag
+    remotePmeForceSendEventRecorded_->store(false, std::memory_order_release);
 
     if (receivePmeForceToGpu)
     {
@@ -123,12 +132,31 @@ void PmePpCommGpu::Impl::receiveForceFromPmeCudaDirect(float3* pmeForcePtr, int 
         // them with other forces on the CPU
         pmePpCommStream_.synchronize();
     }
+#endif
 }
 
 void PmePpCommGpu::Impl::receiveForceFromPmeCudaMpi(float3* pmeForcePtr, int recvSize)
 {
 #if GMX_MPI
-    MPI_Recv(pmeForcePtr, recvSize * DIM, MPI_FLOAT, pmeRank_, 0, comm_, MPI_STATUS_IGNORE);
+    if (!stageLibMpiGpuCpuComm_)
+    {
+        MPI_Recv(pmeForcePtr, recvSize * DIM, MPI_FLOAT, pmeRank_, 0, comm_, MPI_STATUS_IGNORE);
+    }
+    else
+    {
+        // Receive data from remote GPU in memory of local GPU
+        MPI_Recv(d_pmeForces_, recvSize * DIM, MPI_FLOAT, pmeRank_, 0, comm_, MPI_STATUS_IGNORE);
+        if (pmeForcePtr != asFloat3(d_pmeForces_)) // destination is CPU memory, so finalize transfer with local D2H
+        {
+            copyFromDeviceBuffer(reinterpret_cast<RVec*>(pmeForcePtr),
+                                 &d_pmeForces_,
+                                 0,
+                                 recvSize,
+                                 pmePpCommStream_,
+                                 GpuApiCallBehavior::Sync,
+                                 nullptr);
+        }
+    }
 #else
     GMX_UNUSED_VALUE(pmeForcePtr);
     GMX_UNUSED_VALUE(recvSize);
@@ -140,7 +168,7 @@ void PmePpCommGpu::Impl::receiveForceFromPme(float3* recvPtr, int recvSize, bool
     float3* pmeForcePtr = receivePmeForceToGpu ? asFloat3(d_pmeForces_) : recvPtr;
     if (GMX_THREAD_MPI)
     {
-        receiveForceFromPmeCudaDirect(pmeForcePtr, recvSize, receivePmeForceToGpu);
+        receiveForceFromPmeCudaDirect(receivePmeForceToGpu);
     }
     else
     {
@@ -166,6 +194,7 @@ void PmePpCommGpu::Impl::sendCoordinatesToPmeCudaDirect(float3*               se
     // Record and send event to allow PME task to sync to above transfer before commencing force calculations
     pmeCoordinatesSynchronizer_.markEvent(pmePpCommStream_);
     GpuEventSynchronizer* pmeSync = &pmeCoordinatesSynchronizer_;
+    // NOLINTNEXTLINE(bugprone-sizeof-expression)
     MPI_Send(&pmeSync, sizeof(GpuEventSynchronizer*), MPI_BYTE, pmeRank_, 0, comm_);
 #endif
 }
@@ -217,11 +246,12 @@ GpuEventSynchronizer* PmePpCommGpu::Impl::getForcesReadySynchronizer()
     }
 }
 
-PmePpCommGpu::PmePpCommGpu(MPI_Comm             comm,
-                           int                  pmeRank,
-                           const DeviceContext& deviceContext,
-                           const DeviceStream&  deviceStream) :
-    impl_(new Impl(comm, pmeRank, deviceContext, deviceStream))
+PmePpCommGpu::PmePpCommGpu(MPI_Comm                    comm,
+                           int                         pmeRank,
+                           gmx::HostVector<gmx::RVec>* pmeCpuForceBuffer,
+                           const DeviceContext&        deviceContext,
+                           const DeviceStream&         deviceStream) :
+    impl_(new Impl(comm, pmeRank, pmeCpuForceBuffer, deviceContext, deviceStream))
 {
 }
 

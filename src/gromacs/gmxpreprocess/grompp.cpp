@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,22 +26,22 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
 #include "grompp.h"
 
-#include <array>
 #include <cerrno>
 #include <climits>
 #include <cmath>
 #include <cstring>
 
 #include <algorithm>
+#include <array>
 #include <memory>
 #include <vector>
 
@@ -93,6 +89,7 @@
 #include "gromacs/pulling/pull.h"
 #include "gromacs/random/seed.h"
 #include "gromacs/topology/ifunc.h"
+#include "gromacs/topology/mtop_atomloops.h"
 #include "gromacs/topology/mtop_util.h"
 #include "gromacs/topology/symtab.h"
 #include "gromacs/topology/topology.h"
@@ -116,8 +113,7 @@
 InteractionOfType::InteractionOfType(gmx::ArrayRef<const int>  atoms,
                                      gmx::ArrayRef<const real> params,
                                      const std::string&        name) :
-    atoms_(atoms.begin(), atoms.end()),
-    interactionTypeName_(name)
+    atoms_(atoms.begin(), atoms.end()), interactionTypeName_(name)
 {
     GMX_RELEASE_ASSERT(
             params.size() <= forceParam_.size(),
@@ -775,9 +771,8 @@ static void new_status(const char*                           topfile,
             mass[i]             = local.m;
         }
 
-        if (opts->seed == -1)
+        if (opts->bMadeSeed)
         {
-            opts->seed = static_cast<int>(gmx::makeRandomSeed());
             GMX_LOG(logger.info).asParagraph().appendTextFormatted("Setting gen_seed to %d", opts->seed);
         }
         state->flags |= enumValueToBitMask(StateEntry::V);
@@ -909,10 +904,11 @@ static void cont_status(const char*             slog,
     GMX_LOG(logger.info).asParagraph().appendTextFormatted("Using frame at t = %g ps", use_time);
     GMX_LOG(logger.info).asParagraph().appendTextFormatted("Starting time for run is %g ps", ir->init_t);
 
-    if ((ir->epc != PressureCoupling::No || ir->etc == TemperatureCoupling::NoseHoover) && ener)
+    if ((ir->pressureCouplingOptions.epc != PressureCoupling::No || ir->etc == TemperatureCoupling::NoseHoover)
+        && ener)
     {
         get_enx_state(ener, use_time, sys->groups, ir, state);
-        preserve_box_shape(ir, state->box_rel, state->boxv);
+        preserveBoxShape(ir->pressureCouplingOptions, ir->deform, state->box_rel, state->boxv);
     }
 }
 
@@ -1578,7 +1574,7 @@ static bool haveDecoupledModeInMol(const gmx_moltype_t&           molt,
 
 /*! \brief Checks if the Verlet buffer and constraint accuracy is sufficient for decoupled dynamic modes.
  *
- * When decoupled modes are present and the accuray in insufficient,
+ * When decoupled modes are present and the accuracy in insufficient,
  * this routine issues a warning if the accuracy is insufficient.
  */
 static void checkDecoupledModeAccuracy(const gmx_mtop_t* mtop, const t_inputrec* ir, warninp* wi)
@@ -1736,6 +1732,115 @@ static void set_verlet_buffer(const gmx_mtop_t*    mtop,
     }
 }
 
+// Computes and returns that largest distance between non-perturbed excluded atom pairs
+static real maxNonPerturbedExclusionDistance(const gmx_mtop_t&              mtop,
+                                             const bool                     useFep,
+                                             const PbcType                  pbcType,
+                                             gmx::ArrayRef<const gmx::RVec> x,
+                                             const matrix                   box)
+{
+    t_pbc pbc;
+
+    set_pbc(&pbc, pbcType, box);
+
+    real dx2Max = 0;
+
+    int moleculeOffset = 0;
+    for (const auto& mb : mtop.molblock)
+    {
+        const gmx::ListOfLists<int>& excls = mtop.moltype[mb.type].excls;
+        const t_atoms&               atoms = mtop.moltype[mb.type].atoms;
+        GMX_RELEASE_ASSERT(gmx::ssize(excls) == atoms.nr,
+                           "There should be one exclusion list per atom");
+
+        for (int mol = 0; mol < mb.nmol; mol++)
+        {
+            for (int iAtom = 0; iAtom < atoms.nr; iAtom++)
+            {
+                if (useFep && PERTURBED(atoms.atom[iAtom]))
+                {
+                    // This atom is perturbed, so all its exclusions are perturbed
+                    continue;
+                }
+
+                const auto& jAtoms = excls[iAtom];
+                for (int jAtom : jAtoms)
+                {
+                    if (jAtom != iAtom && !(useFep && PERTURBED(atoms.atom[jAtom])))
+                    {
+                        rvec dx;
+
+                        pbc_dx(&pbc, x[moleculeOffset + iAtom], x[moleculeOffset + jAtom], dx);
+                        dx2Max = std::max(dx2Max, norm2(dx));
+                    }
+                }
+            }
+
+            moleculeOffset += atoms.nr;
+        }
+    }
+
+    return std::sqrt(dx2Max);
+}
+
+// Computes and logs the maximum exclusion distance. Checks whether (non-perturbed) excluded
+// atom pairs are close to the cut-off distance and if so, generates a warning/error
+static void checkExclusionDistances(const gmx_mtop_t&              mtop,
+                                    const t_inputrec&              ir,
+                                    gmx::ArrayRef<const gmx::RVec> x,
+                                    const matrix                   box,
+                                    const gmx::MDLogger&           logger,
+                                    warninp*                       wi)
+{
+    // Check the maximum distance for (non-perturbed) excluded pairs here,
+    // as it should not be longer than the cut-off distance, but we can't
+    // easily ensure that during the run.
+    const bool useFep               = (ir.efep != FreeEnergyPerturbationType::No);
+    const real maxExclusionDistance = maxNonPerturbedExclusionDistance(mtop, useFep, ir.pbcType, x, box);
+
+    const std::string distanceString =
+            gmx::formatString("The largest distance between%s excluded atoms is %.3f nm",
+                              useFep ? " non-perturbed" : "",
+                              maxExclusionDistance);
+
+    GMX_LOG(logger.info).asParagraph().appendText(distanceString);
+
+    const real cutoffDistance = std::max(ir.rvdw, ir.rcoulomb);
+    if (maxExclusionDistance >= cutoffDistance)
+    {
+        std::string text = gmx::formatString(
+                "%s, which is larger than the cut-off distance. This will "
+                "lead to missing long-range corrections in the forces and energies.",
+                distanceString.c_str());
+        if (EI_ENERGY_MINIMIZATION(ir.eI))
+        {
+            text += " If you expect that minimization will bring such distances within the "
+                    "cut-off, you can ignore this warning.";
+            warning(wi, text.c_str());
+        }
+        else
+        {
+            warning_error(wi, text.c_str());
+        }
+    }
+    else if (maxExclusionDistance > 0.9_real * cutoffDistance)
+    {
+        std::string text = gmx::formatString(
+                "%s, which is larger than 90%% of the cut-off distance. "
+                "When excluded pairs go beyond the cut-off distance, this leads to missing "
+                "long-range corrections in the forces and energies.",
+                distanceString.c_str());
+        if (EI_DYNAMICS(ir.eI))
+        {
+            warning(wi, text.c_str());
+        }
+        else
+        {
+            warning_note(wi, text.c_str());
+        }
+    }
+}
+
 int gmx_grompp(int argc, char* argv[])
 {
     const char* desc[] = {
@@ -1859,7 +1964,9 @@ int gmx_grompp(int argc, char* argv[])
                        { efEDR, "-e", nullptr, ffOPTRD },
                        /* This group is needed by the VMD viewer as the start configuration for IMD sessions: */
                        { efGRO, "-imd", "imdgroup", ffOPTWR },
-                       { efTRN, "-ref", "rotref", ffOPTRW | ffALLOW_MISSING } };
+                       { efTRN, "-ref", "rotref", ffOPTRW | ffALLOW_MISSING },
+                       /* This group is needed by the QMMM MDModule: */
+                       { efQMI, "-qmi", nullptr, ffOPTRD } };
 #define NFILE asize(fnm)
 
     /* Command line options */
@@ -1931,6 +2038,17 @@ int gmx_grompp(int argc, char* argv[])
     // to eventual notifications during pre-processing their data
     mdModules.subscribeToPreProcessingNotifications();
 
+    // Notify MDModules of existing logger
+    mdModules.notifiers().preProcessingNotifier_.notify(logger);
+
+    // Notify MDModules of existing warninp
+    mdModules.notifiers().preProcessingNotifier_.notify(wi);
+
+    // Notify QMMM MDModule of external QM input file command-line option
+    {
+        gmx::QMInputFileName qmInputFileName = { ftp2bSet(efQMI, NFILE, fnm), ftp2fn(efQMI, NFILE, fnm) };
+        mdModules.notifiers().preProcessingNotifier_.notify(qmInputFileName);
+    }
 
     if (bVerbose)
     {
@@ -2057,13 +2175,14 @@ int gmx_grompp(int argc, char* argv[])
 
     if (nint_ftype(&sys, mi, F_POSRES) > 0 || nint_ftype(&sys, mi, F_FBPOSRES) > 0)
     {
-        if (ir->epc == PressureCoupling::ParrinelloRahman || ir->epc == PressureCoupling::Mttk)
+        if (ir->pressureCouplingOptions.epc == PressureCoupling::ParrinelloRahman
+            || ir->pressureCouplingOptions.epc == PressureCoupling::Mttk)
         {
             std::string warningMessage = gmx::formatString(
                     "You are combining position restraints with %s pressure coupling, which can "
                     "lead to instabilities. If you really want to combine position restraints with "
                     "pressure coupling, we suggest to use %s pressure coupling instead.",
-                    enumValueToString(ir->epc),
+                    enumValueToString(ir->pressureCouplingOptions.epc),
                     enumValueToString(PressureCoupling::Berendsen));
             warning_note(wi, warningMessage);
         }
@@ -2108,7 +2227,16 @@ int gmx_grompp(int argc, char* argv[])
             }
             GMX_LOG(logger.info).asParagraph().appendText(message);
         }
-        gen_posres(&sys, mi, fn, fnB, ir->refcoord_scaling, ir->pbcType, ir->posres_com, ir->posres_comB, wi, logger);
+        gen_posres(&sys,
+                   mi,
+                   fn,
+                   fnB,
+                   ir->pressureCouplingOptions.refcoord_scaling,
+                   ir->pbcType,
+                   ir->posres_com,
+                   ir->posres_comB,
+                   wi,
+                   logger);
     }
 
     /* If we are using CMAP, setup the pre-interpolation grid */
@@ -2133,9 +2261,6 @@ int gmx_grompp(int argc, char* argv[])
     {
         gmx_fatal(FARGS, "Implicit solvation is no longer supported");
     }
-
-    /* PELA: Copy the atomtype data to the topology atomtype list */
-    atypes.copyTot_atomtypes(&(sys.atomtypes));
 
     if (debug)
     {
@@ -2177,6 +2302,13 @@ int gmx_grompp(int argc, char* argv[])
     /* check masses */
     check_mol(&sys, wi);
 
+    if (haveFepPerturbedMassesInSettles(sys))
+    {
+        warning_error(wi,
+                      "SETTLE is not implemented for atoms whose mass is perturbed. "
+                      "You might instead use normal constraints.");
+    }
+
     checkForUnboundAtoms(&sys, bVerbose, wi, logger);
 
     if (EI_DYNAMICS(ir->eI) && ir->eI != IntegrationAlgorithm::BD)
@@ -2203,6 +2335,15 @@ int gmx_grompp(int argc, char* argv[])
         GMX_LOG(logger.info).asParagraph().appendTextFormatted("initialising group options...");
     }
     do_index(mdparin, ftp2fn_null(efNDX, NFILE, fnm), &sys, bVerbose, mdModules.notifiers(), ir, wi);
+
+    // Notify topology to MdModules for pre-processing after all indexes were built
+    mdModules.notifiers().preProcessingNotifier_.notify(&sys);
+
+    if (usingFullElectrostatics(ir->coulombtype) || usingLJPme(ir->vdwtype))
+    {
+        // We may have exclusion forces beyond the cut-off distance.
+        checkExclusionDistances(sys, *ir, state.x, state.box, logger, wi);
+    }
 
     if (ir->cutoff_scheme == CutoffScheme::Verlet && ir->verletbuf_tol > 0)
     {
@@ -2333,11 +2474,11 @@ int gmx_grompp(int argc, char* argv[])
         clear_rvec(state.box[ZZ]);
     }
 
-    if (EEL_FULL(ir->coulombtype) || EVDW_PME(ir->vdwtype))
+    if (usingFullElectrostatics(ir->coulombtype) || usingLJPme(ir->vdwtype))
     {
         /* Calculate the optimal grid dimensions */
         matrix          scaledBox;
-        EwaldBoxZScaler boxScaler(*ir);
+        EwaldBoxZScaler boxScaler(inputrecPbcXY2Walls(ir), ir->wall_ewald_zfac);
         boxScaler.scaleBox(state.box, scaledBox);
 
         if (ir->nkx > 0 && ir->nky > 0 && ir->nkz > 0)
@@ -2404,9 +2545,9 @@ int gmx_grompp(int argc, char* argv[])
     if (ir->bDoAwh)
     {
         tensor compressibility = { { 0 } };
-        if (ir->epc != PressureCoupling::No)
+        if (ir->pressureCouplingOptions.epc != PressureCoupling::No)
         {
-            copy_mat(ir->compress, compressibility);
+            copy_mat(ir->pressureCouplingOptions.compress, compressibility);
         }
         setStateDependentAwhParams(
                 ir->awhParams.get(),
@@ -2416,10 +2557,9 @@ int gmx_grompp(int argc, char* argv[])
                 ir->pbcType,
                 compressibility,
                 &ir->opts,
-                ir->efep != FreeEnergyPerturbationType::No
-                        ? ir->fepvals->all_lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Fep)]
-                                                 [ir->fepvals->init_fep_state]
-                        : 0,
+                ir->efep != FreeEnergyPerturbationType::No ? ir->fepvals->all_lambda[static_cast<int>(
+                        FreeEnergyPerturbationCouplingType::Fep)][ir->fepvals->init_fep_state]
+                                                           : 0,
                 sys,
                 wi);
     }
@@ -2431,7 +2571,7 @@ int gmx_grompp(int argc, char* argv[])
 
     if (ir->bRot)
     {
-        set_reference_positions(ir->rot,
+        set_reference_positions(ir->rot.get(),
                                 state.x.rvec_array(),
                                 state.box,
                                 opt2fn("-ref", NFILE, fnm),
@@ -2441,7 +2581,7 @@ int gmx_grompp(int argc, char* argv[])
 
     /*  reset_multinr(sys); */
 
-    if (EEL_PME(ir->coulombtype))
+    if (usingPme(ir->coulombtype))
     {
         float ratio = pme_load_estimate(sys, *ir, state.box);
         GMX_LOG(logger.info)
@@ -2482,6 +2622,15 @@ int gmx_grompp(int argc, char* argv[])
         {
             GMX_LOG(logger.info).asParagraph().appendText(warningMessage);
         }
+    }
+
+    // Hand over box and coordiantes to MdModules before they evaluate their final parameters
+    {
+        gmx::CoordinatesAndBoxPreprocessed coordinatesAndBoxPreprocessed;
+        coordinatesAndBoxPreprocessed.coordinates_ = state.x.arrayRefWithPadding();
+        copy_mat(state.box, coordinatesAndBoxPreprocessed.box_);
+        coordinatesAndBoxPreprocessed.pbc_ = ir->pbcType;
+        mdModules.notifiers().preProcessingNotifier_.notify(coordinatesAndBoxPreprocessed);
     }
 
     // Add the md modules internal parameters that are not mdp options

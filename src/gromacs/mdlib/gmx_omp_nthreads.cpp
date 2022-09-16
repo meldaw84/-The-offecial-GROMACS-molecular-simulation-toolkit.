@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2012,2013,2014,2015,2016 by the GROMACS development team.
- * Copyright (c) 2017,2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2012- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 #include "gmxpre.h"
@@ -62,7 +60,6 @@ typedef struct
     int gnth_pme; /**< Global num. of threads per PME only process/tMPI thread. */
 
     gmx::EnumerationArray<ModuleMultiThread, int> nth; /**< Number of threads for each module, indexed with module_nth_t */
-    bool initialized; /**< TRUE if the module as been initialized. */
 } omp_module_nthreads_t;
 
 /** Names of environment variables to set the per module number of threads.
@@ -108,7 +105,7 @@ static const char* enumValueToString(ModuleMultiThread enumValue)
  *  the init call is omitted.
  * */
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-static omp_module_nthreads_t modth = { 0, 0, { 0, 0, 0, 0, 0, 0, 0, 0, 0 }, FALSE };
+static omp_module_nthreads_t modth = { 0, 0, { 0, 0, 0, 0, 0, 0, 0, 0, 0 } };
 
 
 /** Determine the number of threads for module \p mod.
@@ -237,15 +234,16 @@ void gmx_omp_nthreads_read_env(const gmx::MDLogger& mdlog, int* nthreads_omp)
 static void manage_number_of_openmp_threads(const gmx::MDLogger& mdlog,
                                             const t_commrec*     cr,
                                             bool                 bOMP,
-                                            int                  nthreads_hw_avail,
+                                            int                  maxThreads,
                                             int                  omp_nthreads_req,
                                             int                  omp_nthreads_pme_req,
-                                            gmx_bool gmx_unused bThisNodePMEOnly,
-                                            int                 numRanksOnThisNode,
-                                            gmx_bool            bSepPME)
+                                            gmx_bool gmx_unused  bThisNodePMEOnly,
+                                            int                  numRanksOnThisNode,
+                                            gmx_bool             bSepPME)
 {
     int   nth;
     char* env;
+    bool  threadLimitApplied{ false };
 
 #if GMX_THREAD_MPI
     /* modth is shared among tMPI threads, so for thread safety, the
@@ -259,14 +257,6 @@ static void manage_number_of_openmp_threads(const gmx::MDLogger& mdlog,
 #else
     GMX_UNUSED_VALUE(cr);
 #endif
-
-    if (modth.initialized)
-    {
-        /* Just return if the initialization has already been
-           done. This could only happen if gmx_omp_nthreads_init() has
-           already been called. */
-        return;
-    }
 
     /* With full OpenMP support (verlet scheme) set the number of threads
      * per process / default:
@@ -306,7 +296,7 @@ static void manage_number_of_openmp_threads(const gmx::MDLogger& mdlog,
     else if (bOMP)
     {
         /* max available threads per node */
-        nth = nthreads_hw_avail;
+        nth = maxThreads;
 
         /* divide the threads among the MPI ranks */
         if (nth >= numRanksOnThisNode)
@@ -317,6 +307,12 @@ static void manage_number_of_openmp_threads(const gmx::MDLogger& mdlog,
         {
             nth = 1;
         }
+    }
+
+    if (nth > GMX_OPENMP_MAX_THREADS)
+    {
+        nth                = GMX_OPENMP_MAX_THREADS;
+        threadLimitApplied = true;
     }
 
     /* now we have the global values, set them:
@@ -348,6 +344,21 @@ static void manage_number_of_openmp_threads(const gmx::MDLogger& mdlog,
         modth.gnth_pme = 0;
     }
 
+    if (modth.gnth_pme > GMX_OPENMP_MAX_THREADS)
+    {
+        modth.gnth_pme     = GMX_OPENMP_MAX_THREADS;
+        threadLimitApplied = true;
+    }
+
+    if (threadLimitApplied)
+    {
+        GMX_LOG(mdlog.info)
+                .appendTextFormatted(
+                        "Applying OpenMP thread count limit of %d (imposed by the "
+                        "GMX_OPENMP_MAX_THREADS compile-time setting).",
+                        GMX_OPENMP_MAX_THREADS);
+    }
+
     /* now set the per-module values */
     modth.nth[ModuleMultiThread::Default] = modth.gnth;
     pick_module_nthreads(mdlog, ModuleMultiThread::Domdec, bSepPME);
@@ -374,8 +385,6 @@ static void manage_number_of_openmp_threads(const gmx::MDLogger& mdlog,
             gmx_omp_set_num_threads(nth);
         }
     }
-
-    modth.initialized = TRUE;
 }
 
 /*! \brief Report on the OpenMP settings that will be used */
@@ -457,7 +466,7 @@ static void reportOpenmpSettings(const gmx::MDLogger& mdlog, const t_commrec* cr
 
 void gmx_omp_nthreads_init(const gmx::MDLogger& mdlog,
                            t_commrec*           cr,
-                           int                  nthreads_hw_avail,
+                           int                  maxThreads,
                            int                  numRanksOnThisNode,
                            int                  omp_nthreads_req,
                            int                  omp_nthreads_pme_req,
@@ -469,15 +478,8 @@ void gmx_omp_nthreads_init(const gmx::MDLogger& mdlog,
 
     bSepPME = (thisRankHasDuty(cr, DUTY_PP) != thisRankHasDuty(cr, DUTY_PME));
 
-    manage_number_of_openmp_threads(mdlog,
-                                    cr,
-                                    bOMP,
-                                    nthreads_hw_avail,
-                                    omp_nthreads_req,
-                                    omp_nthreads_pme_req,
-                                    bThisNodePMEOnly,
-                                    numRanksOnThisNode,
-                                    bSepPME);
+    manage_number_of_openmp_threads(
+            mdlog, cr, bOMP, maxThreads, omp_nthreads_req, omp_nthreads_pme_req, bThisNodePMEOnly, numRanksOnThisNode, bSepPME);
 #if GMX_THREAD_MPI
     /* Non-master threads have to wait for the OpenMP management to be
      * done, so that code elsewhere that uses OpenMP can be certain

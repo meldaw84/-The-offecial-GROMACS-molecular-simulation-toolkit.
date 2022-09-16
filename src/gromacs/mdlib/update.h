@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #ifndef GMX_MDLIB_UPDATE_H
 #define GMX_MDLIB_UPDATE_H
@@ -97,10 +93,12 @@ public:
      * \param[in] numAtoms  Updated number of atoms.
      * \param[in] cFREEZE   Group index for freezing
      * \param[in] cTC       Group index for center of mass motion removal
+     * \param[in] cAcceleration  Group index for constant acceleration groups
      */
     void updateAfterPartition(int                                 numAtoms,
                               gmx::ArrayRef<const unsigned short> cFREEZE,
-                              gmx::ArrayRef<const unsigned short> cTC);
+                              gmx::ArrayRef<const unsigned short> cTC,
+                              gmx::ArrayRef<const unsigned short> cAcceleration);
 
     /*! \brief Perform numerical integration step.
      *
@@ -128,10 +126,10 @@ public:
                        bool                                             havePartiallyFrozenAtoms,
                        gmx::ArrayRef<const ParticleType>                ptype,
                        gmx::ArrayRef<const real>                        invMass,
-                       gmx::ArrayRef<const rvec>                        invMassPerDim,
+                       gmx::ArrayRef<const gmx::RVec>                   invMassPerDim,
                        t_state*                                         state,
                        const gmx::ArrayRefWithPadding<const gmx::RVec>& f,
-                       const t_fcdata&                                  fcdata,
+                       t_fcdata*                                        fcdata,
                        const gmx_ekindata_t*                            ekind,
                        const matrix                                     M,
                        int                                              updatePart,
@@ -193,12 +191,12 @@ public:
     /*! \brief Performs a leap-frog update without updating \p state so the constrain virial
      * can be computed.
      */
-    void update_for_constraint_virial(const t_inputrec&         inputRecord,
-                                      int                       homenr,
-                                      bool                      havePartiallyFrozenAtoms,
-                                      gmx::ArrayRef<const real> invmass,
-                                      gmx::ArrayRef<const rvec> invMassPerDim,
-                                      const t_state&            state,
+    void update_for_constraint_virial(const t_inputrec&              inputRecord,
+                                      int                            homenr,
+                                      bool                           havePartiallyFrozenAtoms,
+                                      gmx::ArrayRef<const real>      invmass,
+                                      gmx::ArrayRef<const gmx::RVec> invMassPerDim,
+                                      const t_state&                 state,
                                       const gmx::ArrayRefWithPadding<const gmx::RVec>& f,
                                       const gmx_ekindata_t&                            ekind);
 
@@ -253,7 +251,18 @@ private:
 
 void init_ekinstate(ekinstate_t* ekinstate, const t_inputrec* ir);
 
-void update_ekinstate(ekinstate_t* ekinstate, const gmx_ekindata_t* ekind);
+/*! \brief Updates \p ekinstate.
+ *
+ * Should be called on all ranks as a global reduction might be required.
+ * This copies ekind->ekinh and ekind->dekindl, which are assumed to be computed
+ * from the velocities at step at time t-dt/2.
+ *
+ * \param[out] ekinstate  The kinetic energy state to update
+ * \param[in]  ekind      The kinetic energy data to store
+ * \param[in]  sumEkin    Whether kinetic energy terms still need to be summed over all ranks
+ * \param[in]  cr         Communication record, needed when sumEkin==true
+ */
+void update_ekinstate(ekinstate_t* ekinstate, const gmx_ekindata_t* ekind, bool sumEkin, const t_commrec* cr);
 
 /*! \brief Restores data from \p ekinstate to \p ekind, then broadcasts it
    to the rest of the simulation */

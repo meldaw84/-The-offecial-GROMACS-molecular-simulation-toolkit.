@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2019- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  *
@@ -43,6 +42,8 @@
  *
  * \ingroup module_mdlib
  */
+#include "lincs_gpu_internal.h"
+
 #include "gromacs/gpu_utils/cuda_arch_utils.cuh"
 #include "gromacs/gpu_utils/cudautils.cuh"
 #include "gromacs/gpu_utils/devicebuffer.cuh"
@@ -51,8 +52,6 @@
 #include "gromacs/gpu_utils/vectype_ops.cuh"
 #include "gromacs/mdlib/lincs_gpu.h"
 #include "gromacs/pbcutil/pbc_aiuc_cuda.cuh"
-
-#include "lincs_gpu_internal.h"
 
 namespace gmx
 {
@@ -64,7 +63,7 @@ constexpr static int c_maxThreadsPerBlock = c_threadsPerBlock;
  *
  * See Hess et al., J. Comput. Chem. 18: 1463-1472 (1997) for the description of the algorithm.
  *
- * In CUDA version, one thread is responsible for all computations for one constraint. The blocks are
+ * In GPU version, one thread is responsible for all computations for one constraint. The blocks are
  * filled in a way that no constraint is coupled to the constraint from the next block. This is achieved
  * by moving active threads to the next block, if the correspondent group of coupled constraints is to big
  * to fit the current thread block. This may leave some 'dummy' threads in the end of the thread block, i.e.
@@ -101,13 +100,13 @@ __launch_bounds__(c_maxThreadsPerBlock) __global__
     const AtomPair* __restrict__ gm_constraints           = kernelParams.d_constraints;
     const float* __restrict__ gm_constraintsTargetLengths = kernelParams.d_constraintsTargetLengths;
     const int* __restrict__ gm_coupledConstraintsCounts   = kernelParams.d_coupledConstraintsCounts;
-    const int* __restrict__ gm_coupledConstraintsIdxes = kernelParams.d_coupledConstraintsIndices;
-    const float* __restrict__ gm_massFactors           = kernelParams.d_massFactors;
-    float* __restrict__ gm_matrixA                     = kernelParams.d_matrixA;
-    const float* __restrict__ gm_inverseMasses         = kernelParams.d_inverseMasses;
-    float* __restrict__ gm_virialScaled                = kernelParams.d_virialScaled;
+    const int* __restrict__ gm_coupledConstraintsIndices = kernelParams.d_coupledConstraintsIndices;
+    const float* __restrict__ gm_massFactors             = kernelParams.d_massFactors;
+    float* __restrict__ gm_matrixA                       = kernelParams.d_matrixA;
+    const float* __restrict__ gm_inverseMasses           = kernelParams.d_inverseMasses;
+    float* __restrict__ gm_virialScaled                  = kernelParams.d_virialScaled;
 
-    int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    const int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
 
     // numConstraintsThreads should be a integer multiple of blockSize (numConstraintsThreads = numBlocks*blockSize).
     // This is to ensure proper synchronizations and reduction. All array are padded to the required size.
@@ -122,7 +121,7 @@ __launch_bounds__(c_maxThreadsPerBlock) __global__
     int      j    = pair.j;
 
     // Mass-scaled Lagrange multiplier
-    float lagrangeScaled = 0.0f;
+    float lagrangeScaled = 0.0F;
 
     float targetLength;
     float inverseMassi;
@@ -139,14 +138,14 @@ __launch_bounds__(c_maxThreadsPerBlock) __global__
     // Everything computed for these dummies will be equal to zero
     if (isDummyThread)
     {
-        targetLength    = 0.0f;
-        inverseMassi    = 0.0f;
-        inverseMassj    = 0.0f;
-        sqrtReducedMass = 0.0f;
+        targetLength    = 0.0F;
+        inverseMassi    = 0.0F;
+        inverseMassj    = 0.0F;
+        sqrtReducedMass = 0.0F;
 
-        xi = make_float3(0.0f, 0.0f, 0.0f);
-        xj = make_float3(0.0f, 0.0f, 0.0f);
-        rc = make_float3(0.0f, 0.0f, 0.0f);
+        xi = make_float3(0.0F, 0.0F, 0.0F);
+        xj = make_float3(0.0F, 0.0F, 0.0F);
+        rc = make_float3(0.0F, 0.0F, 0.0F);
     }
     else
     {
@@ -179,9 +178,9 @@ __launch_bounds__(c_maxThreadsPerBlock) __global__
     for (int n = 0; n < coupledConstraintsCount; n++)
     {
         int index = n * numConstraintsThreads + threadIndex;
-        int c1    = gm_coupledConstraintsIdxes[index];
+        int c1    = gm_coupledConstraintsIndices[index];
 
-        float3 rc1        = sm_r[c1 - blockIdx.x * blockDim.x];
+        float3 rc1        = sm_r[c1];
         gm_matrixA[index] = gm_massFactors[index] * (rc.x * rc1.x + rc.y * rc1.y + rc.z * rc1.z);
     }
 
@@ -200,6 +199,9 @@ __launch_bounds__(c_maxThreadsPerBlock) __global__
      *  Inverse matrix using a set of expansionOrder matrix multiplications
      */
 
+    // Make sure that we don't overwrite the sm_r[..] array.
+    __syncthreads();
+
     // This will use the same memory space as sm_r, which is no longer needed.
     extern __shared__ float sm_rhs[];
     // Save current right-hand-side vector in the shared memory
@@ -209,15 +211,15 @@ __launch_bounds__(c_maxThreadsPerBlock) __global__
     {
         // Making sure that all sm_rhs are saved before they are accessed in a loop below
         __syncthreads();
-        float mvb = 0.0f;
+        float mvb = 0.0F;
 
         for (int n = 0; n < coupledConstraintsCount; n++)
         {
             int index = n * numConstraintsThreads + threadIndex;
-            int c1    = gm_coupledConstraintsIdxes[index];
+            int c1    = gm_coupledConstraintsIndices[index];
             // Convolute current right-hand-side with A
             // Different, non overlapping parts of sm_rhs[..] are read during odd and even iterations
-            mvb = mvb + gm_matrixA[index] * sm_rhs[c1 - blockIdx.x * blockDim.x + blockDim.x * (rec % 2)];
+            mvb = mvb + gm_matrixA[index] * sm_rhs[c1 + blockDim.x * (rec % 2)];
         }
         // 'Switch' rhs vectors, save current result
         // These values will be accessed in the loop above during the next iteration.
@@ -256,12 +258,12 @@ __launch_bounds__(c_maxThreadsPerBlock) __global__
         float3 dx = pbcDxAiuc(pbcAiuc, xi, xj);
 
         float len2  = targetLength * targetLength;
-        float dlen2 = 2.0f * len2 - norm2(dx);
+        float dlen2 = 2.0F * len2 - norm2(dx);
 
         // TODO A little bit more effective but slightly less readable version of the below would be:
         //      float proj = sqrtReducedMass*(targetLength - (dlen2 > 0.0f ? 1.0f : 0.0f)*dlen2*rsqrt(dlen2));
         float proj;
-        if (dlen2 > 0.0f)
+        if (dlen2 > 0.0F)
         {
             proj = sqrtReducedMass * (targetLength - dlen2 * rsqrt(dlen2));
         }
@@ -285,9 +287,9 @@ __launch_bounds__(c_maxThreadsPerBlock) __global__
             for (int n = 0; n < coupledConstraintsCount; n++)
             {
                 int index = n * numConstraintsThreads + threadIndex;
-                int c1    = gm_coupledConstraintsIdxes[index];
+                int c1    = gm_coupledConstraintsIndices[index];
 
-                mvb = mvb + gm_matrixA[index] * sm_rhs[c1 - blockIdx.x * blockDim.x + blockDim.x * (rec % 2)];
+                mvb = mvb + gm_matrixA[index] * sm_rhs[c1 + blockDim.x * (rec % 2)];
             }
             sm_rhs[threadIdx.x + blockDim.x * ((rec + 1) % 2)] = mvb;
             sol                                                = sol + mvb;
@@ -333,7 +335,8 @@ __launch_bounds__(c_maxThreadsPerBlock) __global__
         // 6 values are saved. Dummy threads will have zeroes in their virial: targetLength,
         // lagrangeScaled and rc are all set to zero for them in the beginning of the kernel.
         // The sm_threadVirial[..] will overlap with the sm_r[..] and sm_rhs[..], but the latter
-        // two are no longer in use.
+        // two are no longer in use, which we make sure by waiting for all threads in block.
+        __syncthreads();
         extern __shared__ float sm_threadVirial[];
         float                   mult                  = targetLength * lagrangeScaled;
         sm_threadVirial[0 * blockDim.x + threadIdx.x] = mult * rc.x * rc.x;
@@ -366,6 +369,10 @@ __launch_bounds__(c_maxThreadsPerBlock) __global__
             {
                 __syncthreads();
             }
+            else
+            {
+                __syncwarp();
+            }
         }
         // First 6 threads in the block add the results of 6 tensor components to the global memory address.
         if (threadIdx.x < 6)
@@ -373,8 +380,6 @@ __launch_bounds__(c_maxThreadsPerBlock) __global__
             atomicAdd(&(gm_virialScaled[threadIdx.x]), sm_threadVirial[threadIdx.x * blockDim.x]);
         }
     }
-
-    return;
 }
 
 /*! \brief Select templated kernel.
@@ -409,14 +414,14 @@ inline auto getLincsKernelPtr(const bool updateVelocities, const bool computeVir
     return kernelPtr;
 }
 
-void launchLincsGpuKernel(LincsGpuKernelParameters&  kernelParams,
-                          const DeviceBuffer<Float3> d_x,
-                          DeviceBuffer<Float3>       d_xp,
-                          const bool                 updateVelocities,
-                          DeviceBuffer<Float3>       d_v,
-                          const real                 invdt,
-                          const bool                 computeVirial,
-                          const DeviceStream&        deviceStream)
+void launchLincsGpuKernel(LincsGpuKernelParameters*   kernelParams,
+                          const DeviceBuffer<Float3>& d_x,
+                          DeviceBuffer<Float3>        d_xp,
+                          const bool                  updateVelocities,
+                          DeviceBuffer<Float3>        d_v,
+                          const real                  invdt,
+                          const bool                  computeVirial,
+                          const DeviceStream&         deviceStream)
 {
 
     auto kernelPtr = getLincsKernelPtr(updateVelocities, computeVirial);
@@ -425,7 +430,7 @@ void launchLincsGpuKernel(LincsGpuKernelParameters&  kernelParams,
     config.blockSize[0] = c_threadsPerBlock;
     config.blockSize[1] = 1;
     config.blockSize[2] = 1;
-    config.gridSize[0] = (kernelParams.numConstraintsThreads + c_threadsPerBlock - 1) / c_threadsPerBlock;
+    config.gridSize[0] = (kernelParams->numConstraintsThreads + c_threadsPerBlock - 1) / c_threadsPerBlock;
     config.gridSize[1] = 1;
     config.gridSize[2] = 1;
 
@@ -447,7 +452,7 @@ void launchLincsGpuKernel(LincsGpuKernelParameters&  kernelParams,
 
     const auto kernelArgs = prepareGpuKernelArguments(kernelPtr,
                                                       config,
-                                                      &kernelParams,
+                                                      kernelParams,
                                                       asFloat3Pointer(&d_x),
                                                       asFloat3Pointer(&d_xp),
                                                       asFloat3Pointer(&d_v),
@@ -459,8 +464,6 @@ void launchLincsGpuKernel(LincsGpuKernelParameters&  kernelParams,
                     nullptr,
                     "lincs_kernel<updateVelocities, computeVirial>",
                     kernelArgs);
-
-    return;
 }
 
 } // namespace gmx

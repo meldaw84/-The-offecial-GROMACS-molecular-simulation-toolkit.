@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /* This file is completely threadsafe - keep it that way! */
 #include "gmxpre.h"
@@ -54,6 +50,14 @@
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/gmxomp.h"
 #include "gromacs/utility/smalloc.h"
+
+const char* enumValueToString(ComRemovalAlgorithm enumValue)
+{
+    static constexpr gmx::EnumerationArray<ComRemovalAlgorithm, const char*> comRemovalAlgorithmNames = {
+        "Linear", "Angular", "None", "Linear-acceleration-correction"
+    };
+    return comRemovalAlgorithmNames[enumValue];
+}
 
 t_vcm::t_vcm(const SimulationGroups& groups, const t_inputrec& ir) :
     integratorConservesMomentum(!EI_RANDOM(ir.eI))
@@ -186,7 +190,7 @@ void calc_vcm_grp(const t_mdatoms&               md,
             {
                 int  g  = 0;
                 real m0 = md.massT[i];
-                if (md.cVCM)
+                if (!md.cVCM.empty())
                 {
                     g = md.cVCM[i];
                 }
@@ -257,17 +261,17 @@ void calc_vcm_grp(const t_mdatoms&               md,
 template<int numDimensions>
 static void doStopComMotionLinear(const t_mdatoms& mdatoms, gmx::ArrayRef<gmx::RVec> v, const t_vcm& vcm)
 {
-    const int             homenr   = mdatoms.homenr;
-    const unsigned short* group_id = mdatoms.cVCM;
+    const int                                 homenr   = mdatoms.homenr;
+    const gmx::ArrayRef<const unsigned short> group_id = mdatoms.cVCM;
 
-    if (mdatoms.cFREEZE != nullptr)
+    if (!mdatoms.cFREEZE.empty())
     {
         GMX_RELEASE_ASSERT(vcm.nFreeze != nullptr, "Need freeze dimension info with freeze groups");
 
 #pragma omp for schedule(static)
         for (int i = 0; i < homenr; i++)
         {
-            unsigned short vcmGroup    = (group_id == nullptr ? 0 : group_id[i]);
+            unsigned short vcmGroup    = group_id.empty() ? 0 : group_id[i];
             unsigned short freezeGroup = mdatoms.cFREEZE[i];
             for (int d = 0; d < numDimensions; d++)
             {
@@ -278,7 +282,7 @@ static void doStopComMotionLinear(const t_mdatoms& mdatoms, gmx::ArrayRef<gmx::R
             }
         }
     }
-    else if (group_id == nullptr)
+    else if (group_id.empty())
     { // NOLINT bugprone-branch-clone This is actually a clang-tidy bug
 #pragma omp for schedule(static)
         for (int i = 0; i < homenr; i++)
@@ -315,16 +319,16 @@ static void doStopComMotionLinear(const t_mdatoms& mdatoms, gmx::ArrayRef<gmx::R
  * \param[in]     vcm       VCM data
  */
 template<int numDimensions>
-static void doStopComMotionAccelerationCorrection(int                      homenr,
-                                                  const unsigned short*    group_id,
-                                                  gmx::ArrayRef<gmx::RVec> x,
-                                                  gmx::ArrayRef<gmx::RVec> v,
-                                                  const t_vcm&             vcm)
+static void doStopComMotionAccelerationCorrection(int                                 homenr,
+                                                  gmx::ArrayRef<const unsigned short> group_id,
+                                                  gmx::ArrayRef<gmx::RVec>            x,
+                                                  gmx::ArrayRef<gmx::RVec>            v,
+                                                  const t_vcm&                        vcm)
 {
     const real xCorrectionFactor = 0.5 * vcm.timeStep;
 
     // NOLINTNEXTLINE bugprone-branch-clone This is actually a clang-tidy bug
-    if (group_id == nullptr)
+    if (group_id.empty())
     {
 #pragma omp for schedule(static)
         for (int i = 0; i < homenr; i++)
@@ -361,14 +365,18 @@ static void do_stopcm_grp(const t_mdatoms&         mdatoms,
         return;
     }
     {
-        const int             homenr   = mdatoms.homenr;
-        const unsigned short* group_id = mdatoms.cVCM;
+        const int                                 homenr   = mdatoms.homenr;
+        const gmx::ArrayRef<const unsigned short> group_id = mdatoms.cVCM;
 
         int gmx_unused nth = gmx_omp_nthreads_get(ModuleMultiThread::Default);
         // homenr could be shared, but gcc-8 & gcc-9 don't agree how to write that...
         // https://www.gnu.org/software/gcc/gcc-9/porting_to.html -> OpenMP data sharing
-#pragma omp parallel num_threads(nth) default(none) shared(x, v, vcm, group_id, mdatoms) \
-        firstprivate(homenr)
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ < 9
+#    pragma omp parallel num_threads(nth) default(none) shared(x, v, vcm, mdatoms) firstprivate(homenr)
+#else
+#    pragma omp parallel num_threads(nth) default(none) shared(x, v, vcm, group_id, mdatoms) \
+            shared(homenr)
+#endif
         {
             if (vcm.mode == ComRemovalAlgorithm::Linear || vcm.mode == ComRemovalAlgorithm::Angular
                 || (vcm.mode == ComRemovalAlgorithm::LinearAccelerationCorrection && x.empty()))
@@ -409,7 +417,7 @@ static void do_stopcm_grp(const t_mdatoms&         mdatoms,
 #pragma omp for schedule(static)
                 for (int i = 0; i < homenr; i++)
                 {
-                    if (group_id)
+                    if (!group_id.empty())
                     {
                         g = group_id[i];
                     }

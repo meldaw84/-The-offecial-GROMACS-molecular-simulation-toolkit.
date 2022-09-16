@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2018- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /* \internal \file
  *
@@ -163,7 +162,7 @@ static void distributeVec(gmx_domdec_t*                  dd,
     }
 }
 
-static void dd_distribute_dfhist(gmx_domdec_t* dd, df_history_t* dfhist)
+void dd_distribute_dfhist(gmx_domdec_t* dd, df_history_t* dfhist)
 {
     if (dfhist == nullptr)
     {
@@ -289,7 +288,7 @@ static inline int computeAtomGroupDomainIndex(const gmx_domdec_t& dd,
                                               const matrix                           box,
                                               rvec*                                  pos)
 {
-    /* Set the reference location cg_cm for assigning the group */
+    /* Set the reference location for assigning the group */
     rvec cog;
     int  numAtoms = atomEnd - atomBegin;
     if (numAtoms == 1)
@@ -513,9 +512,9 @@ static void distributeAtomGroups(const gmx::MDLogger& mdlog,
     }
     dd_scatter(dd, 2 * sizeof(int), ibuf, buf2);
 
-    dd->ncg_home = buf2[0];
+    dd->numHomeAtoms = buf2[0];
     dd->comm->atomRanges.setEnd(DDAtomRanges::Type::Home, buf2[1]);
-    dd->globalAtomGroupIndices.resize(dd->ncg_home);
+    dd->globalAtomGroupIndices.resize(dd->numHomeAtoms);
     dd->globalAtomIndices.resize(dd->comm->atomRanges.numHomeAtoms());
 
     if (bMaster)
@@ -542,13 +541,13 @@ static void distributeAtomGroups(const gmx::MDLogger& mdlog,
                 bMaster ? ma->intBuffer.data() : nullptr,
                 bMaster ? ma->intBuffer.data() + dd->nnodes : nullptr,
                 bMaster ? ma->atomGroups.data() : nullptr,
-                dd->ncg_home * sizeof(int),
+                dd->numHomeAtoms * sizeof(int),
                 dd->globalAtomGroupIndices.data());
 
     if (debug)
     {
         fprintf(debug, "Home charge groups:\n");
-        for (int i = 0; i < dd->ncg_home; i++)
+        for (int i = 0; i < dd->numHomeAtoms; i++)
         {
             fprintf(debug, " %d", dd->globalAtomGroupIndices[i]);
             if (i % 10 == 9)

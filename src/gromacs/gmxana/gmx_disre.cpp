@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 The GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -42,6 +38,7 @@
 #include <cstring>
 
 #include <algorithm>
+#include <optional>
 #include <unordered_map>
 
 #include "gromacs/commandline/pargs.h"
@@ -445,7 +442,7 @@ static void dump_clust_stats(FILE*                          fp,
                              int                            isize,
                              int                            index[])
 {
-    int         k, nra, mmm = 0;
+    int         k, nra;
     double      sumV, maxV, sumVT3, sumVT6, maxVT3, maxVT6;
     t_dr_stats* drs;
 
@@ -511,10 +508,6 @@ static void dump_clust_stats(FILE*                          fp,
 
             // We have processed restraint i, mark it as such
             restraintHasBeenProcessed[i] = true;
-        }
-        if (std::strcmp(clust_name[k], "1000") == 0)
-        {
-            mmm++;
         }
         fprintf(fp,
                 "%-10s%6d%8.3f  %8.3f  %8.3f  %8.3f  %8.3f  %8.3f\n",
@@ -748,13 +741,12 @@ int gmx_disre(int argc, char* argv[])
     int          isize;
     int *        index = nullptr, *ind_fit = nullptr;
     char*        grpname;
-    t_cluster_ndx*    clust = nullptr;
-    t_dr_result       dr, *dr_clust = nullptr;
-    char**            leg;
-    real *            vvindex = nullptr, *w_rls = nullptr;
-    t_pbc             pbc, *pbc_null;
-    int               my_clust;
-    FILE*             fplog;
+    t_dr_result  dr, *dr_clust = nullptr;
+    char**       leg;
+    real *       vvindex = nullptr, *w_rls = nullptr;
+    t_pbc        pbc, *pbc_null;
+    int          my_clust;
+    FILE*        fplog;
     gmx_output_env_t* oenv;
     gmx_rmpbc_t       gpbc = nullptr;
 
@@ -855,10 +847,11 @@ int gmx_disre(int argc, char* argv[])
     int natoms = read_first_x(oenv, &status, ftp2fn(efTRX, NFILE, fnm), &t, &x, box);
     snew(f, 5 * natoms);
 
+    std::optional<t_cluster_ndx> clust;
     init_dr_res(&dr, disresdata.nres);
     if (opt2bSet("-c", NFILE, fnm))
     {
-        clust = cluster_index(fplog, opt2fn("-c", NFILE, fnm));
+        clust = std::optional<t_cluster_ndx>(cluster_index(fplog, opt2fn("-c", NFILE, fnm)));
         snew(dr_clust, clust->clust->nr + 1);
         for (i = 0; (i <= clust->clust->nr); i++)
         {

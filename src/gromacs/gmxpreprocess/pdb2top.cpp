@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -462,7 +458,7 @@ void choose_watermodel(const char* wmsel, const char* ffdir, char** watermodel, 
 static int name2type(t_atoms*                               at,
                      int**                                  cgnr,
                      gmx::ArrayRef<const PreprocessResidue> usedPpResidues,
-                     ResidueType*                           rt,
+                     const ResidueTypeMap&                  residueTypeMap,
                      const gmx::MDLogger&                   logger)
 {
     int    i, j, prevresind, i0, prevcg, cg, curcg;
@@ -487,7 +483,7 @@ static int name2type(t_atoms*                               at,
         if (at->atom[i].resind != resind)
         {
             resind     = at->atom[i].resind;
-            bool bProt = rt->namedResidueHasType(*(at->resinfo[resind].name), "Protein");
+            bool bProt = namedResidueHasType(residueTypeMap, *(at->resinfo[resind].name), "Protein");
             bNterm     = bProt && (resind == 0);
             if (resind > 0)
             {
@@ -1455,11 +1451,14 @@ static void gen_cmap(InteractionsOfType*                    psb,
                 /* Skip this CMAP entry if it refers to residues before the
                  * first or after the last residue.
                  */
-                if ((cyclicBondsIndex.empty() && ((strchr(pname, '-') != nullptr) && (residx == 0)))
-                    || ((strchr(pname, '+') != nullptr) && (residx == nres - 1)))
+                if (cyclicBondsIndex.empty())
                 {
-                    bAddCMAP = false;
-                    break;
+                    if (((strchr(pname, '-') != nullptr) && (residx == 0))
+                        || ((strchr(pname, '+') != nullptr) && (residx == nres - 1)))
+                    {
+                        bAddCMAP = false;
+                        break;
+                    }
                 }
 
                 cmap_atomid[k] = search_atom(pname, i, atoms, ptr, TRUE, cyclicBondsIndex);
@@ -1563,7 +1562,7 @@ void pdb2top(FILE*                                  top_file,
     int                                     i, nmissat;
     gmx::EnumerationArray<BondedTypes, int> bts;
 
-    ResidueType rt;
+    ResidueTypeMap residueTypeMap = residueTypeMapFromLibraryFile("residuetypes.dat");
 
     /* Make bonds */
     at2bonds(&(plist[F_BONDS]), globalPatches, atoms, *x, long_bond_dist, short_bond_dist, cyclicBondsIndex, logger);
@@ -1571,7 +1570,7 @@ void pdb2top(FILE*                                  top_file,
     /* specbonds: disulphide bonds & heme-his */
     do_ssbonds(&(plist[F_BONDS]), atoms, ssbonds, bAllowMissing);
 
-    nmissat = name2type(atoms, &cgnr, usedPpResidues, &rt, logger);
+    nmissat = name2type(atoms, &cgnr, usedPpResidues, residueTypeMap, logger);
     if (nmissat)
     {
         if (bAllowMissing)

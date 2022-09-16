@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2013,2014,2015,2016,2017 The GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2013- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -47,14 +45,12 @@
 #include "gromacs/fileio/tngio.h"
 #include "gromacs/fileio/trrio.h"
 #include "gromacs/fileio/xtcio.h"
-#include "gromacs/fileio/xvgr.h"
 #include "gromacs/math/vec.h"
-#include "gromacs/mdlib/trajectory_writing.h"
+#include "gromacs/mdlib/energyoutput.h"
 #include "gromacs/mdrunutility/handlerestart.h"
 #include "gromacs/mdrunutility/multisim.h"
 #include "gromacs/mdtypes/awh_history.h"
 #include "gromacs/mdtypes/commrec.h"
-#include "gromacs/mdtypes/df_history.h"
 #include "gromacs/mdtypes/edsamhistory.h"
 #include "gromacs/mdtypes/energyhistory.h"
 #include "gromacs/mdtypes/imdoutputprovider.h"
@@ -237,7 +233,7 @@ gmx_mdoutf_t init_mdoutf(FILE*                          fplog,
             }
         }
 
-        if (ir->nstfout && DOMAINDECOMP(cr))
+        if (ir->nstfout && haveDDAtomOrdering(*cr))
         {
             snew(of->f_global, top_global.natoms);
         }
@@ -308,7 +304,7 @@ static void write_checkpoint(const char*                     fn,
     char      buf[1024], suffix[5 + STEPSTRSIZE], sbuf[STEPSTRSIZE];
     t_fileio* ret;
 
-    if (DOMAINDECOMP(cr))
+    if (haveDDAtomOrdering(*cr))
     {
         npmenodes = cr->npmenodes;
     }
@@ -357,7 +353,7 @@ static void write_checkpoint(const char*                     fn,
     swaphistory_t* swaphist    = observablesHistory->swapHistory.get();
     SwapType       eSwapCoords = (swaphist ? swaphist->eSwapCoords : SwapType::No);
 
-    CheckpointHeaderContents headerContents = { 0,
+    CheckpointHeaderContents headerContents = { CheckPointVersion::UnknownVersion0,
                                                 { 0 },
                                                 { 0 },
                                                 { 0 },
@@ -389,7 +385,7 @@ static void write_checkpoint(const char*                     fn,
     std::strcpy(headerContents.version, gmx_version());
     std::strcpy(headerContents.fprog, gmx::getProgramContext().fullBinaryPath());
     std::strcpy(headerContents.ftime, timebuf.c_str());
-    if (DOMAINDECOMP(cr))
+    if (haveDDAtomOrdering(*cr))
     {
         copy_ivec(domdecCells, headerContents.dd_nc);
     }
@@ -466,9 +462,15 @@ static void write_checkpoint(const char*                     fn,
         /* Rename the checkpoint file from the temporary to the final name */
         mpiBarrierBeforeRename(applyMpiBarrierBeforeRename, mpiBarrierCommunicator);
 
-        if (gmx_file_rename(fntemp, fn) != 0)
+        try
         {
-            gmx_file("Cannot rename checkpoint file; maybe you are out of disk space?");
+            gmx_file_rename(fntemp, fn);
+        }
+        catch (gmx::FileIOError const&)
+        {
+            // In this case we can be more helpful than the generic message from gmx_file_rename
+            GMX_THROW(gmx::FileIOError(
+                    "Cannot rename checkpoint file; maybe you are out of disk space?"));
         }
     }
 #endif /* GMX_NO_RENAME */
@@ -476,13 +478,20 @@ static void write_checkpoint(const char*                     fn,
     sfree(fntemp);
 
 #if GMX_FAHCORE
-    /*code for alternate checkpointing scheme.  moved from top of loop over
-       steps */
-    fcRequestCheckPoint();
-    if (fcCheckPointParallel(cr->nodeid, NULL, 0) == 0)
-    {
-        gmx_fatal(3, __FILE__, __LINE__, "Checkpoint error on step %d\n", step);
-    }
+    /* Always FAH checkpoint immediately after a GROMACS checkpoint.
+     *
+     * Note that it is critical that we save a FAH checkpoint directly
+     * after writing a GROMACS checkpoint. If the program dies, either
+     * by the machine powering off suddenly or the process being,
+     * killed, FAH can recover files that have only appended data by
+     * truncating them to the last recorded length. The GROMACS
+     * checkpoint does not just append data, it is fully rewritten each
+     * time so a crash between moving the new Gromacs checkpoint file in
+     * to place and writing a FAH checkpoint is not recoverable. Thus
+     * the time between these operations must be kept as short as
+     * possible.
+     */
+    fcCheckpoint();
 #endif /* end GMX_FAHCORE block */
 }
 
@@ -507,8 +516,8 @@ void mdoutf_write_checkpoint(gmx_mdoutf_t                    of,
                      of->bKeepAndNumCPT,
                      fplog,
                      cr,
-                     DOMAINDECOMP(cr) ? cr->dd->numCells : one_ivec,
-                     DOMAINDECOMP(cr) ? cr->dd->nnodes : cr->nnodes,
+                     haveDDAtomOrdering(*cr) ? cr->dd->numCells : one_ivec,
+                     haveDDAtomOrdering(*cr) ? cr->dd->nnodes : cr->nnodes,
                      of->eIntegrator,
                      of->simulation_part,
                      of->bExpanded,
@@ -538,7 +547,7 @@ void mdoutf_write_to_trajectory_files(FILE*                           fplog,
 {
     const rvec* f_global;
 
-    if (DOMAINDECOMP(cr))
+    if (haveDDAtomOrdering(*cr))
     {
         if (mdof_flags & MDOF_CPT)
         {
@@ -570,10 +579,9 @@ void mdoutf_write_to_trajectory_files(FILE*                           fplog,
         f_global = of->f_global;
         if (mdof_flags & MDOF_F)
         {
-            auto globalFRef =
-                    MASTER(cr) ? gmx::arrayRefFromArray(reinterpret_cast<gmx::RVec*>(of->f_global),
-                                                        f_local.size())
-                               : gmx::ArrayRef<gmx::RVec>();
+            auto globalFRef = MASTER(cr) ? gmx::arrayRefFromArray(
+                                      reinterpret_cast<gmx::RVec*>(of->f_global), of->natoms_global)
+                                         : gmx::ArrayRef<gmx::RVec>();
             dd_collect_vec(cr->dd,
                            state_local->ddp_count,
                            state_local->ddp_count_cg_gl,

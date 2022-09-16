@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2020- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \libinternal \file
  * \brief
@@ -54,23 +53,6 @@
 
 #include "config.h"
 
-/* Some versions of Intel ICPX compiler (at least 2021.1.1 and 2021.1.2) fail to unroll a loop
- * in sycl::accessor::__init, and emit -Wpass-failed=transform-warning. This is a useful
- * warning, but mostly noise right now. Probably related to using shared memory accessors.
- * The unroll directive was introduced in https://github.com/intel/llvm/pull/2449. */
-#if GMX_SYCL_DPCPP
-#    include <CL/sycl/version.hpp>
-#    define DISABLE_UNROLL_WARNINGS \
-        ((__SYCL_COMPILER_VERSION >= 20201113) && (__SYCL_COMPILER_VERSION <= 20201214))
-#else
-#    define DISABLE_UNROLL_WARNINGS 0
-#endif
-
-#if DISABLE_UNROLL_WARNINGS
-#    pragma clang diagnostic push
-#    pragma clang diagnostic ignored "-Wpass-failed"
-#endif
-
 // For hipSYCL, we need to activate floating-point atomics
 #if GMX_SYCL_HIPSYCL
 #    define HIPSYCL_EXT_FP_ATOMICS
@@ -91,34 +73,31 @@
 #    pragma clang diagnostic ignored "-Wsuggest-override"
 #    pragma clang diagnostic ignored "-Wsuggest-destructor-override"
 #    pragma clang diagnostic ignored "-Wgcc-compat"
-#endif
-
-
-#ifdef DIM
-#    if DIM != 3
-#        error "The workaround here assumes we use DIM=3."
-#    else
-#        undef DIM
-#        include <CL/sycl.hpp>
-#        define DIM 3
+#    include <SYCL/sycl.hpp>
+#    pragma clang diagnostic pop
+#else // DPC++
+// Needed for CUDA targets https://github.com/intel/llvm/issues/5936, enabled for SPIR automatically
+#    if defined(__SYCL_DEVICE_ONLY__) && defined(__NVPTX__)
+#        define SYCL_USE_NATIVE_FP_ATOMICS 1
 #    endif
-#else
-#    include <CL/sycl.hpp>
+// DPC++ has issues with DIM macro (https://github.com/intel/llvm/issues/2981)
+// and has no SYCL/sycl.hpp up to oneAPI 2022.0
+#    ifdef DIM
+#        if DIM != 3
+#            error "The workaround here assumes we use DIM=3."
+#        else
+#            undef DIM
+#            include <CL/sycl.hpp>
+#            define DIM 3
+#        endif
+#    else
+#        include <CL/sycl.hpp>
+#    endif
 #endif
-
-#if DISABLE_UNROLL_WARNINGS
-#    pragma clang diagnostic pop
-#endif
-
-#if GMX_SYCL_HIPSYCL
-#    pragma clang diagnostic pop
-#endif
-
-#undef DISABLE_UNROLL_WARNINGS
 
 /* Exposing Intel-specific extensions in a manner compatible with SYCL2020 provisional spec.
- * Despite ICPX (up to 2021.1.2 at the least) having SYCL_LANGUAGE_VERSION=202001,
- * some parts of the spec are still in custom sycl::ONEAPI namespace (sycl::intel in beta versions),
+ * Despite ICPX (up to 2021.3.0 at the least) having SYCL_LANGUAGE_VERSION=202001,
+ * some parts of the spec are still in custom sycl::ONEAPI namespace (sycl::ext::oneapi in beta versions),
  * and some functions have different names. To make things easier to upgrade
  * in the future, this thin layer is added.
  * */
@@ -126,39 +105,26 @@ namespace sycl_2020
 {
 namespace detail
 {
-#if GMX_SYCL_DPCPP
-// Confirmed to work for 2021.1-beta10 (20201005), 2021.1.1 (20201113), 2021.1.2 (20201214).
-namespace origin = cl::sycl::ONEAPI;
-#elif GMX_SYCL_HIPSYCL
-namespace origin = cl::sycl;
+#if GMX_SYCL_DPCPP && defined(__INTEL_LLVM_COMPILER) && (__INTEL_LLVM_COMPILER < 20220100)
+namespace origin = sycl::ext::oneapi;
+#elif GMX_SYCL_HIPSYCL || GMX_SYCL_DPCPP
+namespace origin = ::sycl;
 #else
 #    error "Unsupported version of SYCL compiler"
 #endif
 } // namespace detail
 
+using detail::origin::atomic_ref;
 using detail::origin::memory_order;
 using detail::origin::memory_scope;
-using detail::origin::plus;
-using detail::origin::sub_group;
 
 #if GMX_SYCL_DPCPP
-using detail::origin::atomic_ref;
-template<typename... Args>
-bool group_any_of(Args&&... args)
-{
-    return detail::origin::any_of(std::forward<Args>(args)...);
-}
-template<typename... Args>
-auto group_reduce(Args&&... args) -> decltype(detail::origin::reduce(std::forward<Args>(args)...))
-{
-    return detail::origin::reduce(std::forward<Args>(args)...);
-}
+template<typename dataT, int dimensions = 1>
+using local_accessor =
+        sycl::accessor<dataT, dimensions, sycl::access_mode::read_write, sycl::target::local>;
 #elif GMX_SYCL_HIPSYCL
-// No atomic_ref in hipSYCL yet (2021-02-22)
-using detail::origin::group_any_of;
-using detail::origin::group_reduce;
-#else
-#    error "Unsupported SYCL compiler"
+template<typename dataT, int dimensions = 1>
+using local_accessor = sycl::local_accessor<dataT, dimensions>;
 #endif
 
 } // namespace sycl_2020

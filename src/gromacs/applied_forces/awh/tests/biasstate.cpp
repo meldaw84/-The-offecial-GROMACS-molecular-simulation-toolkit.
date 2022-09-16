@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2017,2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2017- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -46,12 +45,11 @@
 
 #include "gromacs/applied_forces/awh/biasgrid.h"
 #include "gromacs/applied_forces/awh/pointstate.h"
+#include "gromacs/applied_forces/awh/tests/awh_setup.h"
 #include "gromacs/math/functions.h"
 #include "gromacs/mdtypes/awh_params.h"
 #include "gromacs/utility/arrayref.h"
-#include "gromacs/utility/smalloc.h"
 
-#include "gromacs/applied_forces/awh/tests/awh_setup.h"
 #include "testutils/testasserts.h"
 #include "testutils/testfilemanager.h"
 
@@ -102,7 +100,7 @@ public:
         BiasGrid   grid(dimParams, awhBiasParams.dimParams());
         BiasParams biasParams(
                 awhParams, awhBiasParams, dimParams, 1.0, 1.0, BiasParams::DisableUpdateSkips::no, 1, grid.axis(), 0);
-        biasState_ = std::make_unique<BiasState>(awhBiasParams, 1.0, dimParams, grid);
+        biasState_ = std::make_unique<BiasState>(awhBiasParams, 1.0, dimParams, grid, nullptr);
 
         // Here we initialize the grid point state using the input file
         std::string filename = gmx::test::TestFileManager::getInputFilePath(GetParam());
@@ -131,9 +129,9 @@ TEST_P(BiasStateTest, InitializesFromFile)
 
 // Test that Bias initialization open and reads the correct initialization
 // files and the correct PMF and target distribution is set.
-INSTANTIATE_TEST_CASE_P(WithParameters,
-                        BiasStateTest,
-                        ::testing::Values("pmf_target_format0.xvg", "pmf_target_format1.xvg"));
+INSTANTIATE_TEST_SUITE_P(WithParameters,
+                         BiasStateTest,
+                         ::testing::Values("pmf_target_format0.xvg", "pmf_target_format1.xvg"));
 
 } // namespace test
 } // namespace gmx

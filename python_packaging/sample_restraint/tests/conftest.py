@@ -1,10 +1,9 @@
 #
 # This file is part of the GROMACS molecular simulation package.
 #
-# Copyright (c) 2019,2020, by the GROMACS development team, led by
-# Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
-# and including many others, as listed in the AUTHORS file in the
-# top-level source directory and at http://www.gromacs.org.
+# Copyright 2019- The GROMACS Authors
+# and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+# Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
 #
 # GROMACS is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with GROMACS; if not, see
-# http://www.gnu.org/licenses, or write to the Free Software Foundation,
+# https://www.gnu.org/licenses, or write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
 #
 # If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
 # consider code for inclusion in the official distribution, but
 # derived work must not be called official GROMACS. Details are found
 # in the README & COPYING files - if they are missing, get the
-# official version at http://www.gromacs.org.
+# official version at https://www.gromacs.org.
 #
 # To help us fund GROMACS development, we humbly ask that you cite
-# the research papers on the package. Check out http://www.gromacs.org.
+# the research papers on the package. Check out https://www.gromacs.org.
 
 """Configuration and fixtures for pytest."""
 
@@ -44,14 +43,13 @@ pytest_plugins = ('gmxapi.testsupport',)
 
 
 @pytest.fixture(scope='class')
-def spc_water_box(gmxcli, remove_tempdir):
+def spc_water_box(gmxcli, tmp_path_factory):
     """Provide a TPR input file for a simple simulation.
 
     Prepare the MD input in a freshly created working directory.
     """
     import gmxapi as gmx
-    # TODO: Remove this import when the the spc_water_box fixture is migrated to gmxapi.testsupport
-    from gmxapi.testsupport import _cleandir
+    from gmxapi.testsupport import scoped_chdir
 
     # TODO: (#2896) Fetch MD input from package / library data.
     # Example:
@@ -61,7 +59,7 @@ def spc_water_box(gmxcli, remove_tempdir):
     #     # Ref https://setuptools.readthedocs.io/en/latest/setuptools.html#including-data-files
     #     from gmx.data import tprfilename
 
-    with _cleandir(remove_tempdir) as tempdir:
+    with scoped_chdir(tmp_path_factory.mktemp('spc_water_box')) as tempdir:
 
         testdir = os.path.dirname(__file__)
         with open(os.path.join(testdir, 'testdata.json'), 'r') as fh:
@@ -85,13 +83,15 @@ def spc_water_box(gmxcli, remove_tempdir):
             fh.write('\n')
 
         assert os.path.exists(topfile)
+        assert gmx.version.api_is_at_least(0, 3, 1)
         solvate = gmx.commandline_operation(gmxcli,
                                             arguments=['solvate', '-box', '5', '5', '5'],
                                             # We use the default solvent instead of specifying one.
                                             # input_files={'-cs': structurefile},
                                             output_files={'-p': topfile,
                                                           '-o': structurefile,
-                                                          }
+                                                          },
+                                            env={'PATH': os.getenv('PATH')},
                                             )
         assert os.path.exists(topfile)
 
@@ -129,7 +129,9 @@ def spc_water_box(gmxcli, remove_tempdir):
                                                '-c': solvate.output.file['-o'],
                                                '-po': mdout_mdp,
                                            },
-                                           output_files={'-o': tprfile})
+                                           output_files={'-o': tprfile},
+                                           env={'PATH': os.getenv('PATH')},
+                                           )
         tprfilename = grompp.output.file['-o'].result()
         if grompp.output.returncode.result() != 0:
             logging.debug(grompp.output.stderr.result())

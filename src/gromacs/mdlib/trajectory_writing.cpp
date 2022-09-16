@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2013,2014,2015,2016,2017, The GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2013- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -41,6 +39,7 @@
 #include "gromacs/fileio/confio.h"
 #include "gromacs/fileio/tngio.h"
 #include "gromacs/math/vec.h"
+#include "gromacs/mdlib/energyoutput.h"
 #include "gromacs/mdlib/mdoutf.h"
 #include "gromacs/mdlib/stat.h"
 #include "gromacs/mdlib/update.h"
@@ -76,7 +75,7 @@ void do_md_trajectory_writing(FILE*                          fplog,
                               gmx_bool                       bRerunMD,
                               gmx_bool                       bLastStep,
                               gmx_bool                       bDoConfOut,
-                              gmx_bool                       bSumEkinhOld)
+                              const EkindataState            ekindataState)
 {
     int   mdof_flags;
     rvec* x_for_confout = nullptr;
@@ -124,17 +123,18 @@ void do_md_trajectory_writing(FILE*                          fplog,
         wallcycle_start(mdoutf_get_wcycle(outf), WallCycleCounter::Traj);
         if (bCPT)
         {
+            const bool checkpointEkindata = (ekindataState != EkindataState::NotUsed);
+            if (checkpointEkindata)
+            {
+                update_ekinstate(MASTER(cr) ? &state_global->ekinstate : nullptr,
+                                 ekind,
+                                 ekindataState == EkindataState::UsedNeedToReduce,
+                                 cr);
+            }
+
             if (MASTER(cr))
             {
-                if (bSumEkinhOld)
-                {
-                    state_global->ekinstate.bUpToDate = FALSE;
-                }
-                else
-                {
-                    update_ekinstate(&state_global->ekinstate, ekind);
-                    state_global->ekinstate.bUpToDate = TRUE;
-                }
+                state_global->ekinstate.bUpToDate = checkpointEkindata;
 
                 energyOutput.fillEnergyHistory(observablesHistory->energyHistory.get());
             }
@@ -196,7 +196,7 @@ void do_md_trajectory_writing(FILE*                          fplog,
 #if GMX_FAHCORE
     if (MASTER(cr))
     {
-        fcWriteVisFrame(ir->ePBC, state_global->box, top_global, state_global->x.rvec_array());
+        fcWriteVisFrame(ir->pbcType, state_global->box, top_global, state_global->x.rvec_array());
     }
 #endif
 }

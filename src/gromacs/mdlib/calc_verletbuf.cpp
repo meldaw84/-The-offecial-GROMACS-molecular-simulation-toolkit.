@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2012-2018, The GROMACS development team.
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2012- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -326,11 +324,12 @@ static void get_vsite_masses(const gmx_moltype_t&  moltype,
     }
 }
 
-static std::vector<VerletbufAtomtype> getVerletBufferAtomtypes(const gmx_mtop_t& mtop, const bool setMassesToOne)
+static std::vector<VerletbufAtomtype> getVerletBufferAtomtypes(const gmx_mtop_t& mtop,
+                                                               const bool        setMassesToOne,
+                                                               const bool        useFep)
 {
     std::vector<VerletbufAtomtype> att;
     int                            ft, i, a1, a2, a3, a;
-    const t_iparams*               ip;
 
     for (const gmx_molblock_t& molblock : mtop.molblock)
     {
@@ -352,7 +351,20 @@ static std::vector<VerletbufAtomtype> getVerletBufferAtomtypes(const gmx_mtop_t&
 
             for (i = 0; i < il.size(); i += 1 + NRAL(ft))
             {
-                ip         = &mtop.ffparams.iparams[il.iatoms[i]];
+                const t_iparams& ip = mtop.ffparams.iparams[il.iatoms[i]];
+                /* When using free-energy perturbation constraint can be perturbed.
+                 * As we can have a dynamic lamdba, we might not know the constraint length.
+                 * And even with fixed lambda we would here need to have the constraint lambda
+                 * value. So we skip the optimization for a perturbed constraint, this results in a
+                 * more conservative buffer estimate.
+                 */
+                if (useFep && ip.constr.dB != ip.constr.dA)
+                {
+                    continue;
+                }
+                GMX_RELEASE_ASSERT(ip.constr.dA > 0,
+                                   "We should only have positive constraint lengths here");
+
                 a1         = il.iatoms[i + 1];
                 a2         = il.iatoms[i + 2];
                 real mass1 = getMass(*atoms, a1, setMassesToOne);
@@ -360,12 +372,12 @@ static std::vector<VerletbufAtomtype> getVerletBufferAtomtypes(const gmx_mtop_t&
                 if (mass2 > prop[a1].con_mass)
                 {
                     prop[a1].con_mass = mass2;
-                    prop[a1].con_len  = ip->constr.dA;
+                    prop[a1].con_len  = ip.constr.dA;
                 }
                 if (mass1 > prop[a2].con_mass)
                 {
                     prop[a2].con_mass = mass1;
-                    prop[a2].con_len  = ip->constr.dA;
+                    prop[a2].con_len  = ip.constr.dA;
                 }
             }
         }
@@ -374,7 +386,8 @@ static std::vector<VerletbufAtomtype> getVerletBufferAtomtypes(const gmx_mtop_t&
 
         for (i = 0; i < il.size(); i += 1 + NRAL(F_SETTLE))
         {
-            ip = &mtop.ffparams.iparams[il.iatoms[i]];
+            const t_iparams* ip = &mtop.ffparams.iparams[il.iatoms[i]];
+
             a1 = il.iatoms[i + 1];
             a2 = il.iatoms[i + 2];
             a3 = il.iatoms[i + 3];
@@ -915,7 +928,8 @@ real calcVerletBufferSize(const gmx_mtop_t&         mtop,
      *       to avoid scattering the code with (or forgetting) checks.
      */
     const bool setMassesToOne = (ir.eI == IntegrationAlgorithm::BD && ir.bd_fric > 0);
-    const auto att            = getVerletBufferAtomtypes(mtop, setMassesToOne);
+    const auto att =
+            getVerletBufferAtomtypes(mtop, setMassesToOne, ir.efep != FreeEnergyPerturbationType::No);
     GMX_ASSERT(!att.empty(), "We expect at least one type");
 
     if (debug)
@@ -960,7 +974,7 @@ real calcVerletBufferSize(const gmx_mtop_t&         mtop,
             default: gmx_incons("Unimplemented VdW modifier");
         }
     }
-    else if (EVDW_PME(ir.vdwtype))
+    else if (usingLJPme(ir.vdwtype))
     {
         real b   = calc_ewaldcoeff_lj(ir.rvdw, ir.ewald_rtol_lj);
         real r   = ir.rvdw;
@@ -986,7 +1000,7 @@ real calcVerletBufferSize(const gmx_mtop_t&         mtop,
     // Determine the 1st and 2nd derivative for the electostatics
     pot_derivatives_t elec = { 0, 0, 0 };
 
-    if (ir.coulombtype == CoulombInteractionType::Cut || EEL_RF(ir.coulombtype))
+    if (ir.coulombtype == CoulombInteractionType::Cut || usingRF(ir.coulombtype))
     {
         real eps_rf, k_rf;
 
@@ -1015,7 +1029,7 @@ real calcVerletBufferSize(const gmx_mtop_t&         mtop,
         }
         elec.d2 = elfac * (2.0 / gmx::power3(ir.rcoulomb) + 2 * k_rf);
     }
-    else if (EEL_PME(ir.coulombtype) || ir.coulombtype == CoulombInteractionType::Ewald)
+    else if (usingPme(ir.coulombtype) || ir.coulombtype == CoulombInteractionType::Ewald)
     {
         real b, rc, br;
 
@@ -1311,7 +1325,7 @@ static real chanceOfUpdateGroupCrossingCell(const gmx_mtop_t&      mtop,
         const gmx_moltype_t& moltype = mtop.moltype[molblock.type];
         chance += molblock.nmol
                   * chanceOfUpdateGroupCrossingCell(
-                            moltype, mtop.ffparams, updateGrouping[molblock.type], kT_fac, cellSize);
+                          moltype, mtop.ffparams, updateGrouping[molblock.type], kT_fac, cellSize);
     }
 
     return chance;
@@ -1320,11 +1334,23 @@ static real chanceOfUpdateGroupCrossingCell(const gmx_mtop_t&      mtop,
 real minCellSizeForAtomDisplacement(const gmx_mtop_t&      mtop,
                                     const t_inputrec&      ir,
                                     PartitioningPerMoltype updateGrouping,
-                                    real                   chanceRequested)
+                                    real                   chanceRequested,
+                                    const ChanceTarget     chanceTarget)
 {
     if (!EI_DYNAMICS(ir.eI) || (EI_MD(ir.eI) && ir.etc == TemperatureCoupling::No))
     {
         return minCellSizeFromPairlistBuffer(ir);
+    }
+
+    /* We will compute the chance for the whole system, so if the requested
+     * chance is per atom, we need to multiply the target chance
+     * by the number of atoms (since chance << 1).
+     */
+    switch (chanceTarget)
+    {
+        case ChanceTarget::System: break;
+        case ChanceTarget::Atom: chanceRequested *= mtop.natoms; break;
+        default: GMX_RELEASE_ASSERT(false, "Unhandled ChanceTarget");
     }
 
     /* We use the maximum temperature with multiple T-coupl groups.
@@ -1335,7 +1361,8 @@ real minCellSizeForAtomDisplacement(const gmx_mtop_t&      mtop,
 
     const bool setMassesToOne = (ir.eI == IntegrationAlgorithm::BD && ir.bd_fric > 0);
 
-    const auto atomtypes = getVerletBufferAtomtypes(mtop, setMassesToOne);
+    const auto atomtypes =
+            getVerletBufferAtomtypes(mtop, setMassesToOne, ir.efep != FreeEnergyPerturbationType::No);
 
     const real kT_fac = displacementVariance(ir, temperature, ir.nstlist * ir.delta_t);
 

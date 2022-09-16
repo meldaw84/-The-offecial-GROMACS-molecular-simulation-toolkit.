@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2019- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \libinternal \file
  *
@@ -46,9 +45,9 @@
 
 #include <memory>
 
-#include "gromacs/gpu_utils/devicebuffer_datatype.h"
 #include "gromacs/gpu_utils/device_context.h"
 #include "gromacs/gpu_utils/device_stream.h"
+#include "gromacs/gpu_utils/devicebuffer_datatype.h"
 #include "gromacs/gpu_utils/gputraits.h"
 #include "gromacs/mdlib/constr.h"
 #include "gromacs/pbcutil/pbc_aiuc.h"
@@ -96,6 +95,13 @@ struct LincsGpuKernelParameters
     DeviceBuffer<AtomPair> d_constraints;
     //! Equilibrium distances for the constraints (GPU)
     DeviceBuffer<float> d_constraintsTargetLengths;
+    /*! \brief Whether there are coupled constraints.
+     *
+     * In SYCL, the accessors can not be initialized with an empty buffer.
+     * In case there are no coupled constraints, the respective buffers below are
+     * empty. So we need to inform the kernel launcher that these are optional.
+     */
+    bool haveCoupledConstraints = false;
     //! Number of constraints, coupled with the current one (GPU)
     DeviceBuffer<int> d_coupledConstraintsCounts;
     //! List of coupled with the current one (GPU)
@@ -144,14 +150,14 @@ public:
      * \param[in,out] virialScaled      Scaled virial tensor to be updated.
      * \param[in]     pbcAiuc           PBC data.
      */
-    void apply(const DeviceBuffer<Float3> d_x,
-               DeviceBuffer<Float3>       d_xp,
-               const bool                 updateVelocities,
-               DeviceBuffer<Float3>       d_v,
-               const real                 invdt,
-               const bool                 computeVirial,
-               tensor                     virialScaled,
-               const PbcAiuc              pbcAiuc);
+    void apply(const DeviceBuffer<Float3>& d_x,
+               DeviceBuffer<Float3>        d_xp,
+               bool                        updateVelocities,
+               DeviceBuffer<Float3>        d_v,
+               real                        invdt,
+               bool                        computeVirial,
+               tensor                      virialScaled,
+               const PbcAiuc&              pbcAiuc);
 
     /*! \brief
      * Update data-structures (e.g. after NB search step).
@@ -171,7 +177,7 @@ public:
      * \param[in] numAtoms  Number of atoms.
      * \param[in] invmass   Inverse masses of atoms.
      */
-    void set(const InteractionDefinitions& idef, int numAtoms, const real* invmass);
+    void set(const InteractionDefinitions& idef, int numAtoms, ArrayRef<const real> invmass);
 
     /*! \brief
      * Returns whether the maximum number of coupled constraints is supported

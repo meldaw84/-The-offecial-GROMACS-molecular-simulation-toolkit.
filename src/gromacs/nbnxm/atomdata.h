@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2012,2013,2014,2015,2016 by the GROMACS development team.
- * Copyright (c) 2017,2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2012- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \libinternal \file
  *  \brief
@@ -328,11 +326,11 @@ enum
 };
 
 //! Sets the atomdata after pair search
-void nbnxn_atomdata_set(nbnxn_atomdata_t*         nbat,
-                        const Nbnxm::GridSet&     gridSet,
-                        gmx::ArrayRef<const int>  atomTypes,
-                        gmx::ArrayRef<const real> atomCharges,
-                        gmx::ArrayRef<const int>  atomInfo);
+void nbnxn_atomdata_set(nbnxn_atomdata_t*            nbat,
+                        const Nbnxm::GridSet&        gridSet,
+                        gmx::ArrayRef<const int>     atomTypes,
+                        gmx::ArrayRef<const real>    atomCharges,
+                        gmx::ArrayRef<const int64_t> atomInfo);
 
 //! Copy the shift vectors to nbat
 void nbnxn_atomdata_copy_shiftvec(bool dynamic_box, gmx::ArrayRef<gmx::RVec> shift_vec, nbnxn_atomdata_t* nbat);
@@ -361,6 +359,8 @@ void nbnxn_atomdata_copy_x_to_nbat_x(const Nbnxm::GridSet& gridSet,
  * \param[in,out] gpu_nbv    The NBNXM GPU data structure.
  * \param[in]     d_x        Coordinates to be copied (in plain rvec format).
  * \param[in]     xReadyOnDevice   Event synchronizer indicating that the coordinates are ready in the device memory.
+ *                                 If there is no need to wait for any event (e.g., the wait has already been
+ *                                 enqueued into the appropriate stream), it can be \c nullptr.
  */
 void nbnxn_atomdata_x_to_nbat_x_gpu(const Nbnxm::GridSet&   gridSet,
                                     gmx::AtomLocality       locality,

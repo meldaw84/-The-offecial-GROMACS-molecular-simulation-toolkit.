@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2016,2017,2018,2019,2020 by the GROMACS development team.
- * Copyright (c) 2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2016- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 /*! \internal \file
@@ -63,15 +61,15 @@ __device__ __forceinline__ float read_grid_size(const float* realGridSizeFP, con
         case ZZ: return realGridSizeFP[ZZ];
     }
     assert(false);
-    return 0.0f;
+    return 0.0F;
 }
 
 /*! \brief Reduce the partial force contributions.
  *
- * \tparam[in] order              The PME order (must be 4).
- * \tparam[in] atomDataSize       The number of partial force contributions for each atom (currently
+ * \tparam     order              The PME order (must be 4).
+ * \tparam     atomDataSize       The number of partial force contributions for each atom (currently
  *                                order^2 == 16)
- * \tparam[in] blockSize          The CUDA block size
+ * \tparam     blockSize          The CUDA block size
  *
  * \param[out] sm_forces          Shared memory array with the output forces (number of elements
  *                                is number of atoms per block)
@@ -89,9 +87,9 @@ __device__ __forceinline__ void reduce_atom_forces(float3* __restrict__ sm_force
                                                    const int    splineIndex,
                                                    const int    lineIndex,
                                                    const float* realGridSizeFP,
-                                                   float&       fx,
-                                                   float&       fy,
-                                                   float&       fz)
+                                                   float& fx, // NOLINT(google-runtime-references)
+                                                   float& fy, // NOLINT(google-runtime-references)
+                                                   float& fz) // NOLINT(google-runtime-references)
 {
     if (gmx::isPowerOfTwo(order)) // Only for orders of power of 2
     {
@@ -135,7 +133,9 @@ __device__ __forceinline__ void reduce_atom_forces(float3* __restrict__ sm_force
         if (dimIndex < DIM)
         {
             const float n = read_grid_size(realGridSizeFP, dimIndex);
-            *((float*)(&sm_forces[atomIndexLocal]) + dimIndex) = fx * n;
+            float* __restrict__ sm_forcesAtomIndexOffset =
+                    reinterpret_cast<float*>(&sm_forces[atomIndexLocal]);
+            sm_forcesAtomIndexOffset[dimIndex] = fx * n;
         }
     }
     else
@@ -207,7 +207,9 @@ __device__ __forceinline__ void reduce_atom_forces(float3* __restrict__ sm_force
 
             if (sourceIndex == minStride * atomIndex)
             {
-                *((float*)(&sm_forces[atomIndex]) + dimIndex) =
+                float* __restrict__ sm_forcesAtomIndexOffset =
+                        reinterpret_cast<float*>(&sm_forces[atomIndex]);
+                sm_forcesAtomIndexOffset[dimIndex] =
                         (sm_forceTemp[dimIndex][sourceIndex] + sm_forceTemp[dimIndex][sourceIndex + 1]) * n;
             }
         }
@@ -216,10 +218,10 @@ __device__ __forceinline__ void reduce_atom_forces(float3* __restrict__ sm_force
 
 /*! \brief Calculate the sum of the force partial components (in X, Y and Z)
  *
- * \tparam[in] order              The PME order (must be 4).
- * \tparam[in] atomsPerWarp       The number of atoms per GPU warp.
- * \tparam[in] wrapX              Tells if the grid is wrapped in the X dimension.
- * \tparam[in] wrapY              Tells if the grid is wrapped in the Y dimension.
+ * \tparam     order              The PME order (must be 4).
+ * \tparam     atomsPerWarp       The number of atoms per GPU warp.
+ * \tparam     wrapX              Tells if the grid is wrapped in the X dimension.
+ * \tparam     wrapY              Tells if the grid is wrapped in the Y dimension.
  * \param[out] fx                 The force partial component in the X dimension.
  * \param[out] fy                 The force partial component in the Y dimension.
  * \param[out] fz                 The force partial component in the Z dimension.
@@ -306,8 +308,6 @@ __device__ __forceinline__ void sumForceComponents(float* __restrict__ fx,
  * \param[in] gm_coefficients     Global memory array of the coefficients to use for an unperturbed
  * or FEP in state A if a single grid is used (\p multiCoefficientsSingleGrid == true).If two
  * separate grids are used this should be the coefficients of the grid in question.
- * \param[in] gm_coefficientsB    Global memory array of the coefficients to use for FEP in state B.
- * Should be nullptr if two separate grids are used.
  */
 __device__ __forceinline__ void calculateAndStoreGridForces(float3* __restrict__ sm_forces,
                                                             const int   forceIndexLocal,
@@ -331,12 +331,12 @@ __device__ __forceinline__ void calculateAndStoreGridForces(float3* __restrict__
  * A CUDA kernel which gathers the atom forces from the grid.
  * The grid is assumed to be wrapped in dimension Z.
  *
- * \tparam[in] order                The PME order (must be 4 currently).
- * \tparam[in] wrapX                Tells if the grid is wrapped in the X dimension.
- * \tparam[in] wrapY                Tells if the grid is wrapped in the Y dimension.
- * \tparam[in] numGrids             The number of grids to use in the kernel. Can be 1 or 2.
- * \tparam[in] readGlobal           Tells if we should read spline values from global memory
- * \tparam[in] threadsPerAtom       How many threads work on each atom
+ * \tparam     order                The PME order (must be 4 currently).
+ * \tparam     wrapX                Tells if the grid is wrapped in the X dimension.
+ * \tparam     wrapY                Tells if the grid is wrapped in the Y dimension.
+ * \tparam     numGrids             The number of grids to use in the kernel. Can be 1 or 2.
+ * \tparam     readGlobal           Tells if we should read spline values from global memory
+ * \tparam     threadsPerAtom       How many threads work on each atom
  *
  * \param[in]  kernelParams         All the PME GPU data.
  */
@@ -461,13 +461,13 @@ __launch_bounds__(c_gatherMaxThreadsPerBlock, c_gatherMinBlocksPerMP) __global__
             atomX      = gm_coordinates[atomIndexGlobal];
             atomCharge = gm_coefficientsA[atomIndexGlobal];
         }
-        calculate_splines<order, atomsPerBlock, atomsPerWarp, true, false>(
+        calculate_splines<order, atomsPerBlock, atomsPerWarp, true, false, numGrids>(
                 kernelParams, atomIndexOffset, atomX, atomCharge, sm_theta, sm_dtheta, sm_gridlineIndices);
         __syncwarp();
     }
-    float fx = 0.0f;
-    float fy = 0.0f;
-    float fz = 0.0f;
+    float fx = 0.0F;
+    float fy = 0.0F;
+    float fz = 0.0F;
 
     const int chargeCheck = pme_gpu_check_atom_charge(gm_coefficientsA[atomIndexGlobal]);
 
@@ -545,7 +545,7 @@ __launch_bounds__(c_gatherMaxThreadsPerBlock, c_gatherMinBlocksPerMP) __global__
         {
             int   outputIndexLocal       = i * iterThreads + threadLocalId;
             int   outputIndexGlobal      = blockIndex * blockForcesSize + outputIndexLocal;
-            float outputForceComponent   = ((float*)sm_forces)[outputIndexLocal];
+            float outputForceComponent   = (reinterpret_cast<float*>(sm_forces)[outputIndexLocal]);
             gm_forces[outputIndexGlobal] = outputForceComponent;
         }
     }
@@ -554,9 +554,9 @@ __launch_bounds__(c_gatherMaxThreadsPerBlock, c_gatherMinBlocksPerMP) __global__
     {
         /* We must sync here since the same shared memory is used as above. */
         __syncthreads();
-        fx                    = 0.0f;
-        fy                    = 0.0f;
-        fz                    = 0.0f;
+        fx                    = 0.0F;
+        fy                    = 0.0F;
+        fz                    = 0.0F;
         const int chargeCheck = pme_gpu_check_atom_charge(gm_coefficientsB[atomIndexGlobal]);
         if (chargeCheck)
         {
@@ -605,7 +605,7 @@ __launch_bounds__(c_gatherMaxThreadsPerBlock, c_gatherMinBlocksPerMP) __global__
             {
                 int   outputIndexLocal     = i * iterThreads + threadLocalId;
                 int   outputIndexGlobal    = blockIndex * blockForcesSize + outputIndexLocal;
-                float outputForceComponent = ((float*)sm_forces)[outputIndexLocal];
+                float outputForceComponent = (reinterpret_cast<float*>(sm_forces)[outputIndexLocal]);
                 gm_forces[outputIndexGlobal] += outputForceComponent;
             }
         }

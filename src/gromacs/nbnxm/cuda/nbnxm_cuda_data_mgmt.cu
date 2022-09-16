@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2012,2013,2014,2015,2016 by the GROMACS development team.
- * Copyright (c) 2017,2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2012- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \file
  *  \brief Define CUDA implementation of nbnxn_gpu_data_mgmt.h
@@ -53,7 +51,7 @@
 #include "gromacs/gpu_utils/cudautils.cuh"
 #include "gromacs/gpu_utils/device_context.h"
 #include "gromacs/gpu_utils/gpu_utils.h"
-#include "gromacs/gpu_utils/gpueventsynchronizer.cuh"
+#include "gromacs/gpu_utils/gpueventsynchronizer.h"
 #include "gromacs/gpu_utils/pmalloc.h"
 #include "gromacs/hardware/device_information.h"
 #include "gromacs/hardware/device_management.h"
@@ -89,7 +87,7 @@ namespace Nbnxm
  * there is a bit of fluctuations in the generated block counts, we use
  * a target of 44 instead of the ideal value of 48.
  */
-static unsigned int gpu_min_ci_balanced_factor = 44;
+static const unsigned int gpu_min_ci_balanced_factor = 44;
 
 void gpu_init_platform_specific(NbnxmGpu* /* nb */)
 {
@@ -114,13 +112,6 @@ void* gpu_get_xq(NbnxmGpu* nb)
     assert(nb);
 
     return static_cast<void*>(nb->atdat->xq);
-}
-
-DeviceBuffer<gmx::RVec> gpu_get_f(NbnxmGpu* nb)
-{
-    assert(nb);
-
-    return reinterpret_cast<DeviceBuffer<gmx::RVec>>(nb->atdat->f);
 }
 
 DeviceBuffer<gmx::RVec> gpu_get_fshift(NbnxmGpu* nb)

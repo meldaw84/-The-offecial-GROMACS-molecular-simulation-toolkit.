@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2019- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -45,7 +44,6 @@
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/interaction_const.h"
 #include "gromacs/mdtypes/md_enums.h"
-#include "gromacs/mdtypes/nblist.h"
 #include "gromacs/tables/forcetable.h"
 #include "gromacs/topology/mtop_util.h"
 #include "gromacs/topology/topology.h"
@@ -120,7 +118,7 @@ DispersionCorrection::TopologyParams::TopologyParams(const gmx_mtop_t&         m
     /* For LJ-PME, we want to correct for the difference between the
      * actual C6 values and the C6 values used by the LJ-PME based on
      * combination rules. */
-    if (EVDW_PME(inputrec.vdwtype))
+    if (usingLJPme(inputrec.vdwtype))
     {
         nbfp_comb = mk_nbfp_combination_rule(mtop.ffparams,
                                              (inputrec.ljpme_combination_rule == LongRangeVdW::LB)
@@ -377,7 +375,7 @@ void DispersionCorrection::setInteractionParameters(InteractionParams*         i
     /* We only need to set the tables at first call, i.e. tableFileName!=nullptr
      * or when we changed the cut-off with LJ-PME tuning.
      */
-    if (tableFileName || EVDW_PME(ic.vdwtype))
+    if (tableFileName || usingLJPme(ic.vdwtype))
     {
         iParams->dispersionCorrectionTable_ =
                 makeDispersionCorrectionTable(nullptr, &ic, ic.rvdw, tableFileName);
@@ -407,7 +405,7 @@ void DispersionCorrection::setInteractionParameters(InteractionParams*         i
         /* TODO This code depends on the logic in tables.c that
            constructs the table layout, which should be made
            explicit in future cleanup. */
-        GMX_ASSERT(iParams->dispersionCorrectionTable_->interaction == GMX_TABLE_INTERACTION_VDWREP_VDWDISP,
+        GMX_ASSERT(iParams->dispersionCorrectionTable_->interaction == TableInteraction::VdwRepulsionVdwDispersion,
                    "Dispersion-correction code needs a table with both repulsion and dispersion "
                    "terms");
         const real  scale  = iParams->dispersionCorrectionTable_->scale;
@@ -486,7 +484,7 @@ void DispersionCorrection::setInteractionParameters(InteractionParams*         i
          */
         addCorrectionBeyondCutoff(&energy, &virial, r0);
     }
-    else if (ic.vdwtype == VanDerWaalsType::Cut || EVDW_PME(ic.vdwtype)
+    else if (ic.vdwtype == VanDerWaalsType::Cut || usingLJPme(ic.vdwtype)
              || ic.vdwtype == VanDerWaalsType::User)
     {
         /* Note that with LJ-PME, the dispersion correction is multiplied

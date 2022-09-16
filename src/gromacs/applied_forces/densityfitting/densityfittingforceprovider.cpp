@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2019- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief
@@ -233,11 +232,11 @@ DensityFittingForceProvider::Impl::Impl(const DensityFittingParameters&         
         Matrix3x3 translationMatrix = transformationMatrixParametersAsArray.has_value()
                                               ? *transformationMatrixParametersAsArray
                                               : identityMatrix<real, 3>();
-        RVec translationVector = translationParametersAsArray.has_value()
-                                         ? RVec((*translationParametersAsArray)[XX],
+        RVec      translationVector = translationParametersAsArray.has_value()
+                                              ? RVec((*translationParametersAsArray)[XX],
                                                 (*translationParametersAsArray)[YY],
                                                 (*translationParametersAsArray)[ZZ])
-                                         : RVec(0, 0, 0);
+                                              : RVec(0, 0, 0);
         affineTransformation_.emplace(translationMatrix.asConstView(), translationVector);
     }
 
@@ -345,8 +344,24 @@ void DensityFittingForceProvider::Impl::calculateForces(const ForceProviderInput
                 return densityFittingForce_.evaluateForce({ r, amplitude }, densityDerivative);
             });
 
-    transformationToDensityLattice_.scaleOperationOnly().inverseIgnoringZeroScale(forces_);
+    // correct forces for coordinate transformations with chain rule
+    // F = -k d U(transform(x)) / d x =
+    //    k * -d U(transform(x)) / d transform(x) * d(transform(x)) / d x
+    //        --------- calculated above --------   ---correction below---
 
+    // correction for coordinate transformation into density lattice
+    transformationToDensityLattice_.scaleOperationOnly()(forces_);
+    // correction for affine coordinate transformation
+    if (affineTransformation_)
+    {
+        const Matrix3x3 gradient = affineTransformation_->gradient();
+        for (RVec currentForce : forces_)
+        {
+            matrixVectorMultiply(gradient, &currentForce);
+        }
+    }
+
+    // multiply with the current force constant
     auto       densityForceIterator = forces_.cbegin();
     const real effectiveForceConstant = state_.adaptiveForceConstantScale_ * parameters_.calculationIntervalInSteps_
                                         * parameters_.forceConstant_;

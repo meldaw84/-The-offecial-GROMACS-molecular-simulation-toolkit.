@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2015,2016,2017,2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2015- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 /*! \internal \file
@@ -67,6 +66,7 @@
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/stringutil.h"
 
+#include "biassharing.h"
 #include "correlationgrid.h"
 #include "correlationhistory.h"
 #include "pointstate.h"
@@ -107,8 +107,6 @@ gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         
                                                          ArrayRef<const double> neighborLambdaDhdl,
                                                          double*                awhPotential,
                                                          double*                potentialJump,
-                                                         const t_commrec*       commRecord,
-                                                         const gmx_multisim_t*  ms,
                                                          double                 t,
                                                          int64_t                step,
                                                          int64_t                seed,
@@ -119,6 +117,10 @@ gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         
         GMX_THROW(InvalidInputError(
                 "The step number is negative which is not supported by the AWH code."));
     }
+
+    GMX_RELEASE_ASSERT(!(params_.convolveForce && grid_.hasLambdaAxis()),
+                       "When using AWH to sample an FEP lambda dimension the AWH potential cannot "
+                       "be convolved.");
 
     state_.setCoordValue(grid_, coordValue);
 
@@ -147,12 +149,6 @@ gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         
             updateForceCorrelationGrid(probWeightNeighbor, neighborLambdaDhdl, t);
 
             state_.sampleCoordAndPmf(dimParams_, grid_, probWeightNeighbor, convolvedBias);
-        }
-        /* Set the umbrella grid point (for the lambda axis) to the
-         * current grid point. */
-        if (params_.convolveForce && grid_.hasLambdaAxis())
-        {
-            state_.setUmbrellaGridpointToGridpoint();
         }
     }
 
@@ -213,7 +209,7 @@ gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         
     if (params_.isUpdateFreeEnergyStep(step))
     {
         state_.updateFreeEnergyAndAddSamplesToHistogram(
-                dimParams_, grid_, params_, commRecord, ms, t, step, fplog, &updateList_);
+                dimParams_, grid_, params_, t, step, fplog, &updateList_);
 
         if (params_.convolveForce)
         {
@@ -365,7 +361,7 @@ Bias::Bias(int                            biasIndexInCollection,
            ArrayRef<const DimParams>      dimParamsInit,
            double                         beta,
            double                         mdTimeStep,
-           int                            numSharingSimulations,
+           const BiasSharing*             biasSharing,
            const std::string&             biasInitFilename,
            ThisRankWillDoIO               thisRankWillDoIO,
            BiasParams::DisableUpdateSkips disableUpdateSkips) :
@@ -377,13 +373,12 @@ Bias::Bias(int                            biasIndexInCollection,
             beta,
             mdTimeStep,
             disableUpdateSkips,
-            numSharingSimulations,
+            biasSharing ? biasSharing->numSharingSimulations(biasIndexInCollection) : 1,
             grid_.axis(),
             biasIndexInCollection),
-    state_(awhBiasParams, params_.initialHistogramSize, dimParams_, grid_),
+    state_(awhBiasParams, params_.initialHistogramSize, dimParams_, grid_, biasSharing),
     thisRankDoesIO_(thisRankWillDoIO == ThisRankWillDoIO::Yes),
     biasForce_(ndim()),
-
     tempForce_(ndim()),
     numWarningsIssued_(0)
 {

@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2010-2018, The GROMACS development team.
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2010- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -465,7 +463,7 @@ static int init_mem_at(mem_t* mem_p, const gmx_mtop_t& mtop, rvec* r, matrix box
 
 static void init_resize(t_block* ins_at, rvec* r_ins, pos_ins_t* pos_ins, mem_t* mem_p, rvec* r, gmx_bool bALLOW_ASYMMETRY)
 {
-    int i, j, at, c, outsidesum, gctr = 0;
+    int i, j, at, c, gctr = 0;
     int idxsum = 0;
 
     /*sanity check*/
@@ -483,8 +481,7 @@ static void init_resize(t_block* ins_at, rvec* r_ins, pos_ins_t* pos_ins, mem_t*
     snew(pos_ins->geom_cent, pos_ins->pieces);
     for (i = 0; i < pos_ins->pieces; i++)
     {
-        c          = 0;
-        outsidesum = 0;
+        c = 0;
         for (j = 0; j < DIM; j++)
         {
             pos_ins->geom_cent[i][j] = 0;
@@ -498,10 +495,6 @@ static void init_resize(t_block* ins_at, rvec* r_ins, pos_ins_t* pos_ins, mem_t*
             {
                 rvec_inc(pos_ins->geom_cent[i], r_ins[gctr]);
                 c++;
-            }
-            else
-            {
-                outsidesum++;
             }
             gctr++;
         }
@@ -919,7 +912,7 @@ static void top_update(const char* topfile, rm_t* rm_p, gmx_mtop_t* mtop)
     int   bMolecules = 0;
     FILE *fpin, *fpout;
     char  buf[STRLEN], buf2[STRLEN], *temp;
-    int   i, *nmol_rm, nmol, line;
+    int   i, *nmol_rm, nmol;
     char  temporary_filename[STRLEN];
 
     fpin = gmx_ffopen(topfile, "r");
@@ -933,10 +926,8 @@ static void top_update(const char* topfile, rm_t* rm_p, gmx_mtop_t* mtop)
         nmol_rm[rm_p->block[i]]++;
     }
 
-    line = 0;
     while (fgets(buf, STRLEN, fpin))
     {
-        line++;
         if (buf[0] != ';')
         {
             strcpy(buf2, buf);

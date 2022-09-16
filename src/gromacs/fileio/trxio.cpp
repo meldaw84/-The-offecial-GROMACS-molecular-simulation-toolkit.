@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -91,8 +87,7 @@ struct t_trxstatus
     t_fileio*            fio;
     gmx_tng_trajectory_t tng;
     int                  natoms;
-    double               DT, BOX[3];
-    gmx_bool             bReadBox;
+    double               BOX[3];
     char*                persistent_line; /* Persistent line for reading g96 trajectories */
 #if GMX_USE_PLUGINS
     gmx_vmdplugin_t* vmdplugin;
@@ -182,12 +177,17 @@ int nframes_read(t_trxstatus* status)
     return status->currentFrame;
 }
 
+bool trxio_should_print_count(const gmx_output_env_t* oenv, t_trxstatus* status)
+{
+    return ((status->currentFrame < 2 * SKIP1 || status->currentFrame % SKIP1 == 0)
+            && (status->currentFrame < 2 * SKIP2 || status->currentFrame % SKIP2 == 0)
+            && (status->currentFrame < 2 * SKIP3 || status->currentFrame % SKIP3 == 0)
+            && output_env_get_trajectory_io_verbosity(oenv) != 0);
+}
+
 static void printcount_(t_trxstatus* status, const gmx_output_env_t* oenv, const char* l, real t)
 {
-    if ((status->currentFrame < 2 * SKIP1 || status->currentFrame % SKIP1 == 0)
-        && (status->currentFrame < 2 * SKIP2 || status->currentFrame % SKIP2 == 0)
-        && (status->currentFrame < 2 * SKIP3 || status->currentFrame % SKIP3 == 0)
-        && output_env_get_trajectory_io_verbosity(oenv) != 0)
+    if (trxio_should_print_count(oenv, status))
     {
         fprintf(stderr, "\r%-14s %6d time %8.3f   ", l, status->currentFrame, output_env_conv_time(oenv, t));
         fflush(stderr);
@@ -301,6 +301,8 @@ void clear_trxframe(t_trxframe* fr, gmx_bool bFirst)
         clear_mat(fr->box);
         fr->bPBC    = FALSE;
         fr->pbcType = PbcType::Unset;
+        fr->bIndex  = false;
+        fr->index   = nullptr;
     }
 }
 
@@ -649,6 +651,12 @@ void close_trx(t_trxstatus* status)
      * read_first_frame/read_next_frame and close_trx should be used.
      */
     sfree(status);
+}
+
+void done_trx_xframe(t_trxstatus* status)
+{
+    done_frame(status->xframe);
+    sfree(status->xframe);
 }
 
 t_trxstatus* open_trx(const char* outfile, const char* filemode)

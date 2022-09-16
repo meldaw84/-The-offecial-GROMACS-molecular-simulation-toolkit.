@@ -1,12 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2008,2009,2010,2011,2012 by the GROMACS development team.
- * Copyright (c) 2013,2014,2015,2017,2018 by the GROMACS development team.
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2008- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -20,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -29,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -102,10 +99,7 @@ static gmx_bool precalc(t_topology top, real mass2[], real qmol[])
     real     qtot;
     real     qall;
     int      i, j, k, l;
-    int      ai, ci;
     gmx_bool bNEU;
-    ai   = 0;
-    ci   = 0;
     qall = 0.0;
 
 
@@ -131,15 +125,6 @@ static gmx_bool precalc(t_topology top, real mass2[], real qmol[])
 
 
         qall += qtot;
-
-        if (qtot < 0.0)
-        {
-            ai++;
-        }
-        if (qtot > 0.0)
-        {
-            ci++;
-        }
     }
 
     if (std::abs(qall) > 0.01)
@@ -377,7 +362,6 @@ static void dielectric(FILE*                   fmj,
 {
     int   i, j;
     int   valloc, nalloc, nfr, nvfr;
-    int   vshfr;
     real* xshfr       = nullptr;
     int*  vfr         = nullptr;
     real  refr        = 0.0;
@@ -448,7 +432,6 @@ static void dielectric(FILE*                   fmj,
 
 
     nvfr   = 0;
-    vshfr  = 0;
     nalloc = 0;
     valloc = 0;
 
@@ -599,7 +582,6 @@ static void dielectric(FILE*                   fmj,
                             djc[nvfr - j] += iprod(mu[vfr[j]], v0[nvfr]);
                         }
                     }
-                    vshfr++;
                 }
             }
             nvfr++;
@@ -1034,7 +1016,7 @@ int gmx_current(int argc, char* argv[])
 
     fmjdsp = xvgropen(
             opt2fn("-dsp", NFILE, fnm),
-            "MSD of the squared translational dipole moment M",
+            "MSD of the translational dipole moment M",
             output_env_get_xvgr_tlabel(oenv),
             "<|M\\sJ\\N(t)-M\\sJ\\N(0)|\\S2\\N > / 6.0*V*k\\sB\\N*T / Sm\\S-1\\Nps\\S-1\\N",
             oenv);

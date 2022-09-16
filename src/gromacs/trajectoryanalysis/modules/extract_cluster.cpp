@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2019- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief
@@ -45,6 +44,7 @@
 #include "extract_cluster.h"
 
 #include <algorithm>
+#include <optional>
 
 #include "gromacs/coordinateio/coordinatefile.h"
 #include "gromacs/coordinateio/requirements.h"
@@ -98,14 +98,14 @@ private:
     //! Storage of requirements for creating output files.
     OutputRequirementOptionDirector requirementsBuilder_;
     //! Stores the index information for the clusters. TODO refactor this!
-    t_cluster_ndx* clusterIndex_ = nullptr;
+    std::optional<t_cluster_ndx> clusterIndex_;
 };
 
 ExtractCluster::ExtractCluster() {}
 
 ExtractCluster::~ExtractCluster()
 {
-    if (clusterIndex_ != nullptr)
+    if (clusterIndex_)
     {
         if (clusterIndex_->grpname != nullptr)
         {
@@ -117,11 +117,9 @@ ExtractCluster::~ExtractCluster()
         }
         if (clusterIndex_->clust != nullptr)
         {
-            sfree(clusterIndex_->inv_clust);
             done_blocka(clusterIndex_->clust);
             sfree(clusterIndex_->clust);
         }
-        sfree(clusterIndex_);
     }
 }
 
@@ -198,17 +196,26 @@ void ExtractCluster::analyzeFrame(int               frameNumber,
                                   t_pbc* /* pbc */,
                                   TrajectoryAnalysisModuleData* /*pdata*/)
 {
-    // modify frame to write out correct number of coords
-    // and actually write out
-    int clusterToWriteTo = clusterIndex_->inv_clust[frameNumber];
-    // Check for valid entry in cluster list, otherwise skip frame.
-    if (clusterToWriteTo != -1 && clusterToWriteTo < clusterIndex_->clust->nr)
+    // We have to also accept manual files that might contain fewer frames
+    // than a provided trajectory. In this case, we only try to match frames
+    // to clusters if the actual frame number is lower or equal to the highest
+    // number in the cluster file.
+
+    const int maxframe = clusterIndex_->maxframe;
+    if (frameNumber <= maxframe)
     {
-        writers_[clusterToWriteTo]->prepareAndWriteFrame(frameNumber, frame);
-    }
-    else
-    {
-        printf("Frame %d was not found in any cluster!", frameNumber);
+        // modify frame to write out correct number of coords
+        // and actually write out
+        int clusterToWriteTo = clusterIndex_->inv_clust[frameNumber];
+        // Check for valid entry in cluster list, otherwise skip frame.
+        if (clusterToWriteTo != -1 && clusterToWriteTo < clusterIndex_->clust->nr)
+        {
+            writers_[clusterToWriteTo]->prepareAndWriteFrame(frameNumber, frame);
+        }
+        else
+        {
+            printf("Frame %d was not found in any cluster!\n", frameNumber);
+        }
     }
 }
 

@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2020, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2020- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief Tests for the halo exchange
@@ -53,6 +52,7 @@
 #include "config.h"
 
 #include <array>
+#include <numeric>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -63,8 +63,8 @@
 #if GMX_GPU_CUDA
 #    include "gromacs/gpu_utils/device_stream.h"
 #    include "gromacs/gpu_utils/devicebuffer.h"
-#    include "gromacs/gpu_utils/gpueventsynchronizer.cuh"
 #endif
+#include "gromacs/gpu_utils/gpueventsynchronizer.h"
 #include "gromacs/gpu_utils/hostallocator.h"
 #include "gromacs/mdtypes/inputrec.h"
 
@@ -140,7 +140,14 @@ void gpuHalo(gmx_domdec_t* dd, matrix box, HostVector<RVec>* h_x, int numAtomsTo
 
     copyToDeviceBuffer(&d_x, h_x->data(), 0, numAtomsTotal, deviceStream, GpuApiCallBehavior::Sync, nullptr);
 
-    GpuEventSynchronizer coordinatesReadyOnDeviceEvent;
+    const int numPulses = std::accumulate(
+            dd->comm->cd.begin(), dd->comm->cd.end(), 0, [](const int a, const auto& b) {
+                return a + b.numPulses();
+            });
+    const int numExtraConsumptions = GMX_THREAD_MPI ? 1 : 0;
+    // Will be consumed once for each pulse, and, with tMPI, once more for dim=0,pulse=0 case
+    GpuEventSynchronizer coordinatesReadyOnDeviceEvent(numPulses + numExtraConsumptions,
+                                                       numPulses + numExtraConsumptions);
     coordinatesReadyOnDeviceEvent.markEvent(deviceStream);
 
     std::array<std::vector<GpuHaloExchange>, DIM> gpuHaloExchange;
@@ -150,8 +157,8 @@ void gpuHalo(gmx_domdec_t* dd, matrix box, HostVector<RVec>* h_x, int numAtomsTo
     {
         for (int pulse = 0; pulse < dd->comm->cd[d].numPulses(); pulse++)
         {
-            gpuHaloExchange[d].push_back(GpuHaloExchange(
-                    dd, d, MPI_COMM_WORLD, deviceContext, deviceStream, deviceStream, pulse, nullptr));
+            gpuHaloExchange[d].push_back(
+                    GpuHaloExchange(dd, d, MPI_COMM_WORLD, deviceContext, pulse, nullptr));
         }
     }
 
@@ -164,10 +171,10 @@ void gpuHalo(gmx_domdec_t* dd, matrix box, HostVector<RVec>* h_x, int numAtomsTo
             gpuHaloExchange[d][pulse].communicateHaloCoordinates(box, &coordinatesReadyOnDeviceEvent);
         }
     }
+    // Barrier is needed to avoid other threads using events after its owner has exited and destroyed the context.
+    MPI_Barrier(MPI_COMM_WORLD);
 
-    GpuEventSynchronizer haloCompletedEvent;
-    haloCompletedEvent.markEvent(deviceStream);
-    haloCompletedEvent.waitForEvent();
+    deviceStream.synchronize();
 
     // Copy results back to host
     copyFromDeviceBuffer(
@@ -191,8 +198,9 @@ void define1dRankTopology(gmx_domdec_t* dd)
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    dd->neighbor[0][0] = (rank + 1) % 4;
-    dd->neighbor[0][1] = (rank == 0) ? 3 : rank - 1;
+    const int numRanks = getNumberOfTestMpiRanks();
+    dd->neighbor[0][0] = (rank + 1) % numRanks;
+    dd->neighbor[0][1] = (rank == 0) ? (numRanks - 1) : rank - 1;
 }
 
 /*! \brief Define 2D rank topology with 4 MPI tasks
@@ -509,7 +517,7 @@ void checkResults2dHaloWith2PulsesInDim1(const RVec* x, const gmx_domdec_t* dd, 
 
 TEST(HaloExchangeTest, Coordinates1dHaloWith1Pulse)
 {
-    GMX_MPI_TEST(4);
+    GMX_MPI_TEST(RequireRankCount<4>);
 
     // Set up atom data
     const int        numHomeAtoms  = 10;
@@ -523,9 +531,8 @@ TEST(HaloExchangeTest, Coordinates1dHaloWith1Pulse)
     // Set up dd
     t_inputrec   ir;
     gmx_domdec_t dd(ir);
-    dd.mpi_comm_all = MPI_COMM_WORLD;
-    gmx_domdec_comm_t comm;
-    dd.comm                      = &comm;
+    dd.mpi_comm_all              = MPI_COMM_WORLD;
+    dd.comm                      = std::make_unique<gmx_domdec_comm_t>();
     dd.unitCellInfo.haveScrewPBC = false;
 
     DDAtomRanges atomRanges;
@@ -565,7 +572,7 @@ TEST(HaloExchangeTest, Coordinates1dHaloWith1Pulse)
 
 TEST(HaloExchangeTest, Coordinates1dHaloWith2Pulses)
 {
-    GMX_MPI_TEST(4);
+    GMX_MPI_TEST(RequireRankCount<4>);
 
     // Set up atom data
     const int        numHomeAtoms  = 10;
@@ -579,9 +586,8 @@ TEST(HaloExchangeTest, Coordinates1dHaloWith2Pulses)
     // Set up dd
     t_inputrec   ir;
     gmx_domdec_t dd(ir);
-    dd.mpi_comm_all = MPI_COMM_WORLD;
-    gmx_domdec_comm_t comm;
-    dd.comm                      = &comm;
+    dd.mpi_comm_all              = MPI_COMM_WORLD;
+    dd.comm                      = std::make_unique<gmx_domdec_comm_t>();
     dd.unitCellInfo.haveScrewPBC = false;
 
     DDAtomRanges atomRanges;
@@ -622,7 +628,7 @@ TEST(HaloExchangeTest, Coordinates1dHaloWith2Pulses)
 
 TEST(HaloExchangeTest, Coordinates2dHaloWith1PulseInEachDim)
 {
-    GMX_MPI_TEST(4);
+    GMX_MPI_TEST(RequireRankCount<4>);
 
     // Set up atom data
     const int        numHomeAtoms  = 10;
@@ -636,9 +642,8 @@ TEST(HaloExchangeTest, Coordinates2dHaloWith1PulseInEachDim)
     // Set up dd
     t_inputrec   ir;
     gmx_domdec_t dd(ir);
-    dd.mpi_comm_all = MPI_COMM_WORLD;
-    gmx_domdec_comm_t comm;
-    dd.comm                      = &comm;
+    dd.mpi_comm_all              = MPI_COMM_WORLD;
+    dd.comm                      = std::make_unique<gmx_domdec_comm_t>();
     dd.unitCellInfo.haveScrewPBC = false;
 
     DDAtomRanges atomRanges;
@@ -678,7 +683,7 @@ TEST(HaloExchangeTest, Coordinates2dHaloWith1PulseInEachDim)
 
 TEST(HaloExchangeTest, Coordinates2dHaloWith2PulsesInDim1)
 {
-    GMX_MPI_TEST(4);
+    GMX_MPI_TEST(RequireRankCount<4>);
 
     // Set up atom data
     const int        numHomeAtoms  = 10;
@@ -692,9 +697,8 @@ TEST(HaloExchangeTest, Coordinates2dHaloWith2PulsesInDim1)
     // Set up dd
     t_inputrec   ir;
     gmx_domdec_t dd(ir);
-    dd.mpi_comm_all = MPI_COMM_WORLD;
-    gmx_domdec_comm_t comm;
-    dd.comm                      = &comm;
+    dd.mpi_comm_all              = MPI_COMM_WORLD;
+    dd.comm                      = std::make_unique<gmx_domdec_comm_t>();
     dd.unitCellInfo.haveScrewPBC = false;
 
     DDAtomRanges atomRanges;

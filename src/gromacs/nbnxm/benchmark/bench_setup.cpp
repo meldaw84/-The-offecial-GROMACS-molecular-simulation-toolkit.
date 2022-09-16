@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2019- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 /*! \internal \file
@@ -49,6 +48,7 @@
 
 #include "gromacs/gmxlib/nrnb.h"
 #include "gromacs/math/units.h"
+#include "gromacs/math/vectypes.h"
 #include "gromacs/mdlib/dispersioncorrection.h"
 #include "gromacs/mdlib/force_flags.h"
 #include "gromacs/mdlib/forcerec.h"
@@ -161,7 +161,7 @@ static interaction_const_t setupInteractionConst(const KernelBenchOptions& optio
     ic.reactionFieldCoefficient = 0.5 * std::pow(ic.rcoulomb, -3);
     ic.reactionFieldShift = 1 / ic.rcoulomb + ic.reactionFieldCoefficient * ic.rcoulomb * ic.rcoulomb;
 
-    if (EEL_PME_EWALD(ic.eeltype))
+    if (usingPmeOrEwald(ic.eeltype))
     {
         // Ewald coefficients, we ignore the potential shift
         GMX_RELEASE_ASSERT(options.ewaldcoeff_q > 0, "Ewald coefficient should be > 0");
@@ -178,7 +178,7 @@ static std::unique_ptr<nonbonded_verlet_t> setupNbnxmForBenchInstance(const Kern
                                                                       const gmx::BenchmarkSystem& system)
 {
     const auto pinPolicy  = (options.useGpu ? gmx::PinningPolicy::PinnedIfSupported
-                                           : gmx::PinningPolicy::CannotBePinned);
+                                            : gmx::PinningPolicy::CannotBePinned);
     const int  numThreads = options.numThreads;
     // Note: the options and Nbnxm combination rule enums values should match
     const int combinationRule = static_cast<int>(options.ljCombinationRule);
@@ -219,7 +219,7 @@ static std::unique_ptr<nonbonded_verlet_t> setupNbnxmForBenchInstance(const Kern
     const rvec lowerCorner = { 0, 0, 0 };
     const rvec upperCorner = { system.box[XX][XX], system.box[YY][YY], system.box[ZZ][ZZ] };
 
-    gmx::ArrayRef<const int> atomInfo;
+    gmx::ArrayRef<const int64_t> atomInfo;
     if (options.useHalfLJOptimization)
     {
         atomInfo = system.atomInfoOxygenVdw;
@@ -358,7 +358,15 @@ static void setupAndRunInstance(const gmx::BenchmarkSystem& system,
     for (int iter = 0; iter < options.numPreIterations; iter++)
     {
         nbv->dispatchNonbondedKernel(
-                gmx::InteractionLocality::Local, ic, stepWork, enbvClearFYes, system.forceRec, &enerd, &nrnb);
+                gmx::InteractionLocality::Local,
+                ic,
+                stepWork,
+                enbvClearFYes,
+                system.forceRec.shift_vec,
+                enerd.grpp.energyGroupPairTerms[system.forceRec.haveBuckingham ? NonBondedEnergyTerms::BuckinghamSR
+                                                                               : NonBondedEnergyTerms::LJSR],
+                enerd.grpp.energyGroupPairTerms[NonBondedEnergyTerms::CoulombSR],
+                &nrnb);
     }
 
     const int numIterations = (doWarmup ? options.numWarmupIterations : options.numIterations);
@@ -369,7 +377,15 @@ static void setupAndRunInstance(const gmx::BenchmarkSystem& system,
     {
         // Run the kernel without force clearing
         nbv->dispatchNonbondedKernel(
-                gmx::InteractionLocality::Local, ic, stepWork, enbvClearFNo, system.forceRec, &enerd, &nrnb);
+                gmx::InteractionLocality::Local,
+                ic,
+                stepWork,
+                enbvClearFNo,
+                system.forceRec.shift_vec,
+                enerd.grpp.energyGroupPairTerms[system.forceRec.haveBuckingham ? NonBondedEnergyTerms::BuckinghamSR
+                                                                               : NonBondedEnergyTerms::LJSR],
+                enerd.grpp.energyGroupPairTerms[NonBondedEnergyTerms::CoulombSR],
+                &nrnb);
     }
     cycles = gmx_cycles_read() - cycles;
     if (!doWarmup)

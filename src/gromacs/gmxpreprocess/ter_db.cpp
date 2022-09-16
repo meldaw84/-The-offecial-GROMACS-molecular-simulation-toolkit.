@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2017,2018 by the GROMACS development team.
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,20 +26,20 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
 #include "ter_db.h"
 
-#include <array>
 #include <cctype>
 #include <cstring>
 
 #include <algorithm>
+#include <array>
 #include <optional>
 #include <string>
 #include <vector>
@@ -57,14 +53,13 @@
 #include "gromacs/gmxpreprocess/toputil.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/enumerationhelpers.h"
-#include "gromacs/utility/fatalerror.h"
-#include "gromacs/utility/futil.h"
-#include "gromacs/utility/enumerationhelpers.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/strdb.h"
 #include "gromacs/utility/stringtoenumvalueconverter.h"
+#include "gromacs/utility/stringutil.h"
 
 #include "hackblock.h"
 #include "resall.h"
@@ -92,8 +87,6 @@ static std::optional<EnumType> findTypeFromKeyword(char* keyw)
     gmx::StringToEnumValueConverter<EnumType, enumValueToString, gmx::StringCompareType::CaseInsensitive, gmx::StripStrings::Yes> converter;
     return converter.valueFrom(keyw);
 }
-
-#define FATAL() gmx_fatal(FARGS, "Reading Termini Database: not enough items on line\n%s", line)
 
 static void read_atom(char* line, bool bAdd, std::string* nname, t_atom* a, PreprocessingAtomTypes* atype, int* cgnr)
 {
@@ -139,7 +132,18 @@ static void read_atom(char* line, bool bAdd, std::string* nname, t_atom* a, Prep
             *nname = "";
         }
     }
-    a->type = *atype->atomTypeFromName(buf[i++]);
+    auto atomType = atype->atomTypeFromName(buf[i++]);
+    if (atomType == std::nullopt)
+    {
+        GMX_THROW(gmx::InconsistentInputError(
+                gmx::formatString("Atom type %s specified in terminal database has not been "
+                                  "defined in the force field",
+                                  buf[i - 1])));
+    }
+    else
+    {
+        a->type = atomType.value();
+    }
     sscanf(buf[i++], "%lf", &m);
     a->m = m;
     sscanf(buf[i++], "%lf", &q);
@@ -156,7 +160,7 @@ static void read_atom(char* line, bool bAdd, std::string* nname, t_atom* a, Prep
 
 static void print_atom(FILE* out, const t_atom& a, PreprocessingAtomTypes* atype)
 {
-    fprintf(out, "\t%s\t%g\t%g\n", *atype->atomNameFromAtomType(a.type), a.m, a.q);
+    fprintf(out, "\t%s\t%g\t%g\n", atype->atomNameFromAtomType(a.type)->c_str(), a.m, a.q);
 }
 
 static void print_ter_db(const char*                                ff,

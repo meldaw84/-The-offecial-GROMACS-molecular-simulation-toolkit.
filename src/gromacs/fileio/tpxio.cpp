@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,16 +26,14 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
 /* This file is completely threadsafe - keep it that way! */
-
-#include "gromacs/fileio/tpxio.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -53,6 +47,7 @@
 #include "gromacs/fileio/filetypes.h"
 #include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/gmxfio_xdr.h"
+#include "gromacs/fileio/tpxio.h"
 #include "gromacs/math/units.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/mdtypes/awh_history.h"
@@ -66,6 +61,7 @@
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/topology/block.h"
 #include "gromacs/topology/ifunc.h"
+#include "gromacs/topology/mtop_atomloops.h"
 #include "gromacs/topology/mtop_util.h"
 #include "gromacs/topology/symtab.h"
 #include "gromacs/topology/topology.h"
@@ -137,6 +133,11 @@ enum tpxv
     tpxv_VSite1,                                  /**< Added 1 type virtual site */
     tpxv_MTS,                                     /**< Added multiple time stepping */
     tpxv_RemovedConstantAcceleration, /**< Removed support for constant acceleration NEMD. */
+    tpxv_TransformationPullCoord,     /**< Support for transformation pull coordinates */
+    tpxv_SoftcoreGapsys,              /**< Added gapsys softcore function */
+    tpxv_ReaddedConstantAcceleration, /**< Re-added support for constant acceleration NEMD. */
+    tpxv_RemoveTholeRfac,             /**< Remove unused rfac parameter from thole listed force */
+    tpxv_RemoveAtomtypes,             /**< Remove unused atomtypes parameter from mtop */
     tpxv_Count                        /**< the total number of tpxv versions */
 };
 
@@ -247,9 +248,6 @@ static const t_ftupd ftupd[] = {
 };
 #define NFTUPD asize(ftupd)
 
-/* Needed for backward compatibility */
-#define MAXNODES 256
-
 /**************************************************************
  *
  * Now the higer level routines that do io of the structures and arrays
@@ -304,17 +302,7 @@ static void do_pull_coord(gmx::ISerializer* serializer,
         {
             if (pcrd->eType == PullingAlgorithm::External)
             {
-                std::string buf;
-                if (serializer->reading())
-                {
-                    serializer->doString(&buf);
-                    pcrd->externalPotentialProvider = gmx_strdup(buf.c_str());
-                }
-                else
-                {
-                    buf = pcrd->externalPotentialProvider;
-                    serializer->doString(&buf);
-                }
+                serializer->doString(&pcrd->externalPotentialProvider);
             }
             else
             {
@@ -353,6 +341,17 @@ static void do_pull_coord(gmx::ISerializer* serializer,
             pcrd->ngroup = 0;
         }
         serializer->doIvec(&pcrd->dim.as_vec());
+        if (file_version >= tpxv_TransformationPullCoord)
+        {
+            serializer->doString(&pcrd->expression);
+        }
+        else
+        {
+            if (serializer->reading())
+            {
+                pcrd->expression.clear();
+            }
+        }
     }
     else
     {
@@ -623,6 +622,20 @@ static void do_fepvals(gmx::ISerializer* serializer, t_lambda* fepvals, int file
     {
         fepvals->edHdLPrintEnergy = FreeEnergyPrintEnergy::No;
     }
+    if (file_version >= tpxv_SoftcoreGapsys)
+    {
+        serializer->doInt(reinterpret_cast<int*>(&fepvals->softcoreFunction));
+        serializer->doReal(&fepvals->scGapsysScaleLinpointLJ);
+        serializer->doReal(&fepvals->scGapsysScaleLinpointQ);
+        serializer->doReal(&fepvals->scGapsysSigmaLJ);
+    }
+    else
+    {
+        fepvals->softcoreFunction        = SoftcoreType::Beutler;
+        fepvals->scGapsysScaleLinpointLJ = 0.85;
+        fepvals->scGapsysScaleLinpointQ  = 0.3;
+        fepvals->scGapsysSigmaLJ         = 0.3;
+    }
 
     /* handle lambda_neighbors */
     if ((file_version >= 83 && file_version < 90) || file_version >= 92)
@@ -803,9 +816,12 @@ static void do_rotgrp(gmx::ISerializer* serializer, t_rotgrp* rotg)
     serializer->doIntArray(rotg->ind, rotg->nat);
     if (serializer->reading())
     {
-        snew(rotg->x_ref, rotg->nat);
+        rotg->x_ref_original.resize(rotg->nat);
     }
-    serializer->doRvecArray(rotg->x_ref, rotg->nat);
+    for (gmx::RVec& x : rotg->x_ref_original)
+    {
+        serializer->doRvec(as_rvec_array(&x));
+    }
     serializer->doRvec(&rotg->inputVec);
     serializer->doRvec(&rotg->pivot);
     serializer->doReal(&rotg->rate);
@@ -820,18 +836,18 @@ static void do_rotgrp(gmx::ISerializer* serializer, t_rotgrp* rotg)
 
 static void do_rot(gmx::ISerializer* serializer, t_rot* rot)
 {
-    int g;
+    int numGroups = rot->grp.size();
 
-    serializer->doInt(&rot->ngrp);
+    serializer->doInt(&numGroups);
     serializer->doInt(&rot->nstrout);
     serializer->doInt(&rot->nstsout);
     if (serializer->reading())
     {
-        snew(rot->grp, rot->ngrp);
+        rot->grp.resize(numGroups);
     }
-    for (g = 0; g < rot->ngrp; g++)
+    for (auto& grp : rot->grp)
     {
-        do_rotgrp(serializer, &rot->grp[g]);
+        do_rotgrp(serializer, &grp);
     }
 }
 
@@ -1010,6 +1026,8 @@ static void do_inputrec(gmx::ISerializer* serializer, t_inputrec* ir, int file_v
     int      i, j, k, idum = 0;
     real     rdum;
     gmx_bool bdum = false;
+
+    ir->tpxFileVersion = file_version;
 
     if (file_version != tpx_version)
     {
@@ -1291,24 +1309,24 @@ static void do_inputrec(gmx::ISerializer* serializer, t_inputrec* ir, int file_v
     {
         ir->nsttcouple = ir->nstcalcenergy;
     }
-    serializer->doEnumAsInt(&ir->epc);
-    serializer->doEnumAsInt(&ir->epct);
+    serializer->doEnumAsInt(&ir->pressureCouplingOptions.epc);
+    serializer->doEnumAsInt(&ir->pressureCouplingOptions.epct);
     if (file_version >= 71)
     {
-        serializer->doInt(&ir->nstpcouple);
+        serializer->doInt(&ir->pressureCouplingOptions.nstpcouple);
     }
     else
     {
-        ir->nstpcouple = ir->nstcalcenergy;
+        ir->pressureCouplingOptions.nstpcouple = ir->nstcalcenergy;
     }
-    serializer->doReal(&ir->tau_p);
-    serializer->doRvec(&ir->ref_p[XX]);
-    serializer->doRvec(&ir->ref_p[YY]);
-    serializer->doRvec(&ir->ref_p[ZZ]);
-    serializer->doRvec(&ir->compress[XX]);
-    serializer->doRvec(&ir->compress[YY]);
-    serializer->doRvec(&ir->compress[ZZ]);
-    serializer->doEnumAsInt(&ir->refcoord_scaling);
+    serializer->doReal(&ir->pressureCouplingOptions.tau_p);
+    serializer->doRvec(&ir->pressureCouplingOptions.ref_p[XX]);
+    serializer->doRvec(&ir->pressureCouplingOptions.ref_p[YY]);
+    serializer->doRvec(&ir->pressureCouplingOptions.ref_p[ZZ]);
+    serializer->doRvec(&ir->pressureCouplingOptions.compress[XX]);
+    serializer->doRvec(&ir->pressureCouplingOptions.compress[YY]);
+    serializer->doRvec(&ir->pressureCouplingOptions.compress[ZZ]);
+    serializer->doEnumAsInt(&ir->pressureCouplingOptions.refcoord_scaling);
     serializer->doRvec(&ir->posres_com);
     serializer->doRvec(&ir->posres_comB);
 
@@ -1526,9 +1544,9 @@ static void do_inputrec(gmx::ISerializer* serializer, t_inputrec* ir, int file_v
         {
             if (serializer->reading())
             {
-                snew(ir->rot, 1);
+                ir->rot = std::make_unique<t_rot>();
             }
-            do_rot(serializer, ir->rot);
+            do_rot(serializer, ir->rot.get());
         }
     }
     else
@@ -1565,10 +1583,14 @@ static void do_inputrec(gmx::ISerializer* serializer, t_inputrec* ir, int file_v
     {
         ir->opts.nhchainlength = 1;
     }
-    int removedOptsNgacc = 0;
-    if (serializer->reading() && file_version < tpxv_RemovedConstantAcceleration)
+    if (serializer->reading() && file_version >= tpxv_RemovedConstantAcceleration
+        && file_version < tpxv_ReaddedConstantAcceleration)
     {
-        serializer->doInt(&removedOptsNgacc);
+        ir->opts.ngacc = 0;
+    }
+    else
+    {
+        serializer->doInt(&ir->opts.ngacc);
     }
     serializer->doInt(&ir->opts.ngfrz);
     serializer->doInt(&ir->opts.ngener);
@@ -1583,6 +1605,7 @@ static void do_inputrec(gmx::ISerializer* serializer, t_inputrec* ir, int file_v
         snew(ir->opts.anneal_temp, ir->opts.ngtc);
         snew(ir->opts.tau_t, ir->opts.ngtc);
         snew(ir->opts.nFreeze, ir->opts.ngfrz);
+        snew(ir->opts.acceleration, ir->opts.ngacc);
         snew(ir->opts.egp_flags, ir->opts.ngener * ir->opts.ngener);
     }
     if (ir->opts.ngtc > 0)
@@ -1595,18 +1618,20 @@ static void do_inputrec(gmx::ISerializer* serializer, t_inputrec* ir, int file_v
     {
         serializer->doIvecArray(ir->opts.nFreeze, ir->opts.ngfrz);
     }
-    if (serializer->reading() && file_version < tpxv_RemovedConstantAcceleration && removedOptsNgacc > 0)
+    if (ir->opts.ngacc > 0)
     {
-        std::vector<gmx::RVec> dummy;
-        dummy.resize(removedOptsNgacc);
-        serializer->doRvecArray(reinterpret_cast<rvec*>(dummy.data()), removedOptsNgacc);
-        ir->useConstantAcceleration = std::any_of(dummy.begin(), dummy.end(), [](const gmx::RVec& vec) {
-            return vec[XX] != 0.0 || vec[YY] != 0.0 || vec[ZZ] != 0.0;
-        });
+        serializer->doRvecArray(ir->opts.acceleration, ir->opts.ngacc);
     }
-    else
+    if (serializer->reading())
     {
         ir->useConstantAcceleration = false;
+        for (int g = 0; g < ir->opts.ngacc; g++)
+        {
+            if (norm2(ir->opts.acceleration[g]) != 0)
+            {
+                ir->useConstantAcceleration = true;
+            }
+        }
     }
     serializer->doIntArray(ir->opts.egp_flags, ir->opts.ngener * ir->opts.ngener);
 
@@ -1877,7 +1902,12 @@ static void do_iparams(gmx::ISerializer* serializer, t_functype ftype, t_iparams
             serializer->doReal(&iparams->thole.a);
             serializer->doReal(&iparams->thole.alpha1);
             serializer->doReal(&iparams->thole.alpha2);
-            serializer->doReal(&iparams->thole.rfac);
+            if (file_version < tpxv_RemoveTholeRfac)
+            {
+                real noRfac = 0;
+                serializer->doReal(&noRfac);
+            }
+
             break;
         case F_LJ:
             serializer->doReal(&iparams->lj.c6);
@@ -2375,28 +2405,23 @@ static void do_groups(gmx::ISerializer* serializer, SimulationGroups* groups, t_
     }
 }
 
-static void do_atomtypes(gmx::ISerializer* serializer, t_atomtypes* atomtypes, int file_version)
+static void do_atomtypes(gmx::ISerializer* serializer, int file_version)
 {
-    int j;
-
-    serializer->doInt(&atomtypes->nr);
-    j = atomtypes->nr;
-    if (serializer->reading())
-    {
-        snew(atomtypes->atomnumber, j);
-    }
+    int nr;
+    serializer->doInt(&nr);
     if (serializer->reading() && file_version < tpxv_RemoveImplicitSolvation)
     {
-        std::vector<real> dummy(atomtypes->nr, 0);
+        std::vector<real> dummy(nr, 0);
         serializer->doRealArray(dummy.data(), dummy.size());
         serializer->doRealArray(dummy.data(), dummy.size());
         serializer->doRealArray(dummy.data(), dummy.size());
     }
-    serializer->doIntArray(atomtypes->atomnumber, j);
+    std::vector<int> atomnumbers(nr);
+    serializer->doIntArray(atomnumbers.data(), atomnumbers.size());
 
     if (serializer->reading() && file_version >= 60 && file_version < tpxv_RemoveImplicitSolvation)
     {
-        std::vector<real> dummy(atomtypes->nr, 0);
+        std::vector<real> dummy(nr, 0);
         serializer->doRealArray(dummy.data(), dummy.size());
         serializer->doRealArray(dummy.data(), dummy.size());
     }
@@ -2605,7 +2630,11 @@ static void do_mtop(gmx::ISerializer* serializer, gmx_mtop_t* mtop, int file_ver
         mtop->bIntermolecularInteractions = FALSE;
     }
 
-    do_atomtypes(serializer, &(mtop->atomtypes), file_version);
+    if (file_version < tpxv_RemoveAtomtypes)
+    {
+        do_atomtypes(serializer, file_version);
+    }
+
 
     if (file_version >= 65)
     {
@@ -2618,11 +2647,6 @@ static void do_mtop(gmx::ISerializer* serializer, gmx_mtop_t* mtop, int file_ver
     }
 
     do_groups(serializer, &mtop->groups, &(mtop->symtab));
-    if (file_version < tpxv_RemovedConstantAcceleration)
-    {
-        mtop->groups.groups[SimulationAtomGroupType::AccelerationUnused].clear();
-        mtop->groups.groupNumbers[SimulationAtomGroupType::AccelerationUnused].clear();
-    }
 
     mtop->haveMoleculeIndices = true;
 

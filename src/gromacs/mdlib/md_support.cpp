@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 The GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 #include "gmxpre.h"
@@ -67,6 +63,7 @@
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/md_enums.h"
 #include "gromacs/mdtypes/mdatom.h"
+#include "gromacs/mdtypes/observablesreducer.h"
 #include "gromacs/mdtypes/state.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/pulling/pull.h"
@@ -141,7 +138,7 @@ static void calc_ke_part_normal(gmx::ArrayRef<const gmx::RVec> v,
         gt = 0;
         for (n = start_t; n < end_t; n++)
         {
-            if (md->cTC)
+            if (!md->cTC.empty())
             {
                 gt = md->cTC[n];
             }
@@ -214,7 +211,7 @@ static void calc_ke_part_visc(const matrix                   box,
     dekindl = 0;
     for (n = start; n < start + homenr; n++)
     {
-        if (md->cTC)
+        if (!md->cTC.empty())
         {
             gt = md->cTC[n];
         }
@@ -298,27 +295,26 @@ void compute_globals(gmx_global_stat*               gstat,
                      tensor                         shake_vir,
                      tensor                         total_vir,
                      tensor                         pres,
-                     gmx::ArrayRef<real>            constraintsRmsdData,
                      gmx::SimulationSignaller*      signalCoordinator,
                      const matrix                   lastbox,
                      gmx_bool*                      bSumEkinhOld,
-                     const int                      flags)
+                     const int                      flags,
+                     int64_t                        step,
+                     gmx::ObservablesReducer*       observablesReducer)
 {
     gmx_bool bEner, bPres, bTemp;
     gmx_bool bStopCM, bGStat, bReadEkin, bEkinAveVel, bScaleEkin, bConstrain;
-    gmx_bool bCheckNumberOfBondedInteractions;
     real     dvdl_ekin;
 
     /* translate CGLO flags to gmx_booleans */
-    bStopCM                          = ((flags & CGLO_STOPCM) != 0);
-    bGStat                           = ((flags & CGLO_GSTAT) != 0);
-    bReadEkin                        = ((flags & CGLO_READEKIN) != 0);
-    bScaleEkin                       = ((flags & CGLO_SCALEEKIN) != 0);
-    bEner                            = ((flags & CGLO_ENERGY) != 0);
-    bTemp                            = ((flags & CGLO_TEMPERATURE) != 0);
-    bPres                            = ((flags & CGLO_PRESSURE) != 0);
-    bConstrain                       = ((flags & CGLO_CONSTRAINT) != 0);
-    bCheckNumberOfBondedInteractions = ((flags & CGLO_CHECK_NUMBER_OF_BONDED_INTERACTIONS) != 0);
+    bStopCM    = ((flags & CGLO_STOPCM) != 0);
+    bGStat     = ((flags & CGLO_GSTAT) != 0);
+    bReadEkin  = ((flags & CGLO_READEKIN) != 0);
+    bScaleEkin = ((flags & CGLO_SCALEEKIN) != 0);
+    bEner      = ((flags & CGLO_ENERGY) != 0);
+    bTemp      = ((flags & CGLO_TEMPERATURE) != 0);
+    bPres      = ((flags & CGLO_PRESSURE) != 0);
+    bConstrain = ((flags & CGLO_CONSTRAINT) != 0);
 
     /* we calculate a full state kinetic energy either with full-step velocity verlet
        or half step where we need the pressure */
@@ -345,7 +341,7 @@ void compute_globals(gmx_global_stat*               gstat,
         calc_vcm_grp(*mdatoms, x, v, vcm);
     }
 
-    if (bTemp || bStopCM || bPres || bEner || bConstrain || bCheckNumberOfBondedInteractions)
+    if (bTemp || bStopCM || bPres || bEner || bConstrain || observablesReducer->isReductionRequired())
     {
         if (!bGStat)
         {
@@ -367,11 +363,12 @@ void compute_globals(gmx_global_stat*               gstat,
                             shake_vir,
                             *ir,
                             ekind,
-                            constraintsRmsdData,
                             bStopCM ? vcm : nullptr,
                             signalBuffer,
                             *bSumEkinhOld,
-                            flags);
+                            flags,
+                            step,
+                            observablesReducer);
                 wallcycle_stop(wcycle, WallCycleCounter::MoveE);
             }
             signalCoordinator->finalizeSignals();
@@ -452,7 +449,7 @@ int computeGlobalCommunicationPeriod(const t_inputrec* ir)
     {
         // Set up the default behaviour
         if (!(ir->nstcalcenergy > 0 || ir->nstlist > 0 || ir->etc != TemperatureCoupling::No
-              || ir->epc != PressureCoupling::No))
+              || ir->pressureCouplingOptions.epc != PressureCoupling::No))
         {
             /* The user didn't choose the period for anything
                important, so we just make sure we can send signals and
@@ -476,7 +473,9 @@ int computeGlobalCommunicationPeriod(const t_inputrec* ir)
             nstglobalcomm = lcd4(ir->nstcalcenergy,
                                  ir->nstlist,
                                  ir->etc != TemperatureCoupling::No ? ir->nsttcouple : 0,
-                                 ir->epc != PressureCoupling::No ? ir->nstpcouple : 0);
+                                 ir->pressureCouplingOptions.epc != PressureCoupling::No
+                                         ? ir->pressureCouplingOptions.nstpcouple
+                                         : 0);
         }
     }
     return nstglobalcomm;
@@ -536,11 +535,12 @@ void set_state_entries(t_state* state, const t_inputrec* ir, bool useModularSimu
     if (ir->pbcType != PbcType::No)
     {
         state->flags |= enumValueToBitMask(StateEntry::Box);
-        if (inputrecPreserveShape(ir))
+        if (shouldPreserveBoxShape(ir->pressureCouplingOptions, ir->deform))
         {
             state->flags |= enumValueToBitMask(StateEntry::BoxRel);
         }
-        if ((ir->epc == PressureCoupling::ParrinelloRahman) || (ir->epc == PressureCoupling::Mttk))
+        if ((ir->pressureCouplingOptions.epc == PressureCoupling::ParrinelloRahman)
+            || (ir->pressureCouplingOptions.epc == PressureCoupling::Mttk))
         {
             state->flags |= enumValueToBitMask(StateEntry::BoxV);
             if (!useModularSimulator)
@@ -558,7 +558,8 @@ void set_state_entries(t_state* state, const t_inputrec* ir, bool useModularSimu
             state->flags |= enumValueToBitMask(StateEntry::Veta);
             state->flags |= enumValueToBitMask(StateEntry::Vol0);
         }
-        if (ir->epc == PressureCoupling::Berendsen || ir->epc == PressureCoupling::CRescale)
+        if (ir->pressureCouplingOptions.epc == PressureCoupling::Berendsen
+            || ir->pressureCouplingOptions.epc == PressureCoupling::CRescale)
         {
             state->flags |= enumValueToBitMask(StateEntry::BarosInt);
         }
@@ -578,7 +579,7 @@ void set_state_entries(t_state* state, const t_inputrec* ir, bool useModularSimu
     init_gtc_state(state, state->ngtc, state->nnhpres, ir->opts.nhchainlength); /* allocate the space for nose-hoover chains */
     init_ekinstate(&state->ekinstate, ir);
 
-    if (ir->bExpanded)
+    if (ir->bExpanded && !useModularSimulator)
     {
         snew(state->dfhist, 1);
         init_df_history(state->dfhist, ir->fepvals->n_lambda);

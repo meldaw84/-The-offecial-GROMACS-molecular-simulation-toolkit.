@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2019- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \libinternal \file
  * \brief Declaration of GPU PME-PP Communication.
@@ -43,8 +42,10 @@
 #define GMX_PME_PP_COMM_GPU_H
 
 #include <memory>
+#include <vector>
 
 #include "gromacs/gpu_utils/devicebuffer_datatype.h"
+#include "gromacs/gpu_utils/hostallocator.h"
 #include "gromacs/math/vectypes.h"
 #include "gromacs/utility/gmxmpi.h"
 
@@ -66,12 +67,17 @@ class PmePpCommGpu
 
 public:
     /*! \brief Creates PME-PP GPU communication object
-     * \param[in] comm            Communicator used for simulation
-     * \param[in] pmeRank         Rank of PME task
-     * \param[in] deviceContext   GPU context.
-     * \param[in] deviceStream    GPU stream.
+     * \param[in] comm              Communicator used for simulation
+     * \param[in] pmeRank           Rank of PME task
+     * \param[in] pmeCpuForceBuffer Buffer for PME force in CPU memory
+     * \param[in] deviceContext     GPU context.
+     * \param[in] deviceStream      GPU stream.
      */
-    PmePpCommGpu(MPI_Comm comm, int pmeRank, const DeviceContext& deviceContext, const DeviceStream& deviceStream);
+    PmePpCommGpu(MPI_Comm                    comm,
+                 int                         pmeRank,
+                 gmx::HostVector<gmx::RVec>* pmeCpuForceBuffer,
+                 const DeviceContext&        deviceContext,
+                 const DeviceStream&         deviceStream);
     ~PmePpCommGpu();
 
     /*! \brief Perform steps required when buffer size changes
@@ -82,7 +88,7 @@ public:
     /*! \brief
      * Pull data from PME GPU directly using CUDA Memory copy.
      * \param[out] recvPtr  Buffer to receive PME force data
-     * \param[in]  recvSize Number of elements to receive
+     * \param[in] recvSize Number of elements to receive
      * \param[in] recvPmeForceToGpu Whether receive is to GPU, otherwise CPU
      */
     void receiveForceFromPme(RVec* recvPtr, int recvSize, bool recvPmeForceToGpu);

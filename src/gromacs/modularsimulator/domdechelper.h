@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2019- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief Declares the domain decomposition helper for the modular simulator
@@ -85,24 +84,24 @@ class DomDecHelper final : public INeighborSearchSignallerClient
 {
 public:
     //! Constructor
-    DomDecHelper(bool                        isVerbose,
-                 int                         verbosePrintInterval,
-                 StatePropagatorData*        statePropagatorData,
-                 FreeEnergyPerturbationData* freeEnergyPerturbationData,
-                 TopologyHolder*             topologyHolder,
-                 int                         nstglobalcomm,
-                 FILE*                       fplog,
-                 t_commrec*                  cr,
-                 const MDLogger&             mdlog,
-                 Constraints*                constr,
-                 const t_inputrec*           inputrec,
-                 MDAtoms*                    mdAtoms,
-                 t_nrnb*                     nrnb,
-                 gmx_wallcycle*              wcycle,
-                 t_forcerec*                 fr,
-                 VirtualSitesHandler*        vsite,
-                 ImdSession*                 imdSession,
-                 pull_t*                     pull_work);
+    DomDecHelper(bool                          isVerbose,
+                 int                           verbosePrintInterval,
+                 StatePropagatorData*          statePropagatorData,
+                 TopologyHolder*               topologyHolder,
+                 int                           nstglobalcomm,
+                 FILE*                         fplog,
+                 t_commrec*                    cr,
+                 const MDLogger&               mdlog,
+                 Constraints*                  constr,
+                 const t_inputrec*             inputrec,
+                 MDAtoms*                      mdAtoms,
+                 t_nrnb*                       nrnb,
+                 gmx_wallcycle*                wcycle,
+                 t_forcerec*                   fr,
+                 VirtualSitesHandler*          vsite,
+                 ImdSession*                   imdSession,
+                 pull_t*                       pull_work,
+                 std::vector<DomDecCallback>&& domdecCallbacks);
 
     /*! \brief Run domain decomposition
      *
@@ -131,21 +130,22 @@ private:
     //! The global communication frequency
     const int nstglobalcomm_;
 
+    //! List of callbacks to inform clients that DD happened
+    std::vector<DomDecCallback> domdecCallbacks_;
+
     // TODO: Clarify relationship to data objects and find a more robust alternative to raw pointers (#3583)
     //! Pointer to the micro state
     StatePropagatorData* statePropagatorData_;
-    //! Pointer to the free energy data
-    FreeEnergyPerturbationData* freeEnergyPerturbationData_;
     //! Pointer to the topology
     TopologyHolder* topologyHolder_;
 
     //! Helper function unifying the DD partitioning calls in setup() and run()
-    void partitionSystem(bool                     verbose,
-                         bool                     isMasterState,
-                         int                      nstglobalcomm,
-                         gmx_wallcycle*           wcycle,
-                         std::unique_ptr<t_state> localState,
-                         t_state*                 globalState);
+    void partitionSystem(bool           verbose,
+                         bool           isMasterState,
+                         int            nstglobalcomm,
+                         gmx_wallcycle* wcycle,
+                         t_state*       localState,
+                         t_state*       globalState);
 
     // Access to ISimulator data
     //! Handles logging.
@@ -172,6 +172,38 @@ private:
     ImdSession* imdSession_;
     //! The pull work object.
     pull_t* pull_work_;
+};
+
+/*! \internal
+ * \brief Builder for DomDecHelper
+ *
+ * This builder allows clients to register to the DomDecHelper in order to get
+ * informed whenever system re-partitioning is performed.
+ */
+class DomDecHelperBuilder
+{
+public:
+    //! Register DomDecHelper client
+    void registerClient(IDomDecHelperClient* client);
+
+    //! Return DomDecHelper instance
+    template<typename... Args>
+    std::unique_ptr<DomDecHelper> build(Args&&... args)
+    {
+        state_ = ModularSimulatorBuilderState::NotAcceptingClientRegistrations;
+        std::vector<DomDecCallback> callbacks;
+        for (const auto& client : clients_)
+        {
+            callbacks.emplace_back(client->registerDomDecCallback());
+        }
+        return std::make_unique<DomDecHelper>(std::forward<Args>(args)..., std::move(callbacks));
+    }
+
+private:
+    //! List of clients to be updated after system partition
+    std::vector<IDomDecHelperClient*> clients_;
+    //! The state of the builder
+    ModularSimulatorBuilderState state_ = ModularSimulatorBuilderState::AcceptingClientRegistrations;
 };
 
 //! \}

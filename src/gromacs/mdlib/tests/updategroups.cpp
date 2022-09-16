@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2018,2019,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2018- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief
@@ -47,6 +46,7 @@
 
 #include "gromacs/topology/topology.h"
 
+#include "testutils/loggertest.h"
 #include "testutils/testasserts.h"
 
 namespace gmx
@@ -56,6 +56,17 @@ namespace
 {
 
 /* TODO: Actually initialize moltype.atoms.atom when this is converted to C++ */
+
+/*! \brief Returns a flexible ethane united-atom molecule */
+gmx_moltype_t flexibleEthaneUA()
+{
+    gmx_moltype_t moltype = {};
+
+    moltype.atoms.nr              = 2;
+    moltype.ilist[F_BONDS].iatoms = { 0, 0, 1 };
+
+    return moltype;
+}
 
 /*! \brief Returns an ethane united-atom molecule */
 gmx_moltype_t ethaneUA()
@@ -92,7 +103,7 @@ gmx_moltype_t ethane()
     return moltype;
 }
 
-/*! \brief Returns a butane united-atom molecule */
+/*! \brief Returns a butane fully-constrained united-atom molecule */
 gmx_moltype_t butaneUA()
 {
     gmx_moltype_t moltype = {};
@@ -153,6 +164,8 @@ public:
     gmx_mtop_t mtop_;
     //! Default temperature for tests
     real temperature_ = 298;
+    //! Logger to use in tests
+    test::LoggerTestHelper logHelper_;
 };
 
 TEST_F(UpdateGroupsTest, WithEthaneUA)
@@ -171,6 +184,10 @@ TEST_F(UpdateGroupsTest, WithEthaneUA)
 
     real maxRadius = computeMaxUpdateGroupRadius(mtop_, updateGroupingsPerMoleculeType, temperature_);
     EXPECT_FLOAT_EQ(maxRadius, 0.3 / 2);
+
+    logHelper_.expectNoEntries(MDLogger::LogLevel::Info);
+    UpdateGroups updateGroups = makeUpdateGroups(
+            logHelper_.logger(), std::move(updateGroupingsPerMoleculeType), maxRadius, true, true, 1e6_real);
 }
 
 TEST_F(UpdateGroupsTest, WithMethane)
@@ -189,7 +206,12 @@ TEST_F(UpdateGroupsTest, WithMethane)
 
     real maxRadius = computeMaxUpdateGroupRadius(mtop_, updateGroupingsPerMoleculeType, temperature_);
     EXPECT_FLOAT_EQ(maxRadius, 0.14);
+
+    logHelper_.expectNoEntries(MDLogger::LogLevel::Info);
+    UpdateGroups updateGroups = makeUpdateGroups(
+            logHelper_.logger(), std::move(updateGroupingsPerMoleculeType), maxRadius, true, true, 1e6_real);
 }
+
 TEST_F(UpdateGroupsTest, WithEthane)
 {
     mtop_.moltype.emplace_back(ethane());
@@ -208,6 +230,10 @@ TEST_F(UpdateGroupsTest, WithEthane)
 
     real maxRadius = computeMaxUpdateGroupRadius(mtop_, updateGroupingsPerMoleculeType, temperature_);
     EXPECT_FLOAT_EQ(maxRadius, 0.094746813);
+
+    logHelper_.expectNoEntries(MDLogger::LogLevel::Info);
+    UpdateGroups updateGroups = makeUpdateGroups(
+            logHelper_.logger(), std::move(updateGroupingsPerMoleculeType), maxRadius, true, true, 1e6_real);
 }
 
 TEST_F(UpdateGroupsTest, CheckRadiusCalculationAtDifferentTemperaturesWithEthane)
@@ -239,7 +265,7 @@ TEST_F(UpdateGroupsTest, CheckRadiusCalculationAtDifferentTemperaturesWithEthane
     EXPECT_FLOAT_EQ(maxRadius, 0.125);
 }
 
-TEST_F(UpdateGroupsTest, WithButaneUA)
+TEST_F(UpdateGroupsTest, WithButaneUALogsThatUnsuitableForUpdateGroups)
 {
     mtop_.moltype.emplace_back(butaneUA());
     {
@@ -251,6 +277,15 @@ TEST_F(UpdateGroupsTest, WithButaneUA)
     auto updateGroupingsPerMoleculeType = gmx::makeUpdateGroupingsPerMoleculeType(mtop_);
 
     EXPECT_EQ(updateGroupingsPerMoleculeType.size(), 0);
+
+    real maxRadius = computeMaxUpdateGroupRadius(mtop_, updateGroupingsPerMoleculeType, temperature_);
+    EXPECT_FLOAT_EQ(maxRadius, 0.0);
+
+    logHelper_.expectEntryMatchingRegex(
+            MDLogger::LogLevel::Info,
+            "At least one moleculetype does not conform to the requirements");
+    UpdateGroups updateGroups = makeUpdateGroups(
+            logHelper_.logger(), std::move(updateGroupingsPerMoleculeType), maxRadius, true, true, 1e6_real);
 }
 
 TEST_F(UpdateGroupsTest, WithWaterThreeSite)
@@ -269,6 +304,10 @@ TEST_F(UpdateGroupsTest, WithWaterThreeSite)
 
     real maxRadius = computeMaxUpdateGroupRadius(mtop_, updateGroupingsPerMoleculeType, temperature_);
     EXPECT_FLOAT_EQ(maxRadius, 0.083887339);
+
+    logHelper_.expectNoEntries(MDLogger::LogLevel::Info);
+    UpdateGroups updateGroups = makeUpdateGroups(
+            logHelper_.logger(), std::move(updateGroupingsPerMoleculeType), maxRadius, true, true, 1e6_real);
 }
 
 // Tests update group with virtual site
@@ -287,17 +326,38 @@ TEST_F(UpdateGroupsTest, WithWaterFourSite)
 
     ASSERT_EQ(updateGroupingsPerMoleculeType.size(), 1);
     EXPECT_EQ(updateGroupingsPerMoleculeType[0].numBlocks(), 1);
+
+    real maxRadius = computeMaxUpdateGroupRadius(mtop_, updateGroupingsPerMoleculeType, temperature_);
+    EXPECT_FLOAT_EQ(maxRadius, 0.083887339);
+
+    logHelper_.expectNoEntries(MDLogger::LogLevel::Info);
+    UpdateGroups updateGroups = makeUpdateGroups(
+            logHelper_.logger(), std::move(updateGroupingsPerMoleculeType), maxRadius, true, true, 1e6_real);
 }
 
 TEST_F(UpdateGroupsTest, WithFourAtomsWithSettle)
 {
     mtop_.moltype.emplace_back(waterThreeSite());
     mtop_.moltype.back().atoms.nr = 4;
+    {
+        t_iparams iparams[2];
+        iparams[0].settle = { 0.1, 0.1633 };
+        iparams[1].vsite  = { 0.128, 0.128 };
+        mtop_.ffparams.iparams.push_back(iparams[0]);
+        mtop_.ffparams.iparams.push_back(iparams[1]);
+    }
 
     auto updateGroupingsPerMoleculeType = gmx::makeUpdateGroupingsPerMoleculeType(mtop_);
 
     ASSERT_EQ(updateGroupingsPerMoleculeType.size(), 1);
     EXPECT_EQ(updateGroupingsPerMoleculeType[0].numBlocks(), 2);
+
+    real maxRadius = computeMaxUpdateGroupRadius(mtop_, updateGroupingsPerMoleculeType, temperature_);
+    EXPECT_FLOAT_EQ(maxRadius, 0.083887339);
+
+    logHelper_.expectNoEntries(MDLogger::LogLevel::Info);
+    UpdateGroups updateGroups = makeUpdateGroups(
+            logHelper_.logger(), std::move(updateGroupingsPerMoleculeType), maxRadius, true, true, 1e6_real);
 }
 
 // Tests groups with two constraints and an angle potential
@@ -319,6 +379,10 @@ TEST_F(UpdateGroupsTest, WithWaterFlexAngle)
 
     real maxRadius = computeMaxUpdateGroupRadius(mtop_, updateGroupingsPerMoleculeType, temperature_);
     EXPECT_FLOAT_EQ(maxRadius, 0.090824135);
+
+    logHelper_.expectNoEntries(MDLogger::LogLevel::Info);
+    UpdateGroups updateGroups = makeUpdateGroups(
+            logHelper_.logger(), std::move(updateGroupingsPerMoleculeType), maxRadius, true, true, 1e6_real);
 }
 
 TEST_F(UpdateGroupsTest, CheckRadiusCalculationAtDifferentTemperaturesWithWaterFlexAngle)
@@ -367,7 +431,54 @@ TEST_F(UpdateGroupsTest, WithTwoMoltypes)
     ASSERT_EQ(updateGroupingsPerMoleculeType.size(), 2);
     EXPECT_EQ(updateGroupingsPerMoleculeType[0].numBlocks(), 1);
     EXPECT_EQ(updateGroupingsPerMoleculeType[1].numBlocks(), 1);
+
+    real maxRadius = computeMaxUpdateGroupRadius(mtop_, updateGroupingsPerMoleculeType, temperature_);
+    EXPECT_FLOAT_EQ(maxRadius, 0.14);
+
+    logHelper_.expectNoEntries(MDLogger::LogLevel::Info);
+    UpdateGroups updateGroups = makeUpdateGroups(
+            logHelper_.logger(), std::move(updateGroupingsPerMoleculeType), maxRadius, true, true, 1e6_real);
 }
+
+TEST_F(UpdateGroupsTest, LogsWhenSizesAreInvalid)
+{
+    mtop_.moltype.emplace_back(methane());
+    {
+        t_iparams iparams;
+        iparams.constr = { 0.1, 0.1 };
+        mtop_.ffparams.iparams.push_back(iparams);
+    }
+
+    auto updateGroupingsPerMoleculeType = gmx::makeUpdateGroupingsPerMoleculeType(mtop_);
+    logHelper_.expectEntryMatchingRegex(MDLogger::LogLevel::Info,
+                                        "The combination of rlist and box size prohibits");
+    UpdateGroups updateGroups = makeUpdateGroups(
+            logHelper_.logger(), std::move(updateGroupingsPerMoleculeType), 1e9_real, true, true, 1e6_real);
+}
+
+TEST_F(UpdateGroupsTest, LogsWhenUpdateGroupsAreNotUseful)
+{
+    mtop_.moltype.emplace_back(flexibleEthaneUA());
+    {
+        t_iparams iparams;
+        iparams.harmonic = { 0.1, 10.0, 0.1, 10.0 };
+        mtop_.ffparams.iparams.push_back(iparams);
+    }
+
+    auto updateGroupingsPerMoleculeType = gmx::makeUpdateGroupingsPerMoleculeType(mtop_);
+
+    ASSERT_EQ(updateGroupingsPerMoleculeType.size(), 1);
+    EXPECT_EQ(updateGroupingsPerMoleculeType[0].numBlocks(), 2);
+
+    real maxRadius = computeMaxUpdateGroupRadius(mtop_, updateGroupingsPerMoleculeType, temperature_);
+    EXPECT_FLOAT_EQ(maxRadius, 0);
+
+    logHelper_.expectEntryMatchingRegex(MDLogger::LogLevel::Info,
+                                        "No constraints or virtual sites are in use");
+    UpdateGroups updateGroups = makeUpdateGroups(
+            logHelper_.logger(), std::move(updateGroupingsPerMoleculeType), maxRadius, true, false, 1e6_real);
+}
+
 
 } // namespace
 

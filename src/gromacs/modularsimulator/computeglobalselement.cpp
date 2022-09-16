@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2019- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief Defines the global reduction element for the modular simulator
@@ -52,10 +51,10 @@
 #include "gromacs/mdlib/mdatoms.h"
 #include "gromacs/mdlib/stat.h"
 #include "gromacs/mdlib/update.h"
+#include "gromacs/mdlib/vcm.h"
 #include "gromacs/mdtypes/commrec.h"
 #include "gromacs/mdtypes/group.h"
 #include "gromacs/mdtypes/inputrec.h"
-#include "gromacs/mdtypes/md_enums.h"
 #include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/topology/topology.h"
 
@@ -69,18 +68,19 @@ template<ComputeGlobalsAlgorithm algorithm>
 ComputeGlobalsElement<algorithm>::ComputeGlobalsElement(StatePropagatorData* statePropagatorData,
                                                         EnergyData*          energyData,
                                                         FreeEnergyPerturbationData* freeEnergyPerturbationData,
-                                                        SimulationSignals* signals,
-                                                        int                nstglobalcomm,
-                                                        FILE*              fplog,
-                                                        const MDLogger&    mdlog,
-                                                        t_commrec*         cr,
-                                                        const t_inputrec*  inputrec,
-                                                        const MDAtoms*     mdAtoms,
-                                                        t_nrnb*            nrnb,
-                                                        gmx_wallcycle*     wcycle,
-                                                        t_forcerec*        fr,
-                                                        const gmx_mtop_t&  global_top,
-                                                        Constraints*       constr) :
+                                                        SimulationSignals*  signals,
+                                                        int                 nstglobalcomm,
+                                                        FILE*               fplog,
+                                                        const MDLogger&     mdlog,
+                                                        t_commrec*          cr,
+                                                        const t_inputrec*   inputrec,
+                                                        const MDAtoms*      mdAtoms,
+                                                        t_nrnb*             nrnb,
+                                                        gmx_wallcycle*      wcycle,
+                                                        t_forcerec*         fr,
+                                                        const gmx_mtop_t&   global_top,
+                                                        Constraints*        constr,
+                                                        ObservablesReducer* observablesReducer) :
     energyReductionStep_(-1),
     virialReductionStep_(-1),
     vvSchedulingStep_(-1),
@@ -92,7 +92,6 @@ ComputeGlobalsElement<algorithm>::ComputeGlobalsElement(StatePropagatorData* sta
     nullSignaller_(std::make_unique<SimulationSignaller>(nullptr, nullptr, nullptr, false, false)),
     statePropagatorData_(statePropagatorData),
     energyData_(energyData),
-    localTopology_(nullptr),
     freeEnergyPerturbationData_(freeEnergyPerturbationData),
     vcm_(global_top.groups, *inputrec),
     signals_(signals),
@@ -105,7 +104,8 @@ ComputeGlobalsElement<algorithm>::ComputeGlobalsElement(StatePropagatorData* sta
     constr_(constr),
     nrnb_(nrnb),
     wcycle_(wcycle),
-    fr_(fr)
+    fr_(fr),
+    observablesReducer_(observablesReducer)
 {
     reportComRemovalInfo(fplog, vcm_);
     gstat_ = global_stat_init(inputrec_);
@@ -120,8 +120,6 @@ ComputeGlobalsElement<algorithm>::~ComputeGlobalsElement()
 template<ComputeGlobalsAlgorithm algorithm>
 void ComputeGlobalsElement<algorithm>::elementSetup()
 {
-    GMX_ASSERT(localTopology_, "Setup called before local topology was set.");
-
     if (doStopCM_ && !inputrec_->bContinuation)
     {
         // To minimize communication, compute_globals computes the COM velocity
@@ -130,6 +128,8 @@ void ComputeGlobalsElement<algorithm>::elementSetup()
         // to call compute_globals twice.
 
         compute(-1, CGLO_GSTAT | CGLO_STOPCM, nullSignaller_.get(), false, true);
+        // Clean up after pre-step use of compute()
+        observablesReducer_->markAsReadyToReduce();
 
         auto v = statePropagatorData_->velocitiesView();
         // At initialization, do not pass x with acceleration-correction mode
@@ -157,16 +157,21 @@ void ComputeGlobalsElement<algorithm>::elementSetup()
     {
         copy_mat(energyData_->ekindata()->tcstat[i].ekinh, energyData_->ekindata()->tcstat[i].ekinh_old);
     }
+
+    // Clean up after pre-step use of compute()
+    observablesReducer_->markAsReadyToReduce();
 }
 
 template<ComputeGlobalsAlgorithm algorithm>
-void ComputeGlobalsElement<algorithm>::scheduleTask(Step step,
+void ComputeGlobalsElement<algorithm>::scheduleTask(Step                       step,
                                                     Time gmx_unused            time,
                                                     const RegisterRunFunction& registerRunFunction)
 {
     const bool needComReduction    = doStopCM_ && do_per_step(step, nstcomm_);
     const bool needGlobalReduction = step == energyReductionStep_ || step == virialReductionStep_
-                                     || needComReduction || do_per_step(step, nstglobalcomm_);
+                                     || needComReduction || do_per_step(step, nstglobalcomm_)
+                                     || (EI_VV(inputrec_->eI) && inputrecNvtTrotter(inputrec_)
+                                         && do_per_step(step - 1, nstglobalcomm_));
 
     // TODO: CGLO_GSTAT is only used for needToSumEkinhOld_, i.e. to signal that we do or do not
     //       sum the previous kinetic energy. We should simplify / clarify this.
@@ -275,16 +280,12 @@ void ComputeGlobalsElement<algorithm>::compute(gmx::Step            step,
                                                bool                 useLastBox,
                                                bool                 isInit)
 {
-    auto x       = statePropagatorData_->positionsView().unpaddedArrayRef();
-    auto v       = statePropagatorData_->velocitiesView().unpaddedArrayRef();
-    auto box     = statePropagatorData_->constBox();
-    auto lastbox = useLastBox ? statePropagatorData_->constPreviousBox()
-                              : statePropagatorData_->constBox();
+    auto        x       = statePropagatorData_->positionsView().unpaddedArrayRef();
+    auto        v       = statePropagatorData_->velocitiesView().unpaddedArrayRef();
+    const auto* box     = statePropagatorData_->constBox();
+    const auto* lastbox = useLastBox ? statePropagatorData_->constPreviousBox()
+                                     : statePropagatorData_->constBox();
 
-    if (DOMAINDECOMP(cr_) && shouldCheckNumberOfBondedInteractions(*cr_->dd))
-    {
-        flags |= CGLO_CHECK_NUMBER_OF_BONDED_INTERACTIONS;
-    }
     compute_globals(gstat_,
                     cr_,
                     inputrec_,
@@ -302,27 +303,17 @@ void ComputeGlobalsElement<algorithm>::compute(gmx::Step            step,
                     energyData_->constraintVirial(step),
                     energyData_->totalVirial(step),
                     energyData_->pressure(step),
-                    (((flags & CGLO_ENERGY) != 0) && constr_ != nullptr) ? constr_->rmsdData()
-                                                                         : gmx::ArrayRef<real>{},
                     signaller,
                     lastbox,
                     energyData_->needToSumEkinhOld(),
-                    flags);
-    if (DOMAINDECOMP(cr_))
-    {
-        checkNumberOfBondedInteractions(mdlog_, cr_, top_global_, localTopology_, x, box);
-    }
+                    flags,
+                    step,
+                    observablesReducer_);
     if (flags & CGLO_STOPCM && !isInit)
     {
         process_and_stopcm_grp(fplog_, &vcm_, *mdAtoms_->mdatoms(), x, v);
         inc_nrnb(nrnb_, eNR_STOPCM, mdAtoms_->mdatoms()->homenr);
     }
-}
-
-template<ComputeGlobalsAlgorithm algorithm>
-void ComputeGlobalsElement<algorithm>::setTopology(const gmx_localtop_t* top)
-{
-    localTopology_ = top;
 }
 
 template<ComputeGlobalsAlgorithm algorithm>
@@ -350,6 +341,32 @@ ComputeGlobalsElement<algorithm>::registerTrajectorySignallerCallback(Trajectory
     return std::nullopt;
 }
 
+namespace
+{
+
+/*! \brief Schedule a function for actions that must happen at the end of each step
+ *
+ * After reduction, an ObservablesReducer is marked as unavailable for
+ * further reduction this step. This needs to be reset in order to be
+ * used on the next step.
+ *
+ * \param[in]  observablesReducer The ObservablesReducer to mark as ready for use
+ */
+SchedulingFunction registerPostStepSchedulingFunction(ObservablesReducer* observablesReducer)
+{
+    SchedulingFunction postStepSchedulingFunction =
+            [observablesReducer](
+                    Step /*step*/, Time /*time*/, const RegisterRunFunction& registerRunFunction) {
+                SimulatorRunFunction completeObservablesReducerStep = [&observablesReducer]() {
+                    observablesReducer->markAsReadyToReduce();
+                };
+                registerRunFunction(completeObservablesReducerStep);
+            };
+    return postStepSchedulingFunction;
+}
+
+} // namespace
+
 //! Explicit template instantiation
 //! \{
 template class ComputeGlobalsElement<ComputeGlobalsAlgorithm::LeapFrog>;
@@ -363,9 +380,10 @@ ISimulatorElement* ComputeGlobalsElement<ComputeGlobalsAlgorithm::LeapFrog>::get
         StatePropagatorData*                    statePropagatorData,
         EnergyData*                             energyData,
         FreeEnergyPerturbationData*             freeEnergyPerturbationData,
-        GlobalCommunicationHelper*              globalCommunicationHelper)
+        GlobalCommunicationHelper*              globalCommunicationHelper,
+        ObservablesReducer*                     observablesReducer)
 {
-    auto* element = builderHelper->storeElement(
+    ComputeGlobalsElement* element = builderHelper->storeElement(
             std::make_unique<ComputeGlobalsElement<ComputeGlobalsAlgorithm::LeapFrog>>(
                     statePropagatorData,
                     energyData,
@@ -381,7 +399,10 @@ ISimulatorElement* ComputeGlobalsElement<ComputeGlobalsAlgorithm::LeapFrog>::get
                     legacySimulatorData->wcycle,
                     legacySimulatorData->fr,
                     legacySimulatorData->top_global,
-                    legacySimulatorData->constr));
+                    legacySimulatorData->constr,
+                    observablesReducer));
+    builderHelper->registerPostStepScheduling(
+            registerPostStepSchedulingFunction(element->observablesReducer_));
 
     return element;
 }
@@ -393,21 +414,22 @@ ISimulatorElement* ComputeGlobalsElement<ComputeGlobalsAlgorithm::VelocityVerlet
         StatePropagatorData*                    statePropagatorData,
         EnergyData*                             energyData,
         FreeEnergyPerturbationData*             freeEnergyPerturbationData,
-        GlobalCommunicationHelper*              globalCommunicationHelper)
+        GlobalCommunicationHelper*              globalCommunicationHelper,
+        ObservablesReducer*                     observablesReducer)
 {
     // We allow this element to be added multiple times to the call list, but we only want one
     // actual element built
     static const std::string key("vvComputeGlobalsElement");
 
-    const std::optional<std::any> cachedValue = builderHelper->getStoredValue(key);
+    const std::optional<std::any> cachedValue = builderHelper->builderData(key);
 
     if (cachedValue)
     {
-        return std::any_cast<ISimulatorElement*>(cachedValue.value());
+        return std::any_cast<ComputeGlobalsElement*>(cachedValue.value());
     }
     else
     {
-        ISimulatorElement* vvComputeGlobalsElement = builderHelper->storeElement(
+        ComputeGlobalsElement* vvComputeGlobalsElement = builderHelper->storeElement(
                 std::make_unique<ComputeGlobalsElement<ComputeGlobalsAlgorithm::VelocityVerlet>>(
                         statePropagatorData,
                         energyData,
@@ -423,8 +445,11 @@ ISimulatorElement* ComputeGlobalsElement<ComputeGlobalsAlgorithm::VelocityVerlet
                         simulator->wcycle,
                         simulator->fr,
                         simulator->top_global,
-                        simulator->constr));
-        builderHelper->storeValue(key, vvComputeGlobalsElement);
+                        simulator->constr,
+                        observablesReducer));
+        builderHelper->storeBuilderData(key, vvComputeGlobalsElement);
+        builderHelper->registerPostStepScheduling(
+                registerPostStepSchedulingFunction(vvComputeGlobalsElement->observablesReducer_));
         return vvComputeGlobalsElement;
     }
 }

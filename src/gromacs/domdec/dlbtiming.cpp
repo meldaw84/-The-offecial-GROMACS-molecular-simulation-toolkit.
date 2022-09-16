@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2017,2018,2019,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2017- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 #include "gmxpre.h"
@@ -46,15 +45,12 @@
 #include "domdec_internal.h"
 
 /*! \brief Struct for timing the region for dynamic load balancing */
-struct BalanceRegion
+class BalanceRegion::Impl
 {
+public:
     /*! \brief Constructor */
-    BalanceRegion() :
-        isOpen(false),
-        isOpenOnCpu(false),
-        isOpenOnGpu(false),
-        cyclesOpenCpu(0),
-        cyclesLastCpu(0)
+    Impl() :
+        isOpen(false), isOpenOnCpu(false), isOpenOnGpu(false), cyclesOpenCpu(0), cyclesLastCpu(0)
     {
     }
 
@@ -65,27 +61,29 @@ struct BalanceRegion
     gmx_cycles_t cyclesLastCpu; /**< Cycle count at the last call to \p ddCloseBalanceRegionCpu() */
 };
 
-BalanceRegion* ddBalanceRegionAllocate()
+BalanceRegion::BalanceRegion()
 {
-    return new BalanceRegion;
+    impl_ = std::make_unique<Impl>();
 }
+
+BalanceRegion::~BalanceRegion() = default;
 
 /*! \brief Returns the pointer to the balance region.
  *
  * This should be replaced by a properly managed BalanceRegion class,
  * but that requires a lot of refactoring in domdec.cpp.
  */
-static BalanceRegion* getBalanceRegion(const gmx_domdec_t* dd)
+static BalanceRegion::Impl* getBalanceRegion(const gmx_domdec_t* dd)
 {
     GMX_ASSERT(dd != nullptr && dd->comm != nullptr, "Balance regions should only be used with DD");
-    BalanceRegion* region = dd->comm->balanceRegion;
+    BalanceRegion::Impl* region = dd->comm->balanceRegion.impl_.get();
     GMX_ASSERT(region != nullptr, "Balance region should be initialized before use");
     return region;
 }
 
 void DDBalanceRegionHandler::openRegionCpuImpl(DdAllowBalanceRegionReopen gmx_unused allowReopen) const
 {
-    BalanceRegion* reg = getBalanceRegion(dd_);
+    BalanceRegion::Impl* reg = getBalanceRegion(dd_);
     if (dd_->comm->ddSettings.recordLoad)
     {
         GMX_ASSERT(allowReopen == DdAllowBalanceRegionReopen::yes || !reg->isOpen,
@@ -100,7 +98,7 @@ void DDBalanceRegionHandler::openRegionCpuImpl(DdAllowBalanceRegionReopen gmx_un
 
 void DDBalanceRegionHandler::openRegionGpuImpl() const
 {
-    BalanceRegion* reg = getBalanceRegion(dd_);
+    BalanceRegion::Impl* reg = getBalanceRegion(dd_);
     GMX_ASSERT(reg->isOpen, "Can only open a GPU region inside an open CPU region");
     GMX_ASSERT(!reg->isOpenOnGpu, "Can not re-open a GPU balance region");
     reg->isOpenOnGpu = true;
@@ -108,7 +106,7 @@ void DDBalanceRegionHandler::openRegionGpuImpl() const
 
 void ddReopenBalanceRegionCpu(const gmx_domdec_t* dd)
 {
-    BalanceRegion* reg = getBalanceRegion(dd);
+    BalanceRegion::Impl* reg = getBalanceRegion(dd);
     /* If the GPU is busy, don't reopen as we are overlapping with work */
     if (reg->isOpen && !reg->isOpenOnGpu)
     {
@@ -118,7 +116,7 @@ void ddReopenBalanceRegionCpu(const gmx_domdec_t* dd)
 
 void DDBalanceRegionHandler::closeRegionCpuImpl() const
 {
-    BalanceRegion* reg = getBalanceRegion(dd_);
+    BalanceRegion::Impl* reg = getBalanceRegion(dd_);
     if (reg->isOpen && reg->isOpenOnCpu)
     {
         GMX_ASSERT(reg->isOpenOnCpu, "Can only close an open region");
@@ -143,7 +141,7 @@ void DDBalanceRegionHandler::closeRegionCpuImpl() const
 void DDBalanceRegionHandler::closeRegionGpuImpl(float waitGpuCyclesInCpuRegion,
                                                 DdBalanceRegionWaitedForGpu waitedForGpu) const
 {
-    BalanceRegion* reg = getBalanceRegion(dd_);
+    BalanceRegion::Impl* reg = getBalanceRegion(dd_);
     if (reg->isOpen)
     {
         GMX_ASSERT(reg->isOpenOnGpu, "Can not close a non-open GPU balance region");

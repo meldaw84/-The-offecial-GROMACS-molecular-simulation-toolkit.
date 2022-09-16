@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2017,2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2017- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -42,8 +41,8 @@
 #include <tuple>
 #include <vector>
 
-#include <gmock/gmock.h>
 #include <gmock/gmock-matchers.h>
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "gromacs/applied_forces/awh/bias.h"
@@ -103,12 +102,14 @@ std::vector<char> awhDimParamSerialized(AwhCoordinateProviderType inputCoordinat
  * \param[in] beta Value for 1/(kB*T).
  * \param[in] inputErrorScaling Factor for initial error scaling.
  * \param[in] dimensionParameterBuffers Buffers containing the dimension parameters.
+ * \param[in] shareGroup share group for, potentially, sharing the bias between simulations
  * \param[in] inputUserData If there is a user provided PMF estimate.
  */
 static std::vector<char> awhBiasParamSerialized(AwhHistogramGrowthType            eawhgrowth,
                                                 double                            beta,
                                                 double                            inputErrorScaling,
                                                 ArrayRef<const std::vector<char>> dimensionParameterBuffers,
+                                                int                               shareGroup,
                                                 bool                              inputUserData)
 {
     int                    ndim                 = dimensionParameterBuffers.size();
@@ -118,7 +119,6 @@ static std::vector<char> awhBiasParamSerialized(AwhHistogramGrowthType          
     AwhHistogramGrowthType eGrowth              = eawhgrowth;
     bool                   bUserData            = inputUserData;
     double                 errorInitial         = inputErrorScaling / beta;
-    int                    shareGroup           = 0;
     bool                   equilibrateHistogram = false;
 
     gmx::InMemorySerializer serializer;
@@ -151,6 +151,7 @@ static std::vector<char> awhBiasParamSerialized(AwhHistogramGrowthType          
  * \param[in] inputErrorScaling Factor for initial error scaling.
  * \param[in] inputSeed Seed value to use.
  * \param[in] dimensionParameterBuffers Buffers containing the dimension parameters.
+ * \param[in] biasShareGroup share group for, potentially, sharing the bias over simulations
  * \param[in] inputUserData If there is a user provided PMF estimate.
  */
 static std::vector<char> awhParamSerialized(AwhHistogramGrowthType            eawhgrowth,
@@ -159,6 +160,7 @@ static std::vector<char> awhParamSerialized(AwhHistogramGrowthType            ea
                                             double                            inputErrorScaling,
                                             int64_t                           inputSeed,
                                             ArrayRef<const std::vector<char>> dimensionParameterBuffers,
+                                            int                               biasShareGroup,
                                             bool                              inputUserData)
 {
     int              numBias                    = 1;
@@ -180,7 +182,7 @@ static std::vector<char> awhParamSerialized(AwhHistogramGrowthType            ea
 
     auto awhParamBuffer = serializer.finishAndGetBuffer();
     auto awhBiasBuffer  = awhBiasParamSerialized(
-            eawhgrowth, beta, inputErrorScaling, dimensionParameterBuffers, inputUserData);
+            eawhgrowth, beta, inputErrorScaling, dimensionParameterBuffers, biasShareGroup, inputUserData);
 
     awhParamBuffer.insert(awhParamBuffer.end(), awhBiasBuffer.begin(), awhBiasBuffer.end());
 
@@ -200,14 +202,15 @@ AwhTestParameters getAwhTestParameters(AwhHistogramGrowthType            eawhgro
                                        double                            beta,
                                        bool                              useAwhFep,
                                        double                            inputErrorScaling,
-                                       int                               numFepLambdaStates)
+                                       int                               numFepLambdaStates,
+                                       int                               biasShareGroup)
 {
     double  convFactor = 1;
     double  k          = 1000;
     int64_t seed       = 93471803;
 
     auto awhParamBuffer = awhParamSerialized(
-            eawhgrowth, eawhpotential, beta, inputErrorScaling, seed, dimensionParameterBuffers, inputUserData);
+            eawhgrowth, eawhpotential, beta, inputErrorScaling, seed, dimensionParameterBuffers, biasShareGroup, inputUserData);
     gmx::InMemoryDeserializer deserializer(awhParamBuffer, false);
     AwhTestParameters         params(&deserializer);
 
@@ -249,7 +252,7 @@ TEST(SerializationTest, CanSerializeBiasParams)
     auto awhDimBuffer   = awhDimParamSerialized();
     auto awhDimArrayRef = gmx::arrayRefFromArray(&awhDimBuffer, 1);
     auto awhBiasBuffer  = awhBiasParamSerialized(
-            AwhHistogramGrowthType::ExponentialLinear, 0.4, 0.5, awhDimArrayRef, false);
+            AwhHistogramGrowthType::ExponentialLinear, 0.4, 0.5, awhDimArrayRef, 0, false);
     gmx::InMemoryDeserializer deserializer(awhBiasBuffer, false);
     AwhBiasParams             awhBiasParams(&deserializer);
     EXPECT_EQ(awhBiasParams.ndim(), 1);
@@ -281,8 +284,14 @@ TEST(SerializationTest, CanSerializeAwhParams)
 {
     auto awhDimBuffer   = awhDimParamSerialized();
     auto awhDimArrayRef = gmx::arrayRefFromArray(&awhDimBuffer, 1);
-    auto awhParamBuffer = awhParamSerialized(
-            AwhHistogramGrowthType::ExponentialLinear, AwhPotentialType::Convolved, 0.4, 0.5, 1337, awhDimArrayRef, false);
+    auto awhParamBuffer = awhParamSerialized(AwhHistogramGrowthType::ExponentialLinear,
+                                             AwhPotentialType::Convolved,
+                                             0.4,
+                                             0.5,
+                                             1337,
+                                             awhDimArrayRef,
+                                             0,
+                                             false);
     gmx::InMemoryDeserializer deserializer(awhParamBuffer, false);
     AwhParams                 awhParams(&deserializer);
     EXPECT_EQ(awhParams.numBias(), 1);

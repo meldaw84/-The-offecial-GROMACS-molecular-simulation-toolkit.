@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 /*! \file
@@ -68,6 +64,7 @@
 
 struct t_inputrec;
 struct t_lambda;
+struct PressureCouplingOptions;
 enum class FreeEnergyPerturbationType;
 
 namespace gmx
@@ -88,7 +85,7 @@ using PaddedHostVector = gmx::PaddedHostVector<T>;
  * Currently the random seeds for SD and BD are missing.
  */
 
-/* \brief Enum for all entries in \p t_state
+/*! \brief Enum for all entries in \p t_state
  *
  * These enums are used in flags as (1<<est...).
  * The order of these enums should not be changed,
@@ -202,7 +199,7 @@ public:
  *
  * \todo Split out into microstate and observables history.
  */
-typedef struct df_history_t
+struct df_history_t
 {
     int nlambda; //!< total number of lambda states - for history
 
@@ -224,7 +221,15 @@ typedef struct df_history_t
     real** Tij;           //!< transition matrix
     real** Tij_empirical; //!< Empirical transition matrix
 
-} df_history_t;
+    /*! \brief Allows to read and write checkpoint within modular simulator
+     *
+     * \tparam operation  Whether we're reading or writing
+     * \param checkpointData  The CheckpointData object
+     * \param elamstats  How the lambda weights are calculated
+     */
+    template<gmx::CheckpointDataOperation operation>
+    void doCheckpoint(gmx::CheckpointData<operation> checkpointData, LambdaWeightCalculation elamstats);
+};
 
 
 /*! \brief The microstate of the system
@@ -290,7 +295,6 @@ struct t_extmass
     std::vector<double> Qinv; /* inverse mass of thermostat -- computed from inputs, but a good place to store */
     std::vector<double> QPinv; /* inverse mass of thermostat for barostat -- computed from inputs, but a good place to store */
     double              Winv; /* Pressure mass inverse -- computed, not input, but a good place to store. Need to make a matrix later */
-    tensor              Winvm; /* inverse pressure mass tensor, computed       */
 };
 
 #endif // DOXYGEN
@@ -324,11 +328,15 @@ void set_box_rel(const t_inputrec* ir, t_state* state);
  * preserved, which otherwise might diffuse away due to rounding
  * errors in pressure coupling or the deform option.
  *
- * \param[in]    ir      Input record
+ * \param[in]    pressureCoupling  The pressure-coupling options
+ * \param[in]    deform  The box-deformation tensor
  * \param[in]    box_rel Relative box dimensions
  * \param[inout] box     The corrected actual box dimensions
  */
-void preserve_box_shape(const t_inputrec* ir, matrix box_rel, matrix box);
+void preserveBoxShape(const PressureCouplingOptions& pressureCoupling,
+                      const tensor                   deform,
+                      matrix                         box_rel,
+                      matrix                         box);
 
 /*! \brief Returns an arrayRef to the positions in \p state when \p state!=null
  *

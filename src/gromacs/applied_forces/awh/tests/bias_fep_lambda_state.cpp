@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2017,2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2017- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -46,10 +45,10 @@
 #include "gromacs/applied_forces/awh/bias.h"
 #include "gromacs/applied_forces/awh/correlationgrid.h"
 #include "gromacs/applied_forces/awh/pointstate.h"
+#include "gromacs/applied_forces/awh/tests/awh_setup.h"
 #include "gromacs/mdtypes/awh_params.h"
 #include "gromacs/utility/stringutil.h"
 
-#include "gromacs/applied_forces/awh/tests/awh_setup.h"
 #include "testutils/refdata.h"
 #include "testutils/testasserts.h"
 
@@ -87,10 +86,7 @@ public:
          *   eawhgrowth:
          *     eawhgrowthLINEAR:     final, normal update phase
          *     ewahgrowthEXP_LINEAR: intial phase, updated size is constant
-         *   eawhpotential (test both, but for the FEP lambda state dimension MC will in practice be used,
-         *                  except that eawhpotentialCONVOLVED also gives a potential output):
-         *     eawhpotentialUMBRELLA:  MC on lambda state
-         *     eawhpotentialCONVOLVED: MD on a convolved potential landscape (falling back to MC on lambda state)
+         *   eawhpotential (test only eawhpotentialUMBRELLA (MC) for FEP lambda dimensions)
          *   disableUpdateSkips (should not affect the results):
          *     BiasParams::DisableUpdateSkips::yes: update the point state for every sample
          *     BiasParams::DisableUpdateSkips::no:  update the point state at an interval > 1 sample
@@ -130,7 +126,7 @@ public:
                                        params_->dimParams,
                                        params_->beta,
                                        mdTimeStep,
-                                       1,
+                                       nullptr,
                                        "",
                                        Bias::ThisRankWillDoIO::No,
                                        disableUpdateSkips);
@@ -180,8 +176,6 @@ TEST_P(BiasFepLambdaStateTest, ForcesBiasPmf)
                                                                             neighborLambdaDhdl,
                                                                             &potential,
                                                                             &potentialJump,
-                                                                            nullptr,
-                                                                            nullptr,
                                                                             step * mdTimeStep,
                                                                             step,
                                                                             seed_,
@@ -222,14 +216,13 @@ TEST_P(BiasFepLambdaStateTest, ForcesBiasPmf)
  * It would be nice if the test would explicitly check for this.
  * Currently this is tested through identical reference data.
  */
-INSTANTIATE_TEST_CASE_P(WithParameters,
-                        BiasFepLambdaStateTest,
-                        ::testing::Combine(::testing::Values(AwhHistogramGrowthType::Linear,
-                                                             AwhHistogramGrowthType::ExponentialLinear),
-                                           ::testing::Values(AwhPotentialType::Umbrella,
-                                                             AwhPotentialType::Convolved),
-                                           ::testing::Values(BiasParams::DisableUpdateSkips::yes,
-                                                             BiasParams::DisableUpdateSkips::no)));
+INSTANTIATE_TEST_SUITE_P(WithParameters,
+                         BiasFepLambdaStateTest,
+                         ::testing::Combine(::testing::Values(AwhHistogramGrowthType::Linear,
+                                                              AwhHistogramGrowthType::ExponentialLinear),
+                                            ::testing::Values(AwhPotentialType::Umbrella),
+                                            ::testing::Values(BiasParams::DisableUpdateSkips::yes,
+                                                              BiasParams::DisableUpdateSkips::no)));
 
 // Test that we detect coverings and exit the initial stage at the correct step
 TEST(BiasFepLambdaStateTest, DetectsCovering)
@@ -244,7 +237,7 @@ TEST(BiasFepLambdaStateTest, DetectsCovering)
             awhDimParamSerialized(coordinateProvider, coordIndex, origin, end, period, diffusion);
     auto                    awhDimArrayRef = gmx::arrayRefFromArray(&awhDimBuffer, 1);
     const AwhTestParameters params(getAwhTestParameters(AwhHistogramGrowthType::ExponentialLinear,
-                                                        AwhPotentialType::Convolved,
+                                                        AwhPotentialType::Umbrella,
                                                         awhDimArrayRef,
                                                         false,
                                                         0.4,
@@ -260,7 +253,7 @@ TEST(BiasFepLambdaStateTest, DetectsCovering)
               params.dimParams,
               params.beta,
               mdTimeStep,
-              1,
+              nullptr,
               "",
               Bias::ThisRankWillDoIO::No);
 
@@ -292,8 +285,6 @@ TEST(BiasFepLambdaStateTest, DetectsCovering)
                                     neighborLambdaDhdl,
                                     &potential,
                                     &potentialJump,
-                                    nullptr,
-                                    nullptr,
                                     step,
                                     step,
                                     params.awhParams.seed(),

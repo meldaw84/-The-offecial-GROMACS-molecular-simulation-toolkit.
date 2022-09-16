@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2020- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief
@@ -49,11 +48,13 @@ namespace Nbnxm
 {
 
 #ifndef GMX_NBNXN_PRUNE_KERNEL_J4_CONCURRENCY
+//! \brief Default for the prune kernel's j4 processing concurrency.
 #    define GMX_NBNXN_PRUNE_KERNEL_J4_CONCURRENCY 4
 #endif
-/*! \brief Macro defining default for the prune kernel's j4 processing concurrency.
+
+/*! \brief Prune kernel's j4 processing concurrency.
  *
- *  The GMX_NBNXN_PRUNE_KERNEL_J4_CONCURRENCY macro allows compile-time override.
+ *  The \c GMX_NBNXN_PRUNE_KERNEL_J4_CONCURRENCY macro allows compile-time override.
  */
 static constexpr int c_syclPruneKernelJ4Concurrency = GMX_NBNXN_PRUNE_KERNEL_J4_CONCURRENCY;
 
@@ -61,6 +62,8 @@ static constexpr int c_syclPruneKernelJ4Concurrency = GMX_NBNXN_PRUNE_KERNEL_J4_
 /*! \cond */
 // cluster size = number of atoms per cluster.
 static constexpr int c_clSize = c_nbnxnGpuClusterSize;
+// Square of cluster size.
+static constexpr int c_clSizeSq = c_clSize * c_clSize;
 // j-cluster size after split (4 in the current implementation).
 static constexpr int c_splitClSize = c_clSize / c_nbnxnGpuClusterpairSplit;
 // i-cluster interaction mask for a super-cluster with all c_nbnxnGpuNumClusterPerSupercluster=8 bits set.
@@ -73,33 +76,6 @@ static constexpr float c_oneSixth = 0.16666667F;
 // 1/12, same value as in other NB kernels.
 static constexpr float c_oneTwelfth = 0.08333333F;
 /*! \endcond */
-
-/* The following functions are necessary because on some versions of Intel OpenCL RT, subgroups
- * do not properly work (segfault or create subgroups of size 1) if used in kernels
- * with non-1-dimensional workgroup. */
-//! \brief Convert 3D range to 1D
-static inline cl::sycl::range<1> flattenRange(cl::sycl::range<3> range3d)
-{
-    return cl::sycl::range<1>(range3d.size());
-}
-
-//! \brief Convert 3D nd_range to 1D
-static inline cl::sycl::nd_range<1> flattenNDRange(cl::sycl::nd_range<3> nd_range3d)
-{
-    return cl::sycl::nd_range<1>(flattenRange(nd_range3d.get_global_range()),
-                                 flattenRange(nd_range3d.get_local_range()));
-}
-
-//! \brief Convert flattened 1D index to 3D
-template<int rangeX, int rangeY>
-static inline cl::sycl::id<3> unflattenId(cl::sycl::id<1> id1d)
-{
-    constexpr unsigned rangeXY = rangeX * rangeY;
-    const unsigned     id      = id1d[0];
-    const unsigned     z       = id / rangeXY;
-    const unsigned     xy      = id % rangeXY;
-    return cl::sycl::id<3>(xy % rangeX, xy / rangeX, z);
-}
 
 } // namespace Nbnxm
 

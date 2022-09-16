@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2012,2014,2015,2016,2018 by the GROMACS development team.
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,60 +26,115 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #ifndef GMX_TOPOLOGY_ATOMS_H
 #define GMX_TOPOLOGY_ATOMS_H
 
 #include <stdio.h>
 
+#include <optional>
 #include <vector>
 
+#include "gromacs/topology/topology_enums.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/basedefinitions.h"
+#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/real.h"
 #include "gromacs/utility/unique_cptr.h"
 
-struct t_symtab;
-
-/* The particle type */
-enum class ParticleType : int
+namespace gmx
 {
-    Atom,
-    Nucleus,
-    Shell,
-    Bond,
-    VSite,
-    Count
-};
+class ISerializer;
+} // namespace gmx
 
-/* The particle type names */
-const char* enumValueToString(ParticleType enumValue);
-
-/* Enumerated type for pdb records. The other entries are ignored
- * when reading a pdb file
+/*! \brief
+ * Contains information for a single particle in a PDB file.
+ *
+ * Currently only supports ATOM/HETATM lines, as well as anisotropy information.
  */
-enum class PdbRecordType : int
+class PdbAtomEntry
 {
-    Atom,
-    Hetatm,
-    Anisou,
-    Cryst1,
-    Compound,
-    Model,
-    EndModel,
-    Ter,
-    Header,
-    Title,
-    Remark,
-    Conect,
-    Count
+public:
+    //! Construct full structure without anisotropy information, bfactor or occupancy.
+    PdbAtomEntry(PdbRecordType type, int pdbAtomNumber, char alternativeLocation, const std::string& atomName) :
+        PdbAtomEntry(type, pdbAtomNumber, alternativeLocation, atomName, std::nullopt, std::nullopt)
+    {
+    }
+
+    //! Construct full structure without anisotropy information, but with bfactor and occupancy.
+    PdbAtomEntry(PdbRecordType       type,
+                 int                 pdbAtomNumber,
+                 char                alternativeLocation,
+                 const std::string&  atomName,
+                 std::optional<real> occupancy,
+                 std::optional<real> bFactor) :
+        PdbAtomEntry(type, pdbAtomNumber, alternativeLocation, atomName, occupancy, bFactor, std::nullopt)
+    {
+    }
+    //! Construct full structure.
+    PdbAtomEntry(PdbRecordType                      type,
+                 int                                atomSerialNumber,
+                 char                               alternativeLocation,
+                 const std::string&                 atomName,
+                 std::optional<real>                occupancy,
+                 std::optional<real>                bFactor,
+                 std::optional<std::array<real, 6>> anisotropy) :
+        type_(type),
+        atomSerialNumber_(atomSerialNumber),
+        alternativeLocation_(alternativeLocation),
+        atomName_(atomName),
+        occupancy_(occupancy),
+        bFactor_(bFactor),
+        anisotropyTensor_(anisotropy)
+    {
+        if (atomName.size() > 6)
+        {
+            GMX_THROW(gmx::InconsistentInputError(
+                    "Cannot have atom name with more than 6 characters"));
+        }
+    }
+    //! Get PDB record type
+    PdbRecordType type() const { return type_; }
+    //! Get atom number.
+    int atomSerialNumber() const { return atomSerialNumber_; }
+    //! Get access to alternative location identifier.
+    char altloc() const { return alternativeLocation_; }
+    //! Get access to real atom name.
+    const std::string& atomName() const { return atomName_; }
+    //! Get access to occupancy.
+    std::optional<real> occupancy() const { return occupancy_; }
+    //! Get access to b factor.
+    std::optional<real> bFactor() const { return bFactor_; }
+    //! Get access to anisotropy values.
+    std::optional<gmx::ArrayRef<const real>> anisotropy() const
+    {
+        return anisotropyTensor_.has_value()
+                       ? std::make_optional(gmx::makeConstArrayRef(anisotropyTensor_.value()))
+                       : std::nullopt;
+    }
+
+private:
+    //! PDB record type
+    PdbRecordType type_;
+    //! PDB atom number.
+    int atomSerialNumber_;
+    //! Defines alternative location in PDB.
+    char alternativeLocation_;
+    //! The actual atom name from the pdb file.
+    std::string atomName_;
+    //! Occupancy field, abused for other things.
+    std::optional<real> occupancy_;
+    //! B-Factor field, abused for other things.
+    std::optional<real> bFactor_;
+    //! Tensor of anisotropy values.
+    std::optional<std::array<real, 6>> anisotropyTensor_;
 };
 
-const char* enumValueToString(PdbRecordType enumValue);
-
+// Legacy types begin here
 typedef struct t_atom
 {
     real           m, q;       /* Mass and charge                      */
@@ -114,7 +165,7 @@ typedef struct t_pdbinfo
     char          atomnm[6];    /* True atom name including leading spaces */
     real          occup;        /* Occupancy                            */
     real          bfac;         /* B-factor                             */
-    gmx_bool      bAnisotropic; /* (an)isotropic switch                 */
+    bool          bAnisotropic; /* (an)isotropic switch                 */
     int           uij[6];       /* Anisotropic B-factor                 */
 } t_pdbinfo;
 
@@ -141,28 +192,20 @@ typedef struct t_atoms
      * For B-state parameters, both haveBState and the mass/charge/type
      * flag should be TRUE.
      */
-    gmx_bool haveMass;    /* Mass available                       */
-    gmx_bool haveCharge;  /* Charge available                     */
-    gmx_bool haveType;    /* Atom type available                  */
-    gmx_bool haveBState;  /* B-state parameters available         */
-    gmx_bool havePdbInfo; /* pdbinfo available                    */
+    bool haveMass;    /* Mass available                       */
+    bool haveCharge;  /* Charge available                     */
+    bool haveType;    /* Atom type available                  */
+    bool haveBState;  /* B-state parameters available         */
+    bool havePdbInfo; /* pdbinfo available                    */
 } t_atoms;
-
-typedef struct t_atomtypes
-{
-    int  nr;         /* number of atomtypes                          */
-    int* atomnumber; /* Atomic number, used for QM/MM                */
-} t_atomtypes;
 
 #define PERTURBED(a) (((a).mB != (a).m) || ((a).qB != (a).q) || ((a).typeB != (a).type))
 
 void init_atom(t_atoms* at);
-void init_atomtypes(t_atomtypes* at);
 void done_atom(t_atoms* at);
 void done_and_delete_atoms(t_atoms* atoms);
-void done_atomtypes(t_atomtypes* at);
 
-void init_t_atoms(t_atoms* atoms, int natoms, gmx_bool bPdbinfo);
+void init_t_atoms(t_atoms* atoms, int natoms, bool bPdbinfo);
 /* allocate memory for the arrays, set nr to natoms and nres to 0
  * set pdbinfo to NULL or allocate memory for it */
 
@@ -186,8 +229,7 @@ void t_atoms_set_resinfo(t_atoms*         atoms,
  * of atom index atom_ind.
  */
 
-void pr_atoms(FILE* fp, int indent, const char* title, const t_atoms* atoms, gmx_bool bShownumbers);
-void pr_atomtypes(FILE* fp, int indent, const char* title, const t_atomtypes* atomtypes, gmx_bool bShowNumbers);
+void pr_atoms(FILE* fp, int indent, const char* title, const t_atoms* atoms, bool bShownumbers);
 
 /*! \brief Compare information in the t_atoms data structure.
  *
@@ -205,7 +247,7 @@ void compareAtoms(FILE* fp, const t_atoms* a1, const t_atoms* a2, real relativeT
  * If printMissingMasss = TRUE, prints details for first 10 missing masses
  * to stderr.
  */
-void atomsSetMassesBasedOnNames(t_atoms* atoms, gmx_bool printMissingMasses);
+void atomsSetMassesBasedOnNames(t_atoms* atoms, bool printMissingMasses);
 
 //! Deleter for t_atoms, needed until it has a proper destructor.
 using AtomsDataPtr = gmx::unique_cptr<t_atoms, done_and_delete_atoms>;

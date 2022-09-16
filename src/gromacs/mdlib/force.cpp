@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -53,7 +49,7 @@
 #include "gromacs/gmxlib/nrnb.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/math/vecdump.h"
-#include "gromacs/mdlib/forcerec_threading.h"
+#include "gromacs/mdlib/gmx_omp_nthreads.h"
 #include "gromacs/mdtypes/commrec.h"
 #include "gromacs/mdtypes/enerdata.h"
 #include "gromacs/mdtypes/forceoutput.h"
@@ -63,12 +59,10 @@
 #include "gromacs/mdtypes/md_enums.h"
 #include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/mdtypes/simulation_workload.h"
-#include "gromacs/pbcutil/ishift.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/timing/wallcycle.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
-#include "gromacs/utility/smalloc.h"
 
 using gmx::ArrayRef;
 using gmx::RVec;
@@ -100,56 +94,100 @@ static void reduceEwaldThreadOuput(int nthreads, gmx::ArrayRef<ewald_corr_thread
     }
 }
 
-void calculateLongRangeNonbondeds(t_forcerec*                    fr,
-                                  const t_inputrec&              ir,
-                                  const t_commrec*               cr,
-                                  t_nrnb*                        nrnb,
-                                  gmx_wallcycle*                 wcycle,
-                                  const t_mdatoms*               md,
-                                  gmx::ArrayRef<const RVec>      coordinates,
-                                  gmx::ForceWithVirial*          forceWithVirial,
-                                  gmx_enerdata_t*                enerd,
-                                  const matrix                   box,
-                                  gmx::ArrayRef<const real>      lambda,
-                                  gmx::ArrayRef<const gmx::RVec> mu_tot,
-                                  const gmx::StepWorkload&       stepWork,
-                                  const DDBalanceRegionHandler&  ddBalanceRegionHandler)
+CpuPpLongRangeNonbondeds::CpuPpLongRangeNonbondeds(int                         numberOfTestPaticles,
+                                                   real                        ewaldCoeffQ,
+                                                   real                        epsilonR,
+                                                   gmx::ArrayRef<const double> chargeC6Sum,
+                                                   CoulombInteractionType      eeltype,
+                                                   VanDerWaalsType             vdwtype,
+                                                   const t_inputrec&           inputrec,
+                                                   t_nrnb*                     nrnb,
+                                                   gmx_wallcycle*              wcycle,
+                                                   FILE*                       fplog) :
+    numTpiAtoms_(numberOfTestPaticles),
+    ewaldCoeffQ_(ewaldCoeffQ),
+    epsilonR_(epsilonR),
+    chargeC6Sum_(chargeC6Sum),
+    coulombInteractionType_(eeltype),
+    vanDerWaalsType_(vdwtype),
+    ewaldGeometry_(inputrec.ewald_geometry),
+    epsilonSurface_(inputrec.epsilon_surface),
+    haveEwaldSurfaceTerm_(haveEwaldSurfaceContribution(inputrec)),
+    wallEwaldZfac_(inputrec.wall_ewald_zfac),
+    havePbcXY2Walls_(inputrecPbcXY2Walls(&inputrec)),
+    freeEnergyPerturbationType_(inputrec.efep),
+    nrnb_(nrnb),
+    wcycle_(wcycle)
 {
-    const bool computePmeOnCpu = (EEL_PME(fr->ic->eeltype) || EVDW_PME(fr->ic->vdwtype))
-                                 && thisRankHasDuty(cr, DUTY_PME)
-                                 && (pme_run_mode(fr->pmedata) == PmeRunMode::CPU);
+    GMX_ASSERT(epsilonR == inputrec.epsilon_r,
+               "Forcerec and inputrec relative dielectrics don't match");
 
-    const bool haveEwaldSurfaceTerm = haveEwaldSurfaceContribution(ir);
+    // Use the thread count for the bonded module since reducing CPU-side
+    // non-bonded contributions does not currently have its own thread count.
+    outputPerThread_.resize(gmx_omp_nthreads_get(ModuleMultiThread::Bonded));
+
+    if (inputrec.coulombtype == CoulombInteractionType::Ewald)
+    {
+        ewaldTable_ = std::make_unique<gmx_ewald_tab_t>(inputrec, fplog);
+    }
+}
+
+CpuPpLongRangeNonbondeds::~CpuPpLongRangeNonbondeds() = default;
+
+void CpuPpLongRangeNonbondeds::updateAfterPartition(const t_mdatoms& md)
+{
+    homenr_        = md.homenr;
+    havePerturbed_ = md.nChargePerturbed != 0;
+    chargeA_       = md.chargeA;
+    chargeB_       = md.chargeB;
+    sqrt_c6A_      = md.sqrt_c6A;
+    sqrt_c6B_      = md.sqrt_c6B;
+    sigmaA_        = md.sigmaA;
+    sigmaB_        = md.sigmaB;
+}
+
+void CpuPpLongRangeNonbondeds::calculate(gmx_pme_t*                     pmedata,
+                                         const t_commrec*               commrec,
+                                         gmx::ArrayRef<const RVec>      coordinates,
+                                         gmx::ForceWithVirial*          forceWithVirial,
+                                         gmx_enerdata_t*                enerd,
+                                         const matrix                   box,
+                                         gmx::ArrayRef<const real>      lambda,
+                                         gmx::ArrayRef<const gmx::RVec> mu_tot,
+                                         const gmx::StepWorkload&       stepWork,
+                                         const DDBalanceRegionHandler&  ddBalanceRegionHandler)
+{
+    const bool computePmeOnCpu = (usingPme(coulombInteractionType_) || usingLJPme(vanDerWaalsType_))
+                                 && thisRankHasDuty(commrec, DUTY_PME)
+                                 && (pme_run_mode(pmedata) == PmeRunMode::CPU);
 
     /* Do long-range electrostatics and/or LJ-PME
      * and compute PME surface terms when necessary.
      */
-    if ((computePmeOnCpu || fr->ic->eeltype == CoulombInteractionType::Ewald || haveEwaldSurfaceTerm)
+    if ((computePmeOnCpu || coulombInteractionType_ == CoulombInteractionType::Ewald || haveEwaldSurfaceTerm_)
         && stepWork.computeNonbondedForces)
     {
-        int  status = 0;
         real Vlr_q = 0, Vlr_lj = 0;
-
         /* We reduce all virial, dV/dlambda and energy contributions, except
          * for the reciprocal energies (Vlr_q, Vlr_lj) into the same struct.
          */
-        ewald_corr_thread_t& ewaldOutput = fr->ewc_t[0];
+        ewald_corr_thread_t& ewaldOutput = outputPerThread_[0];
         clearEwaldThreadOutput(&ewaldOutput);
 
-        if (EEL_PME_EWALD(fr->ic->eeltype) || EVDW_PME(fr->ic->vdwtype))
+        if (usingPmeOrEwald(coulombInteractionType_) || usingLJPme(vanDerWaalsType_))
         {
             /* Calculate the Ewald surface force and energy contributions, when necessary */
-            if (haveEwaldSurfaceTerm)
+            if (haveEwaldSurfaceTerm_)
             {
-                wallcycle_sub_start(wcycle, WallCycleSubCounter::EwaldCorrection);
+                wallcycle_sub_start(wcycle_, WallCycleSubCounter::EwaldCorrection);
 
-                int nthreads = fr->nthread_ewc;
+                int nthreads = gmx::ssize(outputPerThread_);
 #pragma omp parallel for num_threads(nthreads) schedule(static)
                 for (int t = 0; t < nthreads; t++)
                 {
                     try
                     {
-                        ewald_corr_thread_t& ewc_t = fr->ewc_t[t];
+                        ewald_corr_thread_t& ewc_t = outputPerThread_[t];
                         if (t > 0)
                         {
                             clearEwaldThreadOutput(&ewc_t);
@@ -161,15 +199,19 @@ void calculateLongRangeNonbondeds(t_forcerec*                    fr,
                          * the forces in the normal, single forceWithVirial->force_ array.
                          */
                         ewald_LRcorrection(
-                                md->homenr,
-                                cr,
+                                homenr_,
+                                commrec,
                                 nthreads,
                                 t,
-                                *fr,
-                                ir,
-                                gmx::constArrayRefFromArray(md->chargeA, md->nr),
-                                gmx::constArrayRefFromArray(md->chargeB, md->nr),
-                                (md->nChargePerturbed != 0),
+                                epsilonR_,
+                                chargeC6Sum_,
+                                ewaldGeometry_,
+                                epsilonSurface_,
+                                havePbcXY2Walls_,
+                                wallEwaldZfac_,
+                                chargeA_,
+                                chargeB_,
+                                havePerturbed_,
                                 coordinates,
                                 box,
                                 mu_tot,
@@ -182,18 +224,20 @@ void calculateLongRangeNonbondeds(t_forcerec*                    fr,
                 }
                 if (nthreads > 1)
                 {
-                    reduceEwaldThreadOuput(nthreads, fr->ewc_t);
+                    reduceEwaldThreadOuput(nthreads, outputPerThread_);
                 }
-                wallcycle_sub_stop(wcycle, WallCycleSubCounter::EwaldCorrection);
+                wallcycle_sub_stop(wcycle_, WallCycleSubCounter::EwaldCorrection);
             }
 
-            if (EEL_PME_EWALD(fr->ic->eeltype) && fr->n_tpi == 0)
+            if (usingPmeOrEwald(coulombInteractionType_) && numTpiAtoms_ == 0)
             {
                 /* This is not in a subcounter because it takes a
                    negligible and constant-sized amount of time */
                 ewaldOutput.Vcorr_q += ewald_charge_correction(
-                        cr,
-                        fr,
+                        commrec,
+                        epsilonR_,
+                        ewaldCoeffQ_,
+                        chargeC6Sum_,
                         lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Coul)],
                         box,
                         &ewaldOutput.dvdl[FreeEnergyPerturbationCouplingType::Coul],
@@ -203,8 +247,8 @@ void calculateLongRangeNonbondeds(t_forcerec*                    fr,
             if (computePmeOnCpu)
             {
                 /* Do reciprocal PME for Coulomb and/or LJ. */
-                assert(fr->n_tpi >= 0);
-                if (fr->n_tpi == 0 || stepWork.stateChanged)
+                assert(numTpiAtoms_ >= 0);
+                if (numTpiAtoms_ == 0 || stepWork.stateChanged)
                 {
                     /* With domain decomposition we close the CPU side load
                      * balancing region here, because PME does global
@@ -212,23 +256,23 @@ void calculateLongRangeNonbondeds(t_forcerec*                    fr,
                      */
                     ddBalanceRegionHandler.closeAfterForceComputationCpu();
 
-                    wallcycle_start(wcycle, WallCycleCounter::PmeMesh);
-                    status = gmx_pme_do(
-                            fr->pmedata,
-                            gmx::constArrayRefFromArray(coordinates.data(), md->homenr - fr->n_tpi),
+                    wallcycle_start(wcycle_, WallCycleCounter::PmeMesh);
+                    int status = gmx_pme_do(
+                            pmedata,
+                            gmx::constArrayRefFromArray(coordinates.data(), homenr_ - numTpiAtoms_),
                             forceWithVirial->force_,
-                            gmx::constArrayRefFromArray(md->chargeA, md->nr),
-                            gmx::constArrayRefFromArray(md->chargeB, md->nr),
-                            gmx::constArrayRefFromArray(md->sqrt_c6A, md->nr),
-                            gmx::constArrayRefFromArray(md->sqrt_c6B, md->nr),
-                            gmx::constArrayRefFromArray(md->sigmaA, md->nr),
-                            gmx::constArrayRefFromArray(md->sigmaB, md->nr),
+                            chargeA_,
+                            chargeB_,
+                            sqrt_c6A_,
+                            sqrt_c6B_,
+                            sigmaA_,
+                            sigmaB_,
                             box,
-                            cr,
-                            DOMAINDECOMP(cr) ? dd_pme_maxshift_x(*cr->dd) : 0,
-                            DOMAINDECOMP(cr) ? dd_pme_maxshift_y(*cr->dd) : 0,
-                            nrnb,
-                            wcycle,
+                            commrec,
+                            haveDDAtomOrdering(*commrec) ? dd_pme_maxshift_x(*commrec->dd) : 0,
+                            haveDDAtomOrdering(*commrec) ? dd_pme_maxshift_y(*commrec->dd) : 0,
+                            nrnb_,
+                            wcycle_,
                             ewaldOutput.vir_q,
                             ewaldOutput.vir_lj,
                             &Vlr_q,
@@ -238,7 +282,7 @@ void calculateLongRangeNonbondeds(t_forcerec*                    fr,
                             &ewaldOutput.dvdl[FreeEnergyPerturbationCouplingType::Coul],
                             &ewaldOutput.dvdl[FreeEnergyPerturbationCouplingType::Vdw],
                             stepWork);
-                    wallcycle_stop(wcycle, WallCycleCounter::PmeMesh);
+                    wallcycle_stop(wcycle_, WallCycleCounter::PmeMesh);
                     if (status != 0)
                     {
                         gmx_fatal(FARGS, "Error %d in reciprocal PME routine", status);
@@ -252,35 +296,37 @@ void calculateLongRangeNonbondeds(t_forcerec*                    fr,
                      * of the force call (without PME).
                      */
                 }
-                if (fr->n_tpi > 0)
+                if (numTpiAtoms_ > 0)
                 {
                     /* Determine the PME grid energy of the test molecule
                      * with the PME grid potential of the other charges.
                      */
-                    gmx_pme_calc_energy(
-                            fr->pmedata,
-                            coordinates.subArray(md->homenr - fr->n_tpi, fr->n_tpi),
-                            gmx::arrayRefFromArray(md->chargeA + md->homenr - fr->n_tpi, fr->n_tpi),
-                            &Vlr_q);
+                    Vlr_q = gmx_pme_calc_energy(
+                            pmedata,
+                            coordinates.subArray(homenr_ - numTpiAtoms_, numTpiAtoms_),
+                            chargeA_.subArray(homenr_ - numTpiAtoms_, numTpiAtoms_));
                 }
             }
         }
 
-        if (fr->ic->eeltype == CoulombInteractionType::Ewald)
+        if (coulombInteractionType_ == CoulombInteractionType::Ewald)
         {
-            Vlr_q = do_ewald(ir,
+            Vlr_q = do_ewald(havePbcXY2Walls_,
+                             wallEwaldZfac_,
+                             epsilonR_,
+                             freeEnergyPerturbationType_,
                              coordinates,
                              forceWithVirial->force_,
-                             gmx::arrayRefFromArray(md->chargeA, md->nr),
-                             gmx::arrayRefFromArray(md->chargeB, md->nr),
+                             chargeA_,
+                             chargeB_,
                              box,
-                             cr,
-                             md->homenr,
+                             commrec,
+                             homenr_,
                              ewaldOutput.vir_q,
-                             fr->ic->ewaldcoeff_q,
+                             ewaldCoeffQ_,
                              lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Coul)],
                              &ewaldOutput.dvdl[FreeEnergyPerturbationCouplingType::Coul],
-                             fr->ewald_table.get());
+                             ewaldTable_.get());
         }
 
         /* Note that with separate PME nodes we get the real energies later */
@@ -314,6 +360,6 @@ void calculateLongRangeNonbondeds(t_forcerec*                    fr,
 
     if (debug)
     {
-        print_nrnb(debug, nrnb);
+        print_nrnb(debug, nrnb_);
     }
 }

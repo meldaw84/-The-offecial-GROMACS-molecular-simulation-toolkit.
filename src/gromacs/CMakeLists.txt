@@ -1,12 +1,9 @@
 #
 # This file is part of the GROMACS molecular simulation package.
 #
-# Copyright (c) 2010,2011,2012,2013,2014 by the GROMACS development team.
-# Copyright (c) 2015,2016,2017,2018,2019 by the GROMACS development team.
-# Copyright (c) 2020,2021, by the GROMACS development team, led by
-# Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
-# and including many others, as listed in the AUTHORS file in the
-# top-level source directory and at http://www.gromacs.org.
+# Copyright 2010- The GROMACS Authors
+# and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+# Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
 #
 # GROMACS is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -20,7 +17,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with GROMACS; if not, see
-# http://www.gnu.org/licenses, or write to the Free Software Foundation,
+# https://www.gnu.org/licenses, or write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
 #
 # If you want to redistribute modifications to GROMACS, please
@@ -29,10 +26,14 @@
 # consider code for inclusion in the official distribution, but
 # derived work must not be called official GROMACS. Details are found
 # in the README & COPYING files - if they are missing, get the
-# official version at http://www.gromacs.org.
+# official version at https://www.gromacs.org.
 #
 # To help us fund GROMACS development, we humbly ask that you cite
-# the research papers on the package. Check out http://www.gromacs.org.
+# the research papers on the package. Check out https://www.gromacs.org.
+
+if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
+    message(FATAL_ERROR "CMake called with the wrong directory; please use the top GROMACS directory (${CMAKE_CURRENT_SOURCE_DIR}/../../)")
+endif()
 
 set(LIBGROMACS_SOURCES)
 
@@ -186,6 +187,15 @@ if (GMX_GPU_CUDA)
 else()
     add_library(libgromacs ${LIBGROMACS_SOURCES})
 endif()
+
+if (TARGET Heffte::Heffte)
+    target_link_libraries(libgromacs PRIVATE Heffte::Heffte)
+endif()
+
+if (GMX_SYCL_HIPSYCL AND GMX_HIPSYCL_HAVE_HIP_TARGET)
+    target_link_libraries(libgromacs PUBLIC roc::rocfft)
+endif()
+
 target_link_libraries(libgromacs PRIVATE $<BUILD_INTERFACE:common>)
 # As long as the libgromacs target has source files that reference headers from
 # modules that don't provide CMake targets, libgromacs needs to use `src/`
@@ -199,9 +209,6 @@ target_link_libraries(libgromacs PRIVATE $<BUILD_INTERFACE:legacy_modules>)
 # linking starts.
 add_subdirectory(fileio)
 add_subdirectory(selection)
-
-# Suppress a warning about our abuse of t_inputrec
-gmx_source_file_warning_suppression(mdtypes/inputrec.cpp -Wno-class-memaccess HAS_NO_CLASS_MEMACCESS)
 
 # Handle the object libraries that contain the source file
 # dependencies that need special handling because they are generated
@@ -280,11 +287,6 @@ endif()
 # Do any special handling needed for .cpp files that use
 # CUDA runtime headers
 if (GMX_GPU_CUDA AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    # CUDA header cuda_runtime_api.h in at least CUDA 10.1 uses 0
-    # where nullptr would be preferable. GROMACS can't fix these, so
-    # must suppress them.
-    GMX_TEST_CXXFLAG(CXXFLAGS_NO_ZERO_AS_NULL_POINTER_CONSTANT "-Wno-zero-as-null-pointer-constant" NVCC_CLANG_SUPPRESSIONS_CXXFLAGS)
-
     foreach(_compile_flag ${NVCC_CLANG_SUPPRESSIONS_CXXFLAGS})
         set(GMX_CUDA_CLANG_FLAGS "${GMX_CUDA_CLANG_FLAGS} ${_compile_flag}")
     endforeach()
@@ -392,11 +394,11 @@ set_target_properties(libgromacs PROPERTIES
 
 gmx_manage_lmfit()
 target_link_libraries(libgromacs PRIVATE lmfit)
+gmx_manage_muparser()
+target_link_libraries(libgromacs PRIVATE muparser)
 
-# Make sure we fix "everything" found by more recent versions of clang.
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER "7")
-   target_compile_options(libgromacs PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Weverything ${IGNORED_CLANG_ALL_WARNINGS}>)
-endif()
+# Make sure we fix "everything" found by compilers that support that
+gmx_warn_on_everything(libgromacs)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
    target_compile_options(libgromacs PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/analyze /analyze:stacksize 70000
      #Control flow warnings are disabled because the commond line output is insufficient. There is no tool
@@ -457,10 +459,11 @@ if (BUILD_SHARED_LIBS)
     if(GMX_INSTALL_LEGACY_API)
         target_compile_features(libgromacs INTERFACE cxx_std_${CMAKE_CXX_STANDARD})
     endif()
+    # only install pkg-config and cmake target files when library is installed
+    include(InstallLibInfo.cmake)
 endif()
 add_library(Gromacs::libgromacs ALIAS libgromacs)
 
-include(InstallLibInfo.cmake)
 
 # Technically, the user could want to do this for an OpenCL build
 # using the CUDA runtime, but currently there's no reason to want to

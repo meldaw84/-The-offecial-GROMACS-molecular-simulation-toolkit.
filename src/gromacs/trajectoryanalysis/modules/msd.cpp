@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2021- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief
@@ -61,11 +60,11 @@
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/selection/selectionoption.h"
 #include "gromacs/statistics/statistics.h"
+#include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/trajectoryanalysis/analysissettings.h"
 #include "gromacs/trajectoryanalysis/topologyinformation.h"
-#include "gromacs/trajectory/trajectoryframe.h"
-#include "gromacs/utility/stringutil.h"
 #include "gromacs/utility.h"
+#include "gromacs/utility/stringutil.h"
 
 namespace gmx
 {
@@ -171,19 +170,22 @@ inline double calcSingleSquaredDistance(const RVec c1, const RVec c2)
     const DVec firstCoords  = c1.toDVec();
     const DVec secondCoords = c2.toDVec();
     double     result       = 0;
-    if constexpr (x) // NOLINT // NOLINTNEXTLINE
+    if constexpr (x)
     {
         result += (firstCoords[XX] - secondCoords[XX]) * (firstCoords[XX] - secondCoords[XX]);
     }
-    if constexpr (y) // NOLINT // NOLINTNEXTLINE
+    // NOLINTNEXTLINE(readability-misleading-indentation) remove when clang-tidy-13 is required
+    if constexpr (y)
     {
         result += (firstCoords[YY] - secondCoords[YY]) * (firstCoords[YY] - secondCoords[YY]);
     }
-    if constexpr (z) // NOLINT // NOLINTNEXTLINE
+    // NOLINTNEXTLINE(readability-misleading-indentation) remove when clang-tidy-13 is required
+    if constexpr (z)
     {
         result += (firstCoords[ZZ] - secondCoords[ZZ]) * (firstCoords[ZZ] - secondCoords[ZZ]);
     }
-    return result; // NOLINT
+    // NOLINTNEXTLINE(readability-misleading-indentation) remove when clang-tidy-13 is required
+    return result;
 }
 
 /*! \brief Calculate average displacement between sets of points
@@ -281,10 +283,7 @@ public:
     MsdCoordinateManager(const int                    numAtoms,
                          ArrayRef<const MoleculeData> molecules,
                          ArrayRef<const int>          moleculeIndexMapping) :
-        current_(numAtoms),
-        previous_(numAtoms),
-        molecules_(molecules),
-        moleculeIndexMapping_(moleculeIndexMapping)
+        current_(numAtoms), previous_(numAtoms), molecules_(molecules), moleculeIndexMapping_(moleculeIndexMapping)
     {
     }
     /*! \brief Prepares coordinates for the current frame.
@@ -391,12 +390,9 @@ struct MsdGroupData
 
 /*! \brief Implements the gmx msd module
  *
- * \todo Implement -(no)mw. Right now, all calculations are mass-weighted with -mol, and not otherwise
  * \todo Implement -tensor for full MSD tensor calculation
  * \todo Implement -rmcomm for total-frame COM removal
  * \todo Implement -pdb for molecule B factors
- * \todo Implement -maxtau option proposed at https://gitlab.com/gromacs/gromacs/-/issues/3870
- * \todo Update help text as options are added and clarifications decided on at https://gitlab.com/gromacs/gromacs/-/issues/3869
  */
 class Msd : public TrajectoryAnalysisModule
 {
@@ -434,6 +430,10 @@ private:
     double t0_ = 0;
     //! Inter-frame delta-t
     std::optional<double> dt_ = std::nullopt;
+    //! Inter-frame maximum time delta.
+    double maxTau_ = std::numeric_limits<double>::max();
+    //! Tracks the index of the first valid frame. Starts at 0, increases as old frames are deleted
+    size_t firstValidFrame_ = 0;
 
     //! First tau value to fit from for diffusion coefficient, defaults to 0.1 * max tau
     real beginFit_ = -1.0;
@@ -504,6 +504,14 @@ void Msd::initOptions(IOptionsContainer* options, TrajectoryAnalysisSettings* se
         "Note that this diffusion coefficient and error estimate are only",
         "accurate when the MSD is completely linear between",
         "[TT]-beginfit[tt] and [TT]-endfit[tt].[PAR]",
+        "By default, [THISMODULE] compares all trajectory frames against every frame stored at",
+        "[TT]-trestart[TT] intervals, so the number of frames stored scales linearly with the",
+        "number of frames processed. This can lead to long analysis times and out-of-memory errors",
+        "for long/large trajectories, and often the data at higher time deltas lacks sufficient ",
+        "sampling, often manifesting as a wobbly line on the MSD plot after a straighter region at",
+        "lower time deltas. The [TT]-maxtau[TT] option can be used to cap the maximum time delta",
+        "for frame comparison, which may improve performance and can be used to avoid",
+        "out-of-memory issues.[PAR]"
     };
     settings->setHelpText(desc);
 
@@ -531,6 +539,10 @@ void Msd::initOptions(IOptionsContainer* options, TrajectoryAnalysisSettings* se
                                .description("Time between restarting points in trajectory (ps)")
                                .defaultValue(10.0)
                                .store(&trestart_));
+    options->addOption(
+            DoubleOption("maxtau")
+                    .description("Maximum time delta between frames to calculate MSDs for (ps)")
+                    .store(&maxTau_));
     options->addOption(
             RealOption("beginfit").description("Time point at which to start fitting.").store(&beginFit_));
     options->addOption(RealOption("endfit").description("End time for fitting.").store(&endFit_));
@@ -648,8 +660,10 @@ void Msd::analyzeFrame(int gmx_unused                frameNumber,
 
     // Each frame will get a tau between it and frame 0, and all other frame combos should be
     // covered by this.
-    // \todo this will no longer hold exactly when maxtau is added
-    taus_.push_back(time - times_[0]);
+    if (const double tau = time - times_[0]; tau <= maxTau_)
+    {
+        taus_.push_back(time - times_[0]);
+    }
 
     for (MsdGroupData& msdData : groupData_)
     {
@@ -658,10 +672,19 @@ void Msd::analyzeFrame(int gmx_unused                frameNumber,
         ArrayRef<const RVec> coords = msdData.coordinateManager_.buildCoordinates(sel, pbc);
 
         // For each preceding frame, calculate tau and do comparison.
-        for (size_t i = 0; i < msdData.frames.size(); i++)
+        for (size_t i = firstValidFrame_; i < msdData.frames.size(); i++)
         {
             // If dt > trestart, the tau increment will be dt rather than trestart.
-            double  tau      = time - (t0_ + std::max<double>(trestart_, *dt_) * i);
+            const double tau = time - (t0_ + std::max<double>(trestart_, *dt_) * i);
+            if (tau > maxTau_)
+            {
+                // The (now empty) entry is no longer needed, so over time the outer vector will
+                // grow with extraneous empty elements persisting, but the alternative would require
+                // some more complicated remapping of tau to frame index.
+                msdData.frames[i].clear();
+                firstValidFrame_ = i + 1;
+                continue;
+            }
             int64_t tauIndex = gmx::roundToInt64(tau / *dt_);
             msdData.msds[tauIndex].push_back(calcMsd_(coords, msdData.frames[i]));
 

@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,15 +26,13 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
-#include "gromacs/utility/enumerationhelpers.h"
-#include "gromacs/utility/stringutil.h"
 #include "topio.h"
 
 #include <cassert>
@@ -79,12 +73,14 @@
 #include "gromacs/topology/symtab.h"
 #include "gromacs/topology/topology.h"
 #include "gromacs/utility/cstringutil.h"
+#include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/logger.h"
 #include "gromacs/utility/pleasecite.h"
 #include "gromacs/utility/smalloc.h"
+#include "gromacs/utility/stringutil.h"
 
 #define OPENDIR '['  /* starting sign for directive */
 #define CLOSEDIR ']' /* ending sign for directive   */
@@ -117,7 +113,7 @@ static void gen_pairs(const InteractionsOfType& nbs, InteractionsOfType* pairs, 
         /* Copy normal and FEP parameters and multiply by fudge factor */
         gmx::ArrayRef<const real> existingParam = type.forceParam();
         GMX_RELEASE_ASSERT(2 * nrfp <= MAXFORCEPARAM,
-                           "Can't have more parameters than half of maximum p  arameter number");
+                           "Can't have more parameters than half of maximum parameter number");
         for (int j = 0; j < nrfp; j++)
         {
             /* If we are using sigma/epsilon values, only the epsilon values
@@ -137,7 +133,7 @@ static void gen_pairs(const InteractionsOfType& nbs, InteractionsOfType* pairs, 
             forceParam[j]        = scaling * existingParam[j];
             forceParam[nrfp + j] = scaling * existingParam[j];
         }
-        pairs->interactionTypes.emplace_back(InteractionOfType(atomNumbers, forceParam));
+        pairs->interactionTypes.emplace_back(atomNumbers, forceParam);
         i++;
     }
 }
@@ -659,8 +655,7 @@ static char** read_topol(const char*                           infile,
 
                             break;
                         case Directive::d_atomtypes:
-                            push_at(symtab,
-                                    atypes,
+                            push_at(atypes,
                                     &bondAtomType,
                                     pline,
                                     static_cast<int>(nb_funct),
@@ -722,7 +717,7 @@ static char** read_topol(const char*                           infile,
                                         || opts->couple_lam1 == ecouplamQ))
                                 {
                                     dcatt = add_atomtype_decoupled(
-                                            symtab, atypes, &nbparam, bGenPairs ? &pair : nullptr);
+                                            atypes, &nbparam, bGenPairs ? &pair : nullptr);
                                 }
                                 ntype  = atypes->size();
                                 ncombs = (ntype * (ntype + 1)) / 2;
@@ -988,7 +983,8 @@ static char** read_topol(const char*                           infile,
                 "integrators we have not yet removed the GROMOS force fields, but you should be "
                 "aware of these issues and check if molecules in your system are affected before "
                 "proceeding. "
-                "Further information is available at https://redmine.gromacs.org/issues/2884 , "
+                "Further information is available at "
+                "https://gitlab.com/gromacs/gromacs/-/issues/2884, "
                 "and a longer explanation of our decision to remove physically incorrect "
                 "algorithms "
                 "can be found at https://doi.org/10.26434/chemrxiv.11474583.v1 .");
@@ -1098,7 +1094,7 @@ char** do_top(bool                                  bVerbose,
                        ffParametrizedWithHBondConstraints,
                        ir->efep != FreeEnergyPerturbationType::No,
                        bZero,
-                       EEL_FULL(ir->coulombtype),
+                       usingFullElectrostatics(ir->coulombtype),
                        wi,
                        logger);
 
@@ -1376,11 +1372,9 @@ void generate_qmexcl(gmx_mtop_t* sys, t_inputrec* ir, const gmx::MDLogger& logge
      */
 
     unsigned char*  grpnr;
-    int             mol, nat_mol, nr_mol_with_qm_atoms = 0;
+    int             mol, nat_mol;
     gmx_molblock_t* molb;
     bool            bQMMM;
-    int             index_offset = 0;
-    int             qm_nr        = 0;
 
     grpnr = sys->groups.groupNumbers[SimulationAtomGroupType::QuantumMechanics].data();
 
@@ -1396,13 +1390,11 @@ void generate_qmexcl(gmx_mtop_t* sys, t_inputrec* ir, const gmx::MDLogger& logge
                 if ((grpnr ? grpnr[i] : 0) < (ir->opts.ngQM))
                 {
                     bQMMM = TRUE;
-                    qm_nr++;
                 }
             }
 
             if (bQMMM)
             {
-                nr_mol_with_qm_atoms++;
                 if (molb->nmol > 1)
                 {
                     /* We need to split this molblock */
@@ -1453,7 +1445,6 @@ void generate_qmexcl(gmx_mtop_t* sys, t_inputrec* ir, const gmx::MDLogger& logge
             {
                 grpnr += nat_mol;
             }
-            index_offset += nat_mol;
         }
     }
 }

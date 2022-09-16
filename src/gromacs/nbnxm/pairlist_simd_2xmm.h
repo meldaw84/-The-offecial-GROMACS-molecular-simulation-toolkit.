@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2012,2013,2014,2015,2016 by the GROMACS development team.
- * Copyright (c) 2017,2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2012- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  *
@@ -49,10 +47,10 @@ static constexpr int c_xStride2xNN = (GMX_SIMD_REAL_WIDTH >= 2 * c_nbnxnCpuIClus
                                              : c_nbnxnCpuIClusterSize;
 
 //! Copies PBC shifted i-cell packed atom coordinates to working array
-static inline void icell_set_x_simd_2xnn(int  ci,
-                                         real shx,
-                                         real shy,
-                                         real shz,
+static inline void icell_set_x_simd_2xnn(int                   ci,
+                                         real                  shx,
+                                         real                  shy,
+                                         real                  shz,
                                          int gmx_unused        stride,
                                          const real*           x,
                                          NbnxnPairlistCpuWork* work)
@@ -91,20 +89,20 @@ static inline void icell_set_x_simd_2xnn(int  ci,
  * \param[in]     rbb2                The squared cut-off for putting cluster-pairs in the list based on bounding box distance only
  * \param[in,out] numDistanceChecks   The number of distance checks performed
  */
-static inline void makeClusterListSimd2xnn(const Grid&       jGrid,
-                                           NbnxnPairlistCpu* nbl,
-                                           int               icluster,
-                                           int               firstCell,
-                                           int               lastCell,
-                                           bool              excludeSubDiagonal,
+static inline void makeClusterListSimd2xnn(const Grid&              jGrid,
+                                           NbnxnPairlistCpu*        nbl,
+                                           int                      icluster,
+                                           int                      firstCell,
+                                           int                      lastCell,
+                                           bool                     excludeSubDiagonal,
                                            const real* gmx_restrict x_j,
                                            real                     rlist2,
                                            float                    rbb2,
-                                           int* gmx_restrict numDistanceChecks)
+                                           int* gmx_restrict        numDistanceChecks)
 {
     using namespace gmx;
-    const real* gmx_restrict x_ci_simd    = nbl->work->iClusterData.xSimd.data();
-    const BoundingBox* gmx_restrict bb_ci = nbl->work->iClusterData.bb.data();
+    const real* gmx_restrict        x_ci_simd = nbl->work->iClusterData.xSimd.data();
+    const BoundingBox* gmx_restrict bb_ci     = nbl->work->iClusterData.bb.data();
 
     SimdReal jx_S, jy_S, jz_S;
 

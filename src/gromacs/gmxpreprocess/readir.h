@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 #ifndef GMX_GMXPREPROCESS_READIR_H
@@ -93,8 +89,8 @@ struct t_gromppopts
     char*              include   = nullptr;
     char*              define    = nullptr;
     bool               bGenVel   = false;
-    bool               bGenPairs = false;
     real               tempi     = 0;
+    bool               bMadeSeed = false;
     int                seed      = 0;
     gmx::GromppMtsOpts mtsOpts;
     bool               bOrire           = false;
@@ -112,16 +108,18 @@ void init_inputrec_strings();
 /*! \brief Clean up object that holds strings parsed from an .mdp file */
 void done_inputrec_strings();
 
+/*! \brief Performs all validation on \p ir that can be done without index groups and topology
+ *
+ * Any errors, warnings or notes are added to \p wi
+ */
 void check_ir(const char*                    mdparin,
               const gmx::MDModulesNotifiers& mdModulesNotifiers,
               t_inputrec*                    ir,
               t_gromppopts*                  opts,
               warninp_t                      wi);
-/* Validate inputrec data.
- * Fatal errors will be added to nerror.
- */
-int search_string(const char* s, int ng, char* gn[]);
-/* Returns the index of string s in the index groups */
+
+//! Returns the index of string \p s in \p gn or exit with a verbose fatal error when not found
+int search_string(const char* s, int ng, char* const gn[]);
 
 void double_check(t_inputrec* ir, matrix box, bool bHasNormalConstraints, bool bHasAnyConstraints, warninp_t wi);
 /* Do more checks */

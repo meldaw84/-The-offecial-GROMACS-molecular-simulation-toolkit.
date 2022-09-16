@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2016,2017,2018,2019,2020, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2016- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 /*! \internal \file
@@ -41,9 +40,9 @@
 
 #include "gmxpre.h"
 
-#include <cassert>
-
 #include <math_constants.h>
+
+#include <cassert>
 
 #include "gromacs/gpu_utils/cuda_arch_utils.cuh"
 
@@ -52,9 +51,9 @@
 /*! \brief
  * PME complex grid solver kernel function.
  *
- * \tparam[in] gridOrdering             Specifies the dimension ordering of the complex grid.
- * \tparam[in] computeEnergyAndVirial   Tells if the reciprocal energy and virial should be computed.
- * \tparam[in] gridIndex                The index of the grid to use in the kernel.
+ * \tparam     gridOrdering             Specifies the dimension ordering of the complex grid.
+ * \tparam     computeEnergyAndVirial   Tells if the reciprocal energy and virial should be computed.
+ * \tparam     gridIndex                The index of the grid to use in the kernel.
  * \param[in]  kernelParams             Input PME CUDA data in constant memory.
  */
 template<GridOrdering gridOrdering, bool computeEnergyAndVirial, const int gridIndex>
@@ -88,20 +87,23 @@ __launch_bounds__(c_solveMaxThreadsPerBlock) CLANG_DISABLE_OPTIMIZATION_ATTRIBUT
     const float* __restrict__ gm_splineValueMinor = kernelParams.grid.d_splineModuli[gridIndex]
                                                     + kernelParams.grid.splineValuesOffset[minorDim];
     float* __restrict__ gm_virialAndEnergy = kernelParams.constants.d_virialAndEnergy[gridIndex];
-    float2* __restrict__ gm_grid           = (float2*)kernelParams.grid.d_fourierGrid[gridIndex];
+    float2* __restrict__ gm_grid =
+            reinterpret_cast<float2*>(kernelParams.grid.d_fftComplexGrid[gridIndex]);
 
     /* Various grid sizes and indices */
-    const int localOffsetMinor = 0, localOffsetMajor = 0, localOffsetMiddle = 0; // unused
-    const int localSizeMinor   = kernelParams.grid.complexGridSizePadded[minorDim];
-    const int localSizeMiddle  = kernelParams.grid.complexGridSizePadded[middleDim];
-    const int localCountMiddle = kernelParams.grid.complexGridSize[middleDim];
-    const int localCountMinor  = kernelParams.grid.complexGridSize[minorDim];
-    const int nMajor           = kernelParams.grid.realGridSize[majorDim];
-    const int nMiddle          = kernelParams.grid.realGridSize[middleDim];
-    const int nMinor           = kernelParams.grid.realGridSize[minorDim];
-    const int maxkMajor        = (nMajor + 1) / 2;  // X or Y
-    const int maxkMiddle       = (nMiddle + 1) / 2; // Y OR Z => only check for !YZX
-    const int maxkMinor        = (nMinor + 1) / 2;  // Z or X => only check for YZX
+    const int localOffsetMinor  = kernelParams.grid.kOffsets[minorDim];
+    const int localOffsetMiddle = kernelParams.grid.kOffsets[middleDim];
+    const int localOffsetMajor  = kernelParams.grid.kOffsets[majorDim];
+    const int localSizeMinor    = kernelParams.grid.localComplexGridSizePadded[minorDim];
+    const int localSizeMiddle   = kernelParams.grid.localComplexGridSizePadded[middleDim];
+    const int localCountMiddle  = kernelParams.grid.localComplexGridSize[middleDim];
+    const int localCountMinor   = kernelParams.grid.localComplexGridSize[minorDim];
+    const int nMajor            = kernelParams.grid.realGridSize[majorDim];
+    const int nMiddle           = kernelParams.grid.realGridSize[middleDim];
+    const int nMinor            = kernelParams.grid.realGridSize[minorDim];
+    const int maxkMajor         = (nMajor + 1) / 2;  // X or Y
+    const int maxkMiddle        = (nMiddle + 1) / 2; // Y OR Z => only check for !YZX
+    const int maxkMinor         = (nMinor + 1) / 2;  // Z or X => only check for YZX
 
     /* Each thread works on one cell of the Fourier space complex 3D grid (gm_grid).
      * Each block handles up to c_solveMaxThreadsPerBlock cells -
@@ -119,15 +121,15 @@ __launch_bounds__(c_solveMaxThreadsPerBlock) CLANG_DISABLE_OPTIMIZATION_ATTRIBUT
     const int indexMajor        = blockIdx.z;
 
     /* Optional outputs */
-    float energy = 0.0f;
-    float virxx  = 0.0f;
-    float virxy  = 0.0f;
-    float virxz  = 0.0f;
-    float viryy  = 0.0f;
-    float viryz  = 0.0f;
-    float virzz  = 0.0f;
+    float energy = 0.0F;
+    float virxx  = 0.0F;
+    float virxy  = 0.0F;
+    float virxz  = 0.0F;
+    float viryy  = 0.0F;
+    float viryz  = 0.0F;
+    float virzz  = 0.0F;
 
-    assert(indexMajor < kernelParams.grid.complexGridSize[majorDim]);
+    assert(indexMajor < kernelParams.grid.localComplexGridSize[majorDim]);
     if ((indexMiddle < localCountMiddle) & (indexMinor < localCountMinor)
         & (gridLineIndex < gridLinesPerBlock))
     {
@@ -176,20 +178,20 @@ __launch_bounds__(c_solveMaxThreadsPerBlock) CLANG_DISABLE_OPTIMIZATION_ATTRIBUT
         }
 
         /* 0.5 correction factor for the first and last components of a Z dimension */
-        float corner_fac = 1.0f;
+        float corner_fac = 1.0F;
         switch (gridOrdering)
         {
             case GridOrdering::YZX:
                 if ((kMiddle == 0) | (kMiddle == maxkMiddle))
                 {
-                    corner_fac = 0.5f;
+                    corner_fac = 0.5F;
                 }
                 break;
 
             case GridOrdering::XYZ:
                 if ((kMinor == 0) | (kMinor == maxkMinor))
                 {
-                    corner_fac = 0.5f;
+                    corner_fac = 0.5F;
                 }
                 break;
 
@@ -206,13 +208,13 @@ __launch_bounds__(c_solveMaxThreadsPerBlock) CLANG_DISABLE_OPTIMIZATION_ATTRIBUT
                                + mZ * kernelParams.current.recipBox[ZZ][ZZ];
 
             const float m2k = mhxk * mhxk + mhyk * mhyk + mhzk * mhzk;
-            assert(m2k != 0.0f);
+            assert(m2k != 0.0F);
             // TODO: use LDG/textures for gm_splineValue
             float denom = m2k * float(CUDART_PI_F) * kernelParams.current.boxVolume
                           * gm_splineValueMajor[kMajor] * gm_splineValueMiddle[kMiddle]
                           * gm_splineValueMinor[kMinor];
             assert(isfinite(denom));
-            assert(denom != 0.0f);
+            assert(denom != 0.0F);
 
             const float tmp1   = expf(-kernelParams.grid.ewaldFactor * m2k);
             const float etermk = kernelParams.constants.elFactor * tmp1 / denom;
@@ -226,9 +228,9 @@ __launch_bounds__(c_solveMaxThreadsPerBlock) CLANG_DISABLE_OPTIMIZATION_ATTRIBUT
             if (computeEnergyAndVirial)
             {
                 const float tmp1k =
-                        2.0f * (gridValue.x * oldGridValue.x + gridValue.y * oldGridValue.y);
+                        2.0F * (gridValue.x * oldGridValue.x + gridValue.y * oldGridValue.y);
 
-                float vfactor = (kernelParams.grid.ewaldFactor + 1.0f / m2k) * 2.0f;
+                float vfactor = (kernelParams.grid.ewaldFactor + 1.0F / m2k) * 2.0F;
                 float ets2    = corner_fac * tmp1k;
                 energy        = ets2;
 
@@ -303,7 +305,7 @@ __launch_bounds__(c_solveMaxThreadsPerBlock) CLANG_DISABLE_OPTIMIZATION_ATTRIBUT
         /* Reduce 7 outputs per warp in the shared memory */
         const int stride =
                 8; // this is c_virialAndEnergyCount==7 rounded up to power of 2 for convenience, hence the assert
-        assert(c_virialAndEnergyCount == 7);
+        static_assert(c_virialAndEnergyCount == 7);
         const int        reductionBufferSize = (c_solveMaxThreadsPerBlock / warp_size) * stride;
         __shared__ float sm_virialAndEnergy[reductionBufferSize];
 

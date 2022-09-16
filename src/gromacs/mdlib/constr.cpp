@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief Defines the high-level constraint code.
@@ -99,17 +95,19 @@ namespace gmx
 class Constraints::Impl
 {
 public:
-    Impl(const gmx_mtop_t&     mtop_p,
-         const t_inputrec&     ir_p,
-         pull_t*               pull_work,
-         FILE*                 log_p,
-         const t_commrec*      cr_p,
-         const gmx_multisim_t* ms,
-         t_nrnb*               nrnb,
-         gmx_wallcycle*        wcycle_p,
-         bool                  pbcHandlingRequired,
-         int                   numConstraints,
-         int                   numSettles);
+    Impl(const gmx_mtop_t&          mtop_p,
+         const t_inputrec&          ir_p,
+         pull_t*                    pull_work,
+         FILE*                      log_p,
+         const t_commrec*           cr_p,
+         bool                       useUpdateGroups,
+         const gmx_multisim_t*      ms,
+         t_nrnb*                    nrnb,
+         gmx_wallcycle*             wcycle_p,
+         bool                       pbcHandlingRequired,
+         ObservablesReducerBuilder* observablesReducerBuilder,
+         int                        numConstraints,
+         int                        numSettles);
     ~Impl();
     void setConstraints(gmx_localtop_t*                     top,
                         int                                 numAtoms,
@@ -268,7 +266,7 @@ static void write_constr_pdb(const char*          fn,
     const char *  anm, *resnm;
 
     dd = nullptr;
-    if (DOMAINDECOMP(cr))
+    if (haveDDAtomOrdering(*cr))
     {
         dd = cr->dd;
         dd_get_constraint_range(*dd, &dd_ac0, &dd_ac1);
@@ -478,7 +476,8 @@ bool Constraints::Impl::apply(bool                      bLog,
          * by the constraint coordinate communication routine,
          * so that here we can use normal pbc.
          */
-        pbc_null = set_pbc_dd(&pbc, ir.pbcType, DOMAINDECOMP(cr) ? cr->dd->numCells : nullptr, FALSE, box);
+        pbc_null = set_pbc_dd(
+                &pbc, ir.pbcType, haveDDAtomOrdering(*cr) ? cr->dd->numCells : nullptr, FALSE, box);
     }
     else
     {
@@ -488,7 +487,7 @@ bool Constraints::Impl::apply(bool                      bLog,
     /* Communicate the coordinates required for the non-local constraints
      * for LINCS and/or SETTLE.
      */
-    if (cr->dd)
+    if (havePPDomainDecomposition(cr))
     {
         dd_move_x_constraints(cr->dd,
                               box,
@@ -766,7 +765,7 @@ bool Constraints::Impl::apply(bool                      bLog,
             set_pbc(&pbc, ir.pbcType, box);
             pull_constraint(pull_work,
                             masses_,
-                            &pbc,
+                            pbc,
                             cr,
                             ir.delta_t,
                             t,
@@ -816,18 +815,6 @@ bool Constraints::Impl::apply(bool                      bLog,
 
     return bOK;
 } // namespace gmx
-
-ArrayRef<real> Constraints::rmsdData() const
-{
-    if (impl_->lincsd)
-    {
-        return lincs_rmsdData(impl_->lincsd);
-    }
-    else
-    {
-        return {};
-    }
-}
 
 real Constraints::rmsd() const
 {
@@ -1075,32 +1062,36 @@ static std::vector<ListOfLists<int>> makeAtomToConstraintMappings(const gmx_mtop
     return mapping;
 }
 
-Constraints::Constraints(const gmx_mtop_t&     mtop,
-                         const t_inputrec&     ir,
-                         pull_t*               pull_work,
-                         FILE*                 log,
-                         const t_commrec*      cr,
-                         const gmx_multisim_t* ms,
-                         t_nrnb*               nrnb,
-                         gmx_wallcycle*        wcycle,
-                         bool                  pbcHandlingRequired,
-                         int                   numConstraints,
-                         int                   numSettles) :
-    impl_(new Impl(mtop, ir, pull_work, log, cr, ms, nrnb, wcycle, pbcHandlingRequired, numConstraints, numSettles))
+Constraints::Constraints(const gmx_mtop_t&          mtop,
+                         const t_inputrec&          ir,
+                         pull_t*                    pull_work,
+                         FILE*                      log,
+                         const t_commrec*           cr,
+                         const bool                 useUpdateGroups,
+                         const gmx_multisim_t*      ms,
+                         t_nrnb*                    nrnb,
+                         gmx_wallcycle*             wcycle,
+                         bool                       pbcHandlingRequired,
+                         ObservablesReducerBuilder* observablesReducerBuilder,
+                         int                        numConstraints,
+                         int                        numSettles) :
+    impl_(new Impl(mtop, ir, pull_work, log, cr, useUpdateGroups, ms, nrnb, wcycle, pbcHandlingRequired, observablesReducerBuilder, numConstraints, numSettles))
 {
 }
 
-Constraints::Impl::Impl(const gmx_mtop_t&     mtop_p,
-                        const t_inputrec&     ir_p,
-                        pull_t*               pull_work,
-                        FILE*                 log_p,
-                        const t_commrec*      cr_p,
-                        const gmx_multisim_t* ms_p,
-                        t_nrnb*               nrnb_p,
-                        gmx_wallcycle*        wcycle_p,
-                        bool                  pbcHandlingRequired,
-                        int                   numConstraints,
-                        int                   numSettles) :
+Constraints::Impl::Impl(const gmx_mtop_t&          mtop_p,
+                        const t_inputrec&          ir_p,
+                        pull_t*                    pull_work,
+                        FILE*                      log_p,
+                        const t_commrec*           cr_p,
+                        const bool                 useUpdateGroups,
+                        const gmx_multisim_t*      ms_p,
+                        t_nrnb*                    nrnb_p,
+                        gmx_wallcycle*             wcycle_p,
+                        bool                       pbcHandlingRequired,
+                        ObservablesReducerBuilder* observablesReducerBuilder,
+                        int                        numConstraints,
+                        int                        numSettles) :
     ncon_tot(numConstraints),
     mtop(mtop_p),
     pbcHandlingRequired_(pbcHandlingRequired),
@@ -1112,7 +1103,7 @@ Constraints::Impl::Impl(const gmx_mtop_t&     mtop_p,
     nrnb(nrnb_p),
     wcycle(wcycle_p)
 {
-    if (numConstraints + numSettles > 0 && ir.epc == PressureCoupling::Mttk)
+    if (numConstraints + numSettles > 0 && ir.pressureCouplingOptions.epc == PressureCoupling::Mttk)
     {
         gmx_fatal(FARGS, "Constraints are not implemented with MTTK pressure control.");
     }
@@ -1151,23 +1142,25 @@ Constraints::Impl::Impl(const gmx_mtop_t&     mtop_p,
             }
         }
 
+        // When there are multiple PP domains and update groups are
+        // not in use, the constraints might be split across the
+        // domains, needing particular handling.
+        const bool mayHaveSplitConstraints = haveDDAtomOrdering(*cr) && !useUpdateGroups;
+
         if (ir.eConstrAlg == ConstraintAlgorithm::Lincs)
         {
-            lincsd = init_lincs(log,
-                                mtop,
-                                nflexcon,
-                                at2con_mt,
-                                DOMAINDECOMP(cr) && ddHaveSplitConstraints(*cr->dd),
-                                ir.nLincsIter,
-                                ir.nProjOrder);
+            GMX_ASSERT(observablesReducerBuilder == nullptr || PAR(cr_p),
+                       "ObservablesReducer only works with LINCS when there is more than one rank");
+            lincsd = init_lincs(
+                    log, mtop, nflexcon, at2con_mt, mayHaveSplitConstraints, ir.nLincsIter, ir.nProjOrder, observablesReducerBuilder);
         }
 
         if (ir.eConstrAlg == ConstraintAlgorithm::Shake)
         {
-            if (DOMAINDECOMP(cr) && ddHaveSplitConstraints(*cr->dd))
+            if (mayHaveSplitConstraints)
             {
                 gmx_fatal(FARGS,
-                          "SHAKE is not supported with domain decomposition and constraint that "
+                          "SHAKE is not supported with domain decomposition and constraints that "
                           "cross domain boundaries, use LINCS");
             }
             if (nflexcon)
@@ -1191,6 +1184,15 @@ Constraints::Impl::Impl(const gmx_mtop_t&     mtop_p,
         please_cite(log, "Miyamoto92a");
 
         settled = std::make_unique<SettleData>(mtop);
+
+        // SETTLE with perturbed masses is not implemented. grompp now checks
+        // for this, but old .tpr files that did this might still exist.
+        if (haveFepPerturbedMassesInSettles(mtop))
+        {
+            gmx_fatal(FARGS,
+                      "SETTLE is not implemented for atoms whose mass is perturbed. "
+                      "You might\ninstead use normal constraints.");
+        }
 
         /* Make an atom to settle index for use in domain decomposition */
         for (size_t mt = 0; mt < mtop.moltype.size(); mt++)

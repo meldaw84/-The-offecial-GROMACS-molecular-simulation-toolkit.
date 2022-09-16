@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2016,2017,2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2016- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 /*! \internal \file
@@ -58,7 +57,6 @@ struct DeviceInformation;
 class DeviceStream;
 class GpuEventSynchronizer;
 struct gmx_hw_info_t;
-struct gmx_gpu_opt_t;
 struct gmx_pme_t; // only used in pme_gpu_reinit
 struct gmx_wallcycle;
 class PmeAtomComm;
@@ -68,6 +66,7 @@ class PmeGpuProgram;
 struct PmeGpuStaging;
 struct PmeGpuSettings;
 struct t_complex;
+typedef struct gmx_parallel_3dfft* gmx_parallel_3dfft_t;
 
 #ifndef FEP_STATE_A
 //! Grid index of FEP state A (or unperturbed system)
@@ -96,7 +95,8 @@ enum class PmeSplineDataType
 enum class GridOrdering
 {
     YZX,
-    XYZ
+    XYZ,
+    Count
 };
 
 /*! \libinternal \brief
@@ -106,9 +106,13 @@ enum class GridOrdering
  * size divisible by the returned number.
  *
  * \returns Number of atoms in a single GPU atom data chunk, which
- * determines a minimum divisior of the size of the memory allocated.
+ * determines a minimum divisor of the size of the memory allocated.
  */
 int pme_gpu_get_atom_data_block_size();
+
+/*!\brief Return the number of atoms per warp */
+GPU_FUNC_QUALIFIER int pme_gpu_get_atoms_per_warp(const PmeGpu* GPU_FUNC_ARGUMENT(pmeGpu))
+        GPU_FUNC_TERM_WITH_RETURN(0);
 
 /*! \libinternal \brief
  * Synchronizes the current computation, waiting for the GPU kernels/transfers to finish.
@@ -259,6 +263,20 @@ void pme_gpu_realloc_grids(PmeGpu* pmeGpu);
 void pme_gpu_free_grids(const PmeGpu* pmeGpu);
 
 /*! \libinternal \brief
+ * Reinitialize PME halo exchange parameters and staging device buffers for MPI communication.
+ *
+ * \param[in] pmeGpu            The PME GPU structure.
+ */
+void pme_gpu_reinit_haloexchange(PmeGpu* pmeGpu);
+
+/*! \libinternal \brief
+ * Frees device staging buffers used for PME halo exchange.
+ *
+ * \param[in] pmeGpu            The PME GPU structure.
+ */
+void pme_gpu_free_haloexchange(const PmeGpu* pmeGpu);
+
+/*! \libinternal \brief
  * Clears the real space grid on the GPU.
  * Should be called at the end of each computation.
  *
@@ -340,21 +358,32 @@ void pme_gpu_destroy_3dfft(const PmeGpu* pmeGpu);
 /*! \libinternal \brief
  * A GPU spline computation and charge spreading function.
  *
- * \param[in]  pmeGpu                 The PME GPU structure.
- * \param[in]  xReadyOnDevice         Event synchronizer indicating that the coordinates are ready in the device memory;
- *                                    can be nullptr when invoked on a separate PME rank or from PME tests.
- * \param[out] h_grids                The host-side grid buffers (used only if the result of the spread is expected on the host,
- *                                    e.g. testing or host-side FFT)
- * \param[in]  computeSplines         Should the computation of spline parameters and gridline indices be performed.
- * \param[in]  spreadCharges          Should the charges/coefficients be spread on the grid.
- * \param[in]  lambda                 The lambda value of the current system state.
+ * \param[in]  pmeGpu                    The PME GPU structure.
+ * \param[in]  xReadyOnDevice            Event synchronizer indicating that the coordinates are
+ *                                       ready in the device memory; can be nullptr when invoked
+ *                                       on a separate PME rank or from PME tests.
+ * \param[out] h_grids                   The host-side grid buffers (used only if the result
+ *                                       of the spread is expected on the host, e.g. testing
+ *                                       or host-side FFT)
+ * \param[in]  fftSetup                  Host-side FFT setup structure used in Mixed mode
+ * \param[in]  computeSplines            Should the computation of spline parameters and gridline
+ *                                       indices be performed.
+ * \param[in]  spreadCharges             Should the charges/coefficients be spread on the grid.
+ * \param[in]  lambda                    The lambda value of the current system state.
+ * \param[in]  useGpuDirectComm          Whether direct GPU PME-PP communication is active
+ * \param[in]  pmeCoordinateReceiverGpu  Coordinate receiver object, which must be valid when
+ *                                       direct GPU PME-PP communication is active
  */
-GPU_FUNC_QUALIFIER void pme_gpu_spread(const PmeGpu*         GPU_FUNC_ARGUMENT(pmeGpu),
-                                       GpuEventSynchronizer* GPU_FUNC_ARGUMENT(xReadyOnDevice),
-                                       float**               GPU_FUNC_ARGUMENT(h_grids),
-                                       bool                  GPU_FUNC_ARGUMENT(computeSplines),
-                                       bool                  GPU_FUNC_ARGUMENT(spreadCharges),
-                                       real GPU_FUNC_ARGUMENT(lambda)) GPU_FUNC_TERM;
+GPU_FUNC_QUALIFIER void
+pme_gpu_spread(const PmeGpu*                  GPU_FUNC_ARGUMENT(pmeGpu),
+               GpuEventSynchronizer*          GPU_FUNC_ARGUMENT(xReadyOnDevice),
+               float**                        GPU_FUNC_ARGUMENT(h_grids),
+               gmx_parallel_3dfft_t*          GPU_FUNC_ARGUMENT(fftSetup),
+               bool                           GPU_FUNC_ARGUMENT(computeSplines),
+               bool                           GPU_FUNC_ARGUMENT(spreadCharges),
+               real                           GPU_FUNC_ARGUMENT(lambda),
+               bool                           GPU_FUNC_ARGUMENT(useGpuDirectComm),
+               gmx::PmeCoordinateReceiverGpu* GPU_FUNC_ARGUMENT(pmeCoordinateReceiverGpu)) GPU_FUNC_TERM;
 
 /*! \libinternal \brief
  * 3D FFT R2C/C2R routine.
@@ -387,11 +416,13 @@ GPU_FUNC_QUALIFIER void pme_gpu_solve(const PmeGpu* GPU_FUNC_ARGUMENT(pmeGpu),
  *
  * \param[in]     pmeGpu                   The PME GPU structure.
  * \param[in]     h_grids                  The host-side grid buffer (used only in testing mode).
+ * \param[in]     fftSetup                 Host-side FFT setup structure used in Mixed mode
  * \param[in]     lambda                   The lambda value to use.
  */
-GPU_FUNC_QUALIFIER void pme_gpu_gather(PmeGpu* GPU_FUNC_ARGUMENT(pmeGpu),
-                                       float** GPU_FUNC_ARGUMENT(h_grids),
-                                       float   GPU_FUNC_ARGUMENT(lambda)) GPU_FUNC_TERM;
+GPU_FUNC_QUALIFIER void pme_gpu_gather(PmeGpu*               GPU_FUNC_ARGUMENT(pmeGpu),
+                                       float**               GPU_FUNC_ARGUMENT(h_grids),
+                                       gmx_parallel_3dfft_t* GPU_FUNC_ARGUMENT(fftSetup),
+                                       float GPU_FUNC_ARGUMENT(lambda)) GPU_FUNC_TERM;
 
 
 /*! \brief Sets the device pointer to coordinate data
@@ -489,18 +520,6 @@ GPU_FUNC_QUALIFIER PmeOutput pme_gpu_getOutput(const gmx_pme_t& GPU_FUNC_ARGUMEN
  */
 GPU_FUNC_QUALIFIER void pme_gpu_update_input_box(PmeGpu*      GPU_FUNC_ARGUMENT(pmeGpu),
                                                  const matrix GPU_FUNC_ARGUMENT(box)) GPU_FUNC_TERM;
-
-/*! \libinternal \brief
- * Finishes the PME GPU computation, waiting for the output forces and/or energy/virial to be copied to the host.
- * If forces were computed, they will have arrived at the external host buffer provided to gather.
- * If virial/energy were computed, they will have arrived into the internal staging buffer
- * (even though that should have already happened before even launching the gather).
- * Finally, cudaEvent_t based GPU timers get updated if enabled. They also need stream synchronization for correctness.
- * Additionally, device-side buffers are cleared asynchronously for the next computation.
- *
- * \param[in] pmeGpu         The PME GPU structure.
- */
-void pme_gpu_finish_computation(const PmeGpu* pmeGpu);
 
 /*! \libinternal \brief
  * Get the normal/padded grid dimensions of the real-space PME grid on GPU. Only used in tests.

@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2012,2014,2015,2017,2018 by the GROMACS development team.
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,14 +26,13 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
-#include "gromacs/utility/strconvert.h"
 #include "toputil.h"
 
 #include <climits>
@@ -56,6 +51,7 @@
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/smalloc.h"
+#include "gromacs/utility/strconvert.h"
 #include "gromacs/utility/stringutil.h"
 
 /* UTILITIES */
@@ -164,14 +160,14 @@ static void print_bt(FILE*                                   out,
         {
             for (int j = 0; (j < nral); j++)
             {
-                fprintf(out, "%5s ", *at->atomNameFromAtomType(atoms[j]));
+                fprintf(out, "%5s ", at->atomNameFromAtomType(atoms[j])->c_str());
             }
         }
         else
         {
             for (int j = 0; (j < 2); j++)
             {
-                fprintf(out, "%5s ", *at->atomNameFromAtomType(atoms[dihp[f][j]]));
+                fprintf(out, "%5s ", at->atomNameFromAtomType(atoms[dihp[f][j]])->c_str());
             }
         }
         fprintf(out, "%5d ", bSwapParity ? -f - 1 : f + 1);
@@ -306,7 +302,7 @@ void print_atoms(FILE* out, PreprocessingAtomTypes* atype, t_atoms* at, int* cgn
             fprintf(out,
                     "%6d %10s %6d%c %5s %6s %6d %10g %10g",
                     i + 1,
-                    *tpnmA,
+                    tpnmA->c_str(),
                     at->resinfo[ri].nr,
                     at->resinfo[ri].ic,
                     bRTPresname ? *(at->resinfo[at->atom[i].resind].rtp)
@@ -323,7 +319,7 @@ void print_atoms(FILE* out, PreprocessingAtomTypes* atype, t_atoms* at, int* cgn
                 {
                     gmx_fatal(FARGS, "tpB = %d, i= %d in print_atoms", tpB, i);
                 }
-                fprintf(out, " %6s %10g %10g", *tpnmB, at->atom[i].qB, at->atom[i].mB);
+                fprintf(out, " %6s %10g %10g", tpnmB->c_str(), at->atom[i].qB, at->atom[i].mB);
             }
             // Accumulate the total charge to help troubleshoot issues.
             qtot += static_cast<double>(at->atom[i].q);
@@ -352,19 +348,12 @@ void print_atoms(FILE* out, PreprocessingAtomTypes* atype, t_atoms* at, int* cgn
 
 void print_bondeds(FILE* out, int natoms, Directive d, int ftype, int fsubtype, gmx::ArrayRef<const InteractionsOfType> plist)
 {
-    t_symtab stab;
-    t_atom*  a;
-
+    auto                   atom = std::make_unique<t_atom>();
     PreprocessingAtomTypes atype;
-    snew(a, 1);
-    open_symtab(&stab);
     for (int i = 0; (i < natoms); i++)
     {
         std::string name = gmx::toString(i + 1);
-        atype.addType(&stab, *a, name, InteractionOfType({}, {}), 0, 0);
+        atype.addType(*atom, name, InteractionOfType({}, {}), 0, 0);
     }
     print_bt(out, d, &atype, ftype, fsubtype, plist, TRUE);
-
-    done_symtab(&stab);
-    sfree(a);
 }

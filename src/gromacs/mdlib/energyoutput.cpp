@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief Defines code that writes energy-like quantities.
@@ -56,6 +52,7 @@
 #include <string>
 
 #include "gromacs/applied_forces/awh/awh.h"
+#include "gromacs/applied_forces/awh/read_params.h"
 #include "gromacs/fileio/enxio.h"
 #include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/xvgr.h"
@@ -78,6 +75,7 @@
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/pulling/pull.h"
 #include "gromacs/topology/mtop_util.h"
+#include "gromacs/topology/topology.h"
 #include "gromacs/trajectory/energyframe.h"
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/enumerationhelpers.h"
@@ -90,23 +88,27 @@
 
 //! Labels for energy file quantities
 //! \{
-static const char* conrmsd_nm[] = { "Constr. rmsd", "Constr.2 rmsd" };
+static const char* const conrmsd_nm[] = { "Constr. rmsd", "Constr.2 rmsd" };
 
-static std::array<const char*, 3> boxs_nm = { "Box-X", "Box-Y", "Box-Z" };
+static constexpr std::array<const char*, 3> boxs_nm = { "Box-X", "Box-Y", "Box-Z" };
 
-static std::array<const char*, 6> tricl_boxs_nm = { "Box-XX", "Box-YY", "Box-ZZ",
-                                                    "Box-YX", "Box-ZX", "Box-ZY" };
+static constexpr std::array<const char*, 6> tricl_boxs_nm = { "Box-XX", "Box-YY", "Box-ZZ",
+                                                              "Box-YX", "Box-ZX", "Box-ZY" };
 
-static const char* vol_nm[] = { "Volume" };
+static const char* const vol_nm[] = { "Volume" };
 
-static const char* dens_nm[] = { "Density" };
+static const char* const dens_nm[] = { "Density" };
 
-static const char* pv_nm[] = { "pV" };
+const char* const pvEnergyFieldName = "pV";
 
-static const char* enthalpy_nm[] = { "Enthalpy" };
+const char* const enthalpyEnergyFieldName = "Enthalpy";
 
-static std::array<const char*, 6> boxvel_nm = { "Box-Vel-XX", "Box-Vel-YY", "Box-Vel-ZZ",
-                                                "Box-Vel-YX", "Box-Vel-ZX", "Box-Vel-ZY" };
+const std::array<const char*, 9> virialEnergyFieldNames = { "Vir-XX", "Vir-XY", "Vir-XZ",
+                                                            "Vir-YX", "Vir-YY", "Vir-YZ",
+                                                            "Vir-ZX", "Vir-ZY", "Vir-ZZ" };
+
+static constexpr std::array<const char*, 6> boxvel_nm = { "Box-Vel-XX", "Box-Vel-YY", "Box-Vel-ZZ",
+                                                          "Box-Vel-YX", "Box-Vel-ZX", "Box-Vel-ZY" };
 
 const char* enumValueToString(NonBondedEnergyTerms enumValue)
 {
@@ -118,6 +120,13 @@ const char* enumValueToString(NonBondedEnergyTerms enumValue)
 
 //! \}
 
+static bool haveFepLambdaMoves(const t_inputrec& inputrec)
+{
+    return (inputrec.bExpanded && inputrec.expandedvals->elmcmove > LambdaMoveCalculation::No)
+           || (inputrec.efep != FreeEnergyPerturbationType::No && inputrec.bDoAwh
+               && awhHasFepLambdaDimension(*inputrec.awhParams));
+}
+
 namespace gmx
 {
 
@@ -127,7 +136,6 @@ namespace gmx
  * be written out to the .edr file.
  *
  * \todo Use more std containers.
- * \todo Remove GMX_CONSTRAINTVIR
  * \todo Write free-energy output also to energy file (after adding more tests)
  */
 EnergyOutput::EnergyOutput(ener_file*                fp_ene,
@@ -138,17 +146,10 @@ EnergyOutput::EnergyOutput(ener_file*                fp_ene,
                            bool                      isRerun,
                            const StartingBehavior    startingBehavior,
                            const bool                simulationsShareState,
-                           const MDModulesNotifiers& mdModulesNotifiers)
+                           const MDModulesNotifiers& mdModulesNotifiers) :
+    haveFepLambdaMoves_(haveFepLambdaMoves(inputrec))
 {
     const char*        ener_nm[F_NRE];
-    static const char* vir_nm[]   = { "Vir-XX", "Vir-XY", "Vir-XZ", "Vir-YX", "Vir-YY",
-                                    "Vir-YZ", "Vir-ZX", "Vir-ZY", "Vir-ZZ" };
-    static const char* sv_nm[]    = { "ShakeVir-XX", "ShakeVir-XY", "ShakeVir-XZ",
-                                   "ShakeVir-YX", "ShakeVir-YY", "ShakeVir-YZ",
-                                   "ShakeVir-ZX", "ShakeVir-ZY", "ShakeVir-ZZ" };
-    static const char* fv_nm[]    = { "ForceVir-XX", "ForceVir-XY", "ForceVir-XZ",
-                                   "ForceVir-YX", "ForceVir-YY", "ForceVir-YZ",
-                                   "ForceVir-ZX", "ForceVir-ZY", "ForceVir-ZZ" };
     static const char* pres_nm[]  = { "Pres-XX", "Pres-XY", "Pres-XZ", "Pres-YX", "Pres-YY",
                                      "Pres-YZ", "Pres-ZX", "Pres-ZY", "Pres-ZZ" };
     static const char* surft_nm[] = { "#Surf*SurfTen" };
@@ -181,7 +182,6 @@ EnergyOutput::EnergyOutput(ener_file*                fp_ene,
     ncon         = gmx_mtop_ftype_count(mtop, F_CONSTR);
     nset         = gmx_mtop_ftype_count(mtop, F_SETTLE);
     bool bConstr = (ncon > 0 || nset > 0) && !isRerun;
-    bConstrVir_  = false;
     nCrmsd_      = 0;
     if (bConstr)
     {
@@ -189,7 +189,6 @@ EnergyOutput::EnergyOutput(ener_file*                fp_ene,
         {
             nCrmsd_ = 1;
         }
-        bConstrVir_ = (getenv("GMX_CONSTRAINTVIR") != nullptr);
     }
     else
     {
@@ -223,10 +222,9 @@ EnergyOutput::EnergyOutput(ener_file*                fp_ene,
 
     bEner_[F_LJ]   = !bBHAM;
     bEner_[F_BHAM] = bBHAM;
-    bEner_[F_EQM]  = inputrec.bQMMM;
-    bEner_[F_RF_EXCL] = (EEL_RF(inputrec.coulombtype) && inputrec.cutoff_scheme == CutoffScheme::Group);
-    bEner_[F_COUL_RECIP]   = EEL_FULL(inputrec.coulombtype);
-    bEner_[F_LJ_RECIP]     = EVDW_PME(inputrec.vdwtype);
+    bEner_[F_RF_EXCL] = (usingRF(inputrec.coulombtype) && inputrec.cutoff_scheme == CutoffScheme::Group);
+    bEner_[F_COUL_RECIP]   = usingFullElectrostatics(inputrec.coulombtype);
+    bEner_[F_LJ_RECIP]     = usingLJPme(inputrec.vdwtype);
     bEner_[F_LJ14]         = b14;
     bEner_[F_COUL14]       = b14;
     bEner_[F_LJC14_Q]      = false;
@@ -259,11 +257,16 @@ EnergyOutput::EnergyOutput(ener_file*                fp_ene,
     bEner_[F_ORIRESDEV]  = (gmx_mtop_ftype_count(mtop, F_ORIRES) > 0);
     bEner_[F_COM_PULL]   = ((inputrec.bPull && pull_have_potential(*pull_work)) || inputrec.bRot);
 
+    // Check MDModules for any energy output
     MDModulesEnergyOutputToDensityFittingRequestChecker mdModulesAddOutputToDensityFittingFieldRequest;
     mdModulesNotifiers.simulationSetupNotifier_.notify(&mdModulesAddOutputToDensityFittingFieldRequest);
 
     bEner_[F_DENSITYFITTING] = mdModulesAddOutputToDensityFittingFieldRequest.energyOutputToDensityFitting_;
 
+    MDModulesEnergyOutputToQMMMRequestChecker mdModulesAddOutputToQMMMFieldRequest;
+    mdModulesNotifiers.simulationSetupNotifier_.notify(&mdModulesAddOutputToQMMMFieldRequest);
+
+    bEner_[F_EQM] = mdModulesAddOutputToQMMMFieldRequest.energyOutputToQMMM_;
 
     // Counting the energy terms that will be printed and saving their names
     f_nre_ = 0;
@@ -276,12 +279,15 @@ EnergyOutput::EnergyOutput(ener_file*                fp_ene,
         }
     }
 
-    epc_       = isRerun ? PressureCoupling::No : inputrec.epc;
-    bDiagPres_ = !TRICLINIC(inputrec.ref_p) && !isRerun;
-    ref_p_     = (inputrec.ref_p[XX][XX] + inputrec.ref_p[YY][YY] + inputrec.ref_p[ZZ][ZZ]) / DIM;
-    bTricl_    = TRICLINIC(inputrec.compress) || TRICLINIC(inputrec.deform);
-    bDynBox_   = inputrecDynamicBox(&inputrec);
-    etc_       = isRerun ? TemperatureCoupling::No : inputrec.etc;
+    epc_       = isRerun ? PressureCoupling::No : inputrec.pressureCouplingOptions.epc;
+    bDiagPres_ = !TRICLINIC(inputrec.pressureCouplingOptions.ref_p) && !isRerun;
+    ref_p_     = (inputrec.pressureCouplingOptions.ref_p[XX][XX]
+              + inputrec.pressureCouplingOptions.ref_p[YY][YY]
+              + inputrec.pressureCouplingOptions.ref_p[ZZ][ZZ])
+             / DIM;
+    bTricl_  = TRICLINIC(inputrec.pressureCouplingOptions.compress) || TRICLINIC(inputrec.deform);
+    bDynBox_ = inputrecDynamicBox(&inputrec);
+    etc_     = isRerun ? TemperatureCoupling::No : inputrec.etc;
     bNHC_trotter_   = inputrecNvtTrotter(&inputrec) && !isRerun;
     bPrintNHChains_ = inputrec.bPrintNHChains && !isRerun;
     bMTTK_          = (inputrecNptTrotter(&inputrec) || inputrecNphTrotter(&inputrec)) && !isRerun;
@@ -310,18 +316,14 @@ EnergyOutput::EnergyOutput(ener_file*                fp_ene,
         idens_ = get_ebin_space(ebin_, 1, dens_nm, unit_density_SI);
         if (bDiagPres_)
         {
-            ipv_       = get_ebin_space(ebin_, 1, pv_nm, unit_energy);
-            ienthalpy_ = get_ebin_space(ebin_, 1, enthalpy_nm, unit_energy);
+            ipv_       = get_ebin_space(ebin_, 1, &pvEnergyFieldName, unit_energy);
+            ienthalpy_ = get_ebin_space(ebin_, 1, &enthalpyEnergyFieldName, unit_energy);
         }
-    }
-    if (bConstrVir_)
-    {
-        isvir_ = get_ebin_space(ebin_, asize(sv_nm), sv_nm, unit_energy);
-        ifvir_ = get_ebin_space(ebin_, asize(fv_nm), fv_nm, unit_energy);
     }
     if (bPres_)
     {
-        ivir_   = get_ebin_space(ebin_, asize(vir_nm), vir_nm, unit_energy);
+        ivir_ = get_ebin_space(
+                ebin_, virialEnergyFieldNames.size(), virialEnergyFieldNames.data(), unit_energy);
         ipres_  = get_ebin_space(ebin_, asize(pres_nm), pres_nm, unit_pres_bar);
         isurft_ = get_ebin_space(ebin_, asize(surft_nm), surft_nm, unit_surft_bar);
     }
@@ -640,11 +642,10 @@ FILE* open_dhdl(const char* filename, const t_inputrec* ir, const gmx_output_env
     FILE*       fp;
     const char *dhdl = "dH/d\\lambda", *deltag = "\\DeltaH", *lambda = "\\lambda",
                *lambdastate = "\\lambda state";
-    int         i, nsets, nsets_de, nsetsbegin;
-    int         n_lambda_terms = 0;
-    t_lambda*   fep            = ir->fepvals.get(); /* for simplicity */
-    t_expanded* expand         = ir->expandedvals.get();
-    char        lambda_vec_str[STRLEN], lambda_name_str[STRLEN];
+    int       i, nsets, nsets_de, nsetsbegin;
+    int       n_lambda_terms = 0;
+    t_lambda* fep            = ir->fepvals.get(); /* for simplicity */
+    char      lambda_vec_str[STRLEN], lambda_name_str[STRLEN];
 
     int  nsets_dhdl = 0;
     int  s          = 0;
@@ -683,7 +684,8 @@ FILE* open_dhdl(const char* filename, const t_inputrec* ir, const gmx_output_env
         buf = gmx::formatString("T = %g (K) ", ir->opts.ref_t[0]);
     }
     if ((ir->efep != FreeEnergyPerturbationType::SlowGrowth)
-        && (ir->efep != FreeEnergyPerturbationType::Expanded))
+        && (ir->efep != FreeEnergyPerturbationType::Expanded)
+        && !(ir->bDoAwh && awhHasFepLambdaDimension(*ir->awhParams)))
     {
         if ((fep->init_lambda >= 0) && (n_lambda_terms == 1))
         {
@@ -711,7 +713,7 @@ FILE* open_dhdl(const char* filename, const t_inputrec* ir, const gmx_output_env
 
     nsets = nsets_dhdl + nsets_de; /* dhdl + fep differences */
 
-    if (fep->n_lambda > 0 && (expand->elmcmove > LambdaMoveCalculation::No))
+    if (haveFepLambdaMoves(*ir))
     {
         nsets += 1; /*add fep state for expanded ensemble */
     }
@@ -722,7 +724,8 @@ FILE* open_dhdl(const char* filename, const t_inputrec* ir, const gmx_output_env
     }
 
     nsetsextend = nsets;
-    if ((ir->epc != PressureCoupling::No) && (fep->n_lambda > 0) && (fep->init_lambda < 0))
+    if ((ir->pressureCouplingOptions.epc != PressureCoupling::No) && (fep->n_lambda > 0)
+        && (fep->init_lambda < 0))
     {
         nsetsextend += 1; /* for PV term, other terms possible if required for
                              the reduced potential (only needed with foreign
@@ -733,7 +736,7 @@ FILE* open_dhdl(const char* filename, const t_inputrec* ir, const gmx_output_env
     }
     std::vector<std::string> setname(nsetsextend);
 
-    if (expand->elmcmove > LambdaMoveCalculation::No)
+    if (haveFepLambdaMoves(*ir))
     {
         /* state for the fep_vals, if we have alchemical sampling */
         setname[s++] = "Thermodynamic state";
@@ -786,7 +789,7 @@ FILE* open_dhdl(const char* filename, const t_inputrec* ir, const gmx_output_env
          * from this xvg legend.
          */
 
-        if (expand->elmcmove > LambdaMoveCalculation::No)
+        if (haveFepLambdaMoves(*ir))
         {
             nsetsbegin = 1; /* for including the expanded ensemble */
         }
@@ -843,12 +846,9 @@ void EnergyOutput::addDataAtEnergyStep(bool                    bDoDHDL,
                                        real                    tmass,
                                        const gmx_enerdata_t*   enerd,
                                        const t_lambda*         fep,
-                                       const t_expanded*       expand,
                                        const matrix            box,
                                        PTCouplingArrays        ptCouplingArrays,
                                        int                     fep_state,
-                                       const tensor            svir,
-                                       const tensor            fvir,
                                        const tensor            vir,
                                        const tensor            pres,
                                        const gmx_ekindata_t*   ekind,
@@ -910,11 +910,6 @@ void EnergyOutput::addDataAtEnergyStep(bool                    bDoDHDL,
             enthalpy = pv + enerd->term[F_ETOT];
             add_ebin(ebin_, ienthalpy_, 1, &enthalpy, bSum);
         }
-    }
-    if (bConstrVir_)
-    {
-        add_ebin(ebin_, isvir_, 9, svir[0], bSum);
-        add_ebin(ebin_, ifvir_, 9, fvir[0], bSum);
     }
     if (bPres_)
     {
@@ -1060,7 +1055,7 @@ void EnergyOutput::addDataAtEnergyStep(bool                    bDoDHDL,
             /* the current free energy state */
 
             /* print the current state if we are doing expanded ensemble */
-            if (expand->elmcmove > LambdaMoveCalculation::No)
+            if (haveFepLambdaMoves_)
             {
                 fprintf(fp_dhdl_, " %4d", fep_state);
             }
@@ -1186,18 +1181,20 @@ void EnergyOutput::printStepToEnergyFile(ener_file* fp_ene,
         nr[i] = 0;
     }
 
-    if (bOR && fcd->orires->nr > 0)
+    if (bOR && fcd->orires)
     {
         t_oriresdata& orires = *fcd->orires;
         diagonalize_orires_tensors(&orires);
-        nr[enxOR]     = orires.nr;
-        block[enxOR]  = orires.otav;
+        nr[enxOR]     = orires.numRestraints;
+        block[enxOR]  = orires.orientationsTimeAndEnsembleAv.data();
         id[enxOR]     = enxOR;
-        nr[enxORI]    = (orires.oinsl != orires.otav) ? orires.nr : 0;
-        block[enxORI] = orires.oinsl;
+        nr[enxORI]    = (orires.orientations.data() != orires.orientationsTimeAndEnsembleAv.data())
+                                ? orires.numRestraints
+                                : 0;
+        block[enxORI] = orires.orientations.data();
         id[enxORI]    = enxORI;
-        nr[enxORT]    = orires.nex * 12;
-        block[enxORT] = orires.eig;
+        nr[enxORT]    = ssize(orires.eigenOutput);
+        block[enxORT] = orires.eigenOutput.data();
         id[enxORT]    = enxORT;
     }
 
@@ -1283,9 +1280,9 @@ void EnergyOutput::printStepToEnergyFile(ener_file* fp_ene,
     free_enxframe(&fr);
     if (log)
     {
-        if (bOR && fcd->orires->nr > 0)
+        if (bOR && fcd->orires)
         {
-            print_orires_log(log, fcd->orires);
+            print_orires_log(log, fcd->orires.get());
         }
 
         fprintf(log, "   Energies (%s)\n", unit_energy);
@@ -1347,15 +1344,6 @@ void EnergyOutput::printAverages(FILE* log, const SimulationGroups* groups)
         if (bDynBox_)
         {
             pr_ebin(log, ebin_, ib_, bTricl_ ? tricl_boxs_nm.size() : boxs_nm.size(), 5, eprAVER, true);
-            fprintf(log, "\n");
-        }
-        if (bConstrVir_)
-        {
-            fprintf(log, "   Constraint Virial (%s)\n", unit_energy);
-            pr_ebin(log, ebin_, isvir_, 9, 3, eprAVER, false);
-            fprintf(log, "\n");
-            fprintf(log, "   Force Virial (%s)\n", unit_energy);
-            pr_ebin(log, ebin_, ifvir_, 9, 3, eprAVER, false);
             fprintf(log, "\n");
         }
         if (bPres_)

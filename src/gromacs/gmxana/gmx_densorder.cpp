@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2010-2018, The GROMACS development team.
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2010- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -291,22 +289,6 @@ static void density_in_time(const char*             fn,
     /*Free memory we no longer need and exit.*/
     gmx_rmpbc_done(gpbc);
     close_trx(status);
-
-    if (/* DISABLES CODE */ (false))
-    {
-        FILE* fp;
-        fp = fopen("koko.xvg", "w");
-        for (j = 0; (j < *zslices); j++)
-        {
-            fprintf(fp, "%5d", j);
-            for (i = 0; (i < *tblock); i++)
-            {
-                fprintf(fp, "  %10g", (*Densdevel)[i][9][1][j]);
-            }
-            fprintf(fp, "\n");
-        }
-        fclose(fp);
-    }
 }
 
 static void outputfield(const char* fldfn, real**** Densmap, int xslices, int yslices, int zslices, int tdim)

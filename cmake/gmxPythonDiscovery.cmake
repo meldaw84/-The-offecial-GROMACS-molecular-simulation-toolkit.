@@ -1,10 +1,9 @@
 #
 # This file is part of the GROMACS molecular simulation package.
 #
-# Copyright (c) 2020,2021, by the GROMACS development team, led by
-# Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
-# and including many others, as listed in the AUTHORS file in the
-# top-level source directory and at http://www.gromacs.org.
+# Copyright 2020- The GROMACS Authors
+# and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+# Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
 #
 # GROMACS is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with GROMACS; if not, see
-# http://www.gnu.org/licenses, or write to the Free Software Foundation,
+# https://www.gnu.org/licenses, or write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
 #
 # If you want to redistribute modifications to GROMACS, please
@@ -27,13 +26,36 @@
 # consider code for inclusion in the official distribution, but
 # derived work must not be called official GROMACS. Details are found
 # in the README & COPYING files - if they are missing, get the
-# official version at http://www.gromacs.org.
+# official version at https://www.gromacs.org.
 #
 # To help us fund GROMACS development, we humbly ask that you cite
-# the research papers on the package. Check out http://www.gromacs.org.
+# the research papers on the package. Check out https://www.gromacs.org.
 
 # Perform Python installation discovery early and in one place, for consistency.
-#
+
+if($<VERSION_GREATER_EQUAL:${CMAKE_VERSION},"3.18">)
+    # With embedded packages in this repository, the module-scoped default behavior of
+    # FindPython3 version/component requirements and artifact specification is likely
+    # confusing (at best) or leading to bad logic (at worst).
+    # https://cmake.org/cmake/help/latest/module/FindPython3.html#artifacts-specification
+    option(Python3_ARTIFACTS_INTERACTIVE TRUE
+           "Make artifacts specification global and cached.")
+elseif(NOT FIND_PACKAGE_MESSAGE_DETAILS_Python3)
+    # On first run, check whether the user has triggered the behavior described above.
+    if (Python3_EXECUTABLE
+            OR Python3_COMPILER
+            OR Python3_DOTNET_LAUNCHER
+            OR Python3_LIBRARY
+            OR Python3_INCLUDE_DIR
+            OR Python3_NumPy_INCLUDE_DIR)
+        message(WARNING
+                "Specifying FindPython3 artifacts may complicate consistent Python detection "
+                "in projects bundled with GROMACS. See "
+                "https://cmake.org/cmake/help/latest/module/FindPython3.html#artifacts-specification"
+                )
+    endif ()
+endif()
+
 # Note: If necessary, the Python location can be hinted with Python3_ROOT_DIR
 # For additional parameters affecting Python installation discovery, see
 # https://cmake.org/cmake/help/latest/module/FindPython3.html#hints
@@ -53,15 +75,11 @@ if(NOT Python3_FIND_VIRTUALENV)
     # we want to preferentially discover user-space software.
     set(Python3_FIND_VIRTUALENV FIRST)
 endif()
-if(GMX_PYTHON_PACKAGE)
-    find_package(Python3 3.6 COMPONENTS Interpreter Development)
-    if (NOT Python3_FOUND OR NOT Python3_Development_FOUND)
-        message(FATAL_ERROR "Could not locate Python development requirements. \
-                Provide appropriate CMake hints or set GMX_PYTHON_PACKAGE=OFF")
-    endif ()
-else()
-    find_package(Python3 3.6 COMPONENTS Interpreter)
-endif()
+find_package(Python3 3.7 COMPONENTS Interpreter Development)
+if (GMX_PYTHON_PACKAGE AND (NOT Python3_FOUND OR NOT Python3_Development_FOUND))
+    message(FATAL_ERROR "Could not locate Python development requirements. \
+            Provide appropriate CMake hints or set GMX_PYTHON_PACKAGE=OFF")
+endif ()
 
 # Provide hints for other Python detection that may occur later.
 #

@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2019- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief Defines a velocity-scaling temperature coupling element for
@@ -88,8 +87,8 @@ class ITemperatureCouplingImpl
 {
 public:
     //! Allow access to the scaling vectors
-    virtual void connectWithPropagator(const PropagatorThermostatConnection& connectionData,
-                                       int numTemperatureGroups) = 0;
+    virtual void connectWithPropagator(const PropagatorConnection& connectionData,
+                                       int                         numTemperatureGroups) = 0;
 
     /*! \brief Make a temperature control step
      *
@@ -113,6 +112,12 @@ public:
     //! Read private data from checkpoint
     virtual void readCheckpoint(std::optional<ReadCheckpointData> checkpointData, const t_commrec* cr) = 0;
 
+    //! Update the reference temperature and update and return the temperature coupling integral
+    virtual real updateReferenceTemperatureAndIntegral(int  temperatureGroup,
+                                                       real newTemperature,
+                                                       ReferenceTemperatureChangeAlgorithm algorithm,
+                                                       const TemperatureCouplingData& temperatureCouplingData) = 0;
+
     //! Standard virtual destructor
     virtual ~ITemperatureCouplingImpl() = default;
 };
@@ -124,9 +129,9 @@ class VRescaleTemperatureCoupling final : public ITemperatureCouplingImpl
 {
 public:
     //! Apply the v-rescale temperature control
-    real apply(Step step,
-               int  temperatureGroup,
-               real currentKineticEnergy,
+    real apply(Step                           step,
+               int                            temperatureGroup,
+               real                           currentKineticEnergy,
                real gmx_unused                currentTemperature,
                const TemperatureCouplingData& temperatureCouplingData) override
     {
@@ -177,9 +182,10 @@ public:
     }
 
     //! Connect with propagator - v-rescale only scales start step velocities
-    void connectWithPropagator(const PropagatorThermostatConnection& connectionData,
-                               int                                   numTemperatureGroups) override
+    void connectWithPropagator(const PropagatorConnection& connectionData, int numTemperatureGroups) override
     {
+        GMX_RELEASE_ASSERT(connectionData.hasStartVelocityScaling(),
+                           "V-Rescale requires start velocity scaling.");
         connectionData.setNumVelocityScalingVariables(numTemperatureGroups, ScaleVelocities::PreStepOnly);
         lambdaStartVelocities_ = connectionData.getViewOnStartVelocityScaling();
     }
@@ -193,6 +199,15 @@ public:
     void readCheckpoint(std::optional<ReadCheckpointData> gmx_unused checkpointData,
                         const t_commrec gmx_unused* cr) override
     {
+    }
+
+    //! No changes needed
+    real updateReferenceTemperatureAndIntegral(int             temperatureGroup,
+                                               real gmx_unused newTemperature,
+                                               ReferenceTemperatureChangeAlgorithm gmx_unused algorithm,
+                                               const TemperatureCouplingData& temperatureCouplingData) override
+    {
+        return temperatureCouplingData.temperatureCouplingIntegral[temperatureGroup];
     }
 
     //! Constructor
@@ -249,9 +264,10 @@ public:
     }
 
     //! Connect with propagator - Berendsen only scales start step velocities
-    void connectWithPropagator(const PropagatorThermostatConnection& connectionData,
-                               int                                   numTemperatureGroups) override
+    void connectWithPropagator(const PropagatorConnection& connectionData, int numTemperatureGroups) override
     {
+        GMX_RELEASE_ASSERT(connectionData.hasStartVelocityScaling(),
+                           "Berendsen T-coupling requires start velocity scaling.");
         connectionData.setNumVelocityScalingVariables(numTemperatureGroups, ScaleVelocities::PreStepOnly);
         lambdaStartVelocities_ = connectionData.getViewOnStartVelocityScaling();
     }
@@ -265,6 +281,15 @@ public:
     void readCheckpoint(std::optional<ReadCheckpointData> gmx_unused checkpointData,
                         const t_commrec gmx_unused* cr) override
     {
+    }
+
+    //! No changes needed
+    real updateReferenceTemperatureAndIntegral(int             temperatureGroup,
+                                               real gmx_unused newTemperature,
+                                               ReferenceTemperatureChangeAlgorithm gmx_unused algorithm,
+                                               const TemperatureCouplingData& temperatureCouplingData) override
+    {
+        return temperatureCouplingData.temperatureCouplingIntegral[temperatureGroup];
     }
 
 private:
@@ -295,6 +320,15 @@ constexpr auto c_nhCurrentVersion = NHCheckpointVersion(int(NHCheckpointVersion:
 class NoseHooverTemperatureCoupling final : public ITemperatureCouplingImpl
 {
 public:
+    //! Calculate the current value of the temperature coupling integral
+    real integral(int temperatureGroup, real numDegreesOfFreedom, real referenceTemperature)
+    {
+        return 0.5 * c_boltz * numDegreesOfFreedom
+                       * (xiVelocities_[temperatureGroup] * xiVelocities_[temperatureGroup])
+                       / invXiMass_[temperatureGroup]
+               + numDegreesOfFreedom * xi_[temperatureGroup] * c_boltz * referenceTemperature;
+    }
+
     //! Apply the Nose-Hoover temperature control
     real apply(Step gmx_unused                step,
                int                            temperatureGroup,
@@ -355,17 +389,17 @@ public:
                 1. / (1 + 0.5 * thermostatData.couplingTimeStep * xiVelocities_[temperatureGroup]);
 
         // Current value of the thermostat integral
-        return 0.5 * c_boltz * thermostatData.numDegreesOfFreedom[temperatureGroup]
-                       * (xiVelocities_[temperatureGroup] * xiVelocities_[temperatureGroup])
-                       / invXiMass_[temperatureGroup]
-               + thermostatData.numDegreesOfFreedom[temperatureGroup] * xi_[temperatureGroup]
-                         * c_boltz * thermostatData.referenceTemperature[temperatureGroup];
+        return integral(temperatureGroup,
+                        thermostatData.numDegreesOfFreedom[temperatureGroup],
+                        thermostatData.referenceTemperature[temperatureGroup]);
     }
 
     //! Connect with propagator - Nose-Hoover scales start and end step velocities
-    void connectWithPropagator(const PropagatorThermostatConnection& connectionData,
-                               int                                   numTemperatureGroups) override
+    void connectWithPropagator(const PropagatorConnection& connectionData, int numTemperatureGroups) override
     {
+        GMX_RELEASE_ASSERT(
+                connectionData.hasStartVelocityScaling() && connectionData.hasEndVelocityScaling(),
+                "Nose-Hoover T-coupling requires both start and end velocity scaling.");
         connectionData.setNumVelocityScalingVariables(numTemperatureGroups,
                                                       ScaleVelocities::PreStepAndPostStep);
         lambdaStartVelocities_ = connectionData.getViewOnStartVelocityScaling();
@@ -417,11 +451,41 @@ public:
         {
             doCheckpointData(&checkpointData.value());
         }
-        if (DOMAINDECOMP(cr))
+        if (haveDDAtomOrdering(*cr))
         {
             dd_bcast(cr->dd, xi_.size() * sizeof(real), xi_.data());
             dd_bcast(cr->dd, xiVelocities_.size() * sizeof(real), xiVelocities_.data());
         }
+    }
+
+    //! Adapt masses
+    real updateReferenceTemperatureAndIntegral(int             temperatureGroup,
+                                               real gmx_unused newTemperature,
+                                               ReferenceTemperatureChangeAlgorithm gmx_unused algorithm,
+                                               const TemperatureCouplingData& temperatureCouplingData) override
+    {
+        // Currently, we don't know about any temperature change algorithms, so we assert this never gets called
+        GMX_ASSERT(false,
+                   "NoseHooverTemperatureCoupling: Unknown ReferenceTemperatureChangeAlgorithm.");
+        const bool newTemperatureIsValid =
+                (newTemperature > 0 && temperatureCouplingData.couplingTime[temperatureGroup] > 0
+                 && temperatureCouplingData.numDegreesOfFreedom[temperatureGroup] > 0);
+        const bool oldTemperatureIsValid =
+                (temperatureCouplingData.referenceTemperature[temperatureGroup] > 0
+                 && temperatureCouplingData.couplingTime[temperatureGroup] > 0
+                 && temperatureCouplingData.numDegreesOfFreedom[temperatureGroup] > 0);
+        GMX_RELEASE_ASSERT(newTemperatureIsValid == oldTemperatureIsValid,
+                           "Cannot turn temperature coupling on / off during simulation run.");
+        if (oldTemperatureIsValid && newTemperatureIsValid)
+        {
+            invXiMass_[temperatureGroup] *=
+                    (temperatureCouplingData.referenceTemperature[temperatureGroup] / newTemperature);
+            xiVelocities_[temperatureGroup] *= std::sqrt(
+                    newTemperature / temperatureCouplingData.referenceTemperature[temperatureGroup]);
+        }
+        return integral(temperatureGroup,
+                        temperatureCouplingData.numDegreesOfFreedom[temperatureGroup],
+                        newTemperature);
     }
 
 private:
@@ -489,7 +553,7 @@ VelocityScalingTemperatureCoupling::VelocityScalingTemperatureCoupling(
     });
 }
 
-void VelocityScalingTemperatureCoupling::connectWithMatchingPropagator(const PropagatorThermostatConnection& connectionData,
+void VelocityScalingTemperatureCoupling::connectWithMatchingPropagator(const PropagatorConnection& connectionData,
                                                                        const PropagatorTag& propagatorTag)
 {
     if (connectionData.tag == propagatorTag)
@@ -512,7 +576,7 @@ void VelocityScalingTemperatureCoupling::elementSetup()
     }
 }
 
-void VelocityScalingTemperatureCoupling::scheduleTask(Step step,
+void VelocityScalingTemperatureCoupling::scheduleTask(Step                       step,
                                                       Time gmx_unused            time,
                                                       const RegisterRunFunction& registerRunFunction)
 {
@@ -564,13 +628,31 @@ void VelocityScalingTemperatureCoupling::setLambda(Step step)
         const real currentKineticEnergy = useFullStepKE_ == UseFullStepKE::Yes
                                                   ? trace(ekind->tcstat[temperatureGroup].ekinf)
                                                   : trace(ekind->tcstat[temperatureGroup].ekinh);
-        const real currentTemperature = useFullStepKE_ == UseFullStepKE::Yes
-                                                ? ekind->tcstat[temperatureGroup].T
-                                                : ekind->tcstat[temperatureGroup].Th;
+        const real currentTemperature   = useFullStepKE_ == UseFullStepKE::Yes
+                                                  ? ekind->tcstat[temperatureGroup].T
+                                                  : ekind->tcstat[temperatureGroup].Th;
 
         temperatureCouplingIntegral_[temperatureGroup] = temperatureCouplingImpl_->apply(
                 step, temperatureGroup, currentKineticEnergy, currentTemperature, thermostatData);
     }
+}
+
+void VelocityScalingTemperatureCoupling::updateReferenceTemperature(ArrayRef<const real> temperatures,
+                                                                    ReferenceTemperatureChangeAlgorithm algorithm)
+{
+    TemperatureCouplingData thermostatData = {
+        couplingTimeStep_, referenceTemperature_, couplingTime_, numDegreesOfFreedom_, temperatureCouplingIntegral_
+    };
+    for (int temperatureGroup = 0; (temperatureGroup < numTemperatureGroups_); temperatureGroup++)
+    {
+        temperatureCouplingIntegral_[temperatureGroup] =
+                temperatureCouplingImpl_->updateReferenceTemperatureAndIntegral(
+                        temperatureGroup, temperatures[temperatureGroup], algorithm, thermostatData);
+    }
+    // Currently, we don't know about any temperature change algorithms, so we assert this never gets called
+    GMX_ASSERT(false,
+               "VelocityScalingTemperatureCoupling: Unknown ReferenceTemperatureChangeAlgorithm.");
+    std::copy(temperatures.begin(), temperatures.end(), referenceTemperature_.begin());
 }
 
 namespace
@@ -619,7 +701,7 @@ void VelocityScalingTemperatureCoupling::restoreCheckpointState(std::optional<Re
     {
         doCheckpointData<CheckpointDataOperation::Read>(&checkpointData.value());
     }
-    if (DOMAINDECOMP(cr))
+    if (haveDDAtomOrdering(*cr))
     {
         dd_bcast(cr->dd,
                  ssize(temperatureCouplingIntegral_) * int(sizeof(double)),
@@ -658,10 +740,11 @@ ISimulatorElement* VelocityScalingTemperatureCoupling::getElementPointerImpl(
         EnergyData*                     energyData,
         FreeEnergyPerturbationData gmx_unused* freeEnergyPerturbationData,
         GlobalCommunicationHelper gmx_unused* globalCommunicationHelper,
-        Offset                                offset,
-        UseFullStepKE                         useFullStepKE,
-        ReportPreviousStepConservedEnergy     reportPreviousStepConservedEnergy,
-        const PropagatorTag&                  propagatorTag)
+        ObservablesReducer* /*observablesReducer*/,
+        Offset                            offset,
+        UseFullStepKE                     useFullStepKE,
+        ReportPreviousStepConservedEnergy reportPreviousStepConservedEnergy,
+        const PropagatorTag&              propagatorTag)
 {
     // Element is now owned by the caller of this method, who will handle lifetime (see ModularSimulatorAlgorithm)
     auto* element = builderHelper->storeElement(std::make_unique<VelocityScalingTemperatureCoupling>(
@@ -679,9 +762,13 @@ ISimulatorElement* VelocityScalingTemperatureCoupling::getElementPointerImpl(
             legacySimulatorData->inputrec->etc));
     auto* thermostat = static_cast<VelocityScalingTemperatureCoupling*>(element);
     // Capturing pointer is safe because lifetime is handled by caller
-    builderHelper->registerThermostat(
-            [thermostat, propagatorTag](const PropagatorThermostatConnection& connection) {
+    builderHelper->registerTemperaturePressureControl(
+            [thermostat, propagatorTag](const PropagatorConnection& connection) {
                 thermostat->connectWithMatchingPropagator(connection, propagatorTag);
+            });
+    builderHelper->registerReferenceTemperatureUpdate(
+            [thermostat](ArrayRef<const real> temperatures, ReferenceTemperatureChangeAlgorithm algorithm) {
+                thermostat->updateReferenceTemperature(temperatures, algorithm);
             });
     return element;
 }

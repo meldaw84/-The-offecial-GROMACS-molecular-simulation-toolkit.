@@ -3,7 +3,7 @@
 Adaptive biasing with AWH
 -------------------------
 
-The accelerated weight histogram method
+The accelerated weight histogram method :ref:`185 <refLidmar2012>`
 :ref:`137 <reflindahl2014accelerated>` calculates the PMF along a reaction coordinate by adding
 an adaptively determined biasing potential. AWH flattens free energy
 barriers along the reaction coordinate by applying a history-dependent
@@ -64,7 +64,7 @@ determined accurately. Thus, AWH adaptively calculates
 toward :math:`\rho(\lambda)`.
 
 It is also possible to directly control the :math:`\lambda` state
-of, e.g., alchemical free energy perturbations. In that case there is no harmonic
+of, e.g., alchemical free energy perturbations :ref:`187 <reflundborg2021>`. In that case there is no harmonic
 potential and :math:`\lambda` changes in discrete steps along the reaction coordinate
 depending on the biased free energy difference between the :math:`\lambda` states.
 N.b., it is not yet possible to use AWH in combination with perturbed masses or
@@ -498,6 +498,17 @@ equal to the length of the sampling interval, the sampling interval is
 considered covered when at least one walker has independently traversed
 the sampling interval.
 
+In practice biases are shared by setting :mdp:`awh-share-multisim` to true
+and :mdp:`awh1-share-group` (for bias 1) to a non-zero value. Here, bias 1
+will be shared between simulations that have the same share group value.
+Sharing can be different for bias 1, 2, etc. (although there are
+few use cases where this is useful). Technically there are no restrictions
+on sharing, apart from that biases that are shared need to have the same
+number of grid points and the update intervals should match.
+Note that biases can not be shared within a simulation.
+The latter could be useful, especially for multimeric proteins, but this
+is more difficult to implement.
+
 .. _awhreweight:
 
 Reweighting and combining biased data
@@ -566,7 +577,7 @@ centered at :math:`\lambda` and
 is the deviation of the force. The factors :math:`\omega(\lambda|x(t))`,
 see :eq:`Eq %s <eqawhomega>`, reweight the samples.
 :math:`\eta_{\mu\nu}(\lambda)` is a friction
-tensor \ :ref:`144 <refsivak2012thermodynamic>`. Its matrix elements are inversely proportional to local
+tensor :ref:`186 <reflindahl2018>` and :ref:`144 <refsivak2012thermodynamic>`. Its matrix elements are inversely proportional to local
 diffusion coefficients. A measure of sampling (in)efficiency at each
 :math:`\lambda` is given by
 

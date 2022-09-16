@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2012,2013,2014,2015,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2012- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #ifndef GMX_MDTYPES_INTERACTION_CONST_H
 #define GMX_MDTYPES_INTERACTION_CONST_H
@@ -127,6 +125,14 @@ struct interaction_const_t
         real sigma6WithInvalidSigma;
         // Minimum value for sigma^6, used when soft-core is applied to Coulomb interactions
         real sigma6Minimum;
+        // soft-core function
+        SoftcoreType softcoreType;
+        // (gapsys sc) linearization point scaling for vdW interactions
+        real gapsysScaleLinpointVdW;
+        // (gapsys sc) linearization point scaling for Coulomb interactions
+        real gapsysScaleLinpointCoul;
+        // (gapsys sc) lower bound/replacement for c12/c6 in vdw interactions
+        real gapsysSigma6VdW;
     };
 
     /* VdW */
@@ -150,11 +156,11 @@ struct interaction_const_t
     real rcoulomb_switch = 0;
 
     /* PME/Ewald */
-    real ewaldcoeff_q  = 0;
-    real ewaldcoeff_lj = 0;
+    real         ewaldcoeff_q  = 0;
+    real         ewaldcoeff_lj = 0;
     LongRangeVdW ljpme_comb_rule = LongRangeVdW::Geom; /* LJ combination rule for the LJ PME mesh part */
-    real sh_ewald                = 0; /* -sh_ewald is added to the direct space potential */
-    real sh_lj_ewald = 0;             /* sh_lj_ewald is added to the correction potential */
+    real         sh_ewald        = 0; /* -sh_ewald is added to the direct space potential */
+    real         sh_lj_ewald = 0;     /* sh_lj_ewald is added to the correction potential */
 
     /* Dielectric constant resp. multiplication factor for charges */
     real epsilon_r = 1;

@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -43,6 +39,7 @@
 #include <cmath>
 
 #include <algorithm>
+#include <numeric>
 
 #include "gromacs/domdec/domdec_struct.h"
 #include "gromacs/gmxlib/nrnb.h"
@@ -61,7 +58,6 @@
 #include "gromacs/mdtypes/group.h"
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/md_enums.h"
-#include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/mdtypes/state.h"
 #include "gromacs/pbcutil/boxutilities.h"
 #include "gromacs/pbcutil/pbc.h"
@@ -82,7 +78,6 @@
 /* for n=3, w0 = w2 = 1/(2-2^-(1/3)), w1 = 1-2*w0 */
 /* for n=5, w0 = w1 = w3 = w4 = 1/(4-4^-(1/3)), w1 = 1-4*w0 */
 
-#define MAX_SUZUKI_YOSHIDA_NUM 5
 #define SUZUKI_YOSHIDA_NUM 5
 
 static const double sy_const_1[] = { 1. };
@@ -97,12 +92,13 @@ static constexpr std::array<const double*, 6> sy_const = { nullptr,    sy_const_
                                                            sy_const_3, nullptr,    sy_const_5 };
 
 
-void update_tcouple(int64_t           step,
-                    const t_inputrec* inputrec,
-                    t_state*          state,
-                    gmx_ekindata_t*   ekind,
-                    const t_extmass*  MassQ,
-                    const t_mdatoms*  md)
+void update_tcouple(int64_t                             step,
+                    const t_inputrec*                   inputrec,
+                    t_state*                            state,
+                    gmx_ekindata_t*                     ekind,
+                    const t_extmass*                    MassQ,
+                    int                                 homenr,
+                    gmx::ArrayRef<const unsigned short> cTC)
 
 {
     // This condition was explicitly checked in previous version, but should have never been satisfied
@@ -144,22 +140,18 @@ void update_tcouple(int64_t           step,
                 berendsen_tcoupl(inputrec, ekind, dttc, state->therm_integral);
                 break;
             case TemperatureCoupling::NoseHoover:
-                nosehoover_tcoupl(&(inputrec->opts),
-                                  ekind,
-                                  dttc,
-                                  state->nosehoover_xi.data(),
-                                  state->nosehoover_vxi.data(),
-                                  MassQ);
+                nosehoover_tcoupl(
+                        &(inputrec->opts), ekind, dttc, state->nosehoover_xi, state->nosehoover_vxi, MassQ);
                 break;
             case TemperatureCoupling::VRescale:
-                vrescale_tcoupl(inputrec, step, ekind, dttc, state->therm_integral.data());
+                vrescale_tcoupl(inputrec, step, ekind, dttc, state->therm_integral);
                 break;
             default: gmx_fatal(FARGS, "Unknown temperature coupling algorithm");
         }
         /* rescale in place here */
         if (EI_VV(inputrec->eI))
         {
-            rescale_velocities(ekind, md, 0, md->homenr, state->v.rvec_array());
+            rescale_velocities(ekind, cTC, 0, homenr, state->v);
         }
     }
     else
@@ -173,114 +165,146 @@ void update_tcouple(int64_t           step,
     }
 }
 
-void update_pcouple_before_coordinates(FILE*             fplog,
-                                       int64_t           step,
-                                       const t_inputrec* inputrec,
-                                       t_state*          state,
-                                       matrix            parrinellorahmanMu,
-                                       matrix            M,
-                                       gmx_bool          bInitStep)
+void update_pcouple_before_coordinates(FILE*                          fplog,
+                                       int64_t                        step,
+                                       const PressureCouplingOptions& pressureCouplingOptions,
+                                       const tensor                   deform,
+                                       const real                     delta_t,
+                                       t_state*                       state,
+                                       matrix                         parrinellorahmanMu,
+                                       matrix                         M,
+                                       bool                           bInitStep)
 {
     /* Berendsen P-coupling is completely handled after the coordinate update.
      * Trotter P-coupling is handled by separate calls to trotter_update().
      */
-    if (inputrec->epc == PressureCoupling::ParrinelloRahman
-        && do_per_step(step + inputrec->nstpcouple - 1, inputrec->nstpcouple))
+    if (pressureCouplingOptions.epc == PressureCoupling::ParrinelloRahman
+        && do_per_step(step + pressureCouplingOptions.nstpcouple - 1, pressureCouplingOptions.nstpcouple))
     {
-        real dtpc = inputrec->nstpcouple * inputrec->delta_t;
+        real dtpc = pressureCouplingOptions.nstpcouple * delta_t;
 
-        parrinellorahman_pcoupl(
-                fplog, step, inputrec, dtpc, state->pres_prev, state->box, state->box_rel, state->boxv, M, parrinellorahmanMu, bInitStep);
+        parrinellorahman_pcoupl(fplog,
+                                step,
+                                pressureCouplingOptions,
+                                deform,
+                                dtpc,
+                                state->pres_prev,
+                                state->box,
+                                state->box_rel,
+                                state->boxv,
+                                M,
+                                parrinellorahmanMu,
+                                bInitStep);
     }
 }
 
-void update_pcouple_after_coordinates(FILE*                fplog,
-                                      int64_t              step,
-                                      const t_inputrec*    inputrec,
-                                      const t_mdatoms*     md,
-                                      const matrix         pressure,
-                                      const matrix         forceVirial,
-                                      const matrix         constraintVirial,
-                                      matrix               pressureCouplingMu,
-                                      t_state*             state,
-                                      t_nrnb*              nrnb,
-                                      gmx::BoxDeformation* boxDeformation,
-                                      const bool           scaleCoordinates)
+void update_pcouple_after_coordinates(FILE*                               fplog,
+                                      int64_t                             step,
+                                      const PressureCouplingOptions&      pressureCouplingOptions,
+                                      const int64_t                       ld_seed,
+                                      const real                          referenceTemperature,
+                                      const ivec*                         nFreeze,
+                                      const tensor                        deform,
+                                      const real                          delta_t,
+                                      const int                           homenr,
+                                      gmx::ArrayRef<const unsigned short> cFREEZE,
+                                      const matrix                        pressure,
+                                      const matrix                        forceVirial,
+                                      const matrix                        constraintVirial,
+                                      matrix                              pressureCouplingMu,
+                                      t_state*                            state,
+                                      t_nrnb*                             nrnb,
+                                      gmx::BoxDeformation*                boxDeformation,
+                                      const bool                          scaleCoordinates)
 {
-    int start  = 0;
-    int homenr = md->homenr;
+    int start = 0;
 
-    /* Cast to real for faster code, no loss in precision (see comment above) */
-    real dt = inputrec->delta_t;
-
+    // Note that delta_t is expressed as a real, which causes no loss
+    // in precision in a double-precision build. The only reason for
+    // wanting delta_t as a double is to get accurate values for
+    // t=delta_t*step when step is larger than float precision. For
+    // integration, using delta_t with the accuracy of real suffices,
+    // since with integral += delta_t*integrand the increment is
+    // nearly always (much) smaller than the integral (and the
+    // integrand has real precision).
 
     /* now update boxes */
-    switch (inputrec->epc)
+    switch (pressureCouplingOptions.epc)
     {
         case (PressureCoupling::No): break;
         case (PressureCoupling::Berendsen):
-            if (do_per_step(step, inputrec->nstpcouple))
+            if (do_per_step(step, pressureCouplingOptions.nstpcouple))
             {
-                real dtpc = inputrec->nstpcouple * dt;
-                pressureCouplingCalculateScalingMatrix<PressureCoupling::Berendsen>(fplog,
-                                                                                    step,
-                                                                                    inputrec,
-                                                                                    dtpc,
-                                                                                    pressure,
-                                                                                    state->box,
-                                                                                    forceVirial,
-                                                                                    constraintVirial,
-                                                                                    pressureCouplingMu,
-                                                                                    &state->baros_integral);
-                pressureCouplingScaleBoxAndCoordinates<PressureCoupling::Berendsen>(inputrec,
-                                                                                    pressureCouplingMu,
-                                                                                    state->box,
-                                                                                    state->box_rel,
-                                                                                    start,
-                                                                                    homenr,
-                                                                                    state->x.rvec_array(),
-                                                                                    nullptr,
-                                                                                    md->cFREEZE,
-                                                                                    nrnb,
-                                                                                    scaleCoordinates);
-            }
-            break;
-        case (PressureCoupling::CRescale):
-            if (do_per_step(step, inputrec->nstpcouple))
-            {
-                real dtpc = inputrec->nstpcouple * dt;
-                pressureCouplingCalculateScalingMatrix<PressureCoupling::CRescale>(fplog,
-                                                                                   step,
-                                                                                   inputrec,
-                                                                                   dtpc,
-                                                                                   pressure,
-                                                                                   state->box,
-                                                                                   forceVirial,
-                                                                                   constraintVirial,
-                                                                                   pressureCouplingMu,
-                                                                                   &state->baros_integral);
-                pressureCouplingScaleBoxAndCoordinates<PressureCoupling::CRescale>(
-                        inputrec,
+                real dtpc = pressureCouplingOptions.nstpcouple * delta_t;
+                pressureCouplingCalculateScalingMatrix<PressureCoupling::Berendsen>(
+                        fplog,
+                        step,
+                        pressureCouplingOptions,
+                        ld_seed,
+                        referenceTemperature,
+                        dtpc,
+                        pressure,
+                        state->box,
+                        forceVirial,
+                        constraintVirial,
+                        pressureCouplingMu,
+                        &state->baros_integral);
+                pressureCouplingScaleBoxAndCoordinates<PressureCoupling::Berendsen>(
+                        pressureCouplingOptions,
+                        deform,
+                        nFreeze,
                         pressureCouplingMu,
                         state->box,
                         state->box_rel,
                         start,
                         homenr,
-                        state->x.rvec_array(),
-                        state->v.rvec_array(),
-                        md->cFREEZE,
+                        state->x,
+                        gmx::ArrayRef<gmx::RVec>(),
+                        cFREEZE,
                         nrnb,
                         scaleCoordinates);
             }
             break;
+        case (PressureCoupling::CRescale):
+            if (do_per_step(step, pressureCouplingOptions.nstpcouple))
+            {
+                real dtpc = pressureCouplingOptions.nstpcouple * delta_t;
+                pressureCouplingCalculateScalingMatrix<PressureCoupling::CRescale>(
+                        fplog,
+                        step,
+                        pressureCouplingOptions,
+                        ld_seed,
+                        referenceTemperature,
+                        dtpc,
+                        pressure,
+                        state->box,
+                        forceVirial,
+                        constraintVirial,
+                        pressureCouplingMu,
+                        &state->baros_integral);
+                pressureCouplingScaleBoxAndCoordinates<PressureCoupling::CRescale>(pressureCouplingOptions,
+                                                                                   deform,
+                                                                                   nFreeze,
+                                                                                   pressureCouplingMu,
+                                                                                   state->box,
+                                                                                   state->box_rel,
+                                                                                   start,
+                                                                                   homenr,
+                                                                                   state->x,
+                                                                                   state->v,
+                                                                                   cFREEZE,
+                                                                                   nrnb,
+                                                                                   scaleCoordinates);
+            }
+            break;
         case (PressureCoupling::ParrinelloRahman):
-            if (do_per_step(step + inputrec->nstpcouple - 1, inputrec->nstpcouple))
+            if (do_per_step(step + pressureCouplingOptions.nstpcouple - 1, pressureCouplingOptions.nstpcouple))
             {
                 /* The box velocities were updated in do_pr_pcoupl,
                  * but we dont change the box vectors until we get here
                  * since we need to be able to shift/unshift above.
                  */
-                real dtpc = inputrec->nstpcouple * dt;
+                real dtpc = pressureCouplingOptions.nstpcouple * delta_t;
                 for (int i = 0; i < DIM; i++)
                 {
                     for (int m = 0; m <= i; m++)
@@ -288,7 +312,7 @@ void update_pcouple_after_coordinates(FILE*                fplog,
                         state->box[i][m] += dtpc * state->boxv[i][m];
                     }
                 }
-                preserve_box_shape(inputrec, state->box_rel, state->box);
+                preserveBoxShape(pressureCouplingOptions, deform, state->box_rel, state->box);
 
                 /* Scale the coordinates */
                 if (scaleCoordinates)
@@ -296,20 +320,42 @@ void update_pcouple_after_coordinates(FILE*                fplog,
                     auto* x = state->x.rvec_array();
                     for (int n = start; n < start + homenr; n++)
                     {
-                        tmvmul_ur0(pressureCouplingMu, x[n], x[n]);
+                        if (cFREEZE.empty())
+                        {
+                            tmvmul_ur0(pressureCouplingMu, x[n], x[n]);
+                        }
+                        else
+                        {
+                            int g = cFREEZE[n];
+                            if (!nFreeze[g][XX])
+                            {
+                                x[n][XX] = pressureCouplingMu[XX][XX] * x[n][XX]
+                                           + pressureCouplingMu[YY][XX] * x[n][YY]
+                                           + pressureCouplingMu[ZZ][XX] * x[n][ZZ];
+                            }
+                            if (!nFreeze[g][YY])
+                            {
+                                x[n][YY] = pressureCouplingMu[YY][YY] * x[n][YY]
+                                           + pressureCouplingMu[ZZ][YY] * x[n][ZZ];
+                            }
+                            if (!nFreeze[g][ZZ])
+                            {
+                                x[n][ZZ] = pressureCouplingMu[ZZ][ZZ] * x[n][ZZ];
+                            }
+                        }
                     }
                 }
             }
             break;
         case (PressureCoupling::Mttk):
-            switch (inputrec->epct)
+            switch (pressureCouplingOptions.epct)
             {
                 case (PressureCouplingType::Isotropic):
                     /* DIM * eta = ln V.  so DIM*eta_new = DIM*eta_old + DIM*dt*veta =>
                        ln V_new = ln V_old + 3*dt*veta => V_new = V_old*exp(3*dt*veta) =>
                        Side length scales as exp(veta*dt) */
 
-                    msmul(state->box, std::exp(state->veta * dt), state->box);
+                    msmul(state->box, std::exp(state->veta * delta_t), state->box);
 
                     /* Relate veta to boxv.  veta = d(eta)/dT = (1/DIM)*1/V dV/dT.
                        o               If we assume isotropic scaling, and box length scaling
@@ -335,13 +381,15 @@ void update_pcouple_after_coordinates(FILE*                fplog,
     }
 }
 
-extern gmx_bool update_randomize_velocities(const t_inputrec*        ir,
-                                            int64_t                  step,
-                                            const t_commrec*         cr,
-                                            const t_mdatoms*         md,
-                                            gmx::ArrayRef<gmx::RVec> v,
-                                            const gmx::Update*       upd,
-                                            const gmx::Constraints*  constr)
+extern bool update_randomize_velocities(const t_inputrec*                   ir,
+                                        int64_t                             step,
+                                        const t_commrec*                    cr,
+                                        int                                 homenr,
+                                        gmx::ArrayRef<const unsigned short> cTC,
+                                        gmx::ArrayRef<const real>           invMass,
+                                        gmx::ArrayRef<gmx::RVec>            v,
+                                        const gmx::Update*                  upd,
+                                        const gmx::Constraints*             constr)
 {
 
     real rate = (ir->delta_t) / ir->opts.tau_t[0];
@@ -364,21 +412,11 @@ extern gmx_bool update_randomize_velocities(const t_inputrec*        ir,
     if ((ir->etc == TemperatureCoupling::Andersen) || do_per_step(step, gmx::roundToInt(1.0 / rate)))
     {
         andersen_tcoupl(
-                ir, step, cr, md, v, rate, upd->getAndersenRandomizeGroup(), upd->getBoltzmanFactor());
+                ir, step, cr, homenr, cTC, invMass, v, rate, upd->getAndersenRandomizeGroup(), upd->getBoltzmanFactor());
         return TRUE;
     }
     return FALSE;
 }
-
-/*
-   static const double sy_const[MAX_SUZUKI_YOSHIDA_NUM+1][MAX_SUZUKI_YOSHIDA_NUM+1] = {
-    {},
-    {1},
-    {},
-    {0.828981543588751,-0.657963087177502,0.828981543588751},
-    {},
-    {0.2967324292201065,0.2967324292201065,-0.186929716880426,0.2967324292201065,0.2967324292201065}
-   };*/
 
 /* these integration routines are only referenced inside this file */
 static void NHC_trotter(const t_grpopts*      opts,
@@ -390,20 +428,20 @@ static void NHC_trotter(const t_grpopts*      opts,
                         double                scalefac[],
                         real*                 veta,
                         const t_extmass*      MassQ,
-                        gmx_bool              bEkinAveVel)
+                        bool                  bEkinAveVel)
 
 {
     /* general routine for both barostat and thermostat nose hoover chains */
 
-    int      i, j, mi, mj;
-    double   Ekin, Efac, reft, kT, nd;
-    double   dt;
-    double * ivxi, *ixi;
-    double*  GQ;
-    gmx_bool bBarostat;
-    int      mstepsi, mstepsj;
-    int      ns = SUZUKI_YOSHIDA_NUM; /* set the degree of integration in the types/state.h file */
-    int      nh = opts->nhchainlength;
+    int     i, j, mi, mj;
+    double  Ekin, Efac, reft, kT, nd;
+    double  dt;
+    double *ivxi, *ixi;
+    double* GQ;
+    bool    bBarostat;
+    int     mstepsi, mstepsj;
+    int     ns = SUZUKI_YOSHIDA_NUM; /* set the degree of integration in the types/state.h file */
+    int     nh = opts->nhchainlength;
 
     snew(GQ, nh);
     mstepsi = mstepsj = ns;
@@ -525,7 +563,7 @@ static void NHC_trotter(const t_grpopts*      opts,
 
 static void boxv_trotter(const t_inputrec*     ir,
                          real*                 veta,
-                         real                  dt,
+                         real                  delta_t,
                          const tensor          box,
                          const gmx_ekindata_t* ekind,
                          const tensor          vir,
@@ -543,7 +581,7 @@ static void boxv_trotter(const t_inputrec*     ir,
        2006 Tuckerman et al paper., the order is iL_{T_baro} iL {T_part}
      */
 
-    if (ir->epct == PressureCouplingType::SemiIsotropic)
+    if (ir->pressureCouplingOptions.epct == PressureCouplingType::SemiIsotropic)
     {
         nwall = 2;
     }
@@ -574,9 +612,9 @@ static void boxv_trotter(const t_inputrec*     ir,
 
     vol = det(box);
     GW  = (vol * (MassQ->Winv / gmx::c_presfac))
-         * (DIM * pscal - trace(ir->ref_p)); /* W is in ps^2 * bar * nm^3 */
+         * (DIM * pscal - trace(ir->pressureCouplingOptions.ref_p)); /* W is in ps^2 * bar * nm^3 */
 
-    *veta += 0.5 * dt * GW;
+    *veta += 0.5 * delta_t * GW;
 }
 
 /*
@@ -636,7 +674,9 @@ real calc_temp(real ekin, real nrdf)
 }
 
 /*! \brief Sets 1/mass for Parrinello-Rahman in wInv; NOTE: c_presfac is not included, so not in GROMACS units! */
-static void calcParrinelloRahmanInvMass(const t_inputrec* ir, const matrix box, tensor wInv)
+static void calcParrinelloRahmanInvMass(const PressureCouplingOptions& pressureCouplingOptions,
+                                        const matrix                   box,
+                                        tensor                         wInv)
 {
     real maxBoxLength;
 
@@ -648,22 +688,24 @@ static void calcParrinelloRahmanInvMass(const t_inputrec* ir, const matrix box, 
     {
         for (int n = 0; n < DIM; n++)
         {
-            wInv[d][n] = (4 * M_PI * M_PI * ir->compress[d][n]) / (3 * ir->tau_p * ir->tau_p * maxBoxLength);
+            wInv[d][n] = (4 * M_PI * M_PI * pressureCouplingOptions.compress[d][n])
+                         / (3 * pressureCouplingOptions.tau_p * pressureCouplingOptions.tau_p * maxBoxLength);
         }
     }
 }
 
-void parrinellorahman_pcoupl(FILE*             fplog,
-                             int64_t           step,
-                             const t_inputrec* ir,
-                             real              dt,
-                             const tensor      pres,
-                             const tensor      box,
-                             tensor            box_rel,
-                             tensor            boxv,
-                             tensor            M,
-                             matrix            mu,
-                             gmx_bool          bFirstStep)
+void parrinellorahman_pcoupl(FILE*                          fplog,
+                             int64_t                        step,
+                             const PressureCouplingOptions& pressureCouplingOptions,
+                             const tensor                   deform,
+                             real                           delta_t,
+                             const tensor                   pres,
+                             const tensor                   box,
+                             tensor                         box_rel,
+                             tensor                         boxv,
+                             tensor                         M,
+                             matrix                         mu,
+                             bool                           bFirstStep)
 {
     /* This doesn't do any coordinate updating. It just
      * integrates the box vector equations from the calculated
@@ -703,11 +745,11 @@ void parrinellorahman_pcoupl(FILE*             fplog,
          * therefore the pressure unit drops out.
          */
         tensor winv;
-        calcParrinelloRahmanInvMass(ir, box, winv);
+        calcParrinelloRahmanInvMass(pressureCouplingOptions, box, winv);
 
-        m_sub(pres, ir->ref_p, pdiff);
+        m_sub(pres, pressureCouplingOptions.ref_p, pdiff);
 
-        if (ir->epct == PressureCouplingType::SurfaceTension)
+        if (pressureCouplingOptions.epct == PressureCouplingType::SurfaceTension)
         {
             /* Unlike Berendsen coupling it might not be trivial to include a z
              * pressure correction here? On the other hand we don't scale the
@@ -716,7 +758,8 @@ void parrinellorahman_pcoupl(FILE*             fplog,
             real xy_pressure = 0.5 * (pres[XX][XX] + pres[YY][YY]);
             for (int d = 0; d < ZZ; d++)
             {
-                pdiff[d][d] = (xy_pressure - (pres[ZZ][ZZ] - ir->ref_p[d][d] / box[d][d]));
+                pdiff[d][d] =
+                        (xy_pressure - (pres[ZZ][ZZ] - pressureCouplingOptions.ref_p[d][d] / box[d][d]));
             }
         }
 
@@ -733,7 +776,7 @@ void parrinellorahman_pcoupl(FILE*             fplog,
             }
         }
 
-        switch (ir->epct)
+        switch (pressureCouplingOptions.epct)
         {
             case PressureCouplingType::Anisotropic:
                 for (int d = 0; d < DIM; d++)
@@ -784,7 +827,7 @@ void parrinellorahman_pcoupl(FILE*             fplog,
                 gmx_fatal(FARGS,
                           "Parrinello-Rahman pressure coupling type %s "
                           "not supported yet\n",
-                          enumValueToString(ir->epct));
+                          enumValueToString(pressureCouplingOptions.epct));
         }
 
         real maxchange = 0;
@@ -792,7 +835,7 @@ void parrinellorahman_pcoupl(FILE*             fplog,
         {
             for (int n = 0; n <= d; n++)
             {
-                boxv[d][n] += dt * t1[d][n];
+                boxv[d][n] += delta_t * t1[d][n];
 
                 /* We do NOT update the box vectors themselves here, since
                  * we need them for shifting later. It is instead done last
@@ -805,7 +848,7 @@ void parrinellorahman_pcoupl(FILE*             fplog,
                    to its current size.
                  */
 
-                change = std::fabs(dt * boxv[d][n] / box[d][d]);
+                change = std::fabs(delta_t * boxv[d][n] / box[d][d]);
 
                 if (change > maxchange)
                 {
@@ -827,7 +870,7 @@ void parrinellorahman_pcoupl(FILE*             fplog,
         }
     }
 
-    preserve_box_shape(ir, box_rel, boxv);
+    preserveBoxShape(pressureCouplingOptions, deform, box_rel, boxv);
 
     mtmul(boxv, box, t1); /* t1=boxv * b' */
     mmul(invbox, t1, t2);
@@ -838,39 +881,46 @@ void parrinellorahman_pcoupl(FILE*             fplog,
     {
         for (int n = 0; n <= d; n++)
         {
-            t1[d][n] = box[d][n] + dt * boxv[d][n];
+            t1[d][n] = box[d][n] + delta_t * boxv[d][n];
         }
     }
-    preserve_box_shape(ir, box_rel, t1);
+    preserveBoxShape(pressureCouplingOptions, deform, box_rel, t1);
     /* t1 is the box at t+dt, determine mu as the relative change */
     mmul_ur0(invbox, t1, mu);
 }
 
 //! Return compressibility factor for entry (i,j) of Berendsen / C-rescale scaling matrix
-static inline real compressibilityFactor(int i, int j, const t_inputrec* ir, real dt)
+static inline real compressibilityFactor(int                            i,
+                                         int                            j,
+                                         const PressureCouplingOptions& pressureCouplingOptions,
+                                         const real                     delta_t)
 {
-    return ir->compress[i][j] * dt / ir->tau_p;
+    return pressureCouplingOptions.compress[i][j] * delta_t / pressureCouplingOptions.tau_p;
 }
 
 //! Details of Berendsen / C-rescale scaling matrix calculation
 template<PressureCoupling pressureCouplingType>
-static void calculateScalingMatrixImplDetail(const t_inputrec* ir,
-                                             matrix            mu,
-                                             real              dt,
-                                             const matrix      pres,
-                                             const matrix      box,
-                                             real              scalar_pressure,
-                                             real              xy_pressure,
-                                             int64_t           step);
+static void calculateScalingMatrixImplDetail(const PressureCouplingOptions& pressureCouplingOptions,
+                                             int64_t                        ld_seed,
+                                             real                           referenceTemperature,
+                                             matrix                         mu,
+                                             real                           delta_t,
+                                             const matrix                   pres,
+                                             const matrix                   box,
+                                             real                           scalar_pressure,
+                                             real                           xy_pressure,
+                                             int64_t                        step);
 
 //! Calculate Berendsen / C-rescale scaling matrix
 template<PressureCoupling pressureCouplingType>
-static void calculateScalingMatrixImpl(const t_inputrec* ir,
-                                       matrix            mu,
-                                       real              dt,
-                                       const matrix      pres,
-                                       const matrix      box,
-                                       int64_t           step)
+static void calculateScalingMatrixImpl(const PressureCouplingOptions& pressureCouplingOptions,
+                                       const int64_t                  ld_seed,
+                                       const real                     referenceTemperature,
+                                       matrix                         mu,
+                                       const real                     delta_t,
+                                       const matrix                   pres,
+                                       const matrix                   box,
+                                       int64_t                        step)
 {
     real scalar_pressure = 0;
     real xy_pressure     = 0;
@@ -884,35 +934,42 @@ static void calculateScalingMatrixImpl(const t_inputrec* ir,
     }
     clear_mat(mu);
     calculateScalingMatrixImplDetail<pressureCouplingType>(
-            ir, mu, dt, pres, box, scalar_pressure, xy_pressure, step);
+            pressureCouplingOptions, ld_seed, referenceTemperature, mu, delta_t, pres, box, scalar_pressure, xy_pressure, step);
 }
 
 template<>
-void calculateScalingMatrixImplDetail<PressureCoupling::Berendsen>(const t_inputrec* ir,
-                                                                   matrix            mu,
-                                                                   real              dt,
-                                                                   const matrix      pres,
-                                                                   const matrix      box,
-                                                                   real    scalar_pressure,
-                                                                   real    xy_pressure,
+void calculateScalingMatrixImplDetail<PressureCoupling::Berendsen>(const PressureCouplingOptions& pressureCouplingOptions,
+                                                                   int64_t /*ld_seed*/,
+                                                                   real /*referenceTemperature*/,
+                                                                   matrix       mu,
+                                                                   const real   delta_t,
+                                                                   const matrix pres,
+                                                                   const matrix box,
+                                                                   real         scalar_pressure,
+                                                                   real         xy_pressure,
                                                                    int64_t gmx_unused step)
 {
     real p_corr_z = 0;
-    switch (ir->epct)
+    switch (pressureCouplingOptions.epct)
     {
         case PressureCouplingType::Isotropic:
             for (int d = 0; d < DIM; d++)
             {
-                mu[d][d] = 1.0 - compressibilityFactor(d, d, ir, dt) * (ir->ref_p[d][d] - scalar_pressure) / DIM;
+                mu[d][d] = 1.0
+                           - compressibilityFactor(d, d, pressureCouplingOptions, delta_t)
+                                     * (pressureCouplingOptions.ref_p[d][d] - scalar_pressure) / DIM;
             }
             break;
         case PressureCouplingType::SemiIsotropic:
             for (int d = 0; d < ZZ; d++)
             {
-                mu[d][d] = 1.0 - compressibilityFactor(d, d, ir, dt) * (ir->ref_p[d][d] - xy_pressure) / DIM;
+                mu[d][d] = 1.0
+                           - compressibilityFactor(d, d, pressureCouplingOptions, delta_t)
+                                     * (pressureCouplingOptions.ref_p[d][d] - xy_pressure) / DIM;
             }
-            mu[ZZ][ZZ] =
-                    1.0 - compressibilityFactor(ZZ, ZZ, ir, dt) * (ir->ref_p[ZZ][ZZ] - pres[ZZ][ZZ]) / DIM;
+            mu[ZZ][ZZ] = 1.0
+                         - compressibilityFactor(ZZ, ZZ, pressureCouplingOptions, delta_t)
+                                   * (pressureCouplingOptions.ref_p[ZZ][ZZ] - pres[ZZ][ZZ]) / DIM;
             break;
         case PressureCouplingType::Anisotropic:
             for (int d = 0; d < DIM; d++)
@@ -920,16 +977,18 @@ void calculateScalingMatrixImplDetail<PressureCoupling::Berendsen>(const t_input
                 for (int n = 0; n < DIM; n++)
                 {
                     mu[d][n] = (d == n ? 1.0 : 0.0)
-                               - compressibilityFactor(d, n, ir, dt) * (ir->ref_p[d][n] - pres[d][n]) / DIM;
+                               - compressibilityFactor(d, n, pressureCouplingOptions, delta_t)
+                                         * (pressureCouplingOptions.ref_p[d][n] - pres[d][n]) / DIM;
                 }
             }
             break;
         case PressureCouplingType::SurfaceTension:
-            /* ir->ref_p[0/1] is the reference surface-tension times *
+            /* pressureCouplingOptions.ref_p[0/1] is the reference surface-tension times *
              * the number of surfaces                                */
-            if (ir->compress[ZZ][ZZ] != 0.0F)
+            if (pressureCouplingOptions.compress[ZZ][ZZ] != 0.0F)
             {
-                p_corr_z = dt / ir->tau_p * (ir->ref_p[ZZ][ZZ] - pres[ZZ][ZZ]);
+                p_corr_z = delta_t / pressureCouplingOptions.tau_p
+                           * (pressureCouplingOptions.ref_p[ZZ][ZZ] - pres[ZZ][ZZ]);
             }
             else
             {
@@ -937,12 +996,12 @@ void calculateScalingMatrixImplDetail<PressureCoupling::Berendsen>(const t_input
                  * in the z-direction to zero to get the correct surface tension */
                 p_corr_z = 0;
             }
-            mu[ZZ][ZZ] = 1.0 - ir->compress[ZZ][ZZ] * p_corr_z;
+            mu[ZZ][ZZ] = 1.0 - pressureCouplingOptions.compress[ZZ][ZZ] * p_corr_z;
             for (int d = 0; d < DIM - 1; d++)
             {
                 mu[d][d] = 1.0
-                           + compressibilityFactor(d, d, ir, dt)
-                                     * (ir->ref_p[d][d] / (mu[ZZ][ZZ] * box[ZZ][ZZ])
+                           + compressibilityFactor(d, d, pressureCouplingOptions, delta_t)
+                                     * (pressureCouplingOptions.ref_p[d][d] / (mu[ZZ][ZZ] * box[ZZ][ZZ])
                                         - (pres[ZZ][ZZ] + p_corr_z - xy_pressure))
                                      / (DIM - 1);
             }
@@ -950,21 +1009,23 @@ void calculateScalingMatrixImplDetail<PressureCoupling::Berendsen>(const t_input
         default:
             gmx_fatal(FARGS,
                       "Berendsen pressure coupling type %s not supported yet\n",
-                      enumValueToString(ir->epct));
+                      enumValueToString(pressureCouplingOptions.epct));
     }
 }
 
 template<>
-void calculateScalingMatrixImplDetail<PressureCoupling::CRescale>(const t_inputrec* ir,
-                                                                  matrix            mu,
-                                                                  real              dt,
-                                                                  const matrix      pres,
-                                                                  const matrix      box,
-                                                                  real              scalar_pressure,
-                                                                  real              xy_pressure,
-                                                                  int64_t           step)
+void calculateScalingMatrixImplDetail<PressureCoupling::CRescale>(const PressureCouplingOptions& pressureCouplingOptions,
+                                                                  const int64_t ld_seed,
+                                                                  const real   referenceTemperature,
+                                                                  matrix       mu,
+                                                                  const real   delta_t,
+                                                                  const matrix pres,
+                                                                  const matrix box,
+                                                                  real         scalar_pressure,
+                                                                  real         xy_pressure,
+                                                                  int64_t      step)
 {
-    gmx::ThreeFry2x64<64>         rng(ir->ld_seed, gmx::RandomDomain::Barostat);
+    gmx::ThreeFry2x64<64>         rng(ld_seed, gmx::RandomDomain::Barostat);
     gmx::NormalDistribution<real> normalDist;
     rng.restart(step, 0);
     real vol = 1.0;
@@ -974,20 +1035,20 @@ void calculateScalingMatrixImplDetail<PressureCoupling::CRescale>(const t_inputr
     }
     real gauss  = 0;
     real gauss2 = 0;
-    real kt     = ir->opts.ref_t[0] * gmx::c_boltz;
+    real kt     = referenceTemperature * gmx::c_boltz;
     if (kt < 0.0)
     {
         kt = 0.0;
     }
 
-    switch (ir->epct)
+    switch (pressureCouplingOptions.epct)
     {
         case PressureCouplingType::Isotropic:
             gauss = normalDist(rng);
             for (int d = 0; d < DIM; d++)
             {
-                const real factor = compressibilityFactor(d, d, ir, dt);
-                mu[d][d]          = std::exp(-factor * (ir->ref_p[d][d] - scalar_pressure) / DIM
+                const real factor = compressibilityFactor(d, d, pressureCouplingOptions, delta_t);
+                mu[d][d] = std::exp(-factor * (pressureCouplingOptions.ref_p[d][d] - scalar_pressure) / DIM
                                     + std::sqrt(2.0 * kt * factor * gmx::c_presfac / vol) * gauss / DIM);
             }
             break;
@@ -996,15 +1057,16 @@ void calculateScalingMatrixImplDetail<PressureCoupling::CRescale>(const t_inputr
             gauss2 = normalDist(rng);
             for (int d = 0; d < ZZ; d++)
             {
-                const real factor = compressibilityFactor(d, d, ir, dt);
-                mu[d][d]          = std::exp(-factor * (ir->ref_p[d][d] - xy_pressure) / DIM
+                const real factor = compressibilityFactor(d, d, pressureCouplingOptions, delta_t);
+                mu[d][d] = std::exp(-factor * (pressureCouplingOptions.ref_p[d][d] - xy_pressure) / DIM
                                     + std::sqrt((DIM - 1) * 2.0 * kt * factor * gmx::c_presfac / vol / DIM)
                                               / (DIM - 1) * gauss);
             }
             {
-                const real factor = compressibilityFactor(ZZ, ZZ, ir, dt);
-                mu[ZZ][ZZ]        = std::exp(-factor * (ir->ref_p[ZZ][ZZ] - pres[ZZ][ZZ]) / DIM
-                                      + std::sqrt(2.0 * kt * factor * gmx::c_presfac / vol / DIM) * gauss2);
+                const real factor = compressibilityFactor(ZZ, ZZ, pressureCouplingOptions, delta_t);
+                mu[ZZ][ZZ] =
+                        std::exp(-factor * (pressureCouplingOptions.ref_p[ZZ][ZZ] - pres[ZZ][ZZ]) / DIM
+                                 + std::sqrt(2.0 * kt * factor * gmx::c_presfac / vol / DIM) * gauss2);
             }
             break;
         case PressureCouplingType::SurfaceTension:
@@ -1012,43 +1074,52 @@ void calculateScalingMatrixImplDetail<PressureCoupling::CRescale>(const t_inputr
             gauss2 = normalDist(rng);
             for (int d = 0; d < ZZ; d++)
             {
-                const real factor = compressibilityFactor(d, d, ir, dt);
-                /* Notice: we here use ref_p[ZZ][ZZ] as isotropic pressure and ir->ref_p[d][d] as surface tension */
+                const real factor = compressibilityFactor(d, d, pressureCouplingOptions, delta_t);
+                /* Notice: we here use ref_p[ZZ][ZZ] as isotropic pressure and pressureCouplingOptions.ref_p[d][d] as surface tension */
                 mu[d][d] = std::exp(
-                        -factor * (ir->ref_p[ZZ][ZZ] - ir->ref_p[d][d] / box[ZZ][ZZ] - xy_pressure) / DIM
+                        -factor
+                                * (pressureCouplingOptions.ref_p[ZZ][ZZ]
+                                   - pressureCouplingOptions.ref_p[d][d] / box[ZZ][ZZ] - xy_pressure)
+                                / DIM
                         + std::sqrt(4.0 / 3.0 * kt * factor * gmx::c_presfac / vol) / (DIM - 1) * gauss);
             }
             {
-                const real factor = compressibilityFactor(ZZ, ZZ, ir, dt);
-                mu[ZZ][ZZ]        = std::exp(-factor * (ir->ref_p[ZZ][ZZ] - pres[ZZ][ZZ]) / DIM
-                                      + std::sqrt(2.0 / 3.0 * kt * factor * gmx::c_presfac / vol) * gauss2);
+                const real factor = compressibilityFactor(ZZ, ZZ, pressureCouplingOptions, delta_t);
+                mu[ZZ][ZZ] =
+                        std::exp(-factor * (pressureCouplingOptions.ref_p[ZZ][ZZ] - pres[ZZ][ZZ]) / DIM
+                                 + std::sqrt(2.0 / 3.0 * kt * factor * gmx::c_presfac / vol) * gauss2);
             }
             break;
         default:
             gmx_fatal(FARGS,
                       "C-rescale pressure coupling type %s not supported yet\n",
-                      enumValueToString(ir->epct));
+                      enumValueToString(pressureCouplingOptions.epct));
     }
 }
 
 template<PressureCoupling pressureCouplingType>
-void pressureCouplingCalculateScalingMatrix(FILE*             fplog,
-                                            int64_t           step,
-                                            const t_inputrec* ir,
-                                            real              dt,
-                                            const tensor      pres,
-                                            const matrix      box,
-                                            const matrix      force_vir,
-                                            const matrix      constraint_vir,
-                                            matrix            mu,
-                                            double*           baros_integral)
+void pressureCouplingCalculateScalingMatrix(FILE*                          fplog,
+                                            int64_t                        step,
+                                            const PressureCouplingOptions& pressureCouplingOptions,
+                                            int64_t                        ld_seed,
+                                            real                           referenceTemperature,
+                                            const real                     delta_t,
+                                            const tensor                   pres,
+                                            const matrix                   box,
+                                            const matrix                   force_vir,
+                                            const matrix                   constraint_vir,
+                                            matrix                         mu,
+                                            double*                        baros_integral)
 {
+    // If the support here increases, we need to also add the template declarations
+    // for new cases below.
     static_assert(pressureCouplingType == PressureCoupling::Berendsen
                           || pressureCouplingType == PressureCoupling::CRescale,
                   "pressureCouplingCalculateScalingMatrix is only implemented for Berendsen and "
                   "C-rescale pressure coupling");
 
-    calculateScalingMatrixImpl<pressureCouplingType>(ir, mu, dt, pres, box, step);
+    calculateScalingMatrixImpl<pressureCouplingType>(
+            pressureCouplingOptions, ld_seed, referenceTemperature, mu, delta_t, pres, box, step);
 
     /* To fulfill the orientation restrictions on triclinic boxes
      * we will set mu_yx, mu_zx and mu_zy to 0 and correct
@@ -1105,25 +1176,54 @@ void pressureCouplingCalculateScalingMatrix(FILE*             fplog,
     }
 }
 
+template void pressureCouplingCalculateScalingMatrix<PressureCoupling::CRescale>(FILE*,
+                                                                                 int64_t,
+                                                                                 const PressureCouplingOptions&,
+                                                                                 int64_t,
+                                                                                 real,
+                                                                                 real,
+                                                                                 const tensor,
+                                                                                 const matrix,
+                                                                                 const matrix,
+                                                                                 const matrix,
+                                                                                 matrix,
+                                                                                 double*);
+
+template void pressureCouplingCalculateScalingMatrix<PressureCoupling::Berendsen>(FILE*,
+                                                                                  int64_t,
+                                                                                  const PressureCouplingOptions&,
+                                                                                  int64_t,
+                                                                                  real,
+                                                                                  real,
+                                                                                  const tensor,
+                                                                                  const matrix,
+                                                                                  const matrix,
+                                                                                  const matrix,
+                                                                                  matrix,
+                                                                                  double*);
+
 template<PressureCoupling pressureCouplingType>
-void pressureCouplingScaleBoxAndCoordinates(const t_inputrec*    ir,
-                                            const matrix         mu,
-                                            matrix               box,
-                                            matrix               box_rel,
-                                            int                  start,
-                                            int                  nr_atoms,
-                                            rvec                 x[],
-                                            rvec                 v[],
-                                            const unsigned short cFREEZE[],
-                                            t_nrnb*              nrnb,
-                                            const bool           scaleCoordinates)
+void pressureCouplingScaleBoxAndCoordinates(const PressureCouplingOptions& pressureCouplingOptions,
+                                            const tensor                   deform,
+                                            const ivec*                    nFreeze,
+                                            const matrix                   mu,
+                                            matrix                         box,
+                                            matrix                         box_rel,
+                                            int                            start,
+                                            int                            nr_atoms,
+                                            gmx::ArrayRef<gmx::RVec>       x,
+                                            gmx::ArrayRef<gmx::RVec>       v,
+                                            gmx::ArrayRef<const unsigned short> cFREEZE,
+                                            t_nrnb*                             nrnb,
+                                            const bool                          scaleCoordinates)
 {
+    // If the support here increases, we need to also add the template declarations
+    // for new cases below.
     static_assert(pressureCouplingType == PressureCoupling::Berendsen
                           || pressureCouplingType == PressureCoupling::CRescale,
                   "pressureCouplingScaleBoxAndCoordinates is only implemented for Berendsen and "
                   "C-rescale pressure coupling");
 
-    ivec*  nFreeze = ir->opts.nFreeze;
     matrix inv_mu;
     if (pressureCouplingType == PressureCoupling::CRescale)
     {
@@ -1139,7 +1239,7 @@ void pressureCouplingScaleBoxAndCoordinates(const t_inputrec*    ir,
         {
             // Trivial OpenMP region that does not throw
             int g = 0;
-            if (cFREEZE != nullptr)
+            if (!cFREEZE.empty())
             {
                 g = cFREEZE[n];
             }
@@ -1179,13 +1279,44 @@ void pressureCouplingScaleBoxAndCoordinates(const t_inputrec*    ir,
         box[d][ZZ] = mu[ZZ][ZZ] * box[d][ZZ];
     }
 
-    preserve_box_shape(ir, box_rel, box);
+    preserveBoxShape(pressureCouplingOptions, deform, box_rel, box);
 
     /* (un)shifting should NOT be done after this,
      * since the box vectors might have changed
      */
     inc_nrnb(nrnb, eNR_PCOUPL, nr_atoms);
 }
+
+template void
+pressureCouplingScaleBoxAndCoordinates<PressureCoupling::Berendsen>(const PressureCouplingOptions&,
+                                                                    const tensor,
+                                                                    const ivec*,
+                                                                    const matrix,
+                                                                    matrix,
+                                                                    matrix,
+                                                                    int,
+                                                                    int,
+                                                                    gmx::ArrayRef<gmx::RVec>,
+                                                                    gmx::ArrayRef<gmx::RVec>,
+                                                                    gmx::ArrayRef<const unsigned short>,
+                                                                    t_nrnb*,
+                                                                    const bool);
+
+
+template void
+pressureCouplingScaleBoxAndCoordinates<PressureCoupling::CRescale>(const PressureCouplingOptions&,
+                                                                   const tensor,
+                                                                   const ivec*,
+                                                                   const matrix,
+                                                                   matrix,
+                                                                   matrix,
+                                                                   int,
+                                                                   int,
+                                                                   gmx::ArrayRef<gmx::RVec>,
+                                                                   gmx::ArrayRef<gmx::RVec>,
+                                                                   gmx::ArrayRef<const unsigned short>,
+                                                                   t_nrnb*,
+                                                                   const bool);
 
 void berendsen_tcoupl(const t_inputrec* ir, gmx_ekindata_t* ekind, real dt, std::vector<double>& therm_integral)
 {
@@ -1227,34 +1358,36 @@ void berendsen_tcoupl(const t_inputrec* ir, gmx_ekindata_t* ekind, real dt, std:
     }
 }
 
-void andersen_tcoupl(const t_inputrec*         ir,
-                     int64_t                   step,
-                     const t_commrec*          cr,
-                     const t_mdatoms*          md,
-                     gmx::ArrayRef<gmx::RVec>  v,
-                     real                      rate,
-                     const std::vector<bool>&  randomize,
-                     gmx::ArrayRef<const real> boltzfac)
+void andersen_tcoupl(const t_inputrec*                   ir,
+                     int64_t                             step,
+                     const t_commrec*                    cr,
+                     const int                           homenr,
+                     gmx::ArrayRef<const unsigned short> cTC,
+                     gmx::ArrayRef<const real>           invMass,
+                     gmx::ArrayRef<gmx::RVec>            v,
+                     real                                rate,
+                     const std::vector<bool>&            randomize,
+                     gmx::ArrayRef<const real>           boltzfac)
 {
-    const int*           gatindex = (DOMAINDECOMP(cr) ? cr->dd->globalAtomIndices.data() : nullptr);
-    int                  i;
-    int                  gc = 0;
-    gmx::ThreeFry2x64<0> rng(ir->andersen_seed, gmx::RandomDomain::Thermostat);
-    gmx::UniformRealDistribution<real>         uniformDist;
+    const int* gatindex = (haveDDAtomOrdering(*cr) ? cr->dd->globalAtomIndices.data() : nullptr);
+    int        i;
+    int        gc = 0;
+    gmx::ThreeFry2x64<0>               rng(ir->andersen_seed, gmx::RandomDomain::Thermostat);
+    gmx::UniformRealDistribution<real> uniformDist;
     gmx::TabulatedNormalDistribution<real, 14> normalDist;
 
     /* randomize the velocities of the selected particles */
 
-    for (i = 0; i < md->homenr; i++) /* now loop over the list of atoms */
+    for (i = 0; i < homenr; i++) /* now loop over the list of atoms */
     {
-        int      ng = gatindex ? gatindex[i] : i;
-        gmx_bool bRandomize;
+        int  ng = gatindex ? gatindex[i] : i;
+        bool bRandomize;
 
         rng.restart(step, ng);
 
-        if (md->cTC)
+        if (!cTC.empty())
         {
-            gc = md->cTC[i]; /* assign the atom to a temperature group if there are more than one */
+            gc = cTC[i]; /* assign the atom to a temperature group if there are more than one */
         }
         if (randomize[gc])
         {
@@ -1274,7 +1407,7 @@ void andersen_tcoupl(const t_inputrec*         ir,
                 real scal;
                 int  d;
 
-                scal = std::sqrt(boltzfac[gc] * md->invmass[i]);
+                scal = std::sqrt(boltzfac[gc] * invMass[i]);
 
                 normalDist.reset();
 
@@ -1291,8 +1424,8 @@ void andersen_tcoupl(const t_inputrec*         ir,
 void nosehoover_tcoupl(const t_grpopts*      opts,
                        const gmx_ekindata_t* ekind,
                        real                  dt,
-                       double                xi[],
-                       double                vxi[],
+                       gmx::ArrayRef<double> xi,
+                       gmx::ArrayRef<double> vxi,
                        const t_extmass*      MassQ)
 {
     int  i;
@@ -1309,16 +1442,18 @@ void nosehoover_tcoupl(const t_grpopts*      opts,
     }
 }
 
-void trotter_update(const t_inputrec*               ir,
-                    int64_t                         step,
-                    gmx_ekindata_t*                 ekind,
-                    const gmx_enerdata_t*           enerd,
-                    t_state*                        state,
-                    const tensor                    vir,
-                    const t_mdatoms*                md,
-                    const t_extmass*                MassQ,
-                    gmx::ArrayRef<std::vector<int>> trotter_seqlist,
-                    int                             trotter_seqno)
+void trotter_update(const t_inputrec*                   ir,
+                    int64_t                             step,
+                    gmx_ekindata_t*                     ekind,
+                    const gmx_enerdata_t*               enerd,
+                    t_state*                            state,
+                    const tensor                        vir,
+                    int                                 homenr,
+                    gmx::ArrayRef<const unsigned short> cTC,
+                    gmx::ArrayRef<const real>           invMass,
+                    const t_extmass*                    MassQ,
+                    gmx::ArrayRef<std::vector<int>>     trotter_seqlist,
+                    TrotterSequence                     trotter_seqno)
 {
 
     int              n, i, d, ngtc, gc = 0, t;
@@ -1328,9 +1463,9 @@ void trotter_update(const t_inputrec*               ir,
     real             dt;
     double *         scalefac, dtc;
     rvec             sumv = { 0, 0, 0 };
-    gmx_bool         bCouple;
+    bool             bCouple;
 
-    if (trotter_seqno <= ettTSEQ2)
+    if (trotter_seqno <= TrotterSequence::Two)
     {
         step_eff = step - 1; /* the velocity verlet calls are actually out of order -- the first
                                 half step is actually the last half step from the previous step.
@@ -1343,7 +1478,7 @@ void trotter_update(const t_inputrec*               ir,
 
     bCouple = (ir->nsttcouple == 1 || do_per_step(step_eff + ir->nsttcouple, ir->nsttcouple));
 
-    const gmx::ArrayRef<const int> trotter_seq = trotter_seqlist[trotter_seqno];
+    const gmx::ArrayRef<const int> trotter_seq = trotter_seqlist[static_cast<int>(trotter_seqno)];
 
     if ((trotter_seq[0] == etrtSKIPALL) || (!bCouple))
     {
@@ -1420,11 +1555,11 @@ void trotter_update(const t_inputrec*               ir,
                 /* but do we actually need the total? */
 
                 /* modify the velocities as well */
-                for (n = 0; n < md->homenr; n++)
+                for (n = 0; n < homenr; n++)
                 {
-                    if (md->cTC) /* does this conditional need to be here? is this always true?*/
+                    if (!cTC.empty()) /* does this conditional need to be here? is this always true?*/
                     {
-                        gc = md->cTC[n];
+                        gc = cTC[n];
                     }
                     for (d = 0; d < DIM; d++)
                     {
@@ -1435,7 +1570,7 @@ void trotter_update(const t_inputrec*               ir,
                     {
                         for (d = 0; d < DIM; d++)
                         {
-                            sumv[d] += (v[n][d]) / md->invmass[n];
+                            sumv[d] += (v[n][d]) / invMass[n];
                         }
                     }
                 }
@@ -1448,9 +1583,9 @@ void trotter_update(const t_inputrec*               ir,
 }
 
 
-extern void init_npt_masses(const t_inputrec* ir, t_state* state, t_extmass* MassQ, gmx_bool bInit)
+extern void init_npt_masses(const t_inputrec* ir, t_state* state, t_extmass* MassQ, bool bInit)
 {
-    int              n, i, j, d, ngtc, nh;
+    int              i, j, ngtc, nh;
     const t_grpopts* opts;
     real             reft, kT, ndj, nd;
 
@@ -1493,20 +1628,9 @@ extern void init_npt_masses(const t_inputrec* ir, t_state* state, t_extmass* Mas
 
         /* units are nm^3 * ns^2 / (nm^3 * bar / kJ/mol) = kJ/mol  */
         /* Consider evaluating eventually if this the right mass to use.  All are correct, some might be more stable  */
-        MassQ->Winv = (gmx::c_presfac * trace(ir->compress) * gmx::c_boltz * opts->ref_t[0])
-                      / (DIM * state->vol0 * gmx::square(ir->tau_p / M_2PI));
-        /* An alternate mass definition, from Tuckerman et al. */
-        /* MassQ->Winv = 1.0/(gmx::square(ir->tau_p/M_2PI)*(opts->nrdf[0]+DIM)*c_boltz*opts->ref_t[0]); */
-        for (d = 0; d < DIM; d++)
-        {
-            for (n = 0; n < DIM; n++)
-            {
-                MassQ->Winvm[d][n] = gmx::c_presfac * ir->compress[d][n]
-                                     / (state->vol0 * gmx::square(ir->tau_p / M_2PI));
-                /* not clear this is correct yet for the anisotropic case. Will need to reevaluate
-                   before using MTTK for anisotropic states.*/
-            }
-        }
+        MassQ->Winv = (gmx::c_presfac * trace(ir->pressureCouplingOptions.compress) * gmx::c_boltz
+                       * opts->ref_t[0])
+                      / (DIM * state->vol0 * gmx::square(ir->pressureCouplingOptions.tau_p / M_2PI));
         /* Allocate space for thermostat variables */
         if (bInit)
         {
@@ -1545,8 +1669,8 @@ extern void init_npt_masses(const t_inputrec* ir, t_state* state, t_extmass* Mas
     }
 }
 
-std::array<std::vector<int>, ettTSEQMAX>
-init_npt_vars(const t_inputrec* ir, t_state* state, t_extmass* MassQ, gmx_bool bTrotter)
+gmx::EnumerationArray<TrotterSequence, std::vector<int>>
+init_npt_vars(const t_inputrec* ir, t_state* state, t_extmass* MassQ, bool bTrotter)
 {
     int              i, j, nnhpres, nh;
     const t_grpopts* opts;
@@ -1556,7 +1680,8 @@ init_npt_vars(const t_inputrec* ir, t_state* state, t_extmass* MassQ, gmx_bool b
     nnhpres = state->nnhpres;
     nh      = state->nhchainlength;
 
-    if (EI_VV(ir->eI) && (ir->epc == PressureCoupling::Mttk) && (ir->etc != TemperatureCoupling::NoseHoover))
+    if (EI_VV(ir->eI) && (ir->pressureCouplingOptions.epc == PressureCoupling::Mttk)
+        && (ir->etc != TemperatureCoupling::NoseHoover))
     {
         gmx_fatal(FARGS, "Cannot do MTTK pressure coupling without Nose-Hoover temperature control");
     }
@@ -1564,8 +1689,8 @@ init_npt_vars(const t_inputrec* ir, t_state* state, t_extmass* MassQ, gmx_bool b
     init_npt_masses(ir, state, MassQ, TRUE);
 
     /* first, initialize clear all the trotter calls */
-    std::array<std::vector<int>, ettTSEQMAX> trotter_seq;
-    for (i = 0; i < ettTSEQMAX; i++)
+    gmx::EnumerationArray<TrotterSequence, std::vector<int>> trotter_seq;
+    for (i = 0; i < static_cast<int>(TrotterSequence::Count); i++)
     {
         trotter_seq[i].resize(NTROTTERPARTS, etrtNONE);
         trotter_seq[i][0] = etrtSKIPALL;
@@ -1685,7 +1810,7 @@ init_npt_vars(const t_inputrec* ir, t_state* state, t_extmass* MassQ, gmx_bool b
         }
     }
 
-    switch (ir->epct)
+    switch (ir->pressureCouplingOptions.epct)
     {
         case PressureCouplingType::Isotropic:
         default: bmass = DIM * DIM; /* recommended mass parameters for isotropic barostat */
@@ -1694,7 +1819,7 @@ init_npt_vars(const t_inputrec* ir, t_state* state, t_extmass* MassQ, gmx_bool b
     MassQ->QPinv.resize(nnhpres * opts->nhchainlength);
 
     /* barostat temperature */
-    if ((ir->tau_p > 0) && (opts->ref_t[0] > 0))
+    if ((ir->pressureCouplingOptions.tau_p > 0) && (opts->ref_t[0] > 0))
     {
         reft = std::max<real>(0, opts->ref_t[0]);
         kT   = gmx::c_boltz * reft;
@@ -1728,25 +1853,29 @@ init_npt_vars(const t_inputrec* ir, t_state* state, t_extmass* MassQ, gmx_bool b
     return trotter_seq;
 }
 
-static real energyNoseHoover(const t_inputrec* ir, const t_state* state, const t_extmass* MassQ)
+static real energyNoseHoover(const gmx::ArrayRef<const real> degreesOfFreedom,
+                             const gmx::ArrayRef<const real> referenceTemperatures,
+                             const bool                      isTrotterWithConstantTemperature,
+                             const t_state*                  state,
+                             const t_extmass*                MassQ)
 {
     real energy = 0;
 
     int nh = state->nhchainlength;
 
-    for (int i = 0; i < ir->opts.ngtc; i++)
+    for (int i = 0; i < state->ngtc; i++)
     {
         const double* ixi   = &state->nosehoover_xi[i * nh];
         const double* ivxi  = &state->nosehoover_vxi[i * nh];
         const double* iQinv = &(MassQ->Qinv[i * nh]);
 
-        real nd   = ir->opts.nrdf[i];
-        real reft = std::max<real>(ir->opts.ref_t[i], 0);
+        real nd   = degreesOfFreedom[i];
+        real reft = std::max<real>(referenceTemperatures[i], 0);
         real kT   = gmx::c_boltz * reft;
 
         if (nd > 0.0)
         {
-            if (inputrecNvtTrotter(ir) || inputrecNptTrotter(ir))
+            if (isTrotterWithConstantTemperature)
             {
                 /* contribution from the thermal momenta of the NH chain */
                 for (int j = 0; j < nh; j++)
@@ -1780,7 +1909,7 @@ static real energyNoseHoover(const t_inputrec* ir, const t_state* state, const t
 }
 
 /* Returns the energy from the barostat thermostat chain */
-static real energyPressureMTTK(const t_inputrec* ir, const t_state* state, const t_extmass* MassQ)
+static real energyPressureMTTK(const real referenceTemperature, const t_state* state, const t_extmass* MassQ)
 {
     real energy = 0;
 
@@ -1789,7 +1918,7 @@ static real energyPressureMTTK(const t_inputrec* ir, const t_state* state, const
     for (int i = 0; i < state->nnhpres; i++)
     {
         /* note -- assumes only one degree of freedom that is thermostatted in barostat */
-        real reft = std::max<real>(ir->opts.ref_t[0], 0.0); /* using 'System' temperature */
+        real reft = std::max<real>(referenceTemperature, 0.0); /* using 'System' temperature */
         real kT   = gmx::c_boltz * reft;
 
         for (int j = 0; j < nh; j++)
@@ -1817,34 +1946,34 @@ static real energyPressureMTTK(const t_inputrec* ir, const t_state* state, const
 }
 
 /* Returns the energy accumulated by the V-rescale or Berendsen thermostat */
-static real energyVrescale(const t_inputrec* ir, const t_state* state)
+static real energyVrescale(const t_state* state)
 {
-    real energy = 0;
-    for (int i = 0; i < ir->opts.ngtc; i++)
-    {
-        energy += state->therm_integral[i];
-    }
-
-    return energy;
+    return std::accumulate(state->therm_integral.begin(), state->therm_integral.end(), 0.);
 }
 
-real NPT_energy(const t_inputrec* ir, const t_state* state, const t_extmass* MassQ)
+real NPT_energy(const PressureCouplingOptions&  pressureCouplingOptions,
+                const TemperatureCoupling       etc,
+                const gmx::ArrayRef<const real> degreesOfFreedom,
+                const gmx::ArrayRef<const real> referenceTemperatures,
+                const bool                      isTrotterWithConstantTemperature,
+                const t_state*                  state,
+                const t_extmass*                MassQ)
 {
     real energyNPT = 0;
 
-    if (ir->epc != PressureCoupling::No)
+    if (pressureCouplingOptions.epc != PressureCoupling::No)
     {
         /* Compute the contribution of the pressure to the conserved quantity*/
 
         real vol = det(state->box);
 
-        switch (ir->epc)
+        switch (pressureCouplingOptions.epc)
         {
             case PressureCoupling::ParrinelloRahman:
             {
                 /* contribution from the pressure momenta */
                 tensor invMass;
-                calcParrinelloRahmanInvMass(ir, state->box, invMass);
+                calcParrinelloRahmanInvMass(pressureCouplingOptions, state->box, invMass);
                 for (int d = 0; d < DIM; d++)
                 {
                     for (int n = 0; n <= d; n++)
@@ -1864,7 +1993,7 @@ real NPT_energy(const t_inputrec* ir, const t_state* state, const t_extmass* Mas
                  * track of unwrapped box diagonal elements. This case is
                  * excluded in integratorHasConservedEnergyQuantity().
                  */
-                energyNPT += vol * trace(ir->ref_p) / (DIM * gmx::c_presfac);
+                energyNPT += vol * trace(pressureCouplingOptions.ref_p) / (DIM * gmx::c_presfac);
                 break;
             }
             case PressureCoupling::Mttk:
@@ -1872,12 +2001,12 @@ real NPT_energy(const t_inputrec* ir, const t_state* state, const t_extmass* Mas
                 energyNPT += 0.5 * gmx::square(state->veta) / MassQ->Winv;
 
                 /* contribution from the PV term */
-                energyNPT += vol * trace(ir->ref_p) / (DIM * gmx::c_presfac);
+                energyNPT += vol * trace(pressureCouplingOptions.ref_p) / (DIM * gmx::c_presfac);
 
-                if (ir->epc == PressureCoupling::Mttk)
+                if (pressureCouplingOptions.epc == PressureCoupling::Mttk)
                 {
                     /* contribution from the MTTK chain */
-                    energyNPT += energyPressureMTTK(ir, state, MassQ);
+                    energyNPT += energyPressureMTTK(referenceTemperatures[0], state, MassQ);
                 }
                 break;
             case PressureCoupling::Berendsen:
@@ -1891,13 +2020,14 @@ real NPT_energy(const t_inputrec* ir, const t_state* state, const t_extmass* Mas
         }
     }
 
-    switch (ir->etc)
+    switch (etc)
     {
         case TemperatureCoupling::No: break;
         case TemperatureCoupling::VRescale:
-        case TemperatureCoupling::Berendsen: energyNPT += energyVrescale(ir, state); break;
+        case TemperatureCoupling::Berendsen: energyNPT += energyVrescale(state); break;
         case TemperatureCoupling::NoseHoover:
-            energyNPT += energyNoseHoover(ir, state, MassQ);
+            energyNPT += energyNoseHoover(
+                    degreesOfFreedom, referenceTemperatures, isTrotterWithConstantTemperature, state, MassQ);
             break;
         case TemperatureCoupling::Andersen:
         case TemperatureCoupling::AndersenMassive:
@@ -1992,7 +2122,7 @@ real vrescale_resamplekin(real kk, real sigma, real ndeg, real taut, int64_t ste
     return ekin_new;
 }
 
-void vrescale_tcoupl(const t_inputrec* ir, int64_t step, gmx_ekindata_t* ekind, real dt, double therm_integral[])
+void vrescale_tcoupl(const t_inputrec* ir, int64_t step, gmx_ekindata_t* ekind, real dt, gmx::ArrayRef<double> therm_integral)
 {
     const t_grpopts* opts;
     int              i;
@@ -2048,15 +2178,18 @@ void vrescale_tcoupl(const t_inputrec* ir, int64_t step, gmx_ekindata_t* ekind, 
     }
 }
 
-void rescale_velocities(const gmx_ekindata_t* ekind, const t_mdatoms* mdatoms, int start, int end, rvec v[])
+void rescale_velocities(const gmx_ekindata_t*               ekind,
+                        gmx::ArrayRef<const unsigned short> cTC,
+                        int                                 start,
+                        int                                 end,
+                        gmx::ArrayRef<gmx::RVec>            v)
 {
-    const unsigned short*             cTC    = mdatoms->cTC;
     gmx::ArrayRef<const t_grp_tcstat> tcstat = ekind->tcstat;
 
     for (int n = start; n < end; n++)
     {
         int gt = 0;
-        if (cTC)
+        if (!cTC.empty())
         {
             gt = cTC[n];
         }
@@ -2094,67 +2227,79 @@ bool initSimulatedAnnealing(t_inputrec* ir, gmx::Update* upd)
     return doSimAnnealing;
 }
 
-/* set target temperatures if we are annealing */
-void update_annealing_target_temp(t_inputrec* ir, real t, gmx::Update* upd)
+real computeAnnealingTargetTemperature(const t_inputrec& inputrec, int temperatureGroup, real time)
 {
-    int  i, j, n, npoints;
-    real pert, thist = 0, x;
-
-    for (i = 0; i < ir->opts.ngtc; i++)
+    GMX_RELEASE_ASSERT(temperatureGroup >= 0 && temperatureGroup < inputrec.opts.ngtc,
+                       "Invalid temperature group.");
+    if (inputrec.opts.annealing[temperatureGroup] == SimulatedAnnealing::No)
     {
-        npoints = ir->opts.anneal_npoints[i];
-        switch (ir->opts.annealing[i])
+        // No change of temperature, return current reference temperature
+        return inputrec.opts.ref_t[temperatureGroup];
+    }
+    GMX_RELEASE_ASSERT(
+            inputrec.opts.annealing[temperatureGroup] == SimulatedAnnealing::Single
+                    || inputrec.opts.annealing[temperatureGroup] == SimulatedAnnealing::Periodic,
+            gmx::formatString("Unknown simulated annealing algorithm for temperature group %d", temperatureGroup)
+                    .c_str());
+    real       thist   = 0;
+    const auto npoints = inputrec.opts.anneal_npoints[temperatureGroup];
+    if (inputrec.opts.annealing[temperatureGroup] == SimulatedAnnealing::Periodic)
+    {
+        /* calculate time modulo the period */
+        const auto pert = inputrec.opts.anneal_time[temperatureGroup][npoints - 1];
+        const auto n    = static_cast<int>(time / pert);
+        thist           = time - n * pert; /* modulo time */
+        /* Make sure rounding didn't get us outside the interval */
+        if (std::fabs(thist - pert) < GMX_REAL_EPS * 100)
         {
-            case SimulatedAnnealing::No: continue;
-            case SimulatedAnnealing::Periodic:
-                /* calculate time modulo the period */
-                pert  = ir->opts.anneal_time[i][npoints - 1];
-                n     = static_cast<int>(t / pert);
-                thist = t - n * pert; /* modulo time */
-                /* Make sure rounding didn't get us outside the interval */
-                if (std::fabs(thist - pert) < GMX_REAL_EPS * 100)
-                {
-                    thist = 0;
-                }
-                break;
-            case SimulatedAnnealing::Single: thist = t; break;
-            default:
-                gmx_fatal(FARGS,
-                          "Death horror in update_annealing_target_temp (i=%d/%d npoints=%d)",
-                          i,
-                          ir->opts.ngtc,
-                          npoints);
+            thist = 0;
         }
-        /* We are doing annealing for this group if we got here,
-         * and we have the (relative) time as thist.
-         * calculate target temp */
-        j = 0;
-        while ((j < npoints - 1) && (thist > (ir->opts.anneal_time[i][j + 1])))
+    }
+    else if (inputrec.opts.annealing[temperatureGroup] == SimulatedAnnealing::Single)
+    {
+        thist = time;
+    }
+    /* We are doing annealing for this group if we got here,
+     * and we have the (relative) time as thist.
+     * calculate target temp */
+    int j = 0;
+    while ((j < npoints - 1) && (thist > (inputrec.opts.anneal_time[temperatureGroup][j + 1])))
+    {
+        j++;
+    }
+    if (j < npoints - 1)
+    {
+        /* Found our position between points j and j+1.
+         * Interpolate: x is the amount from j+1, (1-x) from point j
+         * First treat possible jumps in temperature as a special case.
+         */
+        if ((inputrec.opts.anneal_time[temperatureGroup][j + 1]
+             - inputrec.opts.anneal_time[temperatureGroup][j])
+            < GMX_REAL_EPS * 100)
         {
-            j++;
-        }
-        if (j < npoints - 1)
-        {
-            /* Found our position between points j and j+1.
-             * Interpolate: x is the amount from j+1, (1-x) from point j
-             * First treat possible jumps in temperature as a special case.
-             */
-            if ((ir->opts.anneal_time[i][j + 1] - ir->opts.anneal_time[i][j]) < GMX_REAL_EPS * 100)
-            {
-                ir->opts.ref_t[i] = ir->opts.anneal_temp[i][j + 1];
-            }
-            else
-            {
-                x = ((thist - ir->opts.anneal_time[i][j])
-                     / (ir->opts.anneal_time[i][j + 1] - ir->opts.anneal_time[i][j]));
-                ir->opts.ref_t[i] =
-                        x * ir->opts.anneal_temp[i][j + 1] + (1 - x) * ir->opts.anneal_temp[i][j];
-            }
+            return inputrec.opts.anneal_temp[temperatureGroup][j + 1];
         }
         else
         {
-            ir->opts.ref_t[i] = ir->opts.anneal_temp[i][npoints - 1];
+            const real x = ((thist - inputrec.opts.anneal_time[temperatureGroup][j])
+                            / (inputrec.opts.anneal_time[temperatureGroup][j + 1]
+                               - inputrec.opts.anneal_time[temperatureGroup][j]));
+            return x * inputrec.opts.anneal_temp[temperatureGroup][j + 1]
+                   + (1 - x) * inputrec.opts.anneal_temp[temperatureGroup][j];
         }
+    }
+    else
+    {
+        return inputrec.opts.anneal_temp[temperatureGroup][npoints - 1];
+    }
+}
+
+/* set target temperatures if we are annealing */
+void update_annealing_target_temp(t_inputrec* ir, real t, gmx::Update* upd)
+{
+    for (int temperatureGroup = 0; temperatureGroup < ir->opts.ngtc; temperatureGroup++)
+    {
+        ir->opts.ref_t[temperatureGroup] = computeAnnealingTargetTemperature(*ir, temperatureGroup, t);
     }
 
     upd->update_temperature_constants(*ir);
@@ -2172,7 +2317,7 @@ void pleaseCiteCouplingAlgorithms(FILE* fplog, const t_inputrec& ir)
         {
             please_cite(fplog, "Bussi2007a");
         }
-        if (ir.epc == PressureCoupling::CRescale)
+        if (ir.pressureCouplingOptions.epc == PressureCoupling::CRescale)
         {
             please_cite(fplog, "Bernetti2020");
         }

@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  *
@@ -94,26 +90,27 @@ static void gmx_pme_send_coeffs_coords_wait(gmx_domdec_t* dd)
 }
 
 /*! \brief Send data to PME ranks */
-static void gmx_pme_send_coeffs_coords(t_forcerec*         fr,
-                                       const t_commrec*    cr,
-                                       unsigned int        flags,
-                                       gmx::ArrayRef<real> chargeA,
-                                       gmx::ArrayRef<real> chargeB,
-                                       gmx::ArrayRef<real> c6A,
-                                       gmx::ArrayRef<real> c6B,
-                                       gmx::ArrayRef<real> sigmaA,
-                                       gmx::ArrayRef<real> sigmaB,
-                                       const matrix        box,
-                                       const rvec gmx_unused* x,
-                                       real                   lambda_q,
-                                       real                   lambda_lj,
-                                       int                    maxshift_x,
-                                       int                    maxshift_y,
-                                       int64_t                step,
-                                       bool                   useGpuPmePpComms,
-                                       bool                   reinitGpuPmePpComms,
-                                       bool                   sendCoordinatesFromGpu,
-                                       GpuEventSynchronizer*  coordinatesReadyOnDeviceEvent)
+static void gmx_pme_send_coeffs_coords(t_forcerec*                    fr,
+                                       const t_commrec*               cr,
+                                       unsigned int                   flags,
+                                       gmx::ArrayRef<const real>      chargeA,
+                                       gmx::ArrayRef<const real>      chargeB,
+                                       gmx::ArrayRef<const real>      c6A,
+                                       gmx::ArrayRef<const real>      c6B,
+                                       gmx::ArrayRef<const real>      sigmaA,
+                                       gmx::ArrayRef<const real>      sigmaB,
+                                       const matrix                   box,
+                                       gmx::ArrayRef<const gmx::RVec> x,
+                                       real                           lambda_q,
+                                       real                           lambda_lj,
+                                       int                            maxshift_x,
+                                       int                            maxshift_y,
+                                       int64_t                        step,
+                                       bool                           useGpuPmePpComms,
+                                       bool                           reinitGpuPmePpComms,
+                                       bool                           sendCoordinatesFromGpu,
+                                       bool                           receiveForcesToGpu,
+                                       GpuEventSynchronizer*          coordinatesReadyOnDeviceEvent)
 {
     gmx_domdec_t*         dd;
     gmx_pme_comm_n_box_t* cnb;
@@ -138,6 +135,10 @@ static void gmx_pme_send_coeffs_coords(t_forcerec*         fr,
     if (useGpuPmePpComms)
     {
         flags |= PP_PME_GPUCOMMS;
+        if (receiveForcesToGpu)
+        {
+            flags |= PP_PME_RECVFTOGPU;
+        }
     }
 
     if (c_useDelayedWait)
@@ -257,12 +258,11 @@ static void gmx_pme_send_coeffs_coords(t_forcerec*         fr,
         {
             if (reinitGpuPmePpComms)
             {
+                changePinningPolicy(&cr->dd->pmeForceReceiveBuffer, gmx::PinningPolicy::PinnedIfSupported);
+                cr->dd->pmeForceReceiveBuffer.resize(n);
                 fr->pmePpCommGpu->reinit(n);
             }
 
-
-            /* MPI_Isend does not accept a const buffer pointer */
-            real* xRealPtr = const_cast<real*>(x[0]);
             if (useGpuPmePpComms && (fr != nullptr))
             {
                 if (sendCoordinatesFromGpu)
@@ -273,12 +273,12 @@ static void gmx_pme_send_coeffs_coords(t_forcerec*         fr,
                 else
                 {
                     fr->pmePpCommGpu->sendCoordinatesToPmeFromCpu(
-                            reinterpret_cast<gmx::RVec*>(xRealPtr), n, coordinatesReadyOnDeviceEvent);
+                            const_cast<gmx::RVec*>(x.data()), n, coordinatesReadyOnDeviceEvent);
                 }
             }
             else
             {
-                MPI_Isend(xRealPtr,
+                MPI_Isend(x.data(),
                           n * sizeof(rvec),
                           MPI_BYTE,
                           dd->pme_nodeid,
@@ -296,6 +296,7 @@ static void gmx_pme_send_coeffs_coords(t_forcerec*         fr,
     GMX_UNUSED_VALUE(c6B);
     GMX_UNUSED_VALUE(sigmaA);
     GMX_UNUSED_VALUE(sigmaB);
+    GMX_UNUSED_VALUE(x);
     GMX_UNUSED_VALUE(reinitGpuPmePpComms);
     GMX_UNUSED_VALUE(sendCoordinatesFromGpu);
     GMX_UNUSED_VALUE(coordinatesReadyOnDeviceEvent);
@@ -314,22 +315,22 @@ void gmx_pme_send_parameters(const t_commrec*           cr,
                              const interaction_const_t& interactionConst,
                              bool                       bFreeEnergy_q,
                              bool                       bFreeEnergy_lj,
-                             gmx::ArrayRef<real>        chargeA,
-                             gmx::ArrayRef<real>        chargeB,
-                             gmx::ArrayRef<real>        sqrt_c6A,
-                             gmx::ArrayRef<real>        sqrt_c6B,
-                             gmx::ArrayRef<real>        sigmaA,
-                             gmx::ArrayRef<real>        sigmaB,
+                             gmx::ArrayRef<const real>  chargeA,
+                             gmx::ArrayRef<const real>  chargeB,
+                             gmx::ArrayRef<const real>  sqrt_c6A,
+                             gmx::ArrayRef<const real>  sqrt_c6B,
+                             gmx::ArrayRef<const real>  sigmaA,
+                             gmx::ArrayRef<const real>  sigmaB,
                              int                        maxshift_x,
                              int                        maxshift_y)
 {
     unsigned int flags = 0;
 
-    if (EEL_PME(interactionConst.eeltype))
+    if (usingPme(interactionConst.eeltype))
     {
         flags |= PP_PME_CHARGE;
     }
-    if (EVDW_PME(interactionConst.vdwtype))
+    if (usingLJPme(interactionConst.vdwtype))
     {
         flags |= (PP_PME_SQRTC6 | PP_PME_SIGMA);
     }
@@ -350,7 +351,7 @@ void gmx_pme_send_parameters(const t_commrec*           cr,
                                sigmaA,
                                sigmaB,
                                nullptr,
-                               nullptr,
+                               gmx::ArrayRef<gmx::RVec>(),
                                0,
                                0,
                                maxshift_x,
@@ -359,22 +360,24 @@ void gmx_pme_send_parameters(const t_commrec*           cr,
                                false,
                                false,
                                false,
+                               false,
                                nullptr);
 }
 
-void gmx_pme_send_coordinates(t_forcerec*           fr,
-                              const t_commrec*      cr,
-                              const matrix          box,
-                              const rvec*           x,
-                              real                  lambda_q,
-                              real                  lambda_lj,
-                              bool                  computeEnergyAndVirial,
-                              int64_t               step,
-                              bool                  useGpuPmePpComms,
-                              bool                  receiveCoordinateAddressFromPme,
-                              bool                  sendCoordinatesFromGpu,
-                              GpuEventSynchronizer* coordinatesReadyOnDeviceEvent,
-                              gmx_wallcycle*        wcycle)
+void gmx_pme_send_coordinates(t_forcerec*                    fr,
+                              const t_commrec*               cr,
+                              const matrix                   box,
+                              gmx::ArrayRef<const gmx::RVec> x,
+                              real                           lambda_q,
+                              real                           lambda_lj,
+                              bool                           computeEnergyAndVirial,
+                              int64_t                        step,
+                              bool                           useGpuPmePpComms,
+                              bool                           receiveCoordinateAddressFromPme,
+                              bool                           sendCoordinatesFromGpu,
+                              bool                           receiveForcesToGpu,
+                              GpuEventSynchronizer*          coordinatesReadyOnDeviceEvent,
+                              gmx_wallcycle*                 wcycle)
 {
     wallcycle_start(wcycle, WallCycleCounter::PpPmeSendX);
 
@@ -402,6 +405,7 @@ void gmx_pme_send_coordinates(t_forcerec*           fr,
                                useGpuPmePpComms,
                                receiveCoordinateAddressFromPme,
                                sendCoordinatesFromGpu,
+                               receiveForcesToGpu,
                                coordinatesReadyOnDeviceEvent);
 
     wallcycle_stop(wcycle, WallCycleCounter::PpPmeSendX);
@@ -412,7 +416,7 @@ void gmx_pme_send_finish(const t_commrec* cr)
     unsigned int flags = PP_PME_FINISH;
 
     gmx_pme_send_coeffs_coords(
-            nullptr, cr, flags, {}, {}, {}, {}, {}, {}, nullptr, nullptr, 0, 0, 0, 0, -1, false, false, false, nullptr);
+            nullptr, cr, flags, {}, {}, {}, {}, {}, {}, nullptr, gmx::ArrayRef<gmx::RVec>(), 0, 0, 0, 0, -1, false, false, false, false, nullptr);
 }
 
 void gmx_pme_send_switchgrid(const t_commrec* cr, ivec grid_size, real ewaldcoeff_q, real ewaldcoeff_lj)
@@ -524,6 +528,7 @@ static void recvFFromPme(gmx::PmePpCommGpu* pmePpCommGpu,
         MPI_Recv(recvptr, n * sizeof(rvec), MPI_BYTE, cr->dd->pme_nodeid, 0, cr->mpi_comm_mysim, MPI_STATUS_IGNORE);
 #else
         GMX_UNUSED_VALUE(cr);
+        GMX_UNUSED_VALUE(n);
 #endif
     }
 }
@@ -546,8 +551,8 @@ void gmx_pme_receive_f(gmx::PmePpCommGpu*    pmePpCommGpu,
         gmx_pme_send_coeffs_coords_wait(cr->dd);
     }
 
-    const int               natoms = dd_numHomeAtoms(*cr->dd);
-    std::vector<gmx::RVec>& buffer = cr->dd->pmeForceReceiveBuffer;
+    const int                   natoms = dd_numHomeAtoms(*cr->dd);
+    gmx::HostVector<gmx::RVec>& buffer = cr->dd->pmeForceReceiveBuffer;
     buffer.resize(natoms);
 
     void* recvptr = reinterpret_cast<void*>(buffer.data());

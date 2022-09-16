@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2019- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief Defines the Parrinello-Rahman barostat for the modular simulator
@@ -94,17 +93,19 @@ ParrinelloRahmanBarostat::ParrinelloRahmanBarostat(int                  nstpcoup
     });
 }
 
-void ParrinelloRahmanBarostat::connectWithMatchingPropagator(const PropagatorBarostatConnection& connectionData,
+void ParrinelloRahmanBarostat::connectWithMatchingPropagator(const PropagatorConnection& connectionData,
                                                              const PropagatorTag& propagatorTag)
 {
     if (connectionData.tag == propagatorTag)
     {
+        GMX_RELEASE_ASSERT(connectionData.hasParrinelloRahmanScaling(),
+                           "Connection data lacks Parrinello-Rahman scaling");
         scalingTensor_      = connectionData.getViewOnPRScalingMatrix();
         propagatorCallback_ = connectionData.getPRScalingCallback();
     }
 }
 
-void ParrinelloRahmanBarostat::scheduleTask(Step step,
+void ParrinelloRahmanBarostat::scheduleTask(Step                       step,
                                             Time gmx_unused            time,
                                             const RegisterRunFunction& registerRunFunction)
 {
@@ -134,10 +135,11 @@ void ParrinelloRahmanBarostat::scheduleTask(Step step,
 
 void ParrinelloRahmanBarostat::integrateBoxVelocityEquations(Step step)
 {
-    auto box = statePropagatorData_->constBox();
+    const auto* box = statePropagatorData_->constBox();
     parrinellorahman_pcoupl(fplog_,
                             step,
-                            inputrec_,
+                            inputrec_->pressureCouplingOptions,
+                            inputrec_->deform,
                             couplingTimeStep_,
                             energyData_->pressure(step),
                             box,
@@ -153,7 +155,7 @@ void ParrinelloRahmanBarostat::integrateBoxVelocityEquations(Step step)
 void ParrinelloRahmanBarostat::scaleBoxAndPositions()
 {
     // Propagate the box by the box velocities
-    auto box = statePropagatorData_->box();
+    auto* box = statePropagatorData_->box();
     for (int i = 0; i < DIM; i++)
     {
         for (int m = 0; m <= i; m++)
@@ -161,15 +163,35 @@ void ParrinelloRahmanBarostat::scaleBoxAndPositions()
             box[i][m] += couplingTimeStep_ * boxVelocity_[i][m];
         }
     }
-    preserve_box_shape(inputrec_, boxRel_, box);
+    preserveBoxShape(inputrec_->pressureCouplingOptions, inputrec_->deform, boxRel_, box);
 
     // Scale the coordinates
     const int start  = 0;
     const int homenr = mdAtoms_->mdatoms()->homenr;
-    auto      x      = as_rvec_array(statePropagatorData_->positionsView().paddedArrayRef().data());
+    auto*     x      = as_rvec_array(statePropagatorData_->positionsView().paddedArrayRef().data());
+    ivec*     nFreeze = inputrec_->opts.nFreeze;
     for (int n = start; n < start + homenr; n++)
     {
-        tmvmul_ur0(mu_, x[n], x[n]);
+        if (mdAtoms_->mdatoms()->cFREEZE.empty())
+        {
+            tmvmul_ur0(mu_, x[n], x[n]);
+        }
+        else
+        {
+            int g = mdAtoms_->mdatoms()->cFREEZE[n];
+            if (!nFreeze[g][XX])
+            {
+                x[n][XX] = mu_[XX][XX] * x[n][XX] + mu_[YY][XX] * x[n][YY] + mu_[ZZ][XX] * x[n][ZZ];
+            }
+            if (!nFreeze[g][YY])
+            {
+                x[n][YY] = mu_[YY][YY] * x[n][YY] + mu_[ZZ][YY] * x[n][ZZ];
+            }
+            if (!nFreeze[g][ZZ])
+            {
+                x[n][ZZ] = mu_[ZZ][ZZ] * x[n][ZZ];
+            }
+        }
     }
 }
 
@@ -185,10 +207,11 @@ void ParrinelloRahmanBarostat::elementSetup()
                 "object.");
     }
 
-    if (inputrecPreserveShape(inputrec_))
+    if (shouldPreserveBoxShape(inputrec_->pressureCouplingOptions, inputrec_->deform))
     {
-        auto      box  = statePropagatorData_->box();
-        const int ndim = inputrec_->epct == PressureCouplingType::SemiIsotropic ? 2 : 3;
+        auto*     box = statePropagatorData_->box();
+        const int ndim =
+                inputrec_->pressureCouplingOptions.epct == PressureCouplingType::SemiIsotropic ? 2 : 3;
         do_box_rel(ndim, inputrec_->deform, boxRel_, box, true);
     }
 
@@ -203,10 +226,11 @@ void ParrinelloRahmanBarostat::elementSetup()
         // the scaling matrix is calculated, without updating the box velocities.
         // The call to parrinellorahman_pcoupl is using nullptr for fplog (since we don't expect any
         // output here) and for the pressure (since it might not be calculated yet, and we don't need it).
-        auto box = statePropagatorData_->constBox();
+        const auto* box = statePropagatorData_->constBox();
         parrinellorahman_pcoupl(nullptr,
                                 initStep_,
-                                inputrec_,
+                                inputrec_->pressureCouplingOptions,
+                                inputrec_->deform,
                                 couplingTimeStep_,
                                 nullptr,
                                 box,
@@ -239,8 +263,10 @@ real ParrinelloRahmanBarostat::conservedEnergyContribution() const
     {
         for (int j = 0; j <= i; j++)
         {
-            real invMass = c_presfac * (4 * M_PI * M_PI * inputrec_->compress[i][j])
-                           / (3 * inputrec_->tau_p * inputrec_->tau_p * maxBoxLength);
+            real invMass = c_presfac
+                           * (4 * M_PI * M_PI * inputrec_->pressureCouplingOptions.compress[i][j])
+                           / (3 * inputrec_->pressureCouplingOptions.tau_p
+                              * inputrec_->pressureCouplingOptions.tau_p * maxBoxLength);
             if (invMass > 0)
             {
                 energy += 0.5 * boxVelocity_[i][j] * boxVelocity_[i][j] / invMass;
@@ -255,7 +281,7 @@ real ParrinelloRahmanBarostat::conservedEnergyContribution() const
      * track of unwrapped box diagonal elements. This case is
      * excluded in integratorHasConservedEnergyQuantity().
      */
-    energy += volume * trace(inputrec_->ref_p) / (DIM * c_presfac);
+    energy += volume * trace(inputrec_->pressureCouplingOptions.ref_p) / (DIM * c_presfac);
 
     return energy;
 }
@@ -301,7 +327,7 @@ void ParrinelloRahmanBarostat::restoreCheckpointState(std::optional<ReadCheckpoi
     {
         doCheckpointData<CheckpointDataOperation::Read>(&checkpointData.value());
     }
-    if (DOMAINDECOMP(cr))
+    if (haveDDAtomOrdering(*cr))
     {
         dd_bcast(cr->dd, sizeof(boxVelocity_), boxVelocity_);
         dd_bcast(cr->dd, sizeof(boxRel_), boxRel_);
@@ -329,13 +355,15 @@ ISimulatorElement* ParrinelloRahmanBarostat::getElementPointerImpl(
         EnergyData*                             energyData,
         FreeEnergyPerturbationData gmx_unused* freeEnergyPerturbationData,
         GlobalCommunicationHelper gmx_unused* globalCommunicationHelper,
-        Offset                                offset,
-        const PropagatorTag&                  propagatorTag)
+        ObservablesReducer* /*observablesReducer*/,
+        Offset               offset,
+        const PropagatorTag& propagatorTag)
 {
     auto* element  = builderHelper->storeElement(std::make_unique<ParrinelloRahmanBarostat>(
-            legacySimulatorData->inputrec->nstpcouple,
+            legacySimulatorData->inputrec->pressureCouplingOptions.nstpcouple,
             offset,
-            legacySimulatorData->inputrec->delta_t * legacySimulatorData->inputrec->nstpcouple,
+            legacySimulatorData->inputrec->delta_t
+                    * legacySimulatorData->inputrec->pressureCouplingOptions.nstpcouple,
             legacySimulatorData->inputrec->init_step,
             statePropagatorData,
             energyData,
@@ -343,9 +371,10 @@ ISimulatorElement* ParrinelloRahmanBarostat::getElementPointerImpl(
             legacySimulatorData->inputrec,
             legacySimulatorData->mdAtoms));
     auto* barostat = static_cast<ParrinelloRahmanBarostat*>(element);
-    builderHelper->registerBarostat([barostat, propagatorTag](const PropagatorBarostatConnection& connection) {
-        barostat->connectWithMatchingPropagator(connection, propagatorTag);
-    });
+    builderHelper->registerTemperaturePressureControl(
+            [barostat, propagatorTag](const PropagatorConnection& connection) {
+                barostat->connectWithMatchingPropagator(connection, propagatorTag);
+            });
     return element;
 }
 

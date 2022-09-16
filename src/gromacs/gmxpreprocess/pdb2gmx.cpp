@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,14 +26,13 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
-#include "gromacs/utility/enumerationhelpers.h"
 #include "pdb2gmx.h"
 
 #include <cctype>
@@ -79,6 +74,7 @@
 #include "gromacs/topology/symtab.h"
 #include "gromacs/topology/topology.h"
 #include "gromacs/utility/dir_separator.h"
+#include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/filestream.h"
@@ -94,11 +90,7 @@
 struct RtpRename
 {
     RtpRename(const char* newGmx, const char* newMain, const char* newNter, const char* newCter, const char* newBter) :
-        gmx(newGmx),
-        main(newMain),
-        nter(newNter),
-        cter(newCter),
-        bter(newBter)
+        gmx(newGmx), main(newMain), nter(newNter), cter(newCter), bter(newBter)
     {
     }
     std::string gmx;
@@ -247,7 +239,7 @@ const char* select_res(int resnr, const char* title, gmx::ArrayRef<const RtpRena
     {
         printf("%d. %s (%s)\n",
                static_cast<int>(sel),
-               enumValueToString(sel),
+               enumValueToLongString(sel),
                res2bb_notermini(enumValueToString(sel), rr));
     }
     printf("\nType a number:");
@@ -259,7 +251,7 @@ const char* select_res(int resnr, const char* title, gmx::ArrayRef<const RtpRena
         gmx_fatal(FARGS, "Answer me for res %s %d!", title, resnr + 1);
     }
 
-    return enumValueToLongString(static_cast<EnumType>(userSelection));
+    return enumValueToString(static_cast<EnumType>(userSelection));
 }
 
 const char* get_asptp(int resnr, gmx::ArrayRef<const RtpRename> rr)
@@ -651,20 +643,20 @@ void write_posres(const char* fn, t_atoms* pdba, real fc)
     gmx_fio_fclose(fp);
 }
 
-int read_pdball(const char*     inf,
-                bool            bOutput,
-                const char*     outf,
-                char**          title,
-                t_atoms*        atoms,
-                rvec**          x,
-                PbcType*        pbcType,
-                matrix          box,
-                bool            bRemoveH,
-                t_symtab*       symtab,
-                ResidueType*    rt,
-                const char*     watres,
-                AtomProperties* aps,
-                bool            bVerbose)
+int read_pdball(const char*           inf,
+                bool                  bOutput,
+                const char*           outf,
+                char**                title,
+                t_atoms*              atoms,
+                rvec**                x,
+                PbcType*              pbcType,
+                matrix                box,
+                bool                  bRemoveH,
+                t_symtab*             symtab,
+                const ResidueTypeMap& residueTypeMap,
+                const char*           watres,
+                AtomProperties*       aps,
+                bool                  bVerbose)
 /* Read a pdb file. (containing proteins) */
 {
     int natom, new_natom, i;
@@ -711,7 +703,7 @@ int read_pdball(const char*     inf,
     rename_pdbres(atoms, "SOL", watres, false, symtab);
     rename_pdbres(atoms, "WAT", watres, false, symtab);
 
-    rename_atoms("xlateat.dat", nullptr, atoms, symtab, {}, true, rt, true, bVerbose);
+    rename_atoms("xlateat.dat", nullptr, atoms, symtab, {}, true, residueTypeMap, true, bVerbose);
 
     if (natom == 0)
     {
@@ -988,7 +980,7 @@ int remove_duplicate_atoms(t_atoms* pdba, gmx::ArrayRef<gmx::RVec> x, bool bVerb
     return pdba->nr;
 }
 
-void checkResidueTypeSanity(t_atoms* pdba, int r0, int r1, ResidueType* rt)
+void checkResidueTypeSanity(t_atoms* pdba, int r0, int r1, const ResidueTypeMap& residueTypeMap)
 {
     std::string startResidueString =
             gmx::formatString("%s%d", *pdba->resinfo[r0].name, pdba->resinfo[r0].nr);
@@ -1030,11 +1022,11 @@ void checkResidueTypeSanity(t_atoms* pdba, int r0, int r1, ResidueType* rt)
     {
         bool        allResiduesHaveSameType = true;
         std::string restype;
-        std::string restype0 = rt->typeOfNamedDatabaseResidue(*pdba->resinfo[r0].name);
+        std::string restype0 = typeOfNamedDatabaseResidue(residueTypeMap, *pdba->resinfo[r0].name);
 
         for (int i = r0 + 1; i < r1; i++)
         {
-            restype = rt->typeOfNamedDatabaseResidue(*pdba->resinfo[i].name);
+            restype = typeOfNamedDatabaseResidue(residueTypeMap, *pdba->resinfo[i].name);
             if (!gmx::equalCaseInsensitive(restype, restype0))
             {
                 allResiduesHaveSameType = false;
@@ -1062,10 +1054,15 @@ void checkResidueTypeSanity(t_atoms* pdba, int r0, int r1, ResidueType* rt)
     }
 }
 
-void find_nc_ter(t_atoms* pdba, int r0, int r1, int* r_start, int* r_end, ResidueType* rt, const gmx::MDLogger& logger)
+void find_nc_ter(t_atoms*              pdba,
+                 int                   r0,
+                 int                   r1,
+                 int*                  r_start,
+                 int*                  r_end,
+                 const ResidueTypeMap& residueTypeMap,
+                 const gmx::MDLogger&  logger)
 {
-    int                        i;
-    std::optional<std::string> startrestype;
+    std::optional<std::string> residueTypeOfStartingTerminus;
 
     *r_start = -1;
     *r_end   = -1;
@@ -1076,7 +1073,7 @@ void find_nc_ter(t_atoms* pdba, int r0, int r1, int* r_start, int* r_end, Residu
 
     // Check that all residues have the same chain identifier, and if it is
     // non-blank we also require the residue types to match.
-    checkResidueTypeSanity(pdba, r0, r1, rt);
+    checkResidueTypeSanity(pdba, r0, r1, residueTypeMap);
 
     // If we return correctly from checkResidueTypeSanity(), the only
     // remaining cases where we can have non-matching residue types is if
@@ -1089,16 +1086,17 @@ void find_nc_ter(t_atoms* pdba, int r0, int r1, int* r_start, int* r_end, Residu
     char chainID = pdba->resinfo[r0].chainid;
 
     /* Find the starting terminus (typially N or 5') */
-    for (i = r0; i < r1 && *r_start == -1; i++)
+    for (int i = r0; i < r1 && *r_start == -1; i++)
     {
-        startrestype = rt->optionalTypeOfNamedDatabaseResidue(*pdba->resinfo[i].name);
-        if (!startrestype)
+        auto foundIt = residueTypeMap.find(*pdba->resinfo[i].name);
+        if (foundIt == residueTypeMap.end())
         {
             continue;
         }
-        if (gmx::equalCaseInsensitive(*startrestype, "Protein")
-            || gmx::equalCaseInsensitive(*startrestype, "DNA")
-            || gmx::equalCaseInsensitive(*startrestype, "RNA"))
+        residueTypeOfStartingTerminus = foundIt->second;
+        if (gmx::equalCaseInsensitive(residueTypeOfStartingTerminus.value(), "Protein")
+            || gmx::equalCaseInsensitive(residueTypeOfStartingTerminus.value(), "DNA")
+            || gmx::equalCaseInsensitive(residueTypeOfStartingTerminus.value(), "RNA"))
         {
             GMX_LOG(logger.info)
                     .asParagraph()
@@ -1107,7 +1105,7 @@ void find_nc_ter(t_atoms* pdba, int r0, int r1, int* r_start, int* r_end, Residu
                                          pdba->resinfo[i].nr);
             *r_start = i;
         }
-        else if (gmx::equalCaseInsensitive(*startrestype, "Ion"))
+        else if (gmx::equalCaseInsensitive(residueTypeOfStartingTerminus.value(), "Ion"))
         {
             if (ionNotes < 5)
             {
@@ -1186,17 +1184,18 @@ void find_nc_ter(t_atoms* pdba, int r0, int r1, int* r_start, int* r_end, Residu
         /* Go through the rest of the residues, check that they are the same class, and identify the ending terminus. */
         for (int i = *r_start; i < r1; i++)
         {
-            std::optional<std::string> restype =
-                    rt->optionalTypeOfNamedDatabaseResidue(*pdba->resinfo[i].name);
-            if (!restype)
+            auto foundIt = residueTypeMap.find(*pdba->resinfo[i].name);
+            if (foundIt == residueTypeMap.end())
             {
                 continue;
             }
-            if (gmx::equalCaseInsensitive(*restype, *startrestype) && endWarnings == 0)
+            const std::string& residueTypeOfCurrentResidue = foundIt->second;
+            if (gmx::equalCaseInsensitive(residueTypeOfCurrentResidue, residueTypeOfStartingTerminus.value())
+                && endWarnings == 0)
             {
                 *r_end = i;
             }
-            else if (gmx::equalCaseInsensitive(*startrestype, "Ion"))
+            else if (gmx::equalCaseInsensitive(residueTypeOfStartingTerminus.value(), "Ion"))
             {
                 if (ionNotes < 5)
                 {
@@ -1241,10 +1240,10 @@ void find_nc_ter(t_atoms* pdba, int r0, int r1, int* r_start, int* r_end, Residu
                                     "if this was not correct.",
                                     *pdba->resinfo[i].name,
                                     pdba->resinfo[i].nr,
-                                    restype->c_str(),
+                                    residueTypeOfCurrentResidue.c_str(),
                                     *pdba->resinfo[*r_start].name,
                                     pdba->resinfo[*r_start].nr,
-                                    startrestype->c_str(),
+                                    residueTypeOfStartingTerminus.value().c_str(),
                                     *pdba->resinfo[i].name);
                 }
                 if (endWarnings == 4)
@@ -1423,6 +1422,11 @@ bool checkChainCyclicity(t_atoms*                               pdba,
                          real                                   long_bond_dist_,
                          real                                   short_bond_dist_)
 {
+    // if start and end are the same, we can't have a cycle
+    if (start_ter == end_ter)
+    {
+        return false;
+    }
     int         ai = -1, aj = -1;
     char*       rtpname = *(pdba->resinfo[start_ter].rtp);
     std::string newName = search_resrename(rr, rtpname, false, false, false);
@@ -2013,7 +2017,7 @@ int pdb2gmx::run()
     open_symtab(&symtab);
 
     /* Residue type database */
-    ResidueType rt;
+    ResidueTypeMap residueTypeMap = residueTypeMapFromLibraryFile("residuetypes.dat");
 
     /* Read residue renaming database(s), if present */
     std::vector<std::string> rrn = fflib_search_file_end(ffdir_, ".r2b", FALSE);
@@ -2032,12 +2036,14 @@ int pdb2gmx::run()
     for (const auto& rename : rtprename)
     {
         /* Only add names if the 'standard' gromacs/iupac base name was found */
-        if (auto restype = rt.optionalTypeOfNamedDatabaseResidue(rename.gmx))
+        if (auto foundIt = residueTypeMap.find(rename.gmx); foundIt != residueTypeMap.end())
         {
-            rt.addResidue(rename.main, *restype);
-            rt.addResidue(rename.nter, *restype);
-            rt.addResidue(rename.cter, *restype);
-            rt.addResidue(rename.bter, *restype);
+            // Add the renamed forms with the same residue type as the standard form
+            auto& residueType = foundIt->second;
+            addResidue(&residueTypeMap, rename.main, residueType);
+            addResidue(&residueTypeMap, rename.nter, residueType);
+            addResidue(&residueTypeMap, rename.cter, residueType);
+            addResidue(&residueTypeMap, rename.bter, residueType);
         }
     }
 
@@ -2072,7 +2078,7 @@ int pdb2gmx::run()
                             box,
                             bRemoveH_,
                             &symtab,
-                            &rt,
+                            residueTypeMap,
                             watres,
                             &aps,
                             bVerbose_);
@@ -2336,7 +2342,7 @@ int pdb2gmx::run()
     check_occupancy(&pdba_all, inputConfFile_.c_str(), bVerbose_, logger);
 
     /* Read atomtypes... */
-    PreprocessingAtomTypes atype = read_atype(ffdir_, &symtab);
+    PreprocessingAtomTypes atype = read_atype(ffdir_);
 
     /* read residue database */
     GMX_LOG(logger.info).asParagraph().appendTextFormatted("Reading residue database... (%s)", forcefield_);
@@ -2425,8 +2431,13 @@ int pdb2gmx::run()
         j                             = 0;
         for (int i = 0; i < cc->nterpairs; i++)
         {
-            find_nc_ter(
-                    pdba, cc->chainstart[i], cc->chainstart[i + 1], &(cc->r_start[j]), &(cc->r_end[j]), &rt, logger);
+            find_nc_ter(pdba,
+                        cc->chainstart[i],
+                        cc->chainstart[i + 1],
+                        &(cc->r_start[j]),
+                        &(cc->r_end[j]),
+                        residueTypeMap,
+                        logger);
             if (cc->r_start[j] >= 0 && cc->r_end[j] >= 0)
             {
                 if (checkChainCyclicity(
@@ -2456,7 +2467,7 @@ int pdb2gmx::run()
         }
 
         /* Check for disulfides and other special bonds */
-        ssbonds = makeDisulfideBonds(pdba, gmx::as_rvec_array(x.data()), bCysMan_, bVerbose_);
+        ssbonds = makeDisulfideBonds(pdba, &symtab, gmx::as_rvec_array(x.data()), bCysMan_, bVerbose_);
 
         if (!rtprename.empty())
         {
@@ -2574,7 +2585,7 @@ int pdb2gmx::run()
            requires some re-thinking of code in gen_vsite.c, which I won't
            do now :( AF 26-7-99 */
 
-        rename_atoms(nullptr, ffdir_, pdba, &symtab, restp_chain, false, &rt, false, bVerbose_);
+        rename_atoms(nullptr, ffdir_, pdba, &symtab, restp_chain, false, residueTypeMap, false, bVerbose_);
 
         match_atomnames_with_rtp(restp_chain, hb_chain, pdba, &symtab, x, bVerbose_, logger);
 
@@ -2640,7 +2651,7 @@ int pdb2gmx::run()
 
         int k = (cc->nterpairs > 0 && cc->r_start[0] >= 0) ? cc->r_start[0] : 0;
 
-        std::string restype = rt.typeOfNamedDatabaseResidue(*pdba->resinfo[k].name);
+        std::string restype = typeOfNamedDatabaseResidue(residueTypeMap, *pdba->resinfo[k].name);
 
         std::string molname;
         std::string suffix;

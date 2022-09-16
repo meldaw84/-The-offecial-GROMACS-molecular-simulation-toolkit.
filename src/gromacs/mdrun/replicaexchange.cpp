@@ -1,12 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2011-2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -20,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -29,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 /*! \internal \file
@@ -234,7 +231,7 @@ gmx_repl_ex_t init_replica_exchange(FILE*                            fplog,
          * is true!
          *
          * Since we are using a dynamical integrator, the only
-         * decomposition is DD, so PAR(cr) and DOMAINDECOMP(cr) are
+         * decomposition is DD, so PAR(cr) and haveDDAtomOrdering(*cr) are
          * synonymous. The only way for cr->nnodes > 1 to be true is
          * if we are using DD. */
     }
@@ -258,7 +255,8 @@ gmx_repl_ex_t init_replica_exchange(FILE*                            fplog,
             fplog, ms, (ir->init_step + nst - 1) / nst, "first exchange step: init_step/-replex", FALSE);
     check_multi_int(fplog, ms, static_cast<int>(ir->etc), "the temperature coupling", FALSE);
     check_multi_int(fplog, ms, ir->opts.ngtc, "the number of temperature coupling groups", FALSE);
-    check_multi_int(fplog, ms, static_cast<int>(ir->epc), "the pressure coupling", FALSE);
+    check_multi_int(
+            fplog, ms, static_cast<int>(ir->pressureCouplingOptions.epc), "the pressure coupling", FALSE);
     check_multi_int(fplog, ms, static_cast<int>(ir->efep), "free energy", FALSE);
     check_multi_int(fplog, ms, ir->fepvals->n_lambda, "number of lambda states", FALSE);
 
@@ -297,7 +295,7 @@ gmx_repl_ex_t init_replica_exchange(FILE*                            fplog,
     if (bTemp)
     {
         please_cite(fplog, "Sugita1999a");
-        if (ir->epc != PressureCoupling::No)
+        if (ir->pressureCouplingOptions.epc != PressureCoupling::No)
         {
             re->bNPT = TRUE;
             fprintf(fplog, "Repl  Using Constant Pressure REMD.\n");
@@ -322,9 +320,9 @@ gmx_repl_ex_t init_replica_exchange(FILE*                            fplog,
     if (re->bNPT)
     {
         snew(re->pres, re->nrepl);
-        if (ir->epct == PressureCouplingType::SurfaceTension)
+        if (ir->pressureCouplingOptions.epct == PressureCouplingType::SurfaceTension)
         {
-            pres = ir->ref_p[ZZ][ZZ];
+            pres = ir->pressureCouplingOptions.ref_p[ZZ][ZZ];
         }
         else
         {
@@ -332,9 +330,9 @@ gmx_repl_ex_t init_replica_exchange(FILE*                            fplog,
             j    = 0;
             for (i = 0; i < DIM; i++)
             {
-                if (ir->compress[i][i] != 0)
+                if (ir->pressureCouplingOptions.compress[i][i] != 0)
                 {
-                    pres += ir->ref_p[i][i];
+                    pres += ir->pressureCouplingOptions.ref_p[i][i];
                     j++;
                 }
             }
@@ -1285,7 +1283,7 @@ gmx_bool replica_exchange(FILE*                 fplog,
      * each simulation know whether they need to participate in
      * collecting the state. Otherwise, they might as well get on with
      * the next thing to do. */
-    if (DOMAINDECOMP(cr))
+    if (haveDDAtomOrdering(*cr))
     {
 #if GMX_MPI
         MPI_Bcast(&bThisReplicaExchanged, sizeof(gmx_bool), MPI_BYTE, MASTERRANK(cr), cr->mpi_comm_mygroup);
@@ -1296,7 +1294,7 @@ gmx_bool replica_exchange(FILE*                 fplog,
     {
         /* Exchange the states */
         /* Collect the global state on the master node */
-        if (DOMAINDECOMP(cr))
+        if (haveDDAtomOrdering(*cr))
         {
             dd_collect_state(cr->dd, state_local, state);
         }
@@ -1337,7 +1335,7 @@ gmx_bool replica_exchange(FILE*                 fplog,
         }
 
         /* With domain decomposition the global state is distributed later */
-        if (!DOMAINDECOMP(cr))
+        if (!haveDDAtomOrdering(*cr))
         {
             /* Copy the global state to the local state data structure */
             copy_state_serial(state, state_local);

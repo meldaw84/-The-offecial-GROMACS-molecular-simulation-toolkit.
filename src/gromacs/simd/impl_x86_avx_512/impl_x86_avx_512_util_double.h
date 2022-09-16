@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2014-2018, The GROMACS development team.
- * Copyright (c) 2019,2020, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2014- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 #ifndef GMX_SIMD_IMPL_X86_AVX_512_UTIL_DOUBLE_H
@@ -39,10 +37,10 @@
 
 #include "config.h"
 
+#include <immintrin.h>
+
 #include <cassert>
 #include <cstdint>
-
-#include <immintrin.h>
 
 #include "gromacs/utility/basedefinitions.h"
 
@@ -105,7 +103,7 @@ inline void gmx_simdcall decrHsimd(double* m, SimdDouble a)
 
 template<int align, typename... Targs>
 static inline void gmx_simdcall
-                   gatherLoadBySimdIntTranspose(const double* base, SimdDInt32 offset, SimdDouble* v, Targs... Fargs)
+gatherLoadBySimdIntTranspose(const double* base, SimdDInt32 offset, SimdDouble* v, Targs... Fargs)
 {
     if (align > 1)
     {
@@ -118,21 +116,21 @@ static inline void gmx_simdcall
 
 template<int align, typename... Targs>
 static inline void gmx_simdcall
-                   gatherLoadUBySimdIntTranspose(const double* base, SimdDInt32 offset, SimdDouble* v, Targs... Fargs)
+gatherLoadUBySimdIntTranspose(const double* base, SimdDInt32 offset, SimdDouble* v, Targs... Fargs)
 {
     gatherLoadBySimdIntTranspose<align>(base, offset, v, Fargs...);
 }
 
 template<int align, typename... Targs>
 static inline void gmx_simdcall
-                   gatherLoadTranspose(const double* base, const std::int32_t offset[], SimdDouble* v, Targs... Fargs)
+gatherLoadTranspose(const double* base, const std::int32_t offset[], SimdDouble* v, Targs... Fargs)
 {
     gatherLoadBySimdIntTranspose<align>(base, simdLoad(offset, SimdDInt32Tag()), v, Fargs...);
 }
 
 template<int align, typename... Targs>
 static inline void gmx_simdcall
-                   gatherLoadUTranspose(const double* base, const std::int32_t offset[], SimdDouble* v, Targs... Fargs)
+gatherLoadUTranspose(const double* base, const std::int32_t offset[], SimdDouble* v, Targs... Fargs)
 {
     gatherLoadBySimdIntTranspose<align>(base, simdLoad(offset, SimdDInt32Tag()), v, Fargs...);
 }
@@ -159,14 +157,15 @@ static inline void gmx_simdcall transposeScatterStoreU(double*            base,
 
 template<int align>
 static inline void gmx_simdcall
-                   transposeScatterIncrU(double* base, const std::int32_t offset[], SimdDouble v0, SimdDouble v1, SimdDouble v2)
+transposeScatterIncrU(double* base, const std::int32_t offset[], SimdDouble v0, SimdDouble v1, SimdDouble v2)
 {
     __m512d                                  t[4], t5, t6, t7, t8;
     alignas(GMX_SIMD_ALIGNMENT) std::int64_t o[8];
     // TODO: should use fastMultiply
     _mm512_store_epi64(o,
                        _mm512_cvtepi32_epi64(_mm256_mullo_epi32(
-                               _mm256_load_si256((const __m256i*)(offset)), _mm256_set1_epi32(align))));
+                               _mm256_load_si256(reinterpret_cast<const __m256i*>(offset)),
+                               _mm256_set1_epi32(align))));
     t5   = _mm512_unpacklo_pd(v0.simdInternal_, v1.simdInternal_);
     t6   = _mm512_unpackhi_pd(v0.simdInternal_, v1.simdInternal_);
     t7   = _mm512_unpacklo_pd(v2.simdInternal_, _mm512_setzero_pd());
@@ -221,14 +220,15 @@ static inline void gmx_simdcall
 
 template<int align>
 static inline void gmx_simdcall
-                   transposeScatterDecrU(double* base, const std::int32_t offset[], SimdDouble v0, SimdDouble v1, SimdDouble v2)
+transposeScatterDecrU(double* base, const std::int32_t offset[], SimdDouble v0, SimdDouble v1, SimdDouble v2)
 {
     __m512d                                  t[4], t5, t6, t7, t8;
     alignas(GMX_SIMD_ALIGNMENT) std::int64_t o[8];
     // TODO: should use fastMultiply
     _mm512_store_epi64(o,
                        _mm512_cvtepi32_epi64(_mm256_mullo_epi32(
-                               _mm256_load_si256((const __m256i*)(offset)), _mm256_set1_epi32(align))));
+                               _mm256_load_si256(reinterpret_cast<const __m256i*>(offset)),
+                               _mm256_set1_epi32(align))));
     t5   = _mm512_unpacklo_pd(v0.simdInternal_, v1.simdInternal_);
     t6   = _mm512_unpackhi_pd(v0.simdInternal_, v1.simdInternal_);
     t7   = _mm512_unpacklo_pd(v2.simdInternal_, _mm512_setzero_pd());
@@ -299,7 +299,7 @@ static inline void gmx_simdcall expandScalarsToTriplets(SimdDouble  scalar,
 
 
 static inline double gmx_simdcall
-                     reduceIncr4ReturnSum(double* m, SimdDouble v0, SimdDouble v1, SimdDouble v2, SimdDouble v3)
+reduceIncr4ReturnSum(double* m, SimdDouble v0, SimdDouble v1, SimdDouble v2, SimdDouble v3)
 {
     __m512d t0, t2;
     __m256d t3, t4;

@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2013,2014,2015,2016,2018 by the GROMACS development team.
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2013- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 /*! \internal \file
@@ -60,6 +58,7 @@
 #include "gromacs/utility/stringutil.h"
 
 #include "testutils/cmdlinetest.h"
+#include "testutils/mpitest.h"
 
 #include "moduletest.h"
 #include "terminationhelper.h"
@@ -96,7 +95,7 @@ MultiSimTest::MultiSimTest() :
     }
 #if GMX_LIB_MPI
     // Make sure directories got created.
-    MPI_Barrier(MdrunTestFixtureBase::communicator_);
+    MPI_Barrier(MdrunTestFixtureBase::s_communicator);
 #endif
     fileManager_.setOutputTempDirectory(newTempDirectory);
 
@@ -193,15 +192,24 @@ void MultiSimTest::runGrompp(SimulationRunner* runner, int numSteps, bool doRegr
         const auto& simulator = std::get<1>(GetParam());
         const auto& tcoupl    = std::get<2>(GetParam());
         const auto& pcoupl    = std::get<3>(GetParam());
+        int         maxWarn   = maxWarnings;
+        if (pcoupl == PressureCoupling::Berendsen)
+        {
+            maxWarn++;
+        }
+        if (tcoupl == TemperatureCoupling::Berendsen)
+        {
+            maxWarn++;
+        }
         organizeMdpFile(runner, simulator, tcoupl, pcoupl, numSteps, doRegression);
+        runner->setMaxWarn(maxWarn);
         CommandLine caller;
-        caller.addOption("-maxwarn", maxWarnings);
         EXPECT_EQ(0, runner->callGromppOnThisRank(caller));
     }
 
 #if GMX_LIB_MPI
     // Make sure simulation masters have written the .tpr file before other ranks try to read it.
-    MPI_Barrier(MdrunTestFixtureBase::communicator_);
+    MPI_Barrier(MdrunTestFixtureBase::s_communicator);
 #endif
 }
 
@@ -232,12 +240,12 @@ void MultiSimTest::runMaxhTest()
     SimulationRunner runner(&fileManager_);
     runner.useTopGroAndNdxFromDatabase("spc2");
 
-    TerminationHelper helper(&fileManager_, mdrunCaller_.get(), &runner);
+    TerminationHelper helper(mdrunCaller_.get(), &runner);
     // Make sure -maxh has a chance to propagate
     int numSteps = 100;
     runGrompp(&runner, numSteps);
 
-    helper.runFirstMdrun(runner.cptFileName_);
+    helper.runFirstMdrun(runner.cptOutputFileName_);
     helper.runSecondMdrun();
 }
 

@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2012-2018, The GROMACS development team.
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2012- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -40,36 +38,17 @@
 #include <cmath>
 #include <cstdio>
 
-#include <algorithm>
-
-#include "gromacs/domdec/domdec.h"
-#include "gromacs/fileio/confio.h"
-#include "gromacs/fileio/gmxfio.h"
-#include "gromacs/fileio/xtcio.h"
-#include "gromacs/gmxlib/network.h"
-#include "gromacs/gmxlib/nrnb.h"
-#include "gromacs/listed_forces/disre.h"
-#include "gromacs/listed_forces/orires.h"
-#include "gromacs/math/functions.h"
 #include "gromacs/math/units.h"
 #include "gromacs/math/utilities.h"
-#include "gromacs/math/vec.h"
-#include "gromacs/mdlib/calcmu.h"
-#include "gromacs/mdlib/constr.h"
-#include "gromacs/mdlib/force.h"
-#include "gromacs/mdlib/update.h"
 #include "gromacs/mdtypes/enerdata.h"
 #include "gromacs/mdtypes/forcerec.h"
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/md_enums.h"
-#include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/mdtypes/state.h"
 #include "gromacs/random/threefry.h"
 #include "gromacs/random/uniformrealdistribution.h"
-#include "gromacs/timing/wallcycle.h"
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/fatalerror.h"
-#include "gromacs/utility/gmxmpi.h"
 #include "gromacs/utility/smalloc.h"
 
 #include "expanded_internal.h"
@@ -1348,18 +1327,12 @@ void PrintFreeEnergyInfoToFile(FILE*               outfile,
     }
 }
 
-int ExpandedEnsembleDynamics(FILE*                 log,
-                             t_inputrec*           ir,
-                             const gmx_enerdata_t* enerd,
-                             t_state*              state,
-                             t_extmass*            MassQ,
-                             int                   fep_state,
-                             df_history_t*         dfhist,
-                             int64_t               step,
-                             rvec*                 v,
-                             const t_mdatoms*      mdatoms)
-/* Note that the state variable is only needed for simulated tempering, not
-   Hamiltonian expanded ensemble.  May be able to remove it after integrator refactoring. */
+int expandedEnsembleUpdateLambdaState(FILE*                 log,
+                                      const t_inputrec*     ir,
+                                      const gmx_enerdata_t* enerd,
+                                      int                   fep_state,
+                                      df_history_t*         dfhist,
+                                      int64_t               step)
 {
     real *      pfep_lamee, *scaled_lamee, *weighted_lamee;
     double*     p_k;
@@ -1481,64 +1454,6 @@ int ExpandedEnsembleDynamics(FILE*                 log,
 
     lamnew = ChooseNewLambda(
             nlim, expand, dfhist, fep_state, weighted_lamee, p_k, ir->expandedvals->lmc_seed, step);
-    /* if using simulated tempering, we need to adjust the temperatures */
-    if (ir->bSimTemp && (lamnew != fep_state)) /* only need to change the temperatures if we change the state */
-    {
-        int   i, j, n, d;
-        real* buf_ngtc;
-        real  told;
-        int   nstart, nend, gt;
-
-        snew(buf_ngtc, ir->opts.ngtc);
-
-        for (i = 0; i < ir->opts.ngtc; i++)
-        {
-            if (ir->opts.ref_t[i] > 0)
-            {
-                told              = ir->opts.ref_t[i];
-                ir->opts.ref_t[i] = simtemp->temperatures[lamnew];
-                buf_ngtc[i]       = std::sqrt(ir->opts.ref_t[i] / told); /* using the buffer as temperature scaling */
-            }
-        }
-
-        /* we don't need to manipulate the ekind information, as it isn't due to be reset until the next step anyway */
-
-        nstart = 0;
-        nend   = mdatoms->homenr;
-        for (n = nstart; n < nend; n++)
-        {
-            gt = 0;
-            if (mdatoms->cTC)
-            {
-                gt = mdatoms->cTC[n];
-            }
-            for (d = 0; d < DIM; d++)
-            {
-                v[n][d] *= buf_ngtc[gt];
-            }
-        }
-
-        if (inputrecNptTrotter(ir) || inputrecNphTrotter(ir) || inputrecNvtTrotter(ir))
-        {
-            /* we need to recalculate the masses if the temperature has changed */
-            init_npt_masses(ir, state, MassQ, FALSE);
-            for (i = 0; i < state->nnhpres; i++)
-            {
-                for (j = 0; j < ir->opts.nhchainlength; j++)
-                {
-                    state->nhpres_vxi[i + j] *= buf_ngtc[i];
-                }
-            }
-            for (i = 0; i < ir->opts.ngtc; i++)
-            {
-                for (j = 0; j < ir->opts.nhchainlength; j++)
-                {
-                    state->nosehoover_vxi[i + j] *= buf_ngtc[i];
-                }
-            }
-        }
-        sfree(buf_ngtc);
-    }
 
     /* now check on the Wang-Landau updating critera */
 
@@ -1594,4 +1509,82 @@ int ExpandedEnsembleDynamics(FILE*                 log,
     sfree(p_k);
 
     return lamnew;
+}
+
+//! Update reference temperature for simulated tempering state change
+static void simulatedTemperingUpdateTemperature(t_inputrec*                         ir,
+                                                t_state*                            state,
+                                                t_extmass*                          MassQ,
+                                                rvec*                               v,
+                                                const int                           homenr,
+                                                gmx::ArrayRef<const unsigned short> cTC,
+                                                const int                           lamnew)
+{
+    const t_simtemp*  simtemp = ir->simtempvals.get();
+    std::vector<real> buf_ngtc(ir->opts.ngtc);
+
+    for (int i = 0; i < ir->opts.ngtc; i++)
+    {
+        if (ir->opts.ref_t[i] > 0)
+        {
+            real told         = ir->opts.ref_t[i];
+            ir->opts.ref_t[i] = simtemp->temperatures[lamnew];
+            buf_ngtc[i] = std::sqrt(ir->opts.ref_t[i] / told); /* using the buffer as temperature scaling */
+        }
+    }
+
+    /* we don't need to manipulate the ekind information, as it isn't due to be reset until the next step anyway */
+
+    for (int n = 0; n < homenr; n++)
+    {
+        const int gt = cTC.empty() ? 0 : cTC[n];
+        for (int d = 0; d < DIM; d++)
+        {
+            v[n][d] *= buf_ngtc[gt];
+        }
+    }
+
+    if (inputrecNptTrotter(ir) || inputrecNphTrotter(ir) || inputrecNvtTrotter(ir))
+    {
+        /* we need to recalculate the masses if the temperature has changed */
+        init_npt_masses(ir, state, MassQ, FALSE);
+        for (int i = 0; i < state->nnhpres; i++)
+        {
+            for (int j = 0; j < ir->opts.nhchainlength; j++)
+            {
+                state->nhpres_vxi[i + j] *= buf_ngtc[i];
+            }
+        }
+        for (int i = 0; i < ir->opts.ngtc; i++)
+        {
+            for (int j = 0; j < ir->opts.nhchainlength; j++)
+            {
+                state->nosehoover_vxi[i + j] *= buf_ngtc[i];
+            }
+        }
+    }
+}
+
+int ExpandedEnsembleDynamics(FILE*                               log,
+                             t_inputrec*                         ir,
+                             const gmx_enerdata_t*               enerd,
+                             t_state*                            state,
+                             t_extmass*                          MassQ,
+                             int                                 fep_state,
+                             df_history_t*                       dfhist,
+                             int64_t                             step,
+                             rvec*                               v,
+                             const int                           homenr,
+                             gmx::ArrayRef<const unsigned short> cTC)
+/* Note that the state variable is only needed for simulated tempering, not
+   Hamiltonian expanded ensemble.  May be able to remove it after integrator refactoring. */
+{
+    const int newLambda = expandedEnsembleUpdateLambdaState(log, ir, enerd, fep_state, dfhist, step);
+    // if using simulated tempering, we need to adjust the temperatures
+    // only need to change the temperatures if we change the state
+    if (ir->bSimTemp && (newLambda != fep_state))
+    {
+        simulatedTemperingUpdateTemperature(ir, state, MassQ, v, homenr, cTC, newLambda);
+    }
+    return newLambda;
 }

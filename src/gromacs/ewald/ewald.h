@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2017,2018 by the GROMACS development team.
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \libinternal \defgroup module_ewald Ewald-family treatments of long-ranged forces
  * \ingroup group_mdrun
@@ -77,6 +73,7 @@ struct t_commrec;
 struct t_forcerec;
 struct t_inputrec;
 struct t_complex;
+enum class FreeEnergyPerturbationType : int;
 
 namespace gmx
 {
@@ -100,13 +97,16 @@ struct gmx_ewald_tab_t
 };
 
 /*! \brief Do the long-ranged part of an Ewald calculation */
-real do_ewald(const t_inputrec&              ir,
-              gmx::ArrayRef<const gmx::RVec> x,
-              gmx::ArrayRef<gmx::RVec>       f,
+real do_ewald(bool                           havePbcXY2Walls,
+              real                           wallEwaldZfac,
+              real                           epsilonR,
+              FreeEnergyPerturbationType     freeEnergyPerturbationType,
+              gmx::ArrayRef<const gmx::RVec> coords,
+              gmx::ArrayRef<gmx::RVec>       forces,
               gmx::ArrayRef<const real>      chargeA,
               gmx::ArrayRef<const real>      chargeB,
               const matrix                   box,
-              const t_commrec*               cr,
+              const t_commrec*               commrec,
               int                            natoms,
               matrix                         lrvir,
               real                           ewaldcoeff,
@@ -118,11 +118,13 @@ real do_ewald(const t_inputrec&              ir,
  * charge.
  *
  * Should only be called on one thread. */
-real ewald_charge_correction(const t_commrec*  cr,
-                             const t_forcerec* fr,
-                             real              lambda,
-                             const matrix      box,
-                             real*             dvdlambda,
-                             tensor            vir);
+real ewald_charge_correction(const t_commrec*            commrec,
+                             real                        epsilonR,
+                             real                        ewaldcoeffQ,
+                             gmx::ArrayRef<const double> qsum,
+                             real                        lambda,
+                             const matrix                box,
+                             real*                       dvdlambda,
+                             tensor                      vir);
 
 #endif

@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2018- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief
@@ -162,10 +161,6 @@ public:
     t_state state_;
     //! PBC box
     matrix box_;
-    //! Virial from constraints
-    tensor constraintsVirial_;
-    //! Virial from force computation
-    tensor forceVirial_;
     //! Total virial
     tensor totalVirial_;
     //! Pressure
@@ -206,8 +201,6 @@ public:
         // Input record
         inputrec_.delta_t = 0.001;
 
-        // F_EQM
-        inputrec_.bQMMM = true;
         // F_RF_EXCL will not be tested - group scheme is not supported any more
         inputrec_.cutoff_scheme = CutoffScheme::Verlet;
         // F_COUL_RECIP
@@ -230,16 +223,13 @@ public:
         inputrec_.bRot      = true;
 
         // F_ECONSERVED
-        inputrec_.ref_p[YY][XX] = 0.0;
-        inputrec_.ref_p[ZZ][XX] = 0.0;
-        inputrec_.ref_p[ZZ][YY] = 0.0;
+        inputrec_.pressureCouplingOptions.ref_p[YY][XX] = 0.0;
+        inputrec_.pressureCouplingOptions.ref_p[ZZ][XX] = 0.0;
+        inputrec_.pressureCouplingOptions.ref_p[ZZ][YY] = 0.0;
 
         // Dipole (mu)
         inputrec_.ewald_geometry = EwaldGeometry::ThreeDC;
 
-        // GMX_CONSTRAINTVIR environment variable should also be
-        // set to print constraints and force virials separately.
-        gmxSetenv("GMX_CONSTRAINTVIR", "true", 1);
         // To print constrain RMSD, constraints algorithm should be set to LINCS.
         inputrec_.eConstrAlg = ConstraintAlgorithm::Lincs;
 
@@ -371,7 +361,7 @@ public:
         // TODO This object will always return zero as RMSD value.
         //      It is more relevant to have non-zero value for testing.
         constraints_ = makeConstraints(
-                mtop_, inputrec_, nullptr, false, nullptr, &cr_, nullptr, nullptr, nullptr, false);
+                mtop_, inputrec_, nullptr, false, nullptr, &cr_, false, nullptr, nullptr, nullptr, false, nullptr);
     }
 
     /*! \brief Helper function to generate synthetic data to output
@@ -463,25 +453,9 @@ public:
         box_[ZZ][YY] = (*testValue += 0.1);
         box_[ZZ][ZZ] = (*testValue += 0.1);
 
-        constraintsVirial_[XX][XX] = (*testValue += 0.1);
-        constraintsVirial_[XX][YY] = (*testValue += 0.1);
-        constraintsVirial_[XX][ZZ] = (*testValue += 0.1);
-        constraintsVirial_[YY][XX] = (*testValue += 0.1);
-        constraintsVirial_[YY][YY] = (*testValue += 0.1);
-        constraintsVirial_[YY][ZZ] = (*testValue += 0.1);
-        constraintsVirial_[ZZ][XX] = (*testValue += 0.1);
-        constraintsVirial_[ZZ][YY] = (*testValue += 0.1);
-        constraintsVirial_[ZZ][ZZ] = (*testValue += 0.1);
-
-        forceVirial_[XX][XX] = (*testValue += 0.1);
-        forceVirial_[XX][YY] = (*testValue += 0.1);
-        forceVirial_[XX][ZZ] = (*testValue += 0.1);
-        forceVirial_[YY][XX] = (*testValue += 0.1);
-        forceVirial_[YY][YY] = (*testValue += 0.1);
-        forceVirial_[YY][ZZ] = (*testValue += 0.1);
-        forceVirial_[ZZ][XX] = (*testValue += 0.1);
-        forceVirial_[ZZ][YY] = (*testValue += 0.1);
-        forceVirial_[ZZ][ZZ] = (*testValue += 0.1);
+        // Removing GMX_CONSTRVIR removed a total increment of 1.8
+        // To avoid unnecessary changes in reference data, we keep the increment
+        (*testValue += 1.8);
 
         totalVirial_[XX][XX] = (*testValue += 0.1);
         totalVirial_[XX][YY] = (*testValue += 0.1);
@@ -609,12 +583,12 @@ TEST_P(EnergyOutputTest, CheckOutput)
 
     EnergyOutputTestParameters parameters = GetParam();
     inputrec_.etc                         = parameters.temperatureCouplingScheme;
-    inputrec_.epc                         = parameters.pressureCouplingScheme;
+    inputrec_.pressureCouplingOptions.epc = parameters.pressureCouplingScheme;
     inputrec_.eI                          = parameters.integrator;
 
     if (parameters.isBoxTriclinic)
     {
-        inputrec_.ref_p[YY][XX] = 1.0;
+        inputrec_.pressureCouplingOptions.ref_p[YY][XX] = 1.0;
     }
 
     MDModulesNotifiers            mdModulesNotifiers;
@@ -640,7 +614,6 @@ TEST_P(EnergyOutputTest, CheckOutput)
                                           tmass_,
                                           enerdata_.get(),
                                           nullptr,
-                                          nullptr,
                                           box_,
                                           PTCouplingArrays({ state_.boxv,
                                                              state_.nosehoover_xi,
@@ -648,8 +621,6 @@ TEST_P(EnergyOutputTest, CheckOutput)
                                                              state_.nhpres_xi,
                                                              state_.nhpres_vxi }),
                                           state_.fep_state,
-                                          constraintsVirial_,
-                                          forceVirial_,
                                           totalVirial_,
                                           pressure_,
                                           &ekindata_,
@@ -684,7 +655,7 @@ TEST_P(EnergyOutputTest, CheckOutput)
     checker_.checkString(TextReader::readFileToString(logFilename_), "log");
 }
 
-INSTANTIATE_TEST_CASE_P(WithParameters, EnergyOutputTest, ::testing::ValuesIn(parametersSets));
+INSTANTIATE_TEST_SUITE_P(WithParameters, EnergyOutputTest, ::testing::ValuesIn(parametersSets));
 
 } // namespace
 } // namespace test

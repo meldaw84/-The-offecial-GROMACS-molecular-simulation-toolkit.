@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -85,12 +81,12 @@ static void calc_h2order(const char*             fn,
     rvec*        dip;    /* sum of dipoles, unnormalized */
     matrix       box;    /* box (3x3) */
     t_trxstatus* status;
-    real         t,                      /* time from trajectory */
-            *sum,                        /* sum of all cosines of dipoles, per slice */
-            *frame;                      /* order over one frame */
-    int natoms,                          /* nr. atoms in trj */
-            i, j, teller = 0, slice = 0, /* current slice number */
-            *count;                      /* nr. of atoms in one slice */
+    real         t,          /* time from trajectory */
+            *sum,            /* sum of all cosines of dipoles, per slice */
+            *frame;          /* order over one frame */
+    int natoms,              /* nr. atoms in trj */
+            i, j, slice = 0, /* current slice number */
+            *count;          /* nr. of atoms in one slice */
     gmx_rmpbc_t gpbc = nullptr;
 
     if ((natoms = read_first_x(oenv, &status, fn, &t, &x0, box)) == 0)
@@ -131,14 +127,11 @@ static void calc_h2order(const char*             fn,
     *slWidth = box[axis][axis] / (*nslices);
     fprintf(stderr, "Box divided in %d slices. Initial width of slice: %f\n", *nslices, *slWidth);
 
-    teller = 0;
-
     gpbc = gmx_rmpbc_init(&top->idef, pbcType, natoms);
     /*********** Start processing trajectory ***********/
     do
     {
         *slWidth = box[axis][axis] / (*nslices);
-        teller++;
 
         gmx_rmpbc(gpbc, natoms, box, x0);
 

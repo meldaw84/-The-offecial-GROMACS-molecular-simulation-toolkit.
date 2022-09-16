@@ -1,12 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2005 - 2014, The GROMACS development team.
- * Copyright (c) 2015,2016,2017,2018,2019 by the GROMACS development team.
- * Copyright (c) 2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2005- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -20,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -29,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \defgroup module_domdec Spatial domain decomposition (for parallelization over MPI)
  * \ingroup group_mdrun
@@ -66,14 +63,11 @@
 #include "gromacs/math/vectypes.h"
 #include "gromacs/utility/real.h"
 
-struct cginfo_mb_t;
 struct gmx_domdec_t;
 struct gmx_ddbox_t;
 struct gmx_domdec_zones_t;
 struct gmx_localtop_t;
 struct gmx_mtop_t;
-struct t_block;
-struct t_blocka;
 struct t_commrec;
 struct t_forcerec;
 struct t_inputrec;
@@ -87,6 +81,7 @@ class GpuEventSynchronizer;
 
 namespace gmx
 {
+struct AtomInfoWithinMoleculeBlock;
 class DeviceStreamManager;
 class ForceWithShiftForces;
 class MDLogger;
@@ -94,6 +89,8 @@ class RangePartitioning;
 class VirtualSitesHandler;
 template<typename>
 class ArrayRef;
+template<typename, size_t>
+class FixedCapacityVector;
 } // namespace gmx
 
 /*! \brief Returns the global topology atom number belonging to local atom index i.
@@ -103,9 +100,6 @@ class ArrayRef;
  * When dd=NULL returns i+1.
  */
 int ddglatnr(const gmx_domdec_t* dd, int i);
-
-/*! \brief Returns a list of update group partitioning for each molecule type or empty when update groups are not used */
-gmx::ArrayRef<const gmx::RangePartitioning> getUpdateGroupingsPerMoleculeType(const gmx_domdec_t& dd);
 
 /*! \brief Store the global cg indices of the home cgs in state,
  *
@@ -150,27 +144,8 @@ int dd_pme_maxshift_x(const gmx_domdec_t& dd);
 /*! \brief Returns the maximum shift for coordinate communication in PME, dim y */
 int dd_pme_maxshift_y(const gmx_domdec_t& dd);
 
-/*! \brief Return whether constraints, not including settles, cross domain boundaries */
-bool ddHaveSplitConstraints(const gmx_domdec_t& dd);
-
 /*! \brief Return whether update groups are used */
 bool ddUsesUpdateGroups(const gmx_domdec_t& dd);
-
-/*! \brief Options for checking bonded interactions */
-enum class DDBondedChecking
-{
-    All,             //!< Check all bonded interactions
-    ExcludeZeroLimit //!< Do not check bonded interactions that go to 0 for large distances
-};
-
-/*! \brief Initialize data structures for bonded interactions */
-void dd_init_bondeds(FILE*                           fplog,
-                     gmx_domdec_t*                   dd,
-                     const gmx_mtop_t&               mtop,
-                     const gmx::VirtualSitesHandler* vsite,
-                     const t_inputrec&               inputrec,
-                     DDBondedChecking                ddBondedChecking,
-                     gmx::ArrayRef<cginfo_mb_t>      cginfo_mb);
 
 /*! \brief Returns whether molecules are always whole, i.e. not broken by PBC */
 bool dd_moleculesAreAlwaysWhole(const gmx_domdec_t& dd);
@@ -223,12 +198,6 @@ void dd_move_x(struct gmx_domdec_t* dd, const matrix box, gmx::ArrayRef<gmx::RVe
  */
 void dd_move_f(struct gmx_domdec_t* dd, gmx::ForceWithShiftForces* forceWithShiftForces, gmx_wallcycle* wcycle);
 
-/*! \brief Communicate a real for each atom to the neighboring cells. */
-void dd_atom_spread_real(struct gmx_domdec_t* dd, real v[]);
-
-/*! \brief Sum the contributions to a real for each atom over the neighboring cells. */
-void dd_atom_sum_real(struct gmx_domdec_t* dd, real v[]);
-
 /*! \brief Reset all the statistics and counters for total run counting */
 void reset_dd_statistics_counters(struct gmx_domdec_t* dd);
 
@@ -262,97 +231,16 @@ void dd_move_x_and_v_vsites(const gmx_domdec_t& dd, const matrix box, rvec* x, r
  */
 gmx::ArrayRef<const int> dd_constraints_nlocalatoms(const gmx_domdec_t* dd);
 
-/* In domdec_top.c */
-
-/*! \brief Print error output when interactions are missing */
-[[noreturn]] void dd_print_missing_interactions(const gmx::MDLogger&           mdlog,
-                                                t_commrec*                     cr,
-                                                int                            local_count,
-                                                const gmx_mtop_t&              top_global,
-                                                const gmx_localtop_t*          top_local,
-                                                gmx::ArrayRef<const gmx::RVec> x,
-                                                const matrix                   box);
-
-/*! \brief Generate and store the reverse topology */
-void dd_make_reverse_top(FILE*                           fplog,
-                         gmx_domdec_t*                   dd,
-                         const gmx_mtop_t&               mtop,
-                         const gmx::VirtualSitesHandler* vsite,
-                         const t_inputrec&               inputrec,
-                         DDBondedChecking                ddBondedChecking);
-
-/*! \brief Return whether the total bonded interaction count across
- * domains should be checked this step. */
-bool shouldCheckNumberOfBondedInteractions(const gmx_domdec_t& dd);
-
-//! Return the number of bonded interactions in this domain.
-int numBondedInteractions(const gmx_domdec_t& dd);
-
-/*! \brief Set total bonded interaction count across domains. */
-void setNumberOfBondedInteractionsOverAllDomains(const gmx_domdec_t& dd, int newValue);
-
-/*! \brief Check whether bonded interactions are missing from the reverse topology
- * produced by domain decomposition.
- *
- * Must only be called when DD is active.
- *
- * \param[in]    mdlog                                  Logger
- * \param[in]    cr                                     Communication object
- * \param[in]    top_global                             Global topology for the error message
- * \param[in]    top_local                              Local topology for the error message
- * \param[in]    x                                      Position vector for the error message
- * \param[in]    box                                    Box matrix for the error message
- */
-void checkNumberOfBondedInteractions(const gmx::MDLogger&           mdlog,
-                                     t_commrec*                     cr,
-                                     const gmx_mtop_t&              top_global,
-                                     const gmx_localtop_t*          top_local,
-                                     gmx::ArrayRef<const gmx::RVec> x,
-                                     const matrix                   box);
-
-/*! \brief Generate the local topology and virtual site data */
-void dd_make_local_top(struct gmx_domdec_t*       dd,
-                       struct gmx_domdec_zones_t* zones,
-                       int                        npbcdim,
-                       matrix                     box,
-                       rvec                       cellsize_min,
-                       const ivec                 npulse,
-                       t_forcerec*                fr,
-                       rvec*                      cgcm_or_x,
-                       const gmx_mtop_t&          top,
-                       gmx_localtop_t*            ltop);
-
-/*! \brief Sort ltop->ilist when we are doing free energy. */
-void dd_sort_local_top(const gmx_domdec_t& dd, const t_mdatoms* mdatoms, gmx_localtop_t* ltop);
-
 /*! \brief Construct local state */
 void dd_init_local_state(const gmx_domdec_t& dd, const t_state* state_global, t_state* local_state);
 
-/*! \brief Generate a list of links between atoms that are linked by bonded interactions
- *
- * Also stores whether atoms are linked in \p cginfo_mb.
- */
-t_blocka* makeBondedLinks(const gmx_mtop_t& mtop, gmx::ArrayRef<cginfo_mb_t> cginfo_mb);
-
-/*! \brief Calculate the maximum distance involved in 2-body and multi-body bonded interactions */
-void dd_bonded_cg_distance(const gmx::MDLogger&           mdlog,
-                           const gmx_mtop_t&              mtop,
-                           const t_inputrec&              ir,
-                           gmx::ArrayRef<const gmx::RVec> x,
-                           const matrix                   box,
-                           DDBondedChecking               ddBondedChecking,
-                           real*                          r_2b,
-                           real*                          r_mb);
-
 /*! \brief Construct the GPU halo exchange object(s).
  *
- * \param[in] mdlog               The logger object.
  * \param[in] cr                  The commrec object.
  * \param[in] deviceStreamManager Manager of the GPU context and streams.
  * \param[in] wcycle              The wallclock counter.
  */
-void constructGpuHaloExchange(const gmx::MDLogger&            mdlog,
-                              const t_commrec&                cr,
+void constructGpuHaloExchange(const t_commrec&                cr,
                               const gmx::DeviceStreamManager& deviceStreamManager,
                               gmx_wallcycle*                  wcycle);
 
@@ -368,19 +256,46 @@ void reinitGpuHaloExchange(const t_commrec&        cr,
 
 
 /*! \brief GPU halo exchange of coordinates buffer.
- * \param [in] cr                             The commrec object
- * \param [in] box                            Coordinate box (from which shifts will be constructed)
- * \param [in] coordinatesReadyOnDeviceEvent  event recorded when coordinates have been copied to device
- */
-void communicateGpuHaloCoordinates(const t_commrec&      cr,
-                                   const matrix          box,
-                                   GpuEventSynchronizer* coordinatesReadyOnDeviceEvent);
-
-
-/*! \brief GPU halo exchange of force buffer.
  * \param [in] cr                The commrec object
- * \param [in] accumulateForces  True if forces should accumulate, otherwise they are set
+ * \param [in] box               Coordinate box (from which shifts will be constructed)
+ * \param [in] dependencyEvent   Dependency event for this operation
+ * \returns                      Event recorded when this operation has been launched
  */
-void communicateGpuHaloForces(const t_commrec& cr, bool accumulateForces);
+GpuEventSynchronizer* communicateGpuHaloCoordinates(const t_commrec&      cr,
+                                                    const matrix          box,
+                                                    GpuEventSynchronizer* dependencyEvent);
+
+/*! \brief  Wait for copy of nonlocal part of coordinate array from GPU to CPU
+ * following coordinate halo exchange
+ * \param [in] cr   The commrec object
+ * \param [in] accumulateForces  True if forces should accumulate, otherwise they are set
+ * \param [in] dependencyEvents  Dependency events for this operation
+ */
+void communicateGpuHaloForces(const t_commrec&                                    cr,
+                              bool                                                accumulateForces,
+                              gmx::FixedCapacityVector<GpuEventSynchronizer*, 2>* dependencyEvents);
+
+/*! \brief Wraps the \c positions so that atoms from the same
+ * update group share the same periodic image wrt \c box.
+ *
+ * When DD and update groups are in use, the simulation master rank
+ * should call this to ensure that e.g. when restarting a simulation
+ * that did not use update groups that the coordinates satisfy the new
+ * requirements.
+ *
+ * This function can probably be removed when even single-rank
+ * simulations use domain decomposition, because then the choice of
+ * whether update groups are used is probably going to be the same
+ * regardless of the rank count.
+ *
+ * \param[in]    dd         The DD manager
+ * \param[in]    mtop       The system topology
+ * \param[in]    box        The global system box
+ * \param[in]    positions  The global system positions
+ */
+void putUpdateGroupAtomsInSamePeriodicImage(const gmx_domdec_t&      dd,
+                                            const gmx_mtop_t&        mtop,
+                                            const matrix             box,
+                                            gmx::ArrayRef<gmx::RVec> positions);
 
 #endif

@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -42,10 +38,9 @@
 #include <cstdio>
 #include <cstring>
 
-#include <algorithm>
-
 #include "gromacs/topology/atomprop.h"
 #include "gromacs/topology/symtab.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/compare.h"
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/fatalerror.h"
@@ -60,6 +55,7 @@ const char* enumValueToString(ParticleType enumValue)
     return particleTypeNames[enumValue];
 }
 
+// Legacy functions begin here.
 void init_atom(t_atoms* at)
 {
     at->nr          = 0;
@@ -77,12 +73,6 @@ void init_atom(t_atoms* at)
     at->havePdbInfo = FALSE;
 }
 
-void init_atomtypes(t_atomtypes* at)
-{
-    at->nr         = 0;
-    at->atomnumber = nullptr;
-}
-
 void done_atom(t_atoms* at)
 {
     sfree(at->atom);
@@ -98,12 +88,6 @@ void done_and_delete_atoms(t_atoms* atoms)
 {
     done_atom(atoms);
     delete atoms;
-}
-
-void done_atomtypes(t_atomtypes* atype)
-{
-    atype->nr = 0;
-    sfree(atype->atomnumber);
 }
 
 void add_t_atoms(t_atoms* atoms, int natom_extra, int nres_extra)
@@ -196,11 +180,6 @@ t_atoms* copy_t_atoms(const t_atoms* src)
 
     snew(dst, 1);
     init_t_atoms(dst, src->nr, (nullptr != src->pdbinfo));
-    dst->nr = src->nr;
-    if (nullptr != src->atomname)
-    {
-        snew(dst->atomname, src->nr);
-    }
     if (nullptr != src->atomtype)
     {
         snew(dst->atomtype, src->nr);
@@ -327,20 +306,6 @@ void pr_atoms(FILE* fp, int indent, const char* title, const t_atoms* atoms, gmx
         pr_strings(fp, indent, "atom", atoms->atomname, atoms->nr, bShownumbers);
         pr_strings2(fp, indent, "type", atoms->atomtype, atoms->atomtypeB, atoms->nr, bShownumbers);
         pr_resinfo(fp, indent, "residue", atoms->resinfo, atoms->nres, bShownumbers);
-    }
-}
-
-
-void pr_atomtypes(FILE* fp, int indent, const char* title, const t_atomtypes* atomtypes, gmx_bool bShowNumbers)
-{
-    if (available(fp, atomtypes, indent, title))
-    {
-        indent = pr_title(fp, indent, title);
-        for (int i = 0; i < atomtypes->nr; i++)
-        {
-            pr_indent(fp, indent);
-            fprintf(fp, "atomtype[%3d]={atomnumber=%4d}\n", bShowNumbers ? i : -1, atomtypes->atomnumber[i]);
-        }
     }
 }
 

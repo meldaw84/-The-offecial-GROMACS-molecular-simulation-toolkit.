@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2018,2020, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2018- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 #include "gmxapi/session.h"
@@ -40,14 +39,14 @@
 #include "gromacs/mdlib/sighandler.h"
 #include "gromacs/mdrunutility/logging.h"
 #include "gromacs/restraint/restraintpotential.h"
-#include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/basenetwork.h"
+#include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/init.h"
 
 #include "gmxapi/context.h"
 #include "gmxapi/exceptions.h"
-#include "gmxapi/status.h"
 #include "gmxapi/md/mdmodule.h"
+#include "gmxapi/status.h"
 
 #include "createsession.h"
 #include "mdsignals.h"
@@ -350,8 +349,7 @@ std::shared_ptr<Session> launchSession(Context* context, const Workflow& work) n
 SessionImpl::~SessionImpl() = default;
 
 SessionResources::SessionResources(gmxapi::SessionImpl* session, std::string name) :
-    sessionImpl_(session),
-    name_(std::move(name))
+    sessionImpl_(session), name_(std::move(name))
 {
 }
 
@@ -367,7 +365,7 @@ Signal SessionResources::getMdrunnerSignal(md::signals signal)
     //// while there is only one choice...
     if (signal != md::signals::STOP)
     {
-        throw gmxapi::NotImplementedError("This signaller only handles stop signals.");
+        throw gmxapi::MissingImplementationError("This signaller only handles stop signals.");
     }
 
     // Get a signalling proxy for the caller.

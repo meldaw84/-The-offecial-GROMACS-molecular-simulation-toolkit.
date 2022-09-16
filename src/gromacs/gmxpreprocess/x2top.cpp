@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2008, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -72,8 +68,6 @@
 #include "gromacs/utility/smalloc.h"
 
 #include "hackblock.h"
-
-#define MARGIN_FAC 1.1
 
 static bool is_bond(int nnm, t_nm2type nmt[], char* ai, char* aj, real blen)
 {
@@ -169,7 +163,6 @@ static int* set_cgnr(t_atoms* atoms, bool bUsePDBcharge, real* qtot, real* mtot)
 }
 
 static void set_atom_type(PreprocessingAtomTypes* atypes,
-                          t_symtab*               tab,
                           t_atoms*                atoms,
                           InteractionsOfType*     bonds,
                           int*                    nbonds,
@@ -180,7 +173,7 @@ static void set_atom_type(PreprocessingAtomTypes* atypes,
     int nresolved;
 
     snew(atoms->atomtype, atoms->nr);
-    nresolved = nm2type(nnm, nm2t, tab, atoms, atypes, nbonds, bonds);
+    nresolved = nm2type(nnm, nm2t, atoms, atypes, nbonds, bonds);
     if (nresolved != atoms->nr)
     {
         gmx_fatal(FARGS, "Could only find a forcefield type for %d out of %d atoms", nresolved, atoms->nr);
@@ -282,7 +275,8 @@ static void calc_angles_dihs(InteractionsOfType* ang, InteractionsOfType* dih, c
         int  al = dihedral.al();
         real ph =
                 gmx::c_rad2Deg
-                * dih_angle(x[ai], x[aj], x[ak], x[al], bPBC ? &pbc : nullptr, r_ij, r_kj, r_kl, m, n, &t1, &t2, &t3);
+                * dih_angle(
+                        x[ai], x[aj], x[ak], x[al], bPBC ? &pbc : nullptr, r_ij, r_kj, r_kl, m, n, &t1, &t2, &t3);
         dihedral.setForceParameter(0, ph);
     }
 }
@@ -347,7 +341,7 @@ static void print_rtp(const char*                             filenm,
         {
             gmx_fatal(FARGS, "tp = %d, i = %d in print_rtp", tp, i);
         }
-        fprintf(fp, "%-8s  %12s  %8.4f  %5d\n", *atoms->atomname[i], *tpnm, atoms->atom[i].q, cgnr[i]);
+        fprintf(fp, "%-8s  %12s  %8.4f  %5d\n", *atoms->atomname[i], tpnm->c_str(), atoms->atom[i].q, cgnr[i]);
     }
     print_pl(fp, plist, F_BONDS, "bonds", atoms->atomname);
     print_pl(fp, plist, F_ANGLES, "angles", atoms->atomname);
@@ -401,7 +395,6 @@ int gmx_x2top(int argc, char* argv[])
     int                                   natoms; /* number of atoms in one molecule  */
     PbcType                               pbcType;
     bool                                  bRTP, bTOP, bOPLS;
-    t_symtab                              symtab;
     real                                  qtot, mtot;
     char                                  n2t[STRLEN];
     gmx_output_env_t*                     oenv;
@@ -525,9 +518,8 @@ int gmx_x2top(int argc, char* argv[])
     snew(nbonds, atoms->nr);
     mk_bonds(nnm, nm2t, atoms, x, &(plist[F_BONDS]), nbonds, bPBC, box);
 
-    open_symtab(&symtab);
     PreprocessingAtomTypes atypes;
-    set_atom_type(&atypes, &symtab, atoms, &(plist[F_BONDS]), nbonds, nnm, nm2t, logger);
+    set_atom_type(&atypes, atoms, &(plist[F_BONDS]), nbonds, nnm, nm2t, logger);
 
     /* Make Angles and Dihedrals */
     snew(excls, atoms->nr);
@@ -594,7 +586,6 @@ int gmx_x2top(int argc, char* argv[])
     {
         dump_hybridization(debug, atoms, nbonds);
     }
-    close_symtab(&symtab);
 
     GMX_LOG(logger.warning)
             .asParagraph()

@@ -1,10 +1,9 @@
 #
 # This file is part of the GROMACS molecular simulation package.
 #
-# Copyright (c) 2013,2014,2015,2018,2019,2020, by the GROMACS development team, led by
-# Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
-# and including many others, as listed in the AUTHORS file in the
-# top-level source directory and at http://www.gromacs.org.
+# Copyright 2013- The GROMACS Authors
+# and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+# Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
 #
 # GROMACS is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with GROMACS; if not, see
-# http://www.gnu.org/licenses, or write to the Free Software Foundation,
+# https://www.gnu.org/licenses, or write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
 #
 # If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
 # consider code for inclusion in the official distribution, but
 # derived work must not be called official GROMACS. Details are found
 # in the README & COPYING files - if they are missing, get the
-# official version at http://www.gromacs.org.
+# official version at https://www.gromacs.org.
 #
 # To help us fund GROMACS development, we humbly ask that you cite
-# the research papers on the package. Check out http://www.gromacs.org.
+# the research papers on the package. Check out https://www.gromacs.org.
 
 # Set up the module library
 add_library(fft INTERFACE)
@@ -52,6 +51,66 @@ if (GMX_FFT_FFTW3 OR GMX_FFT_ARMPL_FFTW3)
 endif()
 if (GMX_FFT_MKL)
     gmx_add_libgromacs_sources(fft_mkl.cpp)
+endif()
+if(HAVE_Heffte)
+    gmx_add_libgromacs_sources(
+        gpu_3dfft_heffte.cpp
+        )
+endif()
+if (GMX_GPU_CUDA)
+    gmx_add_libgromacs_sources(
+        # CUDA-specific sources
+        gpu_3dfft_cufft.cu
+        gpu_3dfft_impl.cpp
+        gpu_3dfft.cpp
+        )
+    _gmx_add_files_to_property(CUDA_SOURCES
+        # Must add these files so they can include cuda_runtime.h
+        gpu_3dfft.cpp
+        gpu_3dfft_impl.cpp
+        )
+elseif (GMX_GPU_OPENCL)
+    gmx_add_libgromacs_sources(
+        # OpenCL-specific sources
+        gpu_3dfft_ocl.cpp
+        gpu_3dfft_impl.cpp
+        gpu_3dfft.cpp
+        )
+elseif (GMX_GPU_SYCL)
+    if (NOT GMX_SYCL_HIPSYCL AND GMX_FFT_MKL)
+            gmx_add_libgromacs_sources(
+            gpu_3dfft_sycl_mkl.cpp
+            gpu_3dfft_impl.cpp
+            gpu_3dfft.cpp
+            )
+        _gmx_add_files_to_property(SYCL_SOURCES
+            gpu_3dfft_sycl_mkl.cpp
+            gpu_3dfft_impl.cpp
+            gpu_3dfft.cpp
+            )
+    endif()
+    if (GMX_SYCL_HIPSYCL AND GMX_HIPSYCL_HAVE_HIP_TARGET)
+            gmx_add_libgromacs_sources(
+            gpu_3dfft_sycl_rocfft.cpp
+            gpu_3dfft_impl.cpp
+            gpu_3dfft.cpp
+            )
+        _gmx_add_files_to_property(SYCL_SOURCES
+            gpu_3dfft_sycl_rocfft.cpp
+            gpu_3dfft_impl.cpp
+            gpu_3dfft.cpp
+            )
+    endif()
+    gmx_add_libgromacs_sources(
+        gpu_3dfft_sycl.cpp
+        gpu_3dfft_impl.cpp
+        gpu_3dfft.cpp
+        )
+    _gmx_add_files_to_property(SYCL_SOURCES
+        gpu_3dfft_sycl.cpp
+        gpu_3dfft.cpp
+        gpu_3dfft_impl.cpp
+        )
 endif()
 
 # Source files have the following private module dependencies.

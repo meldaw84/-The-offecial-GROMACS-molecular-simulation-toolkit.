@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 The GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief Implements the VirtualSitesHandler class and vsite standalone functions
@@ -60,7 +56,6 @@
 #include "gromacs/math/vec.h"
 #include "gromacs/mdlib/gmx_omp_nthreads.h"
 #include "gromacs/mdtypes/commrec.h"
-#include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/pbcutil/ishift.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/timing/wallcycle.h"
@@ -214,7 +209,9 @@ public:
     //! Set VSites and distribute VSite work over threads, should be called after DD partitioning
     void setVirtualSites(ArrayRef<const InteractionList> ilist,
                          ArrayRef<const t_iparams>       iparams,
-                         const t_mdatoms&                mdatoms,
+                         int                             numAtoms,
+                         int                             homenr,
+                         ArrayRef<const ParticleType>    ptype,
                          bool                            useDomdec);
 
 private:
@@ -232,13 +229,19 @@ class VirtualSitesHandler::Impl
 {
 public:
     //! Constructor, domdec should be nullptr without DD
-    Impl(const gmx_mtop_t& mtop, gmx_domdec_t* domdec, PbcType pbcType);
+    Impl(const gmx_mtop_t&                 mtop,
+         gmx_domdec_t*                     domdec,
+         PbcType                           pbcType,
+         ArrayRef<const RangePartitioning> updateGroupingPerMoleculeType);
 
     //! Returns the number of virtual sites acting over multiple update groups
     int numInterUpdategroupVirtualSites() const { return numInterUpdategroupVirtualSites_; }
 
     //! Set VSites and distribute VSite work over threads, should be called after DD partitioning
-    void setVirtualSites(ArrayRef<const InteractionList> ilist, const t_mdatoms& mdatoms);
+    void setVirtualSites(ArrayRef<const InteractionList> ilist,
+                         int                             numAtoms,
+                         int                             homenr,
+                         ArrayRef<const ParticleType>    ptype);
 
     /*! \brief Create positions of vsite atoms based for the local system
      *
@@ -910,7 +913,7 @@ static void construct_vsites_thread(ArrayRef<RVec>                  x,
 {
     if (calculateVelocity == VSiteCalculateVelocity::Yes)
     {
-        GMX_RELEASE_ASSERT(!v.empty(),
+        GMX_RELEASE_ASSERT(x.empty() || !v.empty(),
                            "Can't calculate velocities without access to velocity vector.");
     }
 
@@ -2574,7 +2577,8 @@ int countInterUpdategroupVsites(const gmx_mtop_t&                           mtop
 
 std::unique_ptr<VirtualSitesHandler> makeVirtualSitesHandler(const gmx_mtop_t& mtop,
                                                              const t_commrec*  cr,
-                                                             PbcType           pbcType)
+                                                             PbcType           pbcType,
+                                                             ArrayRef<const RangePartitioning> updateGroupingPerMoleculeType)
 {
     GMX_RELEASE_ASSERT(cr != nullptr, "We need a valid commrec");
 
@@ -2603,7 +2607,7 @@ std::unique_ptr<VirtualSitesHandler> makeVirtualSitesHandler(const gmx_mtop_t& m
         return vsite;
     }
 
-    return std::make_unique<VirtualSitesHandler>(mtop, cr->dd, pbcType);
+    return std::make_unique<VirtualSitesHandler>(mtop, cr->dd, pbcType, updateGroupingPerMoleculeType);
 }
 
 ThreadingInfo::ThreadingInfo() : numThreads_(gmx_omp_nthreads_get(ModuleMultiThread::VirtualSite))
@@ -2632,27 +2636,21 @@ ThreadingInfo::ThreadingInfo() : numThreads_(gmx_omp_nthreads_get(ModuleMultiThr
     }
 }
 
-//! Returns the number of inter update-group vsites
-static int getNumInterUpdategroupVsites(const gmx_mtop_t& mtop, const gmx_domdec_t* domdec)
-{
-    gmx::ArrayRef<const gmx::RangePartitioning> updateGroupingsPerMoleculeType;
-    if (domdec)
-    {
-        updateGroupingsPerMoleculeType = getUpdateGroupingsPerMoleculeType(*domdec);
-    }
-
-    return countInterUpdategroupVsites(mtop, updateGroupingsPerMoleculeType);
-}
-
-VirtualSitesHandler::Impl::Impl(const gmx_mtop_t& mtop, gmx_domdec_t* domdec, const PbcType pbcType) :
-    numInterUpdategroupVirtualSites_(getNumInterUpdategroupVsites(mtop, domdec)),
+VirtualSitesHandler::Impl::Impl(const gmx_mtop_t&                       mtop,
+                                gmx_domdec_t*                           domdec,
+                                const PbcType                           pbcType,
+                                const ArrayRef<const RangePartitioning> updateGroupingPerMoleculeType) :
+    numInterUpdategroupVirtualSites_(countInterUpdategroupVsites(mtop, updateGroupingPerMoleculeType)),
     domainInfo_({ pbcType, pbcType != PbcType::No && numInterUpdategroupVirtualSites_ > 0, domdec }),
     iparams_(mtop.ffparams.iparams)
 {
 }
 
-VirtualSitesHandler::VirtualSitesHandler(const gmx_mtop_t& mtop, gmx_domdec_t* domdec, const PbcType pbcType) :
-    impl_(new Impl(mtop, domdec, pbcType))
+VirtualSitesHandler::VirtualSitesHandler(const gmx_mtop_t&                       mtop,
+                                         gmx_domdec_t*                           domdec,
+                                         const PbcType                           pbcType,
+                                         const ArrayRef<const RangePartitioning> updateGroupingPerMoleculeType) :
+    impl_(new Impl(mtop, domdec, pbcType, updateGroupingPerMoleculeType))
 {
 }
 
@@ -2688,7 +2686,7 @@ static void assignVsitesToThread(VsiteThread*                    tData,
                                  gmx::ArrayRef<int>              taskIndex,
                                  ArrayRef<const InteractionList> ilist,
                                  ArrayRef<const t_iparams>       ip,
-                                 const ParticleType*             ptype)
+                                 ArrayRef<const ParticleType>    ptype)
 {
     for (int ftype = c_ftypeVsiteStart; ftype < c_ftypeVsiteEnd; ftype++)
     {
@@ -2758,7 +2756,16 @@ static void assignVsitesToThread(VsiteThread*                    tData,
                                    "a constructing atom that does not belong to our task, such "
                                    "vsites should be assigned to the single 'master' task");
 
-                        task = nthread + thread;
+                        if (tData->useInterdependentTask)
+                        {
+                            // Assign to the interdependent task
+                            task = nthread + thread;
+                        }
+                        else
+                        {
+                            // Assign to the separate, non-parallel task
+                            task = 2 * nthread;
+                        }
                     }
                 }
             }
@@ -2847,7 +2854,9 @@ static void assignVsitesToSingleTask(VsiteThread*                    tData,
 
 void ThreadingInfo::setVirtualSites(ArrayRef<const InteractionList> ilists,
                                     ArrayRef<const t_iparams>       iparams,
-                                    const t_mdatoms&                mdatoms,
+                                    const int                       numAtoms,
+                                    const int                       homenr,
+                                    ArrayRef<const ParticleType>    ptype,
                                     const bool                      useDomdec)
 {
     if (numThreads_ <= 1)
@@ -2920,15 +2929,15 @@ void ThreadingInfo::setVirtualSites(ArrayRef<const InteractionList> ilists,
          * When assigning vsites to threads, we should take care that the last
          * threads also covers the non-local range.
          */
-        vsite_atom_range = mdatoms.nr;
-        natperthread     = (mdatoms.homenr + numThreads_ - 1) / numThreads_;
+        vsite_atom_range = numAtoms;
+        natperthread     = (homenr + numThreads_ - 1) / numThreads_;
     }
 
     if (debug)
     {
         fprintf(debug,
                 "virtual site thread dist: natoms %d, range %d, natperthread %d\n",
-                mdatoms.nr,
+                numAtoms,
                 vsite_atom_range,
                 natperthread);
     }
@@ -2936,7 +2945,7 @@ void ThreadingInfo::setVirtualSites(ArrayRef<const InteractionList> ilists,
     /* To simplify the vsite assignment, we make an index which tells us
      * to which task particles, both non-vsites and vsites, are assigned.
      */
-    taskIndex_.resize(mdatoms.nr);
+    taskIndex_.resize(numAtoms);
 
     /* Initialize the task index array. Here we assign the non-vsite
      * particles to task=thread, so we easily figure out if vsites
@@ -2944,9 +2953,9 @@ void ThreadingInfo::setVirtualSites(ArrayRef<const InteractionList> ilists,
      */
     {
         int thread = 0;
-        for (int i = 0; i < mdatoms.nr; i++)
+        for (int i = 0; i < numAtoms; i++)
         {
-            if (mdatoms.ptype[i] == ParticleType::VSite)
+            if (ptype[i] == ParticleType::VSite)
             {
                 /* vsites are not assigned to a task yet */
                 taskIndex_[i] = -1;
@@ -2996,12 +3005,13 @@ void ThreadingInfo::setVirtualSites(ArrayRef<const InteractionList> ilists,
             }
 
             /* To avoid large f_buf allocations of #threads*vsite_atom_range
-             * we don't use task2 with more than 200000 atoms. This doesn't
-             * affect performance, since with such a large range relatively few
-             * vsites will end up in the separate task.
-             * Note that useTask2 should be the same for all threads.
+             * we don't use the interdependent tasks with more than 200000 atoms.
+             * This doesn't affect performance, since with such a large range
+             * relatively few vsites will end up in the separate task.
+             * Note that useInterdependentTask should be the same for all threads.
              */
-            tData.useInterdependentTask = (vsite_atom_range <= 200000);
+            const int c_maxNumLocalAtomsForInterdependentTask = 200000;
+            tData.useInterdependentTask = (vsite_atom_range <= c_maxNumLocalAtomsForInterdependentTask);
             if (tData.useInterdependentTask)
             {
                 size_t              natoms_use_in_vsites = vsite_atom_range;
@@ -3025,10 +3035,10 @@ void ThreadingInfo::setVirtualSites(ArrayRef<const InteractionList> ilists,
             else
             {
                 /* The last thread should cover up to the end of the range */
-                tData.rangeEnd = mdatoms.nr;
+                tData.rangeEnd = numAtoms;
             }
             assignVsitesToThread(
-                    &tData, thread, numThreads_, natperthread, taskIndex_, ilists, iparams, mdatoms.ptype);
+                    &tData, thread, numThreads_, natperthread, taskIndex_, ilists, iparams, ptype);
 
             if (tData.useInterdependentTask)
             {
@@ -3110,16 +3120,21 @@ void ThreadingInfo::setVirtualSites(ArrayRef<const InteractionList> ilists,
 }
 
 void VirtualSitesHandler::Impl::setVirtualSites(ArrayRef<const InteractionList> ilists,
-                                                const t_mdatoms&                mdatoms)
+                                                const int                       numAtoms,
+                                                const int                       homenr,
+                                                ArrayRef<const ParticleType>    ptype)
 {
     ilists_ = ilists;
 
-    threadingInfo_.setVirtualSites(ilists, iparams_, mdatoms, domainInfo_.useDomdec());
+    threadingInfo_.setVirtualSites(ilists, iparams_, numAtoms, homenr, ptype, domainInfo_.useDomdec());
 }
 
-void VirtualSitesHandler::setVirtualSites(ArrayRef<const InteractionList> ilists, const t_mdatoms& mdatoms)
+void VirtualSitesHandler::setVirtualSites(ArrayRef<const InteractionList> ilists,
+                                          const int                       numAtoms,
+                                          const int                       homenr,
+                                          ArrayRef<const ParticleType>    ptype)
 {
-    impl_->setVirtualSites(ilists, mdatoms);
+    impl_->setVirtualSites(ilists, numAtoms, homenr, ptype);
 }
 
 } // namespace gmx

@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2015,2016,2017,2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2015- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 /*! \internal \file
@@ -59,7 +58,6 @@
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/gmxassert.h"
-#include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringutil.h"
 
 namespace gmx
@@ -753,9 +751,7 @@ void BiasGrid::initPoints()
 }
 
 GridAxis::GridAxis(double origin, double end, double period, double pointDensity) :
-    origin_(origin),
-    period_(period),
-    isFepLambdaAxis_(false)
+    origin_(origin), period_(period), isFepLambdaAxis_(false)
 {
     length_ = getIntervalLengthPeriodic(origin_, end, period_);
 
@@ -797,10 +793,7 @@ GridAxis::GridAxis(double origin, double end, double period, double pointDensity
 }
 
 GridAxis::GridAxis(double origin, double end, double period, int numPoints, bool isFepLambdaAxis) :
-    origin_(origin),
-    period_(period),
-    numPoints_(numPoints),
-    isFepLambdaAxis_(isFepLambdaAxis)
+    origin_(origin), period_(period), numPoints_(numPoints), isFepLambdaAxis_(isFepLambdaAxis)
 {
     if (isFepLambdaAxis)
     {
@@ -860,15 +853,17 @@ BiasGrid::BiasGrid(ArrayRef<const DimParams> dimParams, ArrayRef<const AwhDimPar
     }
 }
 
-void mapGridToDataGrid(std::vector<int>*    gridpointToDatapoint,
-                       const double* const* data,
-                       int                  numDataPoints,
-                       const std::string&   dataFilename,
-                       const BiasGrid&      grid,
-                       const std::string&   correctFormatMessage)
+void mapGridToDataGrid(std::vector<int>* gridpointToDatapoint,
+                       const MultiDimArray<std::vector<double>, dynamicExtents2D>& data,
+                       int                                                         numDataPoints,
+                       const std::string&                                          dataFilename,
+                       const BiasGrid&                                             grid,
+                       const std::string& correctFormatMessage)
 {
     /* Transform the data into a grid in order to map each grid point to a data point
        using the grid functions. */
+
+    const auto& dataView = data.asConstView();
 
     /* Count the number of points for each dimension. Each dimension
        has its own stride. */
@@ -880,13 +875,13 @@ void mapGridToDataGrid(std::vector<int>*    gridpointToDatapoint,
     {
         int    numPointsInDim = 0;
         int    pointIndex     = 0;
-        double firstValue     = data[d][pointIndex];
+        double firstValue     = dataView[d][pointIndex];
         do
         {
             numPointsInDim++;
             pointIndex += stride;
         } while (pointIndex < numDataPoints
-                 && !gmx_within_tol(firstValue, data[d][pointIndex], GMX_REAL_EPS));
+                 && !gmx_within_tol(firstValue, dataView[d][pointIndex], GMX_REAL_EPS));
 
         /* The stride in dimension dimension d - 1 equals the number of points
            dimension d. */
@@ -915,12 +910,12 @@ void mapGridToDataGrid(std::vector<int>*    gridpointToDatapoint,
     {
         if (isFepLambdaAxis[d])
         {
-            axis_.emplace_back(data[d][0], data[d][numDataPoints - 1], 0, numPoints[d], true);
+            axis_.emplace_back(dataView[d][0], dataView[d][numDataPoints - 1], 0, numPoints[d], true);
         }
         else
         {
             axis_.emplace_back(
-                    data[d][0], data[d][numDataPoints - 1], grid.axis(d).period(), numPoints[d], false);
+                    dataView[d][0], dataView[d][numDataPoints - 1], grid.axis(d).period(), numPoints[d], false);
         }
     }
 

@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2010-2018, The GROMACS development team.
- * Copyright (c) 2019,2020, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2010- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 #include "gmxpre.h"
@@ -75,7 +73,7 @@ static void find_tetra_order_grid(t_topology top,
                                   real***    sggrid,
                                   real***    skgrid)
 {
-    int         ix, jx, i, j, k, l, n, *nn[4];
+    int         ix, jx, i, j, k, *nn[4];
     rvec        dx, rj, rk, urk, urj;
     real        cost, cost2, *sgmol, *skmol, rmean, rmean2, r2, box2, *r_nn[4];
     t_pbc       pbc;
@@ -121,7 +119,6 @@ static void find_tetra_order_grid(t_topology top,
 
     *sgmean = 0.0;
     *skmean = 0.0;
-    l       = 0;
     for (i = 0; (i < maxidx); i++)
     { /* loop over index file */
         ix = index[i];
@@ -185,7 +182,6 @@ static void find_tetra_order_grid(t_topology top,
         }
         rmean /= 4;
 
-        n        = 0;
         sgmol[i] = 0.0;
         skmol[i] = 0.0;
 
@@ -205,8 +201,6 @@ static void find_tetra_order_grid(t_topology top,
                 cost2 = cost * cost;
 
                 sgmol[i] += cost2;
-                l++;
-                n++;
             }
         }
         /* normalize sgmol between 0.0 and 1.0 */

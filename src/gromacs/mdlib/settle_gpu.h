@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2019- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  *
@@ -45,34 +44,23 @@
 
 #include "gmxpre.h"
 
-#include "gromacs/gpu_utils/devicebuffer_datatype.h"
 #include "gromacs/gpu_utils/device_context.h"
 #include "gromacs/gpu_utils/device_stream.h"
+#include "gromacs/gpu_utils/devicebuffer_datatype.h"
 #include "gromacs/gpu_utils/gputraits.h"
 #include "gromacs/math/functions.h"
 #include "gromacs/math/invertmatrix.h"
 #include "gromacs/math/vec.h"
+#include "gromacs/mdlib/constraint_gpu_helpers.h"
 #include "gromacs/mdlib/settle.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/pbcutil/pbc_aiuc.h"
-#include "gromacs/topology/topology.h"
+#include "gromacs/topology/mtop_util.h"
 
 class InteractionDefinitions;
 
 namespace gmx
 {
-
-//! Indices of atoms in a water molecule
-struct WaterMolecule
-{
-    //! Oxygen atom
-    int ow1;
-    //! First hydrogen atom
-    int hw2;
-    //! Second hydrogen atom
-    int hw3;
-};
-
 
 /*! \internal \brief Class with interfaces and data for GPU version of SETTLE. */
 class SettleGpu
@@ -114,14 +102,14 @@ public:
      * \param[in,out] virialScaled      Scaled virial tensor to be updated.
      * \param[in]     pbcAiuc           PBC data.
      */
-    void apply(const DeviceBuffer<Float3> d_x,
-               DeviceBuffer<Float3>       d_xp,
-               const bool                 updateVelocities,
-               DeviceBuffer<Float3>       d_v,
-               const real                 invdt,
-               const bool                 computeVirial,
-               tensor                     virialScaled,
-               const PbcAiuc              pbcAiuc);
+    void apply(const DeviceBuffer<Float3>& d_x,
+               DeviceBuffer<Float3>        d_xp,
+               bool                        updateVelocities,
+               DeviceBuffer<Float3>        d_v,
+               real                        invdt,
+               bool                        computeVirial,
+               tensor                      virialScaled,
+               const PbcAiuc&              pbcAiuc);
 
     /*! \brief
      * Update data-structures (e.g. after NB search step).

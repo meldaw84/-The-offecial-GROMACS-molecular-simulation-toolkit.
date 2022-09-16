@@ -1,12 +1,9 @@
 #
 # This file is part of the GROMACS molecular simulation package.
 #
-# Copyright (c) 2009,2010,2011,2012,2013 by the GROMACS development team.
-# Copyright (c) 2014,2015,2016,2017,2018 by the GROMACS development team.
-# Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
-# Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
-# and including many others, as listed in the AUTHORS file in the
-# top-level source directory and at http://www.gromacs.org.
+# Copyright 2009- The GROMACS Authors
+# and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+# Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
 #
 # GROMACS is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -20,7 +17,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with GROMACS; if not, see
-# http://www.gnu.org/licenses, or write to the Free Software Foundation,
+# https://www.gnu.org/licenses, or write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
 #
 # If you want to redistribute modifications to GROMACS, please
@@ -29,14 +26,15 @@
 # consider code for inclusion in the official distribution, but
 # derived work must not be called official GROMACS. Details are found
 # in the README & COPYING files - if they are missing, get the
-# official version at http://www.gromacs.org.
+# official version at https://www.gromacs.org.
 #
 # To help us fund GROMACS development, we humbly ask that you cite
-# the research papers on the package. Check out http://www.gromacs.org.
+# the research papers on the package. Check out https://www.gromacs.org.
 
 cmake_minimum_required(VERSION 3.16.3)
 cmake_policy(SET CMP0074 NEW) # From CMake 3.12
 cmake_policy(SET CMP0068 NEW) # From CMake-3.9
+cmake_policy(SET CMP0048 NEW) # As of CMake 3.22, default is still "OLD"
 
 # CMake modules/macros are in a subdirectory to keep this file cleaner
 # This needs to be set before project() in order to pick up toolchain files
@@ -53,7 +51,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         FORCE)
 endif()
 
-project(Gromacs)
+# The GROMACS convention is that these are the version number of the next
+# release that is going to be made from this branch.
+project(Gromacs VERSION 2023.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -172,7 +172,7 @@ gmx_detect_target_architecture()
 ########################################################################
 include(gmxOptionUtilities)
 
-set(CMAKE_PREFIX_PATH "" CACHE STRING "Extra locations to search for external libraries and tools (give directory without lib, bin, or include)")
+set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" CACHE STRING "Extra locations to search for external libraries and tools (give directory without lib, bin, or include)")
 
 option(GMX_DOUBLE "Use double precision (much slower, use only if you really need it)" OFF)
 
@@ -180,6 +180,13 @@ option(GMX_MPI    "Build a parallel (message-passing) version of GROMACS" OFF)
 option(GMX_THREAD_MPI  "Build a thread-MPI-based multithreaded version of GROMACS (not compatible with MPI)" ON)
 
 option(GMX_MIMIC "Enable MiMiC QM/MM interface (CPMD is required)" OFF)
+
+option(GMX_CP2K "Enable CP2K QM/MM interface (CP2K 8.1 or later is required)" OFF)
+
+# We need to enable Fortran, because CP2K will be linked
+if(GMX_CP2K)
+    enable_language(Fortran)
+endif()
 
 option(GMX_FAHCORE "Build a library with mdrun functionality" OFF)
 mark_as_advanced(GMX_FAHCORE)
@@ -202,7 +209,13 @@ gmx_option_multichoice(
     "AUTO"
     AUTO None SSE2 SSE4.1 AVX_128_FMA AVX_256 AVX2_256 AVX2_128 AVX_512 AVX_512_KNL ARM_NEON_ASIMD ARM_SVE IBM_VSX Reference)
 
-set(GMX_FFT_LIBRARY_DEFAULT "fftw3")
+include(gmxTestIntelLLVM)
+
+if (GMX_INTEL_LLVM)
+    set(GMX_FFT_LIBRARY_DEFAULT "mkl")
+else()
+    set(GMX_FFT_LIBRARY_DEFAULT "fftw3")
+endif()
 
 gmx_option_multichoice(
     GMX_FFT_LIBRARY
@@ -221,6 +234,12 @@ gmx_dependent_option(
     "GMX_FFT_LIBRARY STREQUAL FFTW3")
 mark_as_advanced(GMX_BUILD_OWN_FFTW)
 mark_as_advanced(GMX_DISABLE_FFTW_MEASURE)
+
+gmx_dependent_option(
+    GMX_USE_HEFFTE
+    "Use HeFFTe for FFT support. Used with CUDA backend"
+    OFF
+    "GMX_GPU STREQUAL CUDA;GMX_MPI")
 
 gmx_dependent_cache_variable(GMX_SIMD_REF_FLOAT_WIDTH  "Reference SIMD single precision width" STRING "4" "GMX_SIMD STREQUAL REFERENCE")
 gmx_dependent_cache_variable(GMX_SIMD_REF_DOUBLE_WIDTH "Reference SIMD double precision width" STRING "2" "GMX_SIMD STREQUAL REFERENCE")
@@ -259,7 +278,7 @@ mark_as_advanced(GMX_COMPILER_WARNINGS)
 gmx_add_cache_dependency(GMX_COMPILER_WARNINGS BOOL "NOT GMX_DEVELOPER_BUILD" ON)
 
 option(GMX_BUILD_SHARED_EXE
-    "Build exectuables as shared binaries. If not set, this disables rpath and dynamic linker flags in an attempt to build a static binary, but this may require setting up the toolchain properly and making appropriate libraries available."
+    "Build executables as shared binaries. If not set, this disables rpath and dynamic linker flags in an attempt to build a static binary, but this may require setting up the toolchain properly and making appropriate libraries available."
     ON)
 mark_as_advanced(GMX_BUILD_SHARED_EXE)
 
@@ -320,6 +339,21 @@ if(GMX_IMD AND WIN32)
 endif()
 
 
+########################################################################
+# Parse present/past contributors and project leaders from AUTHORS     #
+########################################################################
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS AUTHORS)
+file(READ "${CMAKE_SOURCE_DIR}/AUTHORS" AUTHORS)
+string(REGEX REPLACE " <[^<]+>" "" AUTHORS_NO_EMAIL "${AUTHORS}")
+string(REGEX MATCH "CURRENT CONTRIBUTORS\n=+\n(.*)\n\n+PREVIOUS CONTRIBUTORS\n=+\n(.*)\n\n+CURRENT PROJECT LEADERS\n=+\n(.*)\n\n+" MATCH "${AUTHORS_NO_EMAIL}")
+
+set(GMX_CURRENT_CONTRIBUTORS ${CMAKE_MATCH_1})
+set(GMX_PREVIOUS_CONTRIBUTORS ${CMAKE_MATCH_2})
+set(GMX_CURRENT_PROJECT_LEADERS ${CMAKE_MATCH_3})
+
+string(REGEX REPLACE "([^\n]+)" "    \"\\1\"," GMX_CURRENT_CONTRIBUTORS "${GMX_CURRENT_CONTRIBUTORS}")
+string(REGEX REPLACE "([^\n]+)" "    \"\\1\"," GMX_PREVIOUS_CONTRIBUTORS "${GMX_PREVIOUS_CONTRIBUTORS}")
+string(REGEX REPLACE "([^\n]+)" "    \"\\1\"," GMX_CURRENT_PROJECT_LEADERS "${GMX_CURRENT_PROJECT_LEADERS}")
 
 ########################################################################
 # Basic system tests (standard libraries, headers, functions, types)   #
@@ -391,6 +425,11 @@ include(gmxManageMPI)
 #Process MiMiC settings
 ########################################################################
 include(gmxManageMimic)
+
+########################################################################
+#Process CP2K settings
+########################################################################
+include(gmxManageCP2K)
 
 ########################################################################
 #Process shared/static library settings
@@ -540,6 +579,23 @@ include(gmxManageTNG)
 
 include(gmxManageLmfit)
 
+include(gmxManageMuparser)
+
+##################################################
+# Process SIMD instruction settings
+##################################################
+# This checks what flags to add in order to
+# support the SIMD instructions we need, it sets
+# correct defines for the SIMD instructions supported,
+# and adds advanced options to control accuracy
+# for SIMD math operations.
+include(gmxManageSimd)
+gmx_manage_simd()
+
+# The earliest version of the CUDA toolkit that supports c++17 is 11.0
+set(REQUIRED_CUDA_VERSION 11.0)
+set(REQUIRED_CUDA_COMPUTE_CAPABILITY 3.5)
+
 if(GMX_GPU)
 
     string(TOUPPER "${GMX_GPU}" _gmx_gpu_uppercase)
@@ -578,8 +634,13 @@ if(GMX_GPU)
             # default cluster size is 8 with OpenCL and 4 with SYCL for now
             if(${_gmx_gpu_uppercase} STREQUAL "OPENCL")
                 set(_gmx_gpu_nb_cluster_size_value 8)
-            else()
-                set(_gmx_gpu_nb_cluster_size_value 4)
+            elseif(GMX_GPU_SYCL)
+                if (GMX_SYCL_HIPSYCL AND NOT GMX_HIPSYCL_HAVE_LEVELZERO_TARGET)
+                    set(_gmx_gpu_nb_cluster_size_value 8)
+                else()
+                    # Either DPCPP or hipSYCL targeting Intel Level0
+                    set(_gmx_gpu_nb_cluster_size_value 4)
+                endif()
             endif()
         endif()
         set(GMX_GPU_NB_CLUSTER_SIZE ${_gmx_gpu_nb_cluster_size_value} CACHE STRING "Cluster size used by the nonbonded kernel. Set to 4 for Intel GPUs.")
@@ -593,11 +654,23 @@ endif()
 if(GMX_GPU_CUDA AND GMX_LIB_MPI)
     include(gmxManageCudaAwareMPI)
 else()
-    set(HAVE_CUDA_AWARE_MPI 0)
+    set(HAVE_MPI_EXT 0)
+    set(MPI_SUPPORTS_CUDA_AWARE_DETECTION 0)
 endif()
 
 if(CYGWIN)
     set(GMX_CYGWIN 1)
+endif()
+
+if(GMX_USE_HEFFTE)
+    if(NOT GMX_GPU_CUDA)
+        message(FATAL_ERROR "HeFFTe support requires a CUDA build")
+    endif()
+    if(NOT GMX_LIB_MPI)
+        message(FATAL_ERROR "HeFFTe support requires a library MPI build")
+    endif()
+    find_package(Heffte 2.2.0 REQUIRED CUDA)
+    set(HAVE_Heffte ${Heffte_FOUND})
 endif()
 
 if(WIN32)
@@ -650,18 +723,6 @@ gmx_test_xdr(GMX_SYSTEM_XDR)
 if(NOT GMX_SYSTEM_XDR OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(GMX_INTERNAL_XDR 1)
 endif()
-
-
-##################################################
-# Process SIMD instruction settings
-##################################################
-# This checks what flags to add in order to
-# support the SIMD instructions we need, it sets
-# correct defines for the SIMD instructions supported,
-# and adds advanced options to control accuracy
-# for SIMD math operations.
-include(gmxManageSimd)
-gmx_manage_simd()
 
 ##################################################
 # Process FFT library settings
@@ -731,8 +792,9 @@ endif()
 # # # # # # # # # # NO MORE TESTS AFTER THIS LINE! # # # # # # # # # # #
 # these are set after everything else
 if (NOT GMX_SKIP_DEFAULT_CFLAGS)
-    set(CMAKE_EXE_LINKER_FLAGS "${FFT_LINKER_FLAGS} ${MPI_LINKER_FLAGS} ${CMAKE_EXE_LINKER_FLAGS} ${DISABLE_SYCL_CXX_FLAGS}")
-    set(CMAKE_SHARED_LINKER_FLAGS "${FFT_LINKER_FLAGS} ${MPI_LINKER_FLAGS} ${CMAKE_SHARED_LINKER_FLAGS} ${DISABLE_SYCL_CXX_FLAGS}")
+    #TODO(#3672): Use target_link_libraries(... MPI::MPI_CXX) instead of ${MPI_CXX_LINK_FLAGS}
+    set(CMAKE_EXE_LINKER_FLAGS "${FFT_LINKER_FLAGS} ${MPI_CXX_LINK_FLAGS} ${CMAKE_EXE_LINKER_FLAGS} ${DISABLE_SYCL_CXX_FLAGS}")
+    set(CMAKE_SHARED_LINKER_FLAGS "${FFT_LINKER_FLAGS} ${MPI_CXX_LINK_FLAGS} ${CMAKE_SHARED_LINKER_FLAGS} ${DISABLE_SYCL_CXX_FLAGS}")
 else()
     message("Recommended flags which are not added because GMX_SKIP_DEFAULT_CFLAGS=yes:")
     message("CMAKE_C_FLAGS: ${SIMD_C_FLAGS};${MPI_COMPILE_FLAGS};${EXTRA_C_FLAGS};${GMXC_CFLAGS}")
@@ -743,8 +805,8 @@ else()
     foreach(build_type ${build_types_with_explicit_flags})
         message("CMAKE_CXX_FLAGS_${build_type}: ${GMXC_CXXFLAGS_${build_type}}")
     endforeach()
-    message("CMAKE_EXE_LINKER_FLAGS: ${FFT_LINKER_FLAGS} ${MPI_LINKER_FLAGS}")
-    message("CMAKE_SHARED_LINKER_FLAGS: ${FFT_LINKER_FLAGS} ${MPI_LINKER_FLAGS}")
+    message("CMAKE_EXE_LINKER_FLAGS: ${FFT_LINKER_FLAGS} ${MPI_CXX_LINK_FLAGS}")
+    message("CMAKE_SHARED_LINKER_FLAGS: ${FFT_LINKER_FLAGS} ${MPI_CXX_LINK_FLAGS}")
 endif()
 # Allow `admin` directory to be easily conveyed to nested CMake commands.
 set(GMX_ADMIN_DIR ${CMAKE_SOURCE_DIR}/admin)
@@ -770,7 +832,6 @@ else()
     # binaries relocatable.
     if(CMAKE_SYSTEM_NAME STREQUAL "Darwin") #Assume OS X >=10.5
         set(CMAKE_INSTALL_RPATH "@loader_path/../${CMAKE_INSTALL_LIBDIR}")
-        set(CMAKE_INSTALL_NAME_DIR ${CMAKE_INSTALL_RPATH})
     else()
         set(CMAKE_INSTALL_RPATH "\$ORIGIN/../${CMAKE_INSTALL_LIBDIR}")
     endif()
@@ -786,9 +847,9 @@ if (BUILD_TESTING)
     include(tests/CheckTarget.cmake)
 endif()
 
-# TODO: Determine control flow and defaults for package installation and testing use cases.
-# Ref: https://gitlab.com/gromacs/gromacs/-/issues/2896
-option(GMX_PYTHON_PACKAGE "Configure gmxapi Python package" OFF)
+option(GMX_PYTHON_PACKAGE
+       "Configure gmxapi Python package for use in build tree. Requires pybind11 installed for project Python interpreter."
+       OFF)
 mark_as_advanced(GMX_PYTHON_PACKAGE)
 
 find_package(ImageMagick QUIET COMPONENTS convert)

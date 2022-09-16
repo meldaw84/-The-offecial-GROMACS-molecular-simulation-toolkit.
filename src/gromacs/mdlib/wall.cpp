@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2008, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 #include "gmxpre.h"
@@ -97,7 +93,7 @@ void make_wall_tables(FILE*                   fplog,
                 fr->wall_tab[w][egp] = make_tables(fplog, fr->ic.get(), buf, 0, GMX_MAKETABLES_FORCEUSER);
 
                 /* Since wall have no charge, we can compress the table */
-                for (int i = 0; i <= fr->wall_tab[w][egp]->n; i++)
+                for (int i = 0; i <= fr->wall_tab[w][egp]->numTablePoints; i++)
                 {
                     for (int j = 0; j < 8; j++)
                     {
@@ -128,7 +124,7 @@ static void tableForce(real r, const t_forcetable& tab, real Cd, real Cr, real* 
 
     real rt = r * tabscale;
     int  n0 = static_cast<int>(rt);
-    if (n0 >= tab.n)
+    if (n0 >= tab.numTablePoints)
     {
         /* Beyond the table range, set V and F to zero */
         *V = 0;
@@ -165,22 +161,25 @@ static void tableForce(real r, const t_forcetable& tab, real Cd, real Cr, real* 
     }
 }
 
-real do_walls(const t_inputrec&              ir,
-              const t_forcerec&              fr,
-              const matrix                   box,
-              const t_mdatoms&               md,
-              gmx::ArrayRef<const gmx::RVec> x,
-              gmx::ForceWithVirial*          forceWithVirial,
-              real                           lambda,
-              real                           Vlj[],
-              t_nrnb*                        nrnb)
+real do_walls(const t_inputrec&                   ir,
+              const t_forcerec&                   fr,
+              const matrix                        box,
+              gmx::ArrayRef<const int>            typeA,
+              gmx::ArrayRef<const int>            typeB,
+              gmx::ArrayRef<const unsigned short> cENER,
+              const int                           homenr,
+              const int                           numPerturbedAtoms,
+              gmx::ArrayRef<const gmx::RVec>      x,
+              gmx::ForceWithVirial*               forceWithVirial,
+              real                                lambda,
+              gmx::ArrayRef<real>                 Vlj,
+              t_nrnb*                             nrnb)
 {
     constexpr real sixth   = 1.0 / 6.0;
     constexpr real twelfth = 1.0 / 12.0;
 
-    int                   ntw[2];
-    real                  fac_d[2], fac_r[2];
-    const unsigned short* gid = md.cENER;
+    int  ntw[2];
+    real fac_d[2], fac_r[2];
 
     const int   nwall     = ir.nwall;
     const int   ngid      = ir.opts.ngener;
@@ -210,36 +209,36 @@ real do_walls(const t_inputrec&              ir,
 
     real   dvdlambda = 0;
     double sumRF     = 0;
-    for (int lam = 0; lam < (md.nPerturbed ? 2 : 1); lam++)
+    for (int lam = 0; lam < (numPerturbedAtoms ? 2 : 1); lam++)
     {
-        real       lamfac;
-        const int* type;
-        if (md.nPerturbed)
+        real                     lamfac;
+        gmx::ArrayRef<const int> type;
+        if (numPerturbedAtoms != 0)
         {
             if (lam == 0)
             {
                 lamfac = 1 - lambda;
-                type   = md.typeA;
+                type   = typeA;
             }
             else
             {
                 lamfac = lambda;
-                type   = md.typeB;
+                type   = typeB;
             }
         }
         else
         {
             lamfac = 1;
-            type   = md.typeA;
+            type   = typeA;
         }
 
         real Vlambda = 0;
-        for (int i = 0; i < md.homenr; i++)
+        for (int i = 0; i < homenr; i++)
         {
             for (int w = 0; w < std::min(nwall, 2); w++)
             {
                 /* The wall energy groups are always at the end of the list */
-                const int ggid = gid[i] * ngid + ngid - nwall + w;
+                const int ggid = cENER[i] * ngid + ngid - nwall + w;
                 const int at   = type[i];
                 /* nbfp now includes the 6/12 derivative prefactors */
                 const real Cd = nbfp[ntw[w] + 2 * at] * sixth;
@@ -274,7 +273,7 @@ real do_walls(const t_inputrec&              ir,
                     switch (ir.wall_type)
                     {
                         case WallType::Table:
-                            tableForce(r, *fr.wall_tab[w][gid[i]], Cd, Cr, &V, &F);
+                            tableForce(r, *fr.wall_tab[w][cENER[i]], Cd, Cr, &V, &F);
                             F *= lamfac;
                             break;
                         case WallType::NineThree:
@@ -324,12 +323,12 @@ real do_walls(const t_inputrec&              ir,
                 }
             }
         }
-        if (md.nPerturbed)
+        if (numPerturbedAtoms != 0)
         {
             dvdlambda += (lam == 0 ? -1 : 1) * Vlambda;
         }
 
-        inc_nrnb(nrnb, eNR_WALLS, md.homenr);
+        inc_nrnb(nrnb, eNR_WALLS, homenr);
     }
 
     if (forceWithVirial->computeVirial_)

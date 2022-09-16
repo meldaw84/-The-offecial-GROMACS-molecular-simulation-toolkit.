@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /* This file is completely threadsafe - keep it that way! */
 #include "gmxpre.h"
@@ -172,6 +168,87 @@ void state_change_natoms(t_state* state, int natoms)
         state->cg_p.resizeWithPadding(natoms);
     }
 }
+
+namespace
+{
+/*!
+ * \brief Enum describing the contents df_history_t writes to modular checkpoint
+ *
+ * When changing the checkpoint content, add a new element just above Count, and adjust the
+ * checkpoint functionality.
+ */
+enum class DFHistoryCheckpointVersion
+{
+    Base, //!< First version of modular checkpointing
+    Count //!< Number of entries. Add new versions right above this!
+};
+constexpr auto c_dfHistoryCurrentVersion =
+        DFHistoryCheckpointVersion(int(DFHistoryCheckpointVersion::Count) - 1);
+} // namespace
+
+template<gmx::CheckpointDataOperation operation>
+void df_history_t::doCheckpoint(gmx::CheckpointData<operation> checkpointData, LambdaWeightCalculation elamstats)
+{
+    gmx::checkpointVersion(&checkpointData, "df_history_t version", c_dfHistoryCurrentVersion);
+
+    auto numLambdas = nlambda;
+    checkpointData.scalar("nlambda", &numLambdas);
+    if (operation == gmx::CheckpointDataOperation::Read)
+    {
+        // If this isn't matching, we haven't allocated the right amount of data
+        GMX_RELEASE_ASSERT(numLambdas == nlambda,
+                           "df_history_t checkpoint reading: Lambda vectors size mismatch.");
+    }
+
+    checkpointData.scalar("bEquil", &bEquil);
+    checkpointData.arrayRef("n_at_lam", gmx::makeCheckpointArrayRefFromArray<operation>(n_at_lam, nlambda));
+
+    checkpointData.arrayRef("sum_weights",
+                            gmx::makeCheckpointArrayRefFromArray<operation>(sum_weights, nlambda));
+    checkpointData.arrayRef("sum_dg", gmx::makeCheckpointArrayRefFromArray<operation>(sum_dg, nlambda));
+    for (int idx = 0; idx < nlambda; idx++)
+    {
+        checkpointData.arrayRef(gmx::formatString("Tij[%d]", idx),
+                                gmx::makeCheckpointArrayRefFromArray<operation>(Tij[idx], nlambda));
+        checkpointData.arrayRef(
+                gmx::formatString("Tij_empirical[%d]", idx),
+                gmx::makeCheckpointArrayRefFromArray<operation>(Tij_empirical[idx], nlambda));
+    }
+
+    if (EWL(elamstats))
+    {
+        checkpointData.arrayRef("wl_histo",
+                                gmx::makeCheckpointArrayRefFromArray<operation>(wl_histo, nlambda));
+        checkpointData.scalar("wl_delta", &wl_delta);
+    }
+    if ((elamstats == LambdaWeightCalculation::Minvar) || (elamstats == LambdaWeightCalculation::Barker)
+        || (elamstats == LambdaWeightCalculation::Metropolis))
+    {
+        checkpointData.arrayRef(
+                "sum_minvar", gmx::makeCheckpointArrayRefFromArray<operation>(sum_minvar, nlambda));
+        checkpointData.arrayRef("sum_variance",
+                                gmx::makeCheckpointArrayRefFromArray<operation>(sum_variance, nlambda));
+        for (int idx = 0; idx < nlambda; idx++)
+        {
+            checkpointData.arrayRef(gmx::formatString("accum_p[%d]", idx),
+                                    gmx::makeCheckpointArrayRefFromArray<operation>(accum_p[idx], nlambda));
+            checkpointData.arrayRef(gmx::formatString("accum_m[%d]", idx),
+                                    gmx::makeCheckpointArrayRefFromArray<operation>(accum_m[idx], nlambda));
+            checkpointData.arrayRef(
+                    gmx::formatString("accum_p2[%d]", idx),
+                    gmx::makeCheckpointArrayRefFromArray<operation>(accum_p2[idx], nlambda));
+            checkpointData.arrayRef(
+                    gmx::formatString("accum_m2[%d]", idx),
+                    gmx::makeCheckpointArrayRefFromArray<operation>(accum_m2[idx], nlambda));
+        }
+    }
+}
+
+// explicit template instantiation
+template void df_history_t::doCheckpoint(gmx::CheckpointData<gmx::CheckpointDataOperation::Read> checkpointData,
+                                         LambdaWeightCalculation elamstats);
+template void df_history_t::doCheckpoint(gmx::CheckpointData<gmx::CheckpointDataOperation::Write> checkpointData,
+                                         LambdaWeightCalculation elamstats);
 
 void init_dfhist_state(t_state* state, int dfhistNumLambda)
 {
@@ -315,19 +392,22 @@ void set_box_rel(const t_inputrec* ir, t_state* state)
 
     clear_mat(state->box_rel);
 
-    if (inputrecPreserveShape(ir))
+    if (shouldPreserveBoxShape(ir->pressureCouplingOptions, ir->deform))
     {
-        const int ndim = ir->epct == PressureCouplingType::SemiIsotropic ? 2 : 3;
+        const int ndim = ir->pressureCouplingOptions.epct == PressureCouplingType::SemiIsotropic ? 2 : 3;
         do_box_rel(ndim, ir->deform, state->box_rel, state->box, true);
     }
 }
 
-void preserve_box_shape(const t_inputrec* ir, matrix box_rel, matrix box)
+void preserveBoxShape(const PressureCouplingOptions& pressureCouplingOptions,
+                      const tensor                   deform,
+                      matrix                         box_rel,
+                      matrix                         box)
 {
-    if (inputrecPreserveShape(ir))
+    if (shouldPreserveBoxShape(pressureCouplingOptions, deform))
     {
-        const int ndim = ir->epct == PressureCouplingType::SemiIsotropic ? 2 : 3;
-        do_box_rel(ndim, ir->deform, box_rel, box, false);
+        const int ndim = pressureCouplingOptions.epct == PressureCouplingType::SemiIsotropic ? 2 : 3;
+        do_box_rel(ndim, deform, box_rel, box, false);
     }
 }
 

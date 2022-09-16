@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2021- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief Implements test of 1-4 interactions
@@ -50,7 +49,7 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/listed_forces/bonded.h"
+#include "gromacs/listed_forces/pairs.h"
 
 #include <cmath>
 
@@ -59,28 +58,28 @@
 
 #include <gtest/gtest.h>
 
+#include "gromacs/listed_forces/bonded.h"
 #include "gromacs/listed_forces/listed_forces.h"
-#include "gromacs/listed_forces/pairs.h"
 #include "gromacs/math/paddedvector.h"
 #include "gromacs/math/units.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/math/vectypes.h"
-#include "gromacs/mdtypes/mdatom.h"
-#include "gromacs/mdtypes/simulation_workload.h"
 #include "gromacs/mdtypes/enerdata.h"
 #include "gromacs/mdtypes/forcerec.h"
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/interaction_const.h"
+#include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/mdtypes/nblist.h"
-#include "gromacs/tables/forcetable.h"
+#include "gromacs/mdtypes/simulation_workload.h"
 #include "gromacs/pbcutil/ishift.h"
 #include "gromacs/pbcutil/pbc.h"
+#include "gromacs/tables/forcetable.h"
 #include "gromacs/topology/idef.h"
 #include "gromacs/utility/enumerationhelpers.h"
+#include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/strconvert.h"
 #include "gromacs/utility/stringstream.h"
 #include "gromacs/utility/textwriter.h"
-#include "gromacs/utility/fatalerror.h"
 
 #include "testutils/refdata.h"
 #include "testutils/testasserts.h"
@@ -101,8 +100,7 @@ constexpr int c_numAtoms = 3;
 struct OutputQuantities
 {
     OutputQuantities(int energyGroup) :
-        energy(energyGroup),
-        dvdLambda(static_cast<int>(FreeEnergyPerturbationCouplingType::Count), 0.0)
+        energy(energyGroup), dvdLambda(static_cast<int>(FreeEnergyPerturbationCouplingType::Count), 0.0)
     {
     }
 
@@ -164,12 +162,16 @@ class ForcerecHelper
 public:
     ForcerecHelper()
     {
-        fepVals_.sc_alpha     = 0.3;
-        fepVals_.sc_power     = 1;
-        fepVals_.sc_r_power   = 6.0;
-        fepVals_.sc_sigma     = 0.3;
-        fepVals_.sc_sigma_min = 0.3;
-        fepVals_.bScCoul      = true;
+        fepVals_.sc_alpha                = 0.3;
+        fepVals_.sc_power                = 1;
+        fepVals_.sc_r_power              = 6.0;
+        fepVals_.sc_sigma                = 0.3;
+        fepVals_.sc_sigma_min            = 0.3;
+        fepVals_.bScCoul                 = true;
+        fepVals_.scGapsysScaleLinpointLJ = 0.85;
+        fepVals_.scGapsysScaleLinpointQ  = 0.3;
+        fepVals_.scGapsysSigmaLJ         = 0.3;
+        fepVals_.softcoreFunction        = SoftcoreType::Beutler;
 
         fr_.ic = std::make_unique<interaction_const_t>();
         // set data in ic
@@ -315,7 +317,7 @@ protected:
         checker_.setDefaultTolerance(tolerance);
     }
 
-    void testOneIfunc(TestReferenceChecker* checker, const real lambda)
+    void testOneIfunc(TestReferenceChecker* checker, const real lambda, const SoftcoreType softcoreType)
     {
         SCOPED_TRACE(std::string("Testing PBC type: ") + c_pbcTypeNames[pbcType_]);
 
@@ -329,9 +331,9 @@ protected:
         std::vector<unsigned short> egrp       = { 0, 0, 0 };
         t_mdatoms                   mdatoms    = { 0 };
 
-        mdatoms.chargeA = chargeA.data();
-        mdatoms.chargeB = chargeB.data();
-        mdatoms.cENER   = egrp.data();
+        mdatoms.chargeA = chargeA;
+        mdatoms.chargeB = chargeB;
+        mdatoms.cENER   = egrp;
         // nPerturbed is not decisive for fep to be used; it is overruled by
         // other conditions in do_pairs_general; just here to not segfault
         // upon query
@@ -339,6 +341,7 @@ protected:
 
         t_forcerec* fr = frHelper.get();
         fr->efep = input_.fep ? FreeEnergyPerturbationType::Yes : FreeEnergyPerturbationType::No;
+        fr->ic->softCoreParameters->softcoreType = softcoreType;
         if (pbcType_ != PbcType::No)
         {
             fr->bMolPBC = true;
@@ -381,7 +384,11 @@ protected:
                      &pbc_,
                      lambdas.data(),
                      output.dvdLambda.data(),
-                     &mdatoms,
+                     mdatoms.chargeA,
+                     mdatoms.chargeB,
+                     makeArrayRef(mdatoms.bPerturbed),
+                     mdatoms.cENER,
+                     mdatoms.nPerturbed,
                      fr,
                      havePerturbedInteractions,
                      stepWork,
@@ -415,14 +422,18 @@ protected:
             const int numLambdas = 3;
             for (int i = 0; i < numLambdas; ++i)
             {
-                const real lambda        = i / (numLambdas - 1.0);
-                auto       lambdaChecker = thisChecker.checkCompound("Lambda", toString(lambda));
-                testOneIfunc(&lambdaChecker, lambda);
+                const real lambda = i / (numLambdas - 1.0);
+                for (SoftcoreType c : EnumerationWrapper<SoftcoreType>{})
+                {
+                    auto lambdaChecker = thisChecker.checkCompound("Lambda", toString(lambda));
+                    auto softcoreChecker = lambdaChecker.checkCompound("Sofcore", enumValueToString(c));
+                    testOneIfunc(&softcoreChecker, lambda, c);
+                }
             }
         }
         else
         {
-            testOneIfunc(&thisChecker, 0.0);
+            testOneIfunc(&thisChecker, 0.0, SoftcoreType::Beutler);
         }
     }
 };
@@ -451,11 +462,11 @@ std::vector<PaddedVector<RVec>> c_coordinatesFor14Interaction = {
     { { 0.0, 0.0, 0.0 }, { 1.0, 1.0, 1.0 }, { 1.1, 1.2, 1.3 } }
 };
 
-INSTANTIATE_TEST_CASE_P(14Interaction,
-                        ListedForcesPairsTest,
-                        ::testing::Combine(::testing::ValuesIn(c_14Interaction),
-                                           ::testing::ValuesIn(c_coordinatesFor14Interaction),
-                                           ::testing::ValuesIn(c_pbcForTests)));
+INSTANTIATE_TEST_SUITE_P(14Interaction,
+                         ListedForcesPairsTest,
+                         ::testing::Combine(::testing::ValuesIn(c_14Interaction),
+                                            ::testing::ValuesIn(c_coordinatesFor14Interaction),
+                                            ::testing::ValuesIn(c_pbcForTests)));
 
 } // namespace
 

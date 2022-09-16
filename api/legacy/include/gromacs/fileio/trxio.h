@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 #ifndef GMX_FILEIO_TRXIO_H
@@ -80,6 +76,9 @@ void setTrxFramePbcType(struct t_trxframe* fr, PbcType pbcType);
 
 int nframes_read(t_trxstatus* status);
 /* Returns the number of frames read from the trajectory */
+
+bool trxio_should_print_count(const gmx_output_env_t* oenv, t_trxstatus* status);
+/* True whenever the frame reading routines have printed to stderr for this frame */
 
 int write_trxframe_indexed(t_trxstatus* status, const t_trxframe* fr, int nind, const int* ind, gmx_conect gc);
 /* Write an indexed frame to a TRX file, see write_trxframe. gc may be NULL */
@@ -155,6 +154,19 @@ void close_trx(t_trxstatus* status);
  * or open_trx.
  * Also frees memory in the structure.
  */
+
+/*! \brief Deallocates an t_trxframe and its contents
+ *
+ * Old code using read_first_x() does not clean up all its memory when
+ * using close_trx(), but new code using read_first_frame() needs
+ * close_trx() to keep its current form. When using read_first_x(),
+ * this function should be called before close_trx() in order to clean
+ * up the t_trxframe inside the t_trxstatus before close_trx() can clean
+ * up the rest.
+ *
+ * As read_first_x() is deprecated, this function should not be called
+ * in new code. Use read_first_frame() and close_trx() instead. */
+void done_trx_xframe(t_trxstatus* status);
 
 t_trxstatus* open_trx(const char* outfile, const char* filemode);
 /* Open a TRX file and return an allocated status pointer */
@@ -236,12 +248,16 @@ int read_first_x(const gmx_output_env_t* oenv, t_trxstatus** status, const char*
  * memory for the coordinates, for a trajectory file.
  * The routine returns the number of atoms, or 0 when something is wrong.
  * The integer in status should be passed to calls of read_next_x
+ *
+ * DEPRECATED: Use read_first_frame and read_next_frame instead
  */
 
 gmx_bool read_next_x(const gmx_output_env_t* oenv, t_trxstatus* status, real* t, rvec x[], matrix box);
 /* Read coordinates and box from a trajectory file. Return TRUE when all well,
  * or FALSE when end of file (or last frame requested by user).
  * status is the integer set in read_first_x.
+ *
+ * DEPRECATED: Use read_first_frame and read_next_frame instead
  */
 
 void rewind_trj(t_trxstatus* status);

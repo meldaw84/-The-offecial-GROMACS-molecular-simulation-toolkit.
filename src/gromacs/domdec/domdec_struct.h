@@ -1,12 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -20,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -29,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \libinternal \file
  * \brief Declares structures related to domain decomposition.
@@ -51,8 +48,10 @@
 #include <memory>
 #include <vector>
 
+#include "gromacs/gpu_utils/hostallocator.h"
 #include "gromacs/math/vectypes.h"
 #include "gromacs/topology/block.h"
+#include "gromacs/topology/idef.h"
 #include "gromacs/utility/gmxmpi.h"
 #include "gromacs/utility/range.h"
 #include "gromacs/utility/real.h"
@@ -69,7 +68,7 @@ struct gmx_domdec_specat_comm_t;
 class gmx_ga2la_t;
 struct gmx_pme_comm_n_box_t;
 struct t_inputrec;
-struct gmx_reverse_top_t;
+class gmx_reverse_top_t;
 struct gmx_mtop_t;
 struct ReverseTopOptions;
 
@@ -78,6 +77,7 @@ namespace gmx
 template<typename T>
 class HashedMap;
 class LocalAtomSetManager;
+class LocalTopologyChecker;
 class GpuHaloExchange;
 } // namespace gmx
 
@@ -169,7 +169,7 @@ struct gmx_domdec_t
     /* The communication setup within the communicator all
      * defined in dd->comm in domdec.c
      */
-    int      nnodes       = 0;
+    int      nnodes       = 1;
     MPI_Comm mpi_comm_all = MPI_COMM_NULL;
     /* The local DD cell index and rank */
     gmx::IVec ci         = { 0, 0, 0 };
@@ -205,16 +205,16 @@ struct gmx_domdec_t
     bool haveExclusions = false;
 
     /* Vsite stuff */
-    gmx::HashedMap<int>*      ga2la_vsite = nullptr;
-    gmx_domdec_specat_comm_t* vsite_comm  = nullptr;
-    std::vector<int>          vsite_requestedGlobalAtomIndices;
+    std::unique_ptr<gmx::HashedMap<int>>      ga2la_vsite;
+    std::unique_ptr<gmx_domdec_specat_comm_t> vsite_comm;
+    std::vector<int>                          vsite_requestedGlobalAtomIndices;
 
     /* Constraint stuff */
-    gmx_domdec_constraints_t* constraints     = nullptr;
-    gmx_domdec_specat_comm_t* constraint_comm = nullptr;
+    std::unique_ptr<gmx_domdec_constraints_t> constraints;
+    std::unique_ptr<gmx_domdec_specat_comm_t> constraint_comm;
 
-    /* The number of home atom groups */
-    int ncg_home = 0;
+    /* The number of home atoms */
+    int numHomeAtoms = 0;
     /* Global atom group indices for the home and all non-home groups */
     std::vector<int> globalAtomGroupIndices;
 
@@ -222,10 +222,10 @@ struct gmx_domdec_t
     std::vector<int> globalAtomIndices;
 
     /* Global atom number to local atom number list */
-    gmx_ga2la_t* ga2la = nullptr;
+    std::unique_ptr<gmx_ga2la_t> ga2la;
 
     /* Communication stuff */
-    gmx_domdec_comm_t* comm = nullptr;
+    std::unique_ptr<gmx_domdec_comm_t> comm;
 
     /* The partioning count, to keep track of the state */
     int64_t ddp_count = 0;
@@ -233,8 +233,11 @@ struct gmx_domdec_t
     /* The managed atom sets that are updated in domain decomposition */
     gmx::LocalAtomSetManager* atomSets = nullptr;
 
+    //! The handler for checking whether the local topology is missing interactions
+    std::unique_ptr<gmx::LocalTopologyChecker> localTopologyChecker;
+
     /* gmx_pme_recv_f buffer */
-    std::vector<gmx::RVec> pmeForceReceiveBuffer;
+    gmx::HostVector<gmx::RVec> pmeForceReceiveBuffer;
 
     /* GPU halo exchange objects: this structure supports a vector of pulses for each dimension */
     std::vector<std::unique_ptr<gmx::GpuHaloExchange>> gpuHaloExchange[DIM];

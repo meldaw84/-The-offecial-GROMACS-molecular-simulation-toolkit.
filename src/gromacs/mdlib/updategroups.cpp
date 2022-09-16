@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2018- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /* \internal \file
  *
@@ -52,11 +51,15 @@
 #include "gromacs/math/units.h"
 #include "gromacs/math/utilities.h"
 #include "gromacs/mdlib/constr.h"
-#include "gromacs/mdtypes/inputrec.h"
+#include "gromacs/pbcutil/pbc.h"
 #include "gromacs/topology/idef.h"
 #include "gromacs/topology/ifunc.h"
+#include "gromacs/topology/mtop_atomloops.h"
+#include "gromacs/topology/mtop_util.h"
 #include "gromacs/topology/topology.h"
 #include "gromacs/utility/listoflists.h"
+#include "gromacs/utility/logger.h"
+#include "gromacs/utility/message_string_collector.h"
 
 namespace gmx
 {
@@ -750,5 +753,65 @@ real computeMaxUpdateGroupRadius(const gmx_mtop_t&                      mtop,
 
     return maxRadius;
 }
+
+UpdateGroups::UpdateGroups(std::vector<RangePartitioning>&& updateGroupingPerMoleculeType,
+                           const real                       maxUpdateGroupRadius) :
+    useUpdateGroups_(true),
+    updateGroupingPerMoleculeType_(std::move(updateGroupingPerMoleculeType)),
+    maxUpdateGroupRadius_(maxUpdateGroupRadius)
+{
+}
+
+bool systemHasConstraintsOrVsites(const gmx_mtop_t& mtop)
+{
+    IListRange ilistRange(mtop);
+    return std::any_of(ilistRange.begin(), ilistRange.end(), [](const auto& ilists) {
+        return !extractILists(ilists.list(), IF_CONSTRAINT | IF_VSITE).empty();
+    });
+}
+
+UpdateGroups makeUpdateGroups(const gmx::MDLogger&             mdlog,
+                              std::vector<RangePartitioning>&& updateGroupingPerMoleculeType,
+                              const real                       maxUpdateGroupRadius,
+                              const bool                       useDomainDecomposition,
+                              const bool                       systemHasConstraintsOrVsites,
+                              const real                       cutoffMargin)
+{
+    MessageStringCollector messages;
+
+    messages.startContext("When checking whether update groups are usable:");
+
+    messages.appendIf(!useDomainDecomposition,
+                      "Domain decomposition is not active, so there is no need for update groups");
+
+    messages.appendIf(!systemHasConstraintsOrVsites,
+                      "No constraints or virtual sites are in use, so it is best not to use update "
+                      "groups");
+
+    messages.appendIf(
+            updateGroupingPerMoleculeType.empty(),
+            "At least one moleculetype does not conform to the requirements for using update "
+            "groups");
+
+    messages.appendIf(
+            getenv("GMX_NO_UPDATEGROUPS") != nullptr,
+            "Environment variable GMX_NO_UPDATEGROUPS prohibited the use of update groups");
+
+    // To use update groups, the large domain-to-domain cutoff
+    // distance should be compatible with the box size.
+    messages.appendIf(2 * maxUpdateGroupRadius >= cutoffMargin,
+                      "The combination of rlist and box size prohibits the use of update groups");
+
+    if (!messages.isEmpty())
+    {
+        // Log why we can't use update groups
+        GMX_LOG(mdlog.info).appendText(messages.toString());
+        return UpdateGroups();
+    }
+
+    // Success!
+    return UpdateGroups(std::move(updateGroupingPerMoleculeType), maxUpdateGroupRadius);
+}
+
 
 } // namespace gmx

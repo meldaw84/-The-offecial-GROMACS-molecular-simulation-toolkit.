@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -60,7 +56,6 @@
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/pleasecite.h"
 #include "gromacs/utility/smalloc.h"
-#include "gromacs/utility/snprintf.h"
 
 /* must correspond to char *avbar_opt[] declared in main() */
 enum
@@ -165,7 +160,6 @@ static void plot_coscont(const char* ccfile, int n, int nset, real** val, const 
 static void regression_analysis(int n, gmx_bool bXYdy, real* x, int nset, real** val)
 {
     real S, chi2, a, b, da, db, r = 0;
-    int  ok;
 
     if (bXYdy || (nset == 1))
     {
@@ -175,17 +169,11 @@ static void regression_analysis(int n, gmx_bool bXYdy, real* x, int nset, real**
         printf("(use option -xydy).\n\n");
         if (bXYdy)
         {
-            if ((ok = lsq_y_ax_b_error(n, x, val[0], val[1], &a, &b, &da, &db, &r, &S)) != estatsOK)
-            {
-                gmx_fatal(FARGS, "Error fitting the data: %s", gmx_stats_message(ok));
-            }
+            lsq_y_ax_b_error(n, x, val[0], val[1], &a, &b, &da, &db, &r, &S);
         }
         else
         {
-            if ((ok = lsq_y_ax_b(n, x, val[0], &a, &b, &r, &S)) != estatsOK)
-            {
-                gmx_fatal(FARGS, "Error fitting the data: %s", gmx_stats_message(ok));
-            }
+            lsq_y_ax_b(n, x, val[0], &a, &b, &r, &S);
         }
         chi2 = gmx::square((n - 2) * S);
         printf("Chi2                    = %g\n", chi2);
@@ -1164,7 +1152,6 @@ int gmx_analyze(int argc, char* argv[])
         { "-subav", FALSE, etBOOL, { &bSubAv }, "Subtract the average before autocorrelating" },
         { "-oneacf", FALSE, etBOOL, { &bAverCorr }, "Calculate one ACF over all sets" },
     };
-#define NPA asize(pa)
 
     FILE*             out;
     int               n, nlast, s, nset, i, j = 0;

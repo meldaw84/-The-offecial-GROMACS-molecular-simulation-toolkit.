@@ -1,12 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2006,2007,2008,2009,2010 by the GROMACS development team.
- * Copyright (c) 2012,2013,2014,2015,2016 by the GROMACS development team.
- * Copyright (c) 2017,2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2006- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -20,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -29,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 /*! \internal \file
@@ -61,8 +58,8 @@
 #include "gromacs/math/vec.h"
 #include "gromacs/mdlib/constr.h"
 #include "gromacs/mdlib/gmx_omp_nthreads.h"
+#include "gromacs/mdtypes/atominfo.h"
 #include "gromacs/mdtypes/commrec.h"
-#include "gromacs/mdtypes/forcerec.h" // only for GET_CGINFO_*
 #include "gromacs/pbcutil/ishift.h"
 #include "gromacs/topology/ifunc.h"
 #include "gromacs/topology/mtop_lookup.h"
@@ -76,33 +73,6 @@
 
 using gmx::ListOfLists;
 
-/*! \brief Struct used during constraint setup with domain decomposition */
-struct gmx_domdec_constraints_t
-{
-    //! @cond Doxygen_Suppress
-    std::vector<int> molb_con_offset; /**< Offset in the constraint array for each molblock */
-    std::vector<int> molb_ncon_mol; /**< The number of constraints per molecule for each molblock */
-
-    int ncon; /**< The fully local and conneced constraints */
-    /* The global constraint number, only required for clearing gc_req */
-    std::vector<int> con_gl;     /**< Global constraint indices for local constraints */
-    std::vector<int> con_nlocat; /**< Number of local atoms (2/1/0) for each constraint */
-
-    std::vector<bool> gc_req; /**< Boolean that tells if a global constraint index has been requested; note: size global #constraints */
-
-    /* Hash table for keeping track of requests */
-    std::unique_ptr<gmx::HashedMap<int>> ga2la; /**< Global to local communicated constraint atom only index */
-
-    /* Multi-threading stuff */
-    int                          nthread; /**< Number of threads used for DD constraint setup */
-    std::vector<InteractionList> ils;     /**< Constraint ilist working arrays, size \p nthread */
-
-    /* Buffers for requesting atoms */
-    std::vector<std::vector<int>> requestedGlobalAtomIndices; /**< Buffers for requesting global atom indices, one per thread */
-
-    //! @endcond
-};
-
 void dd_move_x_constraints(gmx_domdec_t*            dd,
                            const matrix             box,
                            gmx::ArrayRef<gmx::RVec> x0,
@@ -112,7 +82,7 @@ void dd_move_x_constraints(gmx_domdec_t*            dd,
     if (dd->constraint_comm)
     {
         dd_move_x_specat(
-                dd, dd->constraint_comm, box, as_rvec_array(x0.data()), as_rvec_array(x1.data()), bX1IsCoord);
+                dd, dd->constraint_comm.get(), box, as_rvec_array(x0.data()), as_rvec_array(x1.data()), bX1IsCoord);
 
         ddReopenBalanceRegionCpu(dd);
     }
@@ -132,13 +102,13 @@ gmx::ArrayRef<const int> dd_constraints_nlocalatoms(const gmx_domdec_t* dd)
 
 void dd_clear_local_constraint_indices(gmx_domdec_t* dd)
 {
-    gmx_domdec_constraints_t* dc = dd->constraints;
+    gmx_domdec_constraints_t* dc = dd->constraints.get();
 
     std::fill(dc->gc_req.begin(), dc->gc_req.end(), false);
 
     if (dd->constraint_comm)
     {
-        dc->ga2la->clear();
+        dc->ga2la->clearAndResizeHashTable();
     }
 }
 
@@ -223,7 +193,7 @@ static void walk_out(int                       con,
 /*! \brief Looks up SETTLE constraints for a range of charge-groups */
 static void atoms_to_settles(gmx_domdec_t*                         dd,
                              const gmx_mtop_t&                     mtop,
-                             const int*                            cginfo,
+                             gmx::ArrayRef<const int64_t>          atomInfo,
                              gmx::ArrayRef<const std::vector<int>> at2settle_mt,
                              int                                   cg_start,
                              int                                   cg_end,
@@ -236,7 +206,7 @@ static void atoms_to_settles(gmx_domdec_t*                         dd,
     int mb = 0;
     for (int a = cg_start; a < cg_end; a++)
     {
-        if (GET_CGINFO_SETTLE(cginfo[a]))
+        if (atomInfo[a] & gmx::sc_atomInfo_Settle)
         {
             int a_gl  = dd->globalAtomIndices[a];
             int a_mol = 0;
@@ -298,14 +268,14 @@ static void atoms_to_settles(gmx_domdec_t*                         dd,
 /*! \brief Looks up constraint for the local atoms */
 static void atoms_to_constraints(gmx_domdec_t*                         dd,
                                  const gmx_mtop_t&                     mtop,
-                                 const int*                            cginfo,
+                                 gmx::ArrayRef<const int64_t>          atomInfo,
                                  gmx::ArrayRef<const ListOfLists<int>> at2con_mt,
                                  int                                   nrec,
                                  InteractionList*                      ilc_local,
                                  std::vector<int>*                     ireq)
 {
-    gmx_domdec_constraints_t* dc  = dd->constraints;
-    gmx_domdec_specat_comm_t* dcc = dd->constraint_comm;
+    gmx_domdec_constraints_t* dc  = dd->constraints.get();
+    gmx_domdec_specat_comm_t* dcc = dd->constraint_comm.get();
 
     const gmx_ga2la_t& ga2la = *dd->ga2la;
 
@@ -314,9 +284,9 @@ static void atoms_to_constraints(gmx_domdec_t*                         dd,
 
     int mb    = 0;
     int nhome = 0;
-    for (int a = 0; a < dd->ncg_home; a++)
+    for (int a = 0; a < dd->numHomeAtoms; a++)
     {
-        if (GET_CGINFO_CONSTR(cginfo[a]))
+        if (atomInfo[a] & gmx::sc_atomInfo_Constraint)
         {
             int a_gl  = dd->globalAtomIndices[a];
             int molnr = 0;
@@ -399,7 +369,7 @@ static void atoms_to_constraints(gmx_domdec_t*                         dd,
 int dd_make_local_constraints(gmx_domdec_t*                  dd,
                               int                            at_start,
                               const struct gmx_mtop_t&       mtop,
-                              const int*                     cginfo,
+                              gmx::ArrayRef<const int64_t>   atomInfo,
                               gmx::Constraints*              constr,
                               int                            nrec,
                               gmx::ArrayRef<InteractionList> il_local)
@@ -407,7 +377,7 @@ int dd_make_local_constraints(gmx_domdec_t*                  dd,
     // This code should not be called unless this condition is true,
     // because that's the only time init_domdec_constraints is
     // called...
-    GMX_RELEASE_ASSERT(dd->comm->systemInfo.haveSplitConstraints || dd->comm->systemInfo.haveSplitSettles,
+    GMX_RELEASE_ASSERT(dd->comm->systemInfo.mayHaveSplitConstraints || dd->comm->systemInfo.mayHaveSplitSettles,
                        "dd_make_local_constraints called when there are no local constraints");
     // ... and init_domdec_constraints always sets
     // dd->constraint_comm...
@@ -419,7 +389,7 @@ int dd_make_local_constraints(gmx_domdec_t*                  dd,
     // true. dd->constraint_comm is unilaterally dereferenced before
     // the call to atoms_to_settles.
 
-    gmx_domdec_constraints_t* dc = dd->constraints;
+    gmx_domdec_constraints_t* dc = dd->constraints.get();
 
     InteractionList* ilc_local = &il_local[F_CONSTR];
     InteractionList* ils_local = &il_local[F_SETTLE];
@@ -439,7 +409,7 @@ int dd_make_local_constraints(gmx_domdec_t*                  dd,
 
     gmx::ArrayRef<const std::vector<int>> at2settle_mt;
     /* When settle works inside charge groups, we assigned them already */
-    if (dd->comm->systemInfo.haveSplitSettles)
+    if (dd->comm->systemInfo.mayHaveSplitSettles)
     {
         // TODO Perhaps gmx_domdec_constraints_t should keep a valid constr?
         GMX_RELEASE_ASSERT(constr != nullptr, "Must have valid constraints object");
@@ -449,7 +419,7 @@ int dd_make_local_constraints(gmx_domdec_t*                  dd,
 
     if (at2settle_mt.empty())
     {
-        atoms_to_constraints(dd, mtop, cginfo, at2con_mt, nrec, ilc_local, ireq);
+        atoms_to_constraints(dd, mtop, atomInfo, at2con_mt, nrec, ilc_local, ireq);
     }
     else
     {
@@ -465,7 +435,7 @@ int dd_make_local_constraints(gmx_domdec_t*                  dd,
             {
                 if (!at2con_mt.empty() && thread == 0)
                 {
-                    atoms_to_constraints(dd, mtop, cginfo, at2con_mt, nrec, ilc_local, ireq);
+                    atoms_to_constraints(dd, mtop, atomInfo, at2con_mt, nrec, ilc_local, ireq);
                 }
 
                 if (thread >= t0_set)
@@ -473,8 +443,8 @@ int dd_make_local_constraints(gmx_domdec_t*                  dd,
                     /* Distribute the settle check+assignments over
                      * dc->nthread or dc->nthread-1 threads.
                      */
-                    const int cg0 = (dd->ncg_home * (thread - t0_set)) / (dc->nthread - t0_set);
-                    const int cg1 = (dd->ncg_home * (thread - t0_set + 1)) / (dc->nthread - t0_set);
+                    const int cg0 = (dd->numHomeAtoms * (thread - t0_set)) / (dc->nthread - t0_set);
+                    const int cg1 = (dd->numHomeAtoms * (thread - t0_set + 1)) / (dc->nthread - t0_set);
 
                     InteractionList* ilst = (thread == t0_set) ? ils_local : &dc->ils[thread];
                     ilst->clear();
@@ -485,7 +455,7 @@ int dd_make_local_constraints(gmx_domdec_t*                  dd,
                         ireqt.clear();
                     }
 
-                    atoms_to_settles(dd, mtop, cginfo, at2settle_mt, cg0, cg1, ilst, &ireqt);
+                    atoms_to_settles(dd, mtop, atomInfo, at2settle_mt, cg0, cg1, ilst, &ireqt);
                 }
             }
             GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR
@@ -514,7 +484,7 @@ int dd_make_local_constraints(gmx_domdec_t*                  dd,
     {
         at_end = setup_specat_communication(dd,
                                             ireq,
-                                            dd->constraint_comm,
+                                            dd->constraint_comm.get(),
                                             dd->constraints->ga2la.get(),
                                             at_start,
                                             2,
@@ -570,8 +540,8 @@ void init_domdec_constraints(gmx_domdec_t* dd, const gmx_mtop_t& mtop)
         fprintf(debug, "Begin init_domdec_constraints\n");
     }
 
-    dd->constraints              = new gmx_domdec_constraints_t;
-    gmx_domdec_constraints_t* dc = dd->constraints;
+    dd->constraints              = std::make_unique<gmx_domdec_constraints_t>();
+    gmx_domdec_constraints_t* dc = dd->constraints.get();
 
     dc->molb_con_offset.resize(mtop.molblock.size());
     dc->molb_ncon_mol.resize(mtop.molblock.size());
@@ -600,7 +570,7 @@ void init_domdec_constraints(gmx_domdec_t* dd, const gmx_mtop_t& mtop)
     dc->nthread = gmx_omp_nthreads_get(ModuleMultiThread::Domdec);
     dc->ils.resize(dc->nthread);
 
-    dd->constraint_comm = new gmx_domdec_specat_comm_t;
+    dd->constraint_comm = std::make_unique<gmx_domdec_specat_comm_t>();
 
     dc->requestedGlobalAtomIndices.resize(dc->nthread);
 }

@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -98,11 +94,7 @@ struct VirtualSiteConfiguration
                                       int                nhyd,
                                       const std::string& nextheavy,
                                       const std::string& dummy) :
-        atomtype(type),
-        isplanar(planar),
-        nHydrogens(nhyd),
-        nextHeavyType(nextheavy),
-        dummyMass(dummy)
+        atomtype(type), isplanar(planar), nHydrogens(nhyd), nextHeavyType(nextheavy), dummyMass(dummy)
     {
     }
     //! Type for the XH3/XH2 atom.
@@ -152,9 +144,7 @@ struct VirtualSiteTopology
          * \param[in] v Value for distance.
          */
         VirtualSiteBond(const std::string& a1, const std::string& a2, real v) :
-            atom1(a1),
-            atom2(a2),
-            value(v)
+            atom1(a1), atom2(a2), value(v)
         {
         }
         //! Atom 1 in bond.
@@ -178,10 +168,7 @@ struct VirtualSiteTopology
          * \param[in] v Value for angle.
          */
         VirtualSiteAngle(const std::string& a1, const std::string& a2, const std::string& a3, real v) :
-            atom1(a1),
-            atom2(a2),
-            atom3(a3),
-            value(v)
+            atom1(a1), atom2(a2), atom3(a3), value(v)
         {
         }
         //! Atom 1 in angle.
@@ -382,7 +369,7 @@ static void read_vsite_database(const char*                            ddbname,
                     break;
                     default:
                         gmx_fatal(FARGS,
-                                  "Didnt find a case for directive %s in read_vsite_database\n",
+                                  "Didn't find a case for directive %s in read_vsite_database\n",
                                   dirstr);
                 }
             }
@@ -587,7 +574,10 @@ print_bonds(FILE* fp, int o2n[], int nrHatoms, const int Hatoms[], int Heavy, in
     fprintf(fp, "\n");
 }
 
-static int get_atype(int atom, t_atoms* at, gmx::ArrayRef<const PreprocessResidue> rtpFFDB, ResidueType* rt)
+static int get_atype(int                                    atom,
+                     t_atoms*                               at,
+                     gmx::ArrayRef<const PreprocessResidue> rtpFFDB,
+                     const ResidueTypeMap&                  residueTypeMap)
 {
     int  type;
     bool bNterm;
@@ -600,7 +590,8 @@ static int get_atype(int atom, t_atoms* at, gmx::ArrayRef<const PreprocessResidu
     {
         /* get type from rtpFFDB */
         auto localPpResidue = getDatabaseEntry(*(at->resinfo[at->atom[atom].resind].name), rtpFFDB);
-        bNterm = rt->namedResidueHasType(*(at->resinfo[at->atom[atom].resind].name), "Protein")
+        bNterm              = namedResidueHasType(
+                         residueTypeMap, *(at->resinfo[at->atom[atom].resind].name), "Protein")
                  && (at->atom[atom].resind == 0);
         int j = search_jtype(*localPpResidue, *(at->atomname[atom]), bNterm);
         type  = localPpResidue->atom[j].type;
@@ -619,7 +610,10 @@ static int vsite_nm2type(const char* name, PreprocessingAtomTypes* atype)
     return *tp;
 }
 
-static real get_amass(int atom, t_atoms* at, gmx::ArrayRef<const PreprocessResidue> rtpFFDB, ResidueType* rt)
+static real get_amass(int                                    atom,
+                      t_atoms*                               at,
+                      gmx::ArrayRef<const PreprocessResidue> rtpFFDB,
+                      const ResidueTypeMap&                  residueTypeMap)
 {
     real mass;
     bool bNterm;
@@ -632,7 +626,8 @@ static real get_amass(int atom, t_atoms* at, gmx::ArrayRef<const PreprocessResid
     {
         /* get mass from rtpFFDB */
         auto localPpResidue = getDatabaseEntry(*(at->resinfo[at->atom[atom].resind].name), rtpFFDB);
-        bNterm = rt->namedResidueHasType(*(at->resinfo[at->atom[atom].resind].name), "Protein")
+        bNterm              = namedResidueHasType(
+                         residueTypeMap, *(at->resinfo[at->atom[atom].resind].name), "Protein")
                  && (at->atom[atom].resind == 0);
         int j = search_jtype(*localPpResidue, *(at->atomname[atom]), bNterm);
         mass  = localPpResidue->atom[j].m;
@@ -1680,7 +1675,6 @@ void do_vsites(gmx::ArrayRef<const PreprocessResidue> rtpFFDB,
     matrix  tmpmat;
     real    mHtot, mtot, fact, fact2;
     rvec    rpar, rperp, temp;
-    char    tpname[32], nexttpname[32];
     int *   o2n, *newvsite_type, *newcgnr, ats[MAXATOMSPERRESIDUE];
     t_atom* newatom;
     char*** newatomname;
@@ -1808,7 +1802,7 @@ void do_vsites(gmx::ArrayRef<const PreprocessResidue> rtpFFDB,
     /* make index to tell which residues were already processed */
     std::vector<bool> bResProcessed(at->nres);
 
-    ResidueType rt;
+    ResidueTypeMap residueTypeMap = residueTypeMapFromLibraryFile("residuetypes.dat");
 
     /* generate vsite constructions */
     /* loop over all atoms */
@@ -1827,7 +1821,7 @@ void do_vsites(gmx::ArrayRef<const PreprocessResidue> rtpFFDB,
          * N-terminus that must be treated first.
          */
         if (bVsiteAromatics && (strcmp(*(at->atomname[i]), "CA") == 0) && !bResProcessed[resind]
-            && rt.namedResidueHasType(*(at->resinfo[resind].name), "Protein"))
+            && namedResidueHasType(residueTypeMap, *(at->resinfo[resind].name), "Protein"))
         {
             /* mark this residue */
             bResProcessed[resind] = TRUE;
@@ -1969,8 +1963,8 @@ void do_vsites(gmx::ArrayRef<const PreprocessResidue> rtpFFDB,
                and return H atom numbers (Hatoms) and heavy atom numbers (heavies) */
             count_bonds(i, &plist[F_BONDS], at->atomname, &nrbonds, &nrHatoms, Hatoms, &Heavy, &nrheavies, heavies);
             /* get Heavy atom type */
-            tpHeavy = get_atype(Heavy, at, rtpFFDB, &rt);
-            strcpy(tpname, *atype->atomNameFromAtomType(tpHeavy));
+            tpHeavy     = get_atype(Heavy, at, rtpFFDB, residueTypeMap);
+            auto tpname = atype->atomNameFromAtomType(tpHeavy);
 
             bWARNING       = FALSE;
             bAddVsiteParam = TRUE;
@@ -2034,10 +2028,10 @@ void do_vsites(gmx::ArrayRef<const PreprocessResidue> rtpFFDB,
                 if ((nrHatoms == 2) && ((*at->atomname[Heavy])[0] == 'N'))
                 {
                     isN   = TRUE;
-                    int j = nitrogen_is_planar(vsiteconflist, tpname);
+                    int j = nitrogen_is_planar(vsiteconflist, *tpname);
                     if (j < 0)
                     {
-                        gmx_fatal(FARGS, "No vsite database NH2 entry for type %s\n", tpname);
+                        gmx_fatal(FARGS, "No vsite database NH2 entry for type %s\n", tpname->c_str());
                     }
                     planarN = (j == 1);
                 }
@@ -2067,9 +2061,9 @@ void do_vsites(gmx::ArrayRef<const PreprocessResidue> rtpFFDB,
                     }
                     /* get dummy mass type from first char of heavy atom type (N or C) */
 
-                    strcpy(nexttpname,
-                           *atype->atomNameFromAtomType(get_atype(heavies[0], at, rtpFFDB, &rt)));
-                    std::string ch = get_dummymass_name(vsiteconflist, tpname, nexttpname);
+                    auto nexttpname = atype->atomNameFromAtomType(
+                            get_atype(heavies[0], at, rtpFFDB, residueTypeMap));
+                    std::string ch = get_dummymass_name(vsiteconflist, *tpname, *nexttpname);
                     std::string name;
                     if (ch.empty())
                     {
@@ -2079,16 +2073,16 @@ void do_vsites(gmx::ArrayRef<const PreprocessResidue> rtpFFDB,
                                     FARGS,
                                     "Can't find dummy mass for type %s bonded to type %s in the "
                                     "virtual site database (.vsd files). Add it to the database!\n",
-                                    tpname,
-                                    nexttpname);
+                                    tpname->c_str(),
+                                    nexttpname->c_str());
                         }
                         else
                         {
                             gmx_fatal(FARGS,
                                       "A dummy mass for type %s bonded to type %s is required, but "
                                       "no virtual site database (.vsd) files where found.\n",
-                                      tpname,
-                                      nexttpname);
+                                      tpname->c_str(),
+                                      nexttpname->c_str());
                         }
                     }
                     else
@@ -2127,10 +2121,10 @@ void do_vsites(gmx::ArrayRef<const PreprocessResidue> rtpFFDB,
                     /* get atom masses, and set Heavy and Hatoms mass to zero */
                     for (int j = 0; j < nrHatoms; j++)
                     {
-                        mHtot += get_amass(Hatoms[j], at, rtpFFDB, &rt);
+                        mHtot += get_amass(Hatoms[j], at, rtpFFDB, residueTypeMap);
                         at->atom[Hatoms[j]].m = at->atom[Hatoms[j]].mB = 0;
                     }
-                    mtot              = mHtot + get_amass(Heavy, at, rtpFFDB, &rt);
+                    mtot              = mHtot + get_amass(Heavy, at, rtpFFDB, residueTypeMap);
                     at->atom[Heavy].m = at->atom[Heavy].mB = 0;
                     if (mHmult != 1.0)
                     {
@@ -2220,7 +2214,7 @@ void do_vsites(gmx::ArrayRef<const PreprocessResidue> rtpFFDB,
                           "         %d bonds and %d bound hydrogens atoms) to virtual site\n",
                           i + 1,
                           *(at->atomname[i]),
-                          tpname,
+                          tpname->c_str(),
                           nrbonds,
                           nrHatoms);
             }

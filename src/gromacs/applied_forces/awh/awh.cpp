@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2015,2016,2017,2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2015- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 /*! \internal \file
@@ -64,7 +63,6 @@
 #include "gromacs/mdtypes/awh_history.h"
 #include "gromacs/mdtypes/awh_params.h"
 #include "gromacs/mdtypes/commrec.h"
-#include "gromacs/mdtypes/forceoutput.h"
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/pull_params.h"
 #include "gromacs/mdtypes/state.h"
@@ -109,46 +107,39 @@ struct BiasCoupledToSystem
     /* Here AWH can be extended to work on other coordinates than pull. */
 };
 
-/*! \brief Checks whether any dimension uses pulling as a coordinate provider.
+/*! \brief Checks whether any dimension uses the given coordinate provider type.
  *
  * \param[in] awhBiasParams The bias params to check.
- * \returns true if any dimension of the bias is linked to pulling.
+ * \param[in] awhCoordProvider The type of coordinate provider
+ * \returns true if any dimension of the bias is linked to the given provider
  */
-static bool anyDimUsesPull(const AwhBiasParams& awhBiasParams)
+static bool anyDimUsesProvider(const AwhBiasParams&            awhBiasParams,
+                               const AwhCoordinateProviderType awhCoordProvider)
 {
-    return std::any_of(
-            awhBiasParams.dimParams().begin(), awhBiasParams.dimParams().end(), [](const auto& awhDimParam) {
-                return awhDimParam.coordinateProvider() == AwhCoordinateProviderType::Pull;
-            });
+    return std::any_of(awhBiasParams.dimParams().begin(),
+                       awhBiasParams.dimParams().end(),
+                       [&awhCoordProvider](const auto& awhDimParam) {
+                           return awhDimParam.coordinateProvider() == awhCoordProvider;
+                       });
 }
 
-/*! \brief Checks whether any dimension uses pulling as a coordinate provider.
+/*! \brief Checks whether any dimension uses the given coordinate provider type.
  *
  * \param[in] awhParams The AWH params to check.
- * \returns true if any dimension of awh is linked to pulling.
+ * \param[in] awhCoordProvider The type of coordinate provider
+ * \returns true if any dimension of awh is linked to the given provider type.
  */
-static bool anyDimUsesPull(const AwhParams& awhParams)
+static bool anyDimUsesProvider(const AwhParams& awhParams, const AwhCoordinateProviderType awhCoordProvider)
 {
     return std::any_of(awhParams.awhBiasParams().begin(),
                        awhParams.awhBiasParams().end(),
-                       [](const auto& awhBiasParam) { return anyDimUsesPull(awhBiasParam); });
-}
-
-/*! \brief Checks whether any dimension uses pulling as a coordinate provider.
- *
- * \param[in] biasCoupledToSystem The AWH biases to check.
- * \returns true if any dimension of the provided biases is linked to pulling.
- */
-static bool anyDimUsesPull(const ArrayRef<BiasCoupledToSystem> biasCoupledToSystem)
-{
-    return std::any_of(biasCoupledToSystem.begin(), biasCoupledToSystem.end(), [](const auto& biasCts) {
-        return !biasCts.pullCoordIndex_.empty();
-    });
+                       [&awhCoordProvider](const auto& awhBiasParam) {
+                           return anyDimUsesProvider(awhBiasParam, awhCoordProvider);
+                       });
 }
 
 BiasCoupledToSystem::BiasCoupledToSystem(Bias bias, const std::vector<int>& pullCoordIndex) :
-    bias_(std::move(bias)),
-    pullCoordIndex_(pullCoordIndex)
+    bias_(std::move(bias)), pullCoordIndex_(pullCoordIndex)
 {
     /* We already checked for this in grompp, but check again here. */
     GMX_RELEASE_ASSERT(
@@ -168,13 +159,12 @@ Awh::Awh(FILE*                 fplog,
     seed_(awhParams.seed()),
     nstout_(awhParams.nstout()),
     commRecord_(commRecord),
-    multiSimRecord_(multiSimRecord),
     pull_(pull_work),
     potentialOffset_(0),
     numFepLambdaStates_(numFepLambdaStates),
     fepLambdaState_(fepLambdaState)
 {
-    if (anyDimUsesPull(awhParams))
+    if (anyDimUsesProvider(awhParams, AwhCoordinateProviderType::Pull))
     {
         GMX_RELEASE_ASSERT(inputRecord.pull != nullptr, "With AWH we should have pull parameters");
         GMX_RELEASE_ASSERT(pull_work != nullptr,
@@ -184,6 +174,11 @@ Awh::Awh(FILE*                 fplog,
     if (fplog != nullptr)
     {
         please_cite(fplog, "Lindahl2014");
+
+        if (anyDimUsesProvider(awhParams, AwhCoordinateProviderType::FreeEnergyLambda))
+        {
+            please_cite(fplog, "Lundborg2021");
+        }
     }
 
     if (haveBiasSharingWithinSimulation(awhParams))
@@ -194,11 +189,33 @@ Awh::Awh(FILE*                 fplog,
                                   "biases is only supported between simulations"));
     }
 
-    int numSharingSimulations = 1;
-    if (awhParams.shareBiasMultisim() && isMultiSim(multiSimRecord_))
+    if (awhParams.shareBiasMultisim() && multiSimRecord != nullptr)
     {
-        numSharingSimulations = multiSimRecord_->numSimulations_;
+        GMX_RELEASE_ASSERT(commRecord, "Need a valid commRecord");
+        biasSharing_ = std::make_unique<BiasSharing>(awhParams, *commRecord, multiSimRecord->mastersComm_);
+        if (fplog)
+        {
+            for (int k = 0; k < awhParams.numBias(); k++)
+            {
+                const int shareGroup = awhParams.awhBiasParams()[k].shareGroup();
+                if (shareGroup > 0)
+                {
+                    fprintf(fplog,
+                            "awh%d: bias with share group %d is shared between %d simulations\n",
+                            1 + k,
+                            shareGroup,
+                            biasSharing_->numSharingSimulations(k));
+                }
+                else
+                {
+                    fprintf(fplog, "awh%d: bias is not shared between simulations\n", 1 + k);
+                }
+            }
+        }
     }
+
+    // TPX version number tpxv_RemoveTholeRfac from tpxio.cpp, which is the version of release-2022
+    const int c_tpxVersionCoverDiameterUnitChange = 127;
 
     /* Initialize all the biases */
     const double beta          = 1 / (gmx::c_boltz * inputRecord.opts.ref_t[0]);
@@ -225,6 +242,15 @@ Awh::Awh(FILE*                 fplog,
                             "Pull geometry 'direction-periodic' is not supported by AWH"));
                 }
                 double conversionFactor = pull_conversion_factor_userinput2internal(pullCoord);
+                if (inputRecord.tpxFileVersion < c_tpxVersionCoverDiameterUnitChange
+                    && conversionFactor != 1.0 && awhDimParam.coverDiameter() != 0.0)
+                {
+                    GMX_THROW(InvalidInputError(formatString(
+                            "The units for a cover diameter parameter in AWH bias %d in the tpr "
+                            "file are radians while this code usees degrees. "
+                            "Please regenerate your tpr file.",
+                            1 + k)));
+                }
                 pullCoordIndex.push_back(awhDimParam.coordinateIndex());
                 dimParams.emplace_back(DimParams::pullDimParams(
                         conversionFactor, awhDimParam.forceConstant(), beta));
@@ -244,7 +270,7 @@ Awh::Awh(FILE*                 fplog,
                                                dimParams,
                                                beta,
                                                inputRecord.delta_t,
-                                               numSharingSimulations,
+                                               biasSharing_.get(),
                                                biasInitFilename,
                                                thisRankWillDoIO),
                                           pullCoordIndex);
@@ -255,7 +281,7 @@ Awh::Awh(FILE*                 fplog,
     /* Need to register the AWH coordinates to be allowed to apply forces to the pull coordinates. */
     registerAwhWithPull(awhParams, pull_);
 
-    if (numSharingSimulations > 1 && MASTER(commRecord_))
+    if (biasSharing_ && MASTER(commRecord_))
     {
         std::vector<size_t> pointSize;
         for (auto const& biasCts : biasCoupledToSystem_)
@@ -263,7 +289,7 @@ Awh::Awh(FILE*                 fplog,
             pointSize.push_back(biasCts.bias_.state().points().size());
         }
         /* Ensure that the shared biased are compatible between simulations */
-        biasesAreCompatibleForSharingBetweenSimulations(awhParams, pointSize, multiSimRecord_);
+        biasesAreCompatibleForSharingBetweenSimulations(awhParams, pointSize, *biasSharing_);
     }
 }
 
@@ -275,21 +301,14 @@ bool Awh::isOutputStep(int64_t step) const
 }
 
 real Awh::applyBiasForcesAndUpdateBias(PbcType                pbcType,
-                                       ArrayRef<const real>   masses,
                                        ArrayRef<const double> neighborLambdaEnergies,
                                        ArrayRef<const double> neighborLambdaDhdl,
                                        const matrix           box,
-                                       gmx::ForceWithVirial*  forceWithVirial,
                                        double                 t,
                                        int64_t                step,
                                        gmx_wallcycle*         wallcycle,
                                        FILE*                  fplog)
 {
-    if (anyDimUsesPull(biasCoupledToSystem_))
-    {
-        GMX_ASSERT(forceWithVirial, "Need a valid ForceWithVirial object");
-    }
-
     wallcycle_start(wallcycle, WallCycleCounter::Awh);
 
     t_pbc pbc;
@@ -312,7 +331,7 @@ real Awh::applyBiasForcesAndUpdateBias(PbcType                pbcType,
             if (biasCts.bias_.dimParams()[d].isPullDimension())
             {
                 coordValue[d] = get_pull_coord_value(
-                        pull_, biasCts.pullCoordIndex_[d - numLambdaDimsCounted], &pbc);
+                        pull_, biasCts.pullCoordIndex_[d - numLambdaDimsCounted], pbc);
             }
             else
             {
@@ -336,8 +355,6 @@ real Awh::applyBiasForcesAndUpdateBias(PbcType                pbcType,
                                                      neighborLambdaDhdl,
                                                      &biasPotential,
                                                      &biasPotentialJump,
-                                                     commRecord_,
-                                                     multiSimRecord_,
                                                      t,
                                                      step,
                                                      seed_,
@@ -357,11 +374,8 @@ real Awh::applyBiasForcesAndUpdateBias(PbcType                pbcType,
         {
             if (biasCts.bias_.dimParams()[d].isPullDimension())
             {
-                apply_external_pull_coord_force(pull_,
-                                                biasCts.pullCoordIndex_[d - numLambdaDimsCounted],
-                                                biasForce[d],
-                                                masses,
-                                                forceWithVirial);
+                apply_external_pull_coord_force(
+                        pull_, biasCts.pullCoordIndex_[d - numLambdaDimsCounted], biasForce[d]);
             }
             else
             {
@@ -463,7 +477,8 @@ const char* Awh::externalPotentialString()
 
 void Awh::registerAwhWithPull(const AwhParams& awhParams, pull_t* pull_work)
 {
-    GMX_RELEASE_ASSERT(!anyDimUsesPull(awhParams) || pull_work, "Need a valid pull object");
+    GMX_RELEASE_ASSERT(!anyDimUsesProvider(awhParams, AwhCoordinateProviderType::Pull) || pull_work,
+                       "Need a valid pull object");
 
     for (const auto& biasParam : awhParams.awhBiasParams())
     {

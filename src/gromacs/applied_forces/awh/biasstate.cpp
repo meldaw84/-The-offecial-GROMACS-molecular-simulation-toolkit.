@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2015,2016,2017,2018,2019, The GROMACS development team.
- * Copyright (c) 2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2015- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 /*! \internal \file
@@ -70,10 +68,10 @@
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/gmxassert.h"
-#include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringutil.h"
 
 #include "biasgrid.h"
+#include "biassharing.h"
 #include "pointstate.h"
 
 namespace gmx
@@ -96,69 +94,23 @@ namespace
 {
 
 /*! \brief
- * Sum an array over all simulations on the master rank of each simulation.
- *
- * \param[in,out] arrayRef      The data to sum.
- * \param[in]     multiSimComm  Struct for multi-simulation communication.
- */
-void sumOverSimulations(gmx::ArrayRef<int> arrayRef, const gmx_multisim_t* multiSimComm)
-{
-    gmx_sumi_sim(arrayRef.size(), arrayRef.data(), multiSimComm);
-}
-
-/*! \brief
- * Sum an array over all simulations on the master rank of each simulation.
- *
- * \param[in,out] arrayRef      The data to sum.
- * \param[in]     multiSimComm  Struct for multi-simulation communication.
- */
-void sumOverSimulations(gmx::ArrayRef<double> arrayRef, const gmx_multisim_t* multiSimComm)
-{
-    gmx_sumd_sim(arrayRef.size(), arrayRef.data(), multiSimComm);
-}
-
-/*! \brief
- * Sum an array over all simulations on all ranks of each simulation.
- *
- * This assumes the data is identical on all ranks within each simulation.
- *
- * \param[in,out] arrayRef      The data to sum.
- * \param[in]     commRecord    Struct for intra-simulation communication.
- * \param[in]     multiSimComm  Struct for multi-simulation communication.
- */
-template<typename T>
-void sumOverSimulations(gmx::ArrayRef<T> arrayRef, const t_commrec* commRecord, const gmx_multisim_t* multiSimComm)
-{
-    if (MASTER(commRecord))
-    {
-        sumOverSimulations(arrayRef, multiSimComm);
-    }
-    if (commRecord->nnodes > 1)
-    {
-        gmx_bcast(arrayRef.size() * sizeof(T), arrayRef.data(), commRecord->mpi_comm_mygroup);
-    }
-}
-
-/*! \brief
  * Sum PMF over multiple simulations, when requested.
  *
  * \param[in,out] pointState         The state of the points in the bias.
  * \param[in]     numSharedUpdate    The number of biases sharing the histogram.
- * \param[in]     commRecord         Struct for intra-simulation communication.
- * \param[in]     multiSimComm       Struct for multi-simulation communication.
+ * \param[in]     biasSharing        Object for sharing bias data over multiple simulations
+ * \param[in]     biasIndex          Index of this bias in the total list of biases in this simulation
  */
-void sumPmf(gmx::ArrayRef<PointState> pointState,
-            int                       numSharedUpdate,
-            const t_commrec*          commRecord,
-            const gmx_multisim_t*     multiSimComm)
+void sumPmf(gmx::ArrayRef<PointState> pointState, int numSharedUpdate, const BiasSharing* biasSharing, const int biasIndex)
 {
     if (numSharedUpdate == 1)
     {
         return;
     }
-    GMX_ASSERT(multiSimComm != nullptr && numSharedUpdate % multiSimComm->numSimulations_ == 0,
+    GMX_ASSERT(biasSharing != nullptr
+                       && numSharedUpdate % biasSharing->numSharingSimulations(biasIndex) == 0,
                "numSharedUpdate should be a multiple of multiSimComm->numSimulations_");
-    GMX_ASSERT(numSharedUpdate == multiSimComm->numSimulations_,
+    GMX_ASSERT(numSharedUpdate == biasSharing->numSharingSimulations(biasIndex),
                "Sharing within a simulation is not implemented (yet)");
 
     std::vector<double> buffer(pointState.size());
@@ -169,7 +121,7 @@ void sumPmf(gmx::ArrayRef<PointState> pointState,
         buffer[i] = pointState[i].inTargetRegion() ? std::exp(pointState[i].logPmfSum()) : 0;
     }
 
-    sumOverSimulations(gmx::ArrayRef<double>(buffer), commRecord, multiSimComm);
+    biasSharing->sumOverSharingSimulations(gmx::ArrayRef<double>(buffer), biasIndex);
 
     /* Take log again to get (non-normalized) PMF */
     double normFac = 1.0 / numSharedUpdate;
@@ -333,7 +285,8 @@ void BiasState::calcConvolvedPmf(ArrayRef<const DimParams> dimParams,
 
         GMX_RELEASE_ASSERT(freeEnergyWeights > 0,
                            "Attempting to do log(<= 0) in AWH convolved PMF calculation.");
-        (*convolvedPmf)[m] = -std::log(static_cast<float>(freeEnergyWeights));
+        // We should cast to float after taking the logarithm to avoid underflows
+        (*convolvedPmf)[m] = static_cast<float>(-std::log(freeEnergyWeights));
     }
 }
 
@@ -697,13 +650,13 @@ namespace
  *
  * \param[in,out] updateList    Update list for this simulation (assumed >= npoints long).
  * \param[in]     numPoints     Total number of points.
- * \param[in]     commRecord    Struct for intra-simulation communication.
- * \param[in]     multiSimComm  Struct for multi-simulation communication.
+ * \param[in]     biasSharing   Object for sharing bias data over multiple simulations
+ * \param[in]     biasIndex     Index of this bias in the total list of biases in this simulation
  */
-void mergeSharedUpdateLists(std::vector<int>*     updateList,
-                            int                   numPoints,
-                            const t_commrec*      commRecord,
-                            const gmx_multisim_t* multiSimComm)
+void mergeSharedUpdateLists(std::vector<int>*  updateList,
+                            int                numPoints,
+                            const BiasSharing& biasSharing,
+                            const int          biasIndex)
 {
     std::vector<int> numUpdatesOfPoint;
 
@@ -716,7 +669,7 @@ void mergeSharedUpdateLists(std::vector<int>*     updateList,
     }
 
     /* Sum over the sims to get all the flagged points */
-    sumOverSimulations(arrayRefFromArray(numUpdatesOfPoint.data(), numPoints), commRecord, multiSimComm);
+    biasSharing.sumOverSharingSimulations(arrayRefFromArray(numUpdatesOfPoint.data(), numPoints), biasIndex);
 
     /* Collect the indices of the flagged points in place. The resulting array will be the merged update list.*/
     updateList->clear();
@@ -735,8 +688,10 @@ void mergeSharedUpdateLists(std::vector<int>*     updateList,
  * \param[in] grid              The AWH bias.
  * \param[in] points            The point state.
  * \param[in] originUpdatelist  The origin of the rectangular region that has been sampled since
- * last update. \param[in] endUpdatelist     The end of the rectangular that has been sampled since
- * last update. \param[in,out] updateList    Local update list to set (assumed >= npoints long).
+ *                              last update.
+ * \param[in] endUpdatelist     The end of the rectangular that has been sampled since
+ *                              last update.
+ * \param[in,out] updateList    Local update list to set (assumed >= npoints long).
  */
 void makeLocalUpdateList(const BiasGrid&            grid,
                          ArrayRef<const PointState> points,
@@ -796,15 +751,15 @@ namespace
  * \param[in,out] pointState         The state of the points in the bias.
  * \param[in,out] weightSumCovering  The weights for checking covering.
  * \param[in]     numSharedUpdate    The number of biases sharing the histrogram.
- * \param[in]     commRecord         Struct for intra-simulation communication.
- * \param[in]     multiSimComm       Struct for multi-simulation communication.
- * \param[in]     localUpdateList    List of points with data.
+ * \param[in]     biasSharing        Object for sharing bias data over multiple simulations
+ * \param[in]     biasIndex          Index of this bias in the total list of biases in this
+ * simulation \param[in]     localUpdateList    List of points with data.
  */
 void sumHistograms(gmx::ArrayRef<PointState> pointState,
                    gmx::ArrayRef<double>     weightSumCovering,
                    int                       numSharedUpdate,
-                   const t_commrec*          commRecord,
-                   const gmx_multisim_t*     multiSimComm,
+                   const BiasSharing*        biasSharing,
+                   const int                 biasIndex,
                    const std::vector<int>&   localUpdateList)
 {
     /* The covering checking histograms are added before summing over simulations, so that the
@@ -817,7 +772,7 @@ void sumHistograms(gmx::ArrayRef<PointState> pointState,
     /* Sum histograms over multiple simulations if needed. */
     if (numSharedUpdate > 1)
     {
-        GMX_ASSERT(numSharedUpdate == multiSimComm->numSimulations_,
+        GMX_ASSERT(numSharedUpdate == biasSharing->numSharingSimulations(biasIndex),
                    "Sharing within a simulation is not implemented (yet)");
 
         /* Collect the weights and counts in linear arrays to be able to use gmx_sumd_sim. */
@@ -835,8 +790,8 @@ void sumHistograms(gmx::ArrayRef<PointState> pointState,
             coordVisits[localIndex] = ps.numVisitsIteration();
         }
 
-        sumOverSimulations(gmx::ArrayRef<double>(weightSum), commRecord, multiSimComm);
-        sumOverSimulations(gmx::ArrayRef<double>(coordVisits), commRecord, multiSimComm);
+        biasSharing->sumOverSharingSimulations(gmx::ArrayRef<double>(weightSum), biasIndex);
+        biasSharing->sumOverSharingSimulations(gmx::ArrayRef<double>(coordVisits), biasIndex);
 
         /* Transfer back the result */
         for (size_t localIndex = 0; localIndex < localUpdateList.size(); localIndex++)
@@ -964,9 +919,7 @@ void labelCoveredPoints(const std::vector<bool>& visited,
 
 bool BiasState::isSamplingRegionCovered(const BiasParams&         params,
                                         ArrayRef<const DimParams> dimParams,
-                                        const BiasGrid&           grid,
-                                        const t_commrec*          commRecord,
-                                        const gmx_multisim_t*     multiSimComm) const
+                                        const BiasGrid&           grid) const
 {
     /* Allocate and initialize arrays: one for checking visits along each dimension,
        one for keeping track of which points to check and one for the covered points.
@@ -1072,10 +1025,9 @@ bool BiasState::isSamplingRegionCovered(const BiasParams&         params,
         /* For multiple dimensions this may not be the best way to do it. */
         for (int d = 0; d < grid.numDimensions(); d++)
         {
-            sumOverSimulations(
+            biasSharing_->sumOverSharingSimulations(
                     gmx::arrayRefFromArray(checkDim[d].covered.data(), grid.axis(d).numPoints()),
-                    commRecord,
-                    multiSimComm);
+                    params.biasIndex);
         }
     }
 
@@ -1110,8 +1062,6 @@ static void normalizeFreeEnergyAndPmfSum(std::vector<PointState>* pointState)
 void BiasState::updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParams> dimParams,
                                                          const BiasGrid&           grid,
                                                          const BiasParams&         params,
-                                                         const t_commrec*          commRecord,
-                                                         const gmx_multisim_t*     multiSimComm,
                                                          double                    t,
                                                          int64_t                   step,
                                                          FILE*                     fplog,
@@ -1130,16 +1080,16 @@ void BiasState::updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParam
     makeLocalUpdateList(grid, points_, originUpdatelist_, endUpdatelist_, updateList);
     if (params.numSharedUpdate > 1)
     {
-        mergeSharedUpdateLists(updateList, points_.size(), commRecord, multiSimComm);
+        mergeSharedUpdateLists(updateList, points_.size(), *biasSharing_, params.biasIndex);
     }
 
     /* Reset the range for the next update */
     resetLocalUpdateRange(grid);
 
     /* Add samples to histograms for all local points and sync simulations if needed */
-    sumHistograms(points_, weightSumCovering_, params.numSharedUpdate, commRecord, multiSimComm, *updateList);
+    sumHistograms(points_, weightSumCovering_, params.numSharedUpdate, biasSharing_, params.biasIndex, *updateList);
 
-    sumPmf(points_, params.numSharedUpdate, commRecord, multiSimComm);
+    sumPmf(points_, params.numSharedUpdate, biasSharing_, params.biasIndex);
 
     /* Renormalize the free energy if values are too large. */
     bool needToNormalizeFreeEnergy = false;
@@ -1166,8 +1116,7 @@ void BiasState::updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParam
     if (inInitialStage())
     {
         detectedCovering =
-                (params.isCheckCoveringStep(step)
-                 && isSamplingRegionCovered(params, dimParams, grid, commRecord, multiSimComm));
+                (params.isCheckCoveringStep(step) && isSamplingRegionCovered(params, dimParams, grid));
     }
 
     /* The weighthistogram size after this update. */
@@ -1329,6 +1278,9 @@ double BiasState::updateProbabilityWeightsAndConvolvedBias(ArrayRef<const DimPar
                     weightSum -= weightData[i];
                 }
             }
+            /* Subtracting potentially very large values above may lead to rounding errors, causing
+             * negative weightSum, even in double precision. */
+            weightSum = std::max(weightSum, GMX_DOUBLE_MIN);
         }
     }
 
@@ -1587,15 +1539,19 @@ void BiasState::setFreeEnergyToConvolvedPmf(ArrayRef<const DimParams> dimParams,
  * \param[in] numColumns  Number of cols in array.
  * \returns the number of trailing zero rows.
  */
-static int countTrailingZeroRows(const double* const* data, int numRows, int numColumns)
+static int countTrailingZeroRows(const MultiDimArray<std::vector<double>, dynamicExtents2D>& data,
+                                 int numRows,
+                                 int numColumns)
 {
+    const auto& dataView = data.asConstView();
+
     int numZeroRows = 0;
     for (int m = numRows - 1; m >= 0; m--)
     {
         bool rowIsZero = true;
         for (int d = 0; d < numColumns; d++)
         {
-            if (data[d][m] != 0)
+            if (dataView[d][m] != 0)
             {
                 rowIsZero = false;
                 break;
@@ -1663,9 +1619,9 @@ static void readUserPmfAndTargetDistribution(ArrayRef<const DimParams> dimParams
     wrapper.settings().setLineLength(c_linewidth);
     correctFormatMessage = wrapper.wrapToString(correctFormatMessage);
 
-    double** data;
-    int      numColumns;
-    int      numRows = read_xvg(filenameModified.c_str(), &data, &numColumns);
+    gmx::MultiDimArray<std::vector<double>, gmx::dynamicExtents2D> data = readXvgData(filenameModified);
+    const int                                                      numColumns = data.extent(0);
+    const int                                                      numRows    = data.extent(1);
 
     /* Check basic data properties here. BiasGrid takes care of more complicated things. */
 
@@ -1717,6 +1673,8 @@ static void readUserPmfAndTargetDistribution(ArrayRef<const DimParams> dimParams
         GMX_THROW(InvalidInputError(mesg));
     }
 
+    const auto& dataView = data.asView();
+
     /* read_xvg can give trailing zero data rows for trailing new lines in the input. We allow 1 zero row,
        since this could be real data. But multiple trailing zero rows cannot correspond to valid data. */
     int numZeroRows = countTrailingZeroRows(data, numRows, numColumns);
@@ -1740,7 +1698,7 @@ static void readUserPmfAndTargetDistribution(ArrayRef<const DimParams> dimParams
         }
         for (size_t m = 0; m < pointState->size(); m++)
         {
-            data[d][m] *= scalingFactor;
+            dataView[d][m] *= scalingFactor;
         }
     }
 
@@ -1748,14 +1706,23 @@ static void readUserPmfAndTargetDistribution(ArrayRef<const DimParams> dimParams
     std::vector<int> gridIndexToDataIndex(grid.numPoints());
     mapGridToDataGrid(&gridIndexToDataIndex, data, numRows, filename, grid, correctFormatMessage);
 
+    // The bounds for the PMF such that exp(pmf) doesn't over/underflow in double precision
+    const double c_pmfMax = 700.0;
+
     /* Extract the data for each grid point.
      * We check if the target distribution is zero for all points.
      */
     bool targetDistributionIsZero = true;
     for (size_t m = 0; m < pointState->size(); m++)
     {
-        (*pointState)[m].setLogPmfSum(-data[columnIndexPmf][gridIndexToDataIndex[m]]);
-        double target = data[columnIndexTarget][gridIndexToDataIndex[m]];
+        const double pmf = dataView[columnIndexPmf][gridIndexToDataIndex[m]];
+        if (pmf < -c_pmfMax || pmf > c_pmfMax)
+        {
+            GMX_THROW(InvalidInputError(
+                    "A value in the user input PMF is beyond the bounds of +-700 kT"));
+        }
+        (*pointState)[m].setLogPmfSum(-pmf);
+        double target = dataView[columnIndexTarget][gridIndexToDataIndex[m]];
 
         /* Check if the values are allowed. */
         if (target < 0)
@@ -1782,13 +1749,6 @@ static void readUserPmfAndTargetDistribution(ArrayRef<const DimParams> dimParams
                                   filename.c_str());
         GMX_THROW(InvalidInputError(mesg));
     }
-
-    /* Free the arrays. */
-    for (int m = 0; m < numColumns; m++)
-    {
-        sfree(data[m]);
-    }
-    sfree(data);
 }
 
 void BiasState::normalizePmf(int numSharingSims)
@@ -1873,11 +1833,13 @@ void BiasState::initGridPointState(const AwhBiasParams&      awhBiasParams,
 BiasState::BiasState(const AwhBiasParams&      awhBiasParams,
                      double                    histogramSizeInitial,
                      ArrayRef<const DimParams> dimParams,
-                     const BiasGrid&           grid) :
+                     const BiasGrid&           grid,
+                     const BiasSharing*        biasSharing) :
     coordState_(awhBiasParams, dimParams, grid),
     points_(grid.numPoints()),
     weightSumCovering_(grid.numPoints()),
-    histogramSize_(awhBiasParams, histogramSizeInitial)
+    histogramSize_(awhBiasParams, histogramSizeInitial),
+    biasSharing_(biasSharing)
 {
     /* The minimum and maximum multidimensional point indices that are affected by the next update */
     for (size_t d = 0; d < dimParams.size(); d++)

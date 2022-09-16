@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2013, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -799,14 +795,14 @@ int gmx_check(int argc, char* argv[])
     const char *fn1 = nullptr, *fn2 = nullptr, *tex = nullptr;
 
     gmx_output_env_t* oenv;
-    static real       vdw_fac  = 0.8;
-    static real       bon_lo   = 0.4;
-    static real       bon_hi   = 0.7;
-    static gmx_bool   bRMSD    = FALSE;
-    static real       ftol     = 0.001;
-    static real       abstol   = 0.001;
-    static gmx_bool   bCompAB  = FALSE;
-    static char*      lastener = nullptr;
+    real              vdw_fac  = 0.8;
+    real              bon_lo   = 0.4;
+    real              bon_hi   = 0.7;
+    gmx_bool          bRMSD    = FALSE;
+    real              ftol     = 0.001;
+    real              abstol   = 0.001;
+    gmx_bool          bCompAB  = FALSE;
+    char*             lastener = nullptr;
     static t_pargs    pa[]     = {
         { "-vdwfac",
           FALSE,

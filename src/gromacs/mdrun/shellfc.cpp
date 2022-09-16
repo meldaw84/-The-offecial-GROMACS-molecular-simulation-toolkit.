@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2008, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -73,6 +69,7 @@
 #include "gromacs/mdtypes/state.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/topology/ifunc.h"
+#include "gromacs/topology/mtop_atomloops.h"
 #include "gromacs/topology/mtop_lookup.h"
 #include "gromacs/topology/mtop_util.h"
 #include "gromacs/utility/arrayref.h"
@@ -287,7 +284,7 @@ gmx_shellfc_t* init_shell_flexcon(FILE*             fplog,
                   "not supported in combination with shell particles.\nPlease make a new tpr file.",
                   nstcalcenergy);
     }
-    if (usingDomainDecomposition)
+    if (nshell > 0 && usingDomainDecomposition)
     {
         gmx_fatal(
                 FARGS,
@@ -540,7 +537,7 @@ void gmx::make_local_shells(const t_commrec* cr, const t_mdatoms& md, gmx_shellf
     int           a0, a1;
     gmx_domdec_t* dd = nullptr;
 
-    if (DOMAINDECOMP(cr))
+    if (haveDDAtomOrdering(*cr))
     {
         dd = cr->dd;
         a0 = 0;
@@ -558,10 +555,9 @@ void gmx::make_local_shells(const t_commrec* cr, const t_mdatoms& md, gmx_shellf
 
     std::vector<t_shell>& shells = shfc->shells;
     shells.clear();
-    auto* ptype = md.ptype;
     for (int i = a0; i < a1; i++)
     {
-        if (ptype[i] == ParticleType::Shell)
+        if (md.ptype[i] == ParticleType::Shell)
         {
             if (dd)
             {
@@ -833,7 +829,7 @@ static void init_adir(gmx_shellfc_t*            shfc,
     double dt, w_dt;
     int    n, d;
 
-    if (DOMAINDECOMP(cr))
+    if (haveDDAtomOrdering(*cr))
     {
         n = dd_ac1;
     }
@@ -848,18 +844,16 @@ static void init_adir(gmx_shellfc_t*            shfc,
     rvec* x_old = as_rvec_array(xOld.paddedArrayRef().data());
     rvec* x     = as_rvec_array(xCurrent.paddedArrayRef().data());
 
-    auto* ptype   = md.ptype;
-    auto  invmass = gmx::arrayRefFromArray(md.invmass, md.nr);
-    dt            = ir->delta_t;
+    dt = ir->delta_t;
 
-    /* Does NOT work with freeze groups (yet) */
+    /* Does NOT work with freeze or acceleration groups (yet) */
     for (n = 0; n < end; n++)
     {
-        w_dt = invmass[n] * dt;
+        w_dt = md.invmass[n] * dt;
 
         for (d = 0; d < DIM; d++)
         {
-            if ((ptype[n] != ParticleType::VSite) && (ptype[n] != ParticleType::Shell))
+            if ((md.ptype[n] != ParticleType::VSite) && (md.ptype[n] != ParticleType::Shell))
             {
                 xnold[n][d] = x[n][d] - (x_init[n][d] - x_old[n][d]);
                 xnew[n][d]  = 2 * x[n][d] - x_old[n][d] + f[n][d] * w_dt * dt;
@@ -910,7 +904,7 @@ static void init_adir(gmx_shellfc_t*            shfc,
         for (d = 0; d < DIM; d++)
         {
             xnew[n][d] = -(2 * x[n][d] - xnold[n][d] - xnew[n][d]) / gmx::square(dt)
-                         - f[n][d] * invmass[n];
+                         - f[n][d] * md.invmass[n];
         }
         clear_rvec(acc_dir[n]);
     }
@@ -956,6 +950,7 @@ void relax_shell_flexcon(FILE*                         fplog,
                          gmx::ForceBuffersView*        f,
                          tensor                        force_vir,
                          const t_mdatoms&              md,
+                         CpuPpLongRangeNonbondeds*     longRangeNonbondeds,
                          t_nrnb*                       nrnb,
                          gmx_wallcycle*                wcycle,
                          gmx_shellfc_t*                shfc,
@@ -982,7 +977,7 @@ void relax_shell_flexcon(FILE*                         fplog,
     ArrayRef<t_shell> shells       = shfc->shells;
     const int         nflexcon     = shfc->nflexcon;
 
-    if (DOMAINDECOMP(cr))
+    if (haveDDAtomOrdering(*cr))
     {
         nat = dd_natoms_vsite(*cr->dd);
         if (nflexcon > 0)
@@ -1018,7 +1013,7 @@ void relax_shell_flexcon(FILE*                         fplog,
     ArrayRef<RVec> x = xPadded.unpaddedArrayRef();
     ArrayRef<RVec> v = vPadded.unpaddedArrayRef();
 
-    if (bDoNS && inputrec->pbcType != PbcType::No && !DOMAINDECOMP(cr))
+    if (bDoNS && inputrec->pbcType != PbcType::No && !haveDDAtomOrdering(*cr))
     {
         /* This is the only time where the coordinates are used
          * before do_force is called, which normally puts all
@@ -1042,7 +1037,7 @@ void relax_shell_flexcon(FILE*                         fplog,
         }
     }
 
-    auto massT = gmx::arrayRefFromArray(md.massT, md.nr);
+    auto massT = md.massT;
     /* Do a prediction of the shell positions, when appropriate.
      * Without velocities (EM, NM, BD) we only do initial prediction.
      */
@@ -1084,6 +1079,7 @@ void relax_shell_flexcon(FILE*                         fplog,
              mu_tot,
              t,
              nullptr,
+             longRangeNonbondeds,
              (bDoNS ? GMX_FORCE_NS : 0) | shellfc_flags,
              ddBalanceRegionHandler);
 
@@ -1224,6 +1220,7 @@ void relax_shell_flexcon(FILE*                         fplog,
                  mu_tot,
                  t,
                  nullptr,
+                 longRangeNonbondeds,
                  shellfc_flags,
                  ddBalanceRegionHandler);
         accumulatePotentialEnergies(enerd, lambda, inputrec->fepvals.get());

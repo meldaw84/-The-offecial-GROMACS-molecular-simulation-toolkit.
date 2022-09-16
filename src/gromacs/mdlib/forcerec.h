@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 The GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #ifndef GMX_MDLIB_FORCEREC_H
 #define GMX_MDLIB_FORCEREC_H
@@ -51,29 +47,35 @@ struct gmx_localtop_t;
 struct gmx_mtop_t;
 struct gmx_wallcycle;
 struct interaction_const_t;
-struct gmx_ffparams_t;
+union t_iparams;
+enum class LongRangeVdW : int;
 
 namespace gmx
 {
 class MDLogger;
 class PhysicalNodeCommunicator;
+class SimulationWorkload;
 } // namespace gmx
 
 /*! \brief Create nonbonded parameter lists
  *
- * \param[in] forceFieldParams       The forcefield parameters
+ * \param[in] numAtomTypes           The number of atom types
+ * \param[in] iparams                The LJ parameters
  * \param[in] useBuckinghamPotential Use Buckingham potential
  */
-std::vector<real> makeNonBondedParameterLists(const gmx_ffparams_t& forceFieldParams,
-                                              bool                  useBuckinghamPotential);
+std::vector<real> makeNonBondedParameterLists(int                            numAtomTypes,
+                                              gmx::ArrayRef<const t_iparams> iparams,
+                                              bool useBuckinghamPotential);
 
 /*! \brief Calculate c6 parameters for grid correction
  *
- * \param[in] forceFieldParams The forcefield parameters
- * \param[in] forceRec         The forcerec
+ * \param[in] numAtomTypes           The number of atom types
+ * \param[in] iparams                The LJ parameters
+ * \param[in] ljpme_combination_rule How long range LJ is treated
  */
-std::vector<real> makeLJPmeC6GridCorrectionParameters(const gmx_ffparams_t& forceFieldParams,
-                                                      const t_forcerec&     forceRec);
+std::vector<real> makeLJPmeC6GridCorrectionParameters(int                            numAtomTypes,
+                                                      gmx::ArrayRef<const t_iparams> iparams,
+                                                      LongRangeVdW ljpme_combination_rule);
 
 /*! \brief Set the number of charge groups and atoms.
  *
@@ -102,6 +104,7 @@ void init_interaction_const_tables(FILE* fp, interaction_const_t* ic, real rlist
  * \param[in]  fplog              File for printing
  * \param[in]  mdlog              File for printing
  * \param[out] forcerec                 The forcerec
+ * \param[in]  simulationWork           Simulation workload flags
  * \param[in]  inputrec                 Inputrec structure
  * \param[in]  mtop               Molecular topology
  * \param[in]  commrec                 Communication structures
@@ -113,6 +116,7 @@ void init_interaction_const_tables(FILE* fp, interaction_const_t* ic, real rlist
  */
 void init_forcerec(FILE*                            fplog,
                    const gmx::MDLogger&             mdlog,
+                   const gmx::SimulationWorkload&   simulationWork,
                    t_forcerec*                      forcerec,
                    const t_inputrec&                inputrec,
                    const gmx_mtop_t&                mtop,

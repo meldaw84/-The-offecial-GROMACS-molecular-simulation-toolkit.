@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017, The GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,16 +26,18 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
 #include "futil.h"
 
 #include "config.h"
+
+#include <fcntl.h>
 
 #include <cerrno>
 #include <cstdio>
@@ -49,7 +47,6 @@
 #include <mutex>
 #include <tuple>
 
-#include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -342,7 +339,7 @@ gmx_bool gmx_fexist(const std::string& fname)
     FILE* test = fopen(fname.c_str(), "r");
     if (test == nullptr)
     {
-/*Windows doesn't allow fopen of directory - so we need to check this seperately */
+/*Windows doesn't allow fopen of directory - so we need to check this separately */
 #if GMX_NATIVE_WINDOWS
         DWORD attr = GetFileAttributes(fname.c_str());
         return (attr != INVALID_FILE_ATTRIBUTES) && (attr & FILE_ATTRIBUTE_DIRECTORY);
@@ -521,6 +518,8 @@ FilePtr openLibraryFile(const char* filename, bool bAddCWD, bool bFatal)
 /*! \brief Use mkstemp (or similar function to make a new temporary
  * file and (on non-Windows systems) return a file descriptor to it.
  *
+ * Note: not thread-safe on non-Windows systems
+ *
  * \todo Use std::string and std::vector<char>. */
 static int makeTemporaryFilename(char* buf)
 {
@@ -547,6 +546,11 @@ static int makeTemporaryFilename(char* buf)
     int fd = 0;
 #else
     int fd = mkstemp(buf);
+
+    /* mkstemp creates 0600 files - respect umask instead */
+    mode_t currUmask = umask(0);
+    umask(currUmask);
+    fchmod(fd, 0666 & ~currUmask);
 
     if (fd < 0)
     {
@@ -585,11 +589,12 @@ FILE* gmx_fopen_temporary(char* buf)
     return fpout;
 }
 
-int gmx_file_rename(const char* oldname, const char* newname)
+void gmx_file_rename(const char* oldname, const char* newname)
 {
+    int code;
 #if !GMX_NATIVE_WINDOWS
     /* under unix, rename() is atomic (at least, it should be). */
-    return rename(oldname, newname);
+    code = rename(oldname, newname);
 #else
     if (MoveFileEx(oldname, newname, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
     {
@@ -597,13 +602,18 @@ int gmx_file_rename(const char* oldname, const char* newname)
         /* This just lets the F@H checksumming system know about the rename */
         fcRename(oldname, newname);
 #    endif
-        return 0;
+        code = 0;
     }
     else
     {
-        return 1;
+        code = 1;
     }
 #endif
+    if (code != 0)
+    {
+        auto errorMsg = gmx::formatString("Failed to rename %s to %s.", oldname, newname);
+        GMX_THROW(gmx::FileIOError(errorMsg));
+    }
 }
 
 int gmx_file_copy(const char* oldname, const char* newname, gmx_bool copy_if_empty)

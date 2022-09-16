@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2012,2013,2014,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2012- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  *  \brief
@@ -245,7 +243,7 @@ gmx_opencl_inline void preloadCj4Generic(__local int*        sm_cjPreload,
                                          const __global int* gm_cj,
                                          int                 tidxi,
                                          int                 tidxj,
-                                         bool gmx_unused iMaskCond)
+                                         bool gmx_unused     iMaskCond)
 {
     /* Pre-load cj into shared memory */
 #    if defined _AMD_SOURCE_ // TODO: fix by setting c_nbnxnGpuClusterpairSplit properly
@@ -291,9 +289,9 @@ typedef __local int* CjType;
  */
 gmx_opencl_inline void preloadCj4(CjType gmx_unused* cjs,
                                   const __global int gmx_unused* gm_cj,
-                                  int gmx_unused tidxi,
-                                  int gmx_unused tidxj,
-                                  bool gmx_unused iMaskCond)
+                                  int gmx_unused                 tidxi,
+                                  int gmx_unused                 tidxj,
+                                  bool gmx_unused                iMaskCond)
 {
 #    if USE_SUBGROUP_PRELOAD
     *cjs = preloadCj4Subgroup(gm_cj);
@@ -739,14 +737,14 @@ gmx_opencl_inline void reduce_force_i_and_shift_shfl(__private fvec  fci_buf[],
  *  array sizes.
  */
 gmx_opencl_inline void reduce_force_i_and_shift_pow2(volatile __local float* f_buf,
-                                                     __private fvec  fci_buf[],
-                                                     __global float* fout,
-                                                     bool            bCalcFshift,
-                                                     int             tidxi,
-                                                     int             tidxj,
-                                                     int             sci,
-                                                     int             shift,
-                                                     __global float* fshift)
+                                                     __private fvec          fci_buf[],
+                                                     __global float*         fout,
+                                                     bool                    bCalcFshift,
+                                                     int                     tidxi,
+                                                     int                     tidxj,
+                                                     int                     sci,
+                                                     int                     shift,
+                                                     __global float*         fshift)
 {
     float fshift_buf = 0;
     for (int ci_offset = 0; ci_offset < c_nbnxnGpuNumClusterPerSupercluster; ci_offset++)
@@ -818,14 +816,14 @@ gmx_opencl_inline void reduce_force_i_and_shift_pow2(volatile __local float* f_b
 /*! Final i-force reduction
  */
 gmx_opencl_inline void reduce_force_i_and_shift(__local float gmx_unused* f_buf,
-                                                __private fvec  fci_buf[],
-                                                __global float* f,
-                                                bool            bCalcFshift,
-                                                int             tidxi,
-                                                int             tidxj,
-                                                int             sci,
-                                                int             shift,
-                                                __global float* fshift)
+                                                __private fvec            fci_buf[],
+                                                __global float*           f,
+                                                bool                      bCalcFshift,
+                                                int                       tidxi,
+                                                int                       tidxj,
+                                                int                       sci,
+                                                int                       shift,
+                                                __global float*           fshift)
 {
 #    if REDUCE_SHUFFLE
     reduce_force_i_and_shift_shfl(fci_buf, f, bCalcFshift, tidxi, tidxj, sci, shift, fshift);

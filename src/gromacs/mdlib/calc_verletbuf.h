@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2012,2013,2014,2015,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2012- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 #ifndef GMX_MDLIB_CALC_VERLETBUF_H
@@ -78,6 +76,13 @@ static const real verlet_buffer_ratio_NVE_T0     = 0.10;
  */
 VerletbufListSetup verletbufGetListSetup(Nbnxm::KernelType nbnxnKernelType);
 
+//! \brief Chance target to use in minCellSizeForAtomDisplacement()
+enum class ChanceTarget
+{
+    Atom,  //<! Indicates that the chance passed is applied to each atom individually
+    System //<! Indicates that the chance passed is for the max displacement over all atoms
+};
+
 /* Enum for choosing the list type for verletbufGetSafeListSetup() */
 enum class ListSetupType
 {
@@ -112,7 +117,8 @@ VerletbufListSetup verletbufGetSafeListSetup(ListSetupType listType);
  * \param[in] inputrec      The input record
  * \param[in] nstlist       The pair list update frequency in steps (is not taken from \p inputrec)
  * \param[in] listLifetime  The lifetime of the pair-list, usually nstlist-1, but could be different
- * for dynamic pruning \param[in] referenceTemperature  The reference temperature for the ensemble
+ *                          for dynamic pruning
+ * \param[in] referenceTemperature  The reference temperature for the ensemble
  * \param[in] listSetup     The pair-list setup
  * \returns The computed pair-list radius including buffer
  */
@@ -127,25 +133,37 @@ real calcVerletBufferSize(const gmx_mtop_t&         mtop,
 /* Convenience type */
 using PartitioningPerMoltype = gmx::ArrayRef<const gmx::RangePartitioning>;
 
-/* Determines the mininum cell size based on atom displacement
+/*! \brief Determines the minimum cell size based on atom displacement
  *
  * The value returned is the minimum size for which the chance that
- * an atom or update group crosses to non nearest-neighbor cells
- * is <= chanceRequested within ir.nstlist steps.
- * Update groups are used when !updateGrouping.empty().
+ * each atom (with \p chanceTarget=ChangeTarget::Atom) or any atom or
+ * update group (with \p chanceTarget=ChangeTarget::System) crosses into
+ * a non nearest-neighbor cell is <= chanceRequested within ir.nstlist steps.
+ * Update groups are used when !updateGrouping.empty(). In that case
+ * the displacement of the center of geometry of the update group is considered.
  * Without T-coupling, SD or BD, we can not estimate atom displacements
- * and fall back to the, crude, estimate of using the pairlist buffer size.
+ * and fall back to the, crude, estimate of using the pair list buffer size.
  *
  * Note: Like the Verlet buffer estimate, this estimate is based on
  *       non-interacting atoms and constrained atom-pairs. Therefore for
  *       any system that is not an ideal gas, this will be an overestimate.
  *
- * Note: This size increases (very slowly) with system size.
+ * Note: With \p chanceTarget=ChangeTarget::System this size increases
+ *       (very slowly) with the number of atoms in the system.
+ *
+ * \param[in] mtop            The system topology
+ * \param[in] ir              The input record
+ * \param[in] updateGrouping  The update grouping within each molecule type
+ * \param[in] chanceRequested The requested chance
+ * \param[in] chanceTarget    Whether \p chance refors to a displacement per-atom or maximum over all atoms
+ *
+ * \returns  The minimum cell size given \p chanceRequested.
  */
 real minCellSizeForAtomDisplacement(const gmx_mtop_t&      mtop,
                                     const t_inputrec&      ir,
                                     PartitioningPerMoltype updateGrouping,
-                                    real                   chanceRequested);
+                                    real                   chanceRequested,
+                                    ChanceTarget           chanceTarget);
 
 /* Struct for unique atom type for calculating the energy drift.
  * The atom displacement depends on mass and constraints.

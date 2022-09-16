@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2010,2011,2012,2013,2014,2015,2016, The GROMACS development team.
- * Copyright (c) 2017,2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2010- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \file
  *  \brief Define functions for detection and initialization for CUDA devices.
@@ -44,10 +42,9 @@
 #include "gpu_utils.h"
 
 #include <assert.h>
+#include <cuda_profiler_api.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include <cuda_profiler_api.h>
 
 #include "gromacs/gpu_utils/cudautils.cuh"
 #include "gromacs/gpu_utils/device_context.h"
@@ -65,6 +62,7 @@
 #include "gromacs/utility/snprintf.h"
 #include "gromacs/utility/stringutil.h"
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static bool cudaProfilerRun = ((getenv("NVPROF_ID") != nullptr));
 
 bool isHostMemoryPinned(const void* h_ptr)
@@ -102,7 +100,7 @@ bool isHostMemoryPinned(const void* h_ptr)
     return isPinned;
 }
 
-void startGpuProfiler(void)
+void startGpuProfiler()
 {
     /* The NVPROF_ID environment variable is set by nvprof and indicates that
        mdrun is executed in the CUDA profiler.
@@ -118,7 +116,7 @@ void startGpuProfiler(void)
     }
 }
 
-void stopGpuProfiler(void)
+void stopGpuProfiler()
 {
     /* Stopping the nvidia here allows us to eliminate the subsequent
        API calls from the trace, e.g. uninitialization and cleanup. */
@@ -130,7 +128,7 @@ void stopGpuProfiler(void)
     }
 }
 
-void resetGpuProfiler(void)
+void resetGpuProfiler()
 {
     /* With CUDA <=7.5 the profiler can't be properly reset; we can only start
      *  the profiling here (can't stop it) which will achieve the desired effect if
@@ -180,7 +178,7 @@ static void peerAccessCheckStat(const cudaError_t    stat,
     {
         std::string errorString =
                 gmx::formatString("%s from GPU %d to GPU %d failed", cudaCallName, gpuA, gpuB);
-        CU_RET_ERR(stat, errorString.c_str());
+        CU_RET_ERR(stat, errorString);
     }
     if (stat != cudaSuccess)
     {

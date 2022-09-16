@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2012,2013,2014,2015,2016 by the GROMACS development team.
- * Copyright (c) 2017,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \brief
  * Declares mdatom data structure.
@@ -44,7 +40,11 @@
 #ifndef GMX_MDTYPES_MDATOM_H
 #define GMX_MDTYPES_MDATOM_H
 
+#include <vector>
+
+#include "gromacs/math/paddedvector.h"
 #include "gromacs/math/vectypes.h"
+#include "gromacs/utility/booltype.h"
 #include "gromacs/utility/real.h"
 
 enum class ParticleType : int;
@@ -59,8 +59,6 @@ typedef struct t_mdatoms
     real tmass;
     //! Number of atoms in arrays
     int nr;
-    //! Number of elements in arrays
-    int nalloc;
     //! Number of energy groups
     int nenergrp;
     //! Do we have multiple center of mass motion removal groups
@@ -80,53 +78,55 @@ typedef struct t_mdatoms
     //! Do we have orientation restraints
     bool bOrires;
     //! Atomic mass in A state
-    real* massA;
+    std::vector<real> massA;
     //! Atomic mass in B state
-    real* massB;
+    std::vector<real> massB;
     //! Atomic mass in present state
-    real* massT;
+    std::vector<real> massT;
     //! Inverse atomic mass per atom, 0 for vsites and shells
-    real* invmass;
+    gmx::PaddedVector<real> invmass;
     //! Inverse atomic mass per atom and dimension, 0 for vsites, shells and frozen dimensions
-    rvec* invMassPerDim;
+    std::vector<gmx::RVec> invMassPerDim;
     //! Atomic charge in A state
-    real* chargeA;
+    gmx::ArrayRef<real> chargeA;
     //! Atomic charge in B state
-    real* chargeB;
+    gmx::ArrayRef<real> chargeB;
     //! Dispersion constant C6 in A state
-    real* sqrt_c6A;
+    std::vector<real> sqrt_c6A;
     //! Dispersion constant C6 in A state
-    real* sqrt_c6B;
+    std::vector<real> sqrt_c6B;
     //! Van der Waals radius sigma in the A state
-    real* sigmaA;
+    std::vector<real> sigmaA;
     //! Van der Waals radius sigma in the B state
-    real* sigmaB;
+    std::vector<real> sigmaB;
     //! Van der Waals radius sigma^3 in the A state
-    real* sigma3A;
+    std::vector<real> sigma3A;
     //! Van der Waals radius sigma^3 in the B state
-    real* sigma3B;
-    //! Is this atom perturbed
-    bool* bPerturbed;
+    std::vector<real> sigma3B;
+    //! Is this atom perturbed?
+    std::vector<gmx::BoolType> bPerturbed;
     //! Type of atom in the A state
-    int* typeA;
+    std::vector<int> typeA;
     //! Type of atom in the B state
-    int* typeB;
+    std::vector<int> typeB;
     //! Particle type
-    ParticleType* ptype;
+    std::vector<ParticleType> ptype;
     //! Group index for temperature coupling
-    unsigned short* cTC;
+    std::vector<unsigned short> cTC;
     //! Group index for energy matrix
-    unsigned short* cENER;
+    std::vector<unsigned short> cENER;
+    //! Group index for acceleration
+    std::vector<unsigned short> cACC;
     //! Group index for freezing
-    unsigned short* cFREEZE;
+    std::vector<unsigned short> cFREEZE;
     //! Group index for center of mass motion removal
-    unsigned short* cVCM;
+    std::vector<unsigned short> cVCM;
     //! Group index for user 1
-    unsigned short* cU1;
+    std::vector<unsigned short> cU1;
     //! Group index for user 2
-    unsigned short* cU2;
+    std::vector<unsigned short> cU2;
     //! Group index for orientation restraints
-    unsigned short* cORF;
+    std::vector<unsigned short> cORF;
     //! Number of atoms on this processor. TODO is this still used?
     int homenr;
     //! The lambda value used to create the contents of the struct

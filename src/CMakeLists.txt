@@ -1,12 +1,9 @@
 #
 # This file is part of the GROMACS molecular simulation package.
 #
-# Copyright (c) 2009,2010,2011,2012,2013 by the GROMACS development team.
-# Copyright (c) 2014,2015,2016,2017,2018 by the GROMACS development team.
-# Copyright (c) 2019,2020, by the GROMACS development team, led by
-# Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
-# and including many others, as listed in the AUTHORS file in the
-# top-level source directory and at http://www.gromacs.org.
+# Copyright 2009- The GROMACS Authors
+# and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+# Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
 #
 # GROMACS is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -20,7 +17,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with GROMACS; if not, see
-# http://www.gnu.org/licenses, or write to the Free Software Foundation,
+# https://www.gnu.org/licenses, or write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
 #
 # If you want to redistribute modifications to GROMACS, please
@@ -29,10 +26,14 @@
 # consider code for inclusion in the official distribution, but
 # derived work must not be called official GROMACS. Details are found
 # in the README & COPYING files - if they are missing, get the
-# official version at http://www.gromacs.org.
+# official version at https://www.gromacs.org.
 #
 # To help us fund GROMACS development, we humbly ask that you cite
-# the research papers on the package. Check out http://www.gromacs.org.
+# the research papers on the package. Check out https://www.gromacs.org.
+
+if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
+    message(FATAL_ERROR "CMake called with the wrong directory; please use the top GROMACS directory (${CMAKE_CURRENT_SOURCE_DIR}/../)")
+endif()
 
 ######################################
 # Output compiler and CFLAGS used
@@ -59,39 +60,6 @@ file(GENERATE
     )
 
 ####
-list(APPEND IGNORED_CLANG_ALL_WARNINGS
-    "-Wno-c++98-compat" "-Wno-c++98-compat-pedantic" #No intention of C++98 compability
-    "-Wno-source-uses-openmp" #Don't warn for no-omp build
-    "-Wno-c++17-extensions"   #Allowed in attributes (compilers are required to ignore unknown attributes)
-    "-Wno-documentation-unknown-command" #Custom commands are used
-    "-Wno-covered-switch-default" #GCC gives maybe-uninitialized without default label and checks for illegal enum values.
-    "-Wno-switch-enum" # default statement for enum is OK
-
-    # We need to use macros like
-    # GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR. Those will look strange
-    # if they don't have a semicolon after them, and might confuse
-    # tools like IDEs also.
-    "-Wno-extra-semi-stmt"
-
-    #Following ones are undecided/TODO
-    "-Wno-disabled-macro-expansion"
-    "-Wno-cast-align"
-    "-Wno-reserved-id-macro"
-    "-Wno-global-constructors"
-    "-Wno-exit-time-destructors"
-    "-Wno-unused-macros"
-    "-Wno-weak-vtables"
-    "-Wno-conditional-uninitialized"
-    "-Wno-format-nonliteral"
-    "-Wno-shadow"
-    "-Wno-cast-qual"
-    "-Wno-documentation"
-    "-Wno-used-but-marked-unused"
-    "-Wno-padded"
-    "-Wno-float-equal"
-    "-Wno-old-style-cast"
-    "-Wno-conversion"
-    "-Wno-double-promotion")
 
 option(GMX_CLANG_TIDY "Use clang-tidy" OFF)
 if (GMX_CLANG_TIDY)
@@ -139,7 +107,6 @@ endif()
 
 add_subdirectory(gromacs)
 add_subdirectory(programs)
-add_subdirectory(api)
 
 # Configure header files with configuration-specific values. This step
 # should follow all introspection e.g. looking for headers and
@@ -158,3 +125,4 @@ configure_file(gmxpre-config.h.cmakein include/gmxpre-config.h)
 set(CMAKE_BUILD_CONFIGURATION_C_FLAGS   ${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE_UPPER}})
 set(CMAKE_BUILD_CONFIGURATION_CXX_FLAGS ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE_UPPER}})
 configure_file(buildinfo.h.cmakein include/buildinfo.h ESCAPE_QUOTES)
+configure_file(contributors.h.cmakein include/contributors.h)

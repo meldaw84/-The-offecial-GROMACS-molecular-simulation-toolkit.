@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2014,2015,2016,2017,2018 by the GROMACS development team.
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2014- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 
 /*! \internal \file
@@ -256,8 +254,6 @@ public:
 
     //! Shall we block and wait for connection?
     bool bWConnect = false;
-    //! Set if MD is terminated.
-    bool bTerminated = false;
     //! Set if MD can be terminated.
     bool bTerminatable = false;
     //! Set if connection is present.
@@ -283,8 +279,6 @@ public:
     //! The IMD pulling forces.
     rvec* f = nullptr;
 
-    //! Buffer for force sending.
-    char* forcesendbuf = nullptr;
     //! Buffer for coordinate sending.
     char* coordsendbuf = nullptr;
     //! Send buffer for energies.
@@ -554,7 +548,7 @@ void ImdSession::dd_make_local_IMD_atoms(const gmx_domdec_t* dd)
     }
 
     dd_make_local_group_indices(
-            dd->ga2la, impl_->nat, impl_->ind, &impl_->nat_loc, &impl_->ind_loc, &impl_->nalloc_loc, impl_->xa_ind);
+            dd->ga2la.get(), impl_->nat, impl_->ind, &impl_->nat_loc, &impl_->ind_loc, &impl_->nalloc_loc, impl_->xa_ind);
 }
 
 
@@ -951,8 +945,7 @@ void ImdSession::Impl::readCommand()
                                     " %s Terminating connection and running simulation (if "
                                     "supported by integrator).",
                                     IMDstr);
-                    bTerminated = true;
-                    bWConnect   = false;
+                    bWConnect = false;
                     gmx_set_stop_condition(StopCondition::Next);
                 }
                 else
@@ -1267,7 +1260,7 @@ void ImdSession::Impl::prepareForPositionAssembly(const t_commrec* cr, gmx::Arra
         }
     }
 
-    if (!PAR(cr))
+    if (!haveDDAtomOrdering(*cr))
     {
         nat_loc = nat;
         ind_loc = ind;
@@ -1280,7 +1273,7 @@ void ImdSession::Impl::prepareForPositionAssembly(const t_commrec* cr, gmx::Arra
     }
 
     /* Communicate initial coordinates xa_old to all processes */
-    if (PAR(cr))
+    if (cr && havePPDomainDecomposition(cr))
     {
         gmx_bcast(nat * sizeof(xa_old[0]), xa_old, cr->mpi_comm_mygroup);
     }

@@ -1,11 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2012,2013,2014,2015,2016 by the GROMACS development team.
- * Copyright (c) 2017,2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2012- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -19,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -28,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief
@@ -206,19 +204,6 @@ private:
     std::vector<std::string> result_;
 };
 
-/*! \brief
- * Makes the string uppercase.
- *
- * \param[in] text  Input text.
- * \returns   \p text with all characters transformed to uppercase.
- * \throws    std::bad_alloc if out of memory.
- */
-std::string toUpperCase(const std::string& text)
-{
-    std::string result(text);
-    std::transform(result.begin(), result.end(), result.begin(), toupper);
-    return result;
-}
 
 /*! \brief
  * Removes extra newlines from reStructuredText.
@@ -277,8 +262,7 @@ public:
     struct LinkItem
     {
         LinkItem(const std::string& linkName, const std::string& replacement) :
-            linkName(linkName),
-            replacement(replacement)
+            linkName(linkName), replacement(replacement)
         {
         }
         std::string linkName;
@@ -343,9 +327,7 @@ public:
     public:
         //! Initializes the state with the given parameters.
         SharedState(TextWriter* writer, HelpOutputFormat format, const HelpLinks* links) :
-            file_(*writer),
-            format_(format),
-            links_(links)
+            file_(*writer), format_(format), links_(links)
         {
         }
 
@@ -389,8 +371,7 @@ public:
     struct ReplaceItem
     {
         ReplaceItem(const std::string& search, const std::string& replace) :
-            search(search),
-            replace(replace)
+            search(search), replace(replace)
         {
         }
         std::string search;

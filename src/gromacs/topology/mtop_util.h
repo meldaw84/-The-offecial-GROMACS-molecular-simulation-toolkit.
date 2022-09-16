@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2012,2013,2014,2015,2016 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #ifndef GMX_TOPOLOGY_MTOP_UTIL_H
 #define GMX_TOPOLOGY_MTOP_UTIL_H
@@ -43,16 +39,24 @@
 #include <array>
 #include <vector>
 
-#include <boost/stl_interfaces/iterator_interface.hpp>
-
-#include "gromacs/topology/topology.h"
+#include "gromacs/topology/block.h"
+#include "gromacs/topology/idef.h"
+#include "gromacs/topology/topology_enums.h"
 #include "gromacs/utility/enumerationhelpers.h"
 
+struct gmx_mtop_t;
+struct gmx_moltype_t;
+enum class ParticleType : int;
 struct gmx_localtop_t;
-struct t_atom;
 struct t_atoms;
-struct t_block;
 struct t_symtab;
+struct t_topology;
+
+namespace gmx
+{
+template<typename>
+class ArrayRef;
+} // namespace gmx
 
 // TODO All of the functions taking a const gmx_mtop * are deprecated
 // and should be replaced by versions taking const gmx_mtop & when
@@ -73,183 +77,6 @@ int gmx_mtop_num_molecules(const gmx_mtop_t& mtop);
 /* Returns the total number of residues in mtop. */
 int gmx_mtop_nres(const gmx_mtop_t& mtop);
 
-class AtomIterator;
-
-//! Proxy object returned from AtomIterator
-class AtomProxy
-{
-public:
-    //! Default constructor.
-    AtomProxy(const AtomIterator* it) : it_(it) {}
-    //! Access current global atom number.
-    int globalAtomNumber() const;
-    //! Access current t_atom struct.
-    const t_atom& atom() const;
-    //! Access current name of the atom.
-    const char* atomName() const;
-    //! Access current name of the residue the atom is in.
-    const char* residueName() const;
-    //! Access current residue number.
-    int residueNumber() const;
-    //! Access current molecule type.
-    const gmx_moltype_t& moleculeType() const;
-    //! Access the position of the current atom in the molecule.
-    int atomNumberInMol() const;
-
-private:
-    const AtomIterator* it_;
-};
-
-/*! \brief
- * Object that allows looping over all atoms in an mtop.
- */
-class AtomIterator :
-    public boost::stl_interfaces::proxy_iterator_interface<AtomIterator, std::forward_iterator_tag, t_atom, AtomProxy>
-{
-    using Base =
-            boost::stl_interfaces::proxy_iterator_interface<AtomIterator, std::forward_iterator_tag, t_atom, AtomProxy>;
-
-public:
-    //! Construct from topology and optionalally a global atom number.
-    explicit AtomIterator(const gmx_mtop_t& mtop, int globalAtomNumber = 0);
-
-    //! Prefix increment.
-    AtomIterator& operator++();
-    using Base::  operator++;
-
-    //! Equality comparison.
-    bool operator==(const AtomIterator& o) const;
-
-    //! Dereference operator. Returns proxy.
-    AtomProxy operator*() const { return { this }; }
-
-private:
-    //! Global topology.
-    const gmx_mtop_t* mtop_;
-    //! Current molecule block.
-    size_t mblock_;
-    //! The atoms of the current molecule.
-    const t_atoms* atoms_;
-    //! The current molecule.
-    int currentMolecule_;
-    //! Current highest number for residues.
-    int highestResidueNumber_;
-    //! Current local atom number.
-    int localAtomNumber_;
-    //! Global current atom number.
-    int globalAtomNumber_;
-
-    friend class AtomProxy;
-};
-
-//! Range over all atoms of topology.
-class AtomRange
-{
-public:
-    //! Default constructor.
-    explicit AtomRange(const gmx_mtop_t& mtop) : begin_(mtop), end_(mtop, mtop.natoms) {}
-    //! Iterator to begin of range.
-    AtomIterator& begin() { return begin_; }
-    //! Iterator to end of range.
-    AtomIterator& end() { return end_; }
-
-private:
-    AtomIterator begin_, end_;
-};
-
-class IListIterator;
-
-//! Proxy object returned from IListIterator
-class IListProxy
-{
-public:
-    //! Default constructor.
-    IListProxy(const IListIterator* it) : it_(it) {}
-    //! Access current global atom number.
-    const InteractionLists& list() const;
-    //! Access current molecule.
-    int nmol() const;
-
-private:
-    const IListIterator* it_;
-};
-
-/*! \brief
- * Object that allows looping over all atoms in an mtop.
- */
-class IListIterator :
-    public boost::stl_interfaces::proxy_iterator_interface<IListIterator, std::forward_iterator_tag, InteractionLists, IListProxy>
-{
-    using Base =
-            boost::stl_interfaces::proxy_iterator_interface<IListIterator, std::forward_iterator_tag, InteractionLists, IListProxy>;
-
-public:
-    //! Construct from topology.
-    explicit IListIterator(const gmx_mtop_t& mtop, size_t mblock = 0);
-
-    //! Prefix increment.
-    IListIterator& operator++();
-    using Base::   operator++;
-
-    //! Equality comparison.
-    bool operator==(const IListIterator& o) const;
-
-    //! Dereference operator. Returns proxy.
-    IListProxy operator*() const { return { this }; }
-
-private:
-    //! Global topology.
-    const gmx_mtop_t* mtop_;
-    //! Index of molecule block corresponding to the current location.
-    size_t mblock_;
-
-    friend class IListProxy;
-};
-
-
-/*! \brief
- * Range over all interaction lists of topology.
- *
- * Includes the intermolecular interactions as the final element in the
- * range if present.
- */
-class IListRange
-{
-public:
-    //! Default constructor.
-    explicit IListRange(const gmx_mtop_t& mtop);
-    //! Iterator to begin of range.
-    IListIterator& begin() { return begin_; }
-    //! Iterator to end of range.
-    IListIterator& end() { return end_; }
-
-private:
-    IListIterator begin_, end_;
-};
-
-/* Abstract type for atom loop over atoms in all molecule blocks */
-typedef struct gmx_mtop_atomloop_block* gmx_mtop_atomloop_block_t;
-
-/* Initialize an atom loop over atoms in all molecule blocks the system.
- */
-gmx_mtop_atomloop_block_t gmx_mtop_atomloop_block_init(const gmx_mtop_t& mtop);
-
-/* Loop to the next atom.
- * When not at the end:
- *   returns TRUE
- *   sets the pointer atom to the t_atom struct of that atom
- *   and return the number of molecules corresponding to this atom.
- * When at the end, destroys aloop and returns FALSE.
- * Use as:
- * gmx_mtop_atomloop_block_t aloop;
- * aloop = gmx_mtop_atomloop_block_init(mtop)
- * while (gmx_mtop_atomloop_block_next(aloop,&atom,&nmol)) {
- *     ...
- * }
- */
-gmx_bool gmx_mtop_atomloop_block_next(gmx_mtop_atomloop_block_t aloop, const t_atom** atom, int* nmol);
-
-
 /* Returns the total number of interactions in the system of type ftype */
 int gmx_mtop_ftype_count(const gmx_mtop_t& mtop, int ftype);
 
@@ -262,6 +89,20 @@ gmx::EnumerationArray<ParticleType, int> gmx_mtop_particletype_count(const gmx_m
 /* Returns a single t_atoms struct for the whole system */
 t_atoms gmx_mtop_global_atoms(const gmx_mtop_t& mtop);
 
+/*! \brief Return whether the atom with the given index is within a
+ * 1-4 interaction within the given molecule type and its charge is
+ * perturbed.
+ *
+ * Some 1-4 interactions like F_COUL14 have the charges stored in the
+ * iparams list, but others do not. The commonly used F_LJ14 gets its
+ * charges from the topology, so we need more detailed checks for it,
+ * when FEP is active.
+ *
+ * \param[in] atomIndex  Index within range [0, molt.nr)
+ * \param[in] molt       Moleculetype to consider
+ * \return               Whether this atom is in a 1-4 interaction and charge is perturbed
+ * */
+bool atomHasPerturbedChargeIn14Interaction(int atomIndex, const gmx_moltype_t& molt);
 
 /*! \brief
  * Populate a 'local' topology for the whole system.
@@ -332,6 +173,9 @@ bool haveFepPerturbedNBInteractions(const gmx_mtop_t& mtop);
 
 //! Checks whether masses are perturbed for free-energy calculations
 bool haveFepPerturbedMasses(const gmx_mtop_t& mtop);
+
+//! Checks whether masses are perturbed for free-energy calculations in SETTLE interactions
+bool haveFepPerturbedMassesInSettles(const gmx_mtop_t& mtop);
 
 //! Checks whether constraints are perturbed for free-energy calculations
 bool havePerturbedConstraints(const gmx_mtop_t& mtop);

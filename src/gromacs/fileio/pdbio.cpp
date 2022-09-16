@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,21 +26,21 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
 #include "gromacs/fileio/pdbio.h"
 
-#include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
 
+#include <algorithm>
 #include <string>
 
 #include "gromacs/fileio/gmxfio.h"
@@ -54,7 +50,6 @@
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/topology/atomprop.h"
 #include "gromacs/topology/ifunc.h"
-#include "gromacs/topology/residuetypes.h"
 #include "gromacs/topology/symtab.h"
 #include "gromacs/topology/topology.h"
 #include "gromacs/utility/coolstuff.h"
@@ -74,7 +69,6 @@ typedef struct
 typedef struct gmx_conect_t
 {
     int              nconect;
-    gmx_bool         bSorted;
     gmx_conection_t* conect;
 } gmx_conect_t;
 
@@ -86,8 +80,6 @@ const char* enumValueToString(PdbRecordType enumValue)
     };
     return pdbRecordTypeName[enumValue];
 }
-
-#define REMARK_SIM_BOX "REMARK    THIS IS A SIMULATION BOX"
 
 void gmx_write_pdb_box(FILE* out, PbcType pbcType, const matrix box)
 {
@@ -299,7 +291,8 @@ void write_pdbfile_indexed(FILE*          out,
                            int            nindex,
                            const int      index[],
                            gmx_conect     conect,
-                           bool           usePqrFormat)
+                           bool           usePqrFormat,
+                           bool           standardCompliantMode)
 {
     gmx_conect_t* gc = static_cast<gmx_conect_t*>(conect);
     PdbRecordType type;
@@ -307,8 +300,27 @@ void write_pdbfile_indexed(FILE*          out,
     real          occup, bfac;
     gmx_bool      bOccup;
 
+    if (standardCompliantMode)
+    {
+        fprintf(out, "HEADER    GROMACS SIMULATION BOX                  01-JAN-00   0000\n");
+        fprintf(out,
+                "TITLE     Gromacs simulation box\n"
+                "COMPND    MOL_ID:  1;                                                           \n"
+                "COMPND   2 MOLECULE:  GROMACS SIMULATION BOX;                                   \n"
+                "COMPND   3 CHAIN: A;  \n"
+                "SOURCE    MOL_ID: 1;\n"
+                "SOURCE   2 SYNTHETIC\n"
+                "KEYWDS    GROMACS\n"
+                "EXPDTA    PURE PRODUCT OF COMPUTER SIMULATION\n"
+                "AUTHOR    GROMACS\n"
+                "REVDAT   1   01-JAN-00 0000    0\n");
+    }
+    else
+    {
+        fprintf(out, "TITLE     %s\n", (title && title[0]) ? title : gmx::bromacs().c_str());
+    }
 
-    fprintf(out, "TITLE     %s\n", (title && title[0]) ? title : gmx::bromacs().c_str());
+
     if (box && ((norm2(box[XX]) != 0.0F) || (norm2(box[YY]) != 0.0F) || (norm2(box[ZZ]) != 0.0F)))
     {
         gmx_write_pdb_box(out, pbcType, box);
@@ -332,7 +344,11 @@ void write_pdbfile_indexed(FILE*          out,
 
     fprintf(out, "MODEL %8d\n", model_nr > 0 ? model_nr : 1);
 
-    ResidueType rt;
+    // Collect last printed values for TER record
+    int         lastAtomNumber = 0;
+    std::string lastResName;
+    int         lastResNr = 0;
+
     for (int ii = 0; ii < nindex; ii++)
     {
         int         i      = index[ii];
@@ -395,6 +411,10 @@ void write_pdbfile_indexed(FILE*          out,
                                      bfac,
                                      atoms->atom[i].elem);
 
+            lastAtomNumber = i + 1;
+            lastResName    = resnm;
+            lastResNr      = resnr;
+
             if (atoms->pdbinfo && atoms->pdbinfo[i].bAnisotropic)
             {
                 fprintf(out,
@@ -430,7 +450,15 @@ void write_pdbfile_indexed(FILE*          out,
         }
     }
 
-    fprintf(out, "TER\n");
+    if (standardCompliantMode)
+    {
+        fprintf(out, "TER   %5d      %4.4s%c%4d\n", lastAtomNumber, lastResName.c_str(), chainid, lastResNr);
+    }
+    else
+    {
+        fprintf(out, "TER\n");
+    }
+
     fprintf(out, "ENDMDL\n");
 
     if (nullptr != gc)
@@ -809,9 +837,6 @@ gmx_bool gmx_conect_exist(gmx_conect conect, int ai, int aj)
     gmx_conect_t* gc = conect;
     int           i;
 
-    /* if (!gc->bSorted)
-       sort_conect(gc);*/
-
     for (i = 0; (i < gc->nconect); i++)
     {
         if (((gc->conect[i].ai == ai) && (gc->conect[i].aj == aj))
@@ -826,9 +851,6 @@ gmx_bool gmx_conect_exist(gmx_conect conect, int ai, int aj)
 void gmx_conect_add(gmx_conect conect, int ai, int aj)
 {
     gmx_conect_t* gc = static_cast<gmx_conect_t*>(conect);
-
-    /* if (!gc->bSorted)
-       sort_conect(gc);*/
 
     if (!gmx_conect_exist(conect, ai, aj))
     {

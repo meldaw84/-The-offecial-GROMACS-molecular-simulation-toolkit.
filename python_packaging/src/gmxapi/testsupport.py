@@ -1,10 +1,9 @@
 #
 # This file is part of the GROMACS molecular simulation package.
 #
-# Copyright (c) 2019,2020, by the GROMACS development team, led by
-# Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
-# and including many others, as listed in the AUTHORS file in the
-# top-level source directory and at http://www.gromacs.org.
+# Copyright 2019- The GROMACS Authors
+# and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+# Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
 #
 # GROMACS is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with GROMACS; if not, see
-# http://www.gnu.org/licenses, or write to the Free Software Foundation,
+# https://www.gnu.org/licenses, or write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
 #
 # If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
 # consider code for inclusion in the official distribution, but
 # derived work must not be called official GROMACS. Details are found
 # in the README & COPYING files - if they are missing, get the
-# official version at http://www.gromacs.org.
+# official version at https://www.gromacs.org.
 #
 # To help us fund GROMACS development, we humbly ask that you cite
-# the research papers on the package. Check out http://www.gromacs.org.
+# the research papers on the package. Check out https://www.gromacs.org.
 
 """Reusable definitions for test modules.
 
@@ -47,30 +46,34 @@ variable in a conftest.py
 .. todo:: Consider moving this to a separate optional package.
 """
 
-import json
-import logging
 import os
-import shutil
-import tempfile
 import warnings
 from contextlib import contextmanager
-from enum import Enum
-from typing import Union
 
 import pytest
 
 mpi_status = 'Test requires mpi4py managing 2 MPI ranks.'
 skip_mpi = False
+rank_number = 0
+comm_size = 1
+rank_tag = ''
+comm = None
 try:
     from mpi4py import MPI
 
     if not MPI.Is_initialized():
         skip_mpi = True
         mpi_status += ' MPI is not initialized'
-    elif MPI.COMM_WORLD.Get_size() < 2:
-        skip_mpi = True
-        mpi_status += ' MPI context is too small.'
+    else:
+        comm = MPI.COMM_WORLD
+        if comm.Get_size() < 2:
+            skip_mpi = True
+            mpi_status += ' MPI context is too small.'
+        else:
+            rank_number = comm.Get_rank()
+            comm_size = comm.Get_size()
 except ImportError:
+    MPI = None
     skip_mpi = True
     mpi_status += ' mpi4py is not available.'
 
@@ -91,59 +94,87 @@ def pytest_runtest_setup(item):
 
 def pytest_addoption(parser):
     """Add command-line user options for the pytest invocation."""
+    # TODO(#4345): Remove `--rm` option after 2023 release.
     parser.addoption(
         '--rm',
         action='store',
         default='always',
         choices=['always', 'never', 'success'],
-        help='Remove temporary directories "always", "never", or on "success".'
+        help='No longer used. See https://docs.pytest.org/en/latest/how-to/tmp_path.html'
     )
     parser.addoption(
         '--threads',
         type=int,
         help='Maximum number of threads per process per gmxapi session.'
     )
+    parser.addoption(
+        '--pydevd',
+        type=str,
+        action='store',
+        nargs='?',
+        const='pydevd_pycharm',
+        help='Attempt to connect to PyDev.Debugger using the indicated module.'
+    )
+    parser.addoption(
+        '--pydevd-host',
+        type=str,
+        default='localhost',
+        help='Set the pydevd host.'
+    )
+    parser.addoption(
+        '--pydevd-port',
+        type=int,
+        default=12345,
+        help='Set the pydevd port.'
+    )
+    parser.addoption(
+        '--pydevd-rank',
+        type=int,
+        default=0,
+        help='In MPI, specify the rank to attach to the debug server.'
+    )
 
 
-class RmOption(Enum):
-    """Enumerate allowable values of the --rm option."""
-    always = 'always'
-    never = 'never'
-    success = 'success'
+@pytest.fixture(scope='session', autouse=True)
+def pydev_debug(request):
+    """If requested, try to connect to a PyDev.Debugger backend at
+    host.docker.internal:12345.
 
+    Note: the IDE run configuration must be started before launching pytest.
+    """
+    pydevd_module = request.config.getoption('--pydevd')
+    if pydevd_module:
+        host = request.config.getoption('--pydevd-host')
+        port = request.config.getoption('--pydevd-port')
+        participating_rank = request.config.getoption('--pydevd-rank')
+        if rank_number == participating_rank:
+            try:
+                import importlib
+                pydevd = importlib.import_module(pydevd_module)
+                settrace = getattr(pydevd, 'settrace', None)
+                if settrace is None:
+                    raise RuntimeError(
+                        f'PyDevD interface not supported. {pydevd} does not have `settrace`.'
+                    )
+                return settrace(host,
+                                port=port,
+                                stdoutToServer=True,
+                                stderrToServer=True)
+            except ImportError:
+                warnings.warn(f'{pydevd_module} not found. Ignoring `--pydevd` option.')
 
-@pytest.fixture(scope='session')
-def remove_tempdir(request) -> RmOption:
-    """pytest fixture to get access to the --rm CLI option."""
-    arg = request.config.getoption('--rm')
-    return RmOption(arg)
 
 @pytest.fixture(scope='session')
 def gmxconfig():
-    try:
-        from importlib.resources import open_text
-        with open_text('gmxapi', 'gmxconfig.json') as textfile:
-            config = json.load(textfile)
-    except ImportError:
-        # TODO: Remove this when we require Python 3.7
-        try:
-            # A backport of importlib.resources is available as importlib_resources
-            # with a somewhat different interface.
-            from importlib_resources import files, as_file
-
-            source = files('gmxapi').joinpath('gmxconfig.json')
-            with as_file(source) as gmxconfig:
-                with open(gmxconfig, 'r') as fp:
-                    config = json.load(fp)
-        except ImportError:
-            config = None
+    from .commandline import _config
+    config = _config()
     yield config
+
 
 @pytest.fixture(scope='session')
 def mdrun_kwargs(request, gmxconfig):
     """pytest fixture to provide a mdrun_kwargs dictionary for the mdrun ResourceManager.
     """
-    from gmxapi.simulation.mdrun import ResourceManager as _ResourceManager
     if gmxconfig is None:
         raise RuntimeError('--threads argument requires a usable gmxconfig.json')
     arg = request.config.getoption('--threads')
@@ -155,7 +186,6 @@ def mdrun_kwargs(request, gmxconfig):
     else:
         kwargs = {}
     # TODO: (#3718) Normalize the handling of run-time arguments.
-    _ResourceManager.mdrun_kwargs = dict(**kwargs)
     return kwargs
 
 
@@ -173,132 +203,22 @@ def scoped_chdir(dir):
         os.chdir(oldpath)
 
 
-@contextmanager
-def _cleandir(remove_tempdir: Union[str, RmOption]):
-    """Context manager for a clean temporary working directory.
-
-    Arguments:
-        remove_tempdir (RmOption): whether to remove temporary directory "always",
-                                   "never", or on "success"
-
-    Raises:
-        ValueError: if remove_tempdir value is not valid.
-
-    The context manager will issue a warning for each temporary directory that
-    is not removed.
-    """
-    if not isinstance(remove_tempdir, RmOption):
-        remove_tempdir = RmOption(remove_tempdir)
-
-    newpath = tempfile.mkdtemp()
-
-    def remove():
-        shutil.rmtree(newpath)
-
-    def warn():
-        warnings.warn('Temporary directory not removed: {}'.format(newpath))
-
-    # Initialize callback function reference
-    if remove_tempdir == RmOption.always:
-        callback = remove
-    else:
-        callback = warn
-
-    try:
-        with scoped_chdir(newpath):
-            yield newpath
-        # If we get to this line, the `with` block using _cleandir did not throw.
-        # Clean up the temporary directory unless the user specified `--rm never`.
-        # I.e. If the user specified `--rm success`, then we need to toggle from `warn` to `remove`.
-        if remove_tempdir != RmOption.never:
-            callback = remove
-    finally:
-        callback()
-
-
 @pytest.fixture
-def cleandir(remove_tempdir: RmOption):
+def cleandir(tmp_path):
     """Provide a clean temporary working directory for a test.
 
-    Example usage:
-
-        import os
-        import pytest
-
-        @pytest.mark.usefixtures("cleandir")
-        def test_cwd_starts_empty():
-            assert os.listdir(os.getcwd()) == []
-            with open("myfile", "w") as f:
-                f.write("hello")
-
-        def test_cwd_also_starts_empty(cleandir):
-            assert os.listdir(os.getcwd()) == []
-            assert os.path.abspath(os.getcwd()) == os.path.abspath(cleandir)
-            with open("myfile", "w") as f:
-                f.write("hello")
-
-        @pytest.mark.usefixtures("cleandir")
-        class TestDirectoryInit(object):
-            def test_cwd_starts_empty(self):
-                assert os.listdir(os.getcwd()) == []
-                with open("myfile", "w") as f:
-                    f.write("hello")
-
-            def test_cwd_also_starts_empty(self):
-                assert os.listdir(os.getcwd()) == []
-                with open("myfile", "w") as f:
-                    f.write("hello")
-
-    Ref: https://docs.pytest.org/en/latest/fixture.html#using-fixtures-from-classes-modules-or-projects
+    Temporary directory is created and managed as described at
+    https://docs.pytest.org/en/latest/how-to/tmp_path.html
     """
-    with _cleandir(remove_tempdir) as newdir:
-        yield newdir
-
-
-class GmxBin:
-    """Represent the detected GROMACS installation."""
-    def __init__(self, gmxconfig):
-        # Try to use package resources to locate the "gmx" binary wrapper.
-        if gmxconfig is not None:
-            gmxbindir = gmxconfig.get('gmx_bindir', None)
-            command = gmxconfig.get('gmx_executable', None)
-        else:
-            gmxbindir = None
-            command = None
-
-        # TODO: Remove fall-back when we can rely on gmxconfig.json via importlib.resources in Py 3.7+.
-        allowed_command_names = ['gmx', 'gmx_mpi']
-        for command_name in allowed_command_names:
-            if command is not None:
-                break
-            command = shutil.which(command_name)
-            if command is None:
-                gmxbindir = os.getenv('GMXBIN')
-                if gmxbindir is None:
-                    gromacsdir = os.getenv('GROMACS_DIR')
-                    if gromacsdir is not None and gromacsdir != '':
-                        gmxbindir = os.path.join(gromacsdir, 'bin')
-                if gmxbindir is None:
-                    gmxapidir = os.getenv('gmxapi_DIR')
-                    if gmxapidir is not None and gmxapidir != '':
-                        gmxbindir = os.path.join(gmxapidir, 'bin')
-                if gmxbindir is not None:
-                    gmxbindir = os.path.abspath(gmxbindir)
-                    command = shutil.which(command_name, path=gmxbindir)
-
-        self._command = command
-        self._bindir = gmxbindir
-
-    def command(self):
-        return self._command
-
-    def bindir(self):
-        return self._bindir
+    with scoped_chdir(tmp_path):
+        yield tmp_path
 
 
 @pytest.fixture(scope='session')
-def gmxcli(gmxconfig):
-    command = GmxBin(gmxconfig).command()
+def gmxcli():
+    from .commandline import cli_executable
+    command = cli_executable()
+
     if command is None:
         message = "Tests need 'gmx' command line tool, but could not find it on the path."
         raise RuntimeError(message)

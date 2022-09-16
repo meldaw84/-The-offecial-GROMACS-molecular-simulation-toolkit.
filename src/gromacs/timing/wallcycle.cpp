@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2008, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -149,6 +145,7 @@ static const char* enumValuetoString(WallCycleSubCounter enumValue)
         "Nonbonded F kernel",
         "Nonbonded F clear",
         "Nonbonded FEP",
+        "Nonbonded FEP reduction",
         "Launch NB GPU tasks",
         "Launch Bonded GPU tasks",
         "Launch PME GPU tasks",
@@ -398,7 +395,7 @@ void wallcycle_scale_by_num_threads(gmx_wallcycle* wc, bool isPmeRank, int nthre
     }
     if (sc_useCycleSubcounters && !isPmeRank)
     {
-        for (auto counter : wc->wcsc)
+        for (auto& counter : wc->wcsc)
         {
             counter.c *= nthreads_pp;
         }
@@ -719,8 +716,8 @@ void wallcycle_print(FILE*                            fplog,
            code so that it is provably robust with respect to
            non-positive values for all possible timer and cycle
            counters, there is less value gained from printing whatever
-           timing data might still be sensible for some non-Jenkins
-           run, than is lost from diagnosing Jenkins FP exceptions on
+           timing data might still be sensible for some non-CI
+           run, than is lost from diagnosing CI FP exceptions on
            runs about whose execution time we don't care. */
         GMX_LOG(mdlog.warning)
                 .asParagraph()

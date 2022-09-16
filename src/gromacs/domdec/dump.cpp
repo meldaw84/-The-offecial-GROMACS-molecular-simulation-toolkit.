@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2018- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  *
@@ -58,22 +57,23 @@
 
 void write_dd_grid_pdb(const char* fn, int64_t step, gmx_domdec_t* dd, matrix box, gmx_ddbox_t* ddbox)
 {
-    rvec   grid_s[2], *grid_r = nullptr, cx, r;
+    rvec   grid_s[2], cx, r;
     char   fname[STRLEN], buf[22];
     FILE*  out;
-    int    a, i, d, z, y, x;
+    int    a, i, d, z, x;
     matrix tric;
     real   vol;
 
     copy_rvec(dd->comm->cell_x0, grid_s[0]);
     copy_rvec(dd->comm->cell_x1, grid_s[1]);
 
+    std::vector<gmx::RVec> grid_r;
     if (DDMASTER(dd))
     {
-        snew(grid_r, 2 * dd->nnodes);
+        grid_r.resize(2 * dd->nnodes);
     }
 
-    dd_gather(dd, 2 * sizeof(rvec), grid_s, DDMASTER(dd) ? grid_r : nullptr);
+    dd_gather(dd, 2 * sizeof(rvec), grid_s, DDMASTER(dd) ? grid_r.data() : nullptr);
 
     if (DDMASTER(dd))
     {
@@ -111,7 +111,7 @@ void write_dd_grid_pdb(const char* fn, int64_t step, gmx_domdec_t* dd, matrix bo
             }
             for (z = 0; z < 2; z++)
             {
-                for (y = 0; y < 2; y++)
+                for (int y = 0; y < 2; y++)
                 {
                     for (x = 0; x < 2; x++)
                     {
@@ -141,6 +141,7 @@ void write_dd_grid_pdb(const char* fn, int64_t step, gmx_domdec_t* dd, matrix bo
             {
                 for (x = 0; x < 4; x++)
                 {
+                    int y = 0;
                     switch (d)
                     {
                         case 0: y = 1 + i * 8 + 2 * x; break;
@@ -152,7 +153,6 @@ void write_dd_grid_pdb(const char* fn, int64_t step, gmx_domdec_t* dd, matrix bo
             }
         }
         gmx_fio_fclose(out);
-        sfree(grid_r);
     }
 }
 

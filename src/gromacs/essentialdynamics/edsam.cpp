@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
 
@@ -271,10 +267,8 @@ gmx_edsam::~gmx_edsam()
 
 struct t_do_edsam
 {
-    matrix old_rotmat;
-    real   oldrad;
-    rvec   old_transvec, older_transvec, transvec_compact;
-    rvec*  xcoll;                 /* Positions from all nodes, this is the
+    real  oldrad;
+    rvec* xcoll;                  /* Positions from all nodes, this is the
                                      collective set we work on.
                                      These are the positions of atoms with
                                      average structure indices */
@@ -1158,8 +1152,8 @@ static std::unique_ptr<gmx::EssentialDynamics> ed_open(int                      
                                                        const gmx_output_env_t*     oenv,
                                                        const t_commrec*            cr)
 {
-    auto edHandle = std::make_unique<gmx::EssentialDynamics>();
-    auto ed       = edHandle->getLegacyED();
+    auto  edHandle = std::make_unique<gmx::EssentialDynamics>();
+    auto* ed       = edHandle->getLegacyED();
     /* We want to perform ED (this switch might later be upgraded to EssentialDynamicsType::Flooding) */
     ed->eEDtype = EssentialDynamicsType::EDSampling;
 
@@ -1960,7 +1954,7 @@ static void translate_and_rotate(rvec*  x,        /* The positions to be transla
 
 /* Gets the rms deviation of the positions to the structure s */
 /* fit_to_structure has to be called before calling this routine! */
-static real rmsd_from_structure(rvec* x,           /* The positions under consideration */
+static real rmsd_from_structure(rvec*           x, /* The positions under consideration */
                                 struct gmx_edx* s) /* The structure from which the rmsd shall be computed */
 {
     real rmsd = 0.0;
@@ -1991,7 +1985,7 @@ void dd_make_local_ed_indices(gmx_domdec_t* dd, struct gmx_edsam* ed)
              * if their indices differ from the average ones */
             if (!edi.bRefEqAv)
             {
-                dd_make_local_group_indices(dd->ga2la,
+                dd_make_local_group_indices(dd->ga2la.get(),
                                             edi.sref.nr,
                                             edi.sref.anrs,
                                             &edi.sref.nr_loc,
@@ -2001,7 +1995,7 @@ void dd_make_local_ed_indices(gmx_domdec_t* dd, struct gmx_edsam* ed)
             }
 
             /* Local atoms of the average structure (on these ED will be performed) */
-            dd_make_local_group_indices(dd->ga2la,
+            dd_make_local_group_indices(dd->ga2la.get(),
                                         edi.sav.nr,
                                         edi.sav.anrs,
                                         &edi.sav.nr_loc,
@@ -2818,8 +2812,8 @@ std::unique_ptr<gmx::EssentialDynamics> init_edsam(const gmx::MDLogger&        m
                     "gmx grompp and the related .mdp options may change also.");
 
     /* Open input and output files, allocate space for ED data structure */
-    auto edHandle = ed_open(mtop.natoms, oh, ediFileName, edoFileName, startingBehavior, oenv, cr);
-    auto ed       = edHandle->getLegacyED();
+    auto  edHandle = ed_open(mtop.natoms, oh, ediFileName, edoFileName, startingBehavior, oenv, cr);
+    auto* ed       = edHandle->getLegacyED();
     GMX_RELEASE_ASSERT(constr != nullptr, "Must have valid constraints object");
     constr->saveEdsamPointer(ed);
 
@@ -3062,14 +3056,15 @@ std::unique_ptr<gmx::EssentialDynamics> init_edsam(const gmx::MDLogger&        m
 
     } /* end of MASTER only section */
 
-    if (PAR(cr))
+    if (haveDDAtomOrdering(*cr))
     {
-        /* Broadcast the essential dynamics / flooding data to all nodes */
+        /* Broadcast the essential dynamics / flooding data to all nodes.
+         * In a single-rank case, only the necessary memory allocation is done. */
         broadcast_ed_data(cr, ed);
     }
     else
     {
-        /* In the single-CPU case, point the local atom numbers pointers to the global
+        /* In the non-DD case, point the local atom numbers pointers to the global
          * one, so that we can use the same notation in serial and parallel case: */
         /* Loop over all ED data sets (usually only one, though) */
         for (auto edi = ed->edpar.begin(); edi != ed->edpar.end(); ++edi)
@@ -3150,7 +3145,7 @@ void do_edsam(const t_inputrec*        ir,
               const matrix             box,
               gmx_edsam*               ed)
 {
-    int    i, edinr, iupdate = 500;
+    int    i, iupdate = 500;
     matrix rotmat;         /* rotation matrix */
     rvec   transvec;       /* translation vector */
     rvec   dv, dx, x_unsh; /* tmp vectors for velocity, distance, unshifted x coordinate */
@@ -3169,10 +3164,8 @@ void do_edsam(const t_inputrec*        ir,
     dt_1 = 1.0 / ir->delta_t;
 
     /* Loop over all ED groups (usually one) */
-    edinr = 0;
     for (auto& edi : ed->edpar)
     {
-        edinr++;
         if (bNeedDoEdsam(edi))
         {
 

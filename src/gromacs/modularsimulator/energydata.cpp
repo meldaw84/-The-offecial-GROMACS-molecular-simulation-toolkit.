@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2019- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief Defines the microstate for the modular simulator
@@ -51,10 +50,12 @@
 #include "gromacs/mdlib/mdatoms.h"
 #include "gromacs/mdlib/mdoutf.h"
 #include "gromacs/mdlib/stat.h"
+#include "gromacs/mdlib/tgroup.h"
 #include "gromacs/mdlib/update.h"
 #include "gromacs/mdtypes/commrec.h"
 #include "gromacs/mdtypes/enerdata.h"
 #include "gromacs/mdtypes/energyhistory.h"
+#include "gromacs/mdtypes/group.h"
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/mdtypes/observableshistory.h"
@@ -87,8 +88,9 @@ EnergyData::EnergyData(StatePropagatorData*        statePropagatorData,
                        bool                        isMasterRank,
                        ObservablesHistory*         observablesHistory,
                        StartingBehavior            startingBehavior,
-                       bool                        simulationsShareState) :
-    element_(std::make_unique<Element>(this, isMasterRank)),
+                       bool                        simulationsShareState,
+                       pull_t*                     pullWork) :
+    element_(std::make_unique<Element>(this, isMasterRank, inputrec->fepvals->nstdhdl)),
     isMasterRank_(isMasterRank),
     forceVirialStep_(-1),
     shakeVirialStep_(-1),
@@ -110,7 +112,8 @@ EnergyData::EnergyData(StatePropagatorData*        statePropagatorData,
     mdModulesNotifiers_(mdModulesNotifiers),
     groups_(&globalTopology.groups),
     observablesHistory_(observablesHistory),
-    simulationsShareState_(simulationsShareState)
+    simulationsShareState_(simulationsShareState),
+    pullWork_(pullWork)
 {
     clear_mat(forceVirial_);
     clear_mat(shakeVirial_);
@@ -128,9 +131,10 @@ void EnergyData::Element::scheduleTask(Step step, Time time, const RegisterRunFu
     {
         return;
     }
-    auto writeEnergy                 = energyWritingStep_ == step;
-    auto isEnergyCalculationStep     = energyCalculationStep_ == step;
-    auto isFreeEnergyCalculationStep = freeEnergyCalculationStep_ == step;
+    auto writeEnergy             = energyWritingStep_ == step;
+    auto isEnergyCalculationStep = energyCalculationStep_ == step;
+    auto isFreeEnergyCalculationStep =
+            (freeEnergyCalculationStep_ == step) && do_per_step(step, freeEnergyCalculationPeriod_);
     if (isEnergyCalculationStep || writeEnergy)
     {
         registerRunFunction([this, step, time, isEnergyCalculationStep, isFreeEnergyCalculationStep]() {
@@ -159,11 +163,10 @@ void EnergyData::Element::trajectoryWriterSetup(gmx_mdoutf* outf)
 
 void EnergyData::setup(gmx_mdoutf* outf)
 {
-    pull_t* pull_work = nullptr;
-    energyOutput_     = std::make_unique<EnergyOutput>(mdoutf_get_fp_ene(outf),
+    energyOutput_ = std::make_unique<EnergyOutput>(mdoutf_get_fp_ene(outf),
                                                    top_global_,
                                                    *inputrec_,
-                                                   pull_work,
+                                                   pullWork_,
                                                    mdoutf_get_fp_dhdl(outf),
                                                    false,
                                                    startingBehavior_,
@@ -256,7 +259,6 @@ void EnergyData::doStep(Step step, Time time, bool isEnergyCalculationStep, bool
             mdAtoms_->mdatoms()->tmass,
             enerd_,
             inputrec_->fepvals.get(),
-            inputrec_->expandedvals.get(),
             statePropagatorData_->constPreviousBox(),
             PTCouplingArrays({ parrinelloRahmanBoxVelocities_ ? parrinelloRahmanBoxVelocities_() : nullMatrix,
                                {},
@@ -264,8 +266,6 @@ void EnergyData::doStep(Step step, Time time, bool isEnergyCalculationStep, bool
                                {},
                                {} }),
             freeEnergyPerturbationData_ ? freeEnergyPerturbationData_->currentFEPState() : 0,
-            shakeVirial_,
-            forceVirial_,
             totalVirial_,
             pressure_,
             ekind_,
@@ -366,6 +366,11 @@ gmx_enerdata_t* EnergyData::enerdata()
     return enerd_;
 }
 
+const gmx_enerdata_t* EnergyData::enerdata() const
+{
+    return enerd_;
+}
+
 gmx_ekindata_t* EnergyData::ekindata()
 {
     return ekind_;
@@ -410,17 +415,17 @@ void EnergyData::Element::doCheckpointData(CheckpointData<operation>* checkpoint
 void EnergyData::Element::saveCheckpointState(std::optional<WriteCheckpointData> checkpointData,
                                               const t_commrec*                   cr)
 {
+    // Here we always store the ekinstate, even when it might be not be used at this step.
+    // It would be cleaner make it conditional on when it is used (and thus up to date).
+    update_ekinstate(MASTER(cr) ? &energyData_->ekinstate_ : nullptr,
+                     energyData_->ekind_,
+                     energyData_->needToSumEkinhOld_,
+                     cr);
+
     if (MASTER(cr))
     {
-        if (energyData_->needToSumEkinhOld_)
-        {
-            energyData_->ekinstate_.bUpToDate = false;
-        }
-        else
-        {
-            update_ekinstate(&energyData_->ekinstate_, energyData_->ekind_);
-            energyData_->ekinstate_.bUpToDate = true;
-        }
+        energyData_->ekinstate_.bUpToDate = true;
+
         energyData_->energyOutput_->fillEnergyHistory(
                 energyData_->observablesHistory_->energyHistory.get());
         doCheckpointData<CheckpointDataOperation::Write>(&checkpointData.value());
@@ -509,17 +514,36 @@ void EnergyData::setParrinelloRahmanBoxVelocities(std::function<const rvec*()>&&
     parrinelloRahmanBoxVelocities_ = parrinelloRahmanBoxVelocities;
 }
 
+void EnergyData::updateKineticEnergy()
+{
+    // The legacy sum_ekin function does not offer named types, so define variables for readability
+    // dEkin/dlambda is not handled here
+    real* dEkinDLambda = nullptr;
+    // Whether we use the full step kinetic energy (vs the average of half step KEs)
+    const bool useFullStepKineticEnergy = (inputrec_->eI == IntegrationAlgorithm::VV);
+    /* Whether we're ignoring the NHC scaling factor, only used if useFullStepKineticEnergy
+     * is true. (This parameter is confusing, as it is named `bScaleEkin`, but prompts the
+     * function to ignore scaling. There is no use case within modular simulator to ignore
+     * these, so we set this to false.) */
+    const bool ignoreScalingFactor = false;
+
+    enerd_->term[F_TEMP] = sum_ekin(
+            &(inputrec_->opts), ekind_, dEkinDLambda, useFullStepKineticEnergy, ignoreScalingFactor);
+    enerd_->term[F_EKIN] = trace(ekind_->ekin);
+}
+
 EnergyData::Element* EnergyData::element()
 {
     return element_.get();
 }
 
-EnergyData::Element::Element(EnergyData* energyData, bool isMasterRank) :
+EnergyData::Element::Element(EnergyData* energyData, bool isMasterRank, int freeEnergyCalculationPeriod) :
     energyData_(energyData),
     isMasterRank_(isMasterRank),
     energyWritingStep_(-1),
     energyCalculationStep_(-1),
-    freeEnergyCalculationStep_(-1)
+    freeEnergyCalculationStep_(-1),
+    freeEnergyCalculationPeriod_(freeEnergyCalculationPeriod)
 {
 }
 
@@ -529,7 +553,8 @@ ISimulatorElement* EnergyData::Element::getElementPointerImpl(
         StatePropagatorData gmx_unused* statePropagatorData,
         EnergyData*                     energyData,
         FreeEnergyPerturbationData gmx_unused* freeEnergyPerturbationData,
-        GlobalCommunicationHelper gmx_unused* globalCommunicationHelper)
+        GlobalCommunicationHelper gmx_unused* globalCommunicationHelper,
+        ObservablesReducer* /*observablesReducer*/)
 {
     return energyData->element();
 }

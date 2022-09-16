@@ -1,13 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 1991-2000, University of Groningen, The Netherlands.
- * Copyright (c) 2001-2004, The GROMACS development team.
- * Copyright (c) 2013,2014,2015,2016,2017 by the GROMACS development team.
- * Copyright (c) 2018,2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 1991- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -21,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -30,14 +26,17 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
+
 #include "gmxpre.h"
 
 #include "read_params.h"
+
+#include <algorithm>
 
 #include "gromacs/applied_forces/awh/awh.h"
 #include "gromacs/fileio/readinp.h"
@@ -58,7 +57,6 @@
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/iserializer.h"
-#include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringutil.h"
 
 #include "biasparams.h"
@@ -1220,7 +1218,7 @@ static void setStateDependentAwhPullDimParams(AwhDimParams*        dimParams,
     }
 
     /* The initial coordinate value, converted to external user units. */
-    double initialCoordinate = get_pull_coord_value(pull_work, dimParams->coordinateIndex(), &pbc);
+    double initialCoordinate = get_pull_coord_value(pull_work, dimParams->coordinateIndex(), pbc);
     initialCoordinate *= pull_conversion_factor_internal2userinput(pullCoordParams);
     dimParams->setInitialCoordinate(initialCoordinate);
 }
@@ -1266,6 +1264,19 @@ void setStateDependentAwhParams(AwhParams*           awhParams,
             AwhDimParams* dimParams = &awhBiasDimensionParams[d];
             if (dimParams->coordinateProvider() == AwhCoordinateProviderType::Pull)
             {
+                const t_pull_coord& pullCoordParams = pull_params.coord[dimParams->coordinateIndex()];
+                if (dimParams->coverDiameter() != 0.0
+                    && (pullCoordParams.eGeom == PullGroupGeometry::Angle
+                        || pullCoordParams.eGeom == PullGroupGeometry::Dihedral
+                        || pullCoordParams.eGeom == PullGroupGeometry::AngleAxis))
+                {
+                    warning_note(
+                            wi,
+                            "Note that the unit of the AWH cover-diameter parameter for angle and "
+                            "dihedral pull coordinates has recently changed from radian to "
+                            "degrees");
+                }
+
                 setStateDependentAwhPullDimParams(
                         dimParams, k, d, pull_params, pull_work, pbc, compressibility, wi);
             }
@@ -1310,16 +1321,64 @@ void checkAwhParams(const AwhParams& awhParams, const t_inputrec& ir, warninp_t 
         warning_error(wi, opt + " needs to be an integer > 0");
     }
 
-    for (int k = 0; k < awhParams.numBias(); k++)
+    bool       haveFepLambdaDim = false;
+    const auto awhBiasParams    = awhParams.awhBiasParams();
+    for (int k = 0; k < awhParams.numBias() && !haveFepLambdaDim; k++)
     {
         std::string prefixawh = formatString("awh%d", k + 1);
-        checkBiasParams(awhParams.awhBiasParams()[k], prefixawh, ir, wi);
+        checkBiasParams(awhBiasParams[k], prefixawh, ir, wi);
+        /* Check if there is a FEP lambda dimension. */
+        const auto dimParams = awhBiasParams[k].dimParams();
+        haveFepLambdaDim = std::any_of(dimParams.begin(), dimParams.end(), [](const auto& dimParam) {
+            return dimParam.coordinateProvider() == AwhCoordinateProviderType::FreeEnergyLambda;
+        });
+    }
+
+    if (haveFepLambdaDim)
+    {
+        if (awhParams.nstSampleCoord() % ir.nstcalcenergy != 0)
+        {
+            opt          = "awh-nstsample";
+            auto message = formatString(
+                    "%s (%d) should be a multiple of nstcalcenergy (%d) when using AWH for "
+                    "sampling an FEP lambda dimension",
+                    opt.c_str(),
+                    awhParams.nstSampleCoord(),
+                    ir.nstcalcenergy);
+            warning_error(wi, message);
+        }
+        if (awhParams.potential() != AwhPotentialType::Umbrella)
+        {
+            opt          = "awh-potential";
+            auto message = formatString(
+                    "%s (%s) must be set to %s when using AWH for sampling an FEP lambda dimension",
+                    opt.c_str(),
+                    enumValueToString(awhParams.potential()),
+                    enumValueToString(AwhPotentialType::Umbrella));
+            warning_error(wi, message);
+        }
     }
 
     if (ir.init_step != 0)
     {
         warning_error(wi, "With AWH init-step should be 0");
     }
+}
+
+bool awhHasFepLambdaDimension(const AwhParams& awhParams)
+{
+    for (const auto& biasParams : awhParams.awhBiasParams())
+    {
+        for (const auto& dimParams : biasParams.dimParams())
+        {
+            if (dimParams.coordinateProvider() == AwhCoordinateProviderType::FreeEnergyLambda)
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 } // namespace gmx

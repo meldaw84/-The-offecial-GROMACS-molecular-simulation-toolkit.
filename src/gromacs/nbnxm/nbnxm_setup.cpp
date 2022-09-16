@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2019- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief Common functions for the different NBNXN GPU implementations.
@@ -42,11 +41,14 @@
 
 #include "gmxpre.h"
 
+#include <memory>
+
 #include "gromacs/domdec/domdec.h"
 #include "gromacs/domdec/domdec_struct.h"
 #include "gromacs/hardware/hw_info.h"
 #include "gromacs/mdlib/gmx_omp_nthreads.h"
 #include "gromacs/mdtypes/commrec.h"
+#include "gromacs/mdtypes/enerdata.h"
 #include "gromacs/mdtypes/forcerec.h"
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/interaction_const.h"
@@ -59,6 +61,7 @@
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/logger.h"
 
+#include "freeenergydispatch.h"
 #include "grid.h"
 #include "nbnxm_geometry.h"
 #include "nbnxm_simd.h"
@@ -140,7 +143,7 @@ static KernelSetup pick_nbnxn_kernel_cpu(const t_inputrec gmx_unused& inputrec,
          */
         kernelSetup.kernelType = KernelType::Cpu4xN_Simd_4xN;
 
-        if (!GMX_SIMD_HAVE_FMA && (EEL_PME_EWALD(inputrec.coulombtype) || EVDW_PME(inputrec.vdwtype)))
+        if (!GMX_SIMD_HAVE_FMA && (usingPmeOrEwald(inputrec.coulombtype) || usingLJPme(inputrec.vdwtype)))
         {
             /* We have Ewald kernels without FMA (Intel Sandy/Ivy Bridge).
              * There are enough instructions to make 2x(4+4) efficient.
@@ -278,7 +281,7 @@ static KernelSetup pick_nbnxn_kernel(const gmx::MDLogger&     mdlog,
                 .asParagraph()
                 .appendTextFormatted(
                         "WARNING: Using the slow %s kernels. This should\n"
-                        "not happen during routine usage on supported platforms.",
+                        "not happen during routine usage on common platforms.",
                         lookup_kernel_name(kernelSetup.kernelType));
     }
 
@@ -294,8 +297,7 @@ static KernelSetup pick_nbnxn_kernel(const gmx::MDLogger&     mdlog,
 PairlistSets::PairlistSets(const PairlistParams& pairlistParams,
                            const bool            haveMultipleDomains,
                            const int             minimumIlistCountForGpuBalancing) :
-    params_(pairlistParams),
-    minimumIlistCountForGpuBalancing_(minimumIlistCountForGpuBalancing)
+    params_(pairlistParams), minimumIlistCountForGpuBalancing_(minimumIlistCountForGpuBalancing)
 {
     localSet_ = std::make_unique<PairlistSet>(params_);
 
@@ -456,15 +458,15 @@ std::unique_ptr<nonbonded_verlet_t> init_nb_verlet(const gmx::MDLogger& mdlog,
     auto pairlistSets = std::make_unique<PairlistSets>(
             pairlistParams, haveMultipleDomains, minimumIlistCountForGpuBalancing);
 
-    auto pairSearch =
-            std::make_unique<PairSearch>(inputrec.pbcType,
-                                         EI_TPI(inputrec.eI),
-                                         DOMAINDECOMP(commrec) ? &commrec->dd->numCells : nullptr,
-                                         DOMAINDECOMP(commrec) ? domdec_zones(commrec->dd) : nullptr,
-                                         pairlistParams.pairlistType,
-                                         bFEP_NonBonded,
-                                         gmx_omp_nthreads_get(ModuleMultiThread::Pairsearch),
-                                         pinPolicy);
+    auto pairSearch = std::make_unique<PairSearch>(
+            inputrec.pbcType,
+            EI_TPI(inputrec.eI),
+            haveDDAtomOrdering(*commrec) ? &commrec->dd->numCells : nullptr,
+            haveDDAtomOrdering(*commrec) ? domdec_zones(commrec->dd) : nullptr,
+            pairlistParams.pairlistType,
+            bFEP_NonBonded,
+            gmx_omp_nthreads_get(ModuleMultiThread::Pairsearch),
+            pinPolicy);
 
     return std::make_unique<nonbonded_verlet_t>(
             std::move(pairlistSets), std::move(pairSearch), std::move(nbat), kernelSetup, gpu_nbv, wcycle);
@@ -488,6 +490,11 @@ nonbonded_verlet_t::nonbonded_verlet_t(std::unique_ptr<PairlistSets>     pairlis
     GMX_RELEASE_ASSERT(pairlistSets_, "Need valid pairlistSets");
     GMX_RELEASE_ASSERT(pairSearch_, "Need valid search object");
     GMX_RELEASE_ASSERT(nbat, "Need valid atomdata object");
+
+    if (pairlistSets_->params().haveFep)
+    {
+        freeEnergyDispatch_ = std::make_unique<FreeEnergyDispatch>(nbat->params().nenergrp);
+    }
 }
 
 nonbonded_verlet_t::~nonbonded_verlet_t()
