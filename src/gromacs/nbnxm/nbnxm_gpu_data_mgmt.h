@@ -55,8 +55,6 @@ enum class InteractionLocality;
 namespace Nbnxm
 {
 
-struct gpu_plist;
-
 /*! \brief Initializes the NBNXM GPU data structures. */
 void gpu_init_platform_specific(NbnxmGpu* nb);
 

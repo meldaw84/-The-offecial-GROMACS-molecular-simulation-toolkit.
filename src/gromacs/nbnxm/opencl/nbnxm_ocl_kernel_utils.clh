@@ -247,7 +247,7 @@ gmx_opencl_inline void preloadCjPackedGeneric(__local int*        sm_cjPreload,
 {
     /* Pre-load cj into shared memory */
 #    if defined _AMD_SOURCE_ // TODO: fix by setting c_nbnxnGpuClusterpairSplit properly
-    if (tidxj == 0 & tidxi < c_nbnxnGpuJgroupSize)
+    if (tidxj == 0 & tidxi < Nbnxm_GpuJGroupSize_Four)
     {
         sm_cjPreload[tidxi] = gm_cj[tidxi];
     }
@@ -255,9 +255,9 @@ gmx_opencl_inline void preloadCjPackedGeneric(__local int*        sm_cjPreload,
     const int c_clSize                   = CL_SIZE;
     const int c_nbnxnGpuClusterpairSplit = 2;
     const int c_splitClSize              = c_clSize / c_nbnxnGpuClusterpairSplit;
-    if ((tidxj == 0 | tidxj == c_splitClSize) & (tidxi < c_nbnxnGpuJgroupSize))
+    if ((tidxj == 0 | tidxj == c_splitClSize) & (tidxi < Nbnxm_GpuJGroupSize_Four))
     {
-        sm_cjPreload[tidxi + tidxj * c_nbnxnGpuJgroupSize / c_splitClSize] = gm_cj[tidxi];
+        sm_cjPreload[tidxi + tidxj * Nbnxm_GpuJGroupSize_Four / c_splitClSize] = gm_cj[tidxi];
     }
 #    endif
 }
@@ -310,7 +310,7 @@ gmx_opencl_inline int loadCjPreload(__local int* sm_cjPreload, int jm, int gmx_u
     const int c_clSize = CL_SIZE;
     const int c_nbnxnGpuClusterpairSplit = 2;
     const int c_splitClSize = c_clSize / c_nbnxnGpuClusterpairSplit;
-    int warpLoadOffset = (tidxj & c_splitClSize) * c_nbnxnGpuJgroupSize / c_splitClSize;
+    int warpLoadOffset = (tidxj & c_splitClSize) * Nbnxm_GpuJGroupSize_Four / c_splitClSize;
 #    endif
     return sm_cjPreload[jm + warpLoadOffset];
 }
