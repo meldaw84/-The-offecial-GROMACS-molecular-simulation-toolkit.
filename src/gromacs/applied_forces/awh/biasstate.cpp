@@ -136,61 +136,6 @@ void sumPmf(gmx::ArrayRef<PointState> pointState, int numSharedUpdate, const Bia
 }
 
 /*! \brief
- * Update the friction, for all points, shared between the ranks.
- *
- * \param[in,out] pointState         The state of the points in the bias.
- * \param[in]     forceCorrelation   The force correlation statistics for every grid point.
- * \param[in]     numSharedUpdate    The number of biases sharing the histogram.
- * \param[in]     biasSharing        Object for sharing bias data over multiple simulations
- * \param[in]     biasIndex          Index of this bias in the total list of biases in this simulation
- */
-void updateSharedFriction(gmx::ArrayRef<PointState> pointState,
-                          const CorrelationGrid*    forceCorrelation,
-                          int                       numSharedUpdate,
-                          const BiasSharing*        biasSharing,
-                          const int                 biasIndex)
-{
-    GMX_ASSERT(forceCorrelation != nullptr,
-               "There must be a force correlation grid when updating the shared friction");
-
-    std::vector<double> buffer(pointState.size(), 0);
-
-    for (size_t i = 0; i < buffer.size(); i++)
-    {
-        if (pointState[i].inTargetRegion())
-        {
-            buffer[i] = forceCorrelation->tensors()[i].getVolumeElement(forceCorrelation->dtSample)
-                        * pointState[i].localNumVisits();
-        }
-    }
-
-    if (numSharedUpdate > 1)
-    {
-        GMX_ASSERT(biasSharing != nullptr
-                           && numSharedUpdate % biasSharing->numSharingSimulations(biasIndex) == 0,
-                   "numSharedUpdate should be a multiple of multiSimComm->numSimulations_");
-        GMX_ASSERT(numSharedUpdate == biasSharing->numSharingSimulations(biasIndex),
-                   "Sharing within a simulation is not implemented (yet)");
-        biasSharing->sumOverSharingSimulations(gmx::ArrayRef<double>(buffer), biasIndex);
-    }
-
-    for (gmx::index i = 0; i < pointState.ssize(); i++)
-    {
-        if (pointState[i].inTargetRegion())
-        {
-            if (pointState[i].numVisitsTot() > 0)
-            {
-                pointState[i].setSharedFriction(buffer[i] / pointState[i].numVisitsTot());
-            }
-            else
-            {
-                pointState[i].setSharedFriction(0);
-            }
-        }
-    }
-}
-
-/*! \brief
  * Find the minimum free energy value.
  *
  * \param[in] pointState  The state of the points.
@@ -1127,7 +1072,6 @@ static void normalizeFreeEnergyAndPmfSum(std::vector<PointState>* pointState)
 void BiasState::updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParams> dimParams,
                                                          const BiasGrid&           grid,
                                                          const BiasParams&         params,
-                                                         const CorrelationGrid*    forceCorrelation,
                                                          double                    t,
                                                          int64_t                   step,
                                                          FILE*                     fplog,
@@ -1251,7 +1195,6 @@ void BiasState::updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParam
         normalizeFreeEnergyAndPmfSum(&points_);
     }
 
-    updateSharedFriction(points_, forceCorrelation, params.numSharedUpdate, biasSharing_, params.biasIndex);
     if (needToUpdateTargetDistribution)
     {
         /* The target distribution is always updated for all points at once. */
@@ -1596,6 +1539,99 @@ void BiasState::setFreeEnergyToConvolvedPmf(ArrayRef<const DimParams> dimParams,
     {
         points_[m].setFreeEnergy(convolvedPmf[m]);
     }
+}
+
+double BiasState::getSharedCorrelationTensorTimeIntegral(const BiasParams&      biasParams,
+                                                         const CorrelationGrid& forceCorrelation,
+                                                         const int              gridPointIndex,
+                                                         const int              tensorIndex) const
+{
+    const int           numSharedUpdate = biasParams.numSharedUpdate;
+    const int           biasIndex       = biasParams.biasIndex;
+    const double        dtSample        = forceCorrelation.dtSample;
+    constexpr int       numPoints       = 1;
+    std::vector<double> buffer(numPoints, 0);
+
+    if (!points_[gridPointIndex].inTargetRegion() || points_[gridPointIndex].numVisitsTot() <= 0)
+    {
+        return 0;
+    }
+
+    buffer[0] = forceCorrelation.tensors()[gridPointIndex].getTimeIntegral(tensorIndex, dtSample)
+                * points_[gridPointIndex].localNumVisits();
+    if (numSharedUpdate > 1)
+    {
+        GMX_ASSERT(biasSharing_ != nullptr
+                           && numSharedUpdate % biasSharing_->numSharingSimulations(biasIndex) == 0,
+                   "numSharedUpdate should be a multiple of multiSimComm->numSimulations_");
+        GMX_ASSERT(numSharedUpdate == biasSharing_->numSharingSimulations(biasIndex),
+                   "Sharing within a simulation is not implemented (yet)");
+        biasSharing_->sumOverSharingSimulations(gmx::ArrayRef<double>(buffer), biasIndex);
+    }
+    return buffer[0] / points_[gridPointIndex].numVisitsTot();
+}
+
+double BiasState::getSharedCorrelationTensorVolumeElement(const BiasParams&      biasParams,
+                                                          const CorrelationGrid& forceCorrelation,
+                                                          const int gridPointIndex) const
+{
+    const int numCorrelation = forceCorrelation.tensorSize();
+
+    double det;
+
+    if (!points_[gridPointIndex].inTargetRegion() || points_[gridPointIndex].numVisitsTot() <= 0)
+    {
+        return 0;
+    }
+
+    /* The following is based on CorrelationTensor::getVolumeElement(), but using shared data. */
+    switch (numCorrelation)
+    {
+        case 1:
+            /* 1-dimensional tensor: [a] */
+            det = getSharedCorrelationTensorTimeIntegral(biasParams, forceCorrelation, gridPointIndex, 0);
+            break;
+        case 3:
+        {
+            /* 2-dimensional tensor: [a b; b c] */
+            double a = getSharedCorrelationTensorTimeIntegral(
+                    biasParams, forceCorrelation, gridPointIndex, 0);
+            double b = getSharedCorrelationTensorTimeIntegral(
+                    biasParams, forceCorrelation, gridPointIndex, 1);
+            double c = getSharedCorrelationTensorTimeIntegral(
+                    biasParams, forceCorrelation, gridPointIndex, 2);
+
+            det = a * c - b * b;
+        }
+        break;
+        case 6:
+        {
+            /* 3-dimensional tensor: [a b d; b c e; d e f] */
+            double a = getSharedCorrelationTensorTimeIntegral(
+                    biasParams, forceCorrelation, gridPointIndex, 0);
+            double b = getSharedCorrelationTensorTimeIntegral(
+                    biasParams, forceCorrelation, gridPointIndex, 1);
+            double c = getSharedCorrelationTensorTimeIntegral(
+                    biasParams, forceCorrelation, gridPointIndex, 2);
+            double d = getSharedCorrelationTensorTimeIntegral(
+                    biasParams, forceCorrelation, gridPointIndex, 3);
+            double e = getSharedCorrelationTensorTimeIntegral(
+                    biasParams, forceCorrelation, gridPointIndex, 4);
+            double f = getSharedCorrelationTensorTimeIntegral(
+                    biasParams, forceCorrelation, gridPointIndex, 5);
+
+            det = a * c * f + 2 * b * d * e - d * c * d - b * b * f - a * e * e;
+        }
+        break;
+        default:
+            det = 0;
+            /* meh */
+            break;
+    }
+
+    /* Returns 0 if no data, not supported number of dims
+       or not enough data to give a positive determinant (as it should be) */
+    return det > 0 ? std::sqrt(det) : 0;
 }
 
 /*! \brief

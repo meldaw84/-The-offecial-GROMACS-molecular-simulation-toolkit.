@@ -191,7 +191,8 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
         rankLocalNumVisits.push_back(bias.state().points()[pointIndex].localNumVisits());
         rankLocalFriction.push_back(
                 forceCorrelation.tensors()[pointIndex].getVolumeElement(forceCorrelation.dtSample));
-        rankSharedFriction.push_back(bias.state().points()[pointIndex].sharedFriction());
+        rankSharedFriction.push_back(bias.state().getSharedCorrelationTensorVolumeElement(
+                bias.params(), forceCorrelation, pointIndex));
         sumPointNumVisitsIteration += bias.state().points()[pointIndex].numVisitsIteration();
         sumPointNumVisitsTot += bias.state().points()[pointIndex].numVisitsTot();
         sumLocalNumVisits += bias.state().points()[pointIndex].localNumVisits();

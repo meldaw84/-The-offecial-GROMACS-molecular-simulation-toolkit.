@@ -74,6 +74,7 @@ const std::map<AwhOutputEntryType, Normalization> outputTypeToNormalization = {
     { AwhOutputEntryType::ForceCorrelationVolume, Normalization::Distribution },
     { AwhOutputEntryType::SharedForceCorrelationVolume, Normalization::None },
     { AwhOutputEntryType::FrictionTensor, Normalization::None },
+    { AwhOutputEntryType::SharedFrictionTensor, Normalization::None }
 };
 
 /*! \brief
@@ -145,7 +146,8 @@ BiasWriter::BiasWriter(const Bias& bias)
             {
                 outputTypeNumBlock[outputType] = bias.ndim();
             }
-            else if (outputType == AwhOutputEntryType::FrictionTensor)
+            else if (outputType == AwhOutputEntryType::FrictionTensor
+                     || outputType == AwhOutputEntryType::SharedFrictionTensor)
             {
                 outputTypeNumBlock[outputType] = bias.forceCorrelationGrid().tensorSize();
             }
@@ -331,6 +333,10 @@ void BiasWriter::transferPointDataToWriter(AwhOutputEntryType         outputType
             block_[b].data()[pointIndex] =
                     forceCorrelation.tensors()[pointIndex].getVolumeElement(forceCorrelation.dtSample);
             break;
+        case AwhOutputEntryType::SharedForceCorrelationVolume:
+            block_[b].data()[pointIndex] = bias.state().getSharedCorrelationTensorVolumeElement(
+                    bias.params(), forceCorrelation, pointIndex);
+            break;
         case AwhOutputEntryType::FrictionTensor:
             /* Store force correlation in units of friction, i.e. time/length^2 */
             for (int n = 0; n < numCorrelation; n++)
@@ -340,8 +346,13 @@ void BiasWriter::transferPointDataToWriter(AwhOutputEntryType         outputType
                 b++;
             }
             break;
-        case AwhOutputEntryType::SharedForceCorrelationVolume:
-            block_[b].data()[pointIndex] = bias.state().points()[pointIndex].sharedFriction();
+        case AwhOutputEntryType::SharedFrictionTensor:
+            for (int n = 0; n < numCorrelation; n++)
+            {
+                block_[b].data()[pointIndex] = bias.state().getSharedCorrelationTensorTimeIntegral(
+                        bias.params(), forceCorrelation, pointIndex, n);
+                b++;
+            }
             break;
         default: GMX_RELEASE_ASSERT(false, "Unknown AWH output variable"); break;
     }

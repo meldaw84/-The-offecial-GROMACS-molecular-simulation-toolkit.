@@ -379,7 +379,6 @@ public:
      * \param[in]     dimParams        The dimension parameters.
      * \param[in]     grid             The grid.
      * \param[in]     params           The bias parameters.
-     * \param[in]     forceCorrelation The force correlation statistics for every grid point.
      * \param[in]     t                Time.
      * \param[in]     step             Time step.
      * \param[in,out] fplog            Log file.
@@ -388,7 +387,6 @@ public:
     void updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParams> dimParams,
                                                   const BiasGrid&           grid,
                                                   const BiasParams&         params,
-                                                  const CorrelationGrid*    forceCorrelation,
                                                   double                    t,
                                                   int64_t                   step,
                                                   FILE*                     fplog,
@@ -498,6 +496,28 @@ public:
     /*! \brief Sets the umbrella grid point to the current grid point
      */
     void setUmbrellaGridpointToGridpoint() { coordState_.setUmbrellaGridpointToGridpoint(); }
+
+    /*! \brief Gets the time integral, shared across all rankes, of a tensor of a correlation grid point.
+     *
+     * \param[in] biasParams       The bias parameters.
+     * \param[in] forceCorrelation The force correlation grid.
+     * \param[in] pointIndex       The index of the grid point from which to retrieve the tensor volume.
+     * \param[in] tensorIndex      The index of the tensor.
+     */
+    double getSharedCorrelationTensorTimeIntegral(const BiasParams&      biasParams,
+                                                  const CorrelationGrid& forceCorrelation,
+                                                  const int              gridPointIndex,
+                                                  const int              tensorIndex) const;
+
+    /*! \brief Gets the volume element, shared across all ranks, of a correlation grid point.
+     *
+     * \param[in] biasParams       The bias parameters.
+     * \param[in] forceCorrelation The force correlation grid.
+     * \param[in] pointIndex       The index of the grid point from which to retrieve the tensor volume.
+     */
+    double getSharedCorrelationTensorVolumeElement(const BiasParams&      biasParams,
+                                                   const CorrelationGrid& forceCorrelation,
+                                                   const int              gridPointIndex) const;
 
     /* Data members */
 private:

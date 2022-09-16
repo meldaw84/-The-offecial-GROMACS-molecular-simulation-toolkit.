@@ -75,9 +75,10 @@ enum class AwhOutputEntryType
     Visits,                       //!< The number of visits.
     Weights,                      //!< The weights.
     Target,                       //!< The target distribition.
-    ForceCorrelationVolume,       //!< The volume of the force correlation tensor.
+    ForceCorrelationVolume,       //!< The normalized volume of the force correlation tensor.
     SharedForceCorrelationVolume, //!< The force correlation volume shared between multiple walkers.
-    FrictionTensor                //!< The full friction tensor.
+    FrictionTensor,               //!< The full friction tensor.
+    SharedFrictionTensor          //!< The full friction tensor shared between multiple walkers.
 };
 
 //! Enum with the types of metadata to write.
