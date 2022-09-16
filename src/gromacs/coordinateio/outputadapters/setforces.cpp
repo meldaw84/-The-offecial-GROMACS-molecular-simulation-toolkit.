@@ -42,7 +42,7 @@
 
 #include "gmxpre.h"
 
-#include "setforces.h"
+#include "gromacs/coordinateio/outputadapters/setforces.h"
 
 #include "gromacs/coordinateio/coordinatefileenums.h"
 #include "gromacs/trajectory/trajectoryframe.h"

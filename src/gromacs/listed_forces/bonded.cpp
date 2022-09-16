@@ -42,7 +42,7 @@
  */
 #include "gmxpre.h"
 
-#include "bonded.h"
+#include "gromacs/listed_forces/bonded.h"
 
 #include "config.h"
 

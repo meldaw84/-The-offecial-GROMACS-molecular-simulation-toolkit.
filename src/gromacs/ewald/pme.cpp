@@ -66,7 +66,7 @@
 
 #include "gmxpre.h"
 
-#include "pme.h"
+#include "gromacs/ewald/pme.h"
 
 #include "config.h"
 

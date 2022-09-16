@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "edsam.h"
+#include "gromacs/essentialdynamics/edsam.h"
 
 #include <cmath>
 #include <cstdio>
@@ -44,9 +44,10 @@
 #include <utility>
 #include <vector>
 
+#include "../fileio/gmxfio.h"
+
 #include "gromacs/commandline/filenm.h"
 #include "gromacs/domdec/domdec_struct.h"
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/xvgr.h"
 #include "gromacs/gmxlib/network.h"
 #include "gromacs/gmxlib/nrnb.h"

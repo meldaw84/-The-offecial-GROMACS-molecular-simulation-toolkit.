@@ -53,10 +53,10 @@
 #include "gromacs/mdtypes/commrec.h"
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/mdatom.h"
+#include "gromacs/modularsimulator/energydata.h"
+#include "gromacs/modularsimulator/modularsimulator.h"
 #include "gromacs/pbcutil/boxutilities.h"
 
-#include "energydata.h"
-#include "modularsimulator.h"
 #include "simulatoralgorithm.h"
 #include "statepropagatordata.h"
 

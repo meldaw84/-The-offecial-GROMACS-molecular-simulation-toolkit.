@@ -48,7 +48,7 @@
 #include "gromacs/nbnxm/nbnxm_simd.h"
 
 #define GMX_SIMD_J_UNROLL_SIZE 1
-#include "kernels.h"
+#include "kernels_simd_4xm.h"
 
 #define CALC_COUL_RF
 #define LJ_CUT
@@ -57,7 +57,7 @@
 /* Will not calculate energies */
 
 #ifdef GMX_NBNXN_SIMD_4XN
-#    include "kernel_common.h"
+#    include "kernels_simd_4xm_common.h"
 #endif /* GMX_NBNXN_SIMD_4XN */
 
 #ifdef CALC_ENERGIES

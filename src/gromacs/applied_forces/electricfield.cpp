@@ -40,15 +40,16 @@
  */
 #include "gmxpre.h"
 
-#include "electricfield.h"
+#include "gromacs/applied_forces/electricfield.h"
 
 #include <cmath>
 
 #include <memory>
 #include <string>
 
+#include "../fileio/gmxfio.h"
+
 #include "gromacs/commandline/filenm.h"
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/xvgr.h"
 #include "gromacs/math/units.h"
 #include "gromacs/mdtypes/commrec.h"

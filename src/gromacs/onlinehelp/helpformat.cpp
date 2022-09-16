@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "helpformat.h"
+#include "gromacs/onlinehelp/helpformat.h"
 
 #include <algorithm>
 #include <string>

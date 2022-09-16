@@ -49,7 +49,6 @@
 #include <vector>
 
 #include "gromacs/analysisdata/dataframe.h"
-#include "gromacs/analysisdata/datastorage.h"
 
 namespace gmx
 {

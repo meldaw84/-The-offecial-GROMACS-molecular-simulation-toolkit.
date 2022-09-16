@@ -38,10 +38,7 @@
 #include <cstdio>
 #include <cstring>
 
-#include "gromacs/fileio/espio.h"
 #include "gromacs/fileio/filetypes.h"
-#include "gromacs/fileio/g96io.h"
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/groio.h"
 #include "gromacs/fileio/pdbio.h"
 #include "gromacs/fileio/tpxio.h"
@@ -57,6 +54,10 @@
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/smalloc.h"
+
+#include "espio.h"
+#include "g96io.h"
+#include "gmxfio.h"
 
 void write_sto_conf_indexed(const char*    outfile,
                             const char*    title,

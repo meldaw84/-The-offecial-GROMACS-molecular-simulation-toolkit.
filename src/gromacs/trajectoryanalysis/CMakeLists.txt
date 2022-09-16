@@ -33,13 +33,42 @@
 
 # Set up the module library
 add_library(trajectoryanalysis INTERFACE)
-file(GLOB TRAJECTORYANALYSIS_SOURCES *.cpp modules/*.cpp)
-set(LIBGROMACS_SOURCES ${LIBGROMACS_SOURCES} ${TRAJECTORYANALYSIS_SOURCES} PARENT_SCOPE)
+set(TRAJECTORYANALYSIS_SOURCES
+    analysismodule.cpp
+    analysissettings.cpp
+    cmdlinerunner.cpp
+    modules.cpp
+    modules/angle.cpp
+    modules/convert_trj.cpp
+    modules/distance.cpp
+    modules/dssp.cpp
+    modules/extract_cluster.cpp
+    modules/freevolume.cpp
+    modules/msd.cpp
+    modules/pairdist.cpp
+    modules/rdf.cpp
+    modules/sasa.cpp
+    modules/select.cpp
+    modules/surfacearea.cpp
+    modules/trajectory.cpp
+    runnercommon.cpp
+    topologyinformation.cpp)
+
+target_sources(libgromacs PRIVATE
+               ${TRAJECTORYANALYSIS_SOURCES})
+
+# TODO: update when trajectoryanalysis is an OBJECT target
+set_source_files_properties(
+    ${TRAJECTORYANALYSIS_SOURCES}
+    TARGET libgromacs
+    PROPERTIES INCLUDE_DIRECTORIES
+#target_include_directories(trajectoryanalysis PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
 # Source files have the following dependencies on library infrastructure.
 #target_link_libraries(trajectoryanalysis PRIVATE
 #                      common
-#                      legacy_modules
 #)
 
 # Public interface for modules, including dependencies and interfaces
@@ -57,8 +86,6 @@ target_link_libraries(trajectoryanalysis INTERFACE
 
 # Source files have the following private module dependencies.
 #target_link_libraries(trajectoryanalysis PRIVATE NOTHING)
-# TODO: Explicitly link specific modules.
-#target_link_libraries(trajectoryanalysis PRIVATE legacy_modules)
 
 if (BUILD_TESTING)
     add_subdirectory(tests)

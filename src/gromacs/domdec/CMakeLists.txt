@@ -47,12 +47,6 @@ endif()
 
 set(LIBGROMACS_SOURCES ${LIBGROMACS_SOURCES} ${DOMDEC_SOURCES} ${DOMDEC_GPU_SOURCES} PARENT_SCOPE)
 
-# Source files have the following dependencies on library infrastructure.
-#target_link_libraries(domdec PRIVATE
-#                      common
-#                      legacy_modules
-#)
-
 # Public interface for modules, including dependencies and interfaces
 #target_include_directories(domdec PUBLIC
 target_include_directories(domdec INTERFACE
@@ -60,6 +54,7 @@ target_include_directories(domdec INTERFACE
 #target_link_libraries(domdec PUBLIC
 target_link_libraries(domdec INTERFACE
                       legacy_api
+                      compat
                       gpu_utils
                       mdlib
                       timing
@@ -71,10 +66,10 @@ target_link_libraries(domdec INTERFACE
 #target_link_libraries(domdec PUBLIC legacy_api)
 #target_link_libraries(domdec PRIVATE common)
 
-# Source files have the following private module dependencies.
-#target_link_libraries(domdec PRIVATE NOTHING)
-# TODO: Explicitly link specific modules.
-#target_link_libraries(domdec PRIVATE legacy_modules)
+# Source files have the following dependencies on library infrastructure.
+#target_link_libraries(domdec PRIVATE
+#                      common
+#)
 
 if (BUILD_TESTING)
     add_subdirectory(tests)

@@ -47,8 +47,9 @@
 #include <optional>
 #include <vector>
 
+#include "../pme_gpu_internal.h"
+
 #include "gromacs/ewald/pme.h"
-#include "gromacs/ewald/pme_gpu_internal.h"
 #include "gromacs/math/gmxcomplex.h"
 #include "gromacs/mdtypes/state_propagator_data_gpu.h"
 #include "gromacs/utility/message_string_collector.h"

@@ -45,11 +45,11 @@
 #ifndef GMX_EWALD_PME_GPU_INTERNAL_H
 #define GMX_EWALD_PME_GPU_INTERNAL_H
 
-#include "gromacs/fft/fft.h" // for the gmx_fft_direction enum
+#include "../fft/include/gromacs/fft/fft.h" // for the gmx_fft_direction enum
+#include "gromacs/ewald/pme_gpu_types_host.h"
 #include "gromacs/gpu_utils/devicebuffer_datatype.h"
 #include "gromacs/gpu_utils/gpu_macros.h" // for the GPU_FUNC_ macros
 
-#include "pme_gpu_types_host.h"
 #include "pme_output.h"
 
 class DeviceContext;

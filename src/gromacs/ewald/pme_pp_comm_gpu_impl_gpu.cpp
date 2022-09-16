@@ -44,13 +44,13 @@
 
 #include "config.h"
 
-#include "gromacs/ewald/pme_pp_communication.h"
 #include "gromacs/gpu_utils/device_context.h"
 #include "gromacs/gpu_utils/device_stream.h"
 #include "gromacs/gpu_utils/devicebuffer.h"
 #include "gromacs/gpu_utils/gpueventsynchronizer.h"
 
 #include "pme_pp_comm_gpu_impl.h"
+#include "pme_pp_communication.h"
 #if GMX_GPU_CUDA
 #    include "gromacs/gpu_utils/cudautils.cuh"
 #    include "gromacs/gpu_utils/typecasts.cuh"

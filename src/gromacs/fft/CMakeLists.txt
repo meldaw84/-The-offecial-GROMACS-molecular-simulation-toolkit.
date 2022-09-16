@@ -124,14 +124,6 @@ elseif (GMX_GPU_SYCL)
         )
 endif()
 
-# Source files have the following private module dependencies.
-target_link_libraries(fft PRIVATE
-                      #                      gmxlib
-                      #                      math
-                      #                      mdtypes
-                      #                      tng_io
-                      )
-
 # Public interface for modules, including dependencies and interfaces
 #target_include_directories(fft PUBLIC
 target_include_directories(fft INTERFACE
@@ -147,12 +139,8 @@ target_link_libraries(fft INTERFACE
 
 # TODO: when fft is an OBJECT target
 #target_link_libraries(fft PUBLIC legacy_api)
-#target_link_libraries(fft PRIVATE common)
-
 # Source files have the following private module dependencies.
-#target_link_libraries(fft PRIVATE tng_io)
-# TODO: Explicitly link specific modules.
-#target_link_libraries(fft PRIVATE legacy_modules)
+#target_link_libraries(fft PRIVATE common)
 
 if (BUILD_TESTING)
     add_subdirectory(tests)

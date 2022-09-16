@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "genconf.h"
+#include "gromacs/gmxpreprocess/genconf.h"
 
 #include "gromacs/commandline/pargs.h"
 #include "gromacs/fileio/confio.h"

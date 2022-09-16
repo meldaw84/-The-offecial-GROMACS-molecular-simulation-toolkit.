@@ -43,7 +43,7 @@
 
 #include "gmxpre.h"
 
-#include "pme_pp.h"
+#include "gromacs/ewald/pme_pp.h"
 
 #include "config.h"
 

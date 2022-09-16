@@ -45,7 +45,7 @@
 #include <cstring>
 
 #include "gromacs/utility/filestream.h"
-#include "gromacs/utility/nodelete.h"
+#include "nodelete.h"
 #include "gromacs/utility/stringutil.h"
 #include "gromacs/utility/textstream.h"
 

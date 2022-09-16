@@ -42,7 +42,7 @@
 
 #include "gmxpre.h"
 
-#include "setstarttime.h"
+#include "gromacs/coordinateio/outputadapters/setstarttime.h"
 
 #include <algorithm>
 

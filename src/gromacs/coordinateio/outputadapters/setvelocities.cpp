@@ -42,7 +42,7 @@
 
 #include "gmxpre.h"
 
-#include "setvelocities.h"
+#include "gromacs/coordinateio/outputadapters/setvelocities.h"
 
 #include "gromacs/coordinateio/coordinatefileenums.h"
 #include "gromacs/trajectory/trajectoryframe.h"

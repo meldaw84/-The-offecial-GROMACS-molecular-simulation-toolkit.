@@ -42,7 +42,7 @@
  */
 #include "gmxpre.h"
 
-#include "energyoutput.h"
+#include "gromacs/mdlib/energyoutput.h"
 
 #include <cfloat>
 #include <cstdlib>
@@ -51,10 +51,11 @@
 #include <array>
 #include <string>
 
+#include "../applied_forces/awh/read_params.h"
+#include "../fileio/enxio.h"
+#include "../fileio/gmxfio.h"
+
 #include "gromacs/applied_forces/awh/awh.h"
-#include "gromacs/applied_forces/awh/read_params.h"
-#include "gromacs/fileio/enxio.h"
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/xvgr.h"
 #include "gromacs/gmxlib/network.h"
 #include "gromacs/listed_forces/disre.h"
@@ -64,7 +65,6 @@
 #include "gromacs/math/vec.h"
 #include "gromacs/mdlib/constr.h"
 #include "gromacs/mdlib/ebin.h"
-#include "gromacs/mdlib/mdebin_bar.h"
 #include "gromacs/mdrunutility/handlerestart.h"
 #include "gromacs/mdrunutility/mdmodulesnotifiers.h"
 #include "gromacs/mdtypes/energyhistory.h"
@@ -85,6 +85,7 @@
 #include "gromacs/utility/stringutil.h"
 
 #include "energydrifttracker.h"
+#include "mdebin_bar.h"
 
 //! Labels for energy file quantities
 //! \{

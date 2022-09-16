@@ -42,7 +42,7 @@
 #include <algorithm>
 
 #include "gromacs/fileio/pdbio.h"
-#include "gromacs/gmxpreprocess/pdb2top.h"
+#include "pdb2top.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/topology/symtab.h"
 #include "gromacs/utility/arrayref.h"

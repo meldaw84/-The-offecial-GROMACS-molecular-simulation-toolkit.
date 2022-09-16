@@ -49,11 +49,12 @@
 
 #include <gtest/gtest.h>
 
+#include "../settle.h"
+
 #include "gromacs/gpu_utils/gpu_utils.h"
 #include "gromacs/math/paddedvector.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/math/vectypes.h"
-#include "gromacs/mdlib/settle.h"
 #include "gromacs/mdlib/tests/watersystem.h"
 #include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/pbcutil/pbc.h"

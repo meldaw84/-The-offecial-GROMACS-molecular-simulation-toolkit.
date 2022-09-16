@@ -42,7 +42,7 @@
 
 #include "gmxpre.h"
 
-#include "register.h"
+#include "../frameconverters/register.h"
 
 #include "gromacs/fileio/trxio.h"
 #include "gromacs/trajectory/trajectoryframe.h"

@@ -41,7 +41,7 @@
 
 #include "gmxpre.h"
 
-#include "freeenergy.h"
+#include "gromacs/mdrunutility/freeenergy.h"
 
 #include <numeric>
 

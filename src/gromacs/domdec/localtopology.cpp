@@ -49,7 +49,7 @@
 #include <iterator>
 #include <vector>
 
-#include "gromacs/domdec/domdec_internal.h"
+#include "domdec_internal.h"
 #include "gromacs/domdec/domdec_struct.h"
 #include "gromacs/domdec/ga2la.h"
 #include "gromacs/domdec/options.h"

@@ -71,7 +71,7 @@
 #include "gromacs/utility/logger.h"
 #include "gromacs/utility/stringutil.h"
 
-#include "box.h"
+#include "gromacs/domdec/box.h"
 #include "domdec_internal.h"
 #include "utility.h"
 

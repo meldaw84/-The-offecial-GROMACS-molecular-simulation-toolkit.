@@ -50,9 +50,10 @@
 #include <memory>
 #include <string>
 
-#include "gromacs/applied_forces/awh/read_params.h"
+#include "../applied_forces/awh/read_params.h"
+#include "../fileio/enxio.h"
+
 #include "gromacs/commandline/pargs.h"
-#include "gromacs/fileio/enxio.h"
 #include "gromacs/fileio/oenv.h"
 #include "gromacs/fileio/tpxio.h"
 #include "gromacs/fileio/trxio.h"

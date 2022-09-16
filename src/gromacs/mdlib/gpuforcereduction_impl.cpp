@@ -47,8 +47,9 @@
 #include "gromacs/gpu_utils/device_stream.h"
 #include "gromacs/gpu_utils/devicebuffer.h"
 #include "gromacs/gpu_utils/gpueventsynchronizer.h"
-#include "gromacs/mdlib/gpuforcereduction_impl_internal.h"
 #include "gromacs/utility/gmxassert.h"
+
+#include "gpuforcereduction_impl_internal.h"
 
 namespace gmx
 {

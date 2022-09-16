@@ -41,7 +41,7 @@
  */
 #include "gmxpre.h"
 
-#include "expfit.h"
+#include "gromacs/correlationfunctions/expfit.h"
 
 #include <cstring>
 

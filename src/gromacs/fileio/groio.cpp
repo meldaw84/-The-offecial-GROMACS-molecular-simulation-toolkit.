@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "groio.h"
+#include "gromacs/fileio/groio.h"
 
 #include <cstdio>
 #include <cstring>
@@ -41,7 +41,6 @@
 #include <algorithm>
 #include <string>
 
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/topology/atoms.h"
 #include "gromacs/topology/mtop_atomloops.h"
 #include "gromacs/topology/mtop_util.h"
@@ -53,6 +52,8 @@
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
+
+#include "gmxfio.h"
 
 static void get_coordnum_fp(FILE* in, char* title, int* natoms)
 {

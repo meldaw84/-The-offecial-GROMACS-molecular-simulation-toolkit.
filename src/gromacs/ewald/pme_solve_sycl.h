@@ -39,12 +39,12 @@
  *  \author Andrey Alekseenko <al42and@gmail.com>
  */
 
+#include "gromacs/ewald/pme_gpu_types.h"
 #include "gromacs/gpu_utils/gmxsycl.h"
 #include "gromacs/gpu_utils/syclutils.h"
 #include "gromacs/math/vectypes.h"
 
 #include "pme_gpu_internal.h"
-#include "pme_gpu_types.h"
 
 struct PmeGpuConstParams;
 struct PmeGpuGridParams;

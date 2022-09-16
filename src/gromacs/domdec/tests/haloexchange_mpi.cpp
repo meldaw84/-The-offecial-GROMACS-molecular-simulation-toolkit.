@@ -58,7 +58,7 @@
 #include <gtest/gtest.h>
 
 #include "gromacs/domdec/atomdistribution.h"
-#include "gromacs/domdec/domdec_internal.h"
+#include "domdec_internal.h"
 #include "gromacs/domdec/gpuhaloexchange.h"
 #if GMX_GPU_CUDA
 #    include "gromacs/gpu_utils/device_stream.h"

@@ -42,7 +42,7 @@
 
 #include "gmxpre.h"
 
-#include "partition.h"
+#include "gromacs/domdec/partition.h"
 
 #include "config.h"
 
@@ -93,14 +93,14 @@
 #include "gromacs/utility/stringutil.h"
 #include "gromacs/utility/textwriter.h"
 
-#include "box.h"
+#include "gromacs/domdec/box.h"
 #include "cellsizes.h"
-#include "distribute.h"
+#include "gromacs/domdec/distribute.h"
 #include "domdec_constraints.h"
 #include "domdec_internal.h"
 #include "domdec_vsite.h"
 #include "dump.h"
-#include "redistribute.h"
+#include "gromacs/domdec/redistribute.h"
 #include "utility.h"
 
 /*! \brief Turn on DLB when the load imbalance causes this amount of total loss.

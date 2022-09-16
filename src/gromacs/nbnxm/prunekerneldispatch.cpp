@@ -40,14 +40,14 @@
 
 #include "gromacs/mdlib/gmx_omp_nthreads.h"
 #include "gromacs/nbnxm/nbnxm.h"
+#include "gromacs/nbnxm/nbnxm_gpu.h"
+#include "gromacs/nbnxm/nbnxm_simd.h"
+#include "gromacs/nbnxm/pairlistset.h"
+#include "gromacs/nbnxm/pairlistsets.h"
 #include "gromacs/timing/wallcycle.h"
 #include "gromacs/utility/gmxassert.h"
 
 #include "clusterdistancekerneltype.h"
-#include "nbnxm_gpu.h"
-#include "nbnxm_simd.h"
-#include "pairlistset.h"
-#include "pairlistsets.h"
 
 void PairlistSets::dispatchPruneKernel(const gmx::InteractionLocality iLocality,
                                        const nbnxn_atomdata_t*        nbat,

@@ -58,8 +58,7 @@ else()
     gmx_target_warning_suppression(scanner -Wno-null-conversion HAS_NO_NULL_CONVERSIONS)
 endif()
 target_link_libraries(scanner PRIVATE legacy_api)
-# TODO: Remove `legacy_modules` once specific modules are explicitly linked.
-target_link_libraries(scanner PRIVATE legacy_modules)
+# Source files have the following private module dependencies.
 target_link_libraries(scanner PRIVATE utility)
 
 list(APPEND libgromacs_object_library_dependencies scanner)
@@ -68,7 +67,6 @@ set(libgromacs_object_library_dependencies ${libgromacs_object_library_dependenc
 # Source files have the following dependencies on library infrastructure.
 #target_link_libraries(selection PRIVATE
 #                      common
-#                      legacy_modules
 #)
 
 # Public interface for modules, including dependencies and interfaces
@@ -86,8 +84,6 @@ target_link_libraries(selection INTERFACE
 
 # Source files have the following private module dependencies.
 #target_link_libraries(selection PRIVATE NOTHING)
-# TODO: Explicitly link specific modules.
-#target_link_libraries(selection PRIVATE legacy_modules)
 
 if (BUILD_TESTING)
     add_subdirectory(tests)

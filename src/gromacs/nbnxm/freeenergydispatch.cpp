@@ -52,13 +52,12 @@
 #include "gromacs/mdtypes/simulation_workload.h"
 #include "gromacs/mdtypes/threaded_force_buffer.h"
 #include "gromacs/nbnxm/nbnxm.h"
+#include "gromacs/nbnxm/pairlistset.h"
+#include "gromacs/nbnxm/pairlistsets.h"
 #include "gromacs/timing/wallcycle.h"
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/real.h"
-
-#include "pairlistset.h"
-#include "pairlistsets.h"
 
 FreeEnergyDispatch::FreeEnergyDispatch(const int numEnergyGroups) :
     foreignGroupPairEnergies_(numEnergyGroups),

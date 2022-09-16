@@ -37,9 +37,8 @@
 
 #include "config.h"
 
+#include "gromacs/utility/baseversion_gen.h"
 #include "gromacs/utility/gmxassert.h"
-
-#include "baseversion_gen.h"
 
 const char* gmx_version()
 {

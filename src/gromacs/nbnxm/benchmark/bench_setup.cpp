@@ -42,9 +42,11 @@
 
 #include "gmxpre.h"
 
-#include "bench_setup.h"
+#include "gromacs/nbnxm/benchmark/bench_setup.h"
 
 #include <optional>
+
+#include "../gridset.h"
 
 #include "gromacs/gmxlib/nrnb.h"
 #include "gromacs/math/units.h"
@@ -59,7 +61,6 @@
 #include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/mdtypes/simulation_workload.h"
 #include "gromacs/nbnxm/atomdata.h"
-#include "gromacs/nbnxm/gridset.h"
 #include "gromacs/nbnxm/nbnxm.h"
 #include "gromacs/nbnxm/nbnxm_simd.h"
 #include "gromacs/nbnxm/pairlistset.h"

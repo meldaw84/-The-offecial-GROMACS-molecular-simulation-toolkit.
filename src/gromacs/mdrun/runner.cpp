@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "runner.h"
+#include "gromacs/mdrun/runner.h"
 
 #include "config.h"
 
@@ -53,6 +53,8 @@
 #include <algorithm>
 #include <memory>
 #include <optional>
+
+#include "../fileio/gmxfio.h"
 
 #include "gromacs/commandline/filenm.h"
 #include "gromacs/domdec/builder.h"
@@ -69,7 +71,6 @@
 #include "gromacs/ewald/pme_only.h"
 #include "gromacs/ewald/pme_pp_comm_gpu.h"
 #include "gromacs/fileio/checkpoint.h"
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/oenv.h"
 #include "gromacs/fileio/tpxio.h"
 #include "gromacs/gmxlib/network.h"
@@ -106,6 +107,7 @@
 #include "gromacs/mdlib/updategroups.h"
 #include "gromacs/mdlib/vsite.h"
 #include "gromacs/mdrun/mdmodules.h"
+#include "gromacs/mdrun/replicaexchange.h"
 #include "gromacs/mdrun/simulationcontext.h"
 #include "gromacs/mdrun/simulationinput.h"
 #include "gromacs/mdrun/simulationinputhandle.h"
@@ -174,7 +176,6 @@
 
 #include "isimulator.h"
 #include "membedholder.h"
-#include "replicaexchange.h"
 #include "simulatorbuilder.h"
 
 namespace gmx

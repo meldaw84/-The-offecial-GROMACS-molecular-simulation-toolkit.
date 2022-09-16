@@ -41,7 +41,7 @@
  */
 #include "gmxpre.h"
 
-#include "crosscorr.h"
+#include "gromacs/correlationfunctions/crosscorr.h"
 
 #include "gromacs/fft/fft.h"
 #include "gromacs/utility/exceptions.h"

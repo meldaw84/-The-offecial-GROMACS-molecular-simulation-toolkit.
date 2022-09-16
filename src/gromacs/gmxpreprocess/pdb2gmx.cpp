@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "pdb2gmx.h"
+#include "gromacs/gmxpreprocess/pdb2gmx.h"
 
 #include <cctype>
 #include <cstdlib>
@@ -45,24 +45,14 @@
 #include <string>
 #include <vector>
 
+#include "../fileio/gmxfio.h"
+
 #include "gromacs/commandline/cmdlineoptionsmodule.h"
 #include "gromacs/fileio/confio.h"
 #include "gromacs/fileio/filetypes.h"
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/pdbio.h"
 #include "gromacs/gmxlib/conformation_utilities.h"
-#include "gromacs/gmxpreprocess/fflibutil.h"
-#include "gromacs/gmxpreprocess/genhydro.h"
-#include "gromacs/gmxpreprocess/gpp_atomtype.h"
 #include "gromacs/gmxpreprocess/grompp_impl.h"
-#include "gromacs/gmxpreprocess/h_db.h"
-#include "gromacs/gmxpreprocess/hizzie.h"
-#include "gromacs/gmxpreprocess/pdb2top.h"
-#include "gromacs/gmxpreprocess/pgutil.h"
-#include "gromacs/gmxpreprocess/specbond.h"
-#include "gromacs/gmxpreprocess/ter_db.h"
-#include "gromacs/gmxpreprocess/toputil.h"
-#include "gromacs/gmxpreprocess/xlate.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/options/basicoptions.h"
 #include "gromacs/options/filenameoption.h"
@@ -84,8 +74,19 @@
 #include "gromacs/utility/strdb.h"
 #include "gromacs/utility/stringutil.h"
 
+#include "fflibutil.h"
+#include "genhydro.h"
+#include "gpp_atomtype.h"
+#include "h_db.h"
 #include "hackblock.h"
+#include "hizzie.h"
+#include "pdb2top.h"
+#include "pgutil.h"
 #include "resall.h"
+#include "specbond.h"
+#include "ter_db.h"
+#include "toputil.h"
+#include "xlate.h"
 
 struct RtpRename
 {

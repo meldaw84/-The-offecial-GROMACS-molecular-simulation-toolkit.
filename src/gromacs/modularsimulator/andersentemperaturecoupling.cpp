@@ -42,13 +42,14 @@
 
 #include <vector>
 
+#include "../mdrun/isimulator.h"
+
 #include "gromacs/domdec/domdec_struct.h"
 #include "gromacs/math/functions.h"
 #include "gromacs/math/units.h"
 #include "gromacs/mdlib/constr.h"
 #include "gromacs/mdlib/mdatoms.h"
 #include "gromacs/mdlib/stat.h"
-#include "gromacs/mdrun/isimulator.h"
 #include "gromacs/mdtypes/commrec.h"
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/mdatom.h"

@@ -34,7 +34,7 @@
 
 #include "gmxpre.h"
 
-#include "wholemoleculetransform.h"
+#include "gromacs/mdlib/wholemoleculetransform.h"
 
 #include "gromacs/domdec/ga2la.h"
 #include "gromacs/topology/mtop_util.h"

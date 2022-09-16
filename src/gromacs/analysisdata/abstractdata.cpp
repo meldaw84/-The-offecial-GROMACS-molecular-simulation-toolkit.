@@ -47,7 +47,7 @@
 
 #include "gromacs/analysisdata/dataframe.h"
 #include "gromacs/analysisdata/datamodule.h"
-#include "gromacs/analysisdata/datamodulemanager.h"
+#include "datamodulemanager.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/gmxassert.h"
 

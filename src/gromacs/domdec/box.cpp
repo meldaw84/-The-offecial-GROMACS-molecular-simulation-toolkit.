@@ -43,7 +43,7 @@
 
 #include "gmxpre.h"
 
-#include "box.h"
+#include "gromacs/domdec/box.h"
 
 #include "config.h"
 

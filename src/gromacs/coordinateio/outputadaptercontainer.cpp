@@ -42,7 +42,7 @@
 
 #include "gmxpre.h"
 
-#include "outputadaptercontainer.h"
+#include "gromacs/coordinateio/outputadaptercontainer.h"
 
 #include <algorithm>
 

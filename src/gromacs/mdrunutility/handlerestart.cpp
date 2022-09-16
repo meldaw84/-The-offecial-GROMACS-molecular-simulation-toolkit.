@@ -48,7 +48,7 @@
 
 #include "gmxpre.h"
 
-#include "handlerestart.h"
+#include "gromacs/mdrunutility/handlerestart.h"
 
 #include "config.h"
 
@@ -68,9 +68,10 @@
 #include <optional>
 #include <tuple>
 
+#include "../fileio/gmxfio.h"
+
 #include "gromacs/commandline/filenm.h"
 #include "gromacs/fileio/checkpoint.h"
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/mdrunutility/multisim.h"
 #include "gromacs/mdtypes/mdrunoptions.h"
 #include "gromacs/utility/basedefinitions.h"

@@ -54,10 +54,11 @@
 
 #include "gromacs/gpu_utils/devicebuffer.h"
 #include "gromacs/math/vec.h"
-#include "gromacs/mdlib/leapfrog_gpu_internal.h"
 #include "gromacs/mdtypes/group.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/utility/arrayref.h"
+
+#include "leapfrog_gpu_internal.h"
 
 namespace gmx
 {

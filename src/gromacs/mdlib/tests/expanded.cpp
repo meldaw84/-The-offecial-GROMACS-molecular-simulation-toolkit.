@@ -50,7 +50,7 @@
 
 #include <gtest/gtest.h>
 
-#include "gromacs/mdlib/expanded_internal.h"
+#include "expanded_internal.h"
 #include "gromacs/mdtypes/md_enums.h"
 #include "gromacs/utility/enumerationhelpers.h"
 

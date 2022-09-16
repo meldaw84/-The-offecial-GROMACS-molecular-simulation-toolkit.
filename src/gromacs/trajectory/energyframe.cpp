@@ -41,7 +41,7 @@
  */
 #include "gmxpre.h"
 
-#include "energyframe.h"
+#include "gromacs/trajectory/energyframe.h"
 
 #include <map>
 #include <string>

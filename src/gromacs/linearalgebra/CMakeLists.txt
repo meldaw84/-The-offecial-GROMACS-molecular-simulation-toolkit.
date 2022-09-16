@@ -74,5 +74,5 @@ else()
 endif()
 target_link_libraries(linearalgebra PRIVATE legacy_api)
 target_link_libraries(linearalgebra PRIVATE common)
-# TODO: Remove `legacy_modules` once specific modules are explicitly linked.
-target_link_libraries(linearalgebra PRIVATE legacy_modules utility)
+# Source files have the following private module dependencies.
+target_link_libraries(linearalgebra PRIVATE utility)

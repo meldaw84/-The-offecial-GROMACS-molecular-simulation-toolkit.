@@ -43,7 +43,7 @@
 #include "gromacs/gpu_utils/pmalloc.h"
 #include "gromacs/hardware/device_information.h"
 #include "gromacs/mdtypes/interaction_const.h"
-#include "gromacs/nbnxm/atomdata.h"
+#include "atomdata.h"
 #include "gromacs/nbnxm/gpu_data_mgmt.h"
 #include "gromacs/nbnxm/nbnxm_gpu.h"
 #include "gromacs/nbnxm/nbnxm_gpu_data_mgmt.h"

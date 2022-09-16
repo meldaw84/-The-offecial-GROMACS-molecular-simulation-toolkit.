@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "rf_util.h"
+#include "gromacs/mdlib/rf_util.h"
 
 #include <cmath>
 

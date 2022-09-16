@@ -69,7 +69,7 @@
 #include "gromacs/math/units.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/math/vecdump.h"
-#include "gromacs/mdlib/calcmu.h"
+#include "calcmu.h"
 #include "gromacs/mdlib/calcvir.h"
 #include "gromacs/mdlib/constr.h"
 #include "gromacs/mdlib/dispersioncorrection.h"
@@ -80,7 +80,7 @@
 #include "gromacs/mdlib/gmx_omp_nthreads.h"
 #include "gromacs/mdlib/update.h"
 #include "gromacs/mdlib/vsite.h"
-#include "gromacs/mdlib/wall.h"
+#include "wall.h"
 #include "gromacs/mdlib/wholemoleculetransform.h"
 #include "gromacs/mdtypes/commrec.h"
 #include "gromacs/mdtypes/enerdata.h"
@@ -122,7 +122,7 @@
 #include "gromacs/utility/stringutil.h"
 #include "gromacs/utility/sysinfo.h"
 
-#include "gpuforcereduction.h"
+#include "gromacs/mdlib/gpuforcereduction.h"
 
 using gmx::ArrayRef;
 using gmx::AtomLocality;

@@ -42,7 +42,7 @@
 
 #include "gmxpre.h"
 
-#include "setatoms.h"
+#include "gromacs/coordinateio/outputadapters/setatoms.h"
 
 #include <algorithm>
 

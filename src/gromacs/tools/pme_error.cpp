@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "pme_error.h"
+#include "gromacs/tools/pme_error.h"
 
 #include "config.h"
 

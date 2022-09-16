@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "selhelp.h"
+#include "gromacs/selection/selhelp.h"
 
 #include <memory>
 #include <set>

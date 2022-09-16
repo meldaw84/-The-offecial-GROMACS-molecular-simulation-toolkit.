@@ -44,7 +44,7 @@
  */
 #include "gmxpre.h"
 
-#include "legacymdrunoptions.h"
+#include "gromacs/mdrun/legacymdrunoptions.h"
 
 #include <cstring>
 

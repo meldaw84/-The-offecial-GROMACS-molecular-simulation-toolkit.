@@ -61,10 +61,11 @@
 #include "gromacs/gpu_utils/gputraits.h"
 #include "gromacs/mdlib/leapfrog_gpu.h"
 #include "gromacs/mdlib/update_constrain_gpu.h"
-#include "gromacs/mdlib/update_constrain_gpu_internal.h"
 #include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/timing/wallcycle.h"
 #include "gromacs/topology/mtop_util.h"
+
+#include "update_constrain_gpu_internal.h"
 
 static constexpr bool sc_haveGpuConstraintSupport = (GMX_GPU_CUDA != 0) || (GMX_GPU_SYCL != 0);
 

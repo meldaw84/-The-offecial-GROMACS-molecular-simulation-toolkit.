@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "warninp.h"
+#include "gromacs/fileio/warninp.h"
 
 #include <cstring>
 

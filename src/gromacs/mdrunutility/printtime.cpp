@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "printtime.h"
+#include "gromacs/mdrunutility/printtime.h"
 
 #include "config.h"
 

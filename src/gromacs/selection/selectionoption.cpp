@@ -46,7 +46,7 @@
 
 #include "gromacs/options/optionmanagercontainer.h"
 #include "gromacs/selection/selection.h"
-#include "gromacs/selection/selectionfileoption.h"
+#include "selectionfileoption.h"
 #include "gromacs/selection/selectionoptionmanager.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/gmxassert.h"

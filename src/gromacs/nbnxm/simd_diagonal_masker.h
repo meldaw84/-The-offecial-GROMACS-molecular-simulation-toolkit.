@@ -47,9 +47,8 @@
 #ifndef GMX_NBNXM_SIMD_DIAGONAL_MASKER_H
 #define GMX_NBNXM_SIMD_DIAGONAL_MASKER_H
 
+#include "gromacs/nbnxm/atomdata.h"
 #include "gromacs/simd/simd.h"
-
-#include "atomdata.h"
 
 namespace gmx
 {

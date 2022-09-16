@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "localatomset.h"
+#include "gromacs/domdec/localatomset.h"
 
 #include "localatomsetdata.h"
 

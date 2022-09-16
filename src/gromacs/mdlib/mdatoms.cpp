@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "mdatoms.h"
+#include "gromacs/mdlib/mdatoms.h"
 
 #include <cmath>
 

@@ -44,8 +44,8 @@
 
 #include "gromacs/gmxpreprocess/grompp_impl.h"
 #include "gromacs/gmxpreprocess/notset.h"
-#include "gromacs/gmxpreprocess/topdirs.h"
-#include "gromacs/gmxpreprocess/toputil.h"
+#include "topdirs.h"
+#include "toputil.h"
 #include "gromacs/math/vecdump.h"
 #include "gromacs/topology/ifunc.h"
 #include "gromacs/topology/symtab.h"

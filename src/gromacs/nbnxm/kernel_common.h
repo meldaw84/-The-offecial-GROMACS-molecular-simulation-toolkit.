@@ -45,11 +45,11 @@
 #define GMX_NBXNM_KERNEL_COMMON_H
 
 #include "gromacs/math/vectypes.h"
-/* nbnxn_atomdata_t and nbnxn_pairlist_t could be forward declared, but that requires modifications in all SIMD kernel files */
-#include "gromacs/nbnxm/atomdata.h"
+#include "gromacs/nbnxm/pairlist.h"
 #include "gromacs/utility/real.h"
 
-#include "pairlist.h"
+/* nbnxn_atomdata_t and nbnxn_pairlist_t could be forward declared, but that requires modifications in all SIMD kernel files */
+#include "gromacs/nbnxm/atomdata.h"
 
 struct interaction_const_t;
 enum class CoulombInteractionType : int;

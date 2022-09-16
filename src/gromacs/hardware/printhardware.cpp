@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "printhardware.h"
+#include "gromacs/hardware/printhardware.h"
 
 #include "config.h"
 
@@ -46,7 +46,7 @@
 #include "gromacs/hardware/device_management.h"
 #include "gromacs/hardware/hardwaretopology.h"
 #include "gromacs/hardware/hw_info.h"
-#include "gromacs/hardware/identifyavx512fmaunits.h"
+#include "identifyavx512fmaunits.h"
 #include "gromacs/hardware/simd_support.h"
 #include "gromacs/utility/basedefinitions.h"
 #include "gromacs/utility/basenetwork.h"

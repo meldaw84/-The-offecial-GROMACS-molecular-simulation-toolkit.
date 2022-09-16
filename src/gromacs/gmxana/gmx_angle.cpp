@@ -42,7 +42,7 @@
 #include "gromacs/correlationfunctions/autocorr.h"
 #include "gromacs/fileio/trrio.h"
 #include "gromacs/fileio/xvgr.h"
-#include "gromacs/gmxana/angle_correction.h"
+#include "angle_correction.h"
 #include "gromacs/gmxana/gmx_ana.h"
 #include "gromacs/gmxana/gstat.h"
 #include "gromacs/math/functions.h"

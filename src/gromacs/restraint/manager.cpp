@@ -42,7 +42,7 @@
 
 #include "gmxpre.h"
 
-#include "manager.h"
+#include "gromacs/restraint/manager.h"
 
 #include <iostream>
 #include <map>

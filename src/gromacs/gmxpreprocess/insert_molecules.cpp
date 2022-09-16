@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "insert_molecules.h"
+#include "gromacs/gmxpreprocess/insert_molecules.h"
 
 #include <algorithm>
 #include <memory>
@@ -46,7 +46,6 @@
 #include "gromacs/fileio/filetypes.h"
 #include "gromacs/fileio/xvgr.h"
 #include "gromacs/gmxlib/conformation_utilities.h"
-#include "gromacs/gmxpreprocess/makeexclusiondistances.h"
 #include "gromacs/math/functions.h"
 #include "gromacs/math/units.h"
 #include "gromacs/math/utilities.h"
@@ -74,6 +73,8 @@
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/smalloc.h"
+
+#include "makeexclusiondistances.h"
 
 using gmx::RVec;
 

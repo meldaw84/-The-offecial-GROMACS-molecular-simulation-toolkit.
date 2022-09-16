@@ -56,11 +56,11 @@
 #include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/mdtypes/mdrunoptions.h"
 #include "gromacs/mdtypes/simulation_workload.h"
+#include "gromacs/modularsimulator/energydata.h"
+#include "gromacs/modularsimulator/modularsimulator.h"
 #include "gromacs/pbcutil/pbc.h"
 
-#include "energydata.h"
 #include "freeenergyperturbationdata.h"
-#include "modularsimulator.h"
 #include "simulatoralgorithm.h"
 #include "statepropagatordata.h"
 

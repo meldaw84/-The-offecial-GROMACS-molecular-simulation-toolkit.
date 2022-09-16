@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "membed.h"
+#include "gromacs/mdlib/membed.h"
 
 #include <csignal>
 #include <cstdlib>

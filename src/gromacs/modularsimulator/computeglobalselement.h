@@ -45,8 +45,8 @@
 
 #include "gromacs/mdlib/simulationsignal.h"
 #include "gromacs/mdlib/vcm.h"
+#include "gromacs/modularsimulator/energydata.h"
 
-#include "energydata.h"
 #include "modularsimulatorinterfaces.h"
 #include "statepropagatordata.h"
 #include "topologyholder.h"

@@ -39,7 +39,7 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/listed_forces/position_restraints.h"
+#include "../position_restraints.h"
 
 #include <cmath>
 

@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "helptopic.h"
+#include "gromacs/onlinehelp/helptopic.h"
 
 #include <map>
 #include <utility>

@@ -34,7 +34,7 @@
 /* This file is completely threadsafe - keep it that way! */
 #include "gmxpre.h"
 
-#include "calcvir.h"
+#include "gromacs/mdlib/calcvir.h"
 
 #include "config.h" /* for GMX_MAX_OPENMP_THREADS */
 

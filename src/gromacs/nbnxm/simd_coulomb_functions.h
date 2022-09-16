@@ -56,9 +56,8 @@
 #include "gromacs/math/units.h"
 #include "gromacs/mdtypes/interaction_const.h"
 #include "gromacs/mdtypes/md_enums.h"
+#include "gromacs/nbnxm/atomdata.h"
 #include "gromacs/simd/simd.h"
-
-#include "atomdata.h"
 
 namespace gmx
 {

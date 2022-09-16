@@ -44,7 +44,8 @@
 
 #include "gromacs/gpu_utils/devicebuffer_datatype.h"
 #include "gromacs/gpu_utils/gputraits.h"
-#include "gromacs/mdlib/settle_gpu.h"
+
+#include "settle_gpu.h"
 
 namespace gmx
 {

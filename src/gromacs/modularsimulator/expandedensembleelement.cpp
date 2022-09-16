@@ -49,9 +49,9 @@
 #include "gromacs/mdtypes/commrec.h"
 #include "gromacs/mdtypes/df_history.h"
 #include "gromacs/mdtypes/inputrec.h"
+#include "gromacs/modularsimulator/energydata.h"
 #include "gromacs/utility/fatalerror.h"
 
-#include "energydata.h"
 #include "simulatoralgorithm.h"
 
 namespace gmx

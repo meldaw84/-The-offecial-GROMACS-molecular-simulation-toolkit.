@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "constr.h"
+#include "gromacs/mdlib/constr.h"
 
 #include <cassert>
 #include <cmath>
@@ -48,20 +48,18 @@
 
 #include <algorithm>
 
+#include "../fileio/gmxfio.h"
+
 #include "gromacs/domdec/domdec.h"
 #include "gromacs/domdec/domdec_struct.h"
 #include "gromacs/essentialdynamics/edsam.h"
 #include "gromacs/fileio/confio.h"
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/pdbio.h"
 #include "gromacs/gmxlib/nrnb.h"
 #include "gromacs/math/arrayrefwithpadding.h"
 #include "gromacs/math/utilities.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/mdlib/gmx_omp_nthreads.h"
-#include "gromacs/mdlib/lincs.h"
-#include "gromacs/mdlib/settle.h"
-#include "gromacs/mdlib/shake.h"
 #include "gromacs/mdtypes/commrec.h"
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/md_enums.h"
@@ -79,6 +77,10 @@
 #include "gromacs/utility/listoflists.h"
 #include "gromacs/utility/pleasecite.h"
 #include "gromacs/utility/txtdump.h"
+
+#include "lincs.h"
+#include "settle.h"
+#include "shake.h"
 
 namespace gmx
 {

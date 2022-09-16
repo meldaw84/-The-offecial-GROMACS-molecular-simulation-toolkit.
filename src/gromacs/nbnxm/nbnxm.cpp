@@ -42,16 +42,15 @@
 
 #include "gmxpre.h"
 
-#include "nbnxm.h"
+#include "gromacs/nbnxm/nbnxm.h"
 
 #include "gromacs/domdec/domdec_struct.h"
 #include "gromacs/nbnxm/atomdata.h"
+#include "gromacs/nbnxm/nbnxm_gpu.h"
+#include "gromacs/nbnxm/pairlistsets.h"
+#include "gromacs/nbnxm/pairsearch.h"
 #include "gromacs/timing/wallcycle.h"
 #include "gromacs/utility/message_string_collector.h"
-
-#include "nbnxm_gpu.h"
-#include "pairlistsets.h"
-#include "pairsearch.h"
 
 /*! \cond INTERNAL */
 

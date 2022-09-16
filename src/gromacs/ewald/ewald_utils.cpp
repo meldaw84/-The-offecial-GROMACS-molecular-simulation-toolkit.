@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "ewald_utils.h"
+#include "gromacs/ewald/ewald_utils.h"
 
 #include <cmath>
 

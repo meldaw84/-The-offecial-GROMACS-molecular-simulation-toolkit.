@@ -55,7 +55,8 @@
 #include <algorithm>
 #include <memory>
 
-#include "gromacs/fileio/gmxfio.h"
+#include "../../fileio/gmxfio.h"
+
 #include "gromacs/gmxlib/network.h"
 #include "gromacs/math/functions.h"
 #include "gromacs/math/utilities.h"

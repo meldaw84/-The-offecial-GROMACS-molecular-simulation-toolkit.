@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "detecthardware.h"
+#include "gromacs/hardware/detecthardware.h"
 
 #include "config.h"
 
@@ -60,7 +60,7 @@
 #include "gromacs/utility/physicalnodecommunicator.h"
 
 #include "architecture.h"
-#include "device_information.h"
+#include "gromacs/hardware/device_information.h"
 
 #ifdef HAVE_UNISTD_H
 #    include <unistd.h> // sysconf()

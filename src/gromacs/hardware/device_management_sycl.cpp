@@ -57,7 +57,7 @@
 #include "gromacs/utility/strconvert.h"
 #include "gromacs/utility/stringutil.h"
 
-#include "device_information.h"
+#include "gromacs/hardware/device_information.h"
 
 static std::optional<std::tuple<int, int>> getHardwareVersionNvidia(const sycl::device& device)
 {

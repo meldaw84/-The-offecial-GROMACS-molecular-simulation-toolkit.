@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "grompp.h"
+#include "gromacs/gmxpreprocess/grompp.h"
 
 #include <cerrno>
 #include <climits>
@@ -47,27 +47,20 @@
 
 #include <sys/types.h>
 
-#include "gromacs/applied_forces/awh/read_params.h"
+#include "../applied_forces/awh/read_params.h"
+#include "../fileio/enxio.h"
+
 #include "gromacs/commandline/pargs.h"
 #include "gromacs/ewald/ewald_utils.h"
 #include "gromacs/ewald/pme.h"
 #include "gromacs/fft/calcgrid.h"
 #include "gromacs/fileio/confio.h"
-#include "gromacs/fileio/enxio.h"
 #include "gromacs/fileio/tpxio.h"
 #include "gromacs/fileio/trxio.h"
 #include "gromacs/fileio/warninp.h"
-#include "gromacs/gmxpreprocess/add_par.h"
-#include "gromacs/gmxpreprocess/convparm.h"
-#include "gromacs/gmxpreprocess/gen_maxwell_velocities.h"
-#include "gromacs/gmxpreprocess/gpp_atomtype.h"
 #include "gromacs/gmxpreprocess/grompp_impl.h"
 #include "gromacs/gmxpreprocess/notset.h"
 #include "gromacs/gmxpreprocess/readir.h"
-#include "gromacs/gmxpreprocess/tomorse.h"
-#include "gromacs/gmxpreprocess/topio.h"
-#include "gromacs/gmxpreprocess/toputil.h"
-#include "gromacs/gmxpreprocess/vsite_parm.h"
 #include "gromacs/imd/imd.h"
 #include "gromacs/math/boxmatrix.h"
 #include "gromacs/math/functions.h"
@@ -108,6 +101,15 @@
 #include "gromacs/utility/loggerbuilder.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/snprintf.h"
+
+#include "add_par.h"
+#include "convparm.h"
+#include "gen_maxwell_velocities.h"
+#include "gpp_atomtype.h"
+#include "tomorse.h"
+#include "topio.h"
+#include "toputil.h"
+#include "vsite_parm.h"
 
 /* TODO The implementation details should move to their own source file. */
 InteractionOfType::InteractionOfType(gmx::ArrayRef<const int>  atoms,

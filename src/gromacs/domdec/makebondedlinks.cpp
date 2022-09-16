@@ -47,7 +47,7 @@
 
 #include <algorithm>
 
-#include "gromacs/domdec/domdec_internal.h"
+#include "domdec_internal.h"
 #include "gromacs/domdec/options.h"
 #include "gromacs/domdec/reversetopology.h"
 #include "gromacs/mdtypes/atominfo.h"

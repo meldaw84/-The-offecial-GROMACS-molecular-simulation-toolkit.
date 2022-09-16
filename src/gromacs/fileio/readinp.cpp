@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "readinp.h"
+#include "gromacs/fileio/readinp.h"
 
 #include <cstdlib>
 #include <cstring>

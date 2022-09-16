@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "densityfitting.h"
+#include "gromacs/applied_forces/densityfitting/densityfitting.h"
 
 #include <memory>
 #include <numeric>

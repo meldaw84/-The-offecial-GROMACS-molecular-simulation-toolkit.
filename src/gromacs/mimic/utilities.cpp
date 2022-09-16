@@ -34,7 +34,7 @@
 
 #include "gmxpre.h"
 
-#include "utilities.h"
+#include "gromacs/mimic/utilities.h"
 
 #include "gromacs/topology/topology.h"
 

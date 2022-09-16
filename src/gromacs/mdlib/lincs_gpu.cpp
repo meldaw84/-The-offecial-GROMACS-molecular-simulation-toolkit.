@@ -58,10 +58,11 @@
 #include "gromacs/math/vec.h"
 #include "gromacs/mdlib/constr.h"
 #include "gromacs/mdlib/constraint_gpu_helpers.h"
-#include "gromacs/mdlib/lincs_gpu_internal.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/topology/ifunc.h"
 #include "gromacs/topology/mtop_util.h"
+
+#include "lincs_gpu_internal.h"
 
 namespace gmx
 {

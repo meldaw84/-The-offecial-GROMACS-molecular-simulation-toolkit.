@@ -69,7 +69,7 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/mdlib/settle.h"
+#include "../settle.h"
 
 #include "config.h"
 

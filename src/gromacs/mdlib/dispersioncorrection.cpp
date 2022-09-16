@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "dispersioncorrection.h"
+#include "gromacs/mdlib/dispersioncorrection.h"
 
 #include <cstdio>
 

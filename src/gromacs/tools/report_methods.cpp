@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "report_methods.h"
+#include "gromacs/tools/report_methods.h"
 
 #include "gromacs/commandline/cmdlineoptionsmodule.h"
 #include "gromacs/fileio/confio.h"

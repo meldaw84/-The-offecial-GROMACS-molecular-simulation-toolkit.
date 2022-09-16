@@ -116,7 +116,6 @@ add_subdirectory(correlationfunctions)
 add_subdirectory(statistics)
 add_subdirectory(analysisdata)
 add_subdirectory(coordinateio)
-add_subdirectory(trajectoryanalysis)
 add_subdirectory(energyanalysis)
 add_subdirectory(tools)
 
@@ -189,6 +188,8 @@ else()
     add_library(libgromacs ${LIBGROMACS_SOURCES})
 endif()
 
+add_subdirectory(trajectoryanalysis)
+
 if (TARGET Heffte::Heffte)
     target_link_libraries(libgromacs PRIVATE Heffte::Heffte)
 endif()
@@ -198,12 +199,6 @@ if (GMX_SYCL_HIPSYCL AND GMX_HIPSYCL_HAVE_HIP_TARGET)
 endif()
 
 target_link_libraries(libgromacs PRIVATE $<BUILD_INTERFACE:common>)
-# As long as the libgromacs target has source files that reference headers from
-# modules that don't provide CMake targets, libgromacs needs to use `src/`
-# amongst its include directories (to support `#include "gromacs/module/header.h"`).
-add_library(legacy_modules INTERFACE)
-target_include_directories(legacy_modules INTERFACE $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>)
-target_link_libraries(libgromacs PRIVATE $<BUILD_INTERFACE:legacy_modules>)
 
 # Add these contents first because linking their tests can take a lot
 # of time, so we want lots of parallel work still available after
@@ -541,3 +536,10 @@ endif()
 
 include(GenerateExportHeader)
 generate_export_header(libgromacs EXPORT_FILE_NAME "${CMAKE_BINARY_DIR}/api/legacy/include/gromacs/libgromacs_export.h")
+
+get_source_file_property(
+    _dirs ${CMAKE_SOURCE_DIR}/src/gromacs/nbnxm/kernels_simd_4xm/kernel_ElecEwTwinCut_VdwLJCombGeom_VF.cpp
+    DIRECTORY ${CMAKE_SOURCE_DIR}
+    INCLUDE_DIRECTORIES
+)
+message(STATUS "kernel_ElecEwTwinCut_VdwLJCombGeom_VF.cpp from ${CMAKE_SOURCE_DIR}: ${_dirs}")

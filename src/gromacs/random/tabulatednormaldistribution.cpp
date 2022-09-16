@@ -34,7 +34,7 @@
 
 #include "gmxpre.h"
 
-#include "tabulatednormaldistribution.h"
+#include "gromacs/random/tabulatednormaldistribution.h"
 
 namespace gmx
 {

@@ -34,7 +34,7 @@
 
 #include "gmxpre.h"
 
-#include "md_support.h"
+#include "gromacs/mdlib/md_support.h"
 
 #include <climits>
 #include <cmath>

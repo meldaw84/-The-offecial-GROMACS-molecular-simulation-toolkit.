@@ -53,8 +53,8 @@
 #include "gromacs/options/basicoptions.h"
 #include "gromacs/options/ioptionscontainer.h"
 #include "gromacs/simd/simd.h"
-#include "gromacs/tables/cubicsplinetable.h"
-#include "gromacs/tables/quadraticsplinetable.h"
+#include "cubicsplinetable.h"
+#include "quadraticsplinetable.h"
 
 #include "testutils/testasserts.h"
 #include "testutils/testoptions.h"

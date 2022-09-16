@@ -47,8 +47,9 @@
 #include <limits>
 #include <vector>
 
+#include "../datastorage.h"
+
 #include "gromacs/analysisdata/dataframe.h"
-#include "gromacs/analysisdata/datastorage.h"
 #include "gromacs/analysisdata/framelocaldata.h"
 #include "gromacs/math/functions.h"
 #include "gromacs/utility/basedefinitions.h"

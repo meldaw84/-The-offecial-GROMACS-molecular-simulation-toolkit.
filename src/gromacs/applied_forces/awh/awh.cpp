@@ -44,7 +44,7 @@
 
 #include "gmxpre.h"
 
-#include "awh.h"
+#include "gromacs/applied_forces/awh/awh.h"
 
 #include <cassert>
 #include <cmath>
@@ -55,7 +55,8 @@
 #include <algorithm>
 #include <vector>
 
-#include "gromacs/fileio/enxio.h"
+#include "../../fileio/enxio.h"
+
 #include "gromacs/gmxlib/network.h"
 #include "gromacs/math/units.h"
 #include "gromacs/math/utilities.h"

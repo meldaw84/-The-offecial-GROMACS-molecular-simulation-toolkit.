@@ -38,7 +38,7 @@
  */
 #include "gmxpre.h"
 
-#include "integrate.h"
+#include "gromacs/correlationfunctions/integrate.h"
 
 #include <cmath>
 #include <cstdio>

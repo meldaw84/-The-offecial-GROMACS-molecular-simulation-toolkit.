@@ -40,7 +40,7 @@
 
 #include "gmxpre.h"
 
-#include "gromacs/gmxpreprocess/gen_maxwell_velocities.h"
+#include "gen_maxwell_velocities.h"
 
 #include <gtest/gtest-param-test.h>
 

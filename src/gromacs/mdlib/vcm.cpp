@@ -34,7 +34,7 @@
 /* This file is completely threadsafe - keep it that way! */
 #include "gmxpre.h"
 
-#include "vcm.h"
+#include "gromacs/mdlib/vcm.h"
 
 #include "gromacs/math/functions.h"
 #include "gromacs/math/invertmatrix.h"

@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "timecontrol.h"
+#include "gromacs/fileio/timecontrol.h"
 
 #include <mutex>
 #include <optional>

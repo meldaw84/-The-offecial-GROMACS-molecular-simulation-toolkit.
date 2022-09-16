@@ -44,7 +44,7 @@
 
 #include "config.h"
 
-#include "gpuforcereduction.h"
+#include "gromacs/mdlib/gpuforcereduction.h"
 
 #if !HAVE_GPU_FORCE_REDUCTION
 

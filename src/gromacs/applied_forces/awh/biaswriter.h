@@ -48,7 +48,8 @@
 #include <map>
 #include <vector>
 
-#include "gromacs/fileio/enxio.h"
+#include "../../fileio/enxio.h"
+
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/basedefinitions.h"
 

@@ -40,7 +40,7 @@
 
 #include "gmxpre.h"
 
-#include "clfftinitializer.h"
+#include "gromacs/gpu_utils/clfftinitializer.h"
 
 #include "config.h"
 

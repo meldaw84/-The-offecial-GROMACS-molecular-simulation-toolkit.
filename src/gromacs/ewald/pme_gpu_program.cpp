@@ -44,7 +44,7 @@
 
 #include "gmxpre.h"
 
-#include "pme_gpu_program.h"
+#include "gromacs/ewald/pme_gpu_program.h"
 
 #include <memory>
 

@@ -42,7 +42,7 @@
 
 #include "gmxpre.h"
 
-#include "setprecision.h"
+#include "gromacs/coordinateio/outputadapters/setprecision.h"
 
 #include <cmath>
 

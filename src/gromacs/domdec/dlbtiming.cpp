@@ -34,7 +34,7 @@
 
 #include "gmxpre.h"
 
-#include "dlbtiming.h"
+#include "gromacs/domdec/dlbtiming.h"
 
 #include <cstring>
 

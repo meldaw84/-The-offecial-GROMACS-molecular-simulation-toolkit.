@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "nrnb.h"
+#include "gromacs/gmxlib/nrnb.h"
 
 #include <cstdlib>
 #include <cstring>

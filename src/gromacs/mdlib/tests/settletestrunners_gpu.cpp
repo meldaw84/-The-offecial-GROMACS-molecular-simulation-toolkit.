@@ -48,8 +48,9 @@
 #if GPU_SETTLE_SUPPORTED
 #    include "gromacs/gpu_utils/devicebuffer.h"
 #endif
+#include "../settle_gpu.h"
+
 #include "gromacs/gpu_utils/gputraits.h"
-#include "gromacs/mdlib/settle_gpu.h"
 
 namespace gmx
 {

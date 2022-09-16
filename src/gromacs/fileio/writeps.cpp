@@ -33,12 +33,13 @@
  */
 #include "gmxpre.h"
 
-#include "writeps.h"
+#include "gromacs/fileio/writeps.h"
 
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
+
+#include "gmxfio.h"
 
 using namespace gmx;
 

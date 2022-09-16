@@ -130,14 +130,6 @@ else()
         )
 endif()
 
-# Source files have the following private module dependencies.
-target_link_libraries(ewald PRIVATE
-                      #                      gmxlib
-                      #                      math
-                      #                      mdtypes
-                      #                      tng_io
-                      )
-
 # Public interface for modules, including dependencies and interfaces
 #target_include_directories(ewald PUBLIC
 target_include_directories(ewald INTERFACE
@@ -152,9 +144,10 @@ target_link_libraries(ewald INTERFACE
 #target_link_libraries(ewald PRIVATE common)
 
 # Source files have the following private module dependencies.
-#target_link_libraries(ewald PRIVATE tng_io)
-# TODO: Explicitly link specific modules.
-#target_link_libraries(ewald PRIVATE legacy_modules)
+#target_link_libraries(ewald PRIVATE
+target_link_libraries(ewald INTERFACE
+                      gpu_utils
+                      )
 
 if (BUILD_TESTING)
     add_subdirectory(tests)

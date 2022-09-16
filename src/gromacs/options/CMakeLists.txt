@@ -50,9 +50,10 @@ add_library(options OBJECT
 # Source files have the following private module dependencies.
 target_link_libraries(options PRIVATE
                 legacy_api
-                legacy_modules
                 utility
 		)
+target_include_directories(options PRIVATE
+                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/gromacs/options>)
 
 # Public interface for modules, including dependencies and interfaces
 target_include_directories(options PUBLIC

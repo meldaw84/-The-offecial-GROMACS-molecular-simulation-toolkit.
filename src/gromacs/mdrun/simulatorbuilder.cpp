@@ -54,7 +54,7 @@
 
 #include "legacysimulator.h"
 #include "membedholder.h"
-#include "replicaexchange.h"
+#include "gromacs/mdrun/replicaexchange.h"
 
 
 namespace gmx

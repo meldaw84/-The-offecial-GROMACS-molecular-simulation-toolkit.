@@ -53,7 +53,8 @@
 #include <string>
 #include <typeinfo>
 
-#include "gromacs/mdrun/isimulator.h"
+#include "../mdrun/isimulator.h"
+
 #include "gromacs/mdtypes/observablesreducer.h"
 #include "gromacs/mdtypes/state.h"
 #include "gromacs/utility/exceptions.h"

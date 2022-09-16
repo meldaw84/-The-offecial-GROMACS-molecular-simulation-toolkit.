@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/correlationfunctions/manyautocorrelation.h"
+#include "manyautocorrelation.h"
 
 #include <cmath>
 

@@ -45,7 +45,8 @@
 
 #include <gmock/gmock.h>
 
-#include "gromacs/ewald/pme_internal.h"
+#include "../pme_internal.h"
+
 #include "gromacs/math/vectypes.h"
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/utility/stringutil.h"

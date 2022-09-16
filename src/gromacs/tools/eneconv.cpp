@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "eneconv.h"
+#include "gromacs/tools/eneconv.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -41,8 +41,9 @@
 
 #include <algorithm>
 
+#include "../fileio/enxio.h"
+
 #include "gromacs/commandline/pargs.h"
-#include "gromacs/fileio/enxio.h"
 #include "gromacs/fileio/trxio.h"
 #include "gromacs/listed_forces/disre.h"
 #include "gromacs/math/functions.h"

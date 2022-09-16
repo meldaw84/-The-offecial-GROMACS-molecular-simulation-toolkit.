@@ -60,11 +60,6 @@ target_link_libraries(correlationfunctions INTERFACE
 #target_link_libraries(correlationfunctions PUBLIC legacy_api)
 #target_link_libraries(correlationfunctions PRIVATE common)
 
-# Source files have the following private module dependencies.
-#target_link_libraries(correlationfunctions PRIVATE tng_io)
-# TODO: Explicitly link specific modules.
-#target_link_libraries(correlationfunctions PRIVATE legacy_modules)
-
 if (BUILD_TESTING)
     add_subdirectory(tests)
 endif()

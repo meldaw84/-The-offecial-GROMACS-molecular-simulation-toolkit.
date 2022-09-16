@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "mk_angndx.h"
+#include "gromacs/tools/mk_angndx.h"
 
 #include <cmath>
 

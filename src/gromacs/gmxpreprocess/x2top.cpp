@@ -33,22 +33,17 @@
  */
 #include "gmxpre.h"
 
-#include "x2top.h"
+#include "gromacs/gmxpreprocess/x2top.h"
 
 #include <cmath>
 #include <cstring>
 
+#include "../fileio/gmxfio.h"
+
 #include "gromacs/commandline/pargs.h"
 #include "gromacs/fileio/confio.h"
-#include "gromacs/fileio/gmxfio.h"
-#include "gromacs/gmxpreprocess/gen_ad.h"
-#include "gromacs/gmxpreprocess/gpp_atomtype.h"
 #include "gromacs/gmxpreprocess/grompp_impl.h"
-#include "gromacs/gmxpreprocess/nm2type.h"
 #include "gromacs/gmxpreprocess/notset.h"
-#include "gromacs/gmxpreprocess/pdb2top.h"
-#include "gromacs/gmxpreprocess/toppush.h"
-#include "gromacs/gmxpreprocess/toputil.h"
 #include "gromacs/listed_forces/bonded.h"
 #include "gromacs/math/units.h"
 #include "gromacs/math/utilities.h"
@@ -67,7 +62,13 @@
 #include "gromacs/utility/loggerbuilder.h"
 #include "gromacs/utility/smalloc.h"
 
+#include "gen_ad.h"
+#include "gpp_atomtype.h"
 #include "hackblock.h"
+#include "nm2type.h"
+#include "pdb2top.h"
+#include "toppush.h"
+#include "toputil.h"
 
 static bool is_bond(int nnm, t_nm2type nmt[], char* ai, char* aj, real blen)
 {

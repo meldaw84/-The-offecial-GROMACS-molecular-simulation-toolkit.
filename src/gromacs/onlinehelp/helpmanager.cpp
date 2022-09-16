@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "helpmanager.h"
+#include "gromacs/onlinehelp/helpmanager.h"
 
 #include <string>
 #include <vector>

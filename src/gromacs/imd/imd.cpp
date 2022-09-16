@@ -46,21 +46,21 @@
  */
 #include "gmxpre.h"
 
-#include "imd.h"
+#include "gromacs/imd/imd.h"
 
 #include "config.h"
 
 #include <cerrno>
 #include <cstring>
 
+#include "../fileio/gmxfio.h"
+
 #include "gromacs/commandline/filenm.h"
 #include "gromacs/domdec/domdec_struct.h"
 #include "gromacs/domdec/ga2la.h"
 #include "gromacs/fileio/confio.h"
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/xvgr.h"
 #include "gromacs/gmxlib/network.h"
-#include "gromacs/imd/imdsocket.h"
 #include "gromacs/math/units.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/mdlib/broadcaststructs.h"
@@ -85,6 +85,8 @@
 #include "gromacs/utility/logger.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringutil.h"
+
+#include "imdsocket.h"
 
 namespace gmx
 {

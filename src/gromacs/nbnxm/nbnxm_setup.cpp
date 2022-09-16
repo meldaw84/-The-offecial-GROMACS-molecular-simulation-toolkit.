@@ -56,7 +56,13 @@
 #include "gromacs/nbnxm/atomdata.h"
 #include "gromacs/nbnxm/gpu_data_mgmt.h"
 #include "gromacs/nbnxm/nbnxm.h"
+#include "gromacs/nbnxm/nbnxm_geometry.h"
+#include "gromacs/nbnxm/nbnxm_simd.h"
+#include "gromacs/nbnxm/pairlist.h"
 #include "gromacs/nbnxm/pairlist_tuning.h"
+#include "gromacs/nbnxm/pairlistset.h"
+#include "gromacs/nbnxm/pairlistsets.h"
+#include "gromacs/nbnxm/pairsearch.h"
 #include "gromacs/simd/simd.h"
 #include "gromacs/topology/mtop_util.h"
 #include "gromacs/utility/fatalerror.h"
@@ -64,12 +70,6 @@
 
 #include "freeenergydispatch.h"
 #include "grid.h"
-#include "nbnxm_geometry.h"
-#include "nbnxm_simd.h"
-#include "pairlist.h"
-#include "pairlistset.h"
-#include "pairlistsets.h"
-#include "pairsearch.h"
 
 namespace Nbnxm
 {

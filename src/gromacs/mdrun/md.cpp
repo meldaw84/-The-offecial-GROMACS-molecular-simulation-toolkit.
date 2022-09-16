@@ -49,8 +49,9 @@
 #include <memory>
 #include <numeric>
 
+#include "../applied_forces/awh/read_params.h"
+
 #include "gromacs/applied_forces/awh/awh.h"
-#include "gromacs/applied_forces/awh/read_params.h"
 #include "gromacs/commandline/filenm.h"
 #include "gromacs/domdec/collect.h"
 #include "gromacs/domdec/dlbtiming.h"
@@ -97,7 +98,6 @@
 #include "gromacs/mdlib/stat.h"
 #include "gromacs/mdlib/stophandler.h"
 #include "gromacs/mdlib/tgroup.h"
-#include "gromacs/mdlib/trajectory_writing.h"
 #include "gromacs/mdlib/update.h"
 #include "gromacs/mdlib/update_constrain_gpu.h"
 #include "gromacs/mdlib/update_vv.h"
@@ -150,8 +150,9 @@
 #include "gromacs/utility/smalloc.h"
 
 #include "legacysimulator.h"
-#include "replicaexchange.h"
-#include "shellfc.h"
+#include "gromacs/mdrun/replicaexchange.h"
+#include "gromacs/mdrun/shellfc.h"
+#include "gromacs/mdlib/trajectory_writing.h"
 
 using gmx::SimulationSignaller;
 

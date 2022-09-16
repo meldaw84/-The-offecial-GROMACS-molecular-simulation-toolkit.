@@ -48,7 +48,7 @@
 #include "gromacs/options/optionsassigner.h"
 #include "gromacs/selection/selection.h"
 #include "gromacs/selection/selectioncollection.h"
-#include "gromacs/selection/selectionfileoption.h"
+#include "selectionfileoption.h"
 #include "gromacs/selection/selectionoptionmanager.h"
 #include "gromacs/utility/exceptions.h"
 

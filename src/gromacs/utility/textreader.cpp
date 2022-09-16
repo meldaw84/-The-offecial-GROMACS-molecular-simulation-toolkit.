@@ -43,7 +43,7 @@
 #include "gromacs/utility/textreader.h"
 
 #include "gromacs/utility/filestream.h"
-#include "gromacs/utility/nodelete.h"
+#include "nodelete.h"
 #include "gromacs/utility/textstream.h"
 
 namespace gmx

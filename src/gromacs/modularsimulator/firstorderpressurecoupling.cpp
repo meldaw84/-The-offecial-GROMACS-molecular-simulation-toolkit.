@@ -50,9 +50,9 @@
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/md_enums.h"
 #include "gromacs/mdtypes/mdatom.h"
+#include "gromacs/modularsimulator/energydata.h"
 #include "gromacs/pbcutil/boxutilities.h"
 
-#include "energydata.h"
 #include "simulatoralgorithm.h"
 #include "statepropagatordata.h"
 

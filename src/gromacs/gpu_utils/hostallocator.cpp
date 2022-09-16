@@ -39,7 +39,7 @@
  */
 #include "gmxpre.h"
 
-#include "hostallocator.h"
+#include "gromacs/gpu_utils/hostallocator.h"
 
 #include <cstddef>
 

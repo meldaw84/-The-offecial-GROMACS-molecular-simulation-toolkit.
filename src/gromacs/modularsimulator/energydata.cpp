@@ -40,7 +40,7 @@
 
 #include "gmxpre.h"
 
-#include "energydata.h"
+#include "gromacs/modularsimulator/energydata.h"
 
 #include "gromacs/gmxlib/network.h"
 #include "gromacs/math/vec.h"
@@ -60,10 +60,10 @@
 #include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/mdtypes/observableshistory.h"
 #include "gromacs/mdtypes/pullhistory.h"
+#include "gromacs/modularsimulator/modularsimulator.h"
 #include "gromacs/topology/topology.h"
 
 #include "freeenergyperturbationdata.h"
-#include "modularsimulator.h"
 #include "simulatoralgorithm.h"
 #include "statepropagatordata.h"
 

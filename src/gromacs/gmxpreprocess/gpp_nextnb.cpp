@@ -39,7 +39,7 @@
 #include <cstdlib>
 
 #include "gromacs/gmxpreprocess/grompp_impl.h"
-#include "gromacs/gmxpreprocess/toputil.h"
+#include "toputil.h"
 #include "gromacs/topology/ifunc.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/gmxassert.h"

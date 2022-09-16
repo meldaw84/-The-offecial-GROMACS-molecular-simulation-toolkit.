@@ -54,7 +54,8 @@
 #include <algorithm>
 #include <optional>
 
-#include "gromacs/fileio/gmxfio.h"
+#include "../../fileio/gmxfio.h"
+
 #include "gromacs/fileio/xvgr.h"
 #include "gromacs/gmxlib/network.h"
 #include "gromacs/math/units.h"

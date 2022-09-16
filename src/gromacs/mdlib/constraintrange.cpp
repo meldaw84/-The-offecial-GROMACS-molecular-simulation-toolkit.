@@ -34,7 +34,7 @@
 /* This file is completely threadsafe - keep it that way! */
 #include "gmxpre.h"
 
-#include "constraintrange.h"
+#include "gromacs/mdlib/constraintrange.h"
 
 #include <cmath>
 

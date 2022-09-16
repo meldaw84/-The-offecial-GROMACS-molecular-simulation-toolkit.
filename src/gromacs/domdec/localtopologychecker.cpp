@@ -49,7 +49,7 @@
 #include <string>
 #include <vector>
 
-#include "gromacs/domdec/domdec_internal.h"
+#include "domdec_internal.h"
 #include "gromacs/domdec/reversetopology.h"
 #include "gromacs/gmxlib/network.h"
 #include "gromacs/mdtypes/commrec.h"

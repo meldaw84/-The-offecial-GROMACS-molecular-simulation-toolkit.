@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "constraint_gpu_helpers.h"
+#include "gromacs/mdlib/constraint_gpu_helpers.h"
 
 #include "gromacs/topology/idef.h"
 #include "gromacs/topology/topology.h"

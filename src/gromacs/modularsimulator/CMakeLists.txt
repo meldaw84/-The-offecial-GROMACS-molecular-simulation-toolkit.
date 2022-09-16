@@ -31,9 +31,33 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out https://www.gromacs.org.
 
-file(GLOB MODULARSIMULATOR_SOURCES *.cpp)
-
-add_library(modularsimulator OBJECT ${MODULARSIMULATOR_SOURCES})
+add_library(modularsimulator OBJECT
+            andersentemperaturecoupling.cpp
+            checkpointhelper.cpp
+            compositesimulatorelement.cpp
+            computeglobalselement.cpp
+            constraintelement.cpp
+            domdechelper.cpp
+            energydata.cpp
+            expandedensembleelement.cpp
+            firstorderpressurecoupling.cpp
+            forceelement.cpp
+            freeenergyperturbationdata.cpp
+            modularsimulator.cpp
+            mttk.cpp
+            nosehooverchains.cpp
+            parrinellorahmanbarostat.cpp
+            pmeloadbalancehelper.cpp
+            propagator.cpp
+            pullelement.cpp
+            referencetemperaturemanager.cpp
+            signallers.cpp
+            simulatoralgorithm.cpp
+            statepropagatordata.cpp
+            topologyholder.cpp
+            trajectoryelement.cpp
+            velocityscalingtemperaturecoupling.cpp
+            )
 
 if (GMX_OPENMP)
     # Explicitly set properties for modular simulator module to compile with openmp
@@ -64,15 +88,22 @@ target_link_libraries(modularsimulator PRIVATE tng_io)
 target_link_libraries(modularsimulator PRIVATE common)
 
 # Source files have the following private module dependencies.
-# TODO: Explicitly link specific modules.
 target_link_libraries(modularsimulator PRIVATE
                       legacy_api
-                      legacy_modules
+                      commandline
+                      domdec
+                      ewald
                       gmxlib
+                      listed_forces
                       math
+                      mdlib
+                      mdrun
+                      mdrunutility
                       mdtypes
+                      nbnxm
                       pbcutil
                       pulling
+                      random
                       timing
                       tng_io
                       topology

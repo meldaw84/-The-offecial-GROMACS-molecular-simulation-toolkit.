@@ -44,13 +44,10 @@
 #include <string>
 #include <vector>
 
-#include "gromacs/fileio/gmxfio.h"
-#include "gromacs/gmxpreprocess/fflibutil.h"
-#include "gromacs/gmxpreprocess/gpp_atomtype.h"
+#include "../fileio/gmxfio.h"
+
 #include "gromacs/gmxpreprocess/grompp_impl.h"
-#include "gromacs/gmxpreprocess/h_db.h"
 #include "gromacs/gmxpreprocess/notset.h"
-#include "gromacs/gmxpreprocess/toputil.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/exceptions.h"
@@ -61,8 +58,12 @@
 #include "gromacs/utility/stringtoenumvalueconverter.h"
 #include "gromacs/utility/stringutil.h"
 
+#include "fflibutil.h"
+#include "gpp_atomtype.h"
+#include "h_db.h"
 #include "hackblock.h"
 #include "resall.h"
+#include "toputil.h"
 
 /* use bonded types definitions in hackblock.h */
 enum class ReplaceType : int

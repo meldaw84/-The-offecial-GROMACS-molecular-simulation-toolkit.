@@ -54,10 +54,10 @@
 #include "gromacs/mdtypes/commrec.h"
 #include "gromacs/mdtypes/group.h"
 #include "gromacs/mdtypes/inputrec.h"
+#include "gromacs/modularsimulator/modularsimulator.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/strconvert.h"
 
-#include "modularsimulator.h"
 #include "simulatoralgorithm.h"
 
 namespace gmx

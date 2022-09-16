@@ -48,8 +48,9 @@
 #include <string>
 #include <vector>
 
+#include "../../fileio/gmxfio.h"
+
 #include "gromacs/analysisdata/dataframe.h"
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/oenv.h"
 #include "gromacs/fileio/xvgr.h"
 #include "gromacs/math/vec.h"

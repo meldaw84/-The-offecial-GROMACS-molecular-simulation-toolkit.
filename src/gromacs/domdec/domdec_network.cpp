@@ -43,7 +43,7 @@
 
 #include "gmxpre.h"
 
-#include "domdec_network.h"
+#include "gromacs/domdec/domdec_network.h"
 
 #include "config.h"
 

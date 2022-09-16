@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "trjconv.h"
+#include "gromacs/tools/trjconv.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -42,11 +42,12 @@
 #include <algorithm>
 #include <memory>
 
+#include "../fileio/g96io.h"
+#include "../fileio/gmxfio.h"
+
 #include "gromacs/commandline/pargs.h"
 #include "gromacs/commandline/viewit.h"
 #include "gromacs/fileio/confio.h"
-#include "gromacs/fileio/g96io.h"
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/groio.h"
 #include "gromacs/fileio/pdbio.h"
 #include "gromacs/fileio/tngio.h"

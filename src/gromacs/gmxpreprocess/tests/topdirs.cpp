@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/gmxpreprocess/topdirs.h"
+#include "topdirs.h"
 
 #include <gtest/gtest.h>
 

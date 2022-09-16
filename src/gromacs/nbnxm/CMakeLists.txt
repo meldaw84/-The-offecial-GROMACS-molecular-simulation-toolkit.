@@ -33,6 +33,8 @@
 
 # Set up the module library
 add_library(nbnxm INTERFACE)
+add_library(nbnxm_internal INTERFACE)
+target_include_directories(nbnxm_internal INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(kernels_simd_4xm)
 add_subdirectory(kernels_simd_2xmm)
@@ -87,6 +89,18 @@ endif()
 
 set(LIBGROMACS_SOURCES ${LIBGROMACS_SOURCES} ${NBNXM_SOURCES} PARENT_SCOPE)
 
+# TODO: update when nbnxm is an OBJECT target
+#target_include_directories(nbnxm PRIVATE
+# Note that setting the source file properties does not seem to work robustly
+# for these nested sources that get manipulated further before adding to the
+# libgromacs target. Nested sources may have to use relative paths in their
+# `#include` directives until we can set a PRIVATE INCLUDE_DIRECTORIES.
+set_source_files_properties(
+    ${NBNXM_SOURCES}
+    DIRECTORY ${CMAKE_SOURCE_DIR}
+    PROPERTIES INCLUDE_DIRECTORIES
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
 # Source files have the following private module dependencies.
 target_link_libraries(nbnxm PRIVATE

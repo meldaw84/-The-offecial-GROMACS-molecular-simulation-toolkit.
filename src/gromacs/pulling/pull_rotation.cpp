@@ -45,13 +45,14 @@
 #include <memory>
 #include <vector>
 
+#include "../fileio/gmxfio.h"
+
 #include "gromacs/commandline/filenm.h"
 #include "gromacs/domdec/dlbtiming.h"
 #include "gromacs/domdec/domdec_struct.h"
 #include "gromacs/domdec/ga2la.h"
 #include "gromacs/domdec/localatomset.h"
 #include "gromacs/domdec/localatomsetmanager.h"
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/xvgr.h"
 #include "gromacs/gmxlib/network.h"
 #include "gromacs/math/functions.h"

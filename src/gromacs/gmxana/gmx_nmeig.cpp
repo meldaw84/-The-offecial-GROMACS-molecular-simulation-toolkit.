@@ -44,7 +44,7 @@
 #include "gromacs/fileio/mtxio.h"
 #include "gromacs/fileio/tpxio.h"
 #include "gromacs/fileio/xvgr.h"
-#include "gromacs/gmxana/eigio.h"
+#include "eigio.h"
 #include "gromacs/gmxana/gmx_ana.h"
 #include "gromacs/gmxana/gstat.h"
 #include "gromacs/gmxana/princ.h"

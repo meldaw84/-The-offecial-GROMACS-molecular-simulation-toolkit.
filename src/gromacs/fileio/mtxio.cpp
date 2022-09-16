@@ -33,19 +33,20 @@
  */
 #include "gmxpre.h"
 
-#include "mtxio.h"
+#include "gromacs/fileio/mtxio.h"
 
 /* This module provides routines to read/write sparse or full storage
  * matrices from/to files. It is normally used for the Hessian matrix
  * in normal mode analysis.
  */
 
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/gmxfio_xdr.h"
 #include "gromacs/linearalgebra/sparsematrix.h"
 #include "gromacs/utility/baseversion.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/smalloc.h"
+
+#include "gmxfio.h"
 
 /* Just a number to identify our file type */
 #define GMX_MTXIO_MAGIC_NUMBER 0x34ce8fd2

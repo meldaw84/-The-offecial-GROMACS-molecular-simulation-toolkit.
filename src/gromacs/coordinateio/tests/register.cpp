@@ -42,7 +42,7 @@
 
 #include "gmxpre.h"
 
-#include "gromacs/coordinateio/frameconverters/register.h"
+#include "frameconverters/register.h"
 
 #include <numeric>
 

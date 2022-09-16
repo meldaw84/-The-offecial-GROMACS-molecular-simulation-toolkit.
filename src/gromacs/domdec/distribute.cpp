@@ -41,7 +41,7 @@
 
 #include "gmxpre.h"
 
-#include "distribute.h"
+#include "gromacs/domdec/distribute.h"
 
 #include "config.h"
 

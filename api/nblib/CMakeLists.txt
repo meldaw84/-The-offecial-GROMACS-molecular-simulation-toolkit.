@@ -103,13 +103,16 @@ target_include_directories(nblib PUBLIC
                            $<INSTALL_INTERFACE:include>)
 target_link_libraries(nblib PRIVATE common)
 target_link_libraries(nblib PRIVATE
+                      ewald
                       fileio
                       gmxlib
                       listed_forces
                       math
                       mdtypes
                       mdlib
+                      nbnxm
                       pbcutil
+                      random
                       simd
                       topology
                       utility)
@@ -117,8 +120,6 @@ target_link_libraries(nblib PRIVATE
 # There are transitive interface dependencies on the legacy GROMACS headers.
 # TODO(#3288): Explicitly link specific modules for public API dependencies as legacy_api is removed.
 target_link_libraries(nblib PUBLIC legacy_api)
-# TODO: Explicitly link specific modules.
-target_link_libraries(nblib PRIVATE legacy_modules)
 if (GMX_OPENMP)
     target_link_libraries(nblib PUBLIC OpenMP::OpenMP_CXX)
 endif()

@@ -34,7 +34,7 @@
 
 #include "gmxpre.h"
 
-#include "restraintmdmodule.h"
+#include "gromacs/restraint/restraintmdmodule.h"
 
 #include <memory>
 

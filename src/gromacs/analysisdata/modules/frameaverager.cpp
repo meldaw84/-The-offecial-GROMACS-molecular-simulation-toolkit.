@@ -40,10 +40,10 @@
  */
 #include "gmxpre.h"
 
-#include "frameaverager.h"
-
 #include "gromacs/analysisdata/dataframe.h"
 #include "gromacs/utility/gmxassert.h"
+
+#include "frameaverager.h"
 
 namespace gmx
 {

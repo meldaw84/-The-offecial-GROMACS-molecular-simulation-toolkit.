@@ -32,8 +32,31 @@
 # the research papers on the package. Check out https://www.gromacs.org.
 
 add_library(analysisdata INTERFACE)
-file(GLOB ANALYSISDATA_SOURCES *.cpp modules/*.cpp)
+set(ANALYSISDATA_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/abstractdata.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/analysisdata.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arraydata.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/dataframe.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/datamodule.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/datamodulemanager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/dataproxy.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/datastorage.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/modules/average.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/modules/displacement.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/modules/frameaverager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/modules/histogram.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/modules/lifetime.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/modules/plot.cpp)
 set(LIBGROMACS_SOURCES ${LIBGROMACS_SOURCES} ${ANALYSISDATA_SOURCES} PARENT_SCOPE)
+
+# TODO: update when analysisdata is an OBJECT target
+set_source_files_properties(
+    ${ANALYSISDATA_SOURCES}
+    DIRECTORY ${CMAKE_SOURCE_DIR}
+    PROPERTIES INCLUDE_DIRECTORIES
+    #target_include_directories(analysisdata PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
 # Source files have the following private module dependencies.
 target_link_libraries(analysisdata PRIVATE
@@ -55,11 +78,6 @@ target_link_libraries(analysisdata INTERFACE
 # TODO: when analysisdata is an OBJECT target
 #target_link_libraries(analysisdata PUBLIC legacy_api)
 #target_link_libraries(analysisdata PRIVATE common)
-
-# Source files have the following private module dependencies.
-#target_link_libraries(analysisdata PRIVATE tng_io)
-# TODO: Explicitly link specific modules.
-#target_link_libraries(analysisdata PRIVATE legacy_modules)
 
 if (BUILD_TESTING)
     add_subdirectory(tests)

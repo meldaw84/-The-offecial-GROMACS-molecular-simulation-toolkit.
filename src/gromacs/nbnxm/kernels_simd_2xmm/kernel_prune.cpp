@@ -43,7 +43,7 @@
 
 #ifdef GMX_NBNXN_SIMD_2XNN
 #    define GMX_SIMD_J_UNROLL_SIZE 2
-#    include "kernel_common.h"
+#    include "kernels_simd_2xmm_common.h"
 #endif
 
 /* Prune a single nbnxn_pairtlist_t entry with distance rlistInner */

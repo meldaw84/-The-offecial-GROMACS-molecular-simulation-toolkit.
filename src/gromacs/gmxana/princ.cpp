@@ -34,7 +34,7 @@
 /* This file is completely threadsafe - keep it that way! */
 #include "gmxpre.h"
 
-#include "princ.h"
+#include "gromacs/gmxana/princ.h"
 
 #include <cmath>
 

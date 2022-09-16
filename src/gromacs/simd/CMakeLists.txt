@@ -40,7 +40,6 @@ target_include_directories(simd INTERFACE
 
 target_link_libraries(simd INTERFACE
                       common
-                      legacy_modules
                       utility
                       )
 

@@ -44,8 +44,9 @@
 
 #include "dump.h"
 
+#include "../fileio/gmxfio.h"
+
 #include "gromacs/domdec/domdec_network.h"
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/pdbio.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/mdtypes/commrec.h"

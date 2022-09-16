@@ -60,6 +60,7 @@
 #include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/mdtypes/mdrunoptions.h"
 #include "gromacs/mdtypes/state.h"
+#include "gromacs/modularsimulator/modularsimulator.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/topology/atoms.h"
 #include "gromacs/topology/topology.h"
@@ -67,7 +68,6 @@
 #include "gromacs/utility/enumerationhelpers.h"
 
 #include "freeenergyperturbationdata.h"
-#include "modularsimulator.h"
 #include "simulatoralgorithm.h"
 
 namespace gmx

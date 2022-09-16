@@ -51,12 +51,13 @@
 #include "gromacs/options/options.h"
 #include "gromacs/selection/indexutil.h"
 #include "gromacs/selection/selectioncollection.h"
-#include "gromacs/selection/selectionfileoption.h"
 #include "gromacs/selection/selectionoptionmanager.h"
 #include "gromacs/topology/atoms.h"
 #include "gromacs/topology/topology.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/filestream.h"
+
+#include "selectionfileoption.h"
 
 namespace gmx
 {

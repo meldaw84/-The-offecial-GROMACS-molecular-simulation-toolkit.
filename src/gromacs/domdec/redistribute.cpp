@@ -41,7 +41,7 @@
 
 #include "gmxpre.h"
 
-#include "redistribute.h"
+#include "gromacs/domdec/redistribute.h"
 
 #include <cstring>
 

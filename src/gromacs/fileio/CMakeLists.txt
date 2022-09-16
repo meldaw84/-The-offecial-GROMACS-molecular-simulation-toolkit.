@@ -78,8 +78,6 @@ target_link_libraries(fileio INTERFACE
                       )
 # Source files have the following private module dependencies.
 #target_link_libraries(fileio PRIVATE tng_io)
-# TODO: Explicitly link specific modules.
-#target_link_libraries(fileio PRIVATE legacy_modules)
 
 target_sources(libgromacs PRIVATE ${FILEIO_SOURCES})
 

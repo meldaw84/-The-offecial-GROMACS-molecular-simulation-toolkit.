@@ -49,7 +49,7 @@
 
 #include "gmxpre.h"
 
-#include "simulationsignal.h"
+#include "gromacs/mdlib/simulationsignal.h"
 
 #include <algorithm>
 

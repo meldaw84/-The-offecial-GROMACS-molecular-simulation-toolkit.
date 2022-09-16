@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "gmxfio_xdr.h"
+#include "gromacs/fileio/gmxfio_xdr.h"
 
 #include <cstddef>
 #include <cstdio>
@@ -41,13 +41,13 @@
 
 #include <limits>
 
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/xdrf.h"
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/smalloc.h"
 
+#include "gmxfio.h"
 #include "gmxfio_impl.h"
 
 /* Enumerated for data types in files */

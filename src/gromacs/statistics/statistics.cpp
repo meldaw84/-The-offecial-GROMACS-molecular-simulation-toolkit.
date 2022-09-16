@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "statistics.h"
+#include "gromacs/statistics/statistics.h"
 
 #include <cmath>
 

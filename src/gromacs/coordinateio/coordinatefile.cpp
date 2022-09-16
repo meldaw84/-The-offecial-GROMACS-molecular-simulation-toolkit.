@@ -42,7 +42,7 @@
 
 #include "gmxpre.h"
 
-#include "coordinatefile.h"
+#include "gromacs/coordinateio/coordinatefile.h"
 
 #include <algorithm>
 

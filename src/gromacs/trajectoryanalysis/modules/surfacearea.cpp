@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "surfacearea.h"
+#include "../modules/surfacearea.h"
 
 #include <cmath>
 #include <cstdio>

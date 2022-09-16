@@ -44,8 +44,9 @@
 
 #include "config.h"
 
-#include "gromacs/fileio/mrcdensitymapheader.h"
 #include "gromacs/utility/inmemoryserializer.h"
+
+#include "mrcdensitymapheader.h"
 
 namespace gmx
 {

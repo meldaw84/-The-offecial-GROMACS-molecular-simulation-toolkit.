@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "cmdlinehelpcontext.h"
+#include "gromacs/commandline/cmdlinehelpcontext.h"
 
 #include "gromacs/utility/gmxassert.h"
 

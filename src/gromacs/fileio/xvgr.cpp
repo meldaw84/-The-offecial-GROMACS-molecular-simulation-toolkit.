@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "xvgr.h"
+#include "gromacs/fileio/xvgr.h"
 
 #include <cassert>
 #include <cctype>
@@ -43,7 +43,6 @@
 #include <array>
 #include <string>
 
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/oenv.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/utility/arrayref.h"
@@ -56,6 +55,8 @@
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/sysinfo.h"
+
+#include "gmxfio.h"
 
 gmx_bool output_env_get_print_xvgr_codes(const gmx_output_env_t* oenv)
 {

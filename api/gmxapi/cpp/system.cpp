@@ -38,7 +38,6 @@
 #include <memory>
 
 #include "gromacs/mdrun/runner.h"
-#include "gromacs/utility.h"
 
 #include "gmxapi/context.h"
 #include "gmxapi/md.h"

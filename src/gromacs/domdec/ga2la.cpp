@@ -42,7 +42,7 @@
 
 #include "gmxpre.h"
 
-#include "ga2la.h"
+#include "gromacs/domdec/ga2la.h"
 
 /*! \brief Returns whether to use a direct list only
  *

@@ -56,7 +56,7 @@
 #include "gromacs/gpu_utils/vectype_ops.cuh"
 #include "gromacs/hardware/device_information.h"
 #include "gromacs/mdtypes/simulation_workload.h"
-#include "gromacs/nbnxm/atomdata.h"
+#include "atomdata.h"
 #include "gromacs/nbnxm/gpu_common.h"
 #include "gromacs/nbnxm/gpu_common_utils.h"
 #include "gromacs/nbnxm/gpu_data_mgmt.h"

@@ -124,9 +124,10 @@ target_link_libraries(mdlib INTERFACE
 #target_link_libraries(mdlib PRIVATE common)
 
 # Source files have the following private module dependencies.
-#target_link_libraries(mdlib PRIVATE tng_io)
-# TODO: Explicitly link specific modules.
-#target_link_libraries(mdlib PRIVATE legacy_modules)
+#target_link_libraries(mdlib PRIVATE
+target_link_libraries(mdlib INTERFACE
+                      fileio
+                      )
 
 if (BUILD_TESTING)
     add_subdirectory(tests)

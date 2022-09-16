@@ -58,8 +58,15 @@ target_include_directories(taskassignment PUBLIC
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 target_link_libraries(taskassignment PRIVATE
                       legacy_api
-                      legacy_modules
+                      domdec
+                      ewald
+                      gmxlib
+                      hardware
+                      listed_forces
                       math
+                      mdlib
+                      mdrunutility
+                      mdtypes
                       pulling
                       timing
                       topology

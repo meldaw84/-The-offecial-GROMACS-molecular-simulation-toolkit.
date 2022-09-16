@@ -34,7 +34,7 @@
 /* This file is completely threadsafe - keep it that way! */
 #include "gmxpre.h"
 
-#include "conformation_utilities.h"
+#include "gromacs/gmxlib/conformation_utilities.h"
 
 #include <cmath>
 

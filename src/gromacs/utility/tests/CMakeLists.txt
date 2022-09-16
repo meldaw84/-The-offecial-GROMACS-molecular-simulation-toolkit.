@@ -58,8 +58,6 @@ gmx_add_unit_test(UtilityUnitTests utility-test
         textwriter.cpp
         typetraits.cpp
         )
-# TODO: Remove `legacy_modules` once specific modules are explicitly linked.
-target_link_libraries(utility-test PRIVATE legacy_modules)
 target_link_libraries(utility-test PRIVATE utility)
 
 gmx_add_mpi_unit_test(UtilityMpiUnitTests utility-mpi-test 2

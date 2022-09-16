@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "multisim.h"
+#include "gromacs/mdrunutility/multisim.h"
 
 #include "config.h"
 

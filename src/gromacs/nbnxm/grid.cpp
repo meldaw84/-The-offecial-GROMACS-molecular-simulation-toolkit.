@@ -56,13 +56,13 @@
 #include "gromacs/mdlib/updategroupscog.h"
 #include "gromacs/mdtypes/atominfo.h"
 #include "gromacs/nbnxm/atomdata.h"
+#include "gromacs/nbnxm/nbnxm_geometry.h"
+#include "gromacs/nbnxm/pairlistparams.h"
 #include "gromacs/simd/simd.h"
 #include "gromacs/simd/vector_operations.h"
 
 #include "boundingboxes.h"
 #include "gridsetdata.h"
-#include "nbnxm_geometry.h"
-#include "pairlistparams.h"
 
 namespace Nbnxm
 {

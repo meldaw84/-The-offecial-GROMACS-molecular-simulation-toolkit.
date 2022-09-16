@@ -39,7 +39,7 @@
  */
 #include "gmxpre.h"
 
-#include "stophandler.h"
+#include "gromacs/mdlib/stophandler.h"
 
 #include "config.h"
 

@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "cmdlineparser.h"
+#include "gromacs/commandline/cmdlineparser.h"
 
 #include <cstdlib>
 

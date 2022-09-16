@@ -40,7 +40,6 @@
 
 #include <algorithm>
 
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/gmxfio_xdr.h"
 #include "gromacs/fileio/xdrf.h"
 #include "gromacs/math/functions.h"
@@ -56,6 +55,8 @@
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/smalloc.h"
+
+#include "gmxfio.h"
 
 /* The source code in this file should be thread-safe.
          Please keep it that way. */

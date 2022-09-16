@@ -40,11 +40,12 @@
  */
 #include "gmxpre.h"
 
-#include "logging.h"
+#include "gromacs/mdrunutility/logging.h"
 
 #include <memory>
 
-#include "gromacs/fileio/gmxfio.h"
+#include "../fileio/gmxfio.h"
+
 #include "gromacs/utility/binaryinformation.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/exceptions.h"

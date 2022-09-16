@@ -108,7 +108,6 @@
 #    include <windows.h>
 #endif
 
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/trajectory/trajectoryframe.h"
@@ -116,6 +115,8 @@
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
+
+#include "gmxfio.h"
 
 
 typedef int (*initfunc)();

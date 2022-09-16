@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "cmdlinehelpwriter.h"
+#include "gromacs/commandline/cmdlinehelpwriter.h"
 
 #include <cstring>
 

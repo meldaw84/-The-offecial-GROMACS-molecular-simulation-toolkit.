@@ -58,7 +58,7 @@
 #include <string>
 
 #include "gromacs/hardware/cpuinfo.h"
-#include "gromacs/hardware/identifyavx512fmaunits.h"
+#include "identifyavx512fmaunits.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/stringutil.h"
 

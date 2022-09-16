@@ -42,7 +42,7 @@
  */
 #include "gmxpre.h"
 
-#include "listed_forces.h"
+#include "gromacs/listed_forces/listed_forces.h"
 
 #include <algorithm>
 #include <array>
@@ -53,7 +53,6 @@
 #include "gromacs/listed_forces/disre.h"
 #include "gromacs/listed_forces/orires.h"
 #include "gromacs/listed_forces/pairs.h"
-#include "gromacs/listed_forces/position_restraints.h"
 #include "gromacs/mdlib/enerdata_utils.h"
 #include "gromacs/mdlib/force.h"
 #include "gromacs/mdtypes/commrec.h"
@@ -74,6 +73,7 @@
 
 #include "listed_internal.h"
 #include "manage_threading.h"
+#include "position_restraints.h"
 #include "utilities.h"
 
 ListedForces::ListedForces(const gmx_ffparams_t&      ffparams,

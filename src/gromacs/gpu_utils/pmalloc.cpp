@@ -39,7 +39,7 @@
 
 #include "gmxpre.h"
 
-#include "pmalloc.h"
+#include "gromacs/gpu_utils/pmalloc.h"
 
 #include "gromacs/utility/smalloc.h"
 

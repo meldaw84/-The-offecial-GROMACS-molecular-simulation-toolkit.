@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "readir.h"
+#include "gromacs/gmxpreprocess/readir.h"
 
 #include <cctype>
 #include <climits>
@@ -45,11 +45,11 @@
 #include <numeric>
 #include <string>
 
-#include "gromacs/applied_forces/awh/read_params.h"
+#include "../applied_forces/awh/read_params.h"
+
 #include "gromacs/fileio/readinp.h"
 #include "gromacs/fileio/warninp.h"
 #include "gromacs/gmxlib/network.h"
-#include "gromacs/gmxpreprocess/toputil.h"
 #include "gromacs/math/functions.h"
 #include "gromacs/math/units.h"
 #include "gromacs/math/utilities.h"
@@ -91,6 +91,8 @@
 #include "gromacs/utility/stringcompare.h"
 #include "gromacs/utility/stringutil.h"
 #include "gromacs/utility/textwriter.h"
+
+#include "toputil.h"
 
 #define NOGID 255
 

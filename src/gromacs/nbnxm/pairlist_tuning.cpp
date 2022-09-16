@@ -42,7 +42,7 @@
 
 #include "gmxpre.h"
 
-#include "pairlist_tuning.h"
+#include "gromacs/nbnxm/pairlist_tuning.h"
 
 #include <cassert>
 #include <cmath>
@@ -60,6 +60,8 @@
 #include "gromacs/mdtypes/interaction_const.h"
 #include "gromacs/mdtypes/multipletimestepping.h"
 #include "gromacs/mdtypes/state.h"
+#include "gromacs/nbnxm/nbnxm_geometry.h"
+#include "gromacs/nbnxm/pairlistsets.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/topology/topology.h"
 #include "gromacs/utility/cstringutil.h"
@@ -68,9 +70,6 @@
 #include "gromacs/utility/logger.h"
 #include "gromacs/utility/strconvert.h"
 #include "gromacs/utility/stringutil.h"
-
-#include "nbnxm_geometry.h"
-#include "pairlistsets.h"
 
 /*! \brief Returns if we can (heuristically) change nstlist and rlist
  *

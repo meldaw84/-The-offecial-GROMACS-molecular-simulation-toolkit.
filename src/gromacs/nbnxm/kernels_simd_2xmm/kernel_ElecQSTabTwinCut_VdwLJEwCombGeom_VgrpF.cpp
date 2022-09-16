@@ -48,7 +48,7 @@
 #include "gromacs/nbnxm/nbnxm_simd.h"
 
 #define GMX_SIMD_J_UNROLL_SIZE 2
-#include "kernels.h"
+#include "kernels_simd_2xmm.h"
 
 #define CALC_COUL_TAB
 #define VDW_CUTOFF_CHECK /* Use twin-range cut-off */
@@ -59,7 +59,7 @@
 #define ENERGY_GROUPS
 
 #ifdef GMX_NBNXN_SIMD_2XNN
-#    include "kernel_common.h"
+#    include "kernels_simd_2xmm_common.h"
 #endif /* GMX_NBNXN_SIMD_2XNN */
 
 #ifdef CALC_ENERGIES

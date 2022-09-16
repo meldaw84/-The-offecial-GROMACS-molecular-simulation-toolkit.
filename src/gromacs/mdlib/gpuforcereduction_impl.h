@@ -47,7 +47,7 @@
 #include "gromacs/gpu_utils/gputraits.h"
 #include "gromacs/math/vectypes.h"
 
-#include "gpuforcereduction.h"
+#include "gromacs/mdlib/gpuforcereduction.h"
 
 namespace gmx
 {

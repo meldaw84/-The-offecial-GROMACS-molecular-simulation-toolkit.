@@ -51,9 +51,9 @@
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/mdtypes/state.h"
+#include "gromacs/modularsimulator/modularsimulator.h"
 #include "gromacs/trajectory/trajectoryframe.h"
 
-#include "modularsimulator.h"
 #include "simulatoralgorithm.h"
 
 namespace gmx

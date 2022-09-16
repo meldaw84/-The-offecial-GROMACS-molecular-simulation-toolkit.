@@ -40,11 +40,20 @@ target_include_directories(mdrun_objlib SYSTEM BEFORE PRIVATE ${PROJECT_SOURCE_D
 # Should be possible to remove this when resolving #3290
 target_include_directories(mdrun_objlib SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/src/external)
 target_link_libraries(mdrun_objlib PRIVATE
-        common
-        legacy_api
-        legacy_modules
-        utility
-        )
+                      common
+                      legacy_api
+                      commandline
+                      domdec
+                      ewald
+                      fileio
+                      gmxana
+                      hardware
+                      mdrun
+                      nbnxm
+                      onlinehelp
+                      selection
+                      utility
+                      )
 
 if(GMX_FAHCORE)
     # The lack of a real source file here alongside the object library
@@ -53,12 +62,18 @@ if(GMX_FAHCORE)
     add_library(fahcore $<TARGET_OBJECTS:mdrun_objlib>)
     target_link_libraries(fahcore PRIVATE ${GMX_COMMON_LIBRARIES} legacy_api)
 else()
-    file(GLOB GMX_MAIN_SOURCES gmx.cpp legacymodules.cpp)
-    add_library(gmx_objlib OBJECT ${GMX_MAIN_SOURCES})
-    target_link_libraries(gmx_objlib PRIVATE common legacy_api)
-    # TODO: Remove `legacy_modules` once specific modules are explicitly linked.
-    target_link_libraries(gmx_objlib PRIVATE legacy_modules)
-    target_link_libraries(gmx_objlib PRIVATE utility commandline)
+    add_library(gmx_objlib OBJECT gmx.cpp legacymodules.cpp)
+    target_link_libraries(gmx_objlib PRIVATE
+                          common
+                          legacy_api
+                          commandline
+                          gmxana
+                          gmxpreprocess
+                          selection
+                          tools
+                          trajectoryanalysis
+                          utility
+                          )
     target_include_directories(gmx_objlib SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/src/external)
     target_include_directories(gmx_objlib SYSTEM BEFORE PRIVATE ${PROJECT_SOURCE_DIR}/src/external/thread_mpi/include)
     add_executable(gmx

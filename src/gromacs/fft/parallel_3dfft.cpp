@@ -33,14 +33,14 @@
  */
 #include "gmxpre.h"
 
-#include "parallel_3dfft.h"
+#include "gromacs/fft/parallel_3dfft.h"
 
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
 
 #include "gromacs/fft/fft.h"
-#include "gromacs/fft/fft5d.h"
+#include "fft5d.h"
 #include "gromacs/math/gmxcomplex.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/gmxmpi.h"

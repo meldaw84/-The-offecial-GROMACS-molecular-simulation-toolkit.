@@ -40,11 +40,12 @@
 #include <algorithm>
 #include <array>
 
+#include "../fileio/enxio.h"
+#include "../fileio/gmxfio.h"
+
 #include "gromacs/commandline/pargs.h"
 #include "gromacs/commandline/viewit.h"
 #include "gromacs/correlationfunctions/autocorr.h"
-#include "gromacs/fileio/enxio.h"
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/tpxio.h"
 #include "gromacs/fileio/trxio.h"
 #include "gromacs/fileio/xvgr.h"

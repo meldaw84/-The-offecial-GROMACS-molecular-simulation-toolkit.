@@ -51,10 +51,11 @@
 #include "gromacs/math/functions.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/mdlib/constraint_gpu_helpers.h"
-#include "gromacs/mdlib/settle.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/pbcutil/pbc_aiuc.h"
 #include "gromacs/topology/mtop_util.h"
+
+#include "settle.h"
 
 class InteractionDefinitions;
 

@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "expanded.h"
+#include "gromacs/mdlib/expanded.h"
 
 #include <cmath>
 #include <cstdio>

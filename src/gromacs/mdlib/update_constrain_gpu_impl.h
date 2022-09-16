@@ -53,9 +53,10 @@
 #include "gromacs/math/matrix.h"
 #include "gromacs/mdlib/leapfrog_gpu.h"
 #include "gromacs/mdlib/lincs_gpu.h"
-#include "gromacs/mdlib/settle_gpu.h"
 #include "gromacs/mdlib/update_constrain_gpu.h"
 #include "gromacs/mdtypes/inputrec.h"
+
+#include "settle_gpu.h"
 
 class GpuEventSynchronizer;
 

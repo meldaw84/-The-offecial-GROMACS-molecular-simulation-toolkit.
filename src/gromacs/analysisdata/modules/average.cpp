@@ -47,8 +47,9 @@
 #include <algorithm>
 #include <vector>
 
+#include "../datastorage.h"
+
 #include "gromacs/analysisdata/dataframe.h"
-#include "gromacs/analysisdata/datastorage.h"
 
 #include "frameaverager.h"
 

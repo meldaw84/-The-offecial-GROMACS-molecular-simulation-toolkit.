@@ -43,7 +43,7 @@
 #include "gromacs/fileio/confio.h"
 #include "gromacs/fileio/trxio.h"
 #include "gromacs/fileio/xvgr.h"
-#include "gromacs/gmxana/angle_correction.h"
+#include "angle_correction.h"
 #include "gromacs/gmxana/gstat.h"
 #include "gromacs/listed_forces/bonded.h"
 #include "gromacs/math/functions.h"

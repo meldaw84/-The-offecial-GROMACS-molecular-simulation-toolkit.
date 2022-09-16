@@ -50,6 +50,7 @@ target_include_directories(commandline INTERFACE
 #target_link_libraries(commandline PUBLIC
 target_link_libraries(commandline INTERFACE
                       legacy_api
+                      onlinehelp
                       )
 
 # TODO: when commandline is an OBJECT target
@@ -58,8 +59,6 @@ target_link_libraries(commandline INTERFACE
 
 # Source files have the following private module dependencies.
 #target_link_libraries(commandline PRIVATE tng_io)
-# TODO: Explicitly link specific modules.
-#target_link_libraries(commandline PRIVATE legacy_modules)
 
 if (BUILD_TESTING)
     add_subdirectory(tests)

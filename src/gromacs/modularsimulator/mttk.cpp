@@ -52,9 +52,9 @@
 #include "gromacs/mdtypes/enerdata.h"
 #include "gromacs/mdtypes/group.h"
 #include "gromacs/mdtypes/inputrec.h"
+#include "gromacs/modularsimulator/energydata.h"
 #include "gromacs/topology/ifunc.h"
 
-#include "energydata.h"
 #include "nosehooverchains.h"
 #include "simulatoralgorithm.h"
 #include "trotterhelperfunctions.h"

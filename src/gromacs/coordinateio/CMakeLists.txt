@@ -36,11 +36,14 @@ add_library(coordinateio INTERFACE)
 file(GLOB COORDINATEIO_SOURCES *.cpp outputadapters/*.cpp frameconverters/*.cpp)
 set(LIBGROMACS_SOURCES ${LIBGROMACS_SOURCES} ${COORDINATEIO_SOURCES} PARENT_SCOPE)
 
-# Source files have the following dependencies on library infrastructure.
-#target_link_libraries(coordinateio PRIVATE
-#                      common
-#                      legacy_modules
-#)
+# TODO: update when coordinateio is an OBJECT target
+set_source_files_properties(
+    ${COORDINATEIO_SOURCES}
+    DIRECTORY ${CMAKE_SOURCE_DIR}
+    PROPERTIES INCLUDE_DIRECTORIES
+#target_include_directories(coordinateio PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
 # Public interface for modules, including dependencies and interfaces
 #target_include_directories(coordinateio PUBLIC
@@ -57,8 +60,6 @@ target_link_libraries(coordinateio INTERFACE
 
 # Source files have the following private module dependencies.
 #target_link_libraries(coordinateio PRIVATE NOTHING)
-# TODO: Explicitly link specific modules.
-#target_link_libraries(coordinateio PRIVATE legacy_modules)
 
 if (BUILD_TESTING)
      add_subdirectory(tests)

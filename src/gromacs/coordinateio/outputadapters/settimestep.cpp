@@ -42,7 +42,7 @@
 
 #include "gmxpre.h"
 
-#include "settimestep.h"
+#include "gromacs/coordinateio/outputadapters/settimestep.h"
 
 #include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/exceptions.h"

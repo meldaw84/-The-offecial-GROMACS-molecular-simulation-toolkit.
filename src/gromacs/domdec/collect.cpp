@@ -41,7 +41,7 @@
 
 #include "gmxpre.h"
 
-#include "collect.h"
+#include "gromacs/domdec/collect.h"
 
 #include "config.h"
 
@@ -52,7 +52,7 @@
 #include "gromacs/utility/fatalerror.h"
 
 #include "atomdistribution.h"
-#include "distribute.h"
+#include "gromacs/domdec/distribute.h"
 #include "domdec_internal.h"
 
 static void dd_collect_cg(gmx_domdec_t*            dd,

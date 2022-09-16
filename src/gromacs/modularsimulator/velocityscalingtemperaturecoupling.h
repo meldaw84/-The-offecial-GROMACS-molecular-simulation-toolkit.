@@ -44,9 +44,9 @@
 #ifndef GMX_MODULARSIMULATOR_VELOCITYSCALINGTEMPERATURECOUPLING_H
 #define GMX_MODULARSIMULATOR_VELOCITYSCALINGTEMPERATURECOUPLING_H
 
+#include "gromacs/modularsimulator/energydata.h"
 #include "gromacs/utility/arrayref.h"
 
-#include "energydata.h"
 #include "modularsimulatorinterfaces.h"
 #include "propagator.h"
 

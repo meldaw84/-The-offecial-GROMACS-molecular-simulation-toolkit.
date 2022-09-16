@@ -40,7 +40,7 @@
 
 #include "gmxpre.h"
 
-#include "modularsimulator.h"
+#include "gromacs/modularsimulator/modularsimulator.h"
 
 #include "gromacs/commandline/filenm.h"
 #include "gromacs/domdec/domdec.h"

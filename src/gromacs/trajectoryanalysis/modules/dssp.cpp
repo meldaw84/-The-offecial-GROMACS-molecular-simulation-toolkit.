@@ -47,10 +47,11 @@
 #include <algorithm>
 #include <set>
 
+#include "../../fileio/gmxfio.h"
+
 #include "gromacs/analysisdata/analysisdata.h"
 #include "gromacs/analysisdata/modules/average.h"
 #include "gromacs/analysisdata/modules/plot.h"
-#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/pdbio.h"
 #include "gromacs/math/units.h"
 #include "gromacs/math/vec.h"

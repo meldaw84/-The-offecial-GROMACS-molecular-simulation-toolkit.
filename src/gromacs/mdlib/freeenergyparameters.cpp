@@ -40,7 +40,7 @@
 
 #include "gmxpre.h"
 
-#include "freeenergyparameters.h"
+#include "gromacs/mdlib/freeenergyparameters.h"
 
 #include <vector>
 

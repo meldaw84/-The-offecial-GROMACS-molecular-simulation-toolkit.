@@ -65,8 +65,6 @@ endif ()
 # TODO(#3288): when utility is an OBJECT target, explicitly link source dependencies.
 # Source files have the following private module dependencies.
 #target_link_libraries(utility PRIVATE common)
-# TODO(#3288): Explicitly link specific modules as legacy_modules is removed.
-#target_link_libraries(utility PRIVATE legacy_modules)
 
 if (BUILD_TESTING)
     add_subdirectory(tests)
