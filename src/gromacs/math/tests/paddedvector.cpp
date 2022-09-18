@@ -50,11 +50,12 @@
 
 #include <gtest/gtest.h>
 
-#include "gromacs/math/tests/testarrayrefs.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/math/vectypes.h"
 #include "gromacs/utility/alignedallocator.h"
 #include "gromacs/utility/basedefinitions.h"
+
+#include "testarrayrefs.h"
 
 namespace gmx
 {

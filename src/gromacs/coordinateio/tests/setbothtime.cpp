@@ -47,9 +47,10 @@
 
 #include "gromacs/coordinateio/outputadapters/setstarttime.h"
 #include "gromacs/coordinateio/outputadapters/settimestep.h"
-#include "gromacs/coordinateio/tests/coordinate_test.h"
 #include "gromacs/fileio/trxio.h"
 #include "gromacs/trajectory/trajectoryframe.h"
+
+#include "coordinate_test.h"
 
 namespace gmx
 {

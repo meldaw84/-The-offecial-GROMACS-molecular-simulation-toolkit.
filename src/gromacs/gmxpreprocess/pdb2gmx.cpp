@@ -45,11 +45,10 @@
 #include <string>
 #include <vector>
 
-#include "../fileio/gmxfio.h"
-
 #include "gromacs/commandline/cmdlineoptionsmodule.h"
 #include "gromacs/fileio/confio.h"
 #include "gromacs/fileio/filetypes.h"
+#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/pdbio.h"
 #include "gromacs/gmxlib/conformation_utilities.h"
 #include "gromacs/gmxpreprocess/grompp_impl.h"

@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/trajectoryanalysis/modules/convert_trj.h"
+#include "../modules/convert_trj.h"
 
 #include <gtest/gtest.h>
 

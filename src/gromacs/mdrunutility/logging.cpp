@@ -44,8 +44,7 @@
 
 #include <memory>
 
-#include "../fileio/gmxfio.h"
-
+#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/utility/binaryinformation.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/exceptions.h"

@@ -48,6 +48,9 @@
 #include <memory>
 #include <vector>
 
+#include "../lincs.h"
+#include "../shake.h"
+
 #include "gromacs/gmxlib/nrnb.h"
 #include "gromacs/hardware/device_management.h"
 #include "gromacs/math/paddedvector.h"
@@ -59,9 +62,6 @@
 #include "gromacs/topology/idef.h"
 #include "gromacs/topology/ifunc.h"
 #include "gromacs/topology/topology.h"
-
-#include "lincs.h"
-#include "shake.h"
 
 namespace gmx
 {

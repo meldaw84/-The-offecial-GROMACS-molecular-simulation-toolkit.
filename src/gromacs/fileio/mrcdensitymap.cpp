@@ -47,12 +47,12 @@
 #include <algorithm>
 #include <vector>
 
+#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/gmxfio_xdr.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/inmemoryserializer.h"
 #include "gromacs/utility/iserializer.h"
 
-#include "gmxfio.h"
 #include "mrcdensitymapheader.h"
 #include "mrcserializer.h"
 

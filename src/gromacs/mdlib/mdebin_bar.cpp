@@ -42,8 +42,7 @@
 
 #include <memory>
 
-#include "../fileio/enxio.h"
-
+#include "gromacs/fileio/enxio.h"
 #include "gromacs/mdlib/energyoutput.h"
 #include "gromacs/mdtypes/energyhistory.h"
 #include "gromacs/mdtypes/inputrec.h"

@@ -61,6 +61,7 @@ target_include_directories(pulling PUBLIC
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 target_link_libraries(pulling PUBLIC
                       legacy_api
+                      mdtypes
                       )
 
 target_link_libraries(pulling PRIVATE

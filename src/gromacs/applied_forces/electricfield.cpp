@@ -47,9 +47,8 @@
 #include <memory>
 #include <string>
 
-#include "../fileio/gmxfio.h"
-
 #include "gromacs/commandline/filenm.h"
+#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/xvgr.h"
 #include "gromacs/math/units.h"
 #include "gromacs/mdtypes/commrec.h"

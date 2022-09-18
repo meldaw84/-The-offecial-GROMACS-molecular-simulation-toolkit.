@@ -55,7 +55,6 @@
 #include "gromacs/math/paddedvector.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/math/vectypes.h"
-#include "gromacs/mdlib/tests/watersystem.h"
 #include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/topology/idef.h"
@@ -66,6 +65,8 @@
 #include "gromacs/utility/unique_cptr.h"
 
 #include "testutils/testasserts.h"
+
+#include "watersystem.h"
 
 namespace gmx
 {

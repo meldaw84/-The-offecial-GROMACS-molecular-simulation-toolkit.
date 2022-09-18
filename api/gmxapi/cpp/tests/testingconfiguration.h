@@ -49,7 +49,7 @@
 #include "testutils/cmdlinetest.h"
 #include "testutils/testfilemanager.h"
 
-#include "programs/mdrun/tests/moduletest.h"
+#include "moduletest.h"
 #if GMX_THREAD_MPI
 #    include "testutils/mpitest.h"
 #endif

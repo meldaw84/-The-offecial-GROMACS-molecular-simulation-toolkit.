@@ -41,7 +41,7 @@ gmx_add_gtest_executable(trajectoryanalysis-test
         cmdlinerunner.cpp
         convert_trj.cpp
         distance.cpp
-	dssp.cpp
+		dssp.cpp
         extract_cluster.cpp
         freevolume.cpp
         msd.cpp
@@ -55,8 +55,16 @@ gmx_add_gtest_executable(trajectoryanalysis-test
         unionfind.cpp
         )
 gmx_register_gtest_test(TrajectoryAnalysisUnitTests trajectoryanalysis-test SLOW_TEST)
-target_link_libraries(trajectoryanalysis-test PRIVATE analysisdata-test-shared)
-target_link_libraries(trajectoryanalysis-test PRIVATE common)
+target_link_libraries(
+	trajectoryanalysis-test PRIVATE
+	analysisdata-test-shared
+	commandline
+	common
+	gmxana
+	gmxpreprocess
+	random
+	trajectoryanalysis
+)
 
 add_executable(test_selection ${UNITTEST_TARGET_OPTIONS} test_selection.cpp)
 target_link_libraries(test_selection PRIVATE

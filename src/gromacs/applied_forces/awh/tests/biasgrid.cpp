@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/applied_forces/awh/biasgrid.h"
+#include "../biasgrid.h"
 
 #include <cmath>
 
@@ -43,12 +43,13 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "gromacs/applied_forces/awh/tests/awh_setup.h"
 #include "gromacs/mdtypes/awh_params.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/inmemoryserializer.h"
 
 #include "testutils/testasserts.h"
+
+#include "awh_setup.h"
 
 namespace gmx
 {

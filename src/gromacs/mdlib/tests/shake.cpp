@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "shake.h"
+#include "../shake.h"
 
 #include <cassert>
 #include <cmath>

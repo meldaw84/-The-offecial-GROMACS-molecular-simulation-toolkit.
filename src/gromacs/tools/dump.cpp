@@ -47,12 +47,11 @@
 #include <cstdio>
 #include <cstring>
 
-#include "../fileio/enxio.h"
-#include "../fileio/gmxfio.h"
-
 #include "gromacs/commandline/cmdlineoptionsmodule.h"
 #include "gromacs/fileio/checkpoint.h"
+#include "gromacs/fileio/enxio.h"
 #include "gromacs/fileio/filetypes.h"
+#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/mtxio.h"
 #include "gromacs/fileio/tngio.h"
 #include "gromacs/fileio/tpxio.h"

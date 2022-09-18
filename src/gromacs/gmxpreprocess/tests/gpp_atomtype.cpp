@@ -39,7 +39,7 @@
  */
 #include "gmxpre.h"
 
-#include "gpp_atomtype.h"
+#include "../gpp_atomtype.h"
 
 #include <gtest/gtest.h>
 

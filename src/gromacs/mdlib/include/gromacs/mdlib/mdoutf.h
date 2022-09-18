@@ -36,8 +36,7 @@
 
 #include <cstdio>
 
-#include "../../../../fileio/enxio.h"
-
+#include "gromacs/fileio/enxio.h"
 #include "gromacs/math/vectypes.h"
 #include "gromacs/timing/wallcycle.h"
 #include "gromacs/utility/arrayref.h"

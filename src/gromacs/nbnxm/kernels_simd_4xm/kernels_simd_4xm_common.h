@@ -31,15 +31,15 @@
  * To help us fund GROMACS development, we humbly ask that you cite
  * the research papers on the package. Check out https://www.gromacs.org.
  */
+#include "../simd_coulomb_functions.h"
+#include "../simd_diagonal_masker.h"
+#include "../simd_lennardjones_functions.h"
+#include "../simd_load_store_functions.h"
+
 #include "gromacs/pbcutil/ishift.h"
 #include "gromacs/simd/simd.h"
 #include "gromacs/simd/simd_math.h"
 #include "gromacs/simd/vector_operations.h"
-
-#include "simd_coulomb_functions.h"
-#include "simd_diagonal_masker.h"
-#include "simd_lennardjones_functions.h"
-#include "simd_load_store_functions.h"
 #ifdef CALC_COUL_EWALD
 #    include "gromacs/math/utilities.h"
 #endif

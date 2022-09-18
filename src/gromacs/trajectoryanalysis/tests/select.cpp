@@ -48,7 +48,7 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/trajectoryanalysis/modules/select.h"
+#include "../modules/select.h"
 
 #include <gtest/gtest.h>
 

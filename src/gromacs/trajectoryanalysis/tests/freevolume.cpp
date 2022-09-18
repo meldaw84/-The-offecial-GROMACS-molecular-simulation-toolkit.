@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/trajectoryanalysis/modules/freevolume.h"
+#include "../modules/freevolume.h"
 
 #include <gtest/gtest.h>
 

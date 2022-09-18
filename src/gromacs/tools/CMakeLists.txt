@@ -55,9 +55,11 @@ set_source_files_properties(
 target_include_directories(tools INTERFACE
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 #target_link_libraries(tools PUBLIC
-target_link_libraries(tools INTERFACE
-                      legacy_api
-                      )
+target_link_libraries(
+    tools INTERFACE
+    commandline
+    legacy_api
+)
 
 # TODO: when tools is an OBJECT target
 #target_link_libraries(tools PUBLIC legacy_api)

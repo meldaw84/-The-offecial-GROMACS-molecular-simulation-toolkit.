@@ -39,6 +39,7 @@
 #include <cstring>
 
 #include "gromacs/fileio/filetypes.h"
+#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/groio.h"
 #include "gromacs/fileio/pdbio.h"
 #include "gromacs/fileio/tpxio.h"
@@ -57,7 +58,6 @@
 
 #include "espio.h"
 #include "g96io.h"
-#include "gmxfio.h"
 
 void write_sto_conf_indexed(const char*    outfile,
                             const char*    title,

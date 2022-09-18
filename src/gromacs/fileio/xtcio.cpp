@@ -37,14 +37,13 @@
 
 #include <cstring>
 
+#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/gmxfio_xdr.h"
 #include "gromacs/fileio/xdrf.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
-
-#include "gmxfio.h"
 
 #define XTC_MAGIC 1995
 

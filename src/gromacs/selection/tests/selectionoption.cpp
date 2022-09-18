@@ -44,6 +44,8 @@
 
 #include <gtest/gtest.h>
 
+#include "../selectionfileoption.h"
+
 #include "gromacs/options/options.h"
 #include "gromacs/options/optionsassigner.h"
 #include "gromacs/selection/selection.h"
@@ -54,7 +56,6 @@
 #include "testutils/testasserts.h"
 #include "testutils/testfilemanager.h"
 
-#include "selectionfileoption.h"
 #include "toputils.h"
 
 using gmx::test::TestFileManager;

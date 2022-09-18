@@ -40,12 +40,13 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/fileio/mrcserializer.h"
+#include "../mrcserializer.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "gromacs/fileio/mrcdensitymapheader.h"
+#include "../mrcdensitymapheader.h"
+
 #include "gromacs/utility/inmemoryserializer.h"
 
 #include "testutils/testasserts.h"

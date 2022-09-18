@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/applied_forces/awh/biassharing.h"
+#include "../biassharing.h"
 
 #include <gmock/gmock-matchers.h>
 #include <gmock/gmock.h>
@@ -41,10 +41,11 @@
 
 #include "thread_mpi/tmpi.h"
 
-#include "gromacs/applied_forces/awh/tests/awh_setup.h"
 #include "gromacs/mdtypes/commrec.h"
 
 #include "testutils/testasserts.h"
+
+#include "awh_setup.h"
 
 namespace gmx
 {

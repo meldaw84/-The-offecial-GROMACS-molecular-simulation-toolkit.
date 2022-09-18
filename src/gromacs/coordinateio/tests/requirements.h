@@ -49,10 +49,11 @@
 #include <gtest/gtest.h>
 
 #include "gromacs/coordinateio/requirements.h"
-#include "gromacs/coordinateio/tests/coordinate_test.h"
 #include "gromacs/options/options.h"
 #include "gromacs/utility/any.h"
 #include "gromacs/utility/stringutil.h"
+
+#include "coordinate_test.h"
 
 namespace gmx
 {

@@ -55,6 +55,9 @@
 
 #include <gtest/gtest.h>
 
+#include "../lincs.h"
+#include "../shake.h"
+
 #include "gromacs/math/paddedvector.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/math/vectypes.h"
@@ -70,9 +73,6 @@
 #include "gromacs/utility/unique_cptr.h"
 
 #include "testutils/testasserts.h"
-
-#include "lincs.h"
-#include "shake.h"
 
 namespace gmx
 {

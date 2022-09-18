@@ -42,13 +42,14 @@
 
 #include "gmxpre.h"
 
-#include "frameconverters/register.h"
+#include "../frameconverters/register.h"
 
 #include <numeric>
 
-#include "gromacs/coordinateio/tests/frameconverter.h"
 #include "gromacs/fileio/trxio.h"
 #include "gromacs/trajectory/trajectoryframe.h"
+
+#include "frameconverter.h"
 
 namespace gmx
 {

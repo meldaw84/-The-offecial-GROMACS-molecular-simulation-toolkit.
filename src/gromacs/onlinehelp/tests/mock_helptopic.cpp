@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "mock_helptopic.h"
+#include "gromacs/onlinehelp/tests/mock_helptopic.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>

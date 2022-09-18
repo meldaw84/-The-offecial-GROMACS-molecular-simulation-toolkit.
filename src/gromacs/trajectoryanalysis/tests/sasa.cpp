@@ -47,7 +47,7 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/trajectoryanalysis/modules/sasa.h"
+#include "../modules/sasa.h"
 
 #include <gtest/gtest.h>
 

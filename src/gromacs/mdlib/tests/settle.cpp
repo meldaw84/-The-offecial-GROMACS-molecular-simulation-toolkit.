@@ -82,7 +82,6 @@
 #include "gromacs/hardware/device_management.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/math/vectypes.h"
-#include "gromacs/mdlib/tests/watersystem.h"
 #include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/topology/idef.h"
@@ -97,6 +96,7 @@
 
 #include "settletestdata.h"
 #include "settletestrunners.h"
+#include "watersystem.h"
 
 namespace gmx
 {

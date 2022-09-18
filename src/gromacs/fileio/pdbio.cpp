@@ -43,6 +43,7 @@
 #include <algorithm>
 #include <string>
 
+#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/math/units.h"
 #include "gromacs/math/utilities.h"
 #include "gromacs/math/vec.h"
@@ -59,8 +60,6 @@
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/snprintf.h"
 #include "gromacs/utility/stringtoenumvalueconverter.h"
-
-#include "gmxfio.h"
 
 typedef struct
 {

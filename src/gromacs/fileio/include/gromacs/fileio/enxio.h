@@ -34,9 +34,10 @@
 #ifndef GMX_FILEIO_ENXIO_H
 #define GMX_FILEIO_ENXIO_H
 
-#include "gromacs/fileio/xdr_datatype.h"
-#include "gromacs/utility/basedefinitions.h"
-#include "gromacs/utility/real.h"
+#include "../../../../../../api/legacy/include/gromacs/utility/basedefinitions.h"
+#include "../../../../../../api/legacy/include/gromacs/utility/real.h"
+
+#include "xdr_datatype.h"
 
 struct SimulationGroups;
 struct t_energy;

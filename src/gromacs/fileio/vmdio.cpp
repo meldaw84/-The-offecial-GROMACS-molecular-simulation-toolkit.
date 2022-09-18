@@ -115,8 +115,7 @@
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/smalloc.h"
-
-#include "gmxfio.h"
+#include "include/gromacs/fileio/gmxfio.h"
 
 
 typedef int (*initfunc)();

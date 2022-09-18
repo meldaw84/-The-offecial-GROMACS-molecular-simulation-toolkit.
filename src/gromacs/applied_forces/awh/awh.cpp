@@ -55,8 +55,7 @@
 #include <algorithm>
 #include <vector>
 
-#include "../../fileio/enxio.h"
-
+#include "gromacs/fileio/enxio.h"
 #include "gromacs/gmxlib/network.h"
 #include "gromacs/math/units.h"
 #include "gromacs/math/utilities.h"

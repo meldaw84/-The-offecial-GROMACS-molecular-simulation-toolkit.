@@ -45,6 +45,7 @@
 #include <regex>
 #include <string>
 
+#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/math/functions.h"
 #include "gromacs/math/utilities.h"
 #include "gromacs/utility/binaryinformation.h"
@@ -54,8 +55,6 @@
 #include "gromacs/utility/futil.h"
 #include "gromacs/utility/programcontext.h"
 #include "gromacs/utility/smalloc.h"
-
-#include "gmxfio.h"
 
 using namespace gmx;
 

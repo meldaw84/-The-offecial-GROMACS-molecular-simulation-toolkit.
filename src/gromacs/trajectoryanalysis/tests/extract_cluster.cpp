@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/trajectoryanalysis/modules/extract_cluster.h"
+#include "../modules/extract_cluster.h"
 
 #include <gtest/gtest.h>
 

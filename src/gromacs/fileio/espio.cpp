@@ -39,6 +39,7 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/topology/atoms.h"
@@ -47,8 +48,6 @@
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/smalloc.h"
-
-#include "gmxfio.h"
 
 static int get_espresso_word(FILE* fp, char word[])
 {

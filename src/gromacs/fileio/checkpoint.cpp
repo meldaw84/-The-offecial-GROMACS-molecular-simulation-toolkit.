@@ -46,6 +46,7 @@
 #include <memory>
 
 #include "gromacs/fileio/filetypes.h"
+#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/gmxfio_xdr.h"
 #include "gromacs/fileio/xdr_datatype.h"
 #include "gromacs/fileio/xdrf.h"
@@ -88,7 +89,6 @@
 #include "gromacs/utility/txtdump.h"
 
 #include "buildinfo.h"
-#include "gmxfio.h"
 
 #define CPT_MAGIC1 171817
 #define CPT_MAGIC2 171819

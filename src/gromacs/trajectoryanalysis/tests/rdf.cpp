@@ -48,7 +48,7 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/trajectoryanalysis/modules/rdf.h"
+#include "../modules/rdf.h"
 
 #include <gtest/gtest.h>
 

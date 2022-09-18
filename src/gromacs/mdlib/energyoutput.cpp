@@ -52,10 +52,10 @@
 #include <string>
 
 #include "../applied_forces/awh/read_params.h"
-#include "../fileio/enxio.h"
-#include "../fileio/gmxfio.h"
 
 #include "gromacs/applied_forces/awh/awh.h"
+#include "gromacs/fileio/enxio.h"
+#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/xvgr.h"
 #include "gromacs/gmxlib/network.h"
 #include "gromacs/listed_forces/disre.h"

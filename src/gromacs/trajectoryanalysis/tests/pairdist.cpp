@@ -50,7 +50,7 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/trajectoryanalysis/modules/pairdist.h"
+#include "../modules/pairdist.h"
 
 #include <gtest/gtest.h>
 

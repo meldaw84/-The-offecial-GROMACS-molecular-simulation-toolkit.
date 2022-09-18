@@ -39,11 +39,10 @@
 #include <cstdio>
 #include <cstring>
 
-#include "../fileio/enxio.h"
-#include "../fileio/gmxfio.h"
-
 #include "gromacs/commandline/pargs.h"
 #include "gromacs/fileio/confio.h"
+#include "gromacs/fileio/enxio.h"
+#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/tpxio.h"
 #include "gromacs/fileio/trxio.h"
 #include "gromacs/fileio/xtcio.h"

@@ -42,15 +42,17 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "gromacs/applied_forces/awh/bias.h"
-#include "gromacs/applied_forces/awh/correlationgrid.h"
-#include "gromacs/applied_forces/awh/pointstate.h"
-#include "gromacs/applied_forces/awh/tests/awh_setup.h"
+#include "../bias.h"
+#include "../correlationgrid.h"
+#include "../pointstate.h"
+
 #include "gromacs/mdtypes/awh_params.h"
 #include "gromacs/utility/stringutil.h"
 
 #include "testutils/refdata.h"
 #include "testutils/testasserts.h"
+
+#include "awh_setup.h"
 
 namespace gmx
 {

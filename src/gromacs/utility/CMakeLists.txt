@@ -52,6 +52,7 @@ target_include_directories(utility INTERFACE
 #target_link_libraries(utility PUBLIC
 target_link_libraries(utility INTERFACE
                       legacy_api
+                      compat
                       )
 if (GMX_LIB_MPI)
     target_link_libraries(utility INTERFACE MPI::MPI_CXX)

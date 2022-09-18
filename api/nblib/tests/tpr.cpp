@@ -49,10 +49,9 @@
 #include "testutils/cmdlinetest.h"
 #include "testutils/simulationdatabase.h"
 
-#include "programs/mdrun/tests/moduletest.h"
-
 #include "nblib/gmxcalculatorcpu.h"
 
+#include "moduletest.h"
 #include "testhelpers.h"
 #include "testsystems.h"
 

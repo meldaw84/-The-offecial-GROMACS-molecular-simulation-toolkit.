@@ -40,14 +40,14 @@
  */
 #include "gmxpre.h"
 
+#include "../mdrun_main.h"
+
 #include "gromacs/commandline/cmdlinehelpcontext.h"
 #include "gromacs/utility/stringstream.h"
 #include "gromacs/utility/textwriter.h"
 
 #include "testutils/cmdlinetest.h"
 #include "testutils/refdata.h"
-
-#include "programs/mdrun/mdrun_main.h"
 
 namespace gmx
 {

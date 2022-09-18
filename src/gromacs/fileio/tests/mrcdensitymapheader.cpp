@@ -41,7 +41,7 @@
 
 #include "gmxpre.h"
 
-#include "gromacs/fileio/mrcdensitymapheader.h"
+#include "../mrcdensitymapheader.h"
 
 #include <array>
 #include <vector>

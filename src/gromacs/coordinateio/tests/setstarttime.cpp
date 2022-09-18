@@ -47,9 +47,10 @@
 
 #include <memory>
 
-#include "gromacs/coordinateio/tests/coordinate_test.h"
 #include "gromacs/fileio/trxio.h"
 #include "gromacs/trajectory/trajectoryframe.h"
+
+#include "coordinate_test.h"
 
 namespace gmx
 {

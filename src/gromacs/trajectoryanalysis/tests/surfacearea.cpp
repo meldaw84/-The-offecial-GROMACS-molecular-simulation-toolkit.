@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "modules/surfacearea.h"
+#include "../modules/surfacearea.h"
 
 #include <cstdlib>
 

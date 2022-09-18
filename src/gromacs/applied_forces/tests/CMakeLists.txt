@@ -42,8 +42,7 @@ target_link_libraries(
     math
     mdlib
     mdtypes
-    # Todo: once libgromacs no longer exists
-    #options
+    options
     testutils
     utility
 )

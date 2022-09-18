@@ -48,6 +48,8 @@
 
 #include <utility>
 
+#include "../mdrun_main.h"
+
 #include "gromacs/gmxana/gmx_ana.h"
 #include "gromacs/gmxpreprocess/grompp.h"
 #include "gromacs/hardware/detecthardware.h"
@@ -65,8 +67,6 @@
 #include "testutils/mpitest.h"
 #include "testutils/testfilemanager.h"
 #include "testutils/testoptions.h"
-
-#include "programs/mdrun/mdrun_main.h"
 
 namespace gmx
 {

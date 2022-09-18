@@ -46,6 +46,7 @@
 #include "../applied_forces/awh/read_params.h"
 
 #include "gromacs/fileio/filetypes.h"
+#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/gmxfio_xdr.h"
 #include "gromacs/fileio/tpxio.h"
 #include "gromacs/math/units.h"
@@ -78,8 +79,6 @@
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/snprintf.h"
 #include "gromacs/utility/txtdump.h"
-
-#include "gmxfio.h"
 
 #define TPX_TAG_RELEASE "release"
 

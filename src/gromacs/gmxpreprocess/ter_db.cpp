@@ -44,8 +44,7 @@
 #include <string>
 #include <vector>
 
-#include "../fileio/gmxfio.h"
-
+#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/gmxpreprocess/grompp_impl.h"
 #include "gromacs/gmxpreprocess/notset.h"
 #include "gromacs/utility/cstringutil.h"

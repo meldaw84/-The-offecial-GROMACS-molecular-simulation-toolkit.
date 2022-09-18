@@ -50,7 +50,6 @@
 
 #include "gromacs/gpu_utils/gpu_utils.h"
 #include "gromacs/hardware/device_management.h"
-#include "gromacs/math/tests/testarrayrefs.h"
 #include "gromacs/math/vectypes.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/real.h"
@@ -58,6 +57,7 @@
 #include "testutils/test_hardware_environment.h"
 
 #include "devicetransfers.h"
+#include "testarrayrefs.h"
 
 namespace gmx
 {

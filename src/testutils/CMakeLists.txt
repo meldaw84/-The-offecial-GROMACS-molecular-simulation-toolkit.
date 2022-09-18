@@ -122,6 +122,12 @@ target_link_libraries(testutils PUBLIC common)
 # Note that testutils conveys transitive dependencies on some modules.
 target_link_libraries(testutils PUBLIC utility)
 # Source files have the following private module dependencies.
-target_link_libraries(testutils PRIVATE topology)
+target_link_libraries(
+    testutils PRIVATE
+    commandline
+    gmxpreprocess
+    gpu_utils
+    hardware
+    topology)
 
 add_subdirectory(tests)

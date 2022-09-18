@@ -45,8 +45,7 @@
 
 #include <cstdio>
 
-#include "../../../../fileio/enxio.h"
-
+#include "gromacs/fileio/enxio.h"
 #include "gromacs/trajectory/energyframe.h"
 #include "gromacs/utility/basedefinitions.h"
 

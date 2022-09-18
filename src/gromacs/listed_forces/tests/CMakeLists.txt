@@ -38,6 +38,10 @@ gmx_add_unit_test(ListedForcesTest listed_forces-test
         position_restraints.cpp
         )
 target_link_libraries(listed_forces-test PRIVATE
-        math
-        pbcutil
-        )
+                      gmxlib
+                      listed_forces
+                      math
+                      mdtypes
+                      pbcutil
+                      tables
+                      )

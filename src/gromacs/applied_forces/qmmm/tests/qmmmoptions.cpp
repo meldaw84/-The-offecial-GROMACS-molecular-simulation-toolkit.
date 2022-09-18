@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/applied_forces/qmmm/qmmmoptions.h"
+#include "../qmmmoptions.h"
 
 #include <string>
 #include <vector>

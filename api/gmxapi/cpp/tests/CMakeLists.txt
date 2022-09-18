@@ -49,6 +49,16 @@
 
 add_library(gmxapi-testsupport INTERFACE)
 target_include_directories(gmxapi-testsupport INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(
+    gmxapi-testsupport INTERFACE
+    gmxpreprocess
+    math
+    mdlib
+    mdtypes
+    mdrun_test_infrastructure
+    testutils
+    utility
+)
 
 # TODO: Test tMPI build in a MPI-enabled client context.
 gmx_add_gtest_executable(gmxapi-test

@@ -48,6 +48,9 @@
 
 #include <gtest/gtest.h>
 
+#include "../cubicsplinetable.h"
+#include "../quadraticsplinetable.h"
+
 #include "gromacs/math/units.h"
 #include "gromacs/math/utilities.h"
 #include "gromacs/options/basicoptions.h"
@@ -56,9 +59,6 @@
 
 #include "testutils/testasserts.h"
 #include "testutils/testoptions.h"
-
-#include "cubicsplinetable.h"
-#include "quadraticsplinetable.h"
 
 
 namespace gmx

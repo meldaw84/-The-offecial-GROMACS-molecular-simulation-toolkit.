@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/trajectoryanalysis/modules/msd.h"
+#include "../modules/msd.h"
 
 #include <gtest/gtest.h>
 

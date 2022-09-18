@@ -33,7 +33,7 @@
  */
 #include "gmxpre.h"
 
-#include "gmxfio.h"
+#include "gromacs/fileio/gmxfio.h"
 
 #include "config.h"
 

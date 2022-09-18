@@ -39,7 +39,8 @@
 #include <memory>
 #include <vector>
 
-#include "gromacs/applied_forces/awh/bias.h"
+#include "../bias.h"
+
 #include "gromacs/mdtypes/awh_params.h"
 
 namespace gmx

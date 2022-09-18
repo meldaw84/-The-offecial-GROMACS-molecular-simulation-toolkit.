@@ -40,4 +40,8 @@ gmx_add_unit_test(SelectionUnitTests selection-test
         selectionoption.cpp
         toputils.cpp
         )
-target_link_libraries(selection-test PRIVATE topology)
+target_link_libraries(selection-test PRIVATE
+                      options
+                      random
+                      selection
+                      topology)

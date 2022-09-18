@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/trajectoryanalysis/modules/angle.h"
+#include "../modules/angle.h"
 
 #include <gtest/gtest.h>
 

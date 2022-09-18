@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/applied_forces/qmmm/qmmmtopologypreprocessor.h"
+#include "../qmmmtopologypreprocessor.h"
 
 #include <vector>
 

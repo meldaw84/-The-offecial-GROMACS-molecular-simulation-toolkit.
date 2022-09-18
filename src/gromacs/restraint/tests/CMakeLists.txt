@@ -35,3 +35,7 @@ gmx_add_unit_test(RestraintTests restraintpotential-test
     CPP_SOURCE_FILES
         manager.cpp
         )
+if (TARGET restraintpotential-test)
+    target_link_libraries(restraintpotential-test PRIVATE
+                          restraint)
+endif ()

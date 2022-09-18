@@ -44,6 +44,7 @@
 #include "gromacs/fileio/checkpoint.h"
 #include "gromacs/fileio/confio.h"
 #include "gromacs/fileio/filetypes.h"
+#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/gmxfio_xdr.h"
 #include "gromacs/fileio/groio.h"
 #include "gromacs/fileio/oenv.h"
@@ -66,7 +67,6 @@
 #include "gromacs/utility/smalloc.h"
 
 #include "g96io.h"
-#include "gmxfio.h"
 
 #if GMX_USE_PLUGINS
 #    include "gromacs/fileio/vmdio.h"

@@ -42,15 +42,14 @@
 #ifndef GMX_ANALYSISDATA_TESTS_DATATEST_H
 #define GMX_ANALYSISDATA_TESTS_DATATEST_H
 
-#include <vector>
+#include "../../../../../../../../../../../../Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/vector"
+#include "../../../../../../external/googletest/googletest/include/gtest/gtest.h"
 
-#include <gtest/gtest.h>
+#include "../../../../../../../api/legacy/include/gromacs/analysisdata/dataframe.h"
+#include "../../../../../../../api/legacy/include/gromacs/utility/gmxassert.h"
+#include "../../../../../../../api/legacy/include/gromacs/utility/real.h"
 
-#include "gromacs/analysisdata/dataframe.h"
-#include "gromacs/utility/gmxassert.h"
-#include "gromacs/utility/real.h"
-
-#include "testutils/refdata.h"
+#include "../../../../../../testutils/include/testutils/refdata.h"
 
 // currently the bug manifests itself only in AbstractAnalysisData testing
 #if defined __PATHSCALE__

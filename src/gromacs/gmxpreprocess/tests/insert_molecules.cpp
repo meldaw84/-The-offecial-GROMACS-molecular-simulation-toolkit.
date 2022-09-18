@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "insert_molecules.h"
+#include "gromacs/gmxpreprocess/insert_molecules.h"
 
 #include "testutils/cmdlinetest.h"
 #include "testutils/refdata.h"

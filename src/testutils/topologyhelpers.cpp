@@ -40,7 +40,7 @@
 
 #include "gmxpre.h"
 
-#include "topologyhelpers.h"
+#include "testutils/topologyhelpers.h"
 
 #include "gromacs/topology/mtop_util.h"
 #include "gromacs/topology/topology.h"

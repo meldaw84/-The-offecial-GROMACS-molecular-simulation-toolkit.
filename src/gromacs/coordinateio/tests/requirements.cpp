@@ -42,7 +42,9 @@
 
 #include "gmxpre.h"
 
-#include "gromacs/coordinateio/requirements.h"
+#include "requirements.h"
+
+#include <gtest/gtest.h>
 
 namespace gmx
 {

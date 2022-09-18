@@ -37,10 +37,9 @@
 
 #include <cmath>
 
-#include "../fileio/enxio.h"
-
 #include "gromacs/commandline/cmdlineoptionsmodule.h"
 #include "gromacs/fileio/checkpoint.h"
+#include "gromacs/fileio/enxio.h"
 #include "gromacs/fileio/tpxio.h"
 #include "gromacs/fileio/trrio.h"
 #include "gromacs/math/vec.h"

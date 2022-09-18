@@ -40,8 +40,9 @@
  */
 #include "gmxpre.h"
 
+#include "../kernel_common.h"
+
 #include "gromacs/mdtypes/md_enums.h"
-#include "gromacs/nbnxm/kernel_common.h"
 #include "gromacs/nbnxm/nbnxm.h"
 
 #include "testutils/testasserts.h"

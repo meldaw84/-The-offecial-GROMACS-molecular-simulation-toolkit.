@@ -40,19 +40,20 @@
  */
 #include "gmxpre.h"
 
-#include "datatest.h"
+#include "gromacs/analysisdata/tests/datatest.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "gromacs/analysisdata/analysisdata.h"
 #include "gromacs/analysisdata/paralleloptions.h"
-#include "gromacs/analysisdata/tests/mock_datamodule.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/stringutil.h"
 
 #include "testutils/refdata.h"
 #include "testutils/testasserts.h"
+
+#include "mock_datamodule.h"
 
 namespace gmx
 {

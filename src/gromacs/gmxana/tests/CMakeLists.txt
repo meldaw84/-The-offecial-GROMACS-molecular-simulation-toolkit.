@@ -40,3 +40,9 @@ gmx_add_gtest_executable(${exename}
         gmx_traj.cpp
         )
 gmx_register_gtest_test(GmxAnaTest ${exename} INTEGRATION_TEST IGNORE_LEAKS)
+target_link_libraries(
+    ${exename} PRIVATE
+    gmxana
+    testutils
+    utility
+)

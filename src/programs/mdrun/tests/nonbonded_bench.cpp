@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "programs/mdrun/nonbonded_bench.h"
+#include "../nonbonded_bench.h"
 
 #include "gromacs/utility/stringutil.h"
 #include "gromacs/utility/textreader.h"

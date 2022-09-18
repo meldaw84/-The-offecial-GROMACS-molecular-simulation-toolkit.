@@ -36,9 +36,8 @@
 #include <cmath>
 #include <cstring>
 
-#include "../fileio/enxio.h"
-
 #include "gromacs/commandline/pargs.h"
+#include "gromacs/fileio/enxio.h"
 #include "gromacs/fileio/matio.h"
 #include "gromacs/fileio/trxio.h"
 #include "gromacs/fileio/xvgr.h"

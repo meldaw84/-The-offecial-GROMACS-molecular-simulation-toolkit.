@@ -54,8 +54,6 @@
 #include <memory>
 #include <optional>
 
-#include "../fileio/gmxfio.h"
-
 #include "gromacs/commandline/filenm.h"
 #include "gromacs/domdec/builder.h"
 #include "gromacs/domdec/domdec.h"
@@ -71,6 +69,7 @@
 #include "gromacs/ewald/pme_only.h"
 #include "gromacs/ewald/pme_pp_comm_gpu.h"
 #include "gromacs/fileio/checkpoint.h"
+#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/oenv.h"
 #include "gromacs/fileio/tpxio.h"
 #include "gromacs/gmxlib/network.h"

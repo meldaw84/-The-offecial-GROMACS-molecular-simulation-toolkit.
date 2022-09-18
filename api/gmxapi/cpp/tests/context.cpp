@@ -40,6 +40,8 @@
 
 #include "gmxapi/context.h"
 
+#include <gtest/gtest.h>
+
 #include "gromacs/utility/gmxmpi.h"
 
 #include "gmxapi/mpi/gmxapi_mpi.h"

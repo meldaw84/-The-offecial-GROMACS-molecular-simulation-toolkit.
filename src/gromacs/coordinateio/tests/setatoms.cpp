@@ -47,12 +47,13 @@
 
 #include <utility>
 
-#include "gromacs/coordinateio/tests/coordinate_test.h"
 #include "gromacs/fileio/trxio.h"
 #include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/trajectoryanalysis/topologyinformation.h"
 
 #include "testutils/testfilemanager.h"
+
+#include "coordinate_test.h"
 
 namespace gmx
 {

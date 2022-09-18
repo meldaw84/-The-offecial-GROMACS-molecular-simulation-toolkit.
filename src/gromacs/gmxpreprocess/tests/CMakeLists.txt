@@ -47,10 +47,12 @@ gmx_add_gtest_executable(gmxpreprocess-test
         topdirs.cpp
         )
 gmx_register_gtest_test(GmxPreprocessTests gmxpreprocess-test SLOW_TEST)
-target_link_libraries(gmxpreprocess-test PRIVATE
-        gmxpreprocess
-        topology
-        )
+target_link_libraries(
+    gmxpreprocess-test PRIVATE
+    gmxpreprocess
+    mdrun
+    topology
+)
 
 # Currently these can be slow to run in CI, so they are in
 # several test binaries.
@@ -61,6 +63,9 @@ gmx_add_gtest_executable(${exename}
        pdb2gmx.cpp
        )
 target_compile_definitions(${exename} PRIVATE OPLSAA=1 GROMOS=0 AMBER=0 CHARMM=0)
+target_link_libraries(${exename} PRIVATE
+                      gmxpreprocess
+                      )
 gmx_register_gtest_test(Pdb2gmx1Test ${exename} SLOW_TEST)
 
 set(exename pdb2gmx2-test)
@@ -69,6 +74,9 @@ gmx_add_gtest_executable(${exename}
         pdb2gmx.cpp
         )
 target_compile_definitions(${exename} PRIVATE OPLSAA=0 GROMOS=1 AMBER=0 CHARMM=0)
+target_link_libraries(${exename} PRIVATE
+                      gmxpreprocess
+                      )
 gmx_register_gtest_test(Pdb2gmx2Test ${exename} SLOW_TEST)
 
 set(exename pdb2gmx3-test)
@@ -77,4 +85,7 @@ gmx_add_gtest_executable(${exename}
         pdb2gmx.cpp
         )
 target_compile_definitions(${exename} PRIVATE OPLSAA=0 GROMOS=0 AMBER=1 CHARMM=1)
+target_link_libraries(${exename} PRIVATE
+                      gmxpreprocess
+                      )
 gmx_register_gtest_test(Pdb2gmx3Test ${exename} SLOW_TEST)

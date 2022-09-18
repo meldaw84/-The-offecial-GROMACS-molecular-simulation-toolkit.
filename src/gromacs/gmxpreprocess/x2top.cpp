@@ -38,10 +38,9 @@
 #include <cmath>
 #include <cstring>
 
-#include "../fileio/gmxfio.h"
-
 #include "gromacs/commandline/pargs.h"
 #include "gromacs/fileio/confio.h"
+#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/gmxpreprocess/grompp_impl.h"
 #include "gromacs/gmxpreprocess/notset.h"
 #include "gromacs/listed_forces/bonded.h"

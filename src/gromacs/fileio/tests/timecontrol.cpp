@@ -48,7 +48,7 @@
 
 #include <gtest/gtest.h>
 
-#include "testutils/include/testutils/testasserts.h"
+#include "testutils/testasserts.h"
 
 TEST(TimeControlTest, UnSetHasNoValue)
 {

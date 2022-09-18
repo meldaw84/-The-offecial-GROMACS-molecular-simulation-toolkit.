@@ -53,9 +53,9 @@
 
 #include <memory>
 
-#include "../../gromacs/fileio/gmxfio.h"
 #include "gromacs/commandline/pargs.h"
 #include "gromacs/domdec/options.h"
+#include "gromacs/fileio/gmxfio.h"
 #include "gromacs/hardware/detecthardware.h"
 #include "gromacs/mdrun/legacymdrunoptions.h"
 #include "gromacs/mdrun/runner.h"

@@ -46,14 +46,12 @@
 #ifndef GMX_UTILITY_TESTS_ALIGNEDALLOCATOR_IMPL_H
 #define GMX_UTILITY_TESTS_ALIGNEDALLOCATOR_IMPL_H
 
-#include <cstddef>
+#include "../../../../../../../../../../../../Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/cstddef"
+#include "../../../../../../../../../../../../Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.3.sdk/usr/include/c++/v1/vector"
+#include "../../../../../../external/googletest/googletest/include/gtest/gtest.h"
 
-#include <vector>
-
-#include <gtest/gtest.h>
-
-#include "gromacs/math/vectypes.h"
-#include "gromacs/utility/real.h"
+#include "../../../../../../../api/legacy/include/gromacs/math/vectypes.h"
+#include "../../../../../../../api/legacy/include/gromacs/utility/real.h"
 
 namespace gmx
 {

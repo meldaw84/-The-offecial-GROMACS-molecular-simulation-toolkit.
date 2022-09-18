@@ -42,7 +42,7 @@
  */
 #include "gmxpre.h"
 
-#include "gromacs/trajectoryanalysis/modules/dssp.h"
+#include "../modules/dssp.h"
 
 #include <gtest/gtest-param-test.h>
 #include <gtest/gtest.h>

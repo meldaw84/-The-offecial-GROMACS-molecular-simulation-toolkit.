@@ -42,3 +42,7 @@ gmx_add_unit_test(OptionsUnitTests options-test
         timeunitmanager.cpp
         treesupport.cpp
         )
+if (TARGET options-test)
+    target_link_libraries(options-test PRIVATE
+                          options)
+endif ()
