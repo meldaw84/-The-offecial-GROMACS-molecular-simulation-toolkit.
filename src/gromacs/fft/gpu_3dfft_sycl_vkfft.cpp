@@ -184,7 +184,7 @@ Gpu3dFft::ImplSyclVkfft::Impl::Impl(bool allocateGrids,
     configuration_.inputBufferStride[1] = realGridSizePadded[ZZ] * realGridSizePadded[YY];
     configuration_.inputBufferStride[2] =
             realGridSizePadded[ZZ] * realGridSizePadded[YY] * realGridSizePadded[XX];
-    queue_.submit([&](sycl::handler& cgh) {
+    queue_.submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
               cgh.hipSYCL_enqueue_custom_operation([=](sycl::interop_handle& gmx_unused h) {
                   VkFFTResult result = initializeVkFFT(&application_, configuration_);
                   handleFftError(result, "Initializing VkFFT");
@@ -236,7 +236,7 @@ Gpu3dFft::ImplSyclVkfft::~ImplSyclVkfft()
 
 void Gpu3dFft::ImplSyclVkfft::perform3dFft(gmx_fft_direction dir, CommandEvent* /*timingEvent*/)
 {
-    impl_->queue_.submit([&](sycl::handler& cgh) {
+    impl_->queue_.submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
         cgh.hipSYCL_enqueue_custom_operation([=](sycl::interop_handle& h) {
             void* d_complexGrid = reinterpret_cast<void*>(complexGrid_.buffer_->ptr_);
             void* d_realGrid    = reinterpret_cast<void*>(impl_->realGrid_.buffer_->ptr_);

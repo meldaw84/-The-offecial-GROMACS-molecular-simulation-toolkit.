@@ -335,7 +335,7 @@ void copyToDeviceBuffer(DeviceBuffer<ValueType>* buffer,
     }
 
     sycl::event ev;
-    ev = deviceStream.stream().submit([&](sycl::handler& cgh) {
+    ev = deviceStream.stream().submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
         cgh.memcpy(buffer->buffer_->ptr_ + startingOffset, hostBuffer, numValues * sizeof(ValueType));
     });
     if (transferKind == GpuApiCallBehavior::Sync)
@@ -387,7 +387,7 @@ void copyFromDeviceBuffer(ValueType*               hostBuffer,
     }
 
     sycl::event ev;
-    ev = deviceStream.stream().submit([&](sycl::handler& cgh) {
+    ev = deviceStream.stream().submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
         cgh.memcpy(hostBuffer, buffer->buffer_->ptr_ + startingOffset, numValues * sizeof(ValueType));
     });
     if (transferKind == GpuApiCallBehavior::Sync)

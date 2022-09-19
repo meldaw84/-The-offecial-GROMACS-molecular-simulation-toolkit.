@@ -434,7 +434,7 @@ void PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, subGroupSiz
 
     sycl::queue q = deviceStream.stream();
 
-    q.submit([&](sycl::handler& cgh) {
+    sycl::event e = q.submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
         auto kernel = makeSolveKernel<gridOrdering, computeEnergyAndVirial, subGroupSize>(
                 cgh,
                 gridParams_->d_splineModuli[gridIndex],

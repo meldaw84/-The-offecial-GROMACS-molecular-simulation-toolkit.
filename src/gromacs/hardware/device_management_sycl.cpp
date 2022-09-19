@@ -303,7 +303,7 @@ static bool isDeviceFunctional(const sycl::device& syclDevice, std::string* erro
     {
         sycl::queue          queue(syclDevice);
         sycl::buffer<int, 1> buffer(numThreads);
-        queue.submit([&](sycl::handler& cgh) {
+        queue.submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
                  auto           d_buffer = buffer.get_access(cgh, sycl::write_only, sycl::no_init);
                  sycl::range<1> range{ numThreads };
                  cgh.parallel_for<DummyKernel>(

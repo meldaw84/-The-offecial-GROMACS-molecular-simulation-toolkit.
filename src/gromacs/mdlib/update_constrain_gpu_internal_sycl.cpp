@@ -78,7 +78,7 @@ void launchScaleCoordinatesKernel(const int            numAtoms,
     const sycl::range<1> rangeAllAtoms(numAtoms);
     sycl::queue          queue = deviceStream.stream();
 
-    sycl::event e = queue.submit([&](sycl::handler& cgh) {
+    sycl::event e = queue.submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
         auto kernel = scaleKernel(cgh, d_coordinates, mu);
         cgh.parallel_for<ScaleKernel>(rangeAllAtoms, kernel);
     });

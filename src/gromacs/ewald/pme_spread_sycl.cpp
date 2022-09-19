@@ -399,7 +399,8 @@ void PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY
 
     sycl::queue q = deviceStream.stream();
 
-    q.submit([&](sycl::handler& cgh) {
+
+    sycl::event e = q.submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
         auto kernel =
                 pmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, numGrids, writeGlobal, threadsPerAtom, subGroupSize>(
                         cgh,
