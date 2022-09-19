@@ -45,28 +45,33 @@
 #include "gromacs/gpu_utils/device_context.h"
 #include "gromacs/gpu_utils/device_stream.h"
 
-static sycl::property_list makeQueuePropertyList(bool inOrder, bool enableProfiling)
+static sycl::property_list makeQueuePropertyList(bool inOrder, bool enableProfiling, DeviceStreamPriority priority)
 {
+    int prioirtyLevel = 0;
+    if (priority == DeviceStreamPriority::High){
+        prioirtyLevel = 10;
+    }
+
     if (enableProfiling && inOrder)
     {
-        return { sycl::property::queue::in_order(), sycl::property::queue::enable_profiling() };
+        return { sycl::property::queue::hipSYCL_priority{prioirtyLevel}, sycl::property::queue::in_order(), sycl::property::queue::enable_profiling() };
     }
     else if (enableProfiling && !inOrder)
     {
-        return { sycl::property::queue::enable_profiling() };
+        return { sycl::property::queue::hipSYCL_priority{prioirtyLevel}, sycl::property::queue::enable_profiling() };
     }
     else if (!enableProfiling && inOrder)
     {
-        return { sycl::property::queue::in_order() };
+        return { sycl::property::queue::hipSYCL_priority{prioirtyLevel}, sycl::property::queue::in_order() };
     }
     else
     {
-        return {};
+        return { sycl::property::queue::hipSYCL_priority{prioirtyLevel}, };
     }
 }
 
 DeviceStream::DeviceStream(const DeviceContext& deviceContext,
-                           DeviceStreamPriority /* priority */,
+                           DeviceStreamPriority priority,
                            const bool useTiming)
 {
     const std::vector<sycl::device> devicesInContext = deviceContext.context().get_devices();
@@ -80,7 +85,7 @@ DeviceStream::DeviceStream(const DeviceContext& deviceContext,
         enableProfiling                 = deviceSupportsTiming;
     }
     const bool inOrder = (GMX_SYCL_USE_USM != 0);
-    stream_ = sycl::queue(deviceContext.context(), device, makeQueuePropertyList(inOrder, enableProfiling));
+    stream_ = sycl::queue(deviceContext.context(), device, makeQueuePropertyList(inOrder, enableProfiling, priority));
 }
 
 DeviceStream::~DeviceStream()
