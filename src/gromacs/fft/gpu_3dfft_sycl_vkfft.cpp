@@ -114,7 +114,7 @@ Gpu3dFft::ImplSyclVkfft::ImplSyclVkfft(bool allocateGrids,
     configuration.inputBufferStride[1] = realGridSizePadded[ZZ] * realGridSizePadded[YY];
     configuration.inputBufferStride[2] =
             realGridSizePadded[ZZ] * realGridSizePadded[YY] * realGridSizePadded[XX];
-    queue_.submit([&](sycl::handler& cgh) {
+    queue_.submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
               cgh.hipSYCL_enqueue_custom_operation([=](sycl::interop_handle& gmx_unused h) {
                   VkFFTResult resFFT = initializeVkFFT(&appR2C, configuration);
                   if (resFFT != VKFFT_SUCCESS)
@@ -135,7 +135,7 @@ void Gpu3dFft::ImplSyclVkfft::perform3dFft(gmx_fft_direction dir, CommandEvent* 
     sycl::buffer<float, 1> complexGidBuffer = *complexGrid_.buffer_.get();
     sycl::buffer<float, 1> realGridBuffer   = *realGrid_.buffer_.get();
 #endif
-    queue_.submit([&](sycl::handler& cgh) {
+    queue_.submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
 #if !GMX_SYCL_USE_USM
         auto complexGridAccessor = complexGidBuffer.get_access(cgh, sycl::read_write);
         auto realGridAccessor    = realGridBuffer.get_access(cgh, sycl::read_write);

@@ -49,19 +49,19 @@ static sycl::property_list makeQueuePropertyList(bool inOrder, bool enableProfil
 {
     if (enableProfiling && inOrder)
     {
-        return { sycl::property::queue::in_order(), sycl::property::queue::enable_profiling() };
+        return { sycl::property::queue::hipSYCL_coarse_grained_events{},  sycl::property::queue::in_order(), sycl::property::queue::enable_profiling() };
     }
     else if (enableProfiling && !inOrder)
     {
-        return { sycl::property::queue::enable_profiling() };
+        return { sycl::property::queue::hipSYCL_coarse_grained_events{},  sycl::property::queue::enable_profiling() };
     }
     else if (!enableProfiling && inOrder)
     {
-        return { sycl::property::queue::in_order() };
+        return { sycl::property::queue::hipSYCL_coarse_grained_events{},  sycl::property::queue::in_order() };
     }
     else
     {
-        return {};
+        return {sycl::property::queue::hipSYCL_coarse_grained_events{}  };
     }
 }
 
