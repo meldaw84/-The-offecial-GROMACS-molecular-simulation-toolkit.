@@ -54,11 +54,11 @@ elseif(GMX_GPU_CUDA)
     target_sources(hardware PRIVATE
             device_management.cu
         )
-    _gmx_add_files_to_property(CUDA_SOURCES
-        # Must add these files so they can include device_information.h
+    set_source_files_properties(
+	# Must add these files so they can include device_information.h
         device_management_common.cpp
         detecthardware.cpp
-	)
+	PROPERTIES LANGUAGE CUDA)
     target_link_libraries(hardware PRIVATE CUDA::cudart)
 elseif(GMX_GPU_SYCL)
     target_sources(hardware PRIVATE
