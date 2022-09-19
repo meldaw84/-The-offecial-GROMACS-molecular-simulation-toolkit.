@@ -243,21 +243,28 @@ static DeviceStatus isDeviceCompatible(const sycl::device& syclDevice)
         return DeviceStatus::Incompatible;
     }
 
-    const std::vector<size_t> supportedSubGroupSizes =
-            syclDevice.get_info<sycl::info::device::sub_group_sizes>();
+    try
+    {
+        const std::vector<size_t> supportedSubGroupSizes =
+                syclDevice.get_info<sycl::info::device::sub_group_sizes>();
 
-    // Ensure any changes stay in sync with subGroupSize in src/gromacs/nbnxm/sycl/nbnxm_sycl_kernel.cpp
-    constexpr size_t requiredSubGroupSizeForNbnxm =
+        // Ensure any changes stay in sync with subGroupSize in src/gromacs/nbnxm/sycl/nbnxm_sycl_kernel.cpp
+        constexpr size_t requiredSubGroupSizeForNbnxm =
 #if defined(HIPSYCL_PLATFORM_ROCM)
-            GMX_GPU_NB_CLUSTER_SIZE * GMX_GPU_NB_CLUSTER_SIZE;
+                GMX_GPU_NB_CLUSTER_SIZE * GMX_GPU_NB_CLUSTER_SIZE;
 #else
-            GMX_GPU_NB_CLUSTER_SIZE * GMX_GPU_NB_CLUSTER_SIZE / 2;
+                GMX_GPU_NB_CLUSTER_SIZE * GMX_GPU_NB_CLUSTER_SIZE / 2;
 #endif
 
-    if (std::find(supportedSubGroupSizes.begin(), supportedSubGroupSizes.end(), requiredSubGroupSizeForNbnxm)
-        == supportedSubGroupSizes.end())
+        if (std::find(supportedSubGroupSizes.begin(), supportedSubGroupSizes.end(), requiredSubGroupSizeForNbnxm)
+            == supportedSubGroupSizes.end())
+        {
+            return DeviceStatus::IncompatibleClusterSize;
+        }
+    }
+    catch (sycl::exception) // Device don't support querying sub-group size, e.g. https://github.com/intel/llvm/issues/5825
     {
-        return DeviceStatus::IncompatibleClusterSize;
+        return DeviceStatus::Incompatible;
     }
 
     /* Host device can not be used, because NBNXM requires sub-groups, which are not supported.

@@ -876,7 +876,8 @@ static auto nbnxmKernel(sycl::handler&                                          
             (props.elecEwald || props.elecRF || props.vdwEwald || (props.elecCutoff && doCalcEnergies));
 
 
-    return [=](sycl::nd_item<3> itemIdx) [[intel::reqd_sub_group_size(subGroupSize)]]
+    return [=](sycl::nd_item<3> itemIdx) __attribute__((always_inline, flatten))
+    [[intel::reqd_sub_group_size(subGroupSize), intel::kernel_args_restrict]]
     {
         // Skip compiling for CPU. Makes compiling this file ~10% faster for oneAPI/CUDA or
         // hipSYCL/CUDA. For DPC++, any non-CPU targets must be explicitly allowed in the #if below.

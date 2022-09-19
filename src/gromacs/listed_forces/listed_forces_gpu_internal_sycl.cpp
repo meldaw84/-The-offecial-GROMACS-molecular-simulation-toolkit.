@@ -829,7 +829,9 @@ auto bondedKernel(sycl::handler&                                        cgh,
 
     const PbcAiuc pbcAiuc = kernelParams.pbcAiuc;
 
-    return [=](sycl::nd_item<1> itemIdx) {
+    return [=](sycl::nd_item<1> itemIdx) __attribute__((always_inline, flatten))
+    [[intel::kernel_args_restrict]]
+    {
         sycl::global_ptr<const t_iparams> gm_forceParams = a_forceParams.get_pointer();
         sycl::global_ptr<const Float4>    gm_xq          = a_xq.get_pointer();
         sycl::global_ptr<Float3>          gm_f           = a_f.get_pointer();
