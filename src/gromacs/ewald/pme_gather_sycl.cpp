@@ -662,7 +662,7 @@ sycl::event PmeGatherKernel<order, wrapX, wrapY, numGrids, readGlobal, threadsPe
 
     sycl::queue q = deviceStream.stream();
 
-    sycl::event e = q.submit([&](sycl::handler& cgh) {
+    sycl::event e = q.submit(sycl::property::command_group::hipSYCL_coarse_grained_events{}, [&](sycl::handler& cgh) {
         auto kernel = pmeGatherKernel<order, wrapX, wrapY, numGrids, readGlobal, threadsPerAtom, subGroupSize>(
                 cgh,
                 atomParams_->nAtoms,

@@ -478,7 +478,7 @@ static sycl::event launchLincsKernel(const DeviceStream& deviceStream,
     const sycl::nd_range<1> rangeAllLincs(numConstraintsThreads, c_threadsPerBlock);
     sycl::queue             q = deviceStream.stream();
 
-    sycl::event e = q.submit([&](sycl::handler& cgh) {
+    sycl::event e = q.submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
         auto kernel = lincsKernel<updateVelocities, computeVirial, haveCoupledConstraints>(
                 cgh, numConstraintsThreads, std::forward<Args>(args)...);
         cgh.parallel_for<kernelNameType>(rangeAllLincs, kernel);

@@ -69,14 +69,14 @@ void doDeviceTransfers(const DeviceContext&     deviceContext,
         sycl::buffer<char> syclBuffer(sycl::range<1>(input.size()), syclBufferProperties);
 
         syclQueue
-                .submit([&](sycl::handler& cgh) {
+                .submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
                     auto accessor = syclBuffer.get_access(cgh, sycl::write_only, sycl::no_init);
                     cgh.copy(input.data(), accessor);
                 })
                 .wait_and_throw();
 
         syclQueue
-                .submit([&](sycl::handler& cgh) {
+                .submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
                     auto accessor = syclBuffer.get_access(cgh, sycl::read_only);
                     cgh.copy(accessor, output.data());
                 })

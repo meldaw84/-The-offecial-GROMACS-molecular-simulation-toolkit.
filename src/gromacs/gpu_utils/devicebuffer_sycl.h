@@ -415,13 +415,13 @@ void copyToDeviceBuffer(DeviceBuffer<ValueType>* buffer,
 
     sycl::event ev;
 #if GMX_SYCL_USE_USM
-    ev = deviceStream.stream().submit([&](sycl::handler& cgh) {
+    ev = deviceStream.stream().submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
         cgh.memcpy(buffer->buffer_->ptr_ + startingOffset, hostBuffer, numValues * sizeof(ValueType));
     });
 #else
     sycl::buffer<ValueType>& syclBuffer = *buffer->buffer_;
 
-    ev                                  = deviceStream.stream().submit([&](sycl::handler& cgh) {
+    ev                                  = deviceStream.stream().submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
         /* Here and elsewhere in this file, accessor constructor is user instead of a more common
          * buffer::get_access, since the compiler (icpx 2021.1-beta09) occasionally gets confused
          * by all the overloads */
@@ -481,13 +481,13 @@ void copyFromDeviceBuffer(ValueType*               hostBuffer,
 
     sycl::event ev;
 #if GMX_SYCL_USE_USM
-    ev = deviceStream.stream().submit([&](sycl::handler& cgh) {
+    ev = deviceStream.stream().submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
         cgh.memcpy(hostBuffer, buffer->buffer_->ptr_ + startingOffset, numValues * sizeof(ValueType));
     });
 #else
     sycl::buffer<ValueType>& syclBuffer = *buffer->buffer_;
 
-    ev = deviceStream.stream().submit([&](sycl::handler& cgh) {
+    ev = deviceStream.stream().submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
         const auto d_bufferAccessor = sycl::accessor<ValueType, 1, sycl::access_mode::read>{
             syclBuffer, cgh, sycl::range(numValues), sycl::id(startingOffset)
         };
@@ -536,7 +536,7 @@ sycl::event fillSyclBufferWithNull(sycl::buffer<ValueType, 1>& buffer,
     const sycl::id<1>    offset(startingOffset);
     const ValueType      pattern = ValueType(0); // SYCL vectors support initialization by scalar
 
-    return queue.submit([&](sycl::handler& cgh) {
+    return queue.submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
         auto d_bufferAccessor =
                 sycl::accessor<ValueType, 1, access_mode::write>{ buffer, cgh, range, offset, sycl::no_init };
         cgh.fill(d_bufferAccessor, pattern);
@@ -565,7 +565,7 @@ inline sycl::event fillSyclBufferWithNull(sycl::buffer<Float3, 1>& buffer,
         const sycl::id<1>    offset(startingOffset);
         const Float3         pattern{ 0, 0, 0 };
 
-        return queue.submit([&](sycl::handler& cgh) {
+        return queue.submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
             auto d_bufferAccessor =
                     sycl::accessor<Float3, 1, access_mode::write>{ buffer, cgh, range, offset, sycl::no_init };
             cgh.fill(d_bufferAccessor, pattern);

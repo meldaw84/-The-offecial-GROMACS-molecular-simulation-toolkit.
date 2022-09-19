@@ -1313,7 +1313,7 @@ static sycl::event launchNbnxmKernel(const DeviceStream& deviceStream, const int
 
     sycl::queue q = deviceStream.stream();
 
-    sycl::event e = q.submit([&](sycl::handler& cgh) {
+    sycl::event e = q.submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
         auto kernel = nbnxmKernel<doPruneNBL, doCalcEnergies, elecType, vdwType>(
                 cgh, std::forward<Args>(args)...);
         cgh.parallel_for<kernelNameType>(range, kernel);

@@ -267,7 +267,7 @@ RocfftPlan makePlan(const std::string&     descriptiveString,
                 sycl::make_async_writeback_view(&workBuffer, sycl::range(1), queue);
         sycl::buffer<size_t, 1> requiredWorkBufferSizeView =
                 sycl::make_async_writeback_view(&requiredWorkBufferSize, sycl::range(1), queue);
-        queue.submit([&](sycl::handler& cgh) {
+        queue.submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
             // Make the necessary accessors
             auto a_plan       = planView.get_access(cgh, sycl::read_write, sycl::no_init);
             auto a_workBuffer = workBufferView.get_access(cgh, sycl::write_only, sycl::no_init);
@@ -455,7 +455,7 @@ void Gpu3dFft::ImplSyclRocfft::perform3dFft(gmx_fft_direction dir, CommandEvent*
         outputGrid = &impl_->realGrid_;
     }
     // Enqueue the 3D FFT work
-    impl_->queue_.submit([&](sycl::handler& cgh) {
+    impl_->queue_.submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
 #if !GMX_SYCL_USE_USM
         auto inputGridAccessor  = inputGrid->get_access(cgh, sycl::read_only);
         auto outputGridAccessor = outputGrid->get_access(cgh, sycl::write_only, sycl::no_init);

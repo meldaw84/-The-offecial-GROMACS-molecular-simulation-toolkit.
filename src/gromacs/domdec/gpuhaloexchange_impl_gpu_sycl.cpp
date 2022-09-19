@@ -131,7 +131,7 @@ static sycl::event launchPackSendBufKernel(const DeviceStream& deviceStream, int
     const sycl::range<1> range(xSendSize);
     sycl::queue          q = deviceStream.stream();
 
-    sycl::event e = q.submit([&](sycl::handler& cgh) {
+    sycl::event e = q.submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
         auto kernel = packSendBufKernel<usePbc>(cgh, std::forward<Args>(args)...);
         cgh.parallel_for<kernelNameType>(range, kernel);
     });
@@ -147,7 +147,7 @@ static sycl::event launchUnpackRecvBufKernel(const DeviceStream& deviceStream, i
     const sycl::range<1> range(fRecvSize);
     sycl::queue          q = deviceStream.stream();
 
-    sycl::event e = q.submit([&](sycl::handler& cgh) {
+    sycl::event e = q.submit(sycl::property::command_group::hipSYCL_coarse_grained_events{},[&](sycl::handler& cgh) {
         auto kernel = unpackRecvBufKernel<accumulateForces>(cgh, std::forward<Args>(args)...);
         cgh.parallel_for<kernelNameType>(range, kernel);
     });
