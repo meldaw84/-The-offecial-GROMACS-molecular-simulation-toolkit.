@@ -163,8 +163,8 @@ static inline void bonds_gpu(const int                                  i,
             staggeredAtomicAddForce(gm_f + aj, -fij, localId);
             if (calcVir && ki != gmx::c_centralShiftIndex)
             {
-                atomicFetchAddLocal(sm_fShiftLoc[ki], fij);
-                atomicFetchAddLocal(sm_fShiftLoc[gmx::c_centralShiftIndex], -fij);
+                staggeredAtomicAddForce(sm_fShiftLoc + ki, fij, localId);
+                staggeredAtomicAddForce(sm_fShiftLoc + gmx::c_centralShiftIndex, -fij, localId);
             }
         }
     }
@@ -317,9 +317,9 @@ static void angles_gpu(const int                                  i,
 
             if (calcVir)
             {
-                atomicFetchAddLocal(sm_fShiftLoc[t1], f_i);
-                atomicFetchAddLocal(sm_fShiftLoc[gmx::c_centralShiftIndex], f_j);
-                atomicFetchAddLocal(sm_fShiftLoc[t2], f_k);
+                staggeredAtomicAddForce(sm_fShiftLoc + t1, f_i, localId);
+                staggeredAtomicAddForce(sm_fShiftLoc + gmx::c_centralShiftIndex, f_j, localId);
+                staggeredAtomicAddForce(sm_fShiftLoc + t2, f_k, localId);
             }
         }
     }
@@ -402,9 +402,9 @@ static void urey_bradley_gpu(const int                                  i,
 
             if (calcVir)
             {
-                atomicFetchAddLocal(sm_fShiftLoc[t1], f_i);
-                atomicFetchAddLocal(sm_fShiftLoc[gmx::c_centralShiftIndex], f_j);
-                atomicFetchAddLocal(sm_fShiftLoc[t2], f_k);
+                staggeredAtomicAddForce(sm_fShiftLoc + t1, f_i, localId);
+                staggeredAtomicAddForce(sm_fShiftLoc + gmx::c_centralShiftIndex, f_j, localId);
+                staggeredAtomicAddForce(sm_fShiftLoc + t2, f_k, localId);
             }
         }
 
@@ -424,8 +424,8 @@ static void urey_bradley_gpu(const int                                  i,
 
             if (calcVir && ki != gmx::c_centralShiftIndex)
             {
-                atomicFetchAddLocal(sm_fShiftLoc[ki], fik);
-                atomicFetchAddLocal(sm_fShiftLoc[gmx::c_centralShiftIndex], -fik);
+                staggeredAtomicAddForce(sm_fShiftLoc + ki, fik, localId);
+                staggeredAtomicAddForce(sm_fShiftLoc + gmx::c_centralShiftIndex, -fik, localId);
             }
         }
 
@@ -537,10 +537,10 @@ static void do_dih_fup_gpu(const int                            i,
             Float3 dx_jl;
             int    t3 = pbcDxAiucSycl<calcVir>(pbcAiuc, gm_xq[l], gm_xq[j], dx_jl);
 
-            atomicFetchAddLocal(sm_fShiftLoc[t1], f_i);
-            atomicFetchAddLocal(sm_fShiftLoc[gmx::c_centralShiftIndex], -f_j);
-            atomicFetchAddLocal(sm_fShiftLoc[t2], -f_k);
-            atomicFetchAddLocal(sm_fShiftLoc[t3], f_l);
+            staggeredAtomicAddForce(sm_fShiftLoc + t1, f_i, localId);
+            staggeredAtomicAddForce(sm_fShiftLoc + gmx::c_centralShiftIndex, -f_j, localId);
+            staggeredAtomicAddForce(sm_fShiftLoc + t2, -f_k, localId);
+            staggeredAtomicAddForce(sm_fShiftLoc + t3, f_l, localId);
         }
     }
 }
@@ -822,8 +822,8 @@ static void pairs_gpu(const int                                  i,
         staggeredAtomicAddForce(gm_f + aj, -f, localId);
         if (calcVir && fshift_index != gmx::c_centralShiftIndex)
         {
-            atomicFetchAddLocal(sm_fShiftLoc[fshift_index], f);
-            atomicFetchAddLocal(sm_fShiftLoc[gmx::c_centralShiftIndex], -f);
+            staggeredAtomicAddForce(sm_fShiftLoc + fshift_index, f, localId);
+            staggeredAtomicAddForce(sm_fShiftLoc + gmx::c_centralShiftIndex, -f, localId);
         }
 
         if (calcEner)
