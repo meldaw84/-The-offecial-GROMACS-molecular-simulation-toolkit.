@@ -85,7 +85,7 @@ public:
     static std::filesystem::path s_globalOutputTempDirectory;
 
     //! Container type for names of temporary files.
-    typedef std::set<std::string> FileNameList;
+    typedef std::set<std::filesystem::path> FileNameList;
 
     /*! \brief Constructor
      *
