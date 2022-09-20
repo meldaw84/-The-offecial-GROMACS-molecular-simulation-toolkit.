@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright 2010- The GROMACS Authors
+ * Copyright 2021- The GROMACS Authors
  * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
  * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
@@ -31,41 +31,47 @@
  * To help us fund GROMACS development, we humbly ask that you cite
  * the research papers on the package. Check out https://www.gromacs.org.
  */
-/*! \file
+/*! \internal \file
  * \brief
- * Defines an enumeration type for specifying file types for options.
+ * Implements force provider for QMMM
  *
- * \author Teemu Murtola <teemu.murtola@gmail.com>
- * \inpublicapi
- * \ingroup module_options
+ * \author Dmitry Morozov <dmitry.morozov@jyu.fi>
+ * \author Christian Blau <blau@kth.se>
+ * \ingroup module_applied_forces
  */
-#ifndef GMX_OPTIONS_OPTIONFILETYPE_HPP
-#define GMX_OPTIONS_OPTIONFILETYPE_HPP
+
+#include "gmxpre.h"
+
+#include "lambdadynamicsforceprovider.h"
+
+#include "gromacs/domdec/domdec_struct.h"
+#include "gromacs/gmxlib/network.h"
+#include "gromacs/math/units.h"
+#include "gromacs/mdtypes/commrec.h"
+#include "gromacs/mdtypes/enerdata.h"
+#include "gromacs/utility/exceptions.h"
+#include "gromacs/utility/filestream.h"
+#include "gromacs/utility/stringutil.h"
 
 namespace gmx
 {
 
-/*! \brief
- * Purpose of file(s) provided through an option.
- *
- * \ingroup module_options
- */
-enum class OptionFileType : int
+LambdaDynamicsForceProvider::LambdaDynamicsForceProvider(PbcType               pbcType,
+                                                         const MDLogger&       logger) :
+    pbcType_(pbcType),
+    logger_(logger)
 {
-    Topology,
-    RunInput,
-    Trajectory,
-    Energy,
-    PDB,
-    Index,
-    Plot,
-    GenericData,
-    Csv,
-    QMInput,
-    LDInput,
-    Count
+}
+
+void LambdaDynamicsForceProvider::appendLog(const std::string& msg)
+{
+    GMX_LOG(logger_.info).asParagraph().appendText(msg);
+}
+
+//! Lambda Dynamics does not provide forces on atoms
+void LambdaDynamicsForceProvider::calculateForces(const ForceProviderInput& fInput, 
+                                                  ForceProviderOutput* fOutput)
+{
 };
 
 } // namespace gmx
-
-#endif

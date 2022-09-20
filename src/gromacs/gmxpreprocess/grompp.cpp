@@ -1977,7 +1977,9 @@ int gmx_grompp(int argc, char* argv[])
                        { efGRO, "-imd", "imdgroup", ffOPTWR },
                        { efTRN, "-ref", "rotref", ffOPTRW | ffALLOW_MISSING },
                        /* This group is needed by the QMMM MDModule: */
-                       { efQMI, "-qmi", nullptr, ffOPTRD } };
+                       { efQMI, "-qmi", nullptr, ffOPTRD },
+                       /* This group is needed by the Lambda Dynamics MDModule: */
+                       { efLDI, "-ldi", nullptr, ffOPTRD } };
 #define NFILE asize(fnm)
 
     /* Command line options */
@@ -2059,6 +2061,13 @@ int gmx_grompp(int argc, char* argv[])
     {
         gmx::QMInputFileName qmInputFileName = { ftp2bSet(efQMI, NFILE, fnm), ftp2fn(efQMI, NFILE, fnm) };
         mdModules.notifiers().preProcessingNotifier_.notify(qmInputFileName);
+    }
+
+    // Notify Lambda Dynamics MDModule of Lambda Dynamics input file command-line option
+    {
+        gmx::LambdaDynamicsInputFileName ldInputFileName = 
+            { ftp2bSet(efLDI, NFILE, fnm), ftp2fn(efLDI, NFILE, fnm) };
+        mdModules.notifiers().preProcessingNotifier_.notify(ldInputFileName);
     }
 
     if (bVerbose)

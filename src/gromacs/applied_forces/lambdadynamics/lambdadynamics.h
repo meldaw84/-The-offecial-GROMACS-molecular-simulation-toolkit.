@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright 2010- The GROMACS Authors
+ * Copyright 2021- The GROMACS Authors
  * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
  * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
@@ -31,39 +31,38 @@
  * To help us fund GROMACS development, we humbly ask that you cite
  * the research papers on the package. Check out https://www.gromacs.org.
  */
-/*! \file
+/*! \internal \file
  * \brief
- * Defines an enumeration type for specifying file types for options.
+ * Declares factory structure for Lambda Dynamics MDModule class
  *
- * \author Teemu Murtola <teemu.murtola@gmail.com>
- * \inpublicapi
- * \ingroup module_options
+ * \author Pavel Buslaev <pavel.i.buslaev@jyu.fi>
+ * \ingroup module_applied_forces
  */
-#ifndef GMX_OPTIONS_OPTIONFILETYPE_HPP
-#define GMX_OPTIONS_OPTIONFILETYPE_HPP
+#ifndef GMX_APPLIED_FORCES_LAMBDADYNAMICS_H
+#define GMX_APPLIED_FORCES_LAMBDADYNAMICS_H
+
+#include <memory>
+#include <string>
 
 namespace gmx
 {
 
-/*! \brief
- * Purpose of file(s) provided through an option.
+class IMDModule;
+
+/*! \internal
+ *  \brief Information about the QM/MM module.
  *
- * \ingroup module_options
+ * Provides name and method to create a QM/MM module.
  */
-enum class OptionFileType : int
+struct LambdaDynamicsModuleInfo
 {
-    Topology,
-    RunInput,
-    Trajectory,
-    Energy,
-    PDB,
-    Index,
-    Plot,
-    GenericData,
-    Csv,
-    QMInput,
-    LDInput,
-    Count
+    /*! \brief
+     * Creates a module for applying forces according to a QM/MM.
+     *
+     */
+    static std::unique_ptr<IMDModule> create();
+    //! The name of the module
+    static const std::string name_;
 };
 
 } // namespace gmx

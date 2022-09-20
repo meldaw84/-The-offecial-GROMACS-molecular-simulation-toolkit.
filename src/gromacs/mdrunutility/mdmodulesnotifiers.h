@@ -88,6 +88,16 @@ struct MDModulesEnergyOutputToQMMMRequestChecker
     bool energyOutputToQMMM_ = false;
 };
 
+/*! \libinternal \brief Check if LambdaDynamics module outputs energy to a specific field.
+ *
+ * Ensures that energy is output for LambdaDynamics module.
+ */
+struct MDModulesEnergyOutputToLambdaDynamicsRequestChecker
+{
+    //! Trigger output to lambda dynamics energy field
+    bool energyOutputToLambdaDynamics_ = false;
+};
+
 /*! \libinternal
  * \brief Collect errors for the energy calculation frequency.
  *
@@ -157,6 +167,17 @@ struct QMInputFileName
     bool hasQMInputFileName_ = false;
     //! The name of the QM Input file (.inp)
     std::string qmInputFileName_;
+};
+
+/*! \libinternal \brief Notification for LambdaDynamics module input filename
+ *  provided by user as command-line argument for grompp
+ */
+struct LambdaDynamicsInputFileName
+{
+    //! Flag if Lambda Dynamics Input File has been provided by user
+    bool hasLambdaDynamicsInputFileName_ = false;
+    //! The name of the Lambda Dynamics Input file (.inp)
+    std::string lambdaDynamicsFileName_;
 };
 
 /*! \libinternal
@@ -273,7 +294,8 @@ struct MDModulesNotifiers
                            gmx_mtop_t*,
                            const IndexGroupsAndNames&,
                            KeyValueTreeObjectBuilder,
-                           const QMInputFileName&>::type preProcessingNotifier_;
+                           const QMInputFileName&,
+                           const LambdaDynamicsInputFileName&>::type preProcessingNotifier_;
 
     /*! \brief Handles subscribing and calling checkpointing callback functions.
      *
@@ -304,6 +326,9 @@ struct MDModulesNotifiers
      * MDModulesEnergyOutputToQMMMRequestChecker* enables QMMM module to
      *                      report if it want to write their energy output
      *                      to the "Quantum En." field in the energy files
+     * MDModulesEnergyOutputToLambdaDynamicsRequestChecker* enables LambdaDynamics module to
+     *                      report if it want to write their energy output
+     *                      to the "LambdaDynamics En." field in the energy files
      * SeparatePmeRanksPermitted* enables modules to report if they want
      *                      to disable dedicated PME ranks
      * const PbcType& provides modules with the periodic boundary condition type
@@ -321,6 +346,7 @@ struct MDModulesNotifiers
                            const gmx_mtop_t&,
                            MDModulesEnergyOutputToDensityFittingRequestChecker*,
                            MDModulesEnergyOutputToQMMMRequestChecker*,
+                           MDModulesEnergyOutputToLambdaDynamicsRequestChecker*,
                            SeparatePmeRanksPermitted*,
                            const PbcType&,
                            const SimulationTimeStep&,

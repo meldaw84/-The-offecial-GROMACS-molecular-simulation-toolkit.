@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright 2010- The GROMACS Authors
+ * Copyright 2019- The GROMACS Authors
  * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
  * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
@@ -31,39 +31,35 @@
  * To help us fund GROMACS development, we humbly ask that you cite
  * the research papers on the package. Check out https://www.gromacs.org.
  */
-/*! \file
+/*! \internal \file
  * \brief
- * Defines an enumeration type for specifying file types for options.
+ * Declares output to file for lambda dynamics
  *
- * \author Teemu Murtola <teemu.murtola@gmail.com>
- * \inpublicapi
- * \ingroup module_options
+ * \author Pavel Buslaev <pavel.i.buslaev@jyu.fi>
+ * \ingroup module_applied_forces
  */
-#ifndef GMX_OPTIONS_OPTIONFILETYPE_HPP
-#define GMX_OPTIONS_OPTIONFILETYPE_HPP
+#ifndef GMX_APPLIED_FORCES_LAMBDADYNAMICSOUTPUTPROVIDER_H
+#define GMX_APPLIED_FORCES_LAMBDADYNAMICSOUTPUTPROVIDER_H
+
+#include "gromacs/mdtypes/imdoutputprovider.h"
 
 namespace gmx
 {
 
-/*! \brief
- * Purpose of file(s) provided through an option.
- *
- * \ingroup module_options
+/*! \internal
+ * \brief Handle file output for density guided simulations.
  */
-enum class OptionFileType : int
+class LambdaDynamicsOutputProvider final : public IMDOutputProvider
 {
-    Topology,
-    RunInput,
-    Trajectory,
-    Energy,
-    PDB,
-    Index,
-    Plot,
-    GenericData,
-    Csv,
-    QMInput,
-    LDInput,
-    Count
+public:
+    //! Initialize output
+    void initOutput(FILE* /*fplog*/,
+                    int /*nfile*/,
+                    const t_filenm /*fnm*/[],
+                    bool /*bAppendFiles*/,
+                    const gmx_output_env_t* /*oenv*/) override;
+    //! Finalizes output from a simulation run.
+    void finishOutput() override;
 };
 
 } // namespace gmx

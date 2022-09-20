@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright 2010- The GROMACS Authors
+ * Copyright 2021- The GROMACS Authors
  * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
  * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
@@ -31,41 +31,64 @@
  * To help us fund GROMACS development, we humbly ask that you cite
  * the research papers on the package. Check out https://www.gromacs.org.
  */
-/*! \file
+/*! \internal \file
  * \brief
- * Defines an enumeration type for specifying file types for options.
+ * Declares empy force provider for lambda dynamics
  *
- * \author Teemu Murtola <teemu.murtola@gmail.com>
- * \inpublicapi
- * \ingroup module_options
+ * \author Pavel Buslaev <pavel.i.buslaev@jyu.fi>
+ * \ingroup module_applied_forces
  */
-#ifndef GMX_OPTIONS_OPTIONFILETYPE_HPP
-#define GMX_OPTIONS_OPTIONFILETYPE_HPP
+#ifndef GMX_APPLIED_FORCES_LAMBDADYNAMICSFORCEPROVIDER_H
+#define GMX_APPLIED_FORCES_LAMBDADYNAMICSFORCEPROVIDER_H
+
+#include "gromacs/mdtypes/forceoutput.h"
+#include "gromacs/mdtypes/iforceprovider.h"
+#include "gromacs/pbcutil/pbc.h"
+#include "gromacs/utility/classhelpers.h"
+#include "gromacs/utility/logger.h"
+
 
 namespace gmx
 {
 
-/*! \brief
- * Purpose of file(s) provided through an option.
- *
- * \ingroup module_options
+#ifdef __clang__
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wunused-private-field"
+#endif
+
+//! Type for CP2K force environment handle
+typedef int force_env_t;
+
+/*! \internal \brief
+ * Implements IForceProvider for QM/MM.
  */
-enum class OptionFileType : int
+class LambdaDynamicsForceProvider final : public IForceProvider
 {
-    Topology,
-    RunInput,
-    Trajectory,
-    Energy,
-    PDB,
-    Index,
-    Plot,
-    GenericData,
-    Csv,
-    QMInput,
-    LDInput,
-    Count
+public:
+    LambdaDynamicsForceProvider(PbcType               pbcType,
+                                const MDLogger&       logger);
+
+    //! Destruct force provider for QMMM and finalize libcp2k
+    ~LambdaDynamicsForceProvider() {};
+
+    /*!\brief Calculate forces of QMMM.
+     * \param[in] fInput input for force provider
+     * \param[out] fOutput output for force provider
+     */
+    void calculateForces(const ForceProviderInput& fInput, ForceProviderOutput* fOutput) override;
+
+private:
+    //! Write message to the log
+    void appendLog(const std::string& msg);
+
+    const PbcType         pbcType_;
+    const MDLogger&       logger_;
 };
+
+#ifdef __clang__
+#    pragma clang diagnostic pop
+#endif
 
 } // namespace gmx
 
-#endif
+#endif // GMX_APPLIED_FORCES_LAMBDADYNAMICSFORCEPROVIDER_H

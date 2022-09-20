@@ -268,6 +268,11 @@ EnergyOutput::EnergyOutput(ener_file*                fp_ene,
 
     bEner_[F_EQM] = mdModulesAddOutputToQMMMFieldRequest.energyOutputToQMMM_;
 
+    MDModulesEnergyOutputToLambdaDynamicsRequestChecker mdModulesAddOutputToLambdaDynamicsFieldRequest;
+    mdModulesNotifiers.simulationSetupNotifier_.notify(&mdModulesAddOutputToLambdaDynamicsFieldRequest);
+
+    bEner_[F_ELD] = mdModulesAddOutputToLambdaDynamicsFieldRequest.energyOutputToLambdaDynamics_;
+
     // Counting the energy terms that will be printed and saving their names
     f_nre_ = 0;
     for (i = 0; i < F_NRE; i++)

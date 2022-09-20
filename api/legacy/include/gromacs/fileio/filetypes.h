@@ -83,6 +83,7 @@ enum GromacsFileType
     efRND,
     efCSV,
     efQMI,
+    efLDI,
     efNR
 };
 

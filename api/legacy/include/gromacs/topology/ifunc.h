@@ -200,6 +200,7 @@ enum
     F_COM_PULL,
     F_DENSITYFITTING,
     F_EQM,
+    F_ELD,
     F_EPOT,
     F_EKIN,
     F_ETOT,

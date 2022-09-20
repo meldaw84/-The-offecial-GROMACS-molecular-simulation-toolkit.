@@ -40,6 +40,7 @@
 #include "gromacs/applied_forces/densityfitting/densityfitting.h"
 #include "gromacs/applied_forces/electricfield.h"
 #include "gromacs/applied_forces/qmmm/qmmm.h"
+#include "gromacs/applied_forces/lambdadynamics/lambdadynamics.h"
 #include "gromacs/imd/imd.h"
 #include "gromacs/mdrunutility/mdmodulesnotifiers.h"
 #include "gromacs/mdtypes/iforceprovider.h"
@@ -67,6 +68,7 @@ public:
         field_(createElectricFieldModule()),
         imd_(createInteractiveMolecularDynamicsModule()),
         qmmm_(QMMMModuleInfo::create()),
+        lambdaDynamics_(LambdaDynamicsModuleInfo::create()),
         swapCoordinates_(createSwapCoordinatesModule())
     {
     }
@@ -78,6 +80,7 @@ public:
         field_->mdpOptionProvider()->initMdpOptions(&appliedForcesOptions);
         densityFitting_->mdpOptionProvider()->initMdpOptions(&appliedForcesOptions);
         qmmm_->mdpOptionProvider()->initMdpOptions(&appliedForcesOptions);
+        lambdaDynamics_->mdpOptionProvider()->initMdpOptions(&appliedForcesOptions);
         // In future, other sections would also go here.
     }
 
@@ -105,6 +108,7 @@ public:
     std::unique_ptr<ForceProviders> forceProviders_;
     std::unique_ptr<IMDModule>      imd_;
     std::unique_ptr<IMDModule>      qmmm_;
+    std::unique_ptr<IMDModule>      lambdaDynamics_;
     std::unique_ptr<IMDModule>      swapCoordinates_;
 
     /*! \brief List of registered MDModules
@@ -129,6 +133,7 @@ void MDModules::initMdpTransform(IKeyValueTreeTransformRules* rules)
     impl_->field_->mdpOptionProvider()->initMdpTransform(appliedForcesScope.rules());
     impl_->densityFitting_->mdpOptionProvider()->initMdpTransform(appliedForcesScope.rules());
     impl_->qmmm_->mdpOptionProvider()->initMdpTransform(appliedForcesScope.rules());
+    impl_->lambdaDynamics_->mdpOptionProvider()->initMdpTransform(appliedForcesScope.rules());
 }
 
 void MDModules::buildMdpOutput(KeyValueTreeObjectBuilder* builder)
@@ -136,6 +141,7 @@ void MDModules::buildMdpOutput(KeyValueTreeObjectBuilder* builder)
     impl_->field_->mdpOptionProvider()->buildMdpOutput(builder);
     impl_->densityFitting_->mdpOptionProvider()->buildMdpOutput(builder);
     impl_->qmmm_->mdpOptionProvider()->buildMdpOutput(builder);
+    impl_->lambdaDynamics_->mdpOptionProvider()->buildMdpOutput(builder);
 }
 
 void MDModules::assignOptionsToModules(const KeyValueTreeObject& params, IKeyValueTreeErrorHandler* errorHandler)
@@ -173,6 +179,7 @@ ForceProviders* MDModules::initForceProviders()
     impl_->field_->initForceProviders(impl_->forceProviders_.get());
     impl_->densityFitting_->initForceProviders(impl_->forceProviders_.get());
     impl_->qmmm_->initForceProviders(impl_->forceProviders_.get());
+    impl_->lambdaDynamics_->initForceProviders(impl_->forceProviders_.get());
     for (auto&& module : impl_->modules_)
     {
         module->initForceProviders(impl_->forceProviders_.get());
@@ -184,12 +191,14 @@ void MDModules::subscribeToPreProcessingNotifications()
 {
     impl_->densityFitting_->subscribeToPreProcessingNotifications(&impl_->notifiers_);
     impl_->qmmm_->subscribeToPreProcessingNotifications(&impl_->notifiers_);
+    impl_->lambdaDynamics_->subscribeToPreProcessingNotifications(&impl_->notifiers_);
 }
 
 void MDModules::subscribeToSimulationSetupNotifications()
 {
     impl_->densityFitting_->subscribeToSimulationSetupNotifications(&impl_->notifiers_);
     impl_->qmmm_->subscribeToSimulationSetupNotifications(&impl_->notifiers_);
+    impl_->lambdaDynamics_->subscribeToSimulationSetupNotifications(&impl_->notifiers_);
 }
 
 void MDModules::add(std::shared_ptr<gmx::IMDModule> module)
