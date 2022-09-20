@@ -310,11 +310,10 @@ static int cpp_open_file(const char*                                filenm,
         cpp->path.resize(pos);
         cpp->fn.erase(0, pos + 1);
 
-        char buf[STRLEN];
-        gmx_getcwd(buf, STRLEN);
-        cpp->cwd = buf;
+        auto cwd = gmx_getcwd();
+        cpp->cwd = cwd.string();
 
-        gmx_chdir(cpp->path.c_str());
+        gmx_chdir(cpp->path);
     }
     cpp->line.clear();
     cpp->line_nr = 0;
