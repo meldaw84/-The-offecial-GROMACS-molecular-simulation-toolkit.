@@ -312,7 +312,7 @@ static FILE* gunzip(const std::filesystem::path& fn, const char* mode)
     fprintf(stderr, "Going to execute '%s'\n", buf.c_str());
     if ((fp = popen(buf.c_str(), mode)) == nullptr)
     {
-        gmx_open(fn);
+        gmx_open(fn.string());
     }
     push_ps(fp);
 
@@ -368,8 +368,10 @@ void make_backup(const std::filesystem::path& name)
     }
     if (gmx_fexist(name))
     {
-        auto backup = backup_fn(name);
-        if (rename(name.c_str(), backup.c_str()) == 0)
+        auto            backup = backup_fn(name);
+        std::error_code errorCode;
+        std::filesystem::rename(name, backup, errorCode);
+        if (errorCode.value() == 0)
         {
             fprintf(stderr,
                     "\nBack Off! I just backed up %s to %s\n",
@@ -378,7 +380,10 @@ void make_backup(const std::filesystem::path& name)
         }
         else
         {
-            fprintf(stderr, "\nSorry couldn't backup %s to %s\n", name.c_str(), backup.string().c_str());
+            fprintf(stderr,
+                    "\nSorry couldn't backup %s to %s\n",
+                    name.string().c_str(),
+                    backup.string().c_str());
         }
     }
 }
@@ -402,7 +407,7 @@ FILE* gmx_ffopen(const std::filesystem::path& file, const char* mode)
     {
         if ((ff = fopen(file.string().c_str(), mode)) == nullptr)
         {
-            gmx_file(file);
+            gmx_file(file.string());
         }
         /* Check whether we should be using buffering (default) or not
          * (for debugging)
@@ -445,7 +450,7 @@ FILE* gmx_ffopen(const std::filesystem::path& file, const char* mode)
             }
             else
             {
-                gmx_file(file);
+                gmx_file(file.string());
             }
         }
     }
