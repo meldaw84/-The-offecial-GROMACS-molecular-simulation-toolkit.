@@ -196,7 +196,7 @@ std::filesystem::path DataFileFinder::findFile(const DataFileOptions& options) c
         if (!defaultPath.empty())
         {
             message.append("\n  ");
-            message.append(defaultPath);
+            message.append(defaultPath.string());
             message.append(" (default)");
         }
         if (!bEnvIsSet && envName != nullptr)
