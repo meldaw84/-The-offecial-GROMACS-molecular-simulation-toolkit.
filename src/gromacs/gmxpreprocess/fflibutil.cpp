@@ -66,12 +66,12 @@ const char* fflib_forcefield_doc()
     return "forcefield.doc";
 }
 
-void fflib_filename_base(const char* filename, char* filebase, int maxlen)
+void fflib_filename_base(const std::filesystem::path& filename, char* filebase, int maxlen)
 {
     const char* cptr;
     char*       ptr;
 
-    cptr = strrchr(filename, DIR_SEPARATOR);
+    cptr = strrchr(filename.string().c_str(), DIR_SEPARATOR);
     if (cptr != nullptr)
     {
         /* Skip the separator */
@@ -79,11 +79,11 @@ void fflib_filename_base(const char* filename, char* filebase, int maxlen)
     }
     else
     {
-        cptr = filename;
+        cptr = filename.string().c_str();
     }
-    if (strlen(filename) >= static_cast<size_t>(maxlen))
+    if (filename.string().size() >= static_cast<size_t>(maxlen))
     {
-        gmx_fatal(FARGS, "filename is longer (%zu) than maxlen (%d)", strlen(filename), maxlen);
+        gmx_fatal(FARGS, "filename is longer (%zu) than maxlen (%d)", filename.string().size(), maxlen);
     }
     strcpy(filebase, cptr);
     /* Remove the extension */

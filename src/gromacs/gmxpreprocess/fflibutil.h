@@ -58,7 +58,7 @@ const char* fflib_forcefield_itp();
 const char* fflib_forcefield_doc();
 /* Returns the name of the forcefield documentation file */
 
-void fflib_filename_base(const char* filename, char* filebase, int maxlen);
+void fflib_filename_base(const std::filesystem::path& filename, char* filebase, int maxlen);
 /* Return the base file name of filename in base,
  * i.e. remove path and extension, if present.
  * base should be at least of size maxlen.
