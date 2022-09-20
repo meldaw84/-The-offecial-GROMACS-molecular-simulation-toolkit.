@@ -68,7 +68,8 @@ constexpr float        c_Pi       = M_PI;
 //
 // Reduce the number of atomic clashes by a theoretical max 3x by having consecutive threads
 // accumulate different force components at the same time.
-static inline void staggeredAtomicAddForce(sycl::global_ptr<Float3> gm_f, Float3 f, const int localId)
+template<sycl::access::address_space AS>
+static inline void staggeredAtomicAddForce(sycl::multi_ptr<Float3, AS> targetPtr, Float3 f, const int localId)
 {
     __builtin_assume(localId >= 0);
 
@@ -82,9 +83,21 @@ static inline void staggeredAtomicAddForce(sycl::global_ptr<Float3> gm_f, Float3
     f      = (localId % 3 <= 1) ? Float3(f[1], f[2], f[0]) : f;
     offset = (localId % 3 <= 1) ? Int3(offset[1], offset[2], offset[0]) : offset;
 
-    atomicFetchAdd(gm_f[0][offset[0]], f[0]);
-    atomicFetchAdd(gm_f[0][offset[1]], f[1]);
-    atomicFetchAdd(gm_f[0][offset[2]], f[2]);
+    using sycl::access::address_space;
+    static_assert(AS == address_space::global_space || AS == address_space::local_space,
+                  "Unsupported address space");
+    if constexpr (AS == address_space::global_space)
+    {
+        atomicFetchAdd(targetPtr[0][offset[0]], f[0]);
+        atomicFetchAdd(targetPtr[0][offset[1]], f[1]);
+        atomicFetchAdd(targetPtr[0][offset[2]], f[2]);
+    }
+    else
+    {
+        atomicFetchAddLocal(targetPtr[0][offset[0]], f[0]);
+        atomicFetchAddLocal(targetPtr[0][offset[1]], f[1]);
+        atomicFetchAddLocal(targetPtr[0][offset[2]], f[2]);
+    }
 }
 
 /* Harmonic */
@@ -146,8 +159,8 @@ static inline void bonds_gpu(const int                                  i,
             fbond *= sycl::rsqrt(dr2);
 
             Float3 fij = fbond * dx;
-            staggeredAtomicAddForce(&gm_f[ai], fij, localId);
-            staggeredAtomicAddForce(&gm_f[aj], -fij, localId);
+            staggeredAtomicAddForce(gm_f + ai, fij, localId);
+            staggeredAtomicAddForce(gm_f + aj, -fij, localId);
             if (calcVir && ki != gmx::c_centralShiftIndex)
             {
                 atomicFetchAddLocal(sm_fShiftLoc[ki], fij);
@@ -298,9 +311,9 @@ static void angles_gpu(const int                                  i,
             Float3 f_k = ckk * r_kj - cik * r_ij;
             Float3 f_j = -f_i - f_k;
 
-            staggeredAtomicAddForce(&gm_f[ai], f_i, localId);
-            staggeredAtomicAddForce(&gm_f[aj], f_j, localId);
-            staggeredAtomicAddForce(&gm_f[ak], f_k, localId);
+            staggeredAtomicAddForce(gm_f + ai, f_i, localId);
+            staggeredAtomicAddForce(gm_f + aj, f_j, localId);
+            staggeredAtomicAddForce(gm_f + ak, f_k, localId);
 
             if (calcVir)
             {
@@ -418,13 +431,13 @@ static void urey_bradley_gpu(const int                                  i,
 
         if ((cos_theta2 < 1.0F) || (dr2 != 0.0F))
         {
-            staggeredAtomicAddForce(&gm_f[ai], f_i, localId);
-            staggeredAtomicAddForce(&gm_f[ak], f_k, localId);
+            staggeredAtomicAddForce(gm_f + ai, f_i, localId);
+            staggeredAtomicAddForce(gm_f + ak, f_k, localId);
         }
 
         if (cos_theta2 < 1.0F)
         {
-            staggeredAtomicAddForce(&gm_f[aj], f_j, localId);
+            staggeredAtomicAddForce(gm_f + aj, f_j, localId);
         }
     }
 }
@@ -514,10 +527,10 @@ static void do_dih_fup_gpu(const int                            i,
         Float3 f_j  = f_i - svec;
         Float3 f_k  = f_l + svec;
 
-        staggeredAtomicAddForce(&gm_f[i], f_i, localId);
-        staggeredAtomicAddForce(&gm_f[j], -f_j, localId);
-        staggeredAtomicAddForce(&gm_f[k], -f_k, localId);
-        staggeredAtomicAddForce(&gm_f[l], f_l, localId);
+        staggeredAtomicAddForce(gm_f + i, f_i, localId);
+        staggeredAtomicAddForce(gm_f + j, -f_j, localId);
+        staggeredAtomicAddForce(gm_f + k, -f_k, localId);
+        staggeredAtomicAddForce(gm_f + l, f_l, localId);
 
         if constexpr (calcVir)
         {
@@ -805,8 +818,8 @@ static void pairs_gpu(const int                                  i,
         Float3 f     = finvr * dr;
 
         /* Add the forces */
-        staggeredAtomicAddForce(&gm_f[ai], f, localId);
-        staggeredAtomicAddForce(&gm_f[aj], -f, localId);
+        staggeredAtomicAddForce(gm_f + ai, f, localId);
+        staggeredAtomicAddForce(gm_f + aj, -f, localId);
         if (calcVir && fshift_index != gmx::c_centralShiftIndex)
         {
             atomicFetchAddLocal(sm_fShiftLoc[fshift_index], f);
