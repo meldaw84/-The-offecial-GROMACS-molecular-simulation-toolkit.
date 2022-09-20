@@ -606,22 +606,32 @@ include(gmxManageMuparser)
 include(gmxManageSimd)
 gmx_manage_simd()
 
-# The earliest version of the CUDA toolkit that supports c++17 is 11.0
-set(REQUIRED_CUDA_VERSION 11.0)
+# Support for gcc >=10 is first introduced in CUDA 11.5
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "10")
+  set(REQUIRED_CUDA_VERSION 11.5)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+  # The minimum gcc version is 9, in which case we can use CUDA version 11.1
+  set(REQUIRED_CUDA_VERSION 11.1)
+else()
+  # In all other cases, we can use CUDA version 11.0
+  set(REQUIRED_CUDA_VERSION 11.0)
+endif()
+
 set(REQUIRED_CUDA_COMPUTE_CAPABILITY 3.5)
 
 if(GMX_GPU)
 
     string(TOUPPER "${GMX_GPU}" _gmx_gpu_uppercase)
     if(${_gmx_gpu_uppercase} STREQUAL "CUDA")
-	enable_language(CUDA)
-        set(CMAKE_CUDA_STANDARD 14)
-        set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 	# Avoid new cmake policy of enforcing CMAKE_CUDA_ARCHITECTURES initialization
-	if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.18.0")
-	  cmake_policy(SET CMP0104 OLD)
-	endif()
+	cmake_policy(SET CMP0104 OLD)
+	find_package(CUDA ${REQUIRED_CUDA_VERSION} REQUIRED)
+        set(CMAKE_CUDA_STANDARD 17)
+        set(CMAKE_CUDA_STANDARD_REQUIRED ON)
         include(gmxManageCuda)
+	if(NOT GMX_CLANG_CUDA)
+	  enable_language(CUDA)
+	endif()
     elseif(${_gmx_gpu_uppercase} STREQUAL "OPENCL")
         message(STATUS "GPU support with OpenCL is deprecated. It is still fully supported (and " 
             "recommended for AMD and Intel GPUs). It may be replaced by different approaches in "
