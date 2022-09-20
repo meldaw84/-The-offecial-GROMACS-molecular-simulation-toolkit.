@@ -341,7 +341,7 @@ static std::filesystem::path backup_fn(const std::filesystem::path& file)
     }
     do
     {
-        buf = gmx::formatString("%s/#%s.%d#", directory.c_str(), fn.c_str(), count);
+        buf = gmx::formatString("%s/#%s.%d#", directory.c_str(), fn.string().c_str(), count);
         count++;
     } while ((count <= s_maxBackupCount) && gmx_fexist(buf));
 
@@ -354,7 +354,7 @@ static std::filesystem::path backup_fn(const std::filesystem::path& file)
                   "Won't make more than %d backups of %s for you.\n"
                   "The env.var. GMX_MAXBACKUP controls this maximum, -1 disables backups.",
                   s_maxBackupCount,
-                  fn.c_str());
+                  fn.string().c_str());
     }
 
     return buf;

@@ -135,7 +135,7 @@ void TestFileManager::Impl::removeFiles()
 {
     for (const auto& file : files_)
     {
-        std::remove(file.c_str());
+        std::filesystem::remove(file);
     }
     files_.clear();
 }

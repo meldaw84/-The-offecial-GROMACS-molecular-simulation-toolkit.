@@ -112,7 +112,7 @@ bool extensionMatches(const std::filesystem::path& path, const std::string_view 
 std::filesystem::path stripExtension(const std::filesystem::path& path)
 {
     auto              parentPath = path.parent_path();
-    const std::string stem       = path.stem();
+    const std::string stem       = path.stem().string();
     return parentPath.append(stem);
 }
 
@@ -219,7 +219,7 @@ bool File::exists(const std::filesystem::path& filename, NotFoundHandler onNotFo
     {
         return false;
     }
-    FILE* test = std::fopen(filename.c_str(), "r");
+    FILE* test = std::fopen(filename.string().c_str(), "r");
     if (test == nullptr)
     {
         const bool   wasError = (errno != ENOENT && errno != ENOTDIR);
