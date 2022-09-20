@@ -967,7 +967,7 @@ static void calc_cumulatives(t_UmbrellaWindow*  window,
     if (opt->bs_verbose)
     {
         fn = gmx::concatenateBeforeExtension(fnhist, "_cumul");
-        fp = xvgropen(fn.c_str(), "CDFs of umbrella windows", xlabel, "CDF", opt->oenv);
+        fp = xvgropen(fn.string().c_str(), "CDFs of umbrella windows", xlabel, "CDF", opt->oenv);
     }
 
     nbin = opt->bins;
@@ -1213,7 +1213,7 @@ static void print_histograms(const char*        fnhist,
         title = gmx::formatString("Umbrella histograms");
     }
 
-    fp   = xvgropen(fn.c_str(), title.c_str(), xlabel, "count", opt->oenv);
+    fp   = xvgropen(fn.string().c_str(), title.c_str(), xlabel, "count", opt->oenv);
     bins = opt->bins;
 
     /* Write histograms */
