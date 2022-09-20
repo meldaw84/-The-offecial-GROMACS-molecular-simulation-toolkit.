@@ -68,7 +68,8 @@ constexpr float        c_Pi       = M_PI;
 //
 // Reduce the number of atomic clashes by a theoretical max 3x by having consecutive threads
 // accumulate different force components at the same time.
-static inline void staggeredAtomicAddForce(sycl::global_ptr<Float3> gm_f, Float3 f, const int localId)
+template<typename T>
+static inline void staggeredAtomicAddForce(T targetPtr, Float3 f, const int localId)
 {
     __builtin_assume(localId >= 0);
 
@@ -82,9 +83,18 @@ static inline void staggeredAtomicAddForce(sycl::global_ptr<Float3> gm_f, Float3
     f      = (localId % 3 <= 1) ? Float3(f[1], f[2], f[0]) : f;
     offset = (localId % 3 <= 1) ? Int3(offset[1], offset[2], offset[0]) : offset;
 
-    atomicFetchAdd(gm_f[0][offset[0]], f[0]);
-    atomicFetchAdd(gm_f[0][offset[1]], f[1]);
-    atomicFetchAdd(gm_f[0][offset[2]], f[2]);
+    if constexpr (std::is_same_v<T, sycl::global_ptr<Float3>>)
+    {
+        atomicFetchAdd(targetPtr[0][offset[0]], f[0]);
+        atomicFetchAdd(targetPtr[0][offset[1]], f[1]);
+        atomicFetchAdd(targetPtr[0][offset[2]], f[2]);
+    }
+    else if constexpr (std::is_same_v<T, sycl::local_ptr<Float3>>)
+    {
+        atomicFetchAddLocal(targetPtr[0][offset[0]], f[0]);
+        atomicFetchAddLocal(targetPtr[0][offset[1]], f[1]);
+        atomicFetchAddLocal(targetPtr[0][offset[2]], f[2]);
+    }
 }
 
 /* Harmonic */
