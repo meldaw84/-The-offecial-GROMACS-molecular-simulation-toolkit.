@@ -34,7 +34,7 @@
 /*!\file
  * \internal
  * \brief
- * Implements gmx::Shiftcoord.
+ * Implements gmx::ShiftCoord.
  *
  * \author Paul Bauer <paul.bauer.q@gmail.com>
  * \ingroup module_coordinateio
@@ -55,7 +55,6 @@ void ShiftCoord::convertFrame(t_trxframe* input)
     if (!sel_.isValid())
     {
         int               natoms = input->natoms;
-        std::vector<RVec> shiftCoord(natoms);
         for (int i = 0; i < natoms; i++)
         {
             rvec_inc(input->x[i], shift_);
