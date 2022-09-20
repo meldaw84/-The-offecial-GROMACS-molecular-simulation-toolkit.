@@ -112,10 +112,21 @@ template<int iClusterSize, bool useEnergyGroups>
 class EnergyAccumulator<iClusterSize, useEnergyGroups, false>
 {
 public:
-    //! Constructor
+    /*! \brief Constructor
+     *
+     * \param nbatParams     The non-bonded atom parameter setup
+     * \param jClusterSize   The j-cluster size
+     * \param coulombEnergy  Unused
+     * \param vdwEnergy      Unused
+     * \param coulombEnergyGroupPairBins  Unused
+     * \param vdwEnergyGroupPairBins      Unused
+     */
     EnergyAccumulator(const nbnxn_atomdata_t::Params gmx_unused& nbatParams,
                       const int gmx_unused                       jClusterSize,
-                      nbnxn_atomdata_output_t gmx_unused* nbatOutput)
+                      ArrayRef<real> gmx_unused                  coulombEnergy,
+                      ArrayRef<real> gmx_unused                  vdwEnergy,
+                      ArrayRef<real> gmx_unused                  coulombEnergyGroupPairBins,
+                      ArrayRef<real> gmx_unused                  vdwEnergyGroupPairBins)
     {
     }
 
@@ -152,15 +163,30 @@ template<int iClusterSize>
 class EnergyAccumulator<iClusterSize, false, true>
 {
 public:
-    //! Constructor
+    /*! \brief Constructor
+     *
+     * \param nbatParams     The non-bonded atom parameter setup
+     * \param jClusterSize   The j-cluster size
+     * \param coulombEnergy  Buffer of size one to accumulate Coulomb energies to
+     * \param vdwEnergy      Buffer of size one to accumulate Van der Walls energies to
+     * \param coulombEnergyGroupPairBins  Unused
+     * \param vdwEnergyGroupPairBins      Unused
+     */
     EnergyAccumulator(const nbnxn_atomdata_t::Params gmx_unused& nbatParams,
                       const int gmx_unused                       jClusterSize,
-                      nbnxn_atomdata_output_t gmx_unused* nbatOutput) :
+                      ArrayRef<real>                             coulombEnergy,
+                      ArrayRef<real>                             vdwEnergy,
+                      ArrayRef<real> gmx_unused                  coulombEnergyGroupPairBins,
+                      ArrayRef<real> gmx_unused                  vdwEnergyGroupPairBins) :
         coulombEnergySum_(setZero()),
         vdwEnergySum_(setZero()),
-        coulombEnergyPtr_(&(nbatOutput->Vc[0])),
-        vdwEnergyPtr_(&(nbatOutput->Vvdw[0]))
+        coulombEnergyPtr_(coulombEnergy.data()),
+        vdwEnergyPtr_(vdwEnergy.data())
     {
+        GMX_ASSERT(ssize(coulombEnergy) == 1,
+                   "Expect a Coulomb buffer of size 1 (single energy group pair)");
+        GMX_ASSERT(ssize(vdwEnergy) == 1,
+                   "Expect a Van der Waals buffer of size 1 (single energy group pair)");
     }
 
     //! Clears the accumulation buffer which is used per i-cluster
@@ -184,8 +210,15 @@ public:
 
     /*! \brief Adds Coulomb and/or VdW contributions for interactions of a j-cluster with an i-cluster
      *
-     * The first \p nRCoulomb entries of \p coulombEnergy are reduced.
-     * The first \p nRVdw entries of \p vdwEnergy are reduced.
+     * \tparam nRCoulomb     The number of elements to reduce in \p coulombEnergy
+     * \tparam nRVdw         The number of elements to reduce in \p vdwEnergy
+     * \tparam kernelLayout  The kernel layout
+     * \tparam cSize         The size of \p coulombEnergy should be >= \p nRCoulomb
+     * \tparam vdwSize       The size of \p vdwEnergy should be >= \p nRVdw
+     *
+     * \param jCluster       The index of the j-cluster to add energies for
+     * \param coulombEnergy  List of Coulomb energies per i-register
+     * \param vdwEnergy      List of Van der Waals energies per i-register
      */
     template<int nRCoulomb, int nRVdw, KernelLayout kernelLayout, std::size_t cSize, std::size_t vdwSize>
     inline void addEnergies(const int gmx_unused                 jCluster,
@@ -237,10 +270,21 @@ template<int iClusterSize>
 class EnergyAccumulator<iClusterSize, true, true>
 {
 public:
-    //! Constructor
+    /*! \brief Constructor
+     *
+     * \param nbatParams     The non-bonded atom parameter setup
+     * \param jClusterSize   The j-cluster size
+     * \param coulombEnergy  Unused
+     * \param vdwEnergy      Unused
+     * \param coulombEnergyGroupPairBins  Temporary bins to accumulate Coulomb energies to, should be aligned to SIMD width
+     * \param vdwEnergyGroupPairBins      Temporary bins to accumulate Van der Waals energies to, should be aligned to SIMD width
+     */
     EnergyAccumulator(const nbnxn_atomdata_t::Params& nbatParams,
                       const int                       jClusterSize,
-                      nbnxn_atomdata_output_t*        nbatOutput) :
+                      ArrayRef<real> gmx_unused       coulombEnergy,
+                      ArrayRef<real> gmx_unused       vdwEnergy,
+                      ArrayRef<real>                  coulombEnergyGroupPairBins,
+                      ArrayRef<real>                  vdwEnergyGroupPairBins) :
         iShift_(nbatParams.neg_2log),
         iMask_((1 << iShift_) - 1),
         jShift_(nbatParams.neg_2log * 2),
@@ -248,9 +292,21 @@ public:
         jStride_((jClusterSize >> 1) * jClusterSize),
         iStride_(nbatParams.nenergrp * (1 << nbatParams.neg_2log) * jStride_),
         energyGroups_(nbatParams.energrp.data()),
-        coulombEnergyGroupPairBins_(nbatOutput->VSc.data()),
-        vdwEnergyGroupPairBins_(nbatOutput->VSvdw.data())
+        coulombEnergyGroupPairBins_(coulombEnergyGroupPairBins.data()),
+        vdwEnergyGroupPairBins_(vdwEnergyGroupPairBins.data())
     {
+        const int numBinsUsed = square(nbatParams.nenergrp) * (1 << nbatParams.neg_2log)
+                                * (jClusterSize / 2) * jClusterSize;
+        GMX_ASSERT(ssize(coulombEnergyGroupPairBins) >= numBinsUsed,
+                   "Need a sufficient Coulomb bin buffer");
+        GMX_ASSERT(ssize(coulombEnergyGroupPairBins) >= numBinsUsed,
+                   "Need a sufficient Vand der Waals bin buffer");
+        GMX_ASSERT((reinterpret_cast<std::size_t>(coulombEnergyGroupPairBins.data()) / sizeof(real)) % GMX_SIMD_REAL_WIDTH
+                           == 0,
+                   "coulombEnergyGroupPairBins should be aligned");
+        GMX_ASSERT((reinterpret_cast<std::size_t>(vdwEnergyGroupPairBins.data()) / sizeof(real)) % GMX_SIMD_REAL_WIDTH
+                           == 0,
+                   "vdwqEnergyGroupPairBins should be aligned");
     }
 
     //! Sets (internal) parameters for the atom in i-cluster \p iCluster
@@ -283,8 +339,15 @@ public:
 
     /*! \brief Adds Coulomb and/or VdW contributions for interactions of a j-cluster with an i-cluster
      *
-     * The first \p nRCoulomb entries of \p coulombEnergy are reduced.
-     * The first \p nRVdw entries of \p vdwEnergy are reduced.
+     * \tparam nRCoulomb     The number of elements to reduce in \p coulombEnergy
+     * \tparam nRVdw         The number of elements to reduce in \p vdwEnergy
+     * \tparam kernelLayout  The kernel layout
+     * \tparam cSize         The size of \p coulombEnergy should be >= \p nRCoulomb
+     * \tparam vdwSize       The size of \p vdwEnergy should be >= \p nRVdw
+     *
+     * \param jCluster       The index of the j-cluster to add energies for
+     * \param coulombEnergy  List of Coulomb energies per i-register
+     * \param vdwEnergy      List of Van der Waals energies per i-register
      */
     template<int nRCoulomb, int nRVdw, KernelLayout kernelLayout, std::size_t cSize, std::size_t vdwSize>
     inline void addEnergies(const int                            jCluster,

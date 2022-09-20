@@ -193,7 +193,7 @@
     const real* gmx_restrict x        = nbat->x().data();
 
     EnergyAccumulator<UNROLLI, useEnergyGroups, calculateEnergies> energyAccumulator(
-            nbatParams, UNROLLJ, out);
+            nbatParams, UNROLLJ, out->Vc, out->Vvdw, out->VSc, out->VSvdw);
 
     const nbnxn_cj_t* l_cj = nbl->cj.list_.data();
 
