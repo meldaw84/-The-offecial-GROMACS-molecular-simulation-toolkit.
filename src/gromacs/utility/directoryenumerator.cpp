@@ -127,7 +127,7 @@ private:
 // static
 std::vector<std::filesystem::path>
 DirectoryEnumerator::enumerateFilesWithExtension(const std::filesystem::path& dirname,
-                                                 const std::string&           extension,
+                                                 const std::filesystem::path& extension,
                                                  bool                         bThrow)
 {
     std::vector<std::filesystem::path> result;

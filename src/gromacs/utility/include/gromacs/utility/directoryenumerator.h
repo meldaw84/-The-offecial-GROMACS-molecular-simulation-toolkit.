@@ -78,7 +78,7 @@ public:
      * \throws FileIOError if some other I/O error occurs.
      */
     static std::vector<std::filesystem::path> enumerateFilesWithExtension(const std::filesystem::path& dirname,
-                                                                          const std::string& extension,
+                                                                          const std::filesystem::path& extension,
                                                                           bool bThrow);
 
     /*! \brief
