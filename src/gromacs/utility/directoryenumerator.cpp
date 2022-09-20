@@ -140,7 +140,7 @@ DirectoryEnumerator::enumerateFilesWithExtension(const std::filesystem::path& di
             std::fprintf(debug, "dir '%s' file '%s'\n", dirname.c_str(), nextName->c_str());
         }
         // TODO: What about case sensitivity?
-        if (endsWith(nextName.value().string(), extension))
+        if (endsWith(nextName.value().string(), extension.string()))
         {
             result.emplace_back(nextName.value());
         }
