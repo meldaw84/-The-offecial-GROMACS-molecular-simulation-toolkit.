@@ -297,7 +297,7 @@ static FILE* uncompress(const std::filesystem::path& fn, const char* mode)
     fprintf(stderr, "Going to execute '%s'\n", buf.c_str());
     if ((fp = popen(buf.c_str(), mode)) == nullptr)
     {
-        gmx_open(fn);
+        gmx_open(fn.string());
     }
     push_ps(fp);
 
