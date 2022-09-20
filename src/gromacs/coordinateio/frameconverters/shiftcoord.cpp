@@ -54,7 +54,7 @@ void ShiftCoord::convertFrame(t_trxframe* input)
 {
     if (!sel_.isValid())
     {
-        int               natoms = input->natoms;
+        int natoms = input->natoms;
         for (int i = 0; i < natoms; i++)
         {
             rvec_inc(input->x[i], shift_);
