@@ -34,7 +34,7 @@
 /*! \internal \file
  * \brief
  * Declares options for Lambda Dynamics
- * LambdaDynamicsOptions class responsible for all parameters set up 
+ * LambdaDynamicsOptions class responsible for all parameters set up
  * during pre-processing also modificatios of topology would be done here
  *
  * \author Pavel Buslaev <pavel.i.buslaev@jyu.fi>
@@ -46,12 +46,12 @@
 #include <string>
 #include <vector>
 
-#include "gromacs/utility/real.h"
 #include "gromacs/mdtypes/imdpoptionprovider.h"
 #include "gromacs/utility/basedefinitions.h"
+#include "gromacs/utility/real.h"
 
 struct gmx_mtop_t;
-struct warninp;
+class WarningHandler;
 
 namespace gmx
 {
@@ -201,12 +201,12 @@ public:
      * as vectors into the parameters_
      * \param[in] indexGroupsAndNames object containing data about index groups and names
      */
-    //void setLambdaDynamicsGroupIndices(const IndexGroupsAndNames& indexGroupsAndNames);
+    // void setLambdaDynamicsGroupIndices(const IndexGroupsAndNames& indexGroupsAndNames);
 
     /*! \brief Modifies topology in case of active QMMM module using QMMMTopologyPreprocessor
      * \param[in,out] mtop topology to modify for QMMM
      */
-    //void setLambdaDynamicsCharges(gmx_mtop_t* mtop);
+    // void setLambdaDynamicsCharges(gmx_mtop_t* mtop);
 
     //! Store the paramers that are not mdp options in the tpr file
     void writeInternalParametersToKvt(KeyValueTreeObjectBuilder treeBuilder);
@@ -218,11 +218,11 @@ public:
     void setLogger(const MDLogger& logger);
 
     //! Set the warninp instance
-    void setWarninp(warninp* wi);
+    void setWarninp(WarningHandler* wi);
 
     /*! \brief Process Lambda Dynamics input file in case it is provided with -ldi option of grompp.
      * Reads lambda dynamics force field parameters
-     * \param[in] lambdaDynamicsInputFileName structure with information about lambda dynamics 
+     * \param[in] lambdaDynamicsInputFileName structure with information about lambda dynamics
      * force field parameters input
      */
     void setFFInputFile(const LambdaDynamicsInputFileName& lambdaDynamicsInputFileName);
@@ -238,14 +238,14 @@ private:
      * \note Changing this strings will break .tpr backwards compability
      */
     //! \{
-    const std::string c_activeTag_              = "active";
-    const std::string c_pHTag_                  = "simulation-pH";
-    const std::string c_nStepsTag_              = "nst";
-    const std::string c_massTag_                = "particle-mass";
-    const std::string c_tauTag_                 = "tau";
-    const std::string c_chargeConstraintsTag_   = "charge-constraints";
-    const std::string c_isCalibrationTag_       = "calibration";
-    const std::string c_nAtomCollectionsTag_    = "n-atom-collections";
+    const std::string c_activeTag_            = "active";
+    const std::string c_pHTag_                = "simulation-pH";
+    const std::string c_nStepsTag_            = "nst";
+    const std::string c_massTag_              = "particle-mass";
+    const std::string c_tauTag_               = "tau";
+    const std::string c_chargeConstraintsTag_ = "charge-constraints";
+    const std::string c_isCalibrationTag_     = "calibration";
+    const std::string c_nAtomCollectionsTag_  = "n-atom-collections";
     //! \}
 
     /*! \brief This tags for parameters which will be generated during grompp
@@ -260,13 +260,13 @@ private:
     const MDLogger* logger_ = nullptr;
 
     //! Instance of warning bookkeeper
-    warninp* wi_ = nullptr;
+    WarningHandler* wi_ = nullptr;
 
     //! LambdaDynamics parameters built from mdp input
     LambdaDynamicsParameters parameters_;
 
     /*! \brief LambdaDynamics module searches for the force field specific parameters
-     * in grouptypes.ldp file. Currently, the supposed location of the file is 
+     * in grouptypes.ldp file. Currently, the supposed location of the file is
      * working directory
      */
     std::string lambdaDynamicsGroupTypesFileName_;
@@ -275,7 +275,6 @@ private:
      * Produces the vector of groupTypes in LambdaDynamicsParameters
      */
     void getGroupTypeInformationFromFF();
-
 };
 
 } // namespace gmx

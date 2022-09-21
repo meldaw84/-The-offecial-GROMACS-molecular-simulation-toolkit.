@@ -50,6 +50,7 @@
 #include "gromacs/fileio/checkpoint.h"
 #include "gromacs/math/multidimarray.h"
 #include "gromacs/mdlib/broadcaststructs.h"
+#include "gromacs/mdrunutility/mdmodulesnotifiers.h"
 #include "gromacs/mdtypes/commrec.h"
 #include "gromacs/mdtypes/imdmodule.h"
 #include "gromacs/mdtypes/imdoutputprovider.h"
@@ -57,11 +58,10 @@
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/keyvaluetreebuilder.h"
 #include "gromacs/utility/logger.h"
-#include "gromacs/utility/mdmodulesnotifiers.h"
 
+#include "lambdadynamicsforceprovider.h"
 #include "lambdadynamicsoptions.h"
 #include "lambdadynamicsoutputprovider.h"
-#include "lambdadynamicsforceprovider.h"
 
 namespace gmx
 {
@@ -196,10 +196,10 @@ public:
         }
 
         // Notification of the Lambda Dynamics input file provided via -ldi option of grompp
-        const auto setLambdaDynamicsExternalInputFileNameFunction = 
+        const auto setLambdaDynamicsExternalInputFileNameFunction =
                 [this](const LambdaDynamicsInputFileName& ldInputFileName) {
-            lambdadynamicsOptions_.setFFInputFile(ldInputFileName);
-        };
+                    lambdadynamicsOptions_.setFFInputFile(ldInputFileName);
+                };
         notifier->preProcessingNotifier_.subscribe(setLambdaDynamicsExternalInputFileNameFunction);
 
         // Writing internal parameters during pre-processing
@@ -211,7 +211,7 @@ public:
         // Setting atom group indices
         // multiple groups
         /*
-        const auto setLambdaDynamicsGroupIndicesFunction = 
+        const auto setLambdaDynamicsGroupIndicesFunction =
                                             [this](const IndexGroupsAndNames& indexGroupsAndNames) {
             lambdadynamicsOptions_.setLabdaDynamicsGroupIndices(indexGroupsAndNames);
         };
@@ -224,12 +224,14 @@ public:
         notifier->preProcessingNotifier_.subscribe(setLoggerFunction);
 
         // Set warning output during pre-processing
-        const auto setWarninpFunction = [this](warninp* wi) { lambdadynamicsOptions_.setWarninp(wi); };
+        const auto setWarninpFunction = [this](WarningHandler* wi) {
+            lambdadynamicsOptions_.setWarninp(wi);
+        };
         notifier->preProcessingNotifier_.subscribe(setWarninpFunction);
 
         // Notification of the Coordinates, box and pbc during pre-processing
-        /*const auto processCoordinatesFunction = [this](const CoordinatesAndBoxPreprocessed& coord) {
-            lambdadynamicsOptions_.processCoordinates(coord);
+        /*const auto processCoordinatesFunction = [this](const CoordinatesAndBoxPreprocessed& coord)
+        { lambdadynamicsOptions_.processCoordinates(coord);
         };
         notifier->preProcessingNotifier_.subscribe(processCoordinatesFunction);*/
 
@@ -248,11 +250,11 @@ public:
      *   - reading its internal parameters from a key-value-tree during
      *     simulation setup by taking a const KeyValueTreeObject & parameter
      *   - constructing local atom sets in the simulation parameter setup
-     *     by taking a LocalAtomSetManager * as parameter 
+     *     by taking a LocalAtomSetManager * as parameter
      *     ??? should we instead send global indices to potential manager???
      *     potential manager should be a class here and an object of module
      *     or this can be done through construction of lambdadynamics options
-     *     we need to use a list of local atom sets/ a map between coordinates 
+     *     we need to use a list of local atom sets/ a map between coordinates
      *     and atoms in collective atom sett
      *   - the type of periodic boundary conditions that are used
      *     by taking a PeriodicBoundaryConditionType as parameter
@@ -295,13 +297,13 @@ public:
         notifier->simulationSetupNotifier_.subscribe(setLoggerFunction);
 
         // Adding output to energy file
-        const auto requestEnergyOutput = [](MDModulesEnergyOutputToLambdaDynamicsRequestChecker* 
-                                         energyOutputRequest) {
-            energyOutputRequest->energyOutputToLambdaDynamics_ = true;
-        };
+        const auto requestEnergyOutput =
+                [](MDModulesEnergyOutputToLambdaDynamicsRequestChecker* energyOutputRequest) {
+                    energyOutputRequest->energyOutputToLambdaDynamics_ = true;
+                };
         notifier->simulationSetupNotifier_.subscribe(requestEnergyOutput);
 
-        // Request to disable PME-only ranks, which are not compatible with 
+        // Request to disable PME-only ranks, which are not compatible with
         // lambda dynamics currently
         const auto requestPmeRanks = [](SeparatePmeRanksPermitted* pmeRanksPermitted) {
             pmeRanksPermitted->disablePmeRanks(
@@ -322,11 +324,11 @@ public:
         }
 
         //! managers needed for lambda coordinate update
-        
-        //! parameters and lambda coordinates
-        //const auto& parameters = lambdadynamicsOptions_.parameters();
 
-        forceProvider_         = std::make_unique<LambdaDynamicsForceProvider>(
+        //! parameters and lambda coordinates
+        // const auto& parameters = lambdadynamicsOptions_.parameters();
+
+        forceProvider_ = std::make_unique<LambdaDynamicsForceProvider>(
                 lambdaDynamicsSimulationParameters_.periodicBoundaryConditionType(),
                 lambdaDynamicsSimulationParameters_.logger());
         forceProviders->addForceProvider(forceProvider_.get());

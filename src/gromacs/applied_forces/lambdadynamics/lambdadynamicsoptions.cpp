@@ -47,6 +47,7 @@
 #include "gromacs/applied_forces/lambdadynamics/lambdadynamics.h"
 #include "gromacs/fileio/warninp.h"
 #include "gromacs/math/vec.h"
+#include "gromacs/mdrunutility/mdmodulesnotifiers.h"
 #include "gromacs/options/basicoptions.h"
 #include "gromacs/options/optionsection.h"
 #include "gromacs/selection/indexutil.h"
@@ -58,17 +59,16 @@
 #include "gromacs/utility/keyvaluetreebuilder.h"
 #include "gromacs/utility/keyvaluetreetransform.h"
 #include "gromacs/utility/logger.h"
-#include "gromacs/utility/mdmodulesnotifiers.h"
 #include "gromacs/utility/path.h"
 #include "gromacs/utility/strconvert.h"
-#include "gromacs/utility/stringutil.h"
 #include "gromacs/utility/stringcompare.h"
 #include "gromacs/utility/stringtoenumvalueconverter.h"
+#include "gromacs/utility/stringutil.h"
 #include "gromacs/utility/textreader.h"
 
-#define OPENDIR  '['  /* starting sign for directive */
+#define OPENDIR '['  /* starting sign for directive */
 #define CLOSEDIR ']' /* ending sign for directive   */
-#define COMMENT  '#' /* comment sign */
+#define COMMENT '#'  /* comment sign */
 
 namespace gmx
 {
@@ -91,8 +91,8 @@ namespace
  */
 template<class ToType, class TransformWithFunctionType>
 void LambdaDynamicsMdpTransformFromString(IKeyValueTreeTransformRules* rules,
-                                TransformWithFunctionType    transformationFunction,
-                                const std::string&           optionTag)
+                                          TransformWithFunctionType    transformationFunction,
+                                          const std::string&           optionTag)
 {
     rules->addRule()
             .from<std::string>("/" + LambdaDynamicsModuleInfo::name_ + "-" + optionTag)
@@ -113,9 +113,9 @@ void LambdaDynamicsMdpTransformFromString(IKeyValueTreeTransformRules* rules,
  *                      default string for the Lambda Dynamics simulation
  */
 template<class OptionType>
-void addLambdaDynamicsMdpOutputValue(KeyValueTreeObjectBuilder* builder, 
-                                     const OptionType& option, 
-                                     const std::string& optionTag)
+void addLambdaDynamicsMdpOutputValue(KeyValueTreeObjectBuilder* builder,
+                                     const OptionType&          option,
+                                     const std::string&         optionTag)
 {
     builder->addValue<OptionType>(LambdaDynamicsModuleInfo::name_ + "-" + optionTag, option);
 }
@@ -134,8 +134,7 @@ void addLambdaDynamicsMdpOutputValueComment(KeyValueTreeObjectBuilder* builder,
                                             const std::string&         comment,
                                             const std::string&         optionTag)
 {
-    builder->addValue<std::string>("comment-" + LambdaDynamicsModuleInfo::name_ + "-" + optionTag, 
-                                    comment);
+    builder->addValue<std::string>("comment-" + LambdaDynamicsModuleInfo::name_ + "-" + optionTag, comment);
 }
 
 } // namespace
@@ -150,7 +149,7 @@ void LambdaDynamicsOptions::initMdpTransform(IKeyValueTreeTransformRules* rules)
     LambdaDynamicsMdpTransformFromString<bool>(rules, &fromStdString<bool>, c_chargeConstraintsTag_);
     LambdaDynamicsMdpTransformFromString<bool>(rules, &fromStdString<bool>, c_isCalibrationTag_);
     LambdaDynamicsMdpTransformFromString<int>(rules, &fromStdString<bool>, c_nAtomCollectionsTag_);
-        // We have parameters_
+    // We have parameters_
 }
 
 void LambdaDynamicsOptions::buildMdpOutput(KeyValueTreeObjectBuilder* builder) const
@@ -176,21 +175,16 @@ void LambdaDynamicsOptions::buildMdpOutput(KeyValueTreeObjectBuilder* builder) c
         addLambdaDynamicsMdpOutputValueComment(builder, "; Lambda Dynamics thermostat tau", c_tauTag_);
         addLambdaDynamicsMdpOutputValue(builder, parameters_.tau_, c_tauTag_);
 
-        addLambdaDynamicsMdpOutputValueComment(builder, 
-                                               "; Does Lambda Dynamics charge constraint?", 
-                                               c_chargeConstraintsTag_);
-        addLambdaDynamicsMdpOutputValue(builder, 
-                                        parameters_.useChargeConstraints_, 
-                                        c_chargeConstraintsTag_);
+        addLambdaDynamicsMdpOutputValueComment(
+                builder, "; Does Lambda Dynamics charge constraint?", c_chargeConstraintsTag_);
+        addLambdaDynamicsMdpOutputValue(builder, parameters_.useChargeConstraints_, c_chargeConstraintsTag_);
 
-        addLambdaDynamicsMdpOutputValueComment(builder, 
-                                               "; Is Lambda Dynamics in calibration mode?", 
-                                               c_isCalibrationTag_);
+        addLambdaDynamicsMdpOutputValueComment(
+                builder, "; Is Lambda Dynamics in calibration mode?", c_isCalibrationTag_);
         addLambdaDynamicsMdpOutputValue(builder, parameters_.isCalibration_, c_isCalibrationTag_);
 
-        addLambdaDynamicsMdpOutputValueComment(builder, 
-                                               "; Lambda Dynamics number of atom sets", 
-                                               c_nAtomCollectionsTag_);
+        addLambdaDynamicsMdpOutputValueComment(
+                builder, "; Lambda Dynamics number of atom sets", c_nAtomCollectionsTag_);
         addLambdaDynamicsMdpOutputValue(builder, parameters_.nAtomSets_, c_nAtomCollectionsTag_);
     }
 }
@@ -204,7 +198,8 @@ void LambdaDynamicsOptions::initMdpOptions(IOptionsContainerWithSections* option
     section.addOption(Int64Option(c_nStepsTag_.c_str()).store(&parameters_.nst_));
     section.addOption(RealOption(c_pHTag_.c_str()).store(&parameters_.lambdaMass_));
     section.addOption(RealOption(c_tauTag_.c_str()).store(&parameters_.tau_));
-    section.addOption(BooleanOption(c_chargeConstraintsTag_.c_str()).store(&parameters_.useChargeConstraints_));
+    section.addOption(
+            BooleanOption(c_chargeConstraintsTag_.c_str()).store(&parameters_.useChargeConstraints_));
     section.addOption(BooleanOption(c_isCalibrationTag_.c_str()).store(&parameters_.isCalibration_));
     section.addOption(Int64Option(c_nAtomCollectionsTag_.c_str()).store(&parameters_.nAtomSets_));
 
@@ -234,7 +229,7 @@ void LambdaDynamicsOptions::setLogger(const MDLogger& logger)
     logger_ = &logger;
 }
 
-void LambdaDynamicsOptions::setWarninp(warninp* wi)
+void LambdaDynamicsOptions::setWarninp(WarningHandler* wi)
 {
     // Exit if QMMM module is not active
     if (!parameters_.active_)
@@ -257,27 +252,27 @@ void LambdaDynamicsOptions::appendWarning(const std::string& msg)
 {
     if (wi_)
     {
-        warning(wi_, msg);
+        wi_->addWarning(msg);
     }
 }
 
 const std::string enumValueToString(Directive d)
 {
     /* Must correspond to the Directive enum in lambdadynamicsoptions.h */
-    std::map <Directive, const std::string> directiveNames = {
-        {Directive::d_lambdaDynamicsResidues, "lambda_dynamics_residues"},
-        {Directive::d_residue, "residue"},
-        {Directive::d_state, "state"},
-        {Directive::d_atoms, "atoms"},
-        {Directive::d_end_atoms, "end_atoms"},
-        {Directive::d_parameters, "parameters"},
-        {Directive::d_end_parameters, "end_parameters"},
-        {Directive::d_end_state, "end_state"},
-        {Directive::d_end_residue, "end_residue"},
-        {Directive::d_end, "end"},
-        {Directive::d_invalid, "invalid"}
-    }; 
-    
+    std::map<Directive, const std::string> directiveNames = {
+        { Directive::d_lambdaDynamicsResidues, "lambda_dynamics_residues" },
+        { Directive::d_residue, "residue" },
+        { Directive::d_state, "state" },
+        { Directive::d_atoms, "atoms" },
+        { Directive::d_end_atoms, "end_atoms" },
+        { Directive::d_parameters, "parameters" },
+        { Directive::d_end_parameters, "end_parameters" },
+        { Directive::d_end_state, "end_state" },
+        { Directive::d_end_residue, "end_residue" },
+        { Directive::d_end, "end" },
+        { Directive::d_invalid, "invalid" }
+    };
+
     return directiveNames[d];
 }
 
@@ -288,9 +283,9 @@ Directive str2dir(std::string dstr)
     for (const auto type : EnumerationWrapper<Directive>{})
     {
         GMX_RELEASE_ASSERT(type != Directive::Count,
-                               "EnumerationWrapper<EnumType> should never return EnumType::Count");
-        std::string stringFromType = enumValueToString(type);
-        stringFromType = stripString(stringFromType);
+                           "EnumerationWrapper<EnumType> should never return EnumType::Count");
+        std::string stringFromType        = enumValueToString(type);
+        stringFromType                    = stripString(stringFromType);
         stringToEnumValue[stringFromType] = type;
     }
 
@@ -299,16 +294,16 @@ Directive str2dir(std::string dstr)
     return (typeIt != stringToEnumValue.end()) ? typeIt->second : Directive::d_invalid;
 }
 
-namespace 
+namespace
 {
 
-GroupState getGroupState(TextReader &fInp)
+GroupState getGroupState(TextReader& fInp)
 {
     GroupState groupState;
 
     std::string line;
-    bool readingAtoms  = false;
-    bool readingParams = false;
+    bool        readingAtoms  = false;
+    bool        readingParams = false;
     while (fInp.readLine(&line))
     {
         line = stripString(line);
@@ -320,8 +315,8 @@ GroupState getGroupState(TextReader &fInp)
 
         if ((!readingAtoms) && (!readingParams) && (line[0] != OPENDIR))
         {
-            GMX_THROW(InconsistentInputError(formatString(
-                    "Wrong formatting in the state entry of groupTypes.ldp file.")));
+            GMX_THROW(InconsistentInputError(
+                    formatString("Wrong formatting in the state entry of groupTypes.ldp file.")));
         }
 
         if ((readingAtoms) && (line[0] != OPENDIR))
@@ -329,9 +324,10 @@ GroupState getGroupState(TextReader &fInp)
             auto words = splitString(line);
             if (words.size() != 3)
             {
-                GMX_THROW(InconsistentInputError(formatString(
-                        "Wrong formatting in the atoms section of groupTypes.ldp file."
-                        "Atom section expects lines with 3 values: atom name, atom type, and charge.")));
+                GMX_THROW(InconsistentInputError(
+                        formatString("Wrong formatting in the atoms section of groupTypes.ldp file."
+                                     "Atom section expects lines with 3 values: atom name, atom "
+                                     "type, and charge.")));
             }
             groupState.atomNames_.push_back(words[0]);
             groupState.atomTypes_.push_back(words[1]);
@@ -349,7 +345,7 @@ GroupState getGroupState(TextReader &fInp)
                             "Wrong formatting in the parameters section of groupTypes.ldp file."
                             "pKa entry expects only one value.")));
                 }
-                groupState.groupParameters_.pKa_ = std::stod(words[1]); 
+                groupState.groupParameters_.pKa_ = std::stod(words[1]);
             }
             else if (words[0] == "dvdl")
             {
@@ -367,21 +363,20 @@ GroupState getGroupState(TextReader &fInp)
             else
             {
                 GMX_THROW(InconsistentInputError(formatString(
-                        "Wrong formatting in the parameter section. Unexpected entry name."
-                )));
+                        "Wrong formatting in the parameter section. Unexpected entry name.")));
             }
         }
 
         // Parse directive
         if (line[0] == OPENDIR)
         {
-            Directive newd = str2dir(line.substr(1,line.size() - 2));
-        
-            if (newd == Directive::d_invalid) 
+            Directive newd = str2dir(line.substr(1, line.size() - 2));
+
+            if (newd == Directive::d_invalid)
             {
-                GMX_THROW(InconsistentInputError(formatString(
-                    "%s directive is not allowed in groupTypes.ldp file",
-                    stripString(line.substr(1,line.size() - 2)).c_str())));
+                GMX_THROW(InconsistentInputError(
+                        formatString("%s directive is not allowed in groupTypes.ldp file",
+                                     stripString(line.substr(1, line.size() - 2)).c_str())));
             }
 
             if (newd == Directive::d_atoms)
@@ -399,9 +394,9 @@ GroupState getGroupState(TextReader &fInp)
                 readingParams = true;
                 if ((readingAtoms) && (readingParams))
                 {
-                    GMX_THROW(InconsistentInputError(formatString(
-                        "Wrong formatting of state section groupTypes.ldp file. "
-                        "Two sections are open simultaneousely")));
+                    GMX_THROW(InconsistentInputError(
+                            formatString("Wrong formatting of state section groupTypes.ldp file. "
+                                         "Two sections are open simultaneousely")));
                 }
             }
 
@@ -410,14 +405,13 @@ GroupState getGroupState(TextReader &fInp)
                 readingParams = false;
             }
 
-            if (newd == Directive::d_end_state) 
+            if (newd == Directive::d_end_state)
             {
                 // Checks: parameters and atoms
                 return groupState;
             }
 
-            GMX_THROW(InconsistentInputError(formatString(
-                    "Wrong order of directives.")));
+            GMX_THROW(InconsistentInputError(formatString("Wrong order of directives.")));
         }
     }
 
@@ -425,7 +419,7 @@ GroupState getGroupState(TextReader &fInp)
     return groupState;
 }
 
-LambdaDynamicsGroupType getGroupType(TextReader &fInp)
+LambdaDynamicsGroupType getGroupType(TextReader& fInp)
 {
     LambdaDynamicsGroupType groupType;
 
@@ -447,8 +441,8 @@ LambdaDynamicsGroupType getGroupType(TextReader &fInp)
             if (words.size() != 2)
             {
                 GMX_THROW(InconsistentInputError(formatString(
-                    "Wrong formatting in groupTypes.ldp file. Exactly two words are "
-                    "expected in residue entry.")));
+                        "Wrong formatting in groupTypes.ldp file. Exactly two words are "
+                        "expected in residue entry.")));
             }
 
             if (words[0] == "nstates")
@@ -471,26 +465,26 @@ LambdaDynamicsGroupType getGroupType(TextReader &fInp)
                 }
                 else
                 {
-                    GMX_THROW(InconsistentInputError(formatString(
-                    "Wrong group type is provided in groupTypes.ldp file")));
+                    GMX_THROW(InconsistentInputError(
+                            formatString("Wrong group type is provided in groupTypes.ldp file")));
                 }
             }
             else
             {
                 GMX_THROW(InconsistentInputError(formatString(
-                    "Invalid entry is provided in residue block of groupTypes.ldp file")));
+                        "Invalid entry is provided in residue block of groupTypes.ldp file")));
             }
         }
         // Parse directive
         if (line[0] == OPENDIR)
         {
-            Directive newd = str2dir(line.substr(1,line.size() - 2));
-        
-            if (newd == Directive::d_invalid) 
+            Directive newd = str2dir(line.substr(1, line.size() - 2));
+
+            if (newd == Directive::d_invalid)
             {
-                GMX_THROW(InconsistentInputError(formatString(
-                    "%s directive is not allowed in groupTypes.ldp file",
-                    stripString(line.substr(1,line.size() - 2)).c_str())));
+                GMX_THROW(InconsistentInputError(
+                        formatString("%s directive is not allowed in groupTypes.ldp file",
+                                     stripString(line.substr(1, line.size() - 2)).c_str())));
             }
 
             if (newd == Directive::d_state)
@@ -498,22 +492,20 @@ LambdaDynamicsGroupType getGroupType(TextReader &fInp)
                 groupType.groupStates_.push_back(getGroupState(fInp));
             }
 
-            if (newd == Directive::d_end_residue) 
+            if (newd == Directive::d_end_residue)
             {
                 // Checks: type and nstates; names; length and nstates; fill names
                 return groupType;
             }
 
-            GMX_THROW(InconsistentInputError(formatString(
-                    "Wrong order of directives.")));
-
+            GMX_THROW(InconsistentInputError(formatString("Wrong order of directives.")));
         }
     }
-    //How we end up here?
+    // How we end up here?
     return groupType;
 }
 
-} // namespace end
+} // namespace
 
 void LambdaDynamicsOptions::getGroupTypeInformationFromFF()
 {
@@ -528,7 +520,7 @@ void LambdaDynamicsOptions::getGroupTypeInformationFromFF()
 
     // Loop over all lines in the file
     std::string line;
-    bool inLambdaGroupType = false;
+    bool        inLambdaGroupType = false;
     while (fInp.readLine(&line))
     {
         line = stripString(line);
@@ -541,38 +533,38 @@ void LambdaDynamicsOptions::getGroupTypeInformationFromFF()
         if ((!inLambdaGroupType) && (line[0] != OPENDIR))
         {
             GMX_THROW(InconsistentInputError(formatString(
-                "The groupTypes.ldp file must start with the directives %s."
-                "No information should be provided after %s directive. ",
-                stripString(enumValueToString(Directive::d_lambdaDynamicsResidues)).c_str(),
-                stripString(enumValueToString(Directive::d_end)).c_str())));
+                    "The groupTypes.ldp file must start with the directives %s."
+                    "No information should be provided after %s directive. ",
+                    stripString(enumValueToString(Directive::d_lambdaDynamicsResidues)).c_str(),
+                    stripString(enumValueToString(Directive::d_end)).c_str())));
         }
 
         if ((inLambdaGroupType) && line[0] != OPENDIR)
         {
             GMX_THROW(InconsistentInputError(formatString(
-                "No information should be provided before, after %s directive, "
-                "or detween %s directives. ",
-                stripString(enumValueToString(Directive::d_lambdaDynamicsResidues)).c_str(),
-                stripString(enumValueToString(Directive::d_residue)).c_str())));
+                    "No information should be provided before, after %s directive, "
+                    "or detween %s directives. ",
+                    stripString(enumValueToString(Directive::d_lambdaDynamicsResidues)).c_str(),
+                    stripString(enumValueToString(Directive::d_residue)).c_str())));
         }
 
         // Parse directive
         if (line[0] == OPENDIR)
         {
-            Directive newd = str2dir(line.substr(1,line.size() - 2));
+            Directive newd = str2dir(line.substr(1, line.size() - 2));
 
-            if (newd == Directive::d_invalid) {
-                GMX_THROW(InconsistentInputError(formatString(
-                    "%s directive is not allowed in groupTypes.ldp file",
-                    stripString(line.substr(1,line.size() - 2)).c_str())));
+            if (newd == Directive::d_invalid)
+            {
+                GMX_THROW(InconsistentInputError(
+                        formatString("%s directive is not allowed in groupTypes.ldp file",
+                                     stripString(line.substr(1, line.size() - 2)).c_str())));
             }
 
-            if ((!inLambdaGroupType) && 
-                (newd != Directive::d_lambdaDynamicsResidues))
+            if ((!inLambdaGroupType) && (newd != Directive::d_lambdaDynamicsResidues))
             {
                 GMX_THROW(InconsistentInputError(formatString(
-                    "The first directive in groupTypes.ldp file must be %s",
-                    stripString(enumValueToString(Directive::d_lambdaDynamicsResidues)).c_str())));
+                        "The first directive in groupTypes.ldp file must be %s",
+                        stripString(enumValueToString(Directive::d_lambdaDynamicsResidues)).c_str())));
             }
 
             if (newd == Directive::d_lambdaDynamicsResidues)
@@ -582,8 +574,7 @@ void LambdaDynamicsOptions::getGroupTypeInformationFromFF()
 
             if ((inLambdaGroupType) && (newd != Directive::d_residue))
             {
-                GMX_THROW(InconsistentInputError(formatString(
-                    "Wrong order of directives")));
+                GMX_THROW(InconsistentInputError(formatString("Wrong order of directives")));
             }
 
             if ((inLambdaGroupType) && (newd == Directive::d_residue))
@@ -622,38 +613,35 @@ void LambdaDynamicsOptions::setFFInputFile(const LambdaDynamicsInputFileName& la
 }
 
 void LambdaDynamicsOptions::writeInternalParametersToKvt(KeyValueTreeObjectBuilder treeBuilder)
-{    
+{
     // Write number of lambda dynamics groups
-    treeBuilder.addValue<std::int64_t>(LambdaDynamicsModuleInfo::name_ + "-" + c_nLambdGroupsTag_, 
-                parameters_.groupTypes_.size());
+    treeBuilder.addValue<std::int64_t>(LambdaDynamicsModuleInfo::name_ + "-" + c_nLambdGroupsTag_,
+                                       parameters_.groupTypes_.size());
     // Write lambda dynamics groups
     int groupNumber = 1;
-    for (auto &group : parameters_.groupTypes_)
+    for (auto& group : parameters_.groupTypes_)
     {
-        std::string header = LambdaDynamicsModuleInfo::name_ + "-" + 
-                                c_lambdaGroupTag_ + "-" + std::to_string(groupNumber);
+        std::string header = LambdaDynamicsModuleInfo::name_ + "-" + c_lambdaGroupTag_ + "-"
+                             + std::to_string(groupNumber);
         treeBuilder.addValue<std::string>(header + "-name", group.name_);
         treeBuilder.addValue<std::int64_t>(header + "-nstates", group.nStates_);
         treeBuilder.addValue<std::int64_t>(header + "-type", group.type_);
-        auto StringArrayAdder = 
-                treeBuilder.addUniformArray<std::string>(header + "-atom-names");
+        auto StringArrayAdder = treeBuilder.addUniformArray<std::string>(header + "-atom-names");
         for (const auto& indexValue : group.atomNames_)
         {
             StringArrayAdder.addValue(indexValue);
         }
         int stateNumber = 1;
-        for (auto &state : group.groupStates_)
+        for (auto& state : group.groupStates_)
         {
             std::string stateHeader = header + "-state-" + std::to_string(stateNumber);
-            StringArrayAdder = 
-                treeBuilder.addUniformArray<std::string>(stateHeader + "-atom-types");
+            StringArrayAdder = treeBuilder.addUniformArray<std::string>(stateHeader + "-atom-types");
             for (const auto& indexValue : state.atomTypes_)
             {
                 StringArrayAdder.addValue(indexValue);
             }
 
-            auto RealArrayAdder =
-                treeBuilder.addUniformArray<real>(stateHeader + "-atom-charges");
+            auto RealArrayAdder = treeBuilder.addUniformArray<real>(stateHeader + "-atom-charges");
             for (const auto& indexValue : state.atomCharges_)
             {
                 RealArrayAdder.addValue(indexValue);
@@ -661,8 +649,7 @@ void LambdaDynamicsOptions::writeInternalParametersToKvt(KeyValueTreeObjectBuild
 
             treeBuilder.addValue<real>(stateHeader + "-pka", state.groupParameters_.pKa_);
 
-            RealArrayAdder =
-                treeBuilder.addUniformArray<real>(stateHeader + "-dvdl_coefficients");
+            RealArrayAdder = treeBuilder.addUniformArray<real>(stateHeader + "-dvdl_coefficients");
             for (const auto& indexValue : state.groupParameters_.dvdlCoefs_)
             {
                 RealArrayAdder.addValue(indexValue);
@@ -683,16 +670,16 @@ void LambdaDynamicsOptions::readInternalParametersFromKvt(const KeyValueTreeObje
     }
 
     // Try to read number of Lambda Groups from tpr
-    
+
     if (!tree.keyExists(LambdaDynamicsModuleInfo::name_ + "-" + c_nLambdGroupsTag_))
     {
         GMX_THROW(InconsistentInputError(
                 "Cannot find the number of Lambda Groups types required for constant pH MD.\n"
                 "This could be caused by incompatible or corrupted tpr input file."));
     }
-    std::int64_t nLambdGroup = 
+    std::int64_t nLambdGroup =
             tree[LambdaDynamicsModuleInfo::name_ + "-" + c_nLambdGroupsTag_].cast<std::int64_t>();
-    
+
     // Read lambda dynamics groups from tpr
     for (std::int64_t i = 0; i != nLambdGroup; ++i)
     {
@@ -700,8 +687,8 @@ void LambdaDynamicsOptions::readInternalParametersFromKvt(const KeyValueTreeObje
 
         LambdaDynamicsGroupType currentGroupType;
 
-        std::string header = LambdaDynamicsModuleInfo::name_ + "-" + 
-                                c_lambdaGroupTag_ + "-" + std::to_string(groupNumber);
+        std::string header = LambdaDynamicsModuleInfo::name_ + "-" + c_lambdaGroupTag_ + "-"
+                             + std::to_string(groupNumber);
         // Try to read Lambda Group type name
         if (!tree.keyExists(header + "-name"))
         {
@@ -746,12 +733,12 @@ void LambdaDynamicsOptions::readInternalParametersFromKvt(const KeyValueTreeObje
                        std::end(kvtStringArray),
                        std::begin(currentGroupType.atomNames_),
                        [](const KeyValueTreeValue& val) { return val.cast<std::string>(); });
-        
+
         for (int j = 0; j != currentGroupType.nStates_; ++j)
         {
-            int stateNumber = j + 1;
+            int         stateNumber = j + 1;
             std::string stateHeader = header + "-state-" + std::to_string(stateNumber);
-            
+
             GroupState currentGroupState;
 
             // Try to read the atom types of Lambda Group type state
@@ -760,7 +747,8 @@ void LambdaDynamicsOptions::readInternalParametersFromKvt(const KeyValueTreeObje
                 GMX_THROW(InconsistentInputError(formatString(
                         "Cannot find the atom types for Lambda Group Type %s state %s.\n"
                         "This could be caused by incompatible or corrupted tpr input file.",
-                        std::to_string(groupNumber).c_str(), std::to_string(stateNumber).c_str())));
+                        std::to_string(groupNumber).c_str(),
+                        std::to_string(stateNumber).c_str())));
             }
             kvtStringArray = tree[stateHeader + "-atom-types"].asArray().values();
             currentGroupState.atomTypes_.resize(kvtStringArray.size());
@@ -775,7 +763,8 @@ void LambdaDynamicsOptions::readInternalParametersFromKvt(const KeyValueTreeObje
                 GMX_THROW(InconsistentInputError(formatString(
                         "Cannot find the atom charges for Lambda Group Type %s state %s.\n"
                         "This could be caused by incompatible or corrupted tpr input file.",
-                        std::to_string(groupNumber).c_str(), std::to_string(stateNumber).c_str())));
+                        std::to_string(groupNumber).c_str(),
+                        std::to_string(stateNumber).c_str())));
             }
             auto kvtRealArray = tree[stateHeader + "-atom-charges"].asArray().values();
             currentGroupState.atomTypes_.resize(kvtRealArray.size());
@@ -790,7 +779,8 @@ void LambdaDynamicsOptions::readInternalParametersFromKvt(const KeyValueTreeObje
                 GMX_THROW(InconsistentInputError(formatString(
                         "Cannot find the pKa value for Lambda Group Type %s state %s.\n"
                         "This could be caused by incompatible or corrupted tpr input file.",
-                        std::to_string(groupNumber).c_str(), std::to_string(stateNumber).c_str())));
+                        std::to_string(groupNumber).c_str(),
+                        std::to_string(stateNumber).c_str())));
             }
             currentGroupState.groupParameters_.pKa_ = tree[stateHeader + "-pka"].cast<real>();
 
@@ -800,7 +790,8 @@ void LambdaDynamicsOptions::readInternalParametersFromKvt(const KeyValueTreeObje
                 GMX_THROW(InconsistentInputError(formatString(
                         "Cannot find the dvdl coefficients for Lambda Group Type %s state %s.\n"
                         "This could be caused by incompatible or corrupted tpr input file.",
-                        std::to_string(groupNumber).c_str(), std::to_string(stateNumber).c_str())));
+                        std::to_string(groupNumber).c_str(),
+                        std::to_string(stateNumber).c_str())));
             }
             kvtRealArray = tree[stateHeader + "-dvdl-coefficients"].asArray().values();
             currentGroupState.groupParameters_.dvdlCoefs_.resize(kvtRealArray.size());
@@ -808,7 +799,7 @@ void LambdaDynamicsOptions::readInternalParametersFromKvt(const KeyValueTreeObje
                            std::end(kvtRealArray),
                            std::begin(currentGroupState.groupParameters_.dvdlCoefs_),
                            [](const KeyValueTreeValue& val) { return val.cast<real>(); });
-            
+
             // Add atom names to group state
             currentGroupState.atomNames_ = currentGroupType.atomNames_;
             // Save group state to group type
@@ -818,7 +809,6 @@ void LambdaDynamicsOptions::readInternalParametersFromKvt(const KeyValueTreeObje
         // Save group type to parameters
         parameters_.groupTypes_.push_back(currentGroupType);
     }
-
 }
 
 } // namespace gmx
