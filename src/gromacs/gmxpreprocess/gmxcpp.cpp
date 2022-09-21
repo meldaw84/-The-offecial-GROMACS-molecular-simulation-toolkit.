@@ -311,7 +311,7 @@ static int cpp_open_file(const std::filesystem::path&                         fi
     cpp->parent = nullptr;
     if (cpp->fp == nullptr)
     {
-        cpp->fp = fopen(cpp->fn.c_str(), "r");
+        cpp->fp = fopen(cpp->fn.string().c_str(), "r");
     }
     if (cpp->fp == nullptr)
     {
@@ -737,7 +737,7 @@ char* cpp_error(gmx_cpp_t* handlep, int status)
     sprintf(buf,
             "%s - File %s, line %d\nLast line read:\n'%s'",
             ecpp[status],
-            (handle && !handle->fn.empty()) ? handle->fn.c_str() : "unknown",
+            (handle && !handle->fn.empty()) ? handle->fn.string().c_str() : "unknown",
             (handle) ? handle->line_nr : -1,
             !handle->line.empty() ? handle->line.c_str() : "");
 
