@@ -145,6 +145,8 @@ public:
     void append(const char* arg);
     //! Convenience overload taking a std::string.
     void append(const std::string& arg) { append(arg.c_str()); }
+    //! Convenience overload taking a std::filesystem::path
+    void append(const std::filesystem::path& arg) { append(arg.string()); }
     /*! \brief
      * Adds an option to the command line, typically a boolean.
      *
@@ -162,6 +164,8 @@ public:
     void addOption(const char* name, const char* value);
     //! Convenience overload taking a std::string.
     void addOption(const char* name, const std::string& value);
+    //! Convenience overload taking a std::filesystem::path.
+    void addOption(const char* name, const std::filesystem::path& value);
     //! Overload taking an int.
     void addOption(const char* name, int value);
     //! Overload taking a double.

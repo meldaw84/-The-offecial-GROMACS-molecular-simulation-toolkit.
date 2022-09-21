@@ -126,7 +126,7 @@ void TestFileOutputRedirector::checkRedirectedFiles(TestReferenceChecker* checke
     std::vector<Impl::FileListEntry>::const_iterator i;
     for (i = impl_->fileList_.begin(); i != impl_->fileList_.end(); ++i)
     {
-        StringTestBase::checkText(checker, i->second->toString(), i->first.c_str());
+        StringTestBase::checkText(checker, i->second->toString(), i->first.string().c_str());
     }
 }
 

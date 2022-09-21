@@ -42,6 +42,7 @@
 #ifndef GMX_TESTUTILS_FILEMATCHERS_H
 #define GMX_TESTUTILS_FILEMATCHERS_H
 
+#include <filesystem>
 #include <memory>
 #include <string>
 
@@ -87,7 +88,7 @@ public:
      * The caller is responsible of providing a checker where such state
      * changes do not matter.
      */
-    virtual void checkFile(const std::string& path, TestReferenceChecker* checker) = 0;
+    virtual void checkFile(const std::filesystem::path& path, TestReferenceChecker* checker) = 0;
 };
 
 //! Smart pointer for managing a IFileMatcher.

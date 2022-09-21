@@ -59,7 +59,7 @@ class TextFileMatcher : public IFileMatcher
 public:
     explicit TextFileMatcher(TextBlockMatcherPointer matcher) : matcher_(std::move(matcher)) {}
 
-    void checkFile(const std::string& path, TestReferenceChecker* checker) override
+    void checkFile(const std::filesystem::path& path, TestReferenceChecker* checker) override
     {
         TextInputFile stream(path);
         matcher_->checkStream(&stream, checker);

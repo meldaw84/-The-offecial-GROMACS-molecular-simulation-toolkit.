@@ -189,6 +189,12 @@ void CommandLine::addOption(const char* name, const char* value)
     append(value);
 }
 
+void CommandLine::addOption(const char* name, const std::filesystem::path& value)
+{
+    append(name);
+    append(value.string());
+}
+
 void CommandLine::addOption(const char* name, const std::string& value)
 {
     addOption(name, value.c_str());
@@ -398,7 +404,7 @@ std::filesystem::path CommandLineTestHelper::setOutputFile(CommandLine*         
                                                            const IFileMatcherSettings&  matcher)
 {
     std::string suffix = filename.string();
-    if (startsWith(filename, "."))
+    if (startsWith(filename.string(), "."))
     {
         suffix = formatString("%d.%s", args->argc(), filename.string().c_str());
     }
@@ -504,13 +510,13 @@ std::filesystem::path CommandLineTestBase::setOutputFile(const char*            
 std::filesystem::path CommandLineTestBase::setOutputFileWithGeneratedName(const std::filesystem::path& filename,
                                                                           const ITextBlockMatcherSettings& matcher)
 {
-    return impl_->helper_.setOutputFileWithGeneratedName(std::string(filename), matcher);
+    return impl_->helper_.setOutputFileWithGeneratedName(filename, matcher);
 }
 
 std::filesystem::path CommandLineTestBase::setOutputFileWithGeneratedName(const std::filesystem::path& filename,
                                                                           const IFileMatcherSettings& matcher)
 {
-    return impl_->helper_.setOutputFileWithGeneratedName(std::string(filename), matcher);
+    return impl_->helper_.setOutputFileWithGeneratedName(filename, matcher);
 }
 
 std::filesystem::path CommandLineTestBase::setInputAndOutputFile(const char* option,
