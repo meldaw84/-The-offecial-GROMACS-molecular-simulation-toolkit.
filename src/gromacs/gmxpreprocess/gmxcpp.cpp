@@ -44,6 +44,7 @@
 #include <cstring>
 
 #include <algorithm>
+#include <filesystem>
 #include <memory>
 #include <unordered_set>
 
@@ -73,18 +74,18 @@ enum
 
 struct gmx_cpp
 {
-    std::shared_ptr<std::vector<t_define>>    defines;
-    std::shared_ptr<std::vector<std::string>> includes;
-    std::unordered_set<std::string>           unmatched_defines;
-    FILE*                                     fp = nullptr;
-    std::string                               path;
-    std::string                               cwd;
-    std::string                               fn;
-    std::string                               line;
-    int                                       line_nr;
-    std::vector<int>                          ifdefs;
-    struct gmx_cpp*                           child  = nullptr;
-    struct gmx_cpp*                           parent = nullptr;
+    std::shared_ptr<std::vector<t_define>>              defines;
+    std::shared_ptr<std::vector<std::filesystem::path>> includes;
+    std::unordered_set<std::string>                     unmatched_defines;
+    FILE*                                               fp = nullptr;
+    std::filesystem::path                               path;
+    std::filesystem::path                               cwd;
+    std::filesystem::path                               fn;
+    std::string                                         line;
+    int                                                 line_nr;
+    std::vector<int>                                    ifdefs;
+    struct gmx_cpp*                                     child  = nullptr;
+    struct gmx_cpp*                                     parent = nullptr;
 };
 
 static bool is_word_end(char c)
@@ -171,14 +172,14 @@ static bool is_ifdeffed_out(gmx::ArrayRef<const int> ifdefs)
     return (!ifdefs.empty() && ifdefs.back() != eifTRUE);
 }
 
-static void add_include(std::vector<std::string>* includes, const char* includePath)
+static void add_include(std::vector<std::filesystem::path>* includes, const std::filesystem::path& includePath)
 {
     GMX_RELEASE_ASSERT(includes, "Need valid includes");
-    GMX_RELEASE_ASSERT(includePath, "Need a valid include path");
+    GMX_RELEASE_ASSERT(!includePath.empty(), "Need a valid include path");
 
-    for (const std::string& include : *includes)
+    for (const std::filesystem::path& include : *includes)
     {
-        if (strcmp(include.c_str(), includePath) == 0)
+        if (std::filesystem::equivalent(include, includePath))
         {
             return;
         }
@@ -206,11 +207,11 @@ static void add_define(std::vector<t_define>* defines, const std::string& name, 
 
 /* Open the file to be processed. The handle variable holds internal
    info for the cpp emulator. Return integer status */
-static int cpp_open_file(const char*                                filenm,
-                         gmx_cpp_t*                                 handle,
-                         char**                                     cppopts,
-                         std::shared_ptr<std::vector<t_define>>*    definesFromParent,
-                         std::shared_ptr<std::vector<std::string>>* includesFromParent)
+static int cpp_open_file(const std::filesystem::path&                         filenm,
+                         gmx_cpp_t*                                           handle,
+                         char**                                               cppopts,
+                         std::shared_ptr<std::vector<t_define>>*              definesFromParent,
+                         std::shared_ptr<std::vector<std::filesystem::path>>* includesFromParent)
 {
     // TODO: We should avoid new/delete, we should use Pimpl instead
     gmx_cpp* cpp = new gmx_cpp;
@@ -231,7 +232,7 @@ static int cpp_open_file(const char*                                filenm,
     }
     else
     {
-        cpp->includes = std::make_shared<std::vector<std::string>>();
+        cpp->includes = std::make_shared<std::vector<std::filesystem::path>>();
     }
 
     /* First process options, they might be necessary for opening files
@@ -274,9 +275,9 @@ static int cpp_open_file(const char*                                filenm,
     else
     {
         /* If not, check all the paths given with -I. */
-        for (const std::string& include : *cpp->includes)
+        for (const std::filesystem::path& include : *cpp->includes)
         {
-            std::string buf = include + "/" + filenm;
+            auto buf = std::filesystem::path(include).append(filenm.string());
             if (gmx_fexist(buf))
             {
                 cpp->fn = buf;
@@ -291,28 +292,16 @@ static int cpp_open_file(const char*                                filenm,
     }
     if (cpp->fn.empty())
     {
-        gmx_fatal(FARGS, "Topology include file \"%s\" not found", filenm);
+        gmx_fatal(FARGS, "Topology include file \"%s\" not found", filenm.string().c_str());
     }
     /* If the file name has a path component, we need to change to that
-     * directory. Note that we - just as C - always use UNIX path separators
-     * internally in include file names.
+     * directory.
      */
-    size_t pos  = cpp->fn.rfind('/');
-    size_t pos2 = cpp->fn.rfind(DIR_SEPARATOR);
-
-    if (pos == std::string::npos || (pos2 != std::string::npos && pos2 > pos))
+    if (cpp->fn.has_parent_path())
     {
-        pos = pos2;
-    }
-    if (pos != std::string::npos)
-    {
-        cpp->path = cpp->fn;
-        cpp->path.resize(pos);
-        cpp->fn.erase(0, pos + 1);
-
-        auto cwd = gmx_getcwd();
-        cpp->cwd = cwd.string();
-
+        cpp->path = cpp->fn.parent_path();
+        cpp->cwd  = gmx_getcwd();
+        cpp->fn.clear();
         gmx_chdir(cpp->path);
     }
     cpp->line.clear();
@@ -337,7 +326,7 @@ static int cpp_open_file(const char*                                filenm,
 
 /* Open the file to be processed. The handle variable holds internal
    info for the cpp emulator. Return integer status */
-int cpp_open_file(const char* filenm, gmx_cpp_t* handle, char** cppopts)
+int cpp_open_file(const std::filesystem::path& filenm, gmx_cpp_t* handle, char** cppopts)
 {
     return cpp_open_file(filenm, handle, cppopts, nullptr, nullptr);
 }
@@ -472,8 +461,7 @@ static int process_directive(gmx_cpp_t* handlep, const std::string& dname, const
         std::string inc_fn = dval.substr(i0, len);
 
         /* Open include file and store it as a child in the handle structure */
-        int status = cpp_open_file(
-                inc_fn.c_str(), &(handle->child), nullptr, &handle->defines, &handle->includes);
+        int status = cpp_open_file(inc_fn, &(handle->child), nullptr, &handle->defines, &handle->includes);
         if (status != eCPP_OK)
         {
             handle->child = nullptr;
@@ -659,9 +647,9 @@ int cpp_read_line(gmx_cpp_t* handlep, int n, char buf[])
     return eCPP_OK;
 }
 
-const char* cpp_cur_file(const gmx_cpp_t* handlep)
+std::filesystem::path cpp_cur_file(const gmx_cpp_t* handlep)
 {
-    return (*handlep)->fn.c_str();
+    return (*handlep)->fn;
 }
 
 int cpp_cur_linenr(const gmx_cpp_t* handlep)
