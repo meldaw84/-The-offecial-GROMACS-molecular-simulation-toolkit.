@@ -37,6 +37,7 @@
 
 #include <cstring>
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -153,15 +154,15 @@ std::vector<gmx::DataFileInfo> fflib_enumerate_forcefields()
     return result;
 }
 
-bool fflib_fexist(const std::string& file)
+bool fflib_fexist(const std::filesystem::path& file)
 {
     return !gmx::findLibraryFile(file, true, false).empty();
 }
 
 
-FILE* fflib_open(const std::string& file)
+FILE* fflib_open(const std::filesystem::path& file)
 {
-    std::string fileFullPath = gmx::findLibraryFile(file);
-    fprintf(stderr, "Opening force field file %s\n", fileFullPath.c_str());
+    auto fileFullPath = gmx::findLibraryFile(file);
+    fprintf(stderr, "Opening force field file %s\n", fileFullPath.string().c_str());
     return gmx_ffopen(fileFullPath, "r");
 }

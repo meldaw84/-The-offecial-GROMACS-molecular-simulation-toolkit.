@@ -72,10 +72,10 @@ std::vector<std::filesystem::path> fflib_search_file_end(const std::filesystem::
  * Return the number of files and the file names in filenames.
  */
 
-bool fflib_fexist(const std::string& file);
+bool fflib_fexist(const std::filesystem::path& file);
 /* Check if a file exists in the force field library */
 
-FILE* fflib_open(const std::string& file);
+FILE* fflib_open(const std::filesystem::path& file);
 /* Open force field library file "file" for reading.
  * "file" should contain the whole path to the force field library,
  * either absolute or relative to the current dir.
