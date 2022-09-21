@@ -37,6 +37,8 @@
 
 #include <cstring>
 
+#include <filesystem>
+
 #include "gromacs/utility/arraysize.h"
 #include "gromacs/utility/cstringutil.h"
 
@@ -266,21 +268,21 @@ const char* ftp2defopt(int ftp)
     }
 }
 
-int fn2ftp(const char* fn)
+int fn2ftp(const std::filesystem::path& fn)
 {
     int         i, len;
     const char* feptr;
     const char* eptr;
 
-    if (!fn)
+    if (fn.empty())
     {
         return efNR;
     }
 
-    len = std::strlen(fn);
-    if ((len >= 4) && (fn[len - 4] == '.'))
+    len = fn.string().size();
+    if ((len >= 4) && (fn.string()[len - 4] == '.'))
     {
-        feptr = &(fn[len - 4]);
+        feptr = &(fn.string()[len - 4]);
     }
     else
     {

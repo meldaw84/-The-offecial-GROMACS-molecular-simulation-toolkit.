@@ -252,7 +252,7 @@ static void gmx_fio_stop_getting_next(t_fileio* fio)
  *                     EXPORTED SECTION
  *
  *****************************************************************/
-t_fileio* gmx_fio_open(const char* fn, const char* mode)
+t_fileio* gmx_fio_open(const std::filesystem::path& fn, const char* mode)
 {
     t_fileio* fio = nullptr;
     char      newmode[5];
@@ -300,14 +300,14 @@ t_fileio* gmx_fio_open(const char* fn, const char* mode)
     bReadWrite = (newmode[1] == '+');
     fio->fp    = nullptr;
     fio->xdr   = nullptr;
-    if (fn)
+    if (!fn.empty())
     {
         if (fn2ftp(fn) == efTNG)
         {
             gmx_incons("gmx_fio_open may not be used to open TNG files");
         }
         fio->iFTP = fn2ftp(fn);
-        fio->fn   = gmx_strdup(fn);
+        fio->fn   = gmx_strdup(fn.string().c_str());
 
         fio->fp = gmx_ffopen(fn, newmode);
         /* If this file type is in the list of XDR files, open it like that */
@@ -398,7 +398,7 @@ int gmx_fio_fp_close(t_fileio* fio)
     return rc;
 }
 
-FILE* gmx_fio_fopen(const char* fn, const char* mode)
+FILE* gmx_fio_fopen(const std::filesystem::path& fn, const char* mode)
 {
     FILE*     ret;
     t_fileio* fio;

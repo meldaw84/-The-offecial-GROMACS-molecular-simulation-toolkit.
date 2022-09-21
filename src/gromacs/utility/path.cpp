@@ -198,8 +198,8 @@ void File::throwOnError(const NotFoundInfo& info)
 {
     if (info.wasError)
     {
-        const std::string message =
-                formatString("Failed to access file '%s'.\n%s", info.filename.c_str(), info.message);
+        const std::string message = formatString(
+                "Failed to access file '%s'.\n%s", info.filename.string().c_str(), info.message);
         GMX_THROW_WITH_ERRNO(FileIOError(message), info.call, info.err);
     }
 }
@@ -207,8 +207,9 @@ void File::throwOnError(const NotFoundInfo& info)
 void File::throwOnNotFound(const NotFoundInfo& info)
 {
     throwOnError(info);
-    const std::string message = formatString(
-            "File '%s' does not exist or is not accessible.\n%s", info.filename.c_str(), info.message);
+    const std::string message = formatString("File '%s' does not exist or is not accessible.\n%s",
+                                             info.filename.string().c_str(),
+                                             info.message);
     GMX_THROW_WITH_ERRNO(InvalidInputError(message), info.call, info.err);
 }
 
