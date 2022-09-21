@@ -109,7 +109,7 @@ std::vector<std::filesystem::path> fflib_search_file_end(const std::filesystem::
                     "Could not find any files ending on '%s' "
                     "in the force field directory '%s'",
                     file_end,
-                    ffdir.c_str());
+                    ffdir.string().c_str());
             GMX_THROW(gmx::InvalidInputError(message));
         }
         for (auto& filename : result)
