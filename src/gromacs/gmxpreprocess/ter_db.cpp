@@ -244,17 +244,10 @@ static void read_ter_db_file(const std::filesystem::path&        fn,
                              std::vector<MoleculePatchDatabase>* tbptr,
                              PreprocessingAtomTypes*             atype)
 {
-    char filebase[STRLEN];
     char header[STRLEN], buf[STRLEN], line[STRLEN];
 
-    fflib_filename_base(fn, filebase, STRLEN);
-    /* Remove the C/N termini extension */
-    char* ptr = strrchr(filebase, '.');
-    if (ptr != nullptr)
-    {
-        ptr[0] = '\0';
-    }
-
+    auto filebase = fflib_filename_base(fn);
+    filebase.replace_extension("");
     FILE* in = fflib_open(fn);
 
     std::optional<BondedTypes> btkw;

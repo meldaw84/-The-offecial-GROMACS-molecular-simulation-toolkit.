@@ -63,14 +63,13 @@ typedef struct
 
 static void get_xlatoms(const std::filesystem::path& filename, FILE* fp, int* nptr, t_xlate_atom** xlptr)
 {
-    char          filebase[STRLEN];
     char          line[STRLEN];
     char          abuf[1024], rbuf[1024], repbuf[1024], dumbuf[1024];
     char*         _ptr;
     int           n, na, idum;
     t_xlate_atom* xl;
 
-    fflib_filename_base(filename, filebase, STRLEN);
+    auto filebase = fflib_filename_base(filename);
 
     n  = *nptr;
     xl = *xlptr;
@@ -94,7 +93,7 @@ static void get_xlatoms(const std::filesystem::path& filename, FILE* fp, int* np
         }
 
         srenew(xl, n + 1);
-        xl[n].filebase = gmx_strdup(filebase);
+        xl[n].filebase = gmx_strdup(filebase.string().c_str());
 
         /* Use wildcards... */
         if (strcmp(rbuf, "*") != 0)

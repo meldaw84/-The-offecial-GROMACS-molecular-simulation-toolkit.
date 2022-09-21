@@ -98,7 +98,7 @@ PreprocessingAtomTypes read_atype(const std::filesystem::path& ffdir);
  * \param[in] logger MDLogger interface.
  * \param[in] bAllowOverrideRTP If entries can be overwritten in the database.
  */
-void readResidueDatabase(const std::string&              resdb,
+void readResidueDatabase(const std::filesystem::path&    resdb,
                          std::vector<PreprocessResidue>* rtpDBEntry,
                          PreprocessingAtomTypes*         atype,
                          t_symtab*                       tab,

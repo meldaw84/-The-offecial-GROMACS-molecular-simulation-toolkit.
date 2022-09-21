@@ -67,32 +67,9 @@ const char* fflib_forcefield_doc()
     return "forcefield.doc";
 }
 
-void fflib_filename_base(const std::filesystem::path& filename, char* filebase, int maxlen)
+std::filesystem::path fflib_filename_base(const std::filesystem::path& filename)
 {
-    const char* cptr;
-    char*       ptr;
-
-    cptr = strrchr(filename.string().c_str(), DIR_SEPARATOR);
-    if (cptr != nullptr)
-    {
-        /* Skip the separator */
-        cptr += 1;
-    }
-    else
-    {
-        cptr = filename.string().c_str();
-    }
-    if (filename.string().size() >= static_cast<size_t>(maxlen))
-    {
-        gmx_fatal(FARGS, "filename is longer (%zu) than maxlen (%d)", filename.string().size(), maxlen);
-    }
-    strcpy(filebase, cptr);
-    /* Remove the extension */
-    ptr = strrchr(filebase, '.');
-    if (ptr != nullptr)
-    {
-        ptr[0] = '\0';
-    }
+    return filename.filename().replace_extension("");
 }
 
 std::vector<std::filesystem::path> fflib_search_file_end(const std::filesystem::path& ffdir,

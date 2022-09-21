@@ -131,9 +131,9 @@ void read_ab(char* line, const std::filesystem::path& fn, MoleculePatch* hack)
 
 static void read_h_db_file(const std::filesystem::path& hfn, std::vector<MoleculePatchDatabase>* globalPatches)
 {
-    char filebase[STRLEN], line[STRLEN], buf[STRLEN];
+    char line[STRLEN], buf[STRLEN];
 
-    fflib_filename_base(hfn, filebase, STRLEN);
+    auto filebase = fflib_filename_base(hfn);
     /* Currently filebase is read and set, but not used.
      * hdb entries from any hdb file and be applied to rtp entries
      * in any rtp file.

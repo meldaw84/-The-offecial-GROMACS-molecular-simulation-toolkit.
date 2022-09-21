@@ -298,7 +298,7 @@ void print_resall(FILE* out, gmx::ArrayRef<const PreprocessResidue> rtpDBEntry, 
     }
 }
 
-void readResidueDatabase(const std::string&              rrdb,
+void readResidueDatabase(const std::filesystem::path&    rrdb,
                          std::vector<PreprocessResidue>* rtpDBEntry,
                          PreprocessingAtomTypes*         atype,
                          t_symtab*                       tab,
@@ -306,12 +306,12 @@ void readResidueDatabase(const std::string&              rrdb,
                          bool                            bAllowOverrideRTP)
 {
     FILE* in;
-    char  filebase[STRLEN], line[STRLEN], header[STRLEN];
+    char  line[STRLEN], header[STRLEN];
     int   nparam;
     int   dum1, dum2, dum3;
     bool  bNextResidue, bError;
 
-    fflib_filename_base(rrdb.c_str(), filebase, STRLEN);
+    auto filebase = fflib_filename_base(rrdb);
 
     in = fflib_open(rrdb);
 

@@ -284,7 +284,7 @@ const char* get_histp(int resnr, gmx::ArrayRef<const RtpRename> rr)
     return select_res<HistidineStates>(resnr, "HISTIDINE", rr);
 }
 
-void read_rtprename(const char* fname, FILE* fp, std::vector<RtpRename>* rtprename)
+void read_rtprename(const std::filesystem::path& fname, FILE* fp, std::vector<RtpRename>* rtprename)
 {
     char line[STRLEN], buf[STRLEN];
 
@@ -314,7 +314,7 @@ void read_rtprename(const char* fname, FILE* fp, std::vector<RtpRename>* rtprena
             {
                 gmx_fatal(FARGS,
                           "Residue renaming database '%s' has %d columns instead of %d or %d",
-                          fname,
+                          fname.string().c_str(),
                           ncol,
                           2,
                           5);
@@ -326,7 +326,7 @@ void read_rtprename(const char* fname, FILE* fp, std::vector<RtpRename>* rtprena
             gmx_fatal(FARGS,
                       "A line in residue renaming database '%s' has %d columns, while previous "
                       "lines have %d columns",
-                      fname,
+                      fname.string().c_str(),
                       nc,
                       ncol);
         }
@@ -2026,7 +2026,7 @@ int pdb2gmx::run()
     {
         GMX_LOG(logger.info).asParagraph().appendTextFormatted("going to rename %s", filename.c_str());
         FILE* fp = fflib_open(filename);
-        read_rtprename(filename.c_str(), fp, &rtprename);
+        read_rtprename(filename, fp, &rtprename);
         gmx_ffclose(fp);
     }
 

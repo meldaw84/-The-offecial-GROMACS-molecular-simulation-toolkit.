@@ -152,7 +152,7 @@ choose_ff_impl(const char* ffsel, char* forcefield, int ff_maxlen, const gmx::MD
     ffs.reserve(ffdirs.size());
     for (int i = 0; i < nff; ++i)
     {
-        ffs.push_back(gmx::stripSuffixIfPresent(ffdirs[i].name, fflib_forcefield_dir_ext()));
+        ffs.emplace_back(gmx::stripSuffixIfPresent(ffdirs[i].name, fflib_forcefield_dir_ext()));
     }
 
     int sel;
