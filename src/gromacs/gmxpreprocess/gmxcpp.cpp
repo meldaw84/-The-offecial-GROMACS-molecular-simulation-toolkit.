@@ -300,8 +300,8 @@ static int cpp_open_file(const std::filesystem::path&                         fi
     if (cpp->fn.has_parent_path())
     {
         cpp->path = cpp->fn.parent_path();
+        cpp->fn   = cpp->fn.filename();
         cpp->cwd  = gmx_getcwd();
-        cpp->fn.clear();
         gmx_chdir(cpp->path);
     }
     cpp->line.clear();

@@ -89,8 +89,8 @@ bool TestFileInputRedirector::fileExists(const std::filesystem::path& filename,
 class TestFileOutputRedirector::Impl
 {
 public:
-    typedef std::shared_ptr<StringOutputStream>         StringStreamPointer;
-    typedef std::pair<std::string, StringStreamPointer> FileListEntry;
+    typedef std::shared_ptr<StringOutputStream>                   StringStreamPointer;
+    typedef std::pair<std::filesystem::path, StringStreamPointer> FileListEntry;
 
     StringStreamPointer        stdoutStream_;
     std::vector<FileListEntry> fileList_;

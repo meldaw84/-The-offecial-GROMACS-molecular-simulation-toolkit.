@@ -178,7 +178,7 @@ std::filesystem::path TestFileManager::getTestSpecificFileNameRoot()
     std::string                filenameRoot;
     if (test_info)
     {
-        filenameRoot = std::string(test_info->test_suite_name()).append("_").append(test_info->name());
+        filenameRoot = std::string(test_info->test_suite_name()) + "_" + test_info->name();
     }
     else
     {
@@ -195,7 +195,7 @@ std::filesystem::path TestFileManager::getTestSpecificFileName(const std::filesy
     auto filename = getTestSpecificFileNameRoot();
     if (suffix.string()[0] != '.')
     {
-        filename.append("_");
+        filename.concat("_");
     }
     filename.concat(suffix.string());
     return filename;
