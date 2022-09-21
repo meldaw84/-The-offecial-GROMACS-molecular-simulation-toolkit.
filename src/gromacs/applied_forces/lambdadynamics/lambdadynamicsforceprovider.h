@@ -74,7 +74,7 @@ public:
      * \param[in] fInput input for force provider
      * \param[out] fOutput output for force provider
      */
-    void calculateForces(const ForceProviderInput& fInput, ForceProviderOutput* fOutput) override;
+    void calculateForces(const ForceProviderInput&, ForceProviderOutput*) override;
 
 private:
     //! Write message to the log

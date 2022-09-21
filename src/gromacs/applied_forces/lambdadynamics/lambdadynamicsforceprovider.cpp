@@ -66,7 +66,6 @@ void LambdaDynamicsForceProvider::appendLog(const std::string& msg)
 }
 
 //! Lambda Dynamics does not provide forces on atoms
-void LambdaDynamicsForceProvider::calculateForces(const ForceProviderInput& fInput,
-                                                  ForceProviderOutput*      fOutput){};
+void LambdaDynamicsForceProvider::calculateForces(const ForceProviderInput&, ForceProviderOutput*){};
 
 } // namespace gmx
