@@ -141,7 +141,8 @@ static const t_deffile deffile[efNR] = {
     { eftASC, ".xpm", "root", nullptr, "X PixMap compatible matrix file" },
     { eftASC, "", "rundir", nullptr, "Run directory" },
     { eftASC, ".csv", "bench", nullptr, "CSV data file" },
-    { eftASC, ".inp", "topol-qmmm", nullptr, "Input file for QM program" }
+    { eftASC, ".inp", "topol-qmmm", nullptr, "Input file for QM program" },
+    { eftASC, ".ldi", "ld-topology", nullptr, "Lambda Dynamics parameters file" }
 };
 
 const char* ftp2ext(int ftp)

@@ -196,7 +196,7 @@ void LambdaDynamicsOptions::initMdpOptions(IOptionsContainerWithSections* option
     section.addOption(BooleanOption(c_activeTag_.c_str()).store(&parameters_.active_));
     section.addOption(RealOption(c_pHTag_.c_str()).store(&parameters_.pH_));
     section.addOption(Int64Option(c_nStepsTag_.c_str()).store(&parameters_.nst_));
-    section.addOption(RealOption(c_pHTag_.c_str()).store(&parameters_.lambdaMass_));
+    section.addOption(RealOption(c_massTag_.c_str()).store(&parameters_.lambdaMass_));
     section.addOption(RealOption(c_tauTag_.c_str()).store(&parameters_.tau_));
     section.addOption(
             BooleanOption(c_chargeConstraintsTag_.c_str()).store(&parameters_.useChargeConstraints_));

@@ -307,5 +307,8 @@ density-guided-simulation-active = false
 
 ; QM/MM with CP2K
 qmmm-cp2k-active         = false
+
+; Lambda Dynamics
+lambda-dynamics-active   = false
 </String>
 </ReferenceData>

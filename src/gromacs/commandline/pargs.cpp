@@ -471,7 +471,6 @@ gmx_bool parse_common_args(int*               argc,
 
         fileOptManager.disableInputOptionChecking(isFlagSet(PCA_DISABLE_INPUT_FILE_CHECKING));
         options.addManager(&fileOptManager);
-
         if (isFlagSet(PCA_CAN_SET_DEFFNM))
         {
             fileOptManager.addDefaultFileNameOption(&options, "deffnm");
@@ -506,7 +505,7 @@ gmx_bool parse_common_args(int*               argc,
                     "View output [REF].xvg[ref], [REF].xpm[ref], "
                     "[REF].eps[ref] and [REF].pdb[ref] files"));
         }
-
+        
         bool bXvgr = false;
         for (int i = 0; i < nfile; i++)
         {
@@ -520,7 +519,7 @@ gmx_bool parse_common_args(int*               argc,
                                       .store(&xvgFormat)
                                       .description("xvg plot formatting"));
         }
-
+        
         /* Now append the program specific arguments */
         for (int i = 0; i < nfile; i++)
         {
@@ -530,7 +529,7 @@ gmx_bool parse_common_args(int*               argc,
         {
             adapter.pargsToOptions(&options, &pa[i]);
         }
-
+        
         const gmx::CommandLineHelpContext* context = gmx::GlobalCommandLineHelpContext::get();
         if (context != nullptr)
         {
@@ -543,7 +542,7 @@ gmx_bool parse_common_args(int*               argc,
                     .writeHelp(*context);
             return FALSE;
         }
-
+        
         /* Now parse all the command-line options */
         gmx::CommandLineParser(&options)
                 .skipUnknown(isFlagSet(PCA_NOEXIT_ON_ARGS))
@@ -571,7 +570,6 @@ gmx_bool parse_common_args(int*               argc,
         }
 
         adapter.copyValues();
-
         return TRUE;
     }
     GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR

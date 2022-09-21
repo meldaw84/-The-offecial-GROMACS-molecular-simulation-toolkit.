@@ -2013,7 +2013,7 @@ int gmx_grompp(int argc, char* argv[])
           { &bRenum },
           "Renumber atomtypes and minimize number of atomtypes" }
     };
-
+    
     /* Parse the command line */
     if (!parse_common_args(&argc, argv, 0, NFILE, fnm, asize(pa), pa, asize(desc), desc, 0, nullptr, &oenv))
     {
@@ -2035,7 +2035,6 @@ int gmx_grompp(int argc, char* argv[])
     gmx::LoggerOwner    logOwner(builder.build());
     const gmx::MDLogger logger(logOwner.logger());
 
-
     WarningHandler wi{ true, maxwarn };
 
     /* PARAMETER file processing */
@@ -2046,7 +2045,7 @@ int gmx_grompp(int argc, char* argv[])
         get_ir(mdparin, opt2fn("-po", NFILE, fnm), &mdModules, ir, opts, WriteMdpHeader::yes, &wi);
     }
     GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR
-
+    
     // Now that the MDModules have their options assigned from get_ir, subscribe
     // to eventual notifications during pre-processing their data
     mdModules.subscribeToPreProcessingNotifications();
