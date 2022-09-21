@@ -39,7 +39,11 @@ target_sources(msm PRIVATE
 
 target_link_libraries(msm PRIVATE
         common
+        legacy_modules
+        math
 )
+
+target_link_libraries(msm INTERFACE mdspan)
 
 if (BUILD_TESTING)
     add_subdirectory(tests)
