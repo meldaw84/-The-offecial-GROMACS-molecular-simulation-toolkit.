@@ -561,7 +561,7 @@ static void set_forces(FILE* fp, int angle, int nx, double h, double v[], double
     spline_forces(end - start, h, v + start, TRUE, end == nx, f + start);
 }
 
-static std::vector<t_tabledata> read_tables(FILE* fp, const char* filename, int ntab, int angle)
+static std::vector<t_tabledata> read_tables(FILE* fp, const std::filesystem::path& filename, int ntab, int angle)
 {
     char     buf[STRLEN];
     double   start, end, dx0, dx1, ssd, vm, vp, f, numf;
@@ -569,13 +569,17 @@ static std::vector<t_tabledata> read_tables(FILE* fp, const char* filename, int 
     gmx_bool bAllZero, bZeroV, bZeroF;
     double   tabscale;
 
-    nny               = 2 * ntab + 1;
-    std::string libfn = gmx::findLibraryFile(filename);
+    nny        = 2 * ntab + 1;
+    auto libfn = gmx::findLibraryFile(filename);
     gmx::MultiDimArray<std::vector<double>, gmx::dynamicExtents2D> xvgData    = readXvgData(libfn);
     int                                                            numColumns = xvgData.extent(0);
     if (numColumns != nny)
     {
-        gmx_fatal(FARGS, "Trying to read file %s, but nr columns = %d, should be %d", libfn.c_str(), numColumns, nny);
+        gmx_fatal(FARGS,
+                  "Trying to read file %s, but nr columns = %d, should be %d",
+                  libfn.string().c_str(),
+                  numColumns,
+                  nny);
     }
     int numRows = xvgData.extent(1);
 
@@ -586,7 +590,7 @@ static std::vector<t_tabledata> read_tables(FILE* fp, const char* filename, int 
         {
             gmx_fatal(FARGS,
                       "The first distance in file %s is %f nm instead of %f nm",
-                      libfn.c_str(),
+                      libfn.string().c_str(),
                       yy[0][0],
                       0.0);
         }
@@ -606,7 +610,7 @@ static std::vector<t_tabledata> read_tables(FILE* fp, const char* filename, int 
         {
             gmx_fatal(FARGS,
                       "The angles in file %s should go from %f to %f instead of %f to %f\n",
-                      libfn.c_str(),
+                      libfn.string().c_str(),
                       start,
                       end,
                       yy[0][0],
@@ -618,7 +622,7 @@ static std::vector<t_tabledata> read_tables(FILE* fp, const char* filename, int 
 
     if (fp)
     {
-        fprintf(fp, "Read user tables from %s with %d data points.\n", libfn.c_str(), numRows);
+        fprintf(fp, "Read user tables from %s with %d data points.\n", libfn.string().c_str(), numRows);
         if (angle == 0)
         {
             fprintf(fp, "Tabscale = %g points/nm\n", tabscale);
@@ -641,7 +645,7 @@ static std::vector<t_tabledata> read_tables(FILE* fp, const char* filename, int 
                 {
                     gmx_fatal(FARGS,
                               "In table file '%s' the x values are not equally spaced: %f %f %f",
-                              filename,
+                              filename.string().c_str(),
                               yy[0][i - 2],
                               yy[0][i - 1],
                               yy[0][i]);
@@ -657,7 +661,10 @@ static std::vector<t_tabledata> read_tables(FILE* fp, const char* filename, int 
                 }
                 if (yy[1 + k * 2][i] > 0.01 * GMX_REAL_MAX || yy[1 + k * 2][i] < -0.01 * GMX_REAL_MAX)
                 {
-                    gmx_fatal(FARGS, "Out of range potential value %g in file '%s'", yy[1 + k * 2][i], filename);
+                    gmx_fatal(FARGS,
+                              "Out of range potential value %g in file '%s'",
+                              yy[1 + k * 2][i],
+                              filename.string().c_str());
                 }
             }
             if (yy[1 + k * 2 + 1][i] != 0)
@@ -670,7 +677,10 @@ static std::vector<t_tabledata> read_tables(FILE* fp, const char* filename, int 
                 }
                 if (yy[1 + k * 2 + 1][i] > 0.01 * GMX_REAL_MAX || yy[1 + k * 2 + 1][i] < -0.01 * GMX_REAL_MAX)
                 {
-                    gmx_fatal(FARGS, "Out of range force value %g in file '%s'", yy[1 + k * 2 + 1][i], filename);
+                    gmx_fatal(FARGS,
+                              "Out of range force value %g in file '%s'",
+                              yy[1 + k * 2 + 1][i],
+                              filename.string().c_str());
                 }
             }
         }
@@ -711,7 +721,7 @@ static std::vector<t_tabledata> read_tables(FILE* fp, const char* filename, int 
                         "%% from minus the numerical derivative of the potential\n",
                         ns,
                         k,
-                        libfn.c_str(),
+                        libfn.string().c_str(),
                         gmx::roundToInt64(100 * ssd));
                 if (debug)
                 {
@@ -730,7 +740,7 @@ static std::vector<t_tabledata> read_tables(FILE* fp, const char* filename, int 
     }
     if (bAllZero && fp)
     {
-        fprintf(fp, "\nNOTE: All elements in table %s are zero\n\n", libfn.c_str());
+        fprintf(fp, "\nNOTE: All elements in table %s are zero\n\n", libfn.string().c_str());
     }
 
     std::vector<t_tabledata> td;
@@ -1233,7 +1243,7 @@ static void set_table_type(int tabsel[], const interaction_const_t* ic, gmx_bool
 }
 
 std::unique_ptr<t_forcetable>
-make_tables(FILE* fp, const interaction_const_t* ic, const char* fn, real rtab, int flags)
+make_tables(FILE* fp, const interaction_const_t* ic, const std::filesystem::path& fn, real rtab, int flags)
 {
     gmx_bool b14only, useUserTable;
     int      nx0, tabsel[etiNR];
@@ -1285,7 +1295,7 @@ make_tables(FILE* fp, const interaction_const_t* ic, const char* fn, real rtab, 
                 gmx_fatal(FARGS,
                           "Tables in file %s not long enough for cut-off:\n"
                           "\tshould be at least %f nm\n",
-                          fn,
+                          fn.string().c_str(),
                           rtab);
             }
             table->numTablePoints = gmx::roundToInt(rtab * td[0].tabscale);
@@ -1371,7 +1381,7 @@ make_tables(FILE* fp, const interaction_const_t* ic, const char* fn, real rtab, 
     return table;
 }
 
-bondedtable_t make_bonded_table(FILE* fplog, const char* fn, int angle)
+bondedtable_t make_bonded_table(FILE* fplog, const std::filesystem::path& fn, int angle)
 {
     int           i;
     bondedtable_t tab;
@@ -1396,10 +1406,12 @@ bondedtable_t make_bonded_table(FILE* fplog, const char* fn, int angle)
     return tab;
 }
 
-std::unique_ptr<t_forcetable>
-makeDispersionCorrectionTable(FILE* fp, const interaction_const_t* ic, real rtab, const char* tabfn)
+std::unique_ptr<t_forcetable> makeDispersionCorrectionTable(FILE*                        fp,
+                                                            const interaction_const_t*   ic,
+                                                            real                         rtab,
+                                                            const std::filesystem::path& tabfn)
 {
-    GMX_RELEASE_ASSERT(ic->vdwtype != VanDerWaalsType::User || tabfn,
+    GMX_RELEASE_ASSERT(ic->vdwtype != VanDerWaalsType::User || !tabfn.empty(),
                        "With VdW user tables we need a table file name");
 
     std::unique_ptr<t_forcetable> fullTable = make_tables(fp, ic, tabfn, rtab, 0);

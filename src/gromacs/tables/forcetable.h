@@ -45,6 +45,7 @@
 
 #include <cstdio>
 
+#include <filesystem>
 #include <memory>
 #include <vector>
 
@@ -189,7 +190,7 @@ double v_lj_ewald_lr(double beta, double r);
  * \return Pointer to inner loop table structure
  */
 std::unique_ptr<t_forcetable>
-make_tables(FILE* fp, const interaction_const_t* ic, const char* fn, real rtab, int flags);
+make_tables(FILE* fp, const interaction_const_t* ic, const std::filesystem::path& fn, real rtab, int flags);
 
 /*! \brief Return a table for bonded interactions,
  *
@@ -198,14 +199,16 @@ make_tables(FILE* fp, const interaction_const_t* ic, const char* fn, real rtab, 
  * \param  angle   Type of angle: bonds 0, angles 1, dihedrals 2
  * \return New bonded table datatype
  */
-bondedtable_t make_bonded_table(FILE* fplog, const char* fn, int angle);
+bondedtable_t make_bonded_table(FILE* fplog, const std::filesystem::path& fn, int angle);
 
 /*! \brief Construct and return tabulated dispersion and repulsion interactions
  *
  * This table can be used to compute long-range dispersion corrections.
  * Returns pointer owning nothing when tabfn=nullptr.
  */
-std::unique_ptr<t_forcetable>
-makeDispersionCorrectionTable(FILE* fp, const interaction_const_t* ic, real rtab, const char* tabfn);
+std::unique_ptr<t_forcetable> makeDispersionCorrectionTable(FILE*                        fp,
+                                                            const interaction_const_t*   ic,
+                                                            real                         rtab,
+                                                            const std::filesystem::path& tabfn);
 
 #endif /* GMX_TABLES_FORCETABLE_H */
