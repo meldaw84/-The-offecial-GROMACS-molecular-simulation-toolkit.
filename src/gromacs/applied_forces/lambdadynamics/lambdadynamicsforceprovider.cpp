@@ -33,10 +33,9 @@
  */
 /*! \internal \file
  * \brief
- * Implements force provider for QMMM
+ * Implements force provider for Lambda Dynamics
  *
- * \author Dmitry Morozov <dmitry.morozov@jyu.fi>
- * \author Christian Blau <blau@kth.se>
+ * \author Pavel Buslaev <pavel.i.buslaev@jyu.fi>
  * \ingroup module_applied_forces
  */
 
@@ -56,10 +55,8 @@
 namespace gmx
 {
 
-LambdaDynamicsForceProvider::LambdaDynamicsForceProvider(PbcType               pbcType,
-                                                         const MDLogger&       logger) :
-    pbcType_(pbcType),
-    logger_(logger)
+LambdaDynamicsForceProvider::LambdaDynamicsForceProvider(PbcType pbcType, const MDLogger& logger) :
+    pbcType_(pbcType), logger_(logger)
 {
 }
 
@@ -69,9 +66,7 @@ void LambdaDynamicsForceProvider::appendLog(const std::string& msg)
 }
 
 //! Lambda Dynamics does not provide forces on atoms
-void LambdaDynamicsForceProvider::calculateForces(const ForceProviderInput& fInput, 
-                                                  ForceProviderOutput* fOutput)
-{
-};
+void LambdaDynamicsForceProvider::calculateForces(const ForceProviderInput& fInput,
+                                                  ForceProviderOutput*      fOutput){};
 
 } // namespace gmx

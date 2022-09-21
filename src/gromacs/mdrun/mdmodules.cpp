@@ -39,8 +39,8 @@
 
 #include "gromacs/applied_forces/densityfitting/densityfitting.h"
 #include "gromacs/applied_forces/electricfield.h"
-#include "gromacs/applied_forces/qmmm/qmmm.h"
 #include "gromacs/applied_forces/lambdadynamics/lambdadynamics.h"
+#include "gromacs/applied_forces/qmmm/qmmm.h"
 #include "gromacs/imd/imd.h"
 #include "gromacs/mdrunutility/mdmodulesnotifiers.h"
 #include "gromacs/mdtypes/iforceprovider.h"

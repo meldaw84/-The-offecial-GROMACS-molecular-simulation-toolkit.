@@ -2065,8 +2065,8 @@ int gmx_grompp(int argc, char* argv[])
 
     // Notify Lambda Dynamics MDModule of Lambda Dynamics input file command-line option
     {
-        gmx::LambdaDynamicsInputFileName ldInputFileName = 
-            { ftp2bSet(efLDI, NFILE, fnm), ftp2fn(efLDI, NFILE, fnm) };
+        gmx::LambdaDynamicsInputFileName ldInputFileName = { ftp2bSet(efLDI, NFILE, fnm),
+                                                             ftp2fn(efLDI, NFILE, fnm) };
         mdModules.notifiers().preProcessingNotifier_.notify(ldInputFileName);
     }
 

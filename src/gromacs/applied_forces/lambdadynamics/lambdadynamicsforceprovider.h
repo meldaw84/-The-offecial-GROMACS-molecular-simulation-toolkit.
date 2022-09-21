@@ -65,11 +65,10 @@ typedef int force_env_t;
 class LambdaDynamicsForceProvider final : public IForceProvider
 {
 public:
-    LambdaDynamicsForceProvider(PbcType               pbcType,
-                                const MDLogger&       logger);
+    LambdaDynamicsForceProvider(PbcType pbcType, const MDLogger& logger);
 
     //! Destruct force provider for QMMM and finalize libcp2k
-    ~LambdaDynamicsForceProvider() {};
+    ~LambdaDynamicsForceProvider(){}
 
     /*!\brief Calculate forces of QMMM.
      * \param[in] fInput input for force provider
@@ -81,8 +80,8 @@ private:
     //! Write message to the log
     void appendLog(const std::string& msg);
 
-    const PbcType         pbcType_;
-    const MDLogger&       logger_;
+    const PbcType   pbcType_;
+    const MDLogger& logger_;
 };
 
 #ifdef __clang__
