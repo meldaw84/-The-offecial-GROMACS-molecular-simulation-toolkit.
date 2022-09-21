@@ -68,7 +68,7 @@ public:
     LambdaDynamicsForceProvider(PbcType pbcType, const MDLogger& logger);
 
     //! Destruct force provider for QMMM and finalize libcp2k
-    ~LambdaDynamicsForceProvider(){}
+    ~LambdaDynamicsForceProvider() {}
 
     /*!\brief Calculate forces of QMMM.
      * \param[in] fInput input for force provider
