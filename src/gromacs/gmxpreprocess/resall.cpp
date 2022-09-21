@@ -59,7 +59,7 @@
 
 #include "hackblock.h"
 
-PreprocessingAtomTypes read_atype(const char* ffdir)
+PreprocessingAtomTypes read_atype(const std::filesystem::path& ffdir)
 {
     FILE*  in;
     char   buf[STRLEN], name[STRLEN];

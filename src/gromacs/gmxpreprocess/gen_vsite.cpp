@@ -1667,7 +1667,7 @@ void do_vsites(gmx::ArrayRef<const PreprocessResidue> rtpFFDB,
                int*                                   cgnr[],
                real                                   mHmult,
                bool                                   bVsiteAromatics,
-               const char*                            ffdir)
+               const std::filesystem::path&           ffdir)
 {
 #define MAXATOMSPERRESIDUE 16
     int     k, m, i0, ni0, whatres, add_shift, nvsite, nadd;
@@ -1782,7 +1782,7 @@ void do_vsites(gmx::ArrayRef<const PreprocessResidue> rtpFFDB,
     std::vector<VirtualSiteTopology> vsitetop;
     for (const auto& filename : db)
     {
-        read_vsite_database(filename.c_str(), &vsiteconflist, &vsitetop);
+        read_vsite_database(filename, &vsiteconflist, &vsitetop);
     }
 
     bFirstWater = TRUE;

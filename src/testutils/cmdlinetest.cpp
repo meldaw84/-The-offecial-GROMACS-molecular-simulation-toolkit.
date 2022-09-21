@@ -418,7 +418,7 @@ std::filesystem::path
 CommandLineTestHelper::setOutputFileWithGeneratedName(const std::filesystem::path&     filename,
                                                       const ITextBlockMatcherSettings& matcher)
 {
-    return setOutputFileWithGeneratedName(std::string(filename), TextFileMatch(matcher));
+    return setOutputFileWithGeneratedName(filename, TextFileMatch(matcher));
 }
 
 std::filesystem::path CommandLineTestHelper::setOutputFileWithGeneratedName(const std::filesystem::path& filename,

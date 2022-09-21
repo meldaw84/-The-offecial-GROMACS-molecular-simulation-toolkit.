@@ -240,7 +240,7 @@ static void print_ter_db(const char*                                ff,
     gmx_fio_fclose(out);
 }
 
-static void read_ter_db_file(const char*                         fn,
+static void read_ter_db_file(const std::filesystem::path&        fn,
                              std::vector<MoleculePatchDatabase>* tbptr,
                              PreprocessingAtomTypes*             atype)
 {
@@ -305,7 +305,7 @@ static void read_ter_db_file(const char*                         fn,
                         gmx_fatal(FARGS,
                                   "Reading Termini Database '%s': "
                                   "expected atom name on line\n%s",
-                                  fn,
+                                  fn.string().c_str(),
                                   line);
                     }
                     hack->oname = buf;
@@ -340,7 +340,7 @@ static void read_ter_db_file(const char*                         fn,
                             gmx_fatal(FARGS,
                                       "Reading Termini Database '%s': don't know which name the "
                                       "new atom should have on line\n%s",
-                                      fn,
+                                      fn.string().c_str(),
                                       line);
                         }
                     }
@@ -364,7 +364,7 @@ static void read_ter_db_file(const char*                         fn,
                         gmx_fatal(FARGS,
                                   "Reading Termini Database '%s': expected %d atom names (found "
                                   "%d) on line\n%s",
-                                  fn,
+                                  fn.string().c_str(),
                                   enumValueToNumIAtoms(*btkw),
                                   j - 1,
                                   line);
@@ -389,7 +389,10 @@ static void read_ter_db_file(const char*                         fn,
     gmx_ffclose(in);
 }
 
-int read_ter_db(const char* ffdir, char ter, std::vector<MoleculePatchDatabase>* tbptr, PreprocessingAtomTypes* atype)
+int read_ter_db(const std::filesystem::path&        ffdir,
+                char                                ter,
+                std::vector<MoleculePatchDatabase>* tbptr,
+                PreprocessingAtomTypes*             atype)
 {
     std::string ext = gmx::formatString(".%c.tdb", ter);
 

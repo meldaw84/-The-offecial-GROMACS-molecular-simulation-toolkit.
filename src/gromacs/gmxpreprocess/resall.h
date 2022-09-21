@@ -40,6 +40,7 @@
 
 #include <cstdio>
 
+#include <filesystem>
 #include <vector>
 
 #include "gromacs/utility/arrayref.h"
@@ -85,7 +86,7 @@ getDatabaseEntry(const std::string& rtpname, gmx::ArrayRef<const PreprocessResid
  * \param[in] ffdir Force field directory.
  * \returns Atom type database.
  */
-PreprocessingAtomTypes read_atype(const char* ffdir);
+PreprocessingAtomTypes read_atype(const std::filesystem::path& ffdir);
 
 /*! \brief
  * Read in database, append to exisiting.

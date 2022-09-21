@@ -387,7 +387,8 @@ int gmx_x2top(int argc, char* argv[])
     t_nm2type*                            nm2t;
     t_mols                                mymol;
     int                                   nnm;
-    char                                  forcefield[32], ffdir[STRLEN];
+    char                                  forcefield[32];
+    std::filesystem::path                 ffdir;
     rvec*                                 x; /* coordinates? */
     int *                                 nbonds, *cgnr;
     int                                   bts[] = { 1, 1, 1, 2 };
@@ -479,7 +480,7 @@ int gmx_x2top(int argc, char* argv[])
 
 
     /* Force field selection, interactive or direct */
-    choose_ff(strcmp(ff, "select") == 0 ? nullptr : ff, forcefield, sizeof(forcefield), ffdir, sizeof(ffdir), logger);
+    ffdir = choose_ff(strcmp(ff, "select") == 0 ? nullptr : ff, forcefield, sizeof(forcefield), logger);
 
     bOPLS = (strcmp(forcefield, "oplsaa") == 0);
 
@@ -498,7 +499,7 @@ int gmx_x2top(int argc, char* argv[])
         snew(atoms->pdbinfo, natoms);
     }
 
-    sprintf(n2t, "%s", ffdir);
+    sprintf(n2t, "%s", ffdir.string().c_str());
     nm2t = rd_nm2type(n2t, &nnm);
     if (nnm == 0)
     {
@@ -563,7 +564,7 @@ int gmx_x2top(int argc, char* argv[])
         print_top_header(fp, ftp2fn(efTOP, NFILE, fnm), TRUE, ffdir, 1.0);
 
         write_top(fp,
-                  nullptr,
+                  {},
                   mymol.name.c_str(),
                   atoms,
                   FALSE,
