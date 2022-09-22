@@ -362,7 +362,7 @@ struct NbnxnPairlistCpu
     //! Debug list print function
     void printNblist(FILE* fp);
     //! Return whether the pairlist is simple (ie. not for a GPU)
-    static bool isSimple() { return true; };
+    static bool isSimple() { return true; }
     /*! \brief SIMD code for checking and adding cluster-pairs to the list
      * using coordinates in packed format.
      *
@@ -411,7 +411,7 @@ struct NbnxnPairlistCpu
                                  int* gmx_restrict        numDistanceChecks);
     //! \}
     //! Return the number of simple j clusters in this list
-    int getNumSimpleJClustersInList() const { return cj.size(); };
+    int getNumSimpleJClustersInList() const { return cj.size(); }
     //! Increment the number of simple j clusters in this list
     void incrementNumSimpleJClustersInList(int ncj_old_j);
     /*! \brief Set all atom-pair exclusions for the last i-cluster entry
@@ -558,9 +558,9 @@ struct NbnxnPairlistGpu
     //! Debug list print function
     void printNblist(FILE* fp);
     //! Return whether the pairlist is simple (ie. not for a GPU)
-    static bool isSimple() { return false; };
+    static bool isSimple() { return false; }
     //! Return the number of simple j clusters in this list (ie. 0 for this GPU list)
-    static int getNumSimpleJClustersInList() { return 0; };
+    static int getNumSimpleJClustersInList() { return 0; }
     //! Empty function because a GPU pairlist does not use simple j clusters.
     void incrementNumSimpleJClustersInList(int /* numJClusters */);
 
