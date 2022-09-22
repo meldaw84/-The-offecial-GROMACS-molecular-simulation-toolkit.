@@ -318,7 +318,7 @@ struct NbnxnPairlistCpu
     NbnxnPairlistCpu();
 
     //! Print statistics of a pair list, used for debug output
-    void printNblistStatistics(FILE* fp, const Nbnxm::GridSet& gridSet, const real rl) const;
+    void printNblistStatistics(FILE* fp, const Nbnxm::GridSet& gridSet, const rl) const;
     //! Makes the cluster list for each grid cell from \c firstCell to \c lastCell
     void makeClusterListDispatcher(const Nbnxm::Grid&              iGrid,
                                    int                             ci,
@@ -327,8 +327,8 @@ struct NbnxnPairlistCpu
                                    int                             lastCell,
                                    bool                            excludeSubDiagonal,
                                    const nbnxn_atomdata_t*         nbat,
-                                   const real                      rlist2,
-                                   const real                      rbb2,
+                                   real                            rlist2,
+                                   real                            rbb2,
                                    const ClusterDistanceKernelType kernelType,
                                    int*                            numDistanceChecks);
     /*! \brief Make a pair list for the perturbed pairs, while excluding
@@ -467,7 +467,7 @@ struct NbnxnPairlistGpu
     NbnxnPairlistGpu(gmx::PinningPolicy pinningPolicy);
 
     //! Print statistics of a pair list, used for debug output
-    void printNblistStatistics(FILE* fp, const Nbnxm::GridSet& gridSet, const real rl) const;
+    void printNblistStatistics(FILE* fp, const Nbnxm::GridSet& gridSet, real rl) const;
     /*! \brief Returns a reference to the exclusion mask for
      * j-cluster group \p cjPackedIndex and warp \p warp
      *
@@ -497,7 +497,7 @@ struct NbnxnPairlistGpu
                                  bool               excludeSubDiagonal,
                                  int                stride,
                                  const real*        x,
-                                 const real         rlist2,
+                                 real               rlist2,
                                  float              rbb2,
                                  int*               numDistanceChecks);
 
@@ -509,8 +509,8 @@ struct NbnxnPairlistGpu
                                    int                       lastCell,
                                    bool                      excludeSubDiagonal,
                                    const nbnxn_atomdata_t*   nbat,
-                                   const real                rlist2,
-                                   const real                rbb2,
+                                   real                      rlist2,
+                                   real                      rbb2,
                                    ClusterDistanceKernelType kernelType,
                                    int*                      numDistanceChecks);
     /*! \brief Make a pair list for the perturbed pairs, while excluding
