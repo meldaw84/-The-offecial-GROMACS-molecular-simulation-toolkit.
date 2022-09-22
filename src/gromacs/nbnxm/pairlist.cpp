@@ -1854,7 +1854,7 @@ void NbnxnPairlistGpu::setExclusionsForIEntry(const Nbnxm::GridSet&   gridSet,
                             const int jHalf = innerJ / (c_clusterSize / c_nbnxnGpuClusterpairSplit);
 
                             nbnxn_excl_t& interactionMask =
-                                    getExclusionMask(cjPacked.indexOfParticleWithinGroup(index), jHalf);
+                                    getExclusionMask(cjPacked.clusterIndexToGroupIndex(index), jHalf);
 
                             interactionMask.pair[jParticleIndexWithinWarp(innerJ) * c_clusterSize + innerI] &=
                                     ~pairMask;
