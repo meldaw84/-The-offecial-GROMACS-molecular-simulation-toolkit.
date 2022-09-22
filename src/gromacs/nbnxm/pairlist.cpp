@@ -2065,9 +2065,9 @@ void NbnxnPairlistGpu::closeIEntry(int nsp_max_av, gmx_bool progBal, float nsp_t
     }
 }
 
-void NbnxnPairlistCpu::syncWork() {}
+void NbnxnPairlistCpu::syncWork() const {}
 
-void NbnxnPairlistGpu::syncWork()
+void NbnxnPairlistGpu::syncWork() const
 {
     work->cj_ind = cjPacked.size() * c_nbnxnGpuJgroupSize;
 }
@@ -2802,16 +2802,6 @@ static int getBufferFlagShift(int numAtomsPerCluster)
     return bufferFlagShift;
 }
 
-bool NbnxnPairlistCpu::isSimple() const
-{
-    return true;
-}
-
-bool NbnxnPairlistGpu::isSimple() const
-{
-    return false;
-}
-
 void NbnxnPairlistCpu::makeClusterListDispatcher(const Grid gmx_unused&          iGrid,
                                                  const int                       ci,
                                                  const Grid&                     jGrid,
@@ -2863,16 +2853,6 @@ void NbnxnPairlistGpu::makeClusterListDispatcher(const Grid& gmx_unused  iGrid,
         makeClusterListSupersub(
                 iGrid, jGrid, ci, cj, excludeSubDiagonal, nbat->xstride, nbat->x().data(), rlist2, rbb2, numDistanceChecks);
     }
-}
-
-int NbnxnPairlistCpu::getNumSimpleJClustersInList() const
-{
-    return cj.size();
-}
-
-int NbnxnPairlistGpu::getNumSimpleJClustersInList() const
-{
-    return 0;
 }
 
 void NbnxnPairlistCpu::incrementNumSimpleJClustersInList(const int ncj_old_j)

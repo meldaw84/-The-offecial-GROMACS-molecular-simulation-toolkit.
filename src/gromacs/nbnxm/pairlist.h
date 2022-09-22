@@ -261,12 +261,12 @@ public:
     //! The list of packed j-cluster groups
     gmx::HostVector<nbnxn_cj_packed_t> list_;
     //! Return the index of particle \c index within its group
-    constexpr gmx::index indexOfParticleWithinGroup(gmx::index index) const
+    static constexpr gmx::index indexOfParticleWithinGroup(gmx::index index)
     {
         return index & (c_nbnxnGpuJgroupSize - 1);
     }
     //! Convert a j-cluster index to a cjPacked group index
-    constexpr gmx::index clusterIndexToGroupIndex(gmx::index jClusterIndex) const
+    static constexpr gmx::index clusterIndexToGroupIndex(gmx::index jClusterIndex)
     {
         return jClusterIndex / c_nbnxnGpuJgroupSize;
     }
@@ -321,11 +321,11 @@ struct NbnxnPairlistCpu
     void printNblistStatistics(FILE* fp, const Nbnxm::GridSet& gridSet, const real rl) const;
     //! Makes the cluster list for each grid cell from \c firstCell to \c lastCell
     void makeClusterListDispatcher(const Nbnxm::Grid&              iGrid,
-                                   const int                       ci,
+                                   int                             ci,
                                    const Nbnxm::Grid&              jGrid,
-                                   const int                       firstCell,
-                                   const int                       lastCell,
-                                   const bool                      excludeSubDiagonal,
+                                   int                             firstCell,
+                                   int                             lastCell,
+                                   bool                            excludeSubDiagonal,
                                    const nbnxn_atomdata_t*         nbat,
                                    const real                      rlist2,
                                    const real                      rbb2,
@@ -356,13 +356,13 @@ struct NbnxnPairlistCpu
                      int gmx_unused      thread,
                      int gmx_unused      nthread);
     //! Dummy function so this class works like NbnxmPairlistGpu
-    void syncWork();
+    void syncWork() const;
     //! Clears pairlists
     void clear();
     //! Debug list print function
     void printNblist(FILE* fp);
     //! Return whether the pairlist is simple (ie. not for a GPU)
-    bool isSimple() const;
+    static bool isSimple() { return true; };
     /*! \brief SIMD code for checking and adding cluster-pairs to the list
      * using coordinates in packed format.
      *
@@ -372,10 +372,9 @@ struct NbnxnPairlistCpu
      * respectively the plain-C, SIMD 4xn, and SIMD 4xnn kernel flavours.
      *
      * \param[in]     jGrid               The j-grid
-     * \param[in,out] nbl                 The pair-list to store the cluster pairs in
      * \param[in]     icluster            The index of the i-cluster
-     * \param[in]     firstCell           The first cluster in the j-range, using i-cluster size indexing
-     * \param[in]     lastCell            The last cluster in the j-range, using i-cluster size indexing
+     * \param[in]     jclusterFirst       The first cluster in the j-range, using i-cluster size indexing
+     * \param[in]     jclusterLast        The last cluster in the j-range, using i-cluster size indexing
      * \param[in]     excludeSubDiagonal  Exclude atom pairs with i-index > j-index
      * \param[in]     x_j                 Coordinates for the j-atom, in SIMD packed format
      * \param[in]     rlist2              The squared list cut-off
@@ -412,7 +411,7 @@ struct NbnxnPairlistCpu
                                  int* gmx_restrict        numDistanceChecks);
     //! \}
     //! Return the number of simple j clusters in this list
-    int getNumSimpleJClustersInList() const;
+    int getNumSimpleJClustersInList() const { return cj.size(); };
     //! Increment the number of simple j clusters in this list
     void incrementNumSimpleJClustersInList(int ncj_old_j);
     /*! \brief Set all atom-pair exclusions for the last i-cluster entry
@@ -483,7 +482,7 @@ struct NbnxnPairlistGpu
      * \param[in]     jOffsetInGroup  The j-entry offset in \p cjPacked.list_[cjPackedIndex]
      * \param[in]     iClusterInCell  The i-cluster index in the cell
      */
-    void setSelfAndNewtonExclusionsGpu(const int cjPackedIndex, const int jOffsetInGroup, const int iClusterInCell);
+    void setSelfAndNewtonExclusionsGpu(int cjPackedIndex, int jOffsetInGroup, int iClusterInCell);
 
     /*! \brief Makes a pair list of super-cell sci vs scj.
      *
@@ -493,22 +492,22 @@ struct NbnxnPairlistGpu
      * fallback implementation. */
     void makeClusterListSupersub(const Nbnxm::Grid& iGrid,
                                  const Nbnxm::Grid& jGrid,
-                                 const int          sci,
-                                 const int          scj,
-                                 const bool         excludeSubDiagonal,
-                                 const int          stride,
+                                 int                sci,
+                                 int                scj,
+                                 bool               excludeSubDiagonal,
+                                 int                stride,
                                  const real*        x,
                                  const real         rlist2,
-                                 const float        rbb2,
+                                 float              rbb2,
                                  int*               numDistanceChecks);
 
     //! Makes the cluster list for each grid cell from \c firstCell to \c lastCell
     void makeClusterListDispatcher(const Nbnxm::Grid&        iGrid,
-                                   const int                 ci,
+                                   int                       ci,
                                    const Nbnxm::Grid&        jGrid,
-                                   const int                 firstCell,
-                                   const int                 lastCell,
-                                   const bool                excludeSubDiagonal,
+                                   int                       firstCell,
+                                   int                       lastCell,
+                                   bool                      excludeSubDiagonal,
                                    const nbnxn_atomdata_t*   nbat,
                                    const real                rlist2,
                                    const real                rbb2,
@@ -553,17 +552,17 @@ struct NbnxnPairlistGpu
     //! Close this super/sub list i entry
     void closeIEntry(int nsp_max_av, gmx_bool progBal, float nsp_tot_est, int thread, int nthread);
     //! Syncs the working array before adding another grid pair to the GPU list
-    void syncWork();
+    void syncWork() const;
     //! Clears pairlists
     void clear();
     //! Debug list print function
     void printNblist(FILE* fp);
     //! Return whether the pairlist is simple (ie. not for a GPU)
-    bool isSimple() const;
+    static bool isSimple() { return false; };
     //! Return the number of simple j clusters in this list (ie. 0 for this GPU list)
-    int getNumSimpleJClustersInList() const;
+    static int getNumSimpleJClustersInList() { return 0; };
     //! Empty function because a GPU pairlist does not use simple j clusters.
-    void incrementNumSimpleJClustersInList(int);
+    void incrementNumSimpleJClustersInList(int /* numJClusters */);
 
     //! Cache protection
     gmx_cache_protect_t cp0;
