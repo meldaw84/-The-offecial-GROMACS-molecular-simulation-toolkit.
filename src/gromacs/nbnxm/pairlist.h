@@ -318,7 +318,7 @@ struct NbnxnPairlistCpu
     NbnxnPairlistCpu();
 
     //! Print statistics of a pair list, used for debug output
-    void printNblistStatistics(FILE* fp, const Nbnxm::GridSet& gridSet, const rl) const;
+    void printNblistStatistics(FILE* fp, const Nbnxm::GridSet& gridSet, real rl) const;
     //! Makes the cluster list for each grid cell from \c firstCell to \c lastCell
     void makeClusterListDispatcher(const Nbnxm::Grid&              iGrid,
                                    int                             ci,
