@@ -31,13 +31,9 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out https://www.gromacs.org.
 
-gmx_add_unit_test_library(awh-test-shared
-                          awh_setup.cpp)
-target_link_libraries(awh-test-shared PRIVATE math)
-target_compile_definitions(awh-test-shared PRIVATE TMPI_USE_VISIBILITY)
-
 gmx_add_unit_test(AwhTest awh-test
     CPP_SOURCE_FILES
+        awh_setup.cpp
         bias.cpp
 	biasgrid.cpp
         biassharing.cpp
@@ -45,14 +41,4 @@ gmx_add_unit_test(AwhTest awh-test
         bias_fep_lambda_state.cpp
         )
 # Todo: link awh target when it exists
-target_link_libraries(awh-test PRIVATE
-    math
-    awh-test-shared)
-
-gmx_add_mpi_unit_test(AwhMpiTest awh-mpi-test 4
-    CPP_SOURCE_FILES
-        frictionsharing.cpp
-        )
-target_link_libraries(awh-mpi-test PRIVATE
-    math
-    awh-test-shared)
+target_link_libraries(awh-test PRIVATE math)
