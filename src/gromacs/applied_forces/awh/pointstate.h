@@ -481,7 +481,7 @@ private:
     double  logPmfSum_;          /**< Logarithm of the PMF histogram */
     double  numVisitsIteration_; /**< Visits to this bin this iteration; note: only contains data for this Bias, even when sharing biases. */
     double  numVisitsTot_;       /**< Accumulated visits to this bin */
-    double  localNumVisits_;     /**< The total number of visits for the local Bias. */
+    double  localNumVisits_; /**< The total number of visits for the local Bias. This is used for computing the average shared friction metric. */
 };
 
 } // namespace gmx
