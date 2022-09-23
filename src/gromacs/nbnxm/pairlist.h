@@ -320,17 +320,17 @@ struct NbnxnPairlistCpu
     //! Print statistics of a pair list, used for debug output
     void printNblistStatistics(FILE* fp, const Nbnxm::GridSet& gridSet, real rl) const;
     //! Makes the cluster list for each grid cell from \c firstCell to \c lastCell
-    void makeClusterListDispatcher(const Nbnxm::Grid&              iGrid,
-                                   int                             ci,
-                                   const Nbnxm::Grid&              jGrid,
-                                   int                             firstCell,
-                                   int                             lastCell,
-                                   bool                            excludeSubDiagonal,
-                                   const nbnxn_atomdata_t*         nbat,
-                                   real                            rlist2,
-                                   real                            rbb2,
-                                   const ClusterDistanceKernelType kernelType,
-                                   int*                            numDistanceChecks);
+    void makeClusterListDispatcher(const Nbnxm::Grid&        iGrid,
+                                   int                       ci,
+                                   const Nbnxm::Grid&        jGrid,
+                                   int                       firstCell,
+                                   int                       lastCell,
+                                   bool                      excludeSubDiagonal,
+                                   const nbnxn_atomdata_t*   nbat,
+                                   real                      rlist2,
+                                   real                      rbb2,
+                                   ClusterDistanceKernelType kernelType,
+                                   int*                      numDistanceChecks);
     /*! \brief Make a pair list for the perturbed pairs, while excluding
      * them from the Verlet list.
      *
