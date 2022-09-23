@@ -41,7 +41,6 @@
  */
 
 #include "gmxpre.h"
-
 #include "gromacs/msm/msm.h"
 
 #include <gtest/gtest.h>
@@ -57,14 +56,30 @@ protected:
     void SetUp() override
     {
         hallo = "hallo";
-        myfunc();
     }
     std::string hallo;
+    MarkovModel msm;
 };
 
-TEST_F(MsmTest, BasicMsmTest)
+TEST_F(MsmTest, TransitionCountingTest)
 {
     printf("result: %s\n", hallo.c_str());
+    std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
+    //std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
+    transitions = msm.count_transitions(discretizedTraj, 1);
+
+    const auto& dataView = transitions.asConstView();
+    const int numRows = transitions.extent(0);
+    const int numCols = transitions.extent(1);
+
+    for (int i = 0; i < numRows; i++)
+    {
+        printf("\n");
+        for (int j=0; j < numCols; j++)
+        {
+            printf("%d ", dataView[i][j]);
+        }
+    }
 }
 
 //TEST(MoreMSMTest, HiAgain)

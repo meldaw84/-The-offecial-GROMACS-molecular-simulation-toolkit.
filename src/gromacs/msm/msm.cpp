@@ -40,19 +40,38 @@
  * \author Cathrine Bergh
  */
 #include "gmxpre.h"
-
-#include <cstdio>
-
 #include "msm.h"
+
+#include "gromacs/math/multidimarray.h"
 
 namespace gmx
 {
 
-void myfunc()
+// Constructor
+MarkovModel::MarkovModel()
 {
-    int d = 10;
-    printf("hello from msm.cpp file\n");
-    printf("This is my msm.cpp int %d\n", d);
+  // TODO: Move nstates to function argument
+  // TODO: scan clustered trajectory of highest state value?
+  const int nstates = 4;
+
+  // Initialize TCM as MultiDimArray
+  transitionCountsMatrix = { { } };
+}
+
+void MarkovModel::count_transitions(std::vector<int>& discretizedTraj, int lag)
+{
+    // Initialize TCM as MultiDimArray
+    //MultiDimArray<std::array<int, nstates*nstates>, extents<nstates, nstates>> transitionCountsMatrix = { { } };
+
+    //Extract time-lagged trajectories
+    std::vector<int> rows(discretizedTraj.begin(), discretizedTraj.end() - lag);
+    std::vector<int> cols(discretizedTraj.begin() + lag, discretizedTraj.end());
+
+    // Iterate over trajectory and count transitions
+    for (int i = 0; i < rows.size(); i++)
+    {
+      transitionCountsMatrix(rows[i], cols[i]) += 1;
+    }
 }
 
 } // namespace gmx
