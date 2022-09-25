@@ -71,6 +71,7 @@
 #include "gromacs/mdlib/tgroup.h"
 #include "gromacs/mdlib/update.h"
 #include "gromacs/mdlib/vsite.h"
+#include "gromacs/mdrun/legacysimulator.h"
 #include "gromacs/mdrunutility/printtime.h"
 #include "gromacs/mdtypes/commrec.h"
 #include "gromacs/mdtypes/forcebuffers.h"
@@ -97,8 +98,6 @@
 #include "gromacs/utility/logger.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringutil.h"
-
-#include "legacysimulator.h"
 
 //! Global max algorithm
 static void global_max(t_commrec* cr, int* n)

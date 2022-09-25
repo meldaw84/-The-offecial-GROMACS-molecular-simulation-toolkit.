@@ -55,6 +55,7 @@
 #include "gromacs/mdtypes/interaction_const.h"
 #include "gromacs/nbnxm/atomdata.h"
 #include "gromacs/nbnxm/gpu_data_mgmt.h"
+#include "gromacs/nbnxm/grid.h"
 #include "gromacs/nbnxm/nbnxm.h"
 #include "gromacs/nbnxm/nbnxm_geometry.h"
 #include "gromacs/nbnxm/nbnxm_simd.h"
@@ -69,7 +70,6 @@
 #include "gromacs/utility/logger.h"
 
 #include "freeenergydispatch.h"
-#include "grid.h"
 
 namespace Nbnxm
 {

@@ -80,6 +80,8 @@
 #    include "pme.cuh"
 #endif
 
+#include "include/gromacs/ewald/pme_grid.h"
+
 #include "pme_gpu_calculate_splines.h"
 #include "pme_gpu_constants.h"
 #include "pme_gpu_grid.h"
@@ -88,7 +90,6 @@
 #include "pme_gpu_types.h"
 #include "pme_gpu_types_host.h"
 #include "pme_gpu_types_host_impl.h"
-#include "pme_grid.h"
 #include "pme_internal.h"
 #include "pme_solve.h"
 

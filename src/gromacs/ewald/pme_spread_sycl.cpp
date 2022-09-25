@@ -46,10 +46,10 @@
 #include "gromacs/gpu_utils/gputraits_sycl.h"
 #include "gromacs/gpu_utils/sycl_kernel_utils.h"
 #include "gromacs/gpu_utils/syclutils.h"
+#include "include/gromacs/ewald/pme_grid.h"
 
 #include "pme_gpu_calculate_splines_sycl.h"
 #include "pme_gpu_types_host.h"
-#include "pme_grid.h"
 
 /*! \brief
  * Charge spreading onto the grid.

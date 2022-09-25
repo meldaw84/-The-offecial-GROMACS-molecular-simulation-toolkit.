@@ -41,7 +41,7 @@
 #    include <cstdlib>
 #    include <cstring>
 
-#    include "gmx_internal_xdr.h"
+#    include "gromacs/fileio/gmx_internal_xdr.h"
 
 
 /* NB - THIS FILE IS ONLY USED ON MICROSOFT WINDOWS, since that

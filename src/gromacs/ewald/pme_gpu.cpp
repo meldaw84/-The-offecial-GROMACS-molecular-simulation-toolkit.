@@ -59,12 +59,12 @@
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/stringutil.h"
+#include "include/gromacs/ewald/pme_grid.h"
 
 #include "pme_gpu_internal.h"
 #include "pme_gpu_settings.h"
 #include "pme_gpu_timings.h"
 #include "pme_gpu_types_host.h"
-#include "pme_grid.h"
 #include "pme_internal.h"
 #include "pme_solve.h"
 

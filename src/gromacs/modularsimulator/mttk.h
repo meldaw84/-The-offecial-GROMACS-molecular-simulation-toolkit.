@@ -45,7 +45,8 @@
 
 #include <queue>
 
-#include "modularsimulatorinterfaces.h"
+#include "gromacs/modularsimulator/modularsimulatorinterfaces.h"
+
 #include "statepropagatordata.h"
 
 namespace gmx

@@ -44,8 +44,7 @@
 #define GMX_MODULARSIMULATOR_CONSTRAINTELEMENT_H
 
 #include "gromacs/mdlib/constr.h"
-
-#include "modularsimulatorinterfaces.h"
+#include "gromacs/modularsimulator/modularsimulatorinterfaces.h"
 
 namespace gmx
 {

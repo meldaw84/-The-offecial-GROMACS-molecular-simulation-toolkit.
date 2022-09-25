@@ -44,9 +44,9 @@
 
 #include "gromacs/gpu_utils/cuda_kernel_utils.cuh"
 #include "gromacs/gpu_utils/vectype_ops.cuh"
+#include "include/gromacs/ewald/pme_grid.h"
 
 #include "pme.cuh"
-#include "pme_grid.h"
 
 /*! \internal \brief
  * Gets a base of the unique index to an element in a spline parameter buffer (theta/dtheta),

@@ -105,6 +105,7 @@
 #include "gromacs/mdlib/tgroup.h"
 #include "gromacs/mdlib/updategroups.h"
 #include "gromacs/mdlib/vsite.h"
+#include "gromacs/mdrun/isimulator.h"
 #include "gromacs/mdrun/mdmodules.h"
 #include "gromacs/mdrun/replicaexchange.h"
 #include "gromacs/mdrun/simulationcontext.h"
@@ -173,7 +174,6 @@
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringutil.h"
 
-#include "isimulator.h"
 #include "membedholder.h"
 #include "simulatorbuilder.h"
 

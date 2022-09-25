@@ -81,6 +81,7 @@
 
 #include "gromacs/domdec/domdec.h"
 #include "gromacs/ewald/ewald_utils.h"
+#include "gromacs/ewald/pme_grid.h"
 #include "gromacs/fft/parallel_3dfft.h"
 #include "gromacs/fileio/pdbio.h"
 #include "gromacs/gmxlib/network.h"
@@ -116,7 +117,6 @@
 #include "calculate_spline_moduli.h"
 #include "pme_gather.h"
 #include "pme_gpu_internal.h"
-#include "pme_grid.h"
 #include "pme_internal.h"
 #include "pme_redistribute.h"
 #include "pme_solve.h"

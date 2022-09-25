@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "legacysimulator.h"
+#include "gromacs/mdrun/legacysimulator.h"
 
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/md_enums.h"

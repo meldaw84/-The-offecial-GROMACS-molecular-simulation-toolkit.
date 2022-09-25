@@ -43,7 +43,7 @@
 #ifndef GMX_MODULARSIMULATOR_FIRSTORDERPRESSURECOUPLING_H
 #define GMX_MODULARSIMULATOR_FIRSTORDERPRESSURECOUPLING_H
 
-#include "modularsimulatorinterfaces.h"
+#include "gromacs/modularsimulator/modularsimulatorinterfaces.h"
 
 struct t_inputrec;
 struct t_nrnb;

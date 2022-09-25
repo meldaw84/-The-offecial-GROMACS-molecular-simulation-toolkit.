@@ -53,16 +53,15 @@
 #include <string>
 #include <typeinfo>
 
-#include "../mdrun/isimulator.h"
-
+#include "gromacs/mdrun/isimulator.h"
 #include "gromacs/mdtypes/observablesreducer.h"
 #include "gromacs/mdtypes/state.h"
+#include "gromacs/modularsimulator/modularsimulatorinterfaces.h"
 #include "gromacs/utility/exceptions.h"
 
 #include "checkpointhelper.h"
 #include "domdechelper.h"
 #include "freeenergyperturbationdata.h"
-#include "modularsimulatorinterfaces.h"
 #include "pmeloadbalancehelper.h"
 #include "signallers.h"
 #include "topologyholder.h"

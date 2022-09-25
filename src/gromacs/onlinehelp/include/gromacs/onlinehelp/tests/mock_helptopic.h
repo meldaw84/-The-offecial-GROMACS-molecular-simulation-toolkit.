@@ -42,9 +42,9 @@
 #ifndef GMX_ONLINEHELP_TESTS_MOCK_HELPTOPIC_H
 #define GMX_ONLINEHELP_TESTS_MOCK_HELPTOPIC_H
 
-#include "../../../../../../external/googletest/googlemock/include/gmock/gmock.h"
 #include "../helptopic.h"
 #include "../helpwritercontext.h"
+#include "gmock/gmock.h"
 
 namespace gmx
 {

@@ -44,10 +44,10 @@
 
 #include "gromacs/gpu_utils/cuda_kernel_utils.cuh"
 #include "gromacs/gpu_utils/typecasts.cuh"
+#include "include/gromacs/ewald/pme_grid.h"
 
 #include "pme.cuh"
 #include "pme_gpu_calculate_splines.cuh"
-#include "pme_grid.h"
 
 /*! \brief
  * An inline CUDA function: unroll the dynamic index accesses to the constant grid sizes to avoid local memory operations.

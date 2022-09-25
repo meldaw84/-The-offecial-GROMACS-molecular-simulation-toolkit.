@@ -44,11 +44,10 @@
 #define GMX_MODULARSIMULATOR_FREEENERGYPERTURBATIONELEMENT_H
 
 #include "gromacs/mdtypes/md_enums.h"
+#include "gromacs/modularsimulator/modularsimulatorinterfaces.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/real.h"
-
-#include "modularsimulatorinterfaces.h"
 
 struct t_inputrec;
 struct t_trxframe;

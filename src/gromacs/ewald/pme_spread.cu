@@ -45,10 +45,10 @@
 
 #include "gromacs/gpu_utils/cuda_kernel_utils.cuh"
 #include "gromacs/gpu_utils/typecasts.cuh"
+#include "include/gromacs/ewald/pme_grid.h"
 
 #include "pme.cuh"
 #include "pme_gpu_calculate_splines.cuh"
-#include "pme_grid.h"
 
 /*! \brief
  * Charge spreading onto the grid.

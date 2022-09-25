@@ -38,12 +38,11 @@
  *  \author Andrey Alekseenko <al42and@gmail.com>
  */
 
-#include "../../../pme_grid.h"
-
 #include "gromacs/gpu_utils/gmxsycl.h"
 #include "gromacs/gpu_utils/syclutils.h"
 
 #include "pme_gpu_types_host.h"
+#include "pme_grid.h"
 
 struct PmeGpuGridParams;
 struct PmeGpuAtomParams;

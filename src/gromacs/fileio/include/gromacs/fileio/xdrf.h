@@ -46,7 +46,7 @@
 #include "config.h"
 
 #if GMX_INTERNAL_XDR
-#    include "../../../gmx_internal_xdr.h"
+#    include "gmx_internal_xdr.h"
 #else
 #    include <rpc/rpc.h>
 #    include <rpc/xdr.h>

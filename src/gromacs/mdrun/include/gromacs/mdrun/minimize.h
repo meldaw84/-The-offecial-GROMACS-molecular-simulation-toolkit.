@@ -39,7 +39,7 @@
 #ifndef GMX_MDRUN_MINIMIZE_H
 #define GMX_MDRUN_MINIMIZE_H
 
-#include "../../../legacysimulator.h"
+#include "legacysimulator.h"
 
 namespace gmx
 {

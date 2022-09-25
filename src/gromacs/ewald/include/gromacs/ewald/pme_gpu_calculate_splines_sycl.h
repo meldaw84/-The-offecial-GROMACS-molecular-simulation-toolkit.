@@ -42,14 +42,13 @@
 
 #include <cassert>
 
-#include "../../../pme_grid.h"
-
 #include "gromacs/gpu_utils/gmxsycl.h"
 #include "gromacs/gpu_utils/gputraits_sycl.h"
 #include "gromacs/gpu_utils/sycl_kernel_utils.h"
 
 #include "pme_gpu_constants.h"
 #include "pme_gpu_types.h"
+#include "pme_grid.h"
 
 namespace
 {

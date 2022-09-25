@@ -43,9 +43,9 @@
 #ifndef GMX_ENERGYELEMENT_MICROSTATE_H
 #define GMX_ENERGYELEMENT_MICROSTATE_H
 
-#include "../../../modularsimulatorinterfaces.h"
-
 #include "gromacs/mdtypes/state.h"
+
+#include "modularsimulatorinterfaces.h"
 
 class gmx_ekindata_t;
 struct gmx_enerdata_t;

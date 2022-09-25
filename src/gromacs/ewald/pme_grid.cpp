@@ -34,7 +34,7 @@
 /* TODO find out what this file should be called */
 #include "gmxpre.h"
 
-#include "pme_grid.h"
+#include "gromacs/ewald/pme_grid.h"
 
 #include "config.h"
 

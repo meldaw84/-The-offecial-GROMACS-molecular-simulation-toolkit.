@@ -42,6 +42,7 @@
 #include <algorithm>
 
 #include "gromacs/ewald/pme.h"
+#include "gromacs/ewald/pme_grid.h"
 #include "gromacs/fft/parallel_3dfft.h"
 #include "gromacs/simd/simd.h"
 #include "gromacs/utility/basedefinitions.h"
@@ -50,7 +51,6 @@
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/smalloc.h"
 
-#include "pme_grid.h"
 #include "pme_internal.h"
 #include "pme_simd.h"
 #include "pme_spline_work.h"

@@ -81,6 +81,16 @@ target_compile_definitions(modularsimulator PRIVATE HAVE_CONFIG_H)
 # Should be possible to remove this when resolving #3290
 target_include_directories(modularsimulator SYSTEM BEFORE PRIVATE ${PROJECT_SOURCE_DIR}/src/external/thread_mpi/include)
 
+# Transitive module dependencies
+target_link_libraries(
+    modularsimulator PUBLIC
+    legacy_api
+    math
+    mdrun
+    mdtypes
+    utility
+)
+
 # Source files have the following private external dependencies.
 target_link_libraries(modularsimulator PRIVATE tng_io)
 
@@ -97,7 +107,6 @@ target_link_libraries(modularsimulator PRIVATE
                       listed_forces
                       math
                       mdlib
-                      mdrun
                       mdrunutility
                       mdtypes
                       nbnxm

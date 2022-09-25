@@ -48,6 +48,8 @@
 #include "gromacs/mdlib/gmx_omp_nthreads.h"
 #include "gromacs/mdtypes/forcerec.h" // only for GET_CGINFO_*
 #include "gromacs/mdtypes/md_enums.h"
+#include "gromacs/nbnxm/grid.h"
+#include "gromacs/nbnxm/gridset.h"
 #include "gromacs/nbnxm/nbnxm.h"
 #include "gromacs/nbnxm/nbnxm_geometry.h"
 #include "gromacs/nbnxm/nbnxm_gpu.h"
@@ -60,9 +62,6 @@
 #include "gromacs/utility/logger.h"
 #include "gromacs/utility/strconvert.h"
 #include "gromacs/utility/stringutil.h"
-
-#include "grid.h"
-#include "gridset.h"
 
 using namespace gmx; // TODO: Remove when this file is moved into gmx namespace
 

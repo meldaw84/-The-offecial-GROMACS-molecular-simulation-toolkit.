@@ -45,6 +45,7 @@
 #include <memory>
 
 #include "gromacs/mdlib/vsite.h"
+#include "gromacs/mdrun/legacysimulator.h"
 #include "gromacs/mdrun/replicaexchange.h"
 #include "gromacs/mdrunutility/mdmodulesnotifiers.h"
 #include "gromacs/mdtypes/checkpointdata.h"
@@ -53,7 +54,6 @@
 #include "gromacs/modularsimulator/modularsimulator.h"
 #include "gromacs/topology/topology.h"
 
-#include "legacysimulator.h"
 #include "membedholder.h"
 
 

@@ -52,8 +52,6 @@
 #include <memory>
 #include <vector>
 
-#include "../../../gridset.h"
-
 #include "gromacs/math/vectypes.h"
 #include "gromacs/nbnxm/atomdata.h"
 #include "gromacs/nbnxm/pairlist.h"
@@ -61,6 +59,8 @@
 #include "gromacs/utility/alignedallocator.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/real.h"
+
+#include "gridset.h"
 
 struct gmx_domdec_zones_t;
 struct PairsearchWork;

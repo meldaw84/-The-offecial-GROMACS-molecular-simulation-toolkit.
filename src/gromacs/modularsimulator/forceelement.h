@@ -50,10 +50,10 @@
 
 #include "gromacs/domdec/dlbtiming.h"
 #include "gromacs/mdtypes/md_enums.h"
+#include "gromacs/modularsimulator/modularsimulatorinterfaces.h"
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/real.h"
 
-#include "modularsimulatorinterfaces.h"
 #include "topologyholder.h"
 
 struct gmx_enfrot;

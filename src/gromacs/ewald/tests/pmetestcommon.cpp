@@ -49,7 +49,6 @@
 
 #include "../pme_gather.h"
 #include "../pme_gpu_internal.h"
-#include "../pme_grid.h"
 #include "../pme_internal.h"
 #include "../pme_redistribute.h"
 #include "../pme_solve.h"
@@ -60,6 +59,7 @@
 #include "gromacs/ewald/pme_gpu_calculate_splines.h"
 #include "gromacs/ewald/pme_gpu_constants.h"
 #include "gromacs/ewald/pme_gpu_staging.h"
+#include "gromacs/ewald/pme_grid.h"
 #include "gromacs/fft/parallel_3dfft.h"
 #include "gromacs/gpu_utils/gpu_utils.h"
 #include "gromacs/math/boxmatrix.h"

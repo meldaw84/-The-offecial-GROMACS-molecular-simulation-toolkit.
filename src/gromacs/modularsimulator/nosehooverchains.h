@@ -45,7 +45,7 @@
 
 #include <queue>
 
-#include "modularsimulatorinterfaces.h"
+#include "gromacs/modularsimulator/modularsimulatorinterfaces.h"
 
 struct t_grp_tcstat;
 

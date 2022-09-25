@@ -43,7 +43,7 @@
 #ifndef GMX_MODULARSIMULATOR_TROTTERHELPERFUNCTIONS_H
 #define GMX_MODULARSIMULATOR_TROTTERHELPERFUNCTIONS_H
 
-#include "modularsimulatorinterfaces.h"
+#include "gromacs/modularsimulator/modularsimulatorinterfaces.h"
 
 namespace gmx
 {

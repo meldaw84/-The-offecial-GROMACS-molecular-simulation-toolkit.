@@ -45,12 +45,12 @@
 #include "gromacs/gpu_utils/gmxopencl.h"
 #include "gromacs/gpu_utils/ocl_compiler.h"
 #include "gromacs/utility/stringutil.h"
+#include "include/gromacs/ewald/pme_grid.h"
 
 #include "pme_gpu_constants.h"
 #include "pme_gpu_internal.h" // for GridOrdering enum
 #include "pme_gpu_program_impl.h"
 #include "pme_gpu_types_host.h"
-#include "pme_grid.h"
 
 PmeGpuProgramImpl::PmeGpuProgramImpl(const DeviceContext& deviceContext) :
     deviceContext_(deviceContext)

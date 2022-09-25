@@ -49,7 +49,7 @@
 #ifndef GROMACS_MODULARSIMULATOR_MODULARSIMULATOR_H
 #define GROMACS_MODULARSIMULATOR_MODULARSIMULATOR_H
 
-#include "../../../../mdrun/isimulator.h"
+#include "gromacs/mdrun/isimulator.h"
 
 struct CheckpointHeaderContents;
 struct t_fcdata;

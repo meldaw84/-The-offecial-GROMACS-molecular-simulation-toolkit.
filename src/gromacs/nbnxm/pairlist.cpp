@@ -56,6 +56,7 @@
 #include "gromacs/mdtypes/nblist.h"
 #include "gromacs/nbnxm/atomdata.h"
 #include "gromacs/nbnxm/gpu_data_mgmt.h"
+#include "gromacs/nbnxm/gridset.h"
 #include "gromacs/nbnxm/nbnxm_geometry.h"
 #include "gromacs/nbnxm/nbnxm_simd.h"
 #include "gromacs/nbnxm/pairlistset.h"
@@ -73,7 +74,6 @@
 
 #include "boundingboxes.h"
 #include "clusterdistancekerneltype.h"
-#include "gridset.h"
 #include "pairlistwork.h"
 
 using namespace gmx; // TODO: Remove when this file is moved into gmx namespace
