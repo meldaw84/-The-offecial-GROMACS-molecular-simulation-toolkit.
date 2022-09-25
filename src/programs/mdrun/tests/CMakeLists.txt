@@ -53,7 +53,7 @@ target_link_libraries(mdrun_test_infrastructure PRIVATE
                       trajectory
                       )
 target_link_libraries(mdrun_test_infrastructure PUBLIC
-                      GTest::GTest
+                      gtest
                       fileio
                       mdrun_objlib
                       utility
