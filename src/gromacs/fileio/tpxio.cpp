@@ -175,10 +175,11 @@ static const int tpx_version = tpxv_Count - 1;
  */
 enum class TpxGeneration : int
 {
-    Initial = 26, //! First version is 26
-    AddSizeField, //! TPR header modified for writing as a block.
-    AddVSite1,    //! ftupd changed to include VSite1 type.
-    Count         //! Number of entries.
+    Initial = 26,            //! First version is 26
+    AddSizeField,            //! TPR header modified for writing as a block.
+    AddVSite1,               //! ftupd changed to include VSite1 type.
+    AddLambdaDynamicsEnergy, //! ftupd changed to include new lambda dynamics energy.
+    Count                    //! Number of entries.
 };
 
 //! Value of Current TPR generation.
@@ -245,6 +246,7 @@ static const t_ftupd ftupd[] = {
     },
     { 79, F_DVDL_RESTRAINT },
     { 79, F_DVDL_TEMPERATURE },
+    { tpxv_RemoveAtomtypes, F_ELD },
 };
 #define NFTUPD asize(ftupd)
 
