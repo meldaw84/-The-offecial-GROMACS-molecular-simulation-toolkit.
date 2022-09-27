@@ -977,6 +977,20 @@ int Mdrunner::mdrunner()
     t_commrec*    cr       = crHandle.get();
     GMX_RELEASE_ASSERT(cr != nullptr, "Must have valid commrec");
 
+
+#if !GMX_LIB_MPI
+    const bool haveMpirunEnvironmentVariables =
+            getenv("PMI_RANK") != nullptr || getenv("OMPI_COMM_WORLD_RANK");
+    if (haveMpirunEnvironmentVariables)
+    {
+        GMX_LOG(mdlog.warning)
+                .asParagraph()
+                .appendText(
+                        "GROMACS was built without MPI but appears to have been launched with "
+                        "mpirun.");
+    }
+#endif
+
     PhysicalNodeCommunicator physicalNodeComm(libraryWorldCommunicator, gmx_physicalnode_id_hash());
 
     if (PAR(cr))
