@@ -160,51 +160,53 @@ __launch_bounds__(THREADS_PER_BLOCK)
                         ; /* Only do function declaration, omit the function body. */
 #else
 {
+    using NbnxnCjPackedType = nbnxn_cj_packed_t<Nbnxm::GpuJGroupSize::Four>;
+
     /* convenience variables */
     const nbnxn_sci_t* pl_sci = plist.sci;
 #    ifndef PRUNE_NBL
     const
 #    endif
-            nbnxn_cj_packed_t<Nbnxm::GpuJGroupSize::Four>* pl_cjPacked = plist.cjPacked;
-    const nbnxn_excl_t*                                    excl        = plist.excl;
+            NbnxnCjPackedType* pl_cjPacked = plist.cjPacked;
+    const nbnxn_excl_t*        excl        = plist.excl;
 #    ifndef LJ_COMB
-    const int*                                             atom_types  = atdat.atomTypes;
-    int                                                    ntypes      = atdat.numTypes;
+    const int*                 atom_types  = atdat.atomTypes;
+    int                        ntypes      = atdat.numTypes;
 #    else
     const float2*        lj_comb = atdat.ljComb;
     float2               ljcp_i, ljcp_j;
 #    endif
-    const float4*                                          xq          = atdat.xq;
-    float3*                                                f           = asFloat3(atdat.f);
-    const float3*                                          shift_vec   = asFloat3(atdat.shiftVec);
-    float                                                  rcoulomb_sq = nbparam.rcoulomb_sq;
+    const float4*              xq          = atdat.xq;
+    float3*                    f           = asFloat3(atdat.f);
+    const float3*              shift_vec   = asFloat3(atdat.shiftVec);
+    float                      rcoulomb_sq = nbparam.rcoulomb_sq;
 #    ifdef VDW_CUTOFF_CHECK
-    float                                                  rvdw_sq     = nbparam.rvdw_sq;
-    float                                                  vdw_in_range;
+    float                      rvdw_sq     = nbparam.rvdw_sq;
+    float                      vdw_in_range;
 #    endif
 #    ifdef LJ_EWALD
-    float                                                  lje_coeff2, lje_coeff6_6;
+    float                      lje_coeff2, lje_coeff6_6;
 #    endif
 #    ifdef EL_RF
-    float                                                  two_k_rf = nbparam.two_k_rf;
+    float                      two_k_rf = nbparam.two_k_rf;
 #    endif
 #    ifdef EL_EWALD_ANA
-    float  beta2       = nbparam.ewald_beta * nbparam.ewald_beta;
-    float  beta3       = nbparam.ewald_beta * nbparam.ewald_beta * nbparam.ewald_beta;
+    float                      beta2    = nbparam.ewald_beta * nbparam.ewald_beta;
+    float                      beta3 = nbparam.ewald_beta * nbparam.ewald_beta * nbparam.ewald_beta;
 #    endif
 #    ifdef PRUNE_NBL
-    float  rlist_sq    = nbparam.rlistOuter_sq;
+    float                      rlist_sq    = nbparam.rlistOuter_sq;
 #    endif
 
 #    ifdef CALC_ENERGIES
 #        ifdef EL_EWALD_ANY
-    float  beta        = nbparam.ewald_beta;
-    float  ewald_shift = nbparam.sh_ewald;
+    float                      beta        = nbparam.ewald_beta;
+    float                      ewald_shift = nbparam.sh_ewald;
 #        else
     float                reactionFieldShift = nbparam.c_rf;
 #        endif /* EL_EWALD_ANY */
-    float* e_lj        = atdat.eLJ;
-    float* e_el        = atdat.eElec;
+    float*                     e_lj        = atdat.eLJ;
+    float*                     e_el        = atdat.eElec;
 #    endif     /* CALC_ENERGIES */
 
     /* thread/block/warp id-s */
@@ -302,9 +304,8 @@ __launch_bounds__(THREADS_PER_BLOCK)
     if (c_preloadCj)
     {
         /* the cjs buffer's use expects a base pointer offset for pairs of warps in the j-concurrent execution */
-        cjs += tidxz * c_nbnxnGpuClusterpairSplit * int(Nbnxm::GpuJGroupSize::Four);
-        sm_nextSlotPtr += (NTHREAD_Z * c_nbnxnGpuClusterpairSplit * int(Nbnxm::GpuJGroupSize::Four)
-                           * sizeof(*cjs));
+        cjs += tidxz * c_nbnxnGpuClusterpairSplit * c_nbnxnGpuJgroupSize;
+        sm_nextSlotPtr += (NTHREAD_Z * c_nbnxnGpuClusterpairSplit * c_nbnxnGpuJgroupSize * sizeof(*cjs));
     }
 
 #    ifndef LJ_COMB
@@ -424,9 +425,9 @@ __launch_bounds__(THREADS_PER_BLOCK)
             if (c_preloadCj)
             {
                 /* Pre-load cj into shared memory on both warps separately */
-                if ((tidxj == 0 | tidxj == 4) & (tidxi < int(Nbnxm::GpuJGroupSize::Four)))
+                if ((tidxj == 0 | tidxj == 4) & (tidxi < c_nbnxnGpuJgroupSize))
                 {
-                    cjs[tidxi + tidxj * int(Nbnxm::GpuJGroupSize::Four) / c_splitClSize] =
+                    cjs[tidxi + tidxj * c_nbnxnGpuJgroupSize / c_splitClSize] =
                             pl_cjPacked[jPacked].cj[tidxi];
                 }
                 __syncwarp(c_fullWarpMask);
@@ -435,13 +436,13 @@ __launch_bounds__(THREADS_PER_BLOCK)
 #    if DO_JM_UNROLL
 #        pragma unroll(jmLoopUnrollFactor)
 #    endif
-            for (jm = 0; jm < int(Nbnxm::GpuJGroupSize::Four); jm++)
+            for (jm = 0; jm < c_nbnxnGpuJgroupSize; jm++)
             {
                 if (imask & (superClInteractionMask << (jm * c_nbnxnGpuNumClusterPerSupercluster)))
                 {
                     mask_ji = (1U << (jm * c_nbnxnGpuNumClusterPerSupercluster));
 
-                    cj = c_preloadCj ? cjs[jm + (tidxj & 4) * int(Nbnxm::GpuJGroupSize::Four) / c_splitClSize]
+                    cj = c_preloadCj ? cjs[jm + (tidxj & 4) * c_nbnxnGpuJgroupSize / c_splitClSize]
                                      : cj = pl_cjPacked[jPacked].cj[jm];
 
                     aj = cj * c_clSize + tidxj;

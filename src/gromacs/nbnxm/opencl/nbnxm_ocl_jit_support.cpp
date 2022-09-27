@@ -187,13 +187,13 @@ void nbnxn_gpu_compile_kernels(NbnxmGpu* nb)
                 " -Dc_nbnxnGpuClusterSize=%d"
                 " -DNBNXM_MIN_DISTANCE_SQUARED_VALUE_FLOAT=%g"
                 " -Dc_nbnxnGpuNumClusterPerSupercluster=%d"
-                " -DNbnxm_GpuJGroupSize_Four=%d"
+                " -Dc_nbnxnGpuJgroupSize=%d"
                 " -Dc_centralShiftIndex=%d"
                 "%s",
                 c_nbnxnGpuClusterSize,
                 c_nbnxnMinDistanceSquared,
                 c_nbnxnGpuNumClusterPerSupercluster,
-                int(Nbnxm::GpuJGroupSize::Four),
+                c_nbnxnGpuJgroupSize,
                 gmx::c_centralShiftIndex,
                 (nb->bPrefetchLjParam) ? " -DIATYPE_SHMEM" : "");
         try

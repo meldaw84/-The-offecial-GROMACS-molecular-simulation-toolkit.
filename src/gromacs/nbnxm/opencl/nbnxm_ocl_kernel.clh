@@ -184,7 +184,7 @@ __kernel void NB_KERNEL_FUNC_NAME(nbnxn_kernel, _F_opencl)
     /* shmem buffer for cj, for both warps separately */
     cjs = (__local int*)(LOCAL_OFFSET);
 #    undef LOCAL_OFFSET
-#    define LOCAL_OFFSET (cjs + 2 * Nbnxm_GpuJGroupSize_Four)
+#    define LOCAL_OFFSET (cjs + 2 * c_nbnxnGpuJgroupSize)
 #endif // USE_CJ_PREFETCH
 
 #ifdef IATYPE_SHMEM
@@ -341,9 +341,9 @@ __kernel void NB_KERNEL_FUNC_NAME(nbnxn_kernel, _F_opencl)
              * TODO: check loop unrolling with NVIDIA OpenCL
              */
 #if !defined PRUNE_NBL && !defined _NVIDIA_SOURCE_
-#    pragma unroll Nbnxm_GpuJGroupSize_Four
+#    pragma unroll c_nbnxnGpuJgroupSize
 #endif
-            for (int jm = 0; jm < Nbnxm_GpuJGroupSize_Four; jm++)
+            for (int jm = 0; jm < c_nbnxnGpuJgroupSize; jm++)
             {
                 if (imask & (superClInteractionMask << (jm * c_nbnxnGpuNumClusterPerSupercluster)))
                 {

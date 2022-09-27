@@ -79,7 +79,7 @@ foreach(ELEC_DEF IN LISTS ELEC_DEFS)
                 -Dc_nbnxnGpuClusterSize=${CLUSTER_SIZE}
                 -DNBNXM_MIN_DISTANCE_SQUARED_VALUE_FLOAT=3.82e-07
                 -Dc_nbnxnGpuNumClusterPerSupercluster=8
-                -DNbnxm_GpuJGroupSize_Four=4
+                -Dc_nbnxnGpuJgroupSize=4
                 -Dc_centralShiftIndex=22
                 -DIATYPE_SHMEM
                 -c -I ${CMAKE_SOURCE_DIR}/src -std=cl1.2

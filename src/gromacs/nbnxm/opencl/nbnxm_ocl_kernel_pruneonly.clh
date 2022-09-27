@@ -112,12 +112,12 @@ nbnxn_kernel_prune_rolling_opencl
     /* shmem buffer for i cj pre-loading */
     CjType cjs = 0;
 #if USE_CJ_PREFETCH
-    cjs = (((__local int*)(LOCAL_OFFSET)) + tidxz * c_nbnxnGpuClusterpairSplit * Nbnxm_GpuJGroupSize_Four);
+    cjs = (((__local int*)(LOCAL_OFFSET)) + tidxz * c_nbnxnGpuClusterpairSplit * c_nbnxnGpuJgroupSize);
 #    undef LOCAL_OFFSET
 /* Offset calculated using xib because cjs depends on on tidxz! */
 #    define LOCAL_OFFSET                                                        \
         (((__local int*)(xib + c_nbnxnGpuNumClusterPerSupercluster * c_clSize)) \
-         + (NTHREAD_Z * c_nbnxnGpuClusterpairSplit * Nbnxm_GpuJGroupSize_Four))
+         + (NTHREAD_Z * c_nbnxnGpuClusterpairSplit * c_nbnxnGpuJgroupSize))
 #endif
 #if !USE_SUBGROUP_ANY
     /* Local buffer used to implement __any warp vote function from CUDA.
@@ -194,8 +194,8 @@ nbnxn_kernel_prune_rolling_opencl
 
         if (imaskCheck)
         {
-#pragma unroll Nbnxm_GpuJGroupSize_Four
-            for (int jm = 0; jm < Nbnxm_GpuJGroupSize_Four; jm++)
+#pragma unroll c_nbnxnGpuJgroupSize
+            for (int jm = 0; jm < c_nbnxnGpuJgroupSize; jm++)
             {
                 if (imaskCheck & (superClInteractionMask << (jm * c_nbnxnGpuNumClusterPerSupercluster)))
                 {

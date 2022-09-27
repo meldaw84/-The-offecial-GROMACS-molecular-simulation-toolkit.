@@ -434,7 +434,7 @@ static inline int calc_shmem_required_nonbonded(enum VdwType vdwType, bool bPref
     /* cj in shared memory, for both warps separately
      * TODO: in the "nowarp kernels we load cj only once  so the factor 2 is not needed.
      */
-    shmem += 2 * int(Nbnxm::GpuJGroupSize::Four) * sizeof(int); /* cjs  */
+    shmem += 2 * c_nbnxnGpuJgroupSize * sizeof(int); /* cjs  */
     if (bPrefetchLjParam)
     {
         if (useLjCombRule(vdwType))
@@ -664,7 +664,7 @@ static inline int calc_shmem_required_prune(const int num_threads_z)
      * Note: only need to load once per wavefront, but to keep the code simple,
      * for now we load twice on AMD.
      */
-    shmem += num_threads_z * c_nbnxnGpuClusterpairSplit * int(Nbnxm::GpuJGroupSize::Four) * sizeof(int);
+    shmem += num_threads_z * c_nbnxnGpuClusterpairSplit * c_nbnxnGpuJgroupSize * sizeof(int);
     /* Warp vote, requires one uint per warp/32 threads per block. */
     shmem += sizeof(cl_uint) * 2 * num_threads_z;
 

@@ -165,7 +165,7 @@ auto nbnxmKernelPruneOnly(sycl::handler&                     cgh,
 
             if (imaskCheck)
             {
-                for (int jm = 0; jm < int(Nbnxm::GpuJGroupSize::Four); jm++)
+                for (int jm = 0; jm < c_nbnxnGpuJgroupSize; jm++)
                 {
                     if (imaskCheck & (superClInteractionMask << (jm * c_nbnxnGpuNumClusterPerSupercluster)))
                     {
@@ -207,7 +207,7 @@ auto nbnxmKernelPruneOnly(sycl::handler&                     cgh,
                             mask_ji += mask_ji;
                         } // (int i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i++)
                     } // (imaskCheck & (superClInteractionMask << (jm * c_nbnxnGpuNumClusterPerSupercluster)))
-                } // for (int jm = 0; jm < Nbnxm::GpuJGroupSize::Four; jm++)
+                } // for (int jm = 0; jm < c_nbnxnGpuJgroupSize; jm++)
 
                 if constexpr (haveFreshList)
                 {
