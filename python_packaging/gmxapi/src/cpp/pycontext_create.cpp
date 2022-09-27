@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright 1991- The GROMACS Authors
+ * Copyright 2022- The GROMACS Authors
  * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
  * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
@@ -31,36 +31,58 @@
  * To help us fund GROMACS development, we humbly ask that you cite
  * the research papers on the package. Check out https://www.gromacs.org.
  */
-/*! \libinternal \file
- * \brief
- * Provides OS-specific directory-name separator
+/*! \file
+ * \brief Create a PyContext for gmxapi >= 0.2.0
  *
- * \inlibraryapi
- * \ingroup module_utility
+ *
+ * \author M. Eric Irrgang <ericirrgang@gmail.com>
+ *
+ * \ingroup module_python
  */
-#ifndef GMX_UTILITY_DIR_SEPARATOR_H
-#define GMX_UTILITY_DIR_SEPARATOR_H
 
-#include "config.h"
 
-/*! \def DIR_SEPARATOR
- * \brief
- * Directory separator on this OS.
- *
- * Native Windows uses backslash path separators (but accepts also slashes).
- * Cygwin and most other systems use slash.
- *
- * \todo Get rid of this (Issue #950). It is not necessary for
- * constructing paths on the systems that it currently supports, and
- * is not reliable in parsing input paths either, since Windows needs
- * to accept both instead of only DIR_SEPARATOR. At the very least, we
- * should refactor the clients of this header so that they operate
- * upon path objects rather than raw path strings.
- */
-#if GMX_NATIVE_WINDOWS
-#    define DIR_SEPARATOR '\\'
-#else
-#    define DIR_SEPARATOR '/'
-#endif
+#include "gmxpy_exceptions.h"
+#include "mpi_bindings.h"
+#include "pycontext.h"
 
-#endif
+namespace py = pybind11;
+
+namespace gmxpy
+{
+
+PyContext create_context()
+{
+    auto context     = gmxapi::createContext();
+    auto context_ptr = std::make_shared<gmxapi::Context>(std::move(context));
+    return PyContext(std::move(context_ptr));
+}
+
+PyContext create_context(py::object communicator)
+{
+    auto context     = context_from_py_comm(communicator);
+    auto context_ptr = std::make_shared<gmxapi::Context>(std::move(context));
+    return PyContext(std::move(context_ptr));
+}
+
+namespace detail
+{
+
+void export_create_context(pybind11::module& m, const pybind11::exception<Exception>& exception)
+{
+    py::dict features          = m.attr("_named_features");
+    features["create_context"] = 1;
+
+    export_mpi_bindings(m, exception);
+
+    m.def(
+            "create_context",
+            []() { return create_context(); },
+            "Initialize a new API Context to manage resources and software environment.");
+    m.def(
+            "create_context",
+            [](const py::object& resource) { return create_context(resource); },
+            "Initialize a new API Context to manage resources and software environment.");
+}
+} // end namespace detail
+
+} // namespace gmxpy

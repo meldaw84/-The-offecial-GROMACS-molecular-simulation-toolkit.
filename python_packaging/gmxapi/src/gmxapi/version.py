@@ -71,7 +71,7 @@ from .exceptions import FeatureNotAvailableError
 _major = 0
 _minor = 4
 _micro = 0
-_suffix = 'a3'
+_suffix = 'b2'
 
 # Reference https://www.python.org/dev/peps/pep-0440/
 # and https://packaging.pypa.io/en/latest/version/
@@ -110,6 +110,11 @@ _named_features_0[2] = [
 _named_features_0[3] = [
     'cli_env_kwarg',
 ]
+
+_named_features_0[4] = [
+    'mpi_comm_integration'
+]
+
 
 def api_is_at_least(major_version, minor_version=0, patch_version=0):
     """Allow client to check whether installed module supports the requested API level.

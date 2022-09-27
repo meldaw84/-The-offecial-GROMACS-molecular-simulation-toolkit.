@@ -226,7 +226,7 @@ static int ddb_name2dir(char* name)
 }
 
 
-static void read_vsite_database(const char*                            ddbname,
+static void read_vsite_database(const std::filesystem::path&           ddbname,
                                 std::vector<VirtualSiteConfiguration>* vsiteconflist,
                                 std::vector<VirtualSiteTopology>*      vsitetoplist)
 {
@@ -284,7 +284,7 @@ static void read_vsite_database(const char*                            ddbname,
                 curdir = ddb_name2dir(dirstr);
                 if (curdir < 0)
                 {
-                    gmx_fatal(FARGS, "Invalid directive %s in vsite database %s", dirstr, ddbname);
+                    gmx_fatal(FARGS, "Invalid directive %s in vsite database %s", dirstr, ddbname.c_str());
                 }
             }
             else
@@ -362,7 +362,7 @@ static void read_vsite_database(const char*                            ddbname,
                         {
                             gmx_fatal(FARGS,
                                       "Need 3 or 4 values to specify bond/angle values in %s: %s\n",
-                                      ddbname,
+                                      ddbname.c_str(),
                                       pline);
                         }
                     }
@@ -1664,7 +1664,7 @@ void do_vsites(gmx::ArrayRef<const PreprocessResidue> rtpFFDB,
                int*                                   cgnr[],
                real                                   mHmult,
                bool                                   bVsiteAromatics,
-               const char*                            ffdir)
+               const std::filesystem::path&           ffdir)
 {
 #define MAXATOMSPERRESIDUE 16
     int     k, m, i0, ni0, whatres, add_shift, nvsite, nadd;
@@ -1759,7 +1759,7 @@ void do_vsites(gmx::ArrayRef<const PreprocessResidue> rtpFFDB,
         fprintf(debug, "# # # VSITES # # #\n");
     }
 
-    std::vector<std::string> db = fflib_search_file_end(ffdir, ".vsd", FALSE);
+    auto db = fflib_search_file_end(ffdir, ".vsd", FALSE);
 
     /* Container of CH3/NH3/NH2 configuration entries.
      * See comments in read_vsite_database. It isnt beautiful,
@@ -1779,7 +1779,7 @@ void do_vsites(gmx::ArrayRef<const PreprocessResidue> rtpFFDB,
     std::vector<VirtualSiteTopology> vsitetop;
     for (const auto& filename : db)
     {
-        read_vsite_database(filename.c_str(), &vsiteconflist, &vsitetop);
+        read_vsite_database(filename, &vsiteconflist, &vsitetop);
     }
 
     bFirstWater = TRUE;

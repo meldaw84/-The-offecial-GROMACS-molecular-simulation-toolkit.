@@ -1702,6 +1702,12 @@ std::string getCoolQuote()
         { "There are way too many quotes", "Sebastian Wingbermuehle" },
         { "It is not critical to add the next quote to a patch release", "Paul Bauer" },
         { "It is a cute toxin.", "Rebecca Howard" },
+        { "Everything is failing", "Paul Bauer" },
+        { "Requiem, bring the dissident from slumber", "Bad Religion" },
+        { "I can't relate to you", "Bad Religion" },
+        { "You are wrong!", "NOFX" },
+        { "The final page is written in the books of history", "Bad Religion" },
+        { "Would you give it all up to live again?", "Bad Religion" },
 
     };
 
