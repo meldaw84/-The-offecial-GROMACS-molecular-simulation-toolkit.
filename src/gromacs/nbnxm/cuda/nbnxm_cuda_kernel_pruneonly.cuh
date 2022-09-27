@@ -121,10 +121,11 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
 {
 
     /* convenience variables */
-    const nbnxn_sci_t*                             pl_sci      = plist.sci;
-    nbnxn_cj_packed_t<Nbnxm::GpuJGroupSize::Four>* pl_cjPacked = plist.cjPacked;
-    const float4*                                  xq          = atdat.xq;
-    const float3*                                  shift_vec   = asFloat3(atdat.shiftVec);
+    using NbnxnCjPackedType        = nbnxn_cj_packed_t<Nbnxm::GpuJGroupSize::Four>;
+    const nbnxn_sci_t* pl_sci      = plist.sci;
+    NbnxnCjPackedType* pl_cjPacked = plist.cjPacked;
+    const float4*      xq          = atdat.xq;
+    const float3*      shift_vec   = asFloat3(atdat.shiftVec);
 
     float rlistOuter_sq = nbparam.rlistOuter_sq;
     float rlistInner_sq = nbparam.rlistInner_sq;
@@ -164,9 +165,8 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
     if (c_preloadCj)
     {
         /* the cjs buffer's use expects a base pointer offset for pairs of warps in the j-concurrent execution */
-        cjs += tidxz * c_nbnxnGpuClusterpairSplit * int(Nbnxm::GpuJGroupSize::Four);
-        sm_nextSlotPtr += (NTHREAD_Z * c_nbnxnGpuClusterpairSplit * int(Nbnxm::GpuJGroupSize::Four)
-                           * sizeof(*cjs));
+        cjs += tidxz * c_nbnxnGpuClusterpairSplit * c_nbnxnGpuJgroupSize;
+        sm_nextSlotPtr += (NTHREAD_Z * c_nbnxnGpuClusterpairSplit * c_nbnxnGpuJgroupSize * sizeof(*cjs));
     }
     /*********************************************************************/
 
@@ -225,21 +225,21 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
             if (c_preloadCj)
             {
                 /* Pre-load cj into shared memory on both warps separately */
-                if ((tidxj == 0 || tidxj == 4) && tidxi < int(Nbnxm::GpuJGroupSize::Four))
+                if ((tidxj == 0 || tidxj == 4) && tidxi < c_nbnxnGpuJgroupSize)
                 {
-                    cjs[tidxi + tidxj * int(Nbnxm::GpuJGroupSize::Four) / c_splitClSize] =
+                    cjs[tidxi + tidxj * c_nbnxnGpuJgroupSize / c_splitClSize] =
                             pl_cjPacked[jPacked].cj[tidxi];
                 }
                 __syncwarp(c_fullWarpMask);
             }
 
-#    pragma unroll int(Nbnxm::GpuJGroupSize::Four)
-            for (int jm = 0; jm < int(Nbnxm::GpuJGroupSize::Four); jm++)
+#    pragma unroll c_nbnxnGpuJgroupSize
+            for (int jm = 0; jm < c_nbnxnGpuJgroupSize; jm++)
             {
                 if (imaskCheck & (superClInteractionMask << (jm * c_nbnxnGpuNumClusterPerSupercluster)))
                 {
                     unsigned int mask_ji = (1U << (jm * c_nbnxnGpuNumClusterPerSupercluster));
-                    int cj = c_preloadCj ? cjs[jm + (tidxj & 4) * int(Nbnxm::GpuJGroupSize::Four) / c_splitClSize]
+                    int cj = c_preloadCj ? cjs[jm + (tidxj & 4) * c_nbnxnGpuJgroupSize / c_splitClSize]
                                          : pl_cjPacked[jPacked].cj[jm];
                     int aj = cj * c_clSize + tidxj;
 

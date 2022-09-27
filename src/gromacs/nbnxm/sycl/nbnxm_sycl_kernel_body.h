@@ -1014,7 +1014,7 @@ nbnxmKernel(sycl::handler&                                            cgh,
             const int wexclIdx = a_plistCJPacked[jPacked].imei[imeiIdx].excl_ind;
             static_assert(gmx::isPowerOfTwo(prunedClusterPairSize));
             const unsigned wexcl = a_plistExcl[wexclIdx].pair[tidx & (prunedClusterPairSize - 1)];
-            for (int jm = 0; jm < int(Nbnxm::GpuJGroupSize::Four); jm++)
+            for (int jm = 0; jm < c_nbnxnGpuJgroupSize; jm++)
             {
                 const bool maskSet =
                         imask & (superClInteractionMask << (jm * c_nbnxnGpuNumClusterPerSupercluster));

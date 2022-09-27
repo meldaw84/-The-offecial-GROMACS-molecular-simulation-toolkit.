@@ -149,7 +149,7 @@ void nbnxn_kernel_gpu_ref(const NbnxnPairlistGpu<Nbnxm::GpuJGroupSize::Four>* nb
             excl[0] = &nbl->excl[nbl->cjPacked.list_[cjPacked].imei[0].excl_ind];
             excl[1] = &nbl->excl[nbl->cjPacked.list_[cjPacked].imei[1].excl_ind];
 
-            for (int jm = 0; jm < int(Nbnxm::GpuJGroupSize::Four); jm++)
+            for (int jm = 0; jm < c_nbnxnGpuJgroupSize; jm++)
             {
                 const int cj = nbl->cjPacked.list_[cjPacked].cj[jm];
 

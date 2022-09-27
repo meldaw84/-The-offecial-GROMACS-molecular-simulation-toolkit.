@@ -186,6 +186,13 @@ enum class GpuJGroupSize : int
 };
 } // namespace Nbnxm
 
+/*! \brief Global constant whose value equals the only supported value
+ * for Nbnxm::GpuJGroupSize.
+ *
+ * This is a temporary measure which reduces churn in the Nbnxm GPU
+ * kernels before they are also templated on gpuJGroupSize. */
+constexpr int c_nbnxnGpuJgroupSize = int(Nbnxm::GpuJGroupSize::Four);
+
 /*! \internal
  * \brief Simple pair-list i-unit
  */
