@@ -1258,7 +1258,7 @@ nbnxmKernel(sycl::handler&                                            cgh,
                 /* reduce j forces */
                 reduceForceJ<useShuffleReductionForceJ>(
                         sm_reductionBuffer, fCjBuf, itemIdx, tidxi, tidxj, aj, a_f.get_pointer());
-            } // for (int jm = 0; jm < Nbnxm::GpuJGroupSize::Four; jm++)
+            } // for (int jm = 0; jm < c_nbnxnGpuJgroupSize; jm++)
             if constexpr (doPruneNBL)
             {
                 /* Update the imask with the new one which does not contain the
