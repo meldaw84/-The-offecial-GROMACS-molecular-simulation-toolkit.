@@ -138,6 +138,7 @@ enum tpxv
     tpxv_ReaddedConstantAcceleration, /**< Re-added support for constant acceleration NEMD. */
     tpxv_RemoveTholeRfac,             /**< Remove unused rfac parameter from thole listed force */
     tpxv_RemoveAtomtypes,             /**< Remove unused atomtypes parameter from mtop */
+    tpxv_AddLambdaDynamicsEnergy,     /**< Added lambda dynamics energy */
     tpxv_Count                        /**< the total number of tpxv versions */
 };
 
@@ -233,6 +234,7 @@ static const t_ftupd ftupd[] = {
     { tpxv_VSite1, F_VSITE1 },
     { tpxv_VSite2FD, F_VSITE2FD },
     { tpxv_GenericInternalParameters, F_DENSITYFITTING },
+    { tpxv_AddLambdaDynamicsEnergy, F_ELD },
     { 69, F_VTEMP_NOLONGERUSED },
     { 66, F_PDISPCORR },
     { 79, F_DVDL_COUL },
@@ -246,7 +248,6 @@ static const t_ftupd ftupd[] = {
     },
     { 79, F_DVDL_RESTRAINT },
     { 79, F_DVDL_TEMPERATURE },
-    { tpxv_RemoveAtomtypes, F_ELD },
 };
 #define NFTUPD asize(ftupd)
 
