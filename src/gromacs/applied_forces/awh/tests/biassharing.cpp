@@ -116,7 +116,7 @@ void parallelTestFunction(const void gmx_unused* dummy)
 
 /*! \brief The actual test body, executed by each MPI rank when testing sharing samples
  *
- * Sets ups sharing and tests that the number of samples are counted correctly
+ * Sets up sharing and tests that the number of samples are counted correctly
  */
 void sharingSamplesTest(const void gmx_unused* dummy)
 {
@@ -190,11 +190,9 @@ void sharingSamplesTest(const void gmx_unused* dummy)
         sumPointNumVisitsTot += point.numVisitsTot();
         sumLocalNumVisits += point.localNumVisits();
     }
-    int nSamples = exitStep / params.awhParams.nstSampleCoord();
-    int expectedUnaccountedNumSamples =
-            nSamples
-            % (params.awhParams.nstSampleCoord() * params.awhParams.numSamplesUpdateFreeEnergy());
-    int expectedAccountedNumSamples = nSamples - expectedUnaccountedNumSamples;
+    int nSamples                      = exitStep / params.awhParams.nstSampleCoord();
+    int expectedUnaccountedNumSamples = nSamples % params.awhParams.numSamplesUpdateFreeEnergy();
+    int expectedAccountedNumSamples   = nSamples - expectedUnaccountedNumSamples;
     EXPECT_EQ(sumLocalNumVisits, expectedAccountedNumSamples);
     EXPECT_EQ(sumPointNumVisitsTot, c_numSharingBiases * expectedAccountedNumSamples);
     EXPECT_EQ(sumPointNumVisitsIteration, expectedUnaccountedNumSamples);
