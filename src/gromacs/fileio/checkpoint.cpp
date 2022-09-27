@@ -2221,10 +2221,10 @@ static void do_cpt_mdmodules(CheckPointVersion              fileVersion,
             gmx::TextWriter textWriter(outputFile);
             gmx::dumpKeyValueTree(&textWriter, mdModuleCheckpointParameterTree);
         }
-        gmx::MDModulesCheckpointReadingDataOnMaster mdModuleCheckpointReadingDataOnMaster = {
+        gmx::MDModulesCheckpointReadingDataOnMain mdModuleCheckpointReadingDataOnMain = {
             mdModuleCheckpointParameterTree
         };
-        mdModulesNotifiers.checkpointingNotifier_.notify(mdModuleCheckpointReadingDataOnMaster);
+        mdModulesNotifiers.checkpointingNotifier_.notify(mdModuleCheckpointReadingDataOnMain);
     }
 }
 
@@ -2540,8 +2540,11 @@ static void check_match(FILE*                           fplog,
 
     if (reproducibilityRequested)
     {
-        check_string(
-                fplog, "Program name", gmx::getProgramContext().fullBinaryPath(), headerContents.fprog, &mm);
+        check_string(fplog,
+                     "Program name",
+                     gmx::getProgramContext().fullBinaryPath().c_str(),
+                     headerContents.fprog,
+                     &mm);
 
         check_int(fplog, "#ranks", cr->nnodes, headerContents.nnodes, &mm);
     }
@@ -2729,7 +2732,7 @@ static void read_checkpoint(const char*                    fn,
                        "GMX_DISABLE_MODULAR_SIMULATOR=ON to overwrite the default behavior and use "
                        "legacy simulator for all implemented use cases.");
 
-    if (MASTER(cr))
+    if (MAIN(cr))
     {
         check_match(fplog, cr, dd_nc, *headerContents, reproducibilityRequested);
     }
@@ -2865,7 +2868,7 @@ void load_checkpoint(const char*                    fn,
                      bool                           useModularSimulator)
 {
     CheckpointHeaderContents headerContents;
-    if (SIMMASTER(cr))
+    if (SIMMAIN(cr))
     {
         /* Read the state from the checkpoint file */
         read_checkpoint(fn,

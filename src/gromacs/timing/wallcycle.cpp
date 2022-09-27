@@ -48,7 +48,7 @@
 #include "gromacs/timing/cyclecounter.h"
 #include "gromacs/timing/gpu_timing.h"
 #include "gromacs/timing/wallcyclereporting.h"
-#include "gromacs/utility/arrayref.h"
+#include "gromacs/utility/basedefinitions.h"
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/fatalerror.h"
@@ -59,8 +59,8 @@
 #include "gromacs/utility/snprintf.h"
 #include "gromacs/utility/stringutil.h"
 
-//! True if only the master rank should print debugging output
-constexpr bool onlyMasterDebugPrints = true;
+//! True if only the main rank should print debugging output
+constexpr bool onlyMainDebugPrints = true;
 //! True if cycle counter nesting depth debugging prints are enabled
 constexpr bool debugPrintDepth = false;
 
@@ -78,7 +78,7 @@ static const char* enumValuetoString(WallCycleCounter enumValue)
         "Vsite constr.",
         "Send X to PME",
         "Neighbor search",
-        "Launch GPU ops.",
+        "Launch PP GPU ops.",
         "Comm. coord.",
         "Force",
         "Wait + Comm. F",
@@ -96,6 +96,7 @@ static const char* enumValuetoString(WallCycleCounter enumValue)
         "PME solve",
         "Wait PME GPU gather",
         "Reduce GPU PME F",
+        "Launch PME GPU ops.",
         "Wait PME Recv. PP X",
         "Wait PME GPU spread",
         "Wait GPU FFT to PME",
@@ -123,6 +124,10 @@ static const char* enumValuetoString(WallCycleCounter enumValue)
     return wallCycleCounterNames[enumValue];
 }
 
+// Clang complains about this function not used in builds without subcounters
+// clang-format off
+CLANG_DIAGNOSTIC_IGNORE(-Wunneeded-internal-declaration)
+// clang-format on
 static const char* enumValuetoString(WallCycleSubCounter enumValue)
 {
     constexpr gmx::EnumerationArray<WallCycleSubCounter, const char*> wallCycleSubCounterNames = {
@@ -148,8 +153,6 @@ static const char* enumValuetoString(WallCycleSubCounter enumValue)
         "Nonbonded FEP reduction",
         "Launch NB GPU tasks",
         "Launch Bonded GPU tasks",
-        "Launch PME GPU tasks",
-        "Launch PME GPU FFT",
         "Launch state copy",
         "Ewald F correction",
         "NB X buffer ops.",
@@ -160,10 +163,12 @@ static const char* enumValuetoString(WallCycleSubCounter enumValue)
         "Launch GPU Comm. coord.",
         "Launch GPU Comm. force.",
         "Launch GPU update",
+        "Launch PME GPU FFT",
         "Test subcounter"
     };
     return wallCycleSubCounterNames[enumValue];
 }
+CLANG_DIAGNOSTIC_RESET
 
 /* PME GPU timing events' names - correspond to the enum in the gpu_timing.h */
 static const char* enumValuetoString(PmeStage enumValue)
@@ -223,8 +228,8 @@ std::unique_ptr<gmx_wallcycle> wallcycle_init(FILE* fplog, int resetstep, const 
     // NOLINTNEXTLINE(readability-misleading-indentation)
     if constexpr (sc_enableWallcycleDebug)
     {
-        wc->count_depth  = 0;
-        wc->isMasterRank = MASTER(cr);
+        wc->count_depth = 0;
+        wc->isMainRank  = MAIN(cr);
     }
 
     return wc;
@@ -243,7 +248,7 @@ void debug_start_check(gmx_wallcycle* wc, WallCycleCounter ewc)
         wc->counterlist[wc->count_depth] = ewc;
         wc->count_depth++;
 
-        if (debugPrintDepth && (!onlyMasterDebugPrints || wc->isMasterRank))
+        if (debugPrintDepth && (!onlyMainDebugPrints || wc->isMainRank))
         {
             std::string indentStr(4 * wc->count_depth, ' ');
             fprintf(stderr,
@@ -260,7 +265,7 @@ void debug_stop_check(gmx_wallcycle* wc, WallCycleCounter ewc)
     // NOLINTNEXTLINE(readability-misleading-indentation)
     if constexpr (sc_enableWallcycleDebug)
     {
-        if (debugPrintDepth && (!onlyMasterDebugPrints || wc->isMasterRank))
+        if (debugPrintDepth && (!onlyMainDebugPrints || wc->isMainRank))
         {
             std::string indentStr(4 * wc->count_depth, ' ');
             fprintf(stderr,
@@ -444,7 +449,7 @@ void wallcycle_scale_by_num_threads(gmx_wallcycle* wc, bool isPmeRank, int nthre
  * uses cycles_sum to manage this, which works OK now because wcsc and
  * wcc_all are unused by the GPU reporting, but it is not satisfactory
  * for the future. Also, there's no need for MPI_Allreduce, since
- * only MASTERRANK uses any of the results. */
+ * only MAINRANK uses any of the results. */
 WallcycleCounts wallcycle_sum(const t_commrec* cr, gmx_wallcycle* wc)
 {
     WallcycleCounts                                    cycles_sum;
@@ -715,7 +720,7 @@ static void print_header(FILE* fplog, int nrank_pp, int nth_pp, int nrank_pme, i
     }
 
     fprintf(fplog, "\n\n");
-    fprintf(fplog, " Computing:          Num   Num      Call    Wall time         Giga-Cycles\n");
+    fprintf(fplog, " Activity:           Num   Num      Call    Wall time         Giga-Cycles\n");
     fprintf(fplog, "                     Ranks Threads  Count      (s)         total sum    %%\n");
 }
 
@@ -900,7 +905,7 @@ void wallcycle_print(FILE*                            fplog,
 
         if (!validPmeSubcounterIndices.empty())
         {
-            fprintf(fplog, " Breakdown of PME mesh computation\n");
+            fprintf(fplog, " Breakdown of PME mesh activities\n");
             fprintf(fplog, "%s\n", hline);
             for (auto i : validPmeSubcounterIndices)
             {
@@ -920,7 +925,7 @@ void wallcycle_print(FILE*                            fplog,
     // NOLINTNEXTLINE(readability-misleading-indentation)
     if constexpr (sc_useCycleSubcounters)
     {
-        fprintf(fplog, " Breakdown of PP computation\n");
+        fprintf(fplog, " Breakdown of PP / PME activities\n");
         fprintf(fplog, "%s\n", hline);
         for (auto key : keysOf(wc->wcsc))
         {
@@ -1045,7 +1050,7 @@ void wallcycle_print(FILE*                            fplog,
              * CPU-GPU load balancing is possible */
             if (gpu_cpu_ratio < 0.8 || gpu_cpu_ratio > 1.25)
             {
-                /* Only the sim master calls this function, so always print to stderr */
+                /* Only the sim main calls this function, so always print to stderr */
                 if (gpu_cpu_ratio < 0.8)
                 {
                     if (npp > 1)
@@ -1102,7 +1107,7 @@ void wallcycle_print(FILE*                            fplog,
         && (cyc_sum[static_cast<int>(WallCycleCounter::Domdec)] > tot * 0.1
             || cyc_sum[static_cast<int>(WallCycleCounter::NS)] > tot * 0.1))
     {
-        /* Only the sim master calls this function, so always print to stderr */
+        /* Only the sim main calls this function, so always print to stderr */
         if (wc->wcc[WallCycleCounter::Domdec].n == 0)
         {
             GMX_LOG(mdlog.warning)

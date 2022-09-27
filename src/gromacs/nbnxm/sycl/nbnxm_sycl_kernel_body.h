@@ -483,11 +483,9 @@ static inline void reduceForceIAndFShiftGeneric(sycl::local_ptr<float> sm_buf,
         {
             if (tidxj < i)
             {
-                sm_buf[tidxj * c_clSize + tidxi] += sm_buf[(tidxj + i) * c_clSize + tidxi];
-                sm_buf[bufStride + tidxj * c_clSize + tidxi] +=
-                        sm_buf[bufStride + (tidxj + i) * c_clSize + tidxi];
-                sm_buf[2 * bufStride + tidxj * c_clSize + tidxi] +=
-                        sm_buf[2 * bufStride + (tidxj + i) * c_clSize + tidxi];
+                sm_buf[tidx] += sm_buf[tidx + i * c_clSize];
+                sm_buf[bufStride + tidx] += sm_buf[bufStride + tidx + i * c_clSize];
+                sm_buf[2 * bufStride + tidx] += sm_buf[2 * bufStride + tidx + i * c_clSize];
             }
             i >>= 1;
             itemIdx.barrier(fence_space::local_space);
@@ -747,7 +745,7 @@ static auto nbnxmKernel(sycl::handler&                                          
                         DeviceAccessor<Float3, mode::read_write>                  a_fShift,
                         OptionalAccessor<float, mode::read_write, doCalcEnergies> a_energyElec,
                         OptionalAccessor<float, mode::read_write, doCalcEnergies> a_energyVdw,
-                        DeviceAccessor<nbnxn_cj4_t, doPruneNBL ? mode::read_write : mode::read> a_plistCJ4,
+                        DeviceAccessor<nbnxn_cj_packed_t, doPruneNBL ? mode::read_write : mode::read> a_plistCJPacked,
                         DeviceAccessor<nbnxn_sci_t, mode::read>                     a_plistSci,
                         DeviceAccessor<nbnxn_excl_t, mode::read>                    a_plistExcl,
                         OptionalAccessor<Float2, mode::read, ljComb<vdwType>>       a_ljComb,
@@ -763,7 +761,7 @@ static auto nbnxmKernel(sycl::handler&                                          
                         const float                                                 rlistOuterSq,
                         const float                                                 ewaldShift,
                         const float                                                 epsFac,
-                        const float                                                 ewaldCoeffLJ,
+                        const float                                                 ewaldCoeffLJ_2,
                         const float                                                 cRF,
                         const shift_consts_t                                        dispersionShift,
                         const shift_consts_t                                        repulsionShift,
@@ -784,7 +782,7 @@ static auto nbnxmKernel(sycl::handler&                                          
         a_energyElec.bind(cgh);
         a_energyVdw.bind(cgh);
     }
-    a_plistCJ4.bind(cgh);
+    a_plistCJPacked.bind(cgh);
     a_plistSci.bind(cgh);
     a_plistExcl.bind(cgh);
     if constexpr (!props.vdwComb)
@@ -892,7 +890,6 @@ static auto nbnxmKernel(sycl::handler&                                          
         const unsigned tidxi = itemIdx.get_local_id(2);
         const unsigned tidxj = itemIdx.get_local_id(1);
         const unsigned tidx  = tidxj * c_clSize + tidxi;
-        const unsigned tidxz = 0;
 
         const unsigned bidx = itemIdx.get_group(0);
 
@@ -907,10 +904,10 @@ static auto nbnxmKernel(sycl::handler&                                          
             fCiBuf[i] = Float3(0.0F, 0.0F, 0.0F);
         }
 
-        const nbnxn_sci_t nbSci     = a_plistSci[bidx];
-        const int         sci       = nbSci.sci;
-        const int         cij4Start = nbSci.cj4_ind_start;
-        const int         cij4End   = nbSci.cj4_ind_end;
+        const nbnxn_sci_t nbSci          = a_plistSci[bidx];
+        const int         sci            = nbSci.sci;
+        const int         cijPackedBegin = nbSci.cjPackedBegin;
+        const int         cijPackedEnd   = nbSci.cjPackedEnd;
 
         // Only needed if props.elecEwaldAna
         const float beta2 = ewaldBeta * ewaldBeta;
@@ -948,10 +945,9 @@ static auto nbnxmKernel(sycl::handler&                                          
         }
         itemIdx.barrier(fence_space::local_space);
 
-        float ewaldCoeffLJ_2, ewaldCoeffLJ_6_6; // Only needed if (props.vdwEwald)
+        float ewaldCoeffLJ_6_6; // Only needed if (props.vdwEwald)
         if constexpr (props.vdwEwald)
         {
-            ewaldCoeffLJ_2   = ewaldCoeffLJ * ewaldCoeffLJ;
             ewaldCoeffLJ_6_6 = ewaldCoeffLJ_2 * ewaldCoeffLJ_2 * ewaldCoeffLJ_2 * c_oneSixth;
         }
 
@@ -963,7 +959,7 @@ static auto nbnxmKernel(sycl::handler&                                          
         if constexpr (doCalcEnergies && doExclusionForces)
         {
             if (nbSci.shift == gmx::c_centralShiftIndex
-                && a_plistCJ4[cij4Start].cj[0] == sci * c_nbnxnGpuNumClusterPerSupercluster)
+                && a_plistCJPacked[cijPackedBegin].cj[0] == sci * c_nbnxnGpuNumClusterPerSupercluster)
             {
                 // we have the diagonal: add the charge and LJ self interaction energy term
                 for (int i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i++)
@@ -999,21 +995,21 @@ static auto nbnxmKernel(sycl::handler&                                          
                     energyElec /= epsFac * c_clSize;
                     energyElec *= -ewaldBeta * c_OneOverSqrtPi; /* last factor 1/sqrt(pi) */
                 }
-            } // (nbSci.shift == gmx::c_centralShiftIndex && a_plistCJ4[cij4Start].cj[0] == sci * c_nbnxnGpuNumClusterPerSupercluster)
+            } // (nbSci.shift == gmx::c_centralShiftIndex && a_plistCJPacked[cijPackedBegin].cj[0] == sci * c_nbnxnGpuNumClusterPerSupercluster)
         }     // (doCalcEnergies && doExclusionForces)
 
         // Only needed if (doExclusionForces)
         const bool nonSelfInteraction = !(nbSci.shift == gmx::c_centralShiftIndex & tidxj <= tidxi);
 
         // loop over the j clusters = seen by any of the atoms in the current super-cluster
-        for (int j4 = cij4Start + tidxz; j4 < cij4End; j4 += 1)
+        for (int jPacked = cijPackedBegin; jPacked < cijPackedEnd; jPacked += 1)
         {
-            unsigned imask = a_plistCJ4[j4].imei[imeiIdx].imask;
+            unsigned imask = a_plistCJPacked[jPacked].imei[imeiIdx].imask;
             if (!doPruneNBL && !imask)
             {
                 continue;
             }
-            const int wexclIdx = a_plistCJ4[j4].imei[imeiIdx].excl_ind;
+            const int wexclIdx = a_plistCJPacked[jPacked].imei[imeiIdx].excl_ind;
             static_assert(gmx::isPowerOfTwo(prunedClusterPairSize));
             const unsigned wexcl = a_plistExcl[wexclIdx].pair[tidx & (prunedClusterPairSize - 1)];
             for (int jm = 0; jm < c_nbnxnGpuJgroupSize; jm++)
@@ -1025,7 +1021,7 @@ static auto nbnxmKernel(sycl::handler&                                          
                     continue;
                 }
                 unsigned  maskJI = (1U << (jm * c_nbnxnGpuNumClusterPerSupercluster));
-                const int cj     = a_plistCJ4[j4].cj[jm];
+                const int cj     = a_plistCJPacked[jPacked].cj[jm];
                 const int aj     = cj * c_clSize + tidxj;
 
                 // load j atom data
@@ -1263,9 +1259,9 @@ static auto nbnxmKernel(sycl::handler&                                          
             {
                 /* Update the imask with the new one which does not contain the
                  * out of range clusters anymore. */
-                a_plistCJ4[j4].imei[imeiIdx].imask = imask;
+                a_plistCJPacked[jPacked].imei[imeiIdx].imask = imask;
             }
-        } // for (int j4 = cij4Start; j4 < cij4End; j4 += 1)
+        } // for (int jPacked = cijPackedBegin; jPacked < cijPackedEnd; jPacked += 1)
 
         /* skip central shifts when summing shift forces */
         const bool doCalcShift = (calcShift && nbSci.shift != gmx::c_centralShiftIndex);
@@ -1359,7 +1355,7 @@ void launchNbnxmKernelHelper(NbnxmGpu* nb, const gmx::StepWorkload& stepWork, co
                                                            adat->fShift,
                                                            adat->eElec,
                                                            adat->eLJ,
-                                                           plist->cj4,
+                                                           plist->cjPacked,
                                                            plist->sci,
                                                            plist->excl,
                                                            adat->ljComb,
@@ -1375,7 +1371,7 @@ void launchNbnxmKernelHelper(NbnxmGpu* nb, const gmx::StepWorkload& stepWork, co
                                                            nbp->rlistOuter_sq,
                                                            nbp->sh_ewald,
                                                            nbp->epsfac,
-                                                           nbp->ewaldcoeff_lj,
+                                                           nbp->ewaldcoeff_lj * nbp->ewaldcoeff_lj,
                                                            nbp->c_rf,
                                                            nbp->dispersion_shift,
                                                            nbp->repulsion_shift,
