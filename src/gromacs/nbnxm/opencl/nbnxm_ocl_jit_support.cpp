@@ -193,7 +193,7 @@ void nbnxn_gpu_compile_kernels(NbnxmGpu* nb)
                 c_nbnxnGpuClusterSize,
                 c_nbnxnMinDistanceSquared,
                 c_nbnxnGpuNumClusterPerSupercluster,
-                Nbnxm::GpuJGroupSize::Four,
+                int(Nbnxm::GpuJGroupSize::Four),
                 gmx::c_centralShiftIndex,
                 (nb->bPrefetchLjParam) ? " -DIATYPE_SHMEM" : "");
         try
