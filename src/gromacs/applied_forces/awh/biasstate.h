@@ -512,9 +512,7 @@ public:
      * \param[in] tensorIndex      The index of the tensor.
      * \param[in] numCorrelation   Number of force correlation tensors.
      */
-    double getSharedCorrelationTensorTimeIntegral(const int gridPointIndex,
-                                                  const int tensorIndex,
-                                                  const int numCorrelation) const;
+    double getSharedCorrelationTensorTimeIntegral(int gridPointIndex, int tensorIndex, int numCorrelation) const;
 
     /*! \brief Gets the volume element, shared across all ranks, of a correlation grid point.
      *
@@ -522,7 +520,7 @@ public:
      * volume.
      * \param[in] numCorrelation   Number of force correlation tensors.
      */
-    double getSharedCorrelationTensorVolumeElement(const int gridPointIndex, const int numCorrelation) const;
+    double getSharedCorrelationTensorVolumeElement(int gridPointIndex, int numCorrelation) const;
 
     /* Data members */
 private:
