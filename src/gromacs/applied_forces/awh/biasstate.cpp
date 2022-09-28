@@ -802,21 +802,26 @@ void sumHistograms(gmx::ArrayRef<PointState> pointState,
             ps.setPartialWeightAndCount(weightSum[localIndex], coordVisits[localIndex]);
         }
     }
-    else
-    {
-        for (size_t localIndex = 0; localIndex < localUpdateList.size(); localIndex++)
-        {
-            PointState& ps = pointState[localUpdateList[localIndex]];
-            ps.addLocalNumVisits();
-        }
-    }
 
     /* Now add the partial counts and weights to the accumulating histograms.
        Note: we still need to use the weights for the update so we wait
        with resetting them until the end of the update. */
-    for (int globalIndex : localUpdateList)
+    if (numSharedUpdate > 1)
     {
-        pointState[globalIndex].addPartialWeightAndCount();
+        for (int globalIndex : localUpdateList)
+        {
+            pointState[globalIndex].addPartialWeightAndCount();
+        }
+    }
+    else
+    {
+        for (int globalIndex : localUpdateList)
+        {
+            PointState& ps = pointState[globalIndex];
+            ps.addLocalNumVisits();
+
+            pointState[globalIndex].addPartialWeightAndCount();
+        }
     }
 }
 
