@@ -1631,6 +1631,7 @@ double BiasState::getSharedCorrelationTensorVolumeElement(const int gridPointInd
             det = getSharedCorrelationTensorTimeIntegral(gridPointIndex, 0, numCorrelation);
             break;
         case 3:
+        {
             /* 2-dimensional tensor: [a b; b c] */
             double a = getSharedCorrelationTensorTimeIntegral(gridPointIndex, 0, numCorrelation);
             double b = getSharedCorrelationTensorTimeIntegral(gridPointIndex, 1, numCorrelation);
@@ -1638,7 +1639,9 @@ double BiasState::getSharedCorrelationTensorVolumeElement(const int gridPointInd
 
             det = a * c - b * b;
             break;
+        }
         case 6:
+        {
             /* 3-dimensional tensor: [a b d; b c e; d e f] */
             double a = getSharedCorrelationTensorTimeIntegral(gridPointIndex, 0, numCorrelation);
             double b = getSharedCorrelationTensorTimeIntegral(gridPointIndex, 1, numCorrelation);
@@ -1649,6 +1652,7 @@ double BiasState::getSharedCorrelationTensorVolumeElement(const int gridPointInd
 
             det = a * c * f + 2 * b * d * e - d * c * d - b * b * f - a * e * e;
             break;
+        }
         default:
             det = 0;
             /* meh */
