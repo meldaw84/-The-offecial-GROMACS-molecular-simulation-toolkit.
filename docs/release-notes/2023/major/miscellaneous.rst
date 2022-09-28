@@ -17,3 +17,13 @@ Bulacu JCTC paper, and the journals for two of the references
 had been swapped. No changes to any simulation results.
 
 :issue:`4568`
+
+AWH friction metric is shared between AWH walkers
+"""""""""""""""""""""""""""""""""""""""""""""""""
+
+The friction metric now uses data from all walkers sharing
+the bias. In the AWH friction output the local output as well
+as the shared output is written. The local output can be used
+for statistical analyses.
+
+:issue:`3842`
