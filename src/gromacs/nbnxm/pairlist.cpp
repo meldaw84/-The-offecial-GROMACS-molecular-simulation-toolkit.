@@ -657,32 +657,46 @@ NbnxnPairlistCpu::NbnxnPairlistCpu() :
 }
 
 template<Nbnxm::GpuJGroupSize gpuJGroupSize>
-NbnxnPairlistGpu<gpuJGroupSize>::NbnxnPairlistGpu(gmx::PinningPolicy pinningPolicy) :
+NbnxnPairlistGpu<gpuJGroupSize>::NbnxnPairlistGpu(gmx::PinningPolicy        pinningPolicy,
+                                                  const GpuClustersPerCell& maxGpuClustersPerCellValue) :
+    maxGpuClustersPerCell(maxGpuClustersPerCellValue),
     na_ci(c_nbnxnGpuClusterSize),
     na_cj(c_nbnxnGpuClusterSize),
-    na_sc(c_gpuNumClusterPerCell * c_nbnxnGpuClusterSize),
+    na_sc(maxGpuClustersPerCell.total * c_nbnxnGpuClusterSize),
     rlist(0),
     sci({}, { pinningPolicy }),
     cjPacked(pinningPolicy),
     excl({}, { pinningPolicy }),
     nci_tot(0),
-    work(std::make_unique<NbnxnPairlistGpuWork>())
+    work(std::make_unique<NbnxnPairlistGpuWork>(maxGpuClustersPerCell))
 {
-    static_assert(c_nbnxnGpuNumClusterPerSupercluster == c_gpuNumClusterPerCell,
-                  "The search code assumes that the a super-cluster matches a search grid cell");
-
-    static_assert(sizeof(excl[0]) * 8 >= int(gpuJGroupSize) * c_gpuNumClusterPerCell,
-                  "The GPU exclusion mask does not contain a sufficient number of bits");
+    GMX_RELEASE_ASSERT(
+            c_nbnxnGpuNumClusterPerSupercluster == maxGpuClustersPerCell.total,
+            "The search code assumes that the a super-cluster matches a search grid cell");
+    GMX_RELEASE_ASSERT(
+            c_nbnxnGpuNumClusterPerSupercluster
+                    == maxGpuClustersPerCell.dim[XX] * maxGpuClustersPerCell.dim[YY]
+                               * maxGpuClustersPerCell.dim[ZZ],
+            "c_nbnxnGpuNumClusterPerSupercluster needs to match the max number of clusters per "
+            "search cell");
+    GMX_RELEASE_ASSERT(sizeof(cjPacked.list_[0].imei[0].imask) * 8
+                               >= std::size_t(gpuJGroupSize) * maxGpuClustersPerCell.total,
+                       "The i super-cluster cluster interaction mask does not contain a sufficient "
+                       "number of bits");
+    GMX_RELEASE_ASSERT(sizeof(excl[0]) * 8 >= std::size_t(gpuJGroupSize) * maxGpuClustersPerCell.total,
+                       "The GPU exclusion mask does not contain a sufficient number of bits");
 
     // We always want a first entry without any exclusions
     excl.resize(1);
 }
 
 // TODO: Move to pairlistset.cpp
-PairlistSet::PairlistSet(const PairlistParams& pairlistParams) :
+PairlistSet::PairlistSet(const PairlistParams&     pairlistParams,
+                         const GpuClustersPerCell& maxGpuClustersPerCell) :
     params_(pairlistParams),
     combineLists_(sc_isGpuPairListType[pairlistParams.pairlistType]), // Currently GPU lists are always combined
-    isCpuType_(!sc_isGpuPairListType[pairlistParams.pairlistType])
+    isCpuType_(!sc_isGpuPairListType[pairlistParams.pairlistType]),
+    maxGpuClustersPerCell_(maxGpuClustersPerCell)
 {
 
     const int numLists = gmx_omp_nthreads_get(ModuleMultiThread::Nonbonded);
@@ -709,13 +723,13 @@ PairlistSet::PairlistSet(const PairlistParams& pairlistParams) :
     else
     {
         /* Only list 0 is used on the GPU, use normal allocation for i>0 */
-        gpuLists_.emplace_back(gmx::PinningPolicy::PinnedIfSupported);
+        gpuLists_.emplace_back(gmx::PinningPolicy::PinnedIfSupported, maxGpuClustersPerCell_);
         /* Lists 0 to numLists are use for constructing lists in parallel
          * on the CPU using numLists threads (and then merged into list 0).
          */
         for (int i = 1; i < numLists; i++)
         {
-            gpuLists_.emplace_back(gmx::PinningPolicy::CannotBePinned);
+            gpuLists_.emplace_back(gmx::PinningPolicy::CannotBePinned, maxGpuClustersPerCell_);
         }
     }
     if (params_.haveFep)
@@ -741,7 +755,11 @@ PairlistSet::PairlistSet(const PairlistParams& pairlistParams) :
 }
 
 /* Print statistics of a pair list, used for debug output */
-static void printNblistStatistics(FILE* fp, const NbnxnPairlistCpu& nbl, const Nbnxm::GridSet& gridSet, const real rl)
+static void printNblistStatistics(FILE*                   fp,
+                                  const NbnxnPairlistCpu& nbl,
+                                  const Nbnxm::GridSet&   gridSet,
+                                  const real              rl,
+                                  const GpuClustersPerCell& /*maxGpuClustersPerCell*/)
 {
     const Grid&             grid = gridSet.grids()[0];
     const Grid::Dimensions& dims = grid.dimensions();
@@ -802,7 +820,8 @@ template<Nbnxm::GpuJGroupSize gpuJGroupSize>
 static void printNblistStatistics(FILE*                                  fp,
                                   const NbnxnPairlistGpu<gpuJGroupSize>& nbl,
                                   const Nbnxm::GridSet&                  gridSet,
-                                  const real                             rl)
+                                  const real                             rl,
+                                  const GpuClustersPerCell&              maxGpuClustersPerCell)
 {
     const Grid&             grid = gridSet.grids()[0];
     const Grid::Dimensions& dims = grid.dimensions();
@@ -826,10 +845,10 @@ static void printNblistStatistics(FILE*                                  fp,
                     / (0.5 * 4.0 / 3.0 * M_PI * rl * rl * rl * grid.numClusters() * numAtomsCluster
                        / (dims.gridSize[XX] * dims.gridSize[YY] * dims.gridSize[ZZ])));
 
-    double sum_nsp                       = 0;
-    double sum_nsp2                      = 0;
-    int    nsp_max                       = 0;
-    int    c[c_gpuNumClusterPerCell + 1] = { 0 };
+    double           sum_nsp  = 0;
+    double           sum_nsp2 = 0;
+    int              nsp_max  = 0;
+    std::vector<int> c(maxGpuClustersPerCell.total + 1, 0);
     for (const nbnxn_sci_t& sci : nbl.sci)
     {
         int nsp = 0;
@@ -838,10 +857,10 @@ static void printNblistStatistics(FILE*                                  fp,
             for (int j = 0; j < int(gpuJGroupSize); j++)
             {
                 int b = 0;
-                for (int si = 0; si < c_gpuNumClusterPerCell; si++)
+                for (int si = 0; si < maxGpuClustersPerCell.total; si++)
                 {
                     if (nbl.cjPacked.list_[jPacked].imei[0].imask
-                        & (1U << (j * c_gpuNumClusterPerCell + si)))
+                        & (1U << (j * maxGpuClustersPerCell.total + si)))
                     {
                         b++;
                     }
@@ -867,7 +886,7 @@ static void printNblistStatistics(FILE*                                  fp,
 
     if (!nbl.cjPacked.empty())
     {
-        for (int b = 0; b <= c_gpuNumClusterPerCell; b++)
+        for (int b = 0; b <= maxGpuClustersPerCell.total; b++)
         {
             fprintf(fp,
                     "nbl j-list #i-subcell %d %7d %4.1f\n",
@@ -912,7 +931,8 @@ template<Nbnxm::GpuJGroupSize gpuJGroupSize>
 static void setSelfAndNewtonExclusionsGpu(NbnxnPairlistGpu<gpuJGroupSize>* nbl,
                                           const int                        cjPackedIndex,
                                           const int                        jOffsetInGroup,
-                                          const int                        iClusterInCell)
+                                          const int                        iClusterInCell,
+                                          const GpuClustersPerCell&        maxGpuClustersPerCell)
 {
     constexpr int numJatomsPerPart = c_nbnxnGpuClusterSize / c_nbnxnGpuClusterpairSplit;
 
@@ -929,7 +949,7 @@ static void setSelfAndNewtonExclusionsGpu(NbnxnPairlistGpu<gpuJGroupSize>* nbl,
             for (int i = jOffset + jIndexInPart; i < c_nbnxnGpuClusterSize; i++)
             {
                 excl.pair[jIndexInPart * c_nbnxnGpuClusterSize + i] &=
-                        ~(1U << (jOffsetInGroup * c_gpuNumClusterPerCell + iClusterInCell));
+                        ~(1U << (jOffsetInGroup * maxGpuClustersPerCell.total + iClusterInCell));
             }
         }
     }
@@ -1128,7 +1148,8 @@ static void makeClusterListSupersub(const Grid&                      iGrid,
                                     const real*                      x,
                                     const real                       rlist2,
                                     const float                      rbb2,
-                                    int*                             numDistanceChecks)
+                                    int*                             numDistanceChecks,
+                                    const GpuClustersPerCell&        maxGpuClustersPerCell)
 {
     NbnxnPairlistGpuWork& work = *nbl->work;
 
@@ -1159,9 +1180,9 @@ static void makeClusterListSupersub(const Grid&                      iGrid,
     {
         const int cjPacked_ind = work.cj_ind / int(gpuJGroupSize);
         const int cj_offset    = work.cj_ind - cjPacked_ind * int(gpuJGroupSize);
-        const int cj           = scj * c_gpuNumClusterPerCell + subc;
+        const int cj           = scj * maxGpuClustersPerCell.total + subc;
 
-        const int cj_gl = jGrid.cellOffset() * c_gpuNumClusterPerCell + cj;
+        const int cj_gl = jGrid.cellOffset() * maxGpuClustersPerCell.total + cj;
 
         int ci1 = (excludeSubDiagonal && sci == scj) ? subc + 1 : iGrid.numClustersPerCell()[sci];
 
@@ -1177,7 +1198,7 @@ static void makeClusterListSupersub(const Grid&                      iGrid,
         int          npair = 0;
         unsigned int imask = 0;
         /* We use a fixed upper-bound instead of ci1 to help optimization */
-        for (int ci = 0; ci < c_gpuNumClusterPerCell; ci++)
+        for (int ci = 0; ci < maxGpuClustersPerCell.total; ci++)
         {
             if (ci == ci1)
             {
@@ -1207,7 +1228,7 @@ static void makeClusterListSupersub(const Grid&                      iGrid,
 #endif
             {
                 /* Flag this i-subcell to be taken into account */
-                imask |= (1U << (cj_offset * c_gpuNumClusterPerCell + ci));
+                imask |= (1U << (cj_offset * maxGpuClustersPerCell.total + ci));
 
 #if PRUNE_LIST_CPU_ONE
                 ci_last = ci;
@@ -1224,7 +1245,7 @@ static void makeClusterListSupersub(const Grid&                      iGrid,
         if (npair == 1 && d2l[ci_last] >= rbb2
             && !clusterpairInRange(work, ci_last, cj_gl, stride, x, rlist2))
         {
-            imask &= ~(1U << (cj_offset * c_gpuNumClusterPerCell + ci_last));
+            imask &= ~(1U << (cj_offset * maxGpuClustersPerCell.total + ci_last));
             npair--;
         }
 #endif
@@ -1246,7 +1267,7 @@ static void makeClusterListSupersub(const Grid&                      iGrid,
              */
             if (excludeSubDiagonal && sci == scj)
             {
-                setSelfAndNewtonExclusionsGpu(nbl, cjPacked_ind, cj_offset, subc);
+                setSelfAndNewtonExclusionsGpu(nbl, cjPacked_ind, cj_offset, subc, maxGpuClustersPerCell);
             }
 
             /* Copy the cluster interaction mask to the list */
@@ -1368,7 +1389,8 @@ static void setExclusionsForIEntry(const Nbnxm::GridSet&   gridSet,
                                    NbnxnPairlistCpu*       nbl,
                                    gmx_bool                diagRemoved,
                                    int                     na_cj_2log,
-                                   const ListOfLists<int>& exclusions)
+                                   const ListOfLists<int>& exclusions,
+                                   const GpuClustersPerCell& /*maxGpuClustersPerCell*/)
 {
     // Set the exclusions for the current (ie. last) i-entry in the list
     const nbnxn_ci_t& currentIEntry = nbl->ci.back();
@@ -1482,7 +1504,8 @@ static void makeFepList(gmx::ArrayRef<const int> atomIndices,
                         real gmx_unused          rlist_fep2,
                         const Grid&              iGrid,
                         const Grid&              jGrid,
-                        t_nblist*                nlist)
+                        t_nblist*                nlist,
+                        const GpuClustersPerCell& /*maxGpuClustersPerCell*/)
 {
     int gid_i  = 0;
     int gid_cj = 0;
@@ -1680,7 +1703,8 @@ static void makeFepList(gmx::ArrayRef<const int>         atomIndices,
                         real                             rlist_fep2,
                         const Grid&                      iGrid,
                         const Grid&                      jGrid,
-                        t_nblist*                        nlist)
+                        t_nblist*                        nlist,
+                        const GpuClustersPerCell&        maxGpuClustersPerCell)
 {
     // Exclude pairs from the current (ie. last) i-super-cluster entry
     // in the list
@@ -1713,9 +1737,9 @@ static void makeFepList(gmx::ArrayRef<const int>         atomIndices,
     }
 
     /* Loop over the atoms in the i super-cluster */
-    for (int c = 0; c < c_gpuNumClusterPerCell; c++)
+    for (int c = 0; c < maxGpuClustersPerCell.total; c++)
     {
-        const int c_abs = sci * c_gpuNumClusterPerCell + c;
+        const int c_abs = sci * maxGpuClustersPerCell.total + c;
 
         for (int i = 0; i < nbl->na_ci; i++)
         {
@@ -1730,8 +1754,8 @@ static void makeFepList(gmx::ArrayRef<const int>         atomIndices,
                 nlist->gid[nri]   = 0;
                 nlist->shift[nri] = currentSci.shift & NBNXN_CI_SHIFT;
 
-                const bool bFEP_i =
-                        iGrid.atomIsPerturbed(c_abs - iGrid.cellOffset() * c_gpuNumClusterPerCell, i);
+                const bool bFEP_i = iGrid.atomIsPerturbed(
+                        c_abs - iGrid.cellOffset() * maxGpuClustersPerCell.total, i);
 
                 real xi = nbat->x()[ind_i * nbat->xstride + XX] + shx;
                 real yi = nbat->x()[ind_i * nbat->xstride + YY] + shy;
@@ -1751,13 +1775,14 @@ static void makeFepList(gmx::ArrayRef<const int>         atomIndices,
 
                     for (int gcj = 0; gcj < int(gpuJGroupSize); gcj++)
                     {
-                        if ((cjPacked->imei[0].imask & (1U << (gcj * c_gpuNumClusterPerCell + c))) == 0)
+                        if ((cjPacked->imei[0].imask & (1U << (gcj * maxGpuClustersPerCell.total + c))) == 0)
                         {
                             /* Skip this ci for this cj */
                             continue;
                         }
 
-                        const int cjr = cjPacked->cj[gcj] - jGrid.cellOffset() * c_gpuNumClusterPerCell;
+                        const int cjr =
+                                cjPacked->cj[gcj] - jGrid.cellOffset() * maxGpuClustersPerCell.total;
 
                         if (bFEP_i || jGrid.clusterIsPerturbed(cjr))
                         {
@@ -1765,7 +1790,8 @@ static void makeFepList(gmx::ArrayRef<const int>         atomIndices,
                             {
                                 /* Is this interaction perturbed and not excluded? */
                                 const int ind_j =
-                                        (jGrid.cellOffset() * c_gpuNumClusterPerCell + cjr) * nbl->na_cj + j;
+                                        (jGrid.cellOffset() * maxGpuClustersPerCell.total + cjr) * nbl->na_cj
+                                        + j;
                                 const int aj = atomIndices[ind_j];
                                 if (aj >= 0 && (bFEP_i || jGrid.atomIsPerturbed(cjr, j))
                                     && (!bDiagRemoved || ind_j >= ind_i))
@@ -1777,7 +1803,8 @@ static void makeFepList(gmx::ArrayRef<const int>         atomIndices,
                                     const int indexWithinWarp =
                                             j & (c_nbnxnGpuClusterSize / c_nbnxnGpuClusterpairSplit - 1);
                                     int          excl_pair = indexWithinWarp * nbl->na_ci + i;
-                                    unsigned int excl_bit = (1U << (gcj * c_gpuNumClusterPerCell + c));
+                                    unsigned int excl_bit =
+                                            (1U << (gcj * maxGpuClustersPerCell.total + c));
 
                                     real dx = nbat->x()[ind_j * nbat->xstride + XX] - xi;
                                     real dy = nbat->x()[ind_j * nbat->xstride + YY] - yi;
@@ -1844,7 +1871,8 @@ static void setExclusionsForIEntry(const Nbnxm::GridSet&            gridSet,
                                    NbnxnPairlistGpu<gpuJGroupSize>* nbl,
                                    gmx_bool                         diagRemoved,
                                    int gmx_unused                   na_cj_2log,
-                                   const ListOfLists<int>&          exclusions)
+                                   const ListOfLists<int>&          exclusions,
+                                   const GpuClustersPerCell&        maxGpuClustersPerCell)
 {
     // Set the exclusions for the current (ie. last) i-entry in the list
     const nbnxn_sci_t& currentIEntry = nbl->sci.back();
@@ -1920,7 +1948,7 @@ static void setExclusionsForIEntry(const Nbnxm::GridSet&            gridSet,
                         const int indexWithinCluster =
                                 index & (c_nbnxnGpuClusterSize / c_nbnxnGpuClusterpairSplit - 1);
                         const unsigned int pairMask =
-                                (1U << (indexWithinCluster * c_gpuNumClusterPerCell + iCluster));
+                                (1U << (indexWithinCluster * maxGpuClustersPerCell.total + iCluster));
                         /* Check if the i-cluster interacts with the j-cluster */
                         if (nbl->cjPacked.imask0(index) & pairMask)
                         {
@@ -2009,7 +2037,9 @@ static void closeIEntry(NbnxnPairlistCpu*   nbl,
                         gmx_bool gmx_unused progBal,
                         float gmx_unused    nsp_tot_est,
                         int gmx_unused      thread,
-                        int gmx_unused      nthread)
+                        int gmx_unused      nthread,
+                        const GpuClustersPerCell& /*maxGpuClustersPerCell*/)
+
 {
     /* All content of the current ci entry have already been filled
      * correctly, we only need to sort and increase counts or remove
@@ -2054,7 +2084,8 @@ static void splitSciEntry(NbnxnPairlistGpu<gpuJGroupSize>* nbl,
                           gmx_bool                         progBal,
                           float                            nsp_tot_est,
                           int                              thread,
-                          int                              nthread)
+                          int                              nthread,
+                          const GpuClustersPerCell&        maxGpuClustersPerCell)
 {
 
     int nsp_max = nsp_target_av;
@@ -2079,7 +2110,7 @@ static void splitSciEntry(NbnxnPairlistGpu<gpuJGroupSize>* nbl,
     const int cjPackedEnd   = nbl->sci.back().cjPackedEnd;
     const int jPackedLen    = cjPackedEnd - cjPackedBegin;
 
-    if (jPackedLen > 1 && jPackedLen * c_gpuNumClusterPerCell * int(gpuJGroupSize) > nsp_max)
+    if (jPackedLen > 1 && jPackedLen * maxGpuClustersPerCell.total * int(gpuJGroupSize) > nsp_max)
     {
         /* Modify the last ci entry and process the cjPacked's again */
 
@@ -2092,7 +2123,7 @@ static void splitSciEntry(NbnxnPairlistGpu<gpuJGroupSize>* nbl,
             int nsp_cjPacked_p = nsp_cjPacked;
             /* Count the number of cluster pairs in this cjPacked group */
             nsp_cjPacked = 0;
-            for (int p = 0; p < c_gpuNumClusterPerCell * int(gpuJGroupSize); p++)
+            for (int p = 0; p < maxGpuClustersPerCell.total * int(gpuJGroupSize); p++)
             {
                 nsp_cjPacked += (nbl->cjPacked.list_[cjPacked].imei[0].imask >> p) & 1;
             }
@@ -2140,7 +2171,8 @@ static void closeIEntry(NbnxnPairlistGpu<gpuJGroupSize>* nbl,
                         gmx_bool                         progBal,
                         float                            nsp_tot_est,
                         int                              thread,
-                        int                              nthread)
+                        int                              nthread,
+                        const GpuClustersPerCell&        maxGpuClustersPerCell)
 {
     /* All content of the current sci entry have already been filled
      * correctly, we only need to, potentially, split or remove the
@@ -2158,7 +2190,7 @@ static void closeIEntry(NbnxnPairlistGpu<gpuJGroupSize>* nbl,
         if (nsp_max_av > 0)
         {
             /* Measure the size of the new entry and potentially split it */
-            splitSciEntry(nbl, nsp_max_av, progBal, nsp_tot_est, thread, nthread);
+            splitSciEntry(nbl, nsp_max_av, progBal, nsp_tot_est, thread, nthread, maxGpuClustersPerCell);
         }
     }
     else
@@ -2226,16 +2258,28 @@ set_icell_bb_simple(gmx::ArrayRef<const BoundingBox> bb, int ci, real shx, real 
 }
 
 /* Sets a simple list i-cell bounding box, including PBC shift */
-static inline void set_icell_bb(const Grid& iGrid, int ci, real shx, real shy, real shz, NbnxnPairlistCpuWork* work)
+static inline void set_icell_bb(const Grid&           iGrid,
+                                int                   ci,
+                                real                  shx,
+                                real                  shy,
+                                real                  shz,
+                                NbnxnPairlistCpuWork* work,
+                                const GpuClustersPerCell& /*maxGpuClustersPerCell*/)
 {
     set_icell_bb_simple(iGrid.iBoundingBoxes(), ci, shx, shy, shz, &work->iClusterData.bb[0]);
 }
 
 #if NBNXN_BBXXXX
 /* Sets a super-cell and sub cell bounding boxes, including PBC shift */
-static void set_icell_bbxxxx_supersub(gmx::ArrayRef<const float> bb, int ci, real shx, real shy, real shz, float* bb_ci)
+static void set_icell_bbxxxx_supersub(gmx::ArrayRef<const float> bb,
+                                      int                        ci,
+                                      real                       shx,
+                                      real                       shy,
+                                      real                       shz,
+                                      float*                     bb_ci,
+                                      const GpuClustersPerCell&  maxGpuClustersPerCell)
 {
-    constexpr int cellBBStride = packedBoundingBoxesIndex(c_gpuNumClusterPerCell);
+    const int     cellBBStride = packedBoundingBoxesIndex(maxGpuClustersPerCell.total);
     constexpr int pbbStride    = c_packedBoundingBoxesDimSize;
     const int     ia           = ci * cellBBStride;
     for (int m = 0; m < cellBBStride; m += c_packedBoundingBoxesSize)
@@ -2259,22 +2303,30 @@ gmx_unused static void set_icell_bb_supersub(gmx::ArrayRef<const BoundingBox> bb
                                              real                             shx,
                                              real                             shy,
                                              real                             shz,
-                                             BoundingBox*                     bb_ci)
+                                             BoundingBox*                     bb_ci,
+                                             const GpuClustersPerCell&        maxGpuClustersPerCell)
 {
-    for (int i = 0; i < c_gpuNumClusterPerCell; i++)
+    for (int i = 0; i < maxGpuClustersPerCell.total; i++)
     {
-        set_icell_bb_simple(bb, ci * c_gpuNumClusterPerCell + i, shx, shy, shz, &bb_ci[i]);
+        set_icell_bb_simple(bb, ci * maxGpuClustersPerCell.total + i, shx, shy, shz, &bb_ci[i]);
     }
 }
 
 /* Sets a super-cell and sub cell bounding boxes, including PBC shift */
-gmx_unused static void set_icell_bb(const Grid& iGrid, int ci, real shx, real shy, real shz, NbnxnPairlistGpuWork* work)
+gmx_unused static void set_icell_bb(const Grid&               iGrid,
+                                    int                       ci,
+                                    real                      shx,
+                                    real                      shy,
+                                    real                      shz,
+                                    NbnxnPairlistGpuWork*     work,
+                                    const GpuClustersPerCell& maxGpuClustersPerCell)
 {
 #if NBNXN_BBXXXX
     set_icell_bbxxxx_supersub(
-            iGrid.packedBoundingBoxes(), ci, shx, shy, shz, work->iSuperClusterData.bbPacked.data());
+            iGrid.packedBoundingBoxes(), ci, shx, shy, shz, work->iSuperClusterData.bbPacked.data(), maxGpuClustersPerCell);
 #else
-    set_icell_bb_supersub(iGrid.iBoundingBoxes(), ci, shx, shy, shz, work->iSuperClusterData.bb.data());
+    set_icell_bb_supersub(
+            iGrid.iBoundingBoxes(), ci, shx, shy, shz, work->iSuperClusterData.bb.data(), maxGpuClustersPerCell);
 #endif
 }
 
@@ -2304,7 +2356,8 @@ static void icell_set_x(int                             ci,
                         int                             stride,
                         const real*                     x,
                         const ClusterDistanceKernelType kernelType,
-                        NbnxnPairlistCpuWork*           work)
+                        const GpuClustersPerCell& /* maxGpuClustersPerCell */,
+                        NbnxnPairlistCpuWork* work)
 {
     switch (kernelType)
     {
@@ -2335,14 +2388,15 @@ static void icell_set_x(int                                  ci,
                         int                                  stride,
                         const real*                          x,
                         ClusterDistanceKernelType gmx_unused kernelType,
+                        const GpuClustersPerCell&            maxGpuClustersPerCell,
                         NbnxnPairlistGpuWork*                work)
 {
     if constexpr (!c_useSimdGpuClusterPairDistance)
     {
         real* x_ci = work->iSuperClusterData.x.data();
 
-        int ia = ci * c_gpuNumClusterPerCell * c_nbnxnGpuClusterSize;
-        for (int i = 0; i < c_gpuNumClusterPerCell * c_nbnxnGpuClusterSize; i++)
+        int ia = ci * maxGpuClustersPerCell.total * c_nbnxnGpuClusterSize;
+        for (int i = 0; i < maxGpuClustersPerCell.total * c_nbnxnGpuClusterSize; i++)
         {
             x_ci[i * DIM + XX] = x[(ia + i) * stride + XX] + shx;
             x_ci[i * DIM + YY] = x[(ia + i) * stride + YY] + shy;
@@ -2355,9 +2409,9 @@ static void icell_set_x(int                                  ci,
 
         real* x_ci = work->iSuperClusterData.xSimd.data();
 
-        for (int si = 0; si < c_gpuNumClusterPerCell; si++)
+        for (int si = 0; si < maxGpuClustersPerCell.total; si++)
         {
-            const int inputOffset = (ci * c_gpuNumClusterPerCell + si) * c_nbnxnGpuClusterSize * stride;
+            const int inputOffset = (ci * maxGpuClustersPerCell.total + si) * c_nbnxnGpuClusterSize * stride;
             const int outputOffset = si * c_nbnxnGpuClusterSize * DIM;
             for (int i = 0; i < c_nbnxnGpuClusterSize; i++)
             {
@@ -2372,7 +2426,7 @@ static void icell_set_x(int                                  ci,
     }
 }
 
-static real minimum_subgrid_size_xy(const Grid& grid)
+static real minimum_subgrid_size_xy(const Grid& grid, const GpuClustersPerCell& maxGpuClustersPerCell)
 {
     const Grid::Dimensions& dims = grid.dimensions();
 
@@ -2382,12 +2436,14 @@ static real minimum_subgrid_size_xy(const Grid& grid)
     }
     else
     {
-        return std::min(dims.cellSize[XX] / c_gpuNumClusterPerCellX,
-                        dims.cellSize[YY] / c_gpuNumClusterPerCellY);
+        return std::min(dims.cellSize[XX] / maxGpuClustersPerCell.dim[XX],
+                        dims.cellSize[YY] / maxGpuClustersPerCell.dim[YY]);
     }
 }
 
-static real effective_buffer_1x1_vs_MxN(const Grid& iGrid, const Grid& jGrid)
+static real effective_buffer_1x1_vs_MxN(const Grid&               iGrid,
+                                        const Grid&               jGrid,
+                                        const GpuClustersPerCell& maxGpuClustersPerCell)
 {
     const real eff_1x1_buffer_fac_overest = 0.1;
 
@@ -2408,7 +2464,9 @@ static real effective_buffer_1x1_vs_MxN(const Grid& iGrid, const Grid& jGrid)
      * Smaller tolerances or using RF lead to a smaller effective buffer,
      * so 10% gives a safe overestimate.
      */
-    return eff_1x1_buffer_fac_overest * (minimum_subgrid_size_xy(iGrid) + minimum_subgrid_size_xy(jGrid));
+    return eff_1x1_buffer_fac_overest
+           * (minimum_subgrid_size_xy(iGrid, maxGpuClustersPerCell)
+              + minimum_subgrid_size_xy(jGrid, maxGpuClustersPerCell));
 }
 
 /* Estimates the interaction volume^2 for non-local interactions */
@@ -2459,6 +2517,7 @@ static void get_nsubpair_target(const Nbnxm::GridSet&     gridSet,
                                 const InteractionLocality iloc,
                                 const real                rlist,
                                 const int                 min_ci_balanced,
+                                const GpuClustersPerCell& maxGpuClustersPerCell,
                                 int*                      nsubpair_target,
                                 float*                    nsubpair_tot_est)
 {
@@ -2488,8 +2547,8 @@ static void get_nsubpair_target(const Nbnxm::GridSet&     gridSet,
     const int               numAtomsCluster = grid.geometry().numAtomsICluster;
     const Grid::Dimensions& dims            = grid.dimensions();
 
-    ls[XX] = dims.cellSize[XX] / c_gpuNumClusterPerCellX;
-    ls[YY] = dims.cellSize[YY] / c_gpuNumClusterPerCellY;
+    ls[XX] = dims.cellSize[XX] / maxGpuClustersPerCell.dim[XX];
+    ls[YY] = dims.cellSize[YY] / maxGpuClustersPerCell.dim[YY];
     ls[ZZ] = numAtomsCluster / (dims.atomDensity * ls[XX] * ls[YY]);
 
     /* The formulas below are a heuristic estimate of the average nsj per si*/
@@ -2568,7 +2627,9 @@ static void printNblistCiCj(FILE* fp, const NbnxnPairlistCpu& nbl)
 
 //! Debug list print function
 template<Nbnxm::GpuJGroupSize gpuJGroupSize>
-static void printNblistSciCj(FILE* fp, const NbnxnPairlistGpu<gpuJGroupSize>& nbl)
+static void printNblistSciCj(FILE*                                  fp,
+                             const NbnxnPairlistGpu<gpuJGroupSize>& nbl,
+                             const GpuClustersPerCell&              maxGpuClustersPerCell)
 {
     for (const nbnxn_sci_t& sci : nbl.sci)
     {
@@ -2583,10 +2644,10 @@ static void printNblistSciCj(FILE* fp, const NbnxnPairlistGpu<gpuJGroupSize>& nb
                         "  sj %5d  imask %x\n",
                         nbl.cjPacked.list_[jPacked].cj[j],
                         nbl.cjPacked.list_[jPacked].imei[0].imask);
-                for (int si = 0; si < c_gpuNumClusterPerCell; si++)
+                for (int si = 0; si < maxGpuClustersPerCell.total; si++)
                 {
                     if (nbl.cjPacked.list_[jPacked].imei[0].imask
-                        & (1U << (j * c_gpuNumClusterPerCell + si)))
+                        & (1U << (j * maxGpuClustersPerCell.total + si)))
                     {
                         ncp++;
                     }
@@ -2807,10 +2868,11 @@ static gmx_bool next_ci(const Grid& grid, int nth, int ci_block, int* ci_x, int*
 /* Returns the distance^2 for which we put cell pairs in the list
  * without checking atom pair distances. This is usually < rlist^2.
  */
-static float boundingbox_only_distance2(const Grid::Dimensions& iGridDims,
-                                        const Grid::Dimensions& jGridDims,
-                                        real                    rlist,
-                                        gmx_bool                simple)
+static float boundingbox_only_distance2(const Grid::Dimensions&   iGridDims,
+                                        const Grid::Dimensions&   jGridDims,
+                                        real                      rlist,
+                                        gmx_bool                  simple,
+                                        const GpuClustersPerCell& maxGpuClustersPerCell)
 {
     /* If the distance between two sub-cell bounding boxes is less
      * than this distance, do not check the distance between
@@ -2830,8 +2892,8 @@ static float boundingbox_only_distance2(const Grid::Dimensions& iGridDims,
     real bby = 0.5 * (iGridDims.cellSize[YY] + jGridDims.cellSize[YY]);
     if (!simple)
     {
-        bbx /= c_gpuNumClusterPerCellX;
-        bby /= c_gpuNumClusterPerCellY;
+        bbx /= maxGpuClustersPerCell.dim[XX];
+        bby /= maxGpuClustersPerCell.dim[YY];
     }
 
     real rbb2 = std::max(0.0, rlist - 0.5 * std::sqrt(bbx * bbx + bby * bby));
@@ -2934,7 +2996,8 @@ static void makeClusterListWrapper(NbnxnPairlistCpu* nbl,
                                    const real                      rlist2,
                                    const real                      rbb2,
                                    const ClusterDistanceKernelType kernelType,
-                                   int*                            numDistanceChecks)
+                                   int*                            numDistanceChecks,
+                                   const GpuClustersPerCell& /*maxGpuClustersPerCell*/)
 {
     switch (kernelType)
     {
@@ -2970,12 +3033,23 @@ static void makeClusterListWrapper(NbnxnPairlistGpu<gpuJGroupSize>*     nbl,
                                    const real                           rlist2,
                                    const real                           rbb2,
                                    ClusterDistanceKernelType gmx_unused kernelType,
-                                   int*                                 numDistanceChecks)
+                                   int*                                 numDistanceChecks,
+                                   const GpuClustersPerCell&            maxGpuClustersPerCell)
 {
     for (int cj = firstCell; cj <= lastCell; cj++)
     {
-        makeClusterListSupersub(
-                iGrid, jGrid, nbl, ci, cj, excludeSubDiagonal, nbat->xstride, nbat->x().data(), rlist2, rbb2, numDistanceChecks);
+        makeClusterListSupersub(iGrid,
+                                jGrid,
+                                nbl,
+                                ci,
+                                cj,
+                                excludeSubDiagonal,
+                                nbat->xstride,
+                                nbat->x().data(),
+                                rlist2,
+                                rbb2,
+                                numDistanceChecks,
+                                maxGpuClustersPerCell);
     }
 }
 
@@ -3046,23 +3120,24 @@ static void setBufferFlags(const NbnxnPairlistGpu<gpuJGroupSize>& /*nbl*/,
 
 /* Generates the part of pair-list nbl assigned to our thread */
 template<typename T>
-static void nbnxnMakePairlistPart(const Nbnxm::GridSet&   gridSet,
-                                  const Grid&             iGrid,
-                                  const Grid&             jGrid,
-                                  PairsearchWork*         work,
-                                  const nbnxn_atomdata_t* nbat,
-                                  const ListOfLists<int>& exclusions,
-                                  real                    rlist,
-                                  const PairlistType      pairlistType,
-                                  int                     ci_block,
-                                  gmx_bool                bFBufferFlag,
-                                  int                     nsubpair_max,
-                                  gmx_bool                progBal,
-                                  float                   nsubpair_tot_est,
-                                  int                     th,
-                                  int                     nth,
-                                  T*                      nbl,
-                                  t_nblist*               nbl_fep)
+static void nbnxnMakePairlistPart(const Nbnxm::GridSet&     gridSet,
+                                  const Grid&               iGrid,
+                                  const Grid&               jGrid,
+                                  PairsearchWork*           work,
+                                  const nbnxn_atomdata_t*   nbat,
+                                  const ListOfLists<int>&   exclusions,
+                                  real                      rlist,
+                                  const PairlistType        pairlistType,
+                                  int                       ci_block,
+                                  gmx_bool                  bFBufferFlag,
+                                  int                       nsubpair_max,
+                                  gmx_bool                  progBal,
+                                  float                     nsubpair_tot_est,
+                                  int                       th,
+                                  int                       nth,
+                                  const GpuClustersPerCell& maxGpuClustersPerCell,
+                                  T*                        nbl,
+                                  t_nblist*                 nbl_fep)
 {
     matrix         box;
     real           rl_fep2 = 0;
@@ -3110,7 +3185,7 @@ static void nbnxnMakePairlistPart(const Nbnxm::GridSet&   gridSet,
          * The buffer is on overestimate, but the resulting cost for pairs
          * beyond rlist is negligible compared to the FEP pairs within rlist.
          */
-        rl_fep2 = nbl->rlist + effective_buffer_1x1_vs_MxN(iGrid, jGrid);
+        rl_fep2 = nbl->rlist + effective_buffer_1x1_vs_MxN(iGrid, jGrid, maxGpuClustersPerCell);
 
         if (debug)
         {
@@ -3122,8 +3197,8 @@ static void nbnxnMakePairlistPart(const Nbnxm::GridSet&   gridSet,
     const Grid::Dimensions& iGridDims = iGrid.dimensions();
     const Grid::Dimensions& jGridDims = jGrid.dimensions();
 
-    const float rbb2 =
-            boundingbox_only_distance2(iGridDims, jGridDims, nbl->rlist, pairlistIsSimple(*nbl));
+    const float rbb2 = boundingbox_only_distance2(
+            iGridDims, jGridDims, nbl->rlist, pairlistIsSimple(*nbl), maxGpuClustersPerCell);
 
     if (debug)
     {
@@ -3326,7 +3401,7 @@ static void nbnxnMakePairlistPart(const Nbnxm::GridSet&   gridSet,
                         cxf = ci_x;
                     }
 
-                    set_icell_bb(iGrid, ci, shx, shy, shz, nbl->work.get());
+                    set_icell_bb(iGrid, ci, shx, shy, shz, nbl->work.get(), maxGpuClustersPerCell);
 
                     icell_set_x(cell0_i + ci,
                                 shx,
@@ -3335,6 +3410,7 @@ static void nbnxnMakePairlistPart(const Nbnxm::GridSet&   gridSet,
                                 nbat->xstride,
                                 nbat->x().data(),
                                 kernelType,
+                                maxGpuClustersPerCell,
                                 nbl->work.get());
 
                     for (int cx = cxf; cx <= cxl; cx++)
@@ -3490,7 +3566,8 @@ static void nbnxnMakePairlistPart(const Nbnxm::GridSet&   gridSet,
                                                            rlist2,
                                                            rbb2,
                                                            kernelType,
-                                                           &numDistanceChecks);
+                                                           &numDistanceChecks,
+                                                           maxGpuClustersPerCell);
 
                                     if (bFBufferFlag)
                                     {
@@ -3506,7 +3583,8 @@ static void nbnxnMakePairlistPart(const Nbnxm::GridSet&   gridSet,
                     if (!exclusions.empty())
                     {
                         /* Set the exclusions for this ci list */
-                        setExclusionsForIEntry(gridSet, nbl, excludeSubDiagonal, na_cj_2log, exclusions);
+                        setExclusionsForIEntry(
+                                gridSet, nbl, excludeSubDiagonal, na_cj_2log, exclusions, maxGpuClustersPerCell);
                     }
 
                     if (haveFep)
@@ -3521,11 +3599,12 @@ static void nbnxnMakePairlistPart(const Nbnxm::GridSet&   gridSet,
                                     rl_fep2,
                                     iGrid,
                                     jGrid,
-                                    nbl_fep);
+                                    nbl_fep,
+                                    maxGpuClustersPerCell);
                     }
 
                     /* Close this ci list */
-                    closeIEntry(nbl, nsubpair_max, progBal, nsubpair_tot_est, th, nth);
+                    closeIEntry(nbl, nsubpair_max, progBal, nsubpair_tot_est, th, nth, maxGpuClustersPerCell);
                 }
             }
         }
@@ -3544,7 +3623,7 @@ static void nbnxnMakePairlistPart(const Nbnxm::GridSet&   gridSet,
     {
         fprintf(debug, "number of distance checks %d\n", numDistanceChecks);
 
-        printNblistStatistics(debug, *nbl, gridSet, rlist);
+        printNblistStatistics(debug, *nbl, gridSet, rlist, maxGpuClustersPerCell);
 
         if (haveFep)
         {
@@ -3914,8 +3993,13 @@ void PairlistSet::constructPairlists(gmx::InteractionLocality      locality,
     float nsubpair_tot_est = 0.0F;
     if (!isCpuType_ && minimumIlistCountForGpuBalancing > 0)
     {
-        get_nsubpair_target(
-                gridSet, locality, rlist, minimumIlistCountForGpuBalancing, &nsubpair_target, &nsubpair_tot_est);
+        get_nsubpair_target(gridSet,
+                            locality,
+                            rlist,
+                            minimumIlistCountForGpuBalancing,
+                            maxGpuClustersPerCell_,
+                            &nsubpair_target,
+                            &nsubpair_tot_est);
     }
 
     /* Clear all pair-lists */
@@ -4011,6 +4095,7 @@ void PairlistSet::constructPairlists(gmx::InteractionLocality      locality,
                                               nsubpair_tot_est,
                                               th,
                                               numLists,
+                                              maxGpuClustersPerCell_,
                                               &cpuLists_[th],
                                               fepListPtr);
                     }
@@ -4031,6 +4116,7 @@ void PairlistSet::constructPairlists(gmx::InteractionLocality      locality,
                                               nsubpair_tot_est,
                                               th,
                                               numLists,
+                                              maxGpuClustersPerCell_,
                                               &gpuLists_[th],
                                               fepListPtr);
                     }
@@ -4141,12 +4227,12 @@ void PairlistSet::constructPairlists(gmx::InteractionLocality      locality,
         {
             for (auto& cpuList : cpuLists_)
             {
-                printNblistStatistics(debug, cpuList, gridSet, rlist);
+                printNblistStatistics(debug, cpuList, gridSet, rlist, maxGpuClustersPerCell_);
             }
         }
         else if (!isCpuType_ && gpuLists_.size() > 1)
         {
-            printNblistStatistics(debug, gpuLists_[0], gridSet, rlist);
+            printNblistStatistics(debug, gpuLists_[0], gridSet, rlist, maxGpuClustersPerCell_);
         }
     }
 
@@ -4163,7 +4249,7 @@ void PairlistSet::constructPairlists(gmx::InteractionLocality      locality,
             }
             else
             {
-                printNblistSciCj(debug, gpuLists_[0]);
+                printNblistSciCj(debug, gpuLists_[0], maxGpuClustersPerCell_);
             }
         }
 

@@ -46,6 +46,7 @@
 
 #include "config.h"
 
+#include "gromacs/math/vectypes.h"
 #include "gromacs/mdtypes/locality.h"
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/real.h"
@@ -64,6 +65,15 @@ static constexpr int c_nbnxnGpuClusterSize = GMX_GPU_NB_CLUSTER_SIZE;
 #else
 static constexpr int c_nbnxnGpuClusterSize = 8;
 #endif
+
+//! Describes the cell contents when using GPUs
+struct GpuClustersPerCell
+{
+    //! Total number of clusters in each cell
+    int total;
+    //! The number of clusters in each dimension
+    gmx::IVec dim;
+};
 
 //! The number of clusters along Z in a pair-search grid cell for GPU lists
 static constexpr int c_gpuNumClusterPerCellZ = 2;

@@ -295,16 +295,17 @@ static KernelSetup pick_nbnxn_kernel(const gmx::MDLogger&     mdlog,
 
 } // namespace Nbnxm
 
-PairlistSets::PairlistSets(const PairlistParams& pairlistParams,
-                           const bool            haveMultipleDomains,
-                           const int             minimumIlistCountForGpuBalancing) :
+PairlistSets::PairlistSets(const PairlistParams&     pairlistParams,
+                           const bool                haveMultipleDomains,
+                           const int                 minimumIlistCountForGpuBalancing,
+                           const GpuClustersPerCell& maxGpuClustersPerCell) :
     params_(pairlistParams), minimumIlistCountForGpuBalancing_(minimumIlistCountForGpuBalancing)
 {
-    localSet_ = std::make_unique<PairlistSet>(params_);
+    localSet_ = std::make_unique<PairlistSet>(params_, maxGpuClustersPerCell);
 
     if (haveMultipleDomains)
     {
-        nonlocalSet_ = std::make_unique<PairlistSet>(params_);
+        nonlocalSet_ = std::make_unique<PairlistSet>(params_, maxGpuClustersPerCell);
     }
 }
 
@@ -460,9 +461,11 @@ std::unique_ptr<nonbonded_verlet_t> init_nb_verlet(const gmx::MDLogger& mdlog,
         minimumIlistCountForGpuBalancing = getMinimumIlistCountForGpuBalancing(gpu_nbv);
     }
 
+    GpuClustersPerCell maxGpuClustersPerCell{
+        c_gpuNumClusterPerCell, { c_gpuNumClusterPerCellX, c_gpuNumClusterPerCellY, c_gpuNumClusterPerCellZ }
+    };
     auto pairlistSets = std::make_unique<PairlistSets>(
-            pairlistParams, haveMultipleDomains, minimumIlistCountForGpuBalancing);
-
+            pairlistParams, haveMultipleDomains, minimumIlistCountForGpuBalancing, maxGpuClustersPerCell);
     auto pairSearch = std::make_unique<PairSearch>(
             inputrec.pbcType,
             EI_TPI(inputrec.eI),
@@ -471,7 +474,8 @@ std::unique_ptr<nonbonded_verlet_t> init_nb_verlet(const gmx::MDLogger& mdlog,
             pairlistParams.pairlistType,
             bFEP_NonBonded,
             gmx_omp_nthreads_get(ModuleMultiThread::Pairsearch),
-            pinPolicy);
+            pinPolicy,
+            maxGpuClustersPerCell);
 
     return std::make_unique<nonbonded_verlet_t>(
             std::move(pairlistSets), std::move(pairSearch), std::move(nbat), kernelSetup, gpu_nbv, wcycle);

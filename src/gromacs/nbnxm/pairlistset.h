@@ -81,7 +81,7 @@ class PairlistSet
 {
 public:
     //! Constructor: initializes the pairlist set as empty
-    PairlistSet(const PairlistParams& listParams);
+    PairlistSet(const PairlistParams& listParams, const GpuClustersPerCell& maxGpuClustersPerCell);
 
     ~PairlistSet();
 
@@ -132,6 +132,8 @@ private:
     gmx_bool isCpuType_;
     //! Lists for perturbed interactions in simple atom-atom layout
     std::vector<std::unique_ptr<t_nblist>> fepLists_;
+    //! The maximum number of clusters in each cell for GPU lists
+    GpuClustersPerCell maxGpuClustersPerCell_;
 
 public:
     /* Pair counts for flop counting */

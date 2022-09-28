@@ -115,7 +115,8 @@ public:
             PairlistType              pairlistType,
             bool                      haveFep,
             int                       numThreads,
-            gmx::PinningPolicy        pinningPolicy);
+            gmx::PinningPolicy        pinningPolicy,
+            const GpuClustersPerCell& maxGpuClustersPerCell);
 
     //! Puts the atoms on the grid with index \p gridIndex and copies the coordinates to \p nbat
     void putOnGrid(const matrix                   box,

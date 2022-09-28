@@ -91,8 +91,17 @@ PairSearch::PairSearch(const PbcType             pbcType,
                        const PairlistType        pairlistType,
                        const bool                haveFep,
                        const int                 maxNumThreads,
-                       gmx::PinningPolicy        pinningPolicy) :
-    gridSet_(pbcType, doTestParticleInsertion, numDDCells, ddZones, pairlistType, haveFep, maxNumThreads, pinningPolicy),
+                       gmx::PinningPolicy        pinningPolicy,
+                       const GpuClustersPerCell& maxGpuClustersPerCell) :
+    gridSet_(pbcType,
+             doTestParticleInsertion,
+             numDDCells,
+             ddZones,
+             pairlistType,
+             haveFep,
+             maxNumThreads,
+             pinningPolicy,
+             maxGpuClustersPerCell),
     work_(maxNumThreads)
 {
     cycleCounting_.recordCycles_ = (getenv("GMX_NBNXN_CYCLE") != nullptr);

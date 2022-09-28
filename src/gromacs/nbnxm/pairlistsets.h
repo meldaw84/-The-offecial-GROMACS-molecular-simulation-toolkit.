@@ -69,9 +69,10 @@ class PairlistSets
 {
 public:
     //! Constructor
-    PairlistSets(const PairlistParams& pairlistParams,
-                 bool                  haveMultipleDomains,
-                 int                   minimumIlistCountForGpuBalancing);
+    PairlistSets(const PairlistParams&     pairlistParams,
+                 bool                      haveMultipleDomains,
+                 int                       minimumIlistCountForGpuBalancing,
+                 const GpuClustersPerCell& maxGpuClustersPerCell);
 
     //! Construct the pairlist set for the given locality
     void construct(gmx::InteractionLocality     iLocality,

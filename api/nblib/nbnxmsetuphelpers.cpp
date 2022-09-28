@@ -291,9 +291,11 @@ std::unique_ptr<nonbonded_verlet_t> createNbnxmCPU(const size_t              num
 
     PairlistParams pairlistParams(kernelSetup.kernelType, false, options.pairlistCutoff, false);
 
-    auto pairlistSets = std::make_unique<PairlistSets>(pairlistParams, false, 0);
-    auto pairSearch   = std::make_unique<PairSearch>(
-            PbcType::Xyz, false, nullptr, nullptr, pairlistParams.pairlistType, false, numThreads, pinPolicy);
+    // GPU lists are not supported, so use dummy values
+    GpuClustersPerCell maxGpuClustersPerCell{ 0, { 0, 0, 0 } };
+    auto pairlistSets = std::make_unique<PairlistSets>(pairlistParams, false, 0, maxGpuClustersPerCell);
+    auto pairSearch = std::make_unique<PairSearch>(
+            PbcType::Xyz, false, nullptr, nullptr, pairlistParams.pairlistType, false, numThreads, pinPolicy, maxGpuClustersPerCell);
 
     // Needs to be called with the number of unique ParticleTypes
     auto atomData = std::make_unique<nbnxn_atomdata_t>(pinPolicy,
@@ -345,9 +347,20 @@ std::unique_ptr<nonbonded_verlet_t> createNbnxmGPU(const size_t               nu
     // minimum iList count for GPU balancing
     int iListCount = Nbnxm::gpu_min_ci_balanced(nbnxmGpu);
 
-    auto pairlistSets = std::make_unique<PairlistSets>(pairlistParams, false, iListCount);
-    auto pairSearch   = std::make_unique<PairSearch>(
-            PbcType::Xyz, false, nullptr, nullptr, pairlistParams.pairlistType, false, options.numOpenMPThreads, pinPolicy);
+    GpuClustersPerCell maxGpuClustersPerCell{
+        c_gpuNumClusterPerCell, { c_gpuNumClusterPerCellX, c_gpuNumClusterPerCellY, c_gpuNumClusterPerCellZ }
+    };
+    auto pairlistSets =
+            std::make_unique<PairlistSets>(pairlistParams, false, iListCount, maxGpuClustersPerCell);
+    auto pairSearch = std::make_unique<PairSearch>(PbcType::Xyz,
+                                                   false,
+                                                   nullptr,
+                                                   nullptr,
+                                                   pairlistParams.pairlistType,
+                                                   false,
+                                                   options.numOpenMPThreads,
+                                                   pinPolicy,
+                                                   maxGpuClustersPerCell);
 
     // Put everything together
     auto nbv = std::make_unique<nonbonded_verlet_t>(

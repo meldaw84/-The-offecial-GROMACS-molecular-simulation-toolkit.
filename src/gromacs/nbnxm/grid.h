@@ -57,6 +57,7 @@
 
 #include "gromacs/gpu_utils/hostallocator.h"
 #include "gromacs/math/vectypes.h"
+#include "gromacs/nbnxm/pairlistparams.h"
 #include "gromacs/utility/alignedallocator.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/range.h"
@@ -185,7 +186,7 @@ public:
     struct Geometry
     {
         //! Constructs the cluster/cell geometry given the type of pairlist
-        Geometry(PairlistType pairlistType);
+        Geometry(PairlistType pairlistType, const GpuClustersPerCell& maxGpuClustersPerCell);
 
         //! Is this grid simple (CPU) or hierarchical (GPU)
         bool isSimple;
@@ -221,7 +222,7 @@ public:
     };
 
     //! Constructs a grid given the type of pairlist
-    Grid(PairlistType pairlistType, const bool& haveFep);
+    Grid(PairlistType pairlistType, const bool& haveFep, const GpuClustersPerCell& maxGpuClustersPerCell);
 
     //! Returns the geometry of the grid cells
     const Geometry& geometry() const { return geometry_; }
@@ -234,6 +235,12 @@ public:
 
     //! Returns the total number of grid cells
     int numCells() const { return numCellsTotal_; }
+
+    //! Returns the maximum number of clusters per cell
+    int maxClustersPerCell() const
+    {
+        return geometry().isSimple ? 1 : maxGpuClustersPerCell_.total;
+    }
 
     //! Returns the cell offset of (the first cell of) this grid in the list of cells combined over all grids
     int cellOffset() const { return cellOffset_; }
@@ -314,7 +321,7 @@ public:
     gmx::ArrayRef<const int> clusterFlags() const { return flags_; }
 
     //! Returns the number of clusters for all cells on the grid, empty with a CPU geometry
-    gmx::ArrayRef<const int> numClustersPerCell() const { return numClusters_; }
+    gmx::ArrayRef<const int> numClustersPerCell() const { return numClustersPerCell_; }
 
     //! Returns the cluster index for an atom
     int atomToCluster(int atomIndex) const { return (atomIndex >> geometry_.numAtomsICluster2Log); }
@@ -397,6 +404,8 @@ private:
                                 gmx::ArrayRef<int>             sort_work);
 
     /* Data members */
+    //! When building a grid for use on a GPU, the maximum number of clusters in each cell
+    GpuClustersPerCell maxGpuClustersPerCell_;
     //! The geometry of the grid clusters and cells
     Geometry geometry_;
     //! The physical dimensions of the grid
@@ -424,9 +433,8 @@ private:
      * \todo Needs a useful name. */
     gmx::HostVector<int> cxy_ind_;
 
-    //! The number of cluster for each cell
-    std::vector<int> numClusters_;
-
+    //! The actual number of clusters in each cell when the grid is for computation on a GPU
+    std::vector<int> numClustersPerCell_;
     /* Bounding boxes */
     //! Bounding boxes in z for the cells
     std::vector<BoundingBox1D> bbcz_;

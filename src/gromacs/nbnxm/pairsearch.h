@@ -211,12 +211,15 @@ public:
      *
      * \param[in] pbcType                  The periodic boundary conditions
      * \param[in] doTestParticleInsertion  Whether test-particle insertion is active
-     * \param[in] numDDCells               The number of domain decomposition cells per dimension, without DD nullptr should be passed
-     * \param[in] zones                    The domain decomposition zone setup, without DD nullptr should be passed
-     * \param[in] pairlistType             The type of tte pair list
-     * \param[in] haveFep                  Tells whether non-bonded interactions are perturbed
-     * \param[in] maxNumThreads            The maximum number of threads used in the search
-     * \param[in] pinningPolicy            Sets the pinning policy for all buffers used on the GPU
+     * \param[in] numDDCells               The number of domain decomposition cells per dimension,
+     * \param[in] numDDCells               The number of domain decomposition cells per dimension,
+     * without DD nullptr should be passed \param[in] zones                    The domain
+     * decomposition zone setup, without DD nullptr should be passed \param[in] pairlistType The
+     * type of tte pair list \param[in] haveFep                  Tells whether non-bonded
+     * interactions are perturbed \param[in] maxNumThreads            The maximum number of threads
+     * used in the search \param[in] pinningPolicy            Sets the pinning policy for all
+     * buffers used on the GPU \param[in] maxGpuClustersInCell     Describes the maximum occupancy
+     * of grid cells when the computation will run on a GPU
      */
     PairSearch(PbcType                   pbcType,
                bool                      doTestParticleInsertion,
@@ -225,7 +228,8 @@ public:
                PairlistType              pairlistType,
                bool                      haveFep,
                int                       maxNumThreads,
-               gmx::PinningPolicy        pinningPolicy);
+               gmx::PinningPolicy        pinningPolicy,
+               const GpuClustersPerCell& maxGpuClustersPerCell);
 
     //! Sets the order of the local atoms to the order grid atom ordering
     void setLocalAtomOrder() { gridSet_.setLocalAtomOrder(); }

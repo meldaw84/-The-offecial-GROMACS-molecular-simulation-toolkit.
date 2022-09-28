@@ -99,9 +99,10 @@ GridSet::GridSet(const PbcType             pbcType,
                  const PairlistType        pairlistType,
                  const bool                haveFep,
                  const int                 numThreads,
-                 gmx::PinningPolicy        pinningPolicy) :
+                 gmx::PinningPolicy        pinningPolicy,
+                 const GpuClustersPerCell& maxGpuClustersPerCell) :
     domainSetup_(pbcType, doTestParticleInsertion, numDDCells, ddZones),
-    grids_(numGrids(domainSetup_), Grid(pairlistType, haveFep_)),
+    grids_(numGrids(domainSetup_), Grid(pairlistType, haveFep_, maxGpuClustersPerCell)),
     haveFep_(haveFep),
     numRealAtomsLocal_(0),
     numRealAtomsTotal_(0),

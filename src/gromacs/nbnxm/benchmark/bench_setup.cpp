@@ -59,7 +59,6 @@
 #include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/mdtypes/simulation_workload.h"
 #include "gromacs/nbnxm/atomdata.h"
-#include "gromacs/nbnxm/gridset.h"
 #include "gromacs/nbnxm/nbnxm.h"
 #include "gromacs/nbnxm/nbnxm_simd.h"
 #include "gromacs/nbnxm/pairlistset.h"
@@ -192,13 +191,11 @@ static std::unique_ptr<nonbonded_verlet_t> setupNbnxmForBenchInstance(const Kern
 
     PairlistParams pairlistParams(kernelSetup.kernelType, false, options.pairlistCutoff, false);
 
-    GridSet gridSet(
-            PbcType::Xyz, false, nullptr, nullptr, pairlistParams.pairlistType, false, numThreads, pinPolicy);
-
-    auto pairlistSets = std::make_unique<PairlistSets>(pairlistParams, false, 0);
-
+    // GPU lists are not yet supported, so use dummy values
+    GpuClustersPerCell maxGpuClustersPerCell{ 0, { 0, 0, 0 } };
+    auto pairlistSets = std::make_unique<PairlistSets>(pairlistParams, false, 0, maxGpuClustersPerCell);
     auto pairSearch = std::make_unique<PairSearch>(
-            PbcType::Xyz, false, nullptr, nullptr, pairlistParams.pairlistType, false, numThreads, pinPolicy);
+            PbcType::Xyz, false, nullptr, nullptr, pairlistParams.pairlistType, false, numThreads, pinPolicy, maxGpuClustersPerCell);
 
     auto atomData = std::make_unique<nbnxn_atomdata_t>(pinPolicy,
                                                        gmx::MDLogger(),

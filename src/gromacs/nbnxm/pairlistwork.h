@@ -96,13 +96,13 @@ struct NbnxnPairlistGpuWork
 {
     struct ISuperClusterData
     {
-        ISuperClusterData() :
-            bb(c_gpuNumClusterPerCell),
+        ISuperClusterData(const GpuClustersPerCell& maxGpuClustersPerCell) :
+            bb(maxGpuClustersPerCell.total),
 #if NBNXN_SEARCH_BB_SIMD4
-            bbPacked(c_gpuNumClusterPerCell / c_packedBoundingBoxesDimSize * c_packedBoundingBoxesSize),
+            bbPacked(maxGpuClustersPerCell.total / c_packedBoundingBoxesDimSize * c_packedBoundingBoxesSize),
 #endif
-            x(c_gpuNumClusterPerCell * c_nbnxnGpuClusterSize * DIM),
-            xSimd(c_gpuNumClusterPerCell * c_nbnxnGpuClusterSize * DIM)
+            x(maxGpuClustersPerCell.total * c_nbnxnGpuClusterSize * DIM),
+            xSimd(maxGpuClustersPerCell.total * c_nbnxnGpuClusterSize * DIM)
         {
         }
 
@@ -116,8 +116,10 @@ struct NbnxnPairlistGpuWork
         AlignedVector<real> xSimd;
     };
 
-    NbnxnPairlistGpuWork() :
-        distanceBuffer(c_gpuNumClusterPerCell), sci_sort({}, { gmx::PinningPolicy::PinnedIfSupported })
+    NbnxnPairlistGpuWork(const GpuClustersPerCell& maxGpuClustersPerCell) :
+        iSuperClusterData(maxGpuClustersPerCell),
+        distanceBuffer(maxGpuClustersPerCell.total),
+        sci_sort({}, { gmx::PinningPolicy::PinnedIfSupported })
     {
     }
 

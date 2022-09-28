@@ -169,10 +169,6 @@ constexpr float c_nbnxnMinDistanceSquared = 3.82e-07F; // r > 6.2e-4
 
 //! The number of clusters in a super-cluster, used for GPU
 constexpr int c_nbnxnGpuNumClusterPerSupercluster = 8;
-static_assert(c_nbnxnGpuNumClusterPerSupercluster
-                      == c_gpuNumClusterPerCellX * c_gpuNumClusterPerCellY * c_gpuNumClusterPerCellZ,
-              "c_nbnxnGpuNumClusterPerSupercluster needs to match the number of clusters per "
-              "search cell");
 
 namespace Nbnxm
 {
@@ -276,9 +272,6 @@ public:
     void resize(gmx::index count) { list_.resize(count); }
     //! Add a new element to the packed list
     void push_back(const typename decltype(list_)::value_type& value) { list_.push_back(value); }
-    static_assert(sizeof(list_[0].imei[0].imask) * 8 >= int(gpuJGroupSize) * c_gpuNumClusterPerCell,
-                  "The i super-cluster cluster interaction mask does not contain a sufficient "
-                  "number of bits");
 };
 
 //! Struct for storing the atom-pair interaction bits for a cluster pair in a GPU pairlist
@@ -343,13 +336,16 @@ struct NbnxnPairlistGpu
 {
     /*! \brief Constructor
      *
-     * \param[in] pinningPolicy  Sets the pinning policy for all buffers used on the GPU
+     * \param[in] pinningPolicy          Sets the pinning policy for all buffers used on the GPU
+     * \param[in] maxGpuClustersPerCell  Sets the maximum number of clusters per cell
      */
-    NbnxnPairlistGpu(gmx::PinningPolicy pinningPolicy);
+    NbnxnPairlistGpu(gmx::PinningPolicy pinningPolicy, const GpuClustersPerCell& maxGpuClustersPerCellValue);
 
     //! Cache protection
     gmx_cache_protect_t cp0;
 
+    //! The maximum number of clusters in each grid cell
+    GpuClustersPerCell maxGpuClustersPerCell;
     //! The number of atoms per i-cluster
     int na_ci;
     //! The number of atoms per j-cluster

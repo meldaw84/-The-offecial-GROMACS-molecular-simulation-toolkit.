@@ -802,12 +802,12 @@ static void nbnxn_atomdata_mask_fep(nbnxn_atomdata_t* nbat, const Nbnxm::GridSet
 
     for (const Nbnxm::Grid& grid : gridSet.grids())
     {
-        const int nsubc = (grid.geometry().isSimple) ? 1 : c_gpuNumClusterPerCell;
+        const int maxClusters = grid.numCells() * grid.maxClustersPerCell();
 
         const int c_offset = grid.firstAtomInColumn(0);
 
         /* Loop over all columns and copy and fill */
-        for (int c = 0; c < grid.numCells() * nsubc; c++)
+        for (int c = 0; c < maxClusters; c++)
         {
             /* Does this cluster contain perturbed particles? */
             if (grid.clusterIsPerturbed(c))
