@@ -75,7 +75,9 @@ function(gmx_manage_muparser)
         if(NOT MUPARSER_FOUND OR MUPARSER_VERSION VERSION_LESS GMX_MUPARSER_REQUIRED_VERSION)
             message(FATAL_ERROR "External muparser >= ${GMX_MUPARSER_REQUIRED_VERSION} could not be found, please adjust your pkg-config path to include the muparser.pc file")
         endif()
-
+        if (MUPARSER_FOUND AND MUPARSER_VERSION VERSION_GREATER "2.3.2")
+            message(FATAL_ERROR "External muparser is later than the bundled version 2.3.2. Please adjust your search paths to include a supported version")
+        endif()
         set(HAVE_MUPARSER 1 CACHE INTERNAL "Is muparser found?")
     else()
         # Create a dummy link target so the calling code doesn't need to know
