@@ -232,7 +232,8 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
         gmx::test::TestReferenceData    data;
         gmx::test::TestReferenceChecker checker(data.rootChecker());
 
-        constexpr int ulpTol = 100;
+        /* It seems like the correlation time integral calculations require a high tolerance */
+        constexpr int ulpTol = 500;
 
         checker.checkSequence(
                 numVisitsIteration.begin(), numVisitsIteration.end(), "numVisitsIteration");
