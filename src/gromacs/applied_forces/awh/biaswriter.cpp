@@ -72,7 +72,6 @@ const std::map<AwhOutputEntryType, Normalization> outputTypeToNormalization = {
     { AwhOutputEntryType::Weights, Normalization::Distribution },
     { AwhOutputEntryType::Target, Normalization::Distribution },
     { AwhOutputEntryType::SharedForceCorrelationVolume, Normalization::Distribution },
-    { AwhOutputEntryType::FrictionTensor, Normalization::None },
     { AwhOutputEntryType::SharedFrictionTensor, Normalization::None }
 };
 
@@ -145,8 +144,7 @@ BiasWriter::BiasWriter(const Bias& bias)
             {
                 outputTypeNumBlock[outputType] = bias.ndim();
             }
-            else if (outputType == AwhOutputEntryType::FrictionTensor
-                     || outputType == AwhOutputEntryType::SharedFrictionTensor)
+            else if (outputType == AwhOutputEntryType::SharedFrictionTensor)
             {
                 outputTypeNumBlock[outputType] = bias.forceCorrelationGrid().tensorSize();
             }
@@ -332,16 +330,8 @@ void BiasWriter::transferPointDataToWriter(AwhOutputEntryType         outputType
             block_[b].data()[pointIndex] = bias.state().getSharedCorrelationTensorVolumeElement(
                     pointIndex, forceCorrelation.tensorSize());
             break;
-        case AwhOutputEntryType::FrictionTensor:
-            /* Store force correlation in units of friction, i.e. time/length^2 */
-            for (int n = 0; n < numCorrelation; n++)
-            {
-                block_[b].data()[pointIndex] = forceCorrelation.tensors()[pointIndex].getTimeIntegral(
-                        n, forceCorrelation.dtSample);
-                b++;
-            }
-            break;
         case AwhOutputEntryType::SharedFrictionTensor:
+            /* Store force correlation in units of friction, i.e. time/length^2 */
             for (int n = 0; n < numCorrelation; n++)
             {
                 block_[b].data()[pointIndex] = bias.state().getSharedCorrelationTensorTimeIntegral(

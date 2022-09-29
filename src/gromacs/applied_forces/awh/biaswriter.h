@@ -76,7 +76,6 @@ enum class AwhOutputEntryType
     Weights,                      //!< The weights.
     Target,                       //!< The target distribition.
     SharedForceCorrelationVolume, //!< The force correlation volume shared between multiple walkers.
-    FrictionTensor,               //!< The full friction tensor.
     SharedFrictionTensor          //!< The full friction tensor shared between multiple walkers.
 };
 

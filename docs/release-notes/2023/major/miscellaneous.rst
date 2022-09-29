@@ -22,8 +22,7 @@ AWH friction metric is shared between AWH walkers
 """""""""""""""""""""""""""""""""""""""""""""""""
 
 The friction metric now uses data from all walkers sharing
-the bias. In the AWH friction output the local output as well
-as the shared output is written. The local output can be used
-for statistical analyses.
+the bias. In the AWH output only the shared friction output
+is written.
 
 :issue:`3842`
