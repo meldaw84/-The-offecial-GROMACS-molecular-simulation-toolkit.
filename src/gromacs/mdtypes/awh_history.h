@@ -75,7 +75,6 @@ struct AwhPointStateHistory
     double  visits_iteration;    /**< Visits to this bin this iteration (1 replica) */
     double  visits_tot;          /**< Accumulated visits to this bin */
     double  localNumVisits;      /**< The total number of visits for the local Bias */
-    double  sharedFriction; /**< The force correlation volume (friction) shared across all ranks */
 };
 
 //! The global AWH bias history state, contains most data of the corresponding struct in awh.h.
