@@ -43,7 +43,7 @@ target_link_libraries(msm PRIVATE
         math
 )
 
-target_link_libraries(msm INTERFACE mdspan)
+#target_link_libraries(msm INTERFACE mdspan)
 
 if (BUILD_TESTING)
     add_subdirectory(tests)

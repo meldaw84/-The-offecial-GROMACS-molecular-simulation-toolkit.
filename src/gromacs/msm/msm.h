@@ -42,12 +42,12 @@
 #ifndef MSM_H
 #define MSM_H
 
-#include <vector>
-#include "gromacs/math/multidimarray.h"
-
 namespace gmx
 {
 
+class MarkovModel;
+
+/*
 class MarkovModel
 {
   private:
@@ -55,12 +55,12 @@ class MarkovModel
     // Attributes
     MarkovModel();
     // TODO: handle nstates (4)
-    MultiDimArray<std::array<int, 4*4>, extents<4, 4>> transitionCountsMatrix;
+    //MultiDimArray<std::array<int, 4*4>, extents<4, 4>> transitionCountsMatrix;
 
     // Methods
     void count_transitions(std::vector<int>& discretizedTraj, int lag);
 };
-
+*/
 
 } // namespace gmx
 

@@ -47,6 +47,20 @@
 namespace gmx
 {
 
+class MarkovModel
+{
+  private:
+  public:
+    // Attributes
+    MarkovModel();
+    // TODO: handle nstates (4)
+    //MultiDimArray<std::array<int, 4*4>, extents<4, 4>> transitionCountsMatrix;
+
+    // Methods
+    void count_transitions(std::vector<int>& discretizedTraj, int lag);
+};
+
+
 // Constructor
 MarkovModel::MarkovModel()
 {
@@ -55,13 +69,15 @@ MarkovModel::MarkovModel()
   const int nstates = 4;
 
   // Initialize TCM as MultiDimArray
-  transitionCountsMatrix = { { } };
+//  transitionCountsMatrix = { { } };
 }
+
 
 void MarkovModel::count_transitions(std::vector<int>& discretizedTraj, int lag)
 {
     // Initialize TCM as MultiDimArray
-    //MultiDimArray<std::array<int, nstates*nstates>, extents<nstates, nstates>> transitionCountsMatrix = { { } };
+    const int nstates = 4;
+    MultiDimArray<std::array<int, nstates*nstates>, extents<nstates, nstates>> transitionCountsMatrix = { { } };
 
     //Extract time-lagged trajectories
     std::vector<int> rows(discretizedTraj.begin(), discretizedTraj.end() - lag);
@@ -71,6 +87,19 @@ void MarkovModel::count_transitions(std::vector<int>& discretizedTraj, int lag)
     for (int i = 0; i < rows.size(); i++)
     {
       transitionCountsMatrix(rows[i], cols[i]) += 1;
+    }
+
+    const auto& dataView = transitionCountsMatrix.asConstView();
+    const int numRows = transitionCountsMatrix.extent(0);
+    const int numCols = transitionCountsMatrix.extent(1);
+
+    for (int i = 0; i < numRows; i++)
+    {
+        printf("\n");
+        for (int j=0; j < numCols; j++)
+        {
+            printf("%d ", dataView[i][j]);
+        }
     }
 }
 
