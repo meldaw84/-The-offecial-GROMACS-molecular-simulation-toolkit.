@@ -40,26 +40,11 @@
  * \author Cathrine Bergh
  */
 #include "gmxpre.h"
-#include "msm.h"
 
-#include "gromacs/math/multidimarray.h"
+#include "msm.h"
 
 namespace gmx
 {
-
-class MarkovModel
-{
-  private:
-  public:
-    // Attributes
-    MarkovModel();
-    // TODO: handle nstates (4)
-    //MultiDimArray<std::array<int, 4*4>, extents<4, 4>> transitionCountsMatrix;
-
-    // Methods
-    void count_transitions(std::vector<int>& discretizedTraj, int lag);
-};
-
 
 // Constructor
 MarkovModel::MarkovModel()

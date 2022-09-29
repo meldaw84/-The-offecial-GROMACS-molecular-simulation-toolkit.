@@ -59,7 +59,7 @@ protected:
         msm = MarkovModel();
     }
     std::string hallo;
-    MarkovModel *msm;
+    MarkovModel msm;
 };
 
 TEST_F(MsmTest, TransitionCountingTest)
@@ -68,7 +68,7 @@ TEST_F(MsmTest, TransitionCountingTest)
     std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
     //std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
 
-    msm->count_transitions(discretizedTraj, 1);
+    msm.count_transitions(discretizedTraj, 1);
 
     /*
     transitions = msm.count_transitions(discretizedTraj, 1);
