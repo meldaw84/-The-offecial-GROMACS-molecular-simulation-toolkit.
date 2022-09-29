@@ -45,7 +45,7 @@ does not involve sqrt.
 Fixes that affect portability
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Set highest supported version for external muParser
+Pin required version for external muParser
 """""""""""""""""""""""""""""""""""""""""""""""""""
 
 Recent changes in the API between minor versions of muParser meant that building |Gromacs| with these versions

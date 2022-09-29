@@ -31,7 +31,7 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out https://www.gromacs.org.
 
-set(GMX_MUPARSER_REQUIRED_VERSION "2.3")
+set(GMX_MUPARSER_REQUIRED_VERSION "2.3.2")
 
 include(gmxOptionUtilities)
 
@@ -71,13 +71,7 @@ function(gmx_manage_muparser)
         set(HAVE_MUPARSER 1 CACHE INTERNAL "Is muparser found?")
     elseif(GMX_USE_MUPARSER STREQUAL "EXTERNAL")
         # Find an external muparser library.
-        find_package(Muparser ${GMX_MUPARSER_REQUIRED_VERSION})
-        if(NOT MUPARSER_FOUND OR MUPARSER_VERSION VERSION_LESS GMX_MUPARSER_REQUIRED_VERSION)
-            message(FATAL_ERROR "External muparser >= ${GMX_MUPARSER_REQUIRED_VERSION} could not be found, please adjust your pkg-config path to include the muparser.pc file")
-        endif()
-        if (MUPARSER_FOUND AND MUPARSER_VERSION VERSION_GREATER "2.3.2")
-            message(FATAL_ERROR "External muparser is later than the bundled version 2.3.2. Please adjust your search paths to include a supported version")
-        endif()
+        find_package(Muparser ${GMX_MUPARSER_REQUIRED_VERSION} EXACT REQUIRED)
         set(HAVE_MUPARSER 1 CACHE INTERNAL "Is muparser found?")
     else()
         # Create a dummy link target so the calling code doesn't need to know
