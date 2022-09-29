@@ -45,12 +45,12 @@ does not involve sqrt.
 Fixes that affect portability
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pin required version for external muParser
+Support only one version of muParser
 """""""""""""""""""""""""""""""""""""""""""""""""""
 
 Recent changes in the API between minor versions of muParser meant that building |Gromacs| with these versions
-would fail due to linking errors for undefined symbols. Now |Gromacs| requires that the external muParser has at
-most the same version as the bundled one.
+would fail due to linking errors for undefined symbols. Now when using an external muParser library, |Gromacs|
+requires the same version as the bundled one.
 
 :issue:`4614`
 
