@@ -55,23 +55,18 @@ class MsmTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        hallo = "hallo";
         msm = MarkovModel();
     }
-    std::string hallo;
     MarkovModel msm;
 };
 
 TEST_F(MsmTest, TransitionCountingTest)
 {
-    printf("result: %s\n", hallo.c_str());
     std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
     //std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
 
     msm.count_transitions(discretizedTraj, 1);
-
-    /*
-    transitions = msm.count_transitions(discretizedTraj, 1);
+    auto& transitions = msm.transitionCountsMatrix;
 
     const auto& dataView = transitions.asConstView();
     const int numRows = transitions.extent(0);
@@ -85,7 +80,7 @@ TEST_F(MsmTest, TransitionCountingTest)
             printf("%d ", dataView[i][j]);
         }
     }
-    */
+
 }
 
 //TEST(MoreMSMTest, HiAgain)
