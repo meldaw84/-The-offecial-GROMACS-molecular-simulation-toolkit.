@@ -56,8 +56,16 @@ namespace gmx
 /*! \internal \brief
  * Helper function to select appropriate template based on runtime values.
  *
- * Can use enums or booleans for template parameters.
- * These enums must have a member \c Count indicating the total number of valid values.
+ * Can use enums, booleans, or ints for template parameters.
+ *
+ * When using an enum, it must have a member \c Count indicating the
+ * total number of valid values.
+ *
+ * When using an int, the maximum value must be at most 64. Because
+ * the underlying implementation is recursive, it is preferable to
+ * only use small integer values. If the function being called does
+ * not support the full range to 64, it is important to use e.g.  a
+ * static_assert to provide a useful message at compilation time.
  *
  * Example usage:
  * \code
@@ -67,15 +75,16 @@ namespace gmx
         Count = 2
     };
 
-    template<bool p0, Options p1, Options p2>
-    bool foo(int i);
+    template<bool b, Options o1, Options o2>
+    bool foo(float f);
 
-    bool bar(bool p0, Options p1, Options p2, int i) {
+    // Note i must be at most 64
+    bool bar(bool b, Options o1, Options o2, int i, float f) {
         return dispatchTemplatedFunction(
-            [=](auto p0, auto p1, auto p2) {
-                return foo<p0, p1, p2>(i);
+            [=](auto p0, auto p1, auto p2, auto p3) {
+                return foo<p0, p1, p2, p3>(f);
             },
-            p0, p1, p2);
+            b, o1, o2, i);
     }
  * \endcode
  *
@@ -91,29 +100,42 @@ auto dispatchTemplatedFunction(Function&& f)
 
 // Recursive templates confuse Doxygen
 //! \cond
-template<class Function, class Enum, class... Enums>
-auto dispatchTemplatedFunction(Function&& f, Enum e, Enums... es)
+template<class Function, class Enum, class... Args>
+auto dispatchTemplatedFunction(Function&& f, Enum e, Args... args)
 {
     return dispatchTemplatedFunction(
-            [&](auto... es_) {
+            [&](auto... args_) {
                 return compat::mp_with_index<size_t(Enum::Count)>(size_t(e), [&](auto e_) {
                     return std::forward<Function>(f)(
-                            std::integral_constant<Enum, static_cast<Enum>(size_t(e_))>(), es_...);
+                            std::integral_constant<Enum, static_cast<Enum>(size_t(e_))>(), args_...);
                 });
             },
-            es...);
+            args...);
 }
 
-template<class Function, class... Enums>
-auto dispatchTemplatedFunction(Function&& f, bool e, Enums... es)
+template<class Function, class... Args>
+auto dispatchTemplatedFunction(Function&& f, bool b, Args... args)
 {
     return dispatchTemplatedFunction(
-            [&](auto... es_) {
-                return compat::mp_with_index<2>(size_t(e), [&](auto e_) {
-                    return std::forward<Function>(f)(std::bool_constant<static_cast<bool>(e_)>(), es_...);
+            [&](auto... args_) {
+                return compat::mp_with_index<2>(size_t(b), [&](auto b_) {
+                    return std::forward<Function>(f)(std::bool_constant<static_cast<bool>(b_)>(), args_...);
                 });
             },
-            es...);
+            args...);
+}
+
+template<class Function, class... Args>
+auto dispatchTemplatedFunction(Function&& f, int i, Args... args)
+{
+    return dispatchTemplatedFunction(
+            [&](auto... args_) {
+                return compat::mp_with_index<64>(size_t(i), [&](auto i_) {
+                    return std::forward<Function>(f)(
+                            std::integral_constant<int, static_cast<int>(i_)>(), args_...);
+                });
+            },
+            args...);
 }
 //! \endcond
 
