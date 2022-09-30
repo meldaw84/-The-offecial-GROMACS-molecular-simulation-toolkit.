@@ -40,6 +40,7 @@
  */
 #include "gromacs/gpu_utils/devicebuffer.h"
 #include "gromacs/gpu_utils/gmxsycl.h"
+#include "gromacs/gpu_utils/vectype_ops_sycl.h"
 #include "gromacs/math/functions.h"
 #include "gromacs/mdtypes/simulation_workload.h"
 #include "gromacs/pbcutil/ishift.h"
@@ -310,7 +311,7 @@ static inline float interpolateCoulombForceR(const sycl::global_ptr<const float>
  * c_clSize consecutive threads hold the force components of a j-atom which we
  * reduced in log2(cl_Size) steps using shift and atomically accumulate them into \p a_f.
  */
-static inline void reduceForceJShuffle(Float3                   f,
+static inline void reduceForceJShuffle(AmdCdna2PackedFloat3     f,
                                        const sycl::nd_item<3>   itemIdx,
                                        const int                tidxi,
                                        const int                aidx,
@@ -321,17 +322,17 @@ static inline void reduceForceJShuffle(Float3                   f,
 
     f[0] += sycl_2020::shift_left(sg, f[0], 1);
     f[1] += sycl_2020::shift_right(sg, f[1], 1);
-    f[2] += sycl_2020::shift_left(sg, f[2], 1);
+    f[3] += sycl_2020::shift_left(sg, f[3], 1);
     if (tidxi & 1)
     {
         f[0] = f[1];
     }
 
     f[0] += sycl_2020::shift_left(sg, f[0], 2);
-    f[2] += sycl_2020::shift_right(sg, f[2], 2);
+    f[3] += sycl_2020::shift_right(sg, f[3], 2);
     if (tidxi & 2)
     {
-        f[0] = f[2];
+        f[0] = f[3];
     }
 
     if constexpr (c_clSize == 8)
@@ -395,7 +396,7 @@ static inline float groupReduce(const sycl::nd_item<3> itemIdx,
  * TODO: implement binary reduction flavor for the case where cl_Size is power of two.
  */
 static inline void reduceForceJGeneric(sycl::local_ptr<float>   sm_buf,
-                                       Float3                   f,
+                                       AmdCdna2PackedFloat3     f,
                                        const sycl::nd_item<3>   itemIdx,
                                        const int                tidxi,
                                        const int                tidxj,
@@ -406,7 +407,7 @@ static inline void reduceForceJGeneric(sycl::local_ptr<float>   sm_buf,
     int                  tidx             = tidxi + tidxj * c_clSize;
     sm_buf[0 * sc_fBufferStride + tidx]   = f[0];
     sm_buf[1 * sc_fBufferStride + tidx]   = f[1];
-    sm_buf[2 * sc_fBufferStride + tidx]   = f[2];
+    sm_buf[2 * sc_fBufferStride + tidx]   = f[3];
 
     subGroupBarrier(itemIdx);
 
@@ -430,7 +431,7 @@ static inline void reduceForceJGeneric(sycl::local_ptr<float>   sm_buf,
  */
 template<bool useShuffleReduction>
 static inline void reduceForceJ(sycl::local_ptr<float>   sm_buf,
-                                Float3                   f,
+                                AmdCdna2PackedFloat3     f,
                                 const sycl::nd_item<3>   itemIdx,
                                 const int                tidxi,
                                 const int                tidxj,
@@ -453,9 +454,7 @@ static inline void reduceForceJ(sycl::local_ptr<float>   sm_buf,
  * used could be avoided on >=8-wide architectures.
  */
 static inline void reduceForceIAndFShiftGeneric(sycl::local_ptr<float> sm_buf,
-                                                const float fCiBufX[c_nbnxnGpuNumClusterPerSupercluster],
-                                                const float fCiBufY[c_nbnxnGpuNumClusterPerSupercluster],
-                                                const float fCiBufZ[c_nbnxnGpuNumClusterPerSupercluster],
+                                                const AmdCdna2PackedFloat3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster],
                                                 const bool               calcFShift,
                                                 const sycl::nd_item<3>   itemIdx,
                                                 const int                tidxi,
@@ -474,9 +473,9 @@ static inline void reduceForceIAndFShiftGeneric(sycl::local_ptr<float> sm_buf,
     {
         const int aidx = (sci * c_nbnxnGpuNumClusterPerSupercluster + ciOffset) * c_clSize + tidxi;
         // Store i-forces in local memory
-        sm_buf[tidx]                 = fCiBufX[ciOffset];
-        sm_buf[bufStride + tidx]     = fCiBufY[ciOffset];
-        sm_buf[2 * bufStride + tidx] = fCiBufZ[ciOffset];
+        sm_buf[tidx]                 = fCiBuf[ciOffset][0];
+        sm_buf[bufStride + tidx]     = fCiBuf[ciOffset][1];
+        sm_buf[2 * bufStride + tidx] = fCiBuf[ciOffset][3];
         itemIdx.barrier(fence_space::local_space);
 
         // Reduce the initial c_clSize values for each i atom to half every step by using c_clSize * i threads.
@@ -556,9 +555,7 @@ static inline void reduceForceIAndFShiftGeneric(sycl::local_ptr<float> sm_buf,
  * approach, but we have two times less atomicFetchAdd's.
  */
 template<int numShuffleReductionSteps>
-static inline void reduceForceIAndFShiftShuffles(const float fCiBufX[c_nbnxnGpuNumClusterPerSupercluster],
-                                                 const float fCiBufY[c_nbnxnGpuNumClusterPerSupercluster],
-                                                 const float fCiBufZ[c_nbnxnGpuNumClusterPerSupercluster],
+static inline void reduceForceIAndFShiftShuffles(const AmdCdna2PackedFloat3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster],
                                                  const bool               calcFShift,
                                                  const sycl::nd_item<3>   itemIdx,
                                                  const int                tidxi,
@@ -580,9 +577,9 @@ static inline void reduceForceIAndFShiftShuffles(const float fCiBufX[c_nbnxnGpuN
     for (int ciOffset = 0; ciOffset < c_nbnxnGpuNumClusterPerSupercluster; ciOffset++)
     {
         const int aidx = (sci * c_nbnxnGpuNumClusterPerSupercluster + ciOffset) * c_clSize + tidxi;
-        float     fx   = fCiBufX[ciOffset];
-        float     fy   = fCiBufY[ciOffset];
-        float     fz   = fCiBufZ[ciOffset];
+        float     fx   = fCiBuf[ciOffset][0];
+        float     fy   = fCiBuf[ciOffset][1];
+        float     fz   = fCiBuf[ciOffset][3];
         // First reduction step
         fx += sycl_2020::shift_left(sg, fx, c_clSize);
         fy += sycl_2020::shift_right(sg, fy, c_clSize);
@@ -638,10 +635,8 @@ static inline void reduceForceIAndFShiftShuffles(const float fCiBufX[c_nbnxnGpuN
  * by using local memory reduction after shuffles, but that's a TODO.
  */
 template<>
-inline void reduceForceIAndFShiftShuffles<1>(const float fCiBufX[c_nbnxnGpuNumClusterPerSupercluster],
-                                             const float fCiBufY[c_nbnxnGpuNumClusterPerSupercluster],
-                                             const float fCiBufZ[c_nbnxnGpuNumClusterPerSupercluster],
-                                             const bool               calcFShift,
+inline void reduceForceIAndFShiftShuffles<1>(const AmdCdna2PackedFloat3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster],
+                                             const bool                 calcFShift,
                                              const sycl::nd_item<3>   itemIdx,
                                              const int                tidxi,
                                              const int                tidxj,
@@ -661,9 +656,9 @@ inline void reduceForceIAndFShiftShuffles<1>(const float fCiBufX[c_nbnxnGpuNumCl
     for (int ciOffset = 0; ciOffset < c_nbnxnGpuNumClusterPerSupercluster; ciOffset++)
     {
         const int aidx = (sci * c_nbnxnGpuNumClusterPerSupercluster + ciOffset) * c_clSize + tidxi;
-        float     fx   = fCiBufX[ciOffset];
-        float     fy   = fCiBufY[ciOffset];
-        float     fz   = fCiBufZ[ciOffset];
+        float     fx   = fCiBuf[ciOffset][0];
+        float     fy   = fCiBuf[ciOffset][1];
+        float     fz   = fCiBuf[ciOffset][3];
         // First reduction step
         fx += sycl_2020::shift_left(sg, fx, c_clSize);
         fy += sycl_2020::shift_right(sg, fy, c_clSize);
@@ -712,10 +707,8 @@ inline void reduceForceIAndFShiftShuffles<1>(const float fCiBufX[c_nbnxnGpuNumCl
  */
 template<bool useShuffleReduction, int subGroupSize>
 static inline void reduceForceIAndFShift(sycl::local_ptr<float> sm_buf,
-                                         const float fCiBufX[c_nbnxnGpuNumClusterPerSupercluster],
-                                         const float fCiBufY[c_nbnxnGpuNumClusterPerSupercluster],
-                                         const float fCiBufZ[c_nbnxnGpuNumClusterPerSupercluster],
-                                         const bool  calcFShift,
+                                         const AmdCdna2PackedFloat3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster],
+                                         const bool                 calcFShift,
                                          const sycl::nd_item<3>   itemIdx,
                                          const int                tidxi,
                                          const int                tidxj,
@@ -733,12 +726,12 @@ static inline void reduceForceIAndFShift(sycl::local_ptr<float> sm_buf,
         static_assert(numSteps > 0 && numSteps <= 3,
                       "Invalid combination of sub-group size and cluster size");
         reduceForceIAndFShiftShuffles<numSteps>(
-                fCiBufX, fCiBufY, fCiBufZ, calcFShift, itemIdx, tidxi, tidxj, sci, shift, a_f, a_fShift);
+                fCiBuf, calcFShift, itemIdx, tidxi, tidxj, sci, shift, a_f, a_fShift);
     }
     else
     {
         reduceForceIAndFShiftGeneric(
-                sm_buf, fCiBufX, fCiBufY, fCiBufZ, calcFShift, itemIdx, tidxi, tidxj, sci, shift, a_f, a_fShift);
+                sm_buf, fCiBuf, calcFShift, itemIdx, tidxi, tidxj, sci, shift, a_f, a_fShift);
     }
 }
 
@@ -905,14 +898,10 @@ static auto nbnxmKernel(sycl::handler&                                          
         // and in cases where prunedClusterPairSize != subGroupSize we can't use it anyway
         const unsigned imeiIdx = tidx / prunedClusterPairSize;
 
-        float fCiBufX[c_nbnxnGpuNumClusterPerSupercluster]; // i force buffer
-        float fCiBufY[c_nbnxnGpuNumClusterPerSupercluster]; // i force buffer
-        float fCiBufZ[c_nbnxnGpuNumClusterPerSupercluster]; // i force buffer
+        AmdCdna2PackedFloat3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster]; // i force buffer
         for (int i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i++)
         {
-            fCiBufX[i] = float(0.0F);
-            fCiBufY[i] = float(0.0F);
-            fCiBufZ[i] = float(0.0F);
+            fCiBuf[i] = make_AmdCdna2PackedFloat3(0.0F);
         }
 
         const nbnxn_sci_t nbSci          = a_plistSci[bidx];
@@ -1038,10 +1027,10 @@ static auto nbnxmKernel(sycl::handler&                                          
                 // load j atom data
                 const Float4 xqj = a_xq[aj];
 
-                const Float3 xj(xqj[0], xqj[1], xqj[2]);
-                const float  qj = xqj[3];
-                int          atomTypeJ; // Only needed if (!props.vdwComb)
-                Float2       ljCombJ;   // Only needed if (props.vdwComb)
+                const AmdCdna2PackedFloat3 xj(xqj[0], xqj[1], xqj[2]);
+                const float                qj = xqj[3];
+                int                        atomTypeJ; // Only needed if (!props.vdwComb)
+                Float2                     ljCombJ;   // Only needed if (props.vdwComb)
                 if constexpr (props.vdwComb)
                 {
                     ljCombJ = a_ljComb[aj];
@@ -1051,7 +1040,7 @@ static auto nbnxmKernel(sycl::handler&                                          
                     atomTypeJ = a_atomTypes[aj];
                 }
 
-                Float3 fCjBuf(0.0F, 0.0F, 0.0F);
+                AmdCdna2PackedFloat3 fCjBuf(0.0F, 0.0F, 0.0F);
 
 #pragma unroll c_nbnxnGpuNumClusterPerSupercluster
                 for (int i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i++)
@@ -1061,12 +1050,12 @@ static auto nbnxmKernel(sycl::handler&                                          
                         // i cluster index
                         const int ci = sci * c_nbnxnGpuNumClusterPerSupercluster + i;
                         // all threads load an atom from i cluster ci into shmem!
-                        const Float4 xqi = sm_xq[i * c_clSize + tidxi];
-                        const Float3 xi(xqi[0], xqi[1], xqi[2]);
+                        const Float4               xqi = sm_xq[i * c_clSize + tidxi];
+                        const AmdCdna2PackedFloat3 xi(xqi[0], xqi[1], xqi[2]);
 
                         // distance between i and j atoms
-                        const Float3 rv = xi - xj;
-                        float        r2 = norm2(rv);
+                        const AmdCdna2PackedFloat3 rv = xi - xj;
+                        float                      r2 = norm2(rv);
 
                         if constexpr (doPruneNBL)
                         {
@@ -1251,14 +1240,12 @@ static auto nbnxmKernel(sycl::handler&                                          
                                 }
                             }
 
-                            const Float3 forceIJ = rv * fInvR;
+                            const AmdCdna2PackedFloat3 forceIJ = rv * fInvR;
 
                             /* accumulate j forces in registers */
-                            fCjBuf -= forceIJ;
+                            fCjBuf = fCjBuf - forceIJ;
                             /* accumulate i forces in registers */
-                            fCiBufX[i] += forceIJ[0];
-                            fCiBufY[i] += forceIJ[1];
-                            fCiBufZ[i] += forceIJ[2];
+                            fCiBuf[i] = fCiBuf[i] + forceIJ;
                         } // (r2 < rCoulombSq) && notExcluded
                     }     // (imask & maskJI)
                     /* shift the mask bit by 1 */
@@ -1280,9 +1267,7 @@ static auto nbnxmKernel(sycl::handler&                                          
         const bool doCalcShift = (calcShift && nbSci.shift != gmx::c_centralShiftIndex);
 
         reduceForceIAndFShift<useShuffleReductionForceI, subGroupSize>(sm_reductionBuffer,
-                                                                       fCiBufX,
-                                                                       fCiBufY,
-                                                                       fCiBufZ,
+                                                                       fCiBuf,
                                                                        doCalcShift,
                                                                        itemIdx,
                                                                        tidxi,

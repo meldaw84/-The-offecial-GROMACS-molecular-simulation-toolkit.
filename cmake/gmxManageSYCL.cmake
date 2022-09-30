@@ -75,7 +75,7 @@ if(GMX_SYCL_HIPSYCL)
     # -Wno-unknown-cuda-version because Clang often complains about the newest CUDA, despite working fine with it.
     # -Wno-unknown-attributes because hipSYCL does not support reqd_sub_group_size (because it can only do some sub group sizes).
     #    The latter can be added to HIPSYCL_SYCLCC_EXTRA_COMPILE_OPTIONS
-    set(HIPSYCL_SYCLCC_EXTRA_ARGS "-Wno-unknown-cuda-version -Wno-unknown-attributes ${SYCL_CXX_FLAGS_EXTRA}")
+    set(HIPSYCL_SYCLCC_EXTRA_ARGS "-Wno-unknown-cuda-version -Wno-unknown-attributes ${SYCL_CXX_FLAGS_EXTRA} -fno-slp-vectorize")
 
     # Must be called before find_package to capture all user-set CMake variables, but not those set automatically
     _getHipSyclCmakeFlags(_ALL_HIPSYCL_CMAKE_FLAGS)
