@@ -265,7 +265,7 @@ struct gpu_plist
     //! allocation size of cjPacked
     int cjPacked_nalloc;
     //! Packed j cluster list, contains j cluster number and index into the i cluster list
-    DeviceBuffer<nbnxn_cj_packed_t<Nbnxm::GpuJGroupSize::Four>> cjPacked;
+    DeviceBuffer<nbnxn_cj_packed_t<4>> cjPacked;
     //! # of packed j clusters * # of warps
     int nimask;
     //! allocation size of imask

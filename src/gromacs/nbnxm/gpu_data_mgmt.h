@@ -49,13 +49,12 @@
 #include "gromacs/mdtypes/locality.h"
 
 #include "nbnxm.h"
-#include "pairlist.h"
 
 struct NbnxmGpu;
 struct NBAtomDataGpu;
 struct gmx_wallclock_gpu_nbnxn_t;
 struct nbnxn_atomdata_t;
-template<Nbnxm::GpuJGroupSize gpuJGroupSize>
+template<int gpuJGroupSize>
 struct NbnxnPairlistGpu;
 struct PairlistParams;
 struct interaction_const_t;
@@ -78,9 +77,9 @@ NbnxmGpu* gpu_init(const gmx::DeviceStreamManager gmx_unused& deviceStreamManage
                    bool gmx_unused bLocalAndNonlocal) GPU_FUNC_TERM_WITH_RETURN(nullptr);
 
 /** Initializes pair-list data for GPU, called at every pair search step. */
-GPU_FUNC_QUALIFIER void gpu_init_pairlist(NbnxmGpu gmx_unused*                               nb,
-                                          const NbnxnPairlistGpu<Nbnxm::GpuJGroupSize::Four> gmx_unused* h_nblist,
-                                          gmx::InteractionLocality gmx_unused iloc) GPU_FUNC_TERM;
+GPU_FUNC_QUALIFIER void gpu_init_pairlist(NbnxmGpu gmx_unused*      nb,
+                                          const NbnxnPairlistGpu<4> gmx_unused* h_nblist,
+                                          gmx::InteractionLocality gmx_unused   iloc) GPU_FUNC_TERM;
 
 /** Initializes atom-data on the GPU, called at every pair search step. */
 GPU_FUNC_QUALIFIER

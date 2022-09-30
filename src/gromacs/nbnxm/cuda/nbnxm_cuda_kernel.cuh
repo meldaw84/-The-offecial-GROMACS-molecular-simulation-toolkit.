@@ -160,7 +160,7 @@ __launch_bounds__(THREADS_PER_BLOCK)
                         ; /* Only do function declaration, omit the function body. */
 #else
 {
-    using NbnxnCjPackedType = nbnxn_cj_packed_t<Nbnxm::GpuJGroupSize::Four>;
+    using NbnxnCjPackedType = nbnxn_cj_packed_t<4>;
 
     /* convenience variables */
     const nbnxn_sci_t* pl_sci = plist.sci;

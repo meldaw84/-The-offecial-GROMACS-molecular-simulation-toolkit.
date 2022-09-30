@@ -102,7 +102,7 @@ public:
     gmx::ArrayRef<const NbnxnPairlistCpu> cpuLists() const { return cpuLists_; }
 
     //! Returns a pointer to the GPU pairlist, nullptr when not present
-    const NbnxnPairlistGpu<Nbnxm::GpuJGroupSize::Four>* gpuList() const
+    const NbnxnPairlistGpu<4>* gpuList() const
     {
         if (!gpuLists_.empty())
         {
@@ -123,7 +123,7 @@ private:
     //! List of working list for rebalancing CPU lists
     std::vector<NbnxnPairlistCpu> cpuListsWork_;
     //! List of pairlists in GPU layout
-    std::vector<NbnxnPairlistGpu<Nbnxm::GpuJGroupSize::Four>> gpuLists_;
+    std::vector<NbnxnPairlistGpu<4>> gpuLists_;
     //! Pairlist parameters describing setup and ranges
     const PairlistParams& params_;
     //! Tells whether multiple lists get merged into one (the first) after creation

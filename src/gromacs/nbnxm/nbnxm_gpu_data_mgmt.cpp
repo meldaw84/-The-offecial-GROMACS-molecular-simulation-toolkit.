@@ -535,9 +535,7 @@ void gpu_upload_shiftvec(NbnxmGpu* nb, const nbnxn_atomdata_t* nbatom)
 }
 
 //! This function is documented in the header file
-void gpu_init_pairlist(NbnxmGpu*                                           nb,
-                       const NbnxnPairlistGpu<Nbnxm::GpuJGroupSize::Four>* h_plist,
-                       const InteractionLocality                           iloc)
+void gpu_init_pairlist(NbnxmGpu* nb, const NbnxnPairlistGpu<4>* h_plist, const InteractionLocality iloc)
 {
     char sbuf[STRLEN];
     // Timing accumulation should happen only if there was work to do

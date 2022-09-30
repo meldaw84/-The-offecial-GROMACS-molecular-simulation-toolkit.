@@ -63,11 +63,11 @@ namespace Nbnxm
  *
  */
 template<bool haveFreshList>
-auto nbnxmKernelPruneOnly(sycl::handler&                     cgh,
-                          DeviceAccessor<Float4, mode::read> a_xq,
-                          DeviceAccessor<Float3, mode::read> a_shiftVec,
-                          DeviceAccessor<nbnxn_cj_packed_t<Nbnxm::GpuJGroupSize::Four>, mode::read_write> a_plistCJPacked,
-                          DeviceAccessor<nbnxn_sci_t, mode::read> a_plistSci,
+auto nbnxmKernelPruneOnly(sycl::handler&                                         cgh,
+                          DeviceAccessor<Float4, mode::read>                     a_xq,
+                          DeviceAccessor<Float3, mode::read>                     a_shiftVec,
+                          DeviceAccessor<nbnxn_cj_packed_t<4>, mode::read_write> a_plistCJPacked,
+                          DeviceAccessor<nbnxn_sci_t, mode::read>                a_plistSci,
                           DeviceAccessor<unsigned int, haveFreshList ? mode::write : mode::read> a_plistIMask,
                           const float rlistOuterSq,
                           const float rlistInnerSq,

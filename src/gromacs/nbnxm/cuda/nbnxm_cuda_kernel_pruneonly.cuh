@@ -121,7 +121,7 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
 {
 
     /* convenience variables */
-    using NbnxnCjPackedType        = nbnxn_cj_packed_t<Nbnxm::GpuJGroupSize::Four>;
+    using NbnxnCjPackedType        = nbnxn_cj_packed_t<4>;
     const nbnxn_sci_t* pl_sci      = plist.sci;
     NbnxnCjPackedType* pl_cjPacked = plist.cjPacked;
     const float4*      xq          = atdat.xq;

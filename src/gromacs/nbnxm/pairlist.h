@@ -174,24 +174,12 @@ static_assert(c_nbnxnGpuNumClusterPerSupercluster
               "c_nbnxnGpuNumClusterPerSupercluster needs to match the number of clusters per "
               "search cell");
 
-namespace Nbnxm
-{
-/*! \brief With GPU kernels we group j clusters in 4 to optimize memory usage
- * of integers containing 32 bits.
- */
-enum class GpuJGroupSize : int
-{
-    //! Used for all GPUs
-    Four = 4,
-};
-} // namespace Nbnxm
-
 /*! \brief Global constant whose value equals the only supported value
- * for Nbnxm::GpuJGroupSize.
+ * for GPU j-group size
  *
  * This is a temporary measure which reduces churn in the Nbnxm GPU
  * kernels before they are also templated on gpuJGroupSize. */
-constexpr int c_nbnxnGpuJgroupSize = int(Nbnxm::GpuJGroupSize::Four);
+constexpr int c_nbnxnGpuJgroupSize = 4;
 
 /*! \internal
  * \brief Simple pair-list i-unit
@@ -234,11 +222,11 @@ struct nbnxn_im_ei_t
 };
 
 //! Packed j-cluster list element
-template<Nbnxm::GpuJGroupSize gpuJGroupSize>
+template<int gpuJGroupSize>
 struct nbnxn_cj_packed_t
 {
     //! The packed j-clusters
-    int cj[int(gpuJGroupSize)];
+    int cj[gpuJGroupSize];
     //! The i-cluster mask data for 2 warps
     nbnxn_im_ei_t imei[c_nbnxnGpuClusterpairSplit];
 };
@@ -247,7 +235,7 @@ struct nbnxn_cj_packed_t
  *
  * \c gpuJGroupSize j-cluster indices are stored per integer in an nbnxn_cj_packed_t.
  */
-template<Nbnxm::GpuJGroupSize gpuJGroupSize>
+template<int gpuJGroupSize>
 class PackedJClusterList
 {
 public:
@@ -261,12 +249,12 @@ public:
     //! Return the j-cluster index for \c index from the pack list
     int cj(const int index) const
     {
-        return list_[index / int(gpuJGroupSize)].cj[index & (int(gpuJGroupSize) - 1)];
+        return list_[index / gpuJGroupSize].cj[index & (gpuJGroupSize - 1)];
     }
     //! Return the i-cluster interaction mask for the first cluster in \c index
     unsigned int imask0(const int index) const
     {
-        return list_[index / int(gpuJGroupSize)].imei[0].imask;
+        return list_[index / gpuJGroupSize].imei[0].imask;
     }
     //! Return the size of the list (not the number of packed elements)
     gmx::index size() const noexcept { return list_.size(); }
@@ -276,7 +264,7 @@ public:
     void resize(gmx::index count) { list_.resize(count); }
     //! Add a new element to the packed list
     void push_back(const typename decltype(list_)::value_type& value) { list_.push_back(value); }
-    static_assert(sizeof(list_[0].imei[0].imask) * 8 >= int(gpuJGroupSize) * c_gpuNumClusterPerCell,
+    static_assert(sizeof(list_[0].imei[0].imask) * 8 >= gpuJGroupSize * c_gpuNumClusterPerCell,
                   "The i super-cluster cluster interaction mask does not contain a sufficient "
                   "number of bits");
 };
@@ -338,7 +326,7 @@ struct NbnxnPairlistCpu
  *       all vectors should use default initialization. But when
  *       changing this, excl should be initialized when adding entries.
  */
-template<Nbnxm::GpuJGroupSize gpuJGroupSize>
+template<int gpuJGroupSize>
 struct NbnxnPairlistGpu
 {
     /*! \brief Constructor
@@ -375,6 +363,6 @@ struct NbnxnPairlistGpu
 };
 
 //! Extern declaration of the only needed instantiation
-extern template struct NbnxnPairlistGpu<Nbnxm::GpuJGroupSize::Four>;
+extern template struct NbnxnPairlistGpu<4>;
 
 #endif
