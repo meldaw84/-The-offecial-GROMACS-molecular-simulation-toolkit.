@@ -772,6 +772,8 @@ nbnxmKernel(sycl::handler&                                            cgh,
             const float                                                 coulombTabScale,
             const bool                                                  calcShift)
 {
+    static_assert(gpuJGroupSize == 4, "The only supported GPU j-group size is 4");
+
     static constexpr EnergyFunctionProperties<elecType, vdwType> props;
 
     a_xq.bind(cgh);
