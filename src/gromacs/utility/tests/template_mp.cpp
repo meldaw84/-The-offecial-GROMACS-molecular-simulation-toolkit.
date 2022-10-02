@@ -37,10 +37,6 @@
 
 #include <gtest/gtest.h>
 
-#include "gromacs/utility/exceptions.h"
-
-#include "testutils/testasserts.h"
-
 namespace gmx
 {
 namespace
@@ -72,12 +68,6 @@ static int testBoolDoubleOrNot(int k)
     return (doDoubling ? 2 : 1) * k;
 }
 
-template<int a>
-static int testIntMultiply(int b)
-{
-    return a * b;
-}
-
 
 TEST(TemplateMPTest, DispatchTemplatedFunctionEnum)
 {
@@ -94,15 +84,6 @@ TEST(TemplateMPTest, DispatchTemplatedFunctionBool)
     EXPECT_EQ(double5, 10);
     int just5 = dispatchTemplatedFunction([=](auto p1) { return testBoolDoubleOrNot<p1>(five); }, false);
     EXPECT_EQ(just5, 5);
-}
-
-TEST(TemplateMPTest, DispatchTemplatedFunctionInt)
-{
-    int five = 5;
-    int ten  = dispatchTemplatedFunction([=](auto p1) { return testIntMultiply<p1>(five); }, 2);
-    EXPECT_EQ(ten, 10);
-    EXPECT_THROW_GMX(dispatchTemplatedFunction([=](auto p1) { return testIntMultiply<p1>(five); }, 64), InternalError)
-            << "out of range must throw";
 }
 
 TEST(TemplateMPTest, DispatchTemplatedFunctionEnumBool)
