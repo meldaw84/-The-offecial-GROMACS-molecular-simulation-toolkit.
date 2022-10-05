@@ -31,14 +31,34 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out https://www.gromacs.org.
 
-gmx_add_libgromacs_sources(
+add_library(densityfitting OBJECT)
+target_sources(densityfitting PRIVATE
     densityfitting.cpp
     densityfittingamplitudelookup.cpp
     densityfittingforceprovider.cpp
     densityfittingoptions.cpp
     densityfittingoutputprovider.cpp
     densityfittingparameters.cpp
-    )
+)
+if (BUILD_SHARED_LIBS)
+    set_target_properties(densityfitting PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endif()
+
+target_link_libraries(densityfitting PRIVATE
+        common
+        domdec
+        fileio
+        legacy_modules
+        math
+        mdrunutility
+        mdspan
+        mdtypes
+        selection
+        topology
+        utility
+        )
+
+target_include_directories(densityfitting PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
 if (BUILD_TESTING)
     add_subdirectory(tests)

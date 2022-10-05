@@ -345,6 +345,7 @@ target_link_libraries(libgromacs PRIVATE legacy_api)
 target_link_libraries(libgromacs PRIVATE
                       $<BUILD_INTERFACE:analysisdata>
                       $<BUILD_INTERFACE:applied_forces>
+                      $<BUILD_INTERFACE:densityfitting>
                       $<BUILD_INTERFACE:commandline>
                       $<BUILD_INTERFACE:compat>
                       $<BUILD_INTERFACE:coordinateio>
