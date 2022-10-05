@@ -144,6 +144,8 @@ DeviceBuffer<T>& DeviceBuffer<T>::operator=(std::nullptr_t nullPtr)
     return *this;
 }
 
+extern template struct DeviceBuffer<Float4>;
+
 /** \brief
  * Thin wrapper around placeholder accessor that allows implicit construction from \c DeviceBuffer.
  *

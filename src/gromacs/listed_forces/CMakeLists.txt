@@ -61,6 +61,8 @@ if (GMX_GPU_SYCL)
         listed_forces_gpu_internal_sycl.cpp
         )
     _gmx_add_files_to_property(SYCL_SOURCES
+        # This files contains some functions used by all backends so it can't only be added to non-gpu builds; it needs to be here because it includes gputraits.h
+        listed_forces_gpu_impl.cpp
         listed_forces_gpu_impl_gpu.cpp
         listed_forces_gpu_internal_sycl.cpp
         )

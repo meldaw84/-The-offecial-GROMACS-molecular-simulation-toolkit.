@@ -62,6 +62,7 @@
 #include "gromacs/gpu_utils/gputraits.h"
 #include "gromacs/gpu_utils/pmalloc.h"
 #include "gromacs/hardware/device_information.h"
+#include "gromacs/listed_forces/listed_forces_gpu.h"
 #include "gromacs/mdtypes/interaction_const.h"
 #include "gromacs/mdtypes/simulation_workload.h"
 #include "gromacs/nbnxm/gpu_common_utils.h"
@@ -1221,5 +1222,22 @@ DeviceBuffer<gmx::RVec> gpu_get_f(NbnxmGpu* nb)
 
     return nb->atdat->f;
 }
+
+DeviceBuffer<gmx::RVec> gpu_get_fshift(NbnxmGpu* nb)
+{
+    assert(nb);
+
+    return static_cast<DeviceBuffer<gmx::RVec>>(nb->atdat->fShift);
+}
+
+template<class DeviceVec4>
+DeviceBuffer<DeviceVec4> gpu_get_xq(NbnxmGpu* nb)
+{
+    assert(nb);
+
+    return static_cast<DeviceBuffer<DeviceVec4>>(nb->atdat->xq);
+}
+
+template DeviceBuffer<Float4> gpu_get_xq(NbnxmGpu* nb);
 
 } // namespace Nbnxm

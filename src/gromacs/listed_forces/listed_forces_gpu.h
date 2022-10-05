@@ -142,9 +142,12 @@ public:
      * \param[in]     idef             List of interactions to compute.
      * \param[in,out] nbnxmAtomDataGpu Nbnxm GPU atom data (XQ and force buffers).
      */
+    template<class DeviceVec4>
     void updateInteractionListsAndDeviceBuffers(ArrayRef<const int>           nbnxnAtomOrder,
                                                 const InteractionDefinitions& idef,
-                                                NBAtomDataGpu*                nbnxmAtomDataGpu);
+                                                DeviceBuffer<DeviceVec4>      xqDevice,
+                                                DeviceBuffer<RVec>            forceDevice,
+                                                DeviceBuffer<RVec>            fshiftDevice);
     /*! \brief
      * Update PBC data.
      *

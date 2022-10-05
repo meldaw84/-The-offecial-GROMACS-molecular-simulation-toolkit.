@@ -361,13 +361,22 @@ ListedForcesGpu::ListedForcesGpu(const gmx_ffparams_t&    ffparams,
 
 ListedForcesGpu::~ListedForcesGpu() = default;
 
+template<class DeviceVec4>
 void ListedForcesGpu::updateInteractionListsAndDeviceBuffers(ArrayRef<const int> nbnxnAtomOrder,
                                                              const InteractionDefinitions& idef,
-                                                             NBAtomDataGpu* nbnxmAtomDataGpu)
+                                                             DeviceBuffer<DeviceVec4>      xqDevice,
+                                                             DeviceBuffer<RVec> forceDevice,
+                                                             DeviceBuffer<RVec> fshiftDevice)
 {
-    impl_->updateInteractionListsAndDeviceBuffers(
-            nbnxnAtomOrder, idef, nbnxmAtomDataGpu->xq, nbnxmAtomDataGpu->f, nbnxmAtomDataGpu->fShift);
+    impl_->updateInteractionListsAndDeviceBuffers(nbnxnAtomOrder, idef, xqDevice, forceDevice, fshiftDevice);
 }
+
+template void
+ListedForcesGpu::updateInteractionListsAndDeviceBuffers<Float4>(ArrayRef<const int> nbnxnAtomOrder,
+                                                                const InteractionDefinitions& idef,
+                                                                DeviceBuffer<Float4> xqDevice,
+                                                                DeviceBuffer<RVec>   forceDevice,
+                                                                DeviceBuffer<RVec>   fshiftDevice);
 
 void ListedForcesGpu::setPbc(PbcType pbcType, const matrix box, bool canMoleculeSpanPbc)
 {

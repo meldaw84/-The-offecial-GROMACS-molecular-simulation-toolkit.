@@ -95,6 +95,7 @@ if(GMX_GPU_SYCL)
         settle_gpu_internal_sycl.cpp
         update_constrain_gpu_impl.cpp
         update_constrain_gpu_internal_sycl.cpp
+        sim_util.cpp
     )
 endif()
 

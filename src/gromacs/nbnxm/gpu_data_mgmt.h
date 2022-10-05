@@ -133,6 +133,14 @@ GPU_FUNC_QUALIFIER
 DeviceBuffer<gmx::RVec> gpu_get_f(NbnxmGpu gmx_unused* nb)
         GPU_FUNC_TERM_WITH_RETURN(DeviceBuffer<gmx::RVec>{});
 
+GPU_FUNC_QUALIFIER
+DeviceBuffer<gmx::RVec> gpu_get_fshift(NbnxmGpu gmx_unused* nb)
+        GPU_FUNC_TERM_WITH_RETURN(DeviceBuffer<gmx::RVec>{});
+
+template<class DeviceVec4>
+GPU_FUNC_QUALIFIER DeviceBuffer<DeviceVec4> gpu_get_xq(NbnxmGpu gmx_unused* nb)
+        GPU_FUNC_TERM_WITH_RETURN(DeviceBuffer<DeviceVec4>{});
+
 } // namespace Nbnxm
 
 #endif

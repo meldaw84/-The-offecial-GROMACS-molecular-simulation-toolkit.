@@ -44,4 +44,7 @@
 
 #include "devicebuffer_sycl.h"
 
+#include "gromacs/gpu_utils/gputraits.h"
+
 template struct DeviceBuffer<gmx::RVec>;
+template struct DeviceBuffer<Float4>;
