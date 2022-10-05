@@ -76,12 +76,22 @@ void MarkovModel::compute_probabilities()
   // T_ij = c_ij/c_i; where c_i=sum_j(c_ij)
   // TODO: implement reversibility
 
-  int rowsum;
-  // TODO: insert nstates
-  for (int i = 0; i < 4; i++)
+  // Use a float here to enable float division. Could there be issues having a float counter?
+  float rowsum;
+  for (int i = 0; i < transitionCountsMatrix.extent(0); i++)
   {
-    rowsum = transitionCountsMatrix(0, 0);
-    printf("Rowsum is: %d\n", rowsum);
+    rowsum = 0;
+    for (int j = 0; j < transitionCountsMatrix.extent(1); j++){
+      rowsum += transitionCountsMatrix(i, j);
+    }
+
+    // If the sum is zero, avoid division by zero
+    if ( rowsum != 0 ) {
+      // Once we have the rowsum, loop through the row again
+      for (int k = 0; k < transitionCountsMatrix.extent(1); k++){
+        transitionProbabilityMatrix(i, k) = transitionCountsMatrix(i ,k)/rowsum;
+      }
+    }
   }
 }
 

@@ -56,7 +56,7 @@ class MarkovModel
     // Attributes
     MarkovModel(int nstates);
     MultiDimArray<std::vector<int>, extents<dynamic_extent, dynamic_extent>> transitionCountsMatrix;
-    MultiDimArray<std::vector<int>, extents<dynamic_extent, dynamic_extent>> transitionProbabilityMatrix;
+    MultiDimArray<std::vector<float>, extents<dynamic_extent, dynamic_extent>> transitionProbabilityMatrix;
 
     // Methods
     void count_transitions(std::vector<int>& discretizedTraj, int lag);

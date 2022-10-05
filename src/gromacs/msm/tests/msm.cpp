@@ -60,6 +60,8 @@ protected:
     //MarkovModel msm;
 };
 
+// TODO: better reuse data in the tests
+
 TEST_F(MsmTest, TransitionCountingTest)
 {
     // TODO: Make test pass or fail
@@ -88,10 +90,13 @@ TEST_F(MsmTest, TransitionCountingTest)
 
 TEST_F(MsmTest, TransitionProbabilityTest)
 {
-  MarkovModel msm = MarkovModel(4);
+  std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
+  //std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
+  MarkovModel msm2 = MarkovModel(4);
+  msm2.count_transitions(discretizedTraj, 1);
 
-  msm.compute_probabilities();
-  auto& probs = msm.transitionProbabilityMatrix;
+  msm2.compute_probabilities();
+  auto& probs = msm2.transitionProbabilityMatrix;
 
   const auto& dataView = probs.asConstView();
   const int numRows = probs.extent(0);
@@ -102,7 +107,7 @@ TEST_F(MsmTest, TransitionProbabilityTest)
       printf("\n");
       for (int j=0; j < numCols; j++)
       {
-          printf("%d ", dataView[i][j]);
+          printf("%f ", dataView[i][j]);
       }
   }
   printf("\n");
