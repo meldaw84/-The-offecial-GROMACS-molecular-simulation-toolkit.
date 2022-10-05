@@ -66,14 +66,14 @@
 namespace gmx
 {
 template<class DeviceVec3>
-        void LincsGpu::apply(const DeviceBuffer<DeviceVec3>& d_x,
-                             DeviceBuffer<DeviceVec3>        d_xp,
-                     const bool                  updateVelocities,
+void LincsGpu::apply(const DeviceBuffer<DeviceVec3>& d_x,
+                     DeviceBuffer<DeviceVec3>        d_xp,
+                     const bool                      updateVelocities,
                      DeviceBuffer<DeviceVec3>        d_v,
-                     const real                  invdt,
-                     const bool                  computeVirial,
-                     tensor                      virialScaled,
-                     const PbcAiuc&              pbcAiuc)
+                     const real                      invdt,
+                     const bool                      computeVirial,
+                     tensor                          virialScaled,
+                     const PbcAiuc&                  pbcAiuc)
 {
     // Early exit if no constraints
     if (kernelParams_.numConstraintsThreads == 0)
@@ -119,13 +119,13 @@ template<class DeviceVec3>
     }
 }
 template void LincsGpu::apply<Float3>(const DeviceBuffer<Float3>& d_x,
-                                     DeviceBuffer<Float3>        d_xp,
-                             const bool                  updateVelocities,
-                             DeviceBuffer<Float3>        d_v,
-                             const real                  invdt,
-                             const bool                  computeVirial,
-                             tensor                      virialScaled,
-                             const PbcAiuc&              pbcAiuc);
+                                      DeviceBuffer<Float3>        d_xp,
+                                      const bool                  updateVelocities,
+                                      DeviceBuffer<Float3>        d_v,
+                                      const real                  invdt,
+                                      const bool                  computeVirial,
+                                      tensor                      virialScaled,
+                                      const PbcAiuc&              pbcAiuc);
 
 LincsGpu::LincsGpu(int                  numIterations,
                    int                  expansionOrder,

@@ -150,14 +150,14 @@ public:
      * \param[in]     pbcAiuc           PBC data.
      */
     template<class DeviceVec3>
-            void apply(const DeviceBuffer<DeviceVec3>& d_x,
-                       DeviceBuffer<DeviceVec3>        d_xp,
-               bool                        updateVelocities,
+    void apply(const DeviceBuffer<DeviceVec3>& d_x,
+               DeviceBuffer<DeviceVec3>        d_xp,
+               bool                            updateVelocities,
                DeviceBuffer<DeviceVec3>        d_v,
-               real                        invdt,
-               bool                        computeVirial,
-               tensor                      virialScaled,
-               const PbcAiuc&              pbcAiuc);
+               real                            invdt,
+               bool                            computeVirial,
+               tensor                          virialScaled,
+               const PbcAiuc&                  pbcAiuc);
 
     /*! \brief
      * Update data-structures (e.g. after NB search step).
