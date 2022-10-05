@@ -65,11 +65,11 @@
 
 namespace gmx
 {
-
-void LincsGpu::apply(const DeviceBuffer<Float3>& d_x,
-                     DeviceBuffer<Float3>        d_xp,
+template<class DeviceVec3>
+        void LincsGpu::apply(const DeviceBuffer<DeviceVec3>& d_x,
+                             DeviceBuffer<DeviceVec3>        d_xp,
                      const bool                  updateVelocities,
-                     DeviceBuffer<Float3>        d_v,
+                     DeviceBuffer<DeviceVec3>        d_v,
                      const real                  invdt,
                      const bool                  computeVirial,
                      tensor                      virialScaled,
@@ -118,6 +118,14 @@ void LincsGpu::apply(const DeviceBuffer<Float3>& d_x,
         virialScaled[ZZ][ZZ] += h_virialScaled_[5];
     }
 }
+template void LincsGpu::apply<Float3>(const DeviceBuffer<Float3>& d_x,
+                                     DeviceBuffer<Float3>        d_xp,
+                             const bool                  updateVelocities,
+                             DeviceBuffer<Float3>        d_v,
+                             const real                  invdt,
+                             const bool                  computeVirial,
+                             tensor                      virialScaled,
+                             const PbcAiuc&              pbcAiuc);
 
 LincsGpu::LincsGpu(int                  numIterations,
                    int                  expansionOrder,

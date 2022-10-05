@@ -47,7 +47,6 @@
 #define GMX_DOMDEC_GPUHALOEXCHANGE_IMPL_GPU_H
 
 #include "gromacs/domdec/gpuhaloexchange.h"
-#include "gromacs/gpu_utils/device_context.h"
 #include "gromacs/gpu_utils/gpueventsynchronizer.h"
 #include "gromacs/gpu_utils/hostallocator.h"
 #include "gromacs/utility/gmxmpi.h"
@@ -59,6 +58,7 @@
 #endif
 
 struct gmx_wallcycle;
+class DeviceContext;
 
 namespace gmx
 {

@@ -45,7 +45,6 @@
 #include "gromacs/fft/fft.h"
 #include "gromacs/fft/gpu_3dfft.h"
 #include "gromacs/gpu_utils/devicebuffer_datatype.h"
-#include "gromacs/gpu_utils/gputraits.h"
 
 
 namespace gmx

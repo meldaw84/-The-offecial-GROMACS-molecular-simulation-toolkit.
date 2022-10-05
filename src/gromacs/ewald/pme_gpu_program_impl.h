@@ -45,7 +45,6 @@
 
 #include <memory>
 
-#include "gromacs/gpu_utils/device_context.h"
 #include "gromacs/utility/classhelpers.h"
 
 class ISyclKernelFunctor;

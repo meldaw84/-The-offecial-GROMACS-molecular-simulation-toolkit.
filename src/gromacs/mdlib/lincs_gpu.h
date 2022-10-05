@@ -45,14 +45,13 @@
 
 #include <memory>
 
-#include "gromacs/gpu_utils/device_context.h"
-#include "gromacs/gpu_utils/device_stream.h"
 #include "gromacs/gpu_utils/devicebuffer_datatype.h"
-#include "gromacs/gpu_utils/gputraits.h"
 #include "gromacs/mdlib/constr.h"
 #include "gromacs/pbcutil/pbc_aiuc.h"
 
 class InteractionDefinitions;
+class DeviceContext;
+class DeviceStream;
 
 namespace gmx
 {
@@ -150,10 +149,11 @@ public:
      * \param[in,out] virialScaled      Scaled virial tensor to be updated.
      * \param[in]     pbcAiuc           PBC data.
      */
-    void apply(const DeviceBuffer<Float3>& d_x,
-               DeviceBuffer<Float3>        d_xp,
+    template<class DeviceVec3>
+            void apply(const DeviceBuffer<DeviceVec3>& d_x,
+                       DeviceBuffer<DeviceVec3>        d_xp,
                bool                        updateVelocities,
-               DeviceBuffer<Float3>        d_v,
+               DeviceBuffer<DeviceVec3>        d_v,
                real                        invdt,
                bool                        computeVirial,
                tensor                      virialScaled,
