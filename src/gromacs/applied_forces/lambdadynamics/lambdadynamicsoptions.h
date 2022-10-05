@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright 2021- The GROMACS Authors
+ * Copyright 2022- The GROMACS Authors
  * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
  * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
@@ -81,6 +81,11 @@ enum class Directive : int
     Count
 };
 
+/*! \internal
+ * \brief LambdaDynamics parameters of lambda coordinate
+ * pKa is the pKa of the reference group
+ * dvdlCoefs compensate missing QM terms of bond breakage
+ */
 struct GroupParameters
 {
     //! pKa value of titratable group
@@ -89,6 +94,11 @@ struct GroupParameters
     std::vector<real> dvdlCoefs_;
 };
 
+/*! \internal
+ * \brief LambdaDynamics parameters of one particular state
+ * Force field and LambdaDynamics parameters modified
+ * upon changes of lambda
+ */
 struct GroupState
 {
     //! List of atom names
@@ -101,6 +111,10 @@ struct GroupState
     GroupParameters groupParameters_;
 };
 
+/*! \internal
+ * \brief Parameters of titratable group
+ * Full description of the titratable group
+ */
 struct LambdaDynamicsGroupType
 {
     //! Name of residue
@@ -115,6 +129,10 @@ struct LambdaDynamicsGroupType
     std::vector<GroupState> groupStates_;
 };
 
+/*! \internal
+ * \brief LambdaDynamics parameters of atom set
+ * Provides mapping between index group and LambdaDynamicsGroupType
+ */
 struct LambdaDynamicsAtomSet
 {
     //! Name of residue type to use
@@ -194,19 +212,6 @@ public:
 
     //! Get parameters_ instance
     const LambdaDynamicsParameters& parameters();
-
-    /*! \brief Evaluate and store atom indices.
-     * During pre-processing, use the group string from the options to
-     * evaluate the indices of both QM atoms and MM atoms, also stores them
-     * as vectors into the parameters_
-     * \param[in] indexGroupsAndNames object containing data about index groups and names
-     */
-    // void setLambdaDynamicsGroupIndices(const IndexGroupsAndNames& indexGroupsAndNames);
-
-    /*! \brief Modifies topology in case of active QMMM module using QMMMTopologyPreprocessor
-     * \param[in,out] mtop topology to modify for QMMM
-     */
-    // void setLambdaDynamicsCharges(gmx_mtop_t* mtop);
 
     //! Store the paramers that are not mdp options in the tpr file
     void writeInternalParametersToKvt(KeyValueTreeObjectBuilder treeBuilder);

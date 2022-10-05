@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright 2021- The GROMACS Authors
+ * Copyright 2022- The GROMACS Authors
  * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
  * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
@@ -66,9 +66,9 @@
 #include "gromacs/utility/stringutil.h"
 #include "gromacs/utility/textreader.h"
 
-#define OPENDIR '['  /* starting sign for directive */
-#define CLOSEDIR ']' /* ending sign for directive   */
-#define COMMENT '#'  /* comment sign */
+constexpr char OPENDIR  = '['; /* starting sign for directive */
+constexpr char CLOSEDIR = ']'; /* ending sign for directive   */
+constexpr char COMMENT  = '#'; /* comment sign */
 
 namespace gmx
 {
@@ -313,6 +313,51 @@ GroupState getGroupState(TextReader& fInp)
             continue;
         }
 
+        // Parse directive
+        if (line[0] == OPENDIR)
+        {
+            Directive newd = str2dir(line.substr(1, line.size() - 2));
+
+            if (newd == Directive::d_invalid)
+            {
+                GMX_THROW(InconsistentInputError(
+                        formatString("%s directive is not allowed in groupTypes.ldp file",
+                                     stripString(line.substr(1, line.size() - 2)).c_str())));
+            }
+
+            if (newd == Directive::d_atoms)
+            {
+                readingAtoms = true;
+            }
+
+            if (newd == Directive::d_end_atoms)
+            {
+                readingAtoms = false;
+            }
+
+            if (newd == Directive::d_parameters)
+            {
+                readingParams = true;
+                if ((readingAtoms) && (readingParams))
+                {
+                    GMX_THROW(InconsistentInputError(
+                            formatString("Wrong formatting of state section groupTypes.ldp file. "
+                                         "Two sections are open simultaneousely")));
+                }
+            }
+
+            if (newd == Directive::d_end_parameters)
+            {
+                readingParams = false;
+            }
+
+            if (newd == Directive::d_end_state)
+            {
+                // Checks: parameters and atoms
+                return groupState;
+            }
+        }
+
         if ((!readingAtoms) && (!readingParams) && (line[0] != OPENDIR))
         {
             GMX_THROW(InconsistentInputError(
@@ -366,56 +411,10 @@ GroupState getGroupState(TextReader& fInp)
                         "Wrong formatting in the parameter section. Unexpected entry name.")));
             }
         }
-
-        // Parse directive
-        if (line[0] == OPENDIR)
-        {
-            Directive newd = str2dir(line.substr(1, line.size() - 2));
-
-            if (newd == Directive::d_invalid)
-            {
-                GMX_THROW(InconsistentInputError(
-                        formatString("%s directive is not allowed in groupTypes.ldp file",
-                                     stripString(line.substr(1, line.size() - 2)).c_str())));
-            }
-
-            if (newd == Directive::d_atoms)
-            {
-                readingAtoms = true;
-            }
-
-            if (newd == Directive::d_end_atoms)
-            {
-                readingAtoms = false;
-            }
-
-            if (newd == Directive::d_parameters)
-            {
-                readingParams = true;
-                if ((readingAtoms) && (readingParams))
-                {
-                    GMX_THROW(InconsistentInputError(
-                            formatString("Wrong formatting of state section groupTypes.ldp file. "
-                                         "Two sections are open simultaneousely")));
-                }
-            }
-
-            if (newd == Directive::d_end_parameters)
-            {
-                readingParams = false;
-            }
-
-            if (newd == Directive::d_end_state)
-            {
-                // Checks: parameters and atoms
-                return groupState;
-            }
-
-            GMX_THROW(InconsistentInputError(formatString("Wrong order of directives.")));
-        }
     }
 
     // How we ended up here?
+    GMX_THROW(InconsistentInputError(formatString("Wrong order of directives.")));
     return groupState;
 }
 

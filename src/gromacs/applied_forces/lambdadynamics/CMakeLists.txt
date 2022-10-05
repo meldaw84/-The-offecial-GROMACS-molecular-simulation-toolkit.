@@ -31,12 +31,26 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out https://www.gromacs.org.
 
-gmx_add_libgromacs_sources(
+add_library(lambdadynamics OBJECT)
+target_sources(lambdadynamics PRIVATE
     lambdadynamicsoptions.cpp
     lambdadynamicsoutputprovider.cpp
     lambdadynamicsforceprovider.cpp
     lambdadynamics.cpp
 )
+if (BUILD_SHARED_LIBS)
+    set_target_properties(lambdadynamics PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endif()
+
+target_link_libraries(lambdadynamics PRIVATE
+        common
+        legacy_modules
+        math
+        topology
+        utility
+        )
+
+target_include_directories(lambdadynamics PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
 if (BUILD_TESTING)
     #add_subdirectory(tests)

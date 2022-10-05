@@ -66,6 +66,7 @@ target_include_directories(mdrun INTERFACE
 #target_link_libraries(mdrun PUBLIC
 target_link_libraries(mdrun INTERFACE
                       legacy_api
+                      lambdadynamics
                       )
 
 # TODO: when mdrun is an OBJECT target

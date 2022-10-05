@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright 2021- The GROMACS Authors
+ * Copyright 2022- The GROMACS Authors
  * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
  * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
@@ -56,23 +56,18 @@ namespace gmx
 #    pragma clang diagnostic ignored "-Wunused-private-field"
 #endif
 
-//! Type for CP2K force environment handle
-typedef int force_env_t;
-
 /*! \internal \brief
- * Implements IForceProvider for QM/MM.
+ * Implements Empty IForceProvider for LambdaDynamics.
  */
 class LambdaDynamicsForceProvider final : public IForceProvider
 {
 public:
     LambdaDynamicsForceProvider(PbcType pbcType, const MDLogger& logger);
 
-    //! Destruct force provider for QMMM and finalize libcp2k
+    //! Destruct force provider for LambdaDynamics
     ~LambdaDynamicsForceProvider() {}
 
-    /*!\brief Calculate forces of QMMM.
-     * \param[in] fInput input for force provider
-     * \param[out] fOutput output for force provider
+    /*!\brief Calculate forces of Lambda Dynamics.
      */
     void calculateForces(const ForceProviderInput&, ForceProviderOutput*) override;
 

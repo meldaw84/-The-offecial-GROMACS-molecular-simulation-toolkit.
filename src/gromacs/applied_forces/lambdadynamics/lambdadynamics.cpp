@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright 2021- The GROMACS Authors
+ * Copyright 2022- The GROMACS Authors
  * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
  * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
@@ -40,7 +40,7 @@
  */
 #include "gmxpre.h"
 
-#include "lambdadynamics.h"
+#include "gromacs/applied_forces/lambdadynamics/lambdadynamics.h"
 
 #include <memory>
 #include <numeric>
@@ -77,35 +77,6 @@ class LymbdaDynamicsSimulationParameterSetup
 {
 public:
     LymbdaDynamicsSimulationParameterSetup() = default;
-
-    /*! \brief Set the local atom set for the lambda dynamics.
-     * \param[in] localAtomSet of atoms to be in lambda coordinates
-     */
-
-    /*
-    void setLocalAtomSet(const LocalAtomSet& localAtomSet)
-    {
-        localAtomSet_ = std::make_unique<LocalAtomSet>(localAtomSet);
-    }
-    */
-
-    /*! \brief Return local atom set for lambda dynamics.
-     * \throws InternalError if local atom set is not set
-     * \returns local atom set for lambda dynamics.
-     */
-
-    /*
-    const LocalAtomSet& localAtomSet() const
-    {
-        if (localAtomSet_ == nullptr)
-        {
-            GMX_THROW(
-                    InternalError("Local atom set is not set for Lambda "
-                                  "Dynamics simulation."));
-        }
-        return *localAtomSet_;
-    }
-    */
 
     /*! \brief Set the periodic boundary condition via MDModuleNotifier.
      *
