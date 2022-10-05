@@ -40,35 +40,49 @@
  * \author Cathrine Bergh
  */
 #include "gmxpre.h"
-
 #include "msm.h"
 
 namespace gmx
 {
 
 // Constructor
-MarkovModel::MarkovModel()
+MarkovModel::MarkovModel(int nstates)
 {
-  // TODO: Move nstates to function argument
   // TODO: scan clustered trajectory of highest state value?
-  const int nstates = 4;
+  //const int nstates = nstates;
 
-  // Initialize TCM as MultiDimArray
-  transitionCountsMatrix = { { } };
+  // Initialize the TCM and TPM and set the size
+  transitionCountsMatrix.resize(nstates, nstates);
+  transitionProbabilityMatrix.resize(nstates, nstates);
+
 }
-
 
 void MarkovModel::count_transitions(std::vector<int>& discretizedTraj, int lag)
 {
-    //Extract time-lagged trajectories
-    std::vector<int> rows(discretizedTraj.begin(), discretizedTraj.end() - lag);
-    std::vector<int> cols(discretizedTraj.begin() + lag, discretizedTraj.end());
+  // Extract time-lagged trajectories
+  std::vector<int> rows(discretizedTraj.begin(), discretizedTraj.end() - lag);
+  std::vector<int> cols(discretizedTraj.begin() + lag, discretizedTraj.end());
 
-    // Iterate over trajectory and count transitions
-    for (int i = 0; i < rows.size(); i++)
-    {
-      transitionCountsMatrix(rows[i], cols[i]) += 1;
-    }
+  // Iterate over trajectory and count transitions
+  for (int i = 0; i < rows.size(); i++)
+  {
+    transitionCountsMatrix(rows[i], cols[i]) += 1;
+  }
+}
+
+void MarkovModel::compute_probabilities()
+{
+  // Construct a transition probability matrix from a transition counts matrix
+  // T_ij = c_ij/c_i; where c_i=sum_j(c_ij)
+  // TODO: implement reversibility
+
+  int rowsum;
+  // TODO: insert nstates
+  for (int i = 0; i < 4; i++)
+  {
+    rowsum = transitionCountsMatrix(0, 0);
+    printf("Rowsum is: %d\n", rowsum);
+  }
 }
 
 } // namespace gmx

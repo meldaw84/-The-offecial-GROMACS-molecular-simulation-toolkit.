@@ -49,18 +49,18 @@
 
 namespace gmx
 {
-
 class MarkovModel
 {
   private:
   public:
     // Attributes
-    MarkovModel();
-    // TODO: handle nstates (4)
-    MultiDimArray<std::array<int, 4*4>, extents<4, 4>> transitionCountsMatrix;
+    MarkovModel(int nstates);
+    MultiDimArray<std::vector<int>, extents<dynamic_extent, dynamic_extent>> transitionCountsMatrix;
+    MultiDimArray<std::vector<int>, extents<dynamic_extent, dynamic_extent>> transitionProbabilityMatrix;
 
     // Methods
     void count_transitions(std::vector<int>& discretizedTraj, int lag);
+    void compute_probabilities();
 };
 
 } // namespace gmx

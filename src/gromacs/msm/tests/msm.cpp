@@ -55,15 +55,18 @@ class MsmTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        msm = MarkovModel();
+      //msm = MarkovModel(4);
     }
-    MarkovModel msm;
+    //MarkovModel msm;
 };
 
 TEST_F(MsmTest, TransitionCountingTest)
 {
+    // TODO: Make test pass or fail
     std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
     //std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
+
+    MarkovModel msm = MarkovModel(4);
 
     msm.count_transitions(discretizedTraj, 1);
     auto& transitions = msm.transitionCountsMatrix;
@@ -80,13 +83,30 @@ TEST_F(MsmTest, TransitionCountingTest)
             printf("%d ", dataView[i][j]);
         }
     }
-
+    printf("\n");
 }
 
-//TEST(MoreMSMTest, HiAgain)
-//{
-//    printf("hallo\n");
-//}
+TEST_F(MsmTest, TransitionProbabilityTest)
+{
+  MarkovModel msm = MarkovModel(4);
+
+  msm.compute_probabilities();
+  auto& probs = msm.transitionProbabilityMatrix;
+
+  const auto& dataView = probs.asConstView();
+  const int numRows = probs.extent(0);
+  const int numCols = probs.extent(1);
+
+  for (int i = 0; i < numRows; i++)
+  {
+      printf("\n");
+      for (int j=0; j < numCols; j++)
+      {
+          printf("%d ", dataView[i][j]);
+      }
+  }
+  printf("\n");
+}
 
 } //namespace test
 } //namespace gmx
