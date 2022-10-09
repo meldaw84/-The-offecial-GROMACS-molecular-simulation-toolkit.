@@ -41,7 +41,7 @@
  */
 #include "gmxpre.h"
 
-#include "qmmm.h"
+#include "gromacs/applied_forces/qmmm/qmmm.h"
 
 #include <memory>
 #include <numeric>

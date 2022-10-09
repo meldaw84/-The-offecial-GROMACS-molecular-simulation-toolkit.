@@ -31,7 +31,8 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out https://www.gromacs.org.
 
-gmx_add_libgromacs_sources(
+add_library(qmmm OBJECT)
+target_sources(qmmm PRIVATE
     qmmminputgenerator.cpp
     qmmmtopologypreprocessor.cpp
     qmmmoptions.cpp
@@ -41,14 +42,36 @@ gmx_add_libgromacs_sources(
 # If we have libcp2k linked then compile qmmmforceprovider.cpp
 # In other case compile stub implementation qmmmforceprovider_stub.cpp
 if (GMX_CP2K)
-gmx_add_libgromacs_sources(
+target_sources(qmmm PRIVATE
     qmmmforceprovider.cpp
     )
 else()
-gmx_add_libgromacs_sources(
+target_sources(qmmm PRIVATE
     qmmmforceprovider_stub.cpp
     )
 endif()
+
+if (BUILD_SHARED_LIBS)
+    set_target_properties(qmmm PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endif()
+
+target_link_libraries(qmmm PRIVATE
+        common
+        ewald
+        domdec
+        gmxlib
+        legacy_modules
+        math
+        mdlib
+        mdrunutility
+        mdtypes
+        selection
+        topology
+        utility
+        )
+
+target_include_directories(qmmm PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+
 
 if (BUILD_TESTING)
     add_subdirectory(tests)
