@@ -108,7 +108,20 @@ ListedForcesGpu::Impl::Impl(const gmx_ffparams_t&    ffparams,
     switch (deviceInfo.deviceVendor)
     {
         // For AMD RDNA and Intel we might be overestimating the subgroup size, but that is ok for SYCL
-        case DeviceVendor::Amd: deviceSubGroupSize_ = 64; break;
+        case DeviceVendor::Amd:
+        {
+            const int arch = deviceInfo.hardwareVersionMajor.value_or(-1);
+            switch (arch)
+            {
+                case 10: // RDNA 1, RDNA 2
+                case 11: // RDNA 3 (?)
+                case 12: // RDNA 4 (?)
+                    deviceSubGroupSize_ = 32;
+                    break;
+                default: deviceSubGroupSize_ = 64;
+            }
+        }
+        break;
         case DeviceVendor::Intel:
         case DeviceVendor::Nvidia: deviceSubGroupSize_ = 32; break;
         default: GMX_RELEASE_ASSERT(false, "Unknown GPU vendor");
