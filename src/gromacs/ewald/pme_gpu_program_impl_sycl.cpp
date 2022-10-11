@@ -68,7 +68,18 @@ static int subGroupSizeFromVendor(const DeviceInformation& deviceInfo)
 {
     switch (deviceInfo.deviceVendor)
     {
-        case DeviceVendor::Amd: return 64;   // Handle RDNA2 devices, Issue #3972.
+        case DeviceVendor::Amd:
+        {
+            const int arch = deviceInfo.hardwareVersionMajor.value_or(-1);
+            switch (arch)
+            {
+                case 10: // RDNA 1, RDNA 2
+                case 11: // RDNA 3 (?)
+                case 12: // RDNA 4 (?)
+                    return 32;
+                default: return 64;
+            }
+        }
         case DeviceVendor::Intel: return 16; // TODO: Choose best value, Issue #4153.
         case DeviceVendor::Nvidia: return 32;
         default: GMX_RELEASE_ASSERT(false, "Unknown device vendor"); return 0;
@@ -116,6 +127,7 @@ static int subGroupSizeFromVendor(const DeviceInformation& deviceInfo)
 #if GMX_SYCL_DPCPP
 INSTANTIATE(4, 16);
 INSTANTIATE(4, 32);
+INSTANTIATE(4, 64);
 #elif GMX_SYCL_HIPSYCL
 INSTANTIATE(4, 32);
 INSTANTIATE(4, 64);
@@ -209,6 +221,7 @@ PmeGpuProgramImpl::PmeGpuProgramImpl(const DeviceContext& deviceContext) :
 #if GMX_SYCL_DPCPP
         case 16: setKernelPointers<16>(this); break;
         case 32: setKernelPointers<32>(this); break;
+        case 64: setKernelPointers<64>(this); break;
 #elif GMX_SYCL_HIPSYCL
         case 32: setKernelPointers<32>(this); break;
         case 64: setKernelPointers<64>(this); break;
