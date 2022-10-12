@@ -74,6 +74,58 @@ static inline void atomicAddOptimizedAmd(float gmx_unused* ptr, const float gmx_
 }
 #endif
 
+
+constexpr bool compilingForHost()
+{
+    // Skip compiling for CPU. Makes compiling this file ~10% faster for oneAPI/CUDA or
+    // hipSYCL/CUDA. For DPC++, any non-CPU targets must be explicitly allowed in the #if below.
+#if GMX_SYCL_HIPSYCL
+    __hipsycl_if_target_host(return true;);
+#endif
+    // We need to list all valid device targets here
+#if GMX_SYCL_DPCPP \
+        && !(defined(__NVPTX__) || defined(__AMDGCN__) || defined(__SPIR__) || defined(__SPIRV__))
+    return true;
+#endif
+    return false;
+}
+
+template<int ExpectedSubGroupSize>
+constexpr bool compilingForSubGroupSize()
+{
+#if defined(__SYCL_DEVICE_ONLY__) && defined(__NVPTX__)
+    return ExpectedSubGroupSize == 32;
+#elif defined(__SYCL_DEVICE_ONLY__) && defined(__AMDGCN__)
+    return ExpectedSubGroupSize == __AMDGCN_WAVEFRONT_SIZE;
+#elif defined(__SYCL_DEVICE_ONLY__) && (defined(__SPIR__) || defined(__SPIRV__))
+    return true; // Assume that we have set reqd_sub_group_size attribute for the kernel
+#else
+    return false; // Unknown architecture
+#endif
+}
+
+template<int ExpectedSubGroupSize>
+constexpr bool skipKernelCompilation()
+{
+    if constexpr (compilingForHost())
+    {
+        return true;
+    }
+    if constexpr (!compilingForSubGroupSize<ExpectedSubGroupSize>())
+    {
+        return true;
+    }
+    /* Currently, the only SPIR-V target is Intel; for them we don't need 64-wide kernels.
+     * This will require changing if we ever have other SPIR-V targets. */
+#if defined(__SYCL_DEVICE_ONLY__) && (defined(__SPIR__) || defined(__SPIRV__))
+    if constexpr (ExpectedSubGroupSize > 32)
+    {
+        return true;
+    }
+#endif
+    return false;
+}
+
 template<typename T, sycl_2020::memory_scope MemoryScope, sycl::access::address_space AddressSpace>
 static inline void atomicAddDefault(T& val, const T delta)
 {
