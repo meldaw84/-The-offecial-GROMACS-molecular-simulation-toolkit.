@@ -129,4 +129,11 @@ using local_accessor = sycl::local_accessor<dataT, dimensions>;
 
 } // namespace sycl_2020
 
+
+#if GMX_SYCL_DPCPP
+const sycl::property_list syclDiscardEvent{};
+#elif GMX_SYCL_HIPSYCL
+const sycl::property_list syclDiscardEvent{ sycl::property::command_group::hipSYCL_coarse_grained_events() };
+#endif
+
 #endif

@@ -116,7 +116,7 @@ void launchNbnxmKernelTransformXToXq(const Grid&          grid,
     const sycl::range<2> globalSize{ numAtomsMax, numColumns };
     sycl::queue          q = deviceStream.stream();
 
-    q.submit([&](sycl::handler& cgh) {
+    q.submit(syclDiscardEvent, [&](sycl::handler& cgh) {
         auto kernel = nbnxmKernelTransformXToXq(cgh,
                                                 nb->atdat->xq,
                                                 d_x,

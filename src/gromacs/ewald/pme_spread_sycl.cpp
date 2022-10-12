@@ -377,8 +377,7 @@ void PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY
 
 
 template<int order, bool computeSplines, bool spreadCharges, bool wrapX, bool wrapY, int numGrids, bool writeGlobal, ThreadsPerAtom threadsPerAtom, int subGroupSize>
-sycl::event
-PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, numGrids, writeGlobal, threadsPerAtom, subGroupSize>::launch(
+void PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, numGrids, writeGlobal, threadsPerAtom, subGroupSize>::launch(
         const KernelLaunchConfig& config,
         const DeviceStream&       deviceStream)
 {
@@ -396,8 +395,7 @@ PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, num
 
     sycl::queue q = deviceStream.stream();
 
-
-    sycl::event e = q.submit([&](sycl::handler& cgh) {
+    q.submit(syclDiscardEvent, [&](sycl::handler& cgh) {
         auto kernel =
                 pmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, numGrids, writeGlobal, threadsPerAtom, subGroupSize>(
                         cgh,
@@ -424,8 +422,6 @@ PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, num
 
     // Delete set args, so we don't forget to set them before the next launch.
     reset();
-
-    return e;
 }
 
 

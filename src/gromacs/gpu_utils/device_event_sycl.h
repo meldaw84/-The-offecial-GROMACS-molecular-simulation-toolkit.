@@ -84,8 +84,8 @@ public:
     inline void mark(const DeviceStream& deviceStream)
     {
 #    if GMX_SYCL_HIPSYCL
-        // Relies on HIPSYCL_EXT_QUEUE_WAIT_LIST extension
-        events_   = deviceStream.stream().get_wait_list();
+        // This will do nothing and insert an event after that
+        events_ = { deviceStream.stream().hipSYCL_enqueue_custom_operation([=](sycl::interop_handle&) {}) };
         isMarked_ = true;
 #    else
         // Relies on SYCL_INTEL_enqueue_barrier

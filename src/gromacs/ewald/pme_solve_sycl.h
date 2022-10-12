@@ -79,7 +79,7 @@ public:
     //! Sets the kernel arguments
     void setArg(size_t argIndex, void* arg) override;
     //! Launches the kernel with given \c config and \c deviceStream
-    sycl::event launch(const KernelLaunchConfig& config, const DeviceStream& deviceStream) override;
+    void launch(const KernelLaunchConfig& config, const DeviceStream& deviceStream) override;
 
 private:
     //! Kernel argument set by \c setArg()

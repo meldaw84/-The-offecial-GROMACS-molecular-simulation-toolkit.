@@ -54,8 +54,8 @@ class PmeSplineAndSpreadKernel : public ISyclKernelFunctor
 {
 public:
     PmeSplineAndSpreadKernel();
-    void        setArg(size_t argIndex, void* arg) override;
-    sycl::event launch(const KernelLaunchConfig& config, const DeviceStream& deviceStream) override;
+    void setArg(size_t argIndex, void* arg) override;
+    void launch(const KernelLaunchConfig& config, const DeviceStream& deviceStream) override;
 
 private:
     PmeGpuGridParams*    gridParams_;
