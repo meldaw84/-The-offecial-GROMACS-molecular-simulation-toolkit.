@@ -46,15 +46,8 @@ endif()
 
 target_link_libraries(densityfitting PRIVATE
         common
-        domdec
-        fileio
         legacy_modules
         math
-        mdrunutility
-        mdspan
-        mdtypes
-        selection
-        topology
         utility
         )
 

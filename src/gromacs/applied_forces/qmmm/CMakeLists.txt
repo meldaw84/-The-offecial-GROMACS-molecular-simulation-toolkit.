@@ -57,15 +57,8 @@ endif()
 
 target_link_libraries(qmmm PRIVATE
         common
-        ewald
-        domdec
-        gmxlib
         legacy_modules
         math
-        mdlib
-        mdrunutility
-        mdtypes
-        selection
         topology
         utility
         )
