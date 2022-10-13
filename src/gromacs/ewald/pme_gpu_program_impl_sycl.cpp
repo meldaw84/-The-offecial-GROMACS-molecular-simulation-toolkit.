@@ -66,12 +66,19 @@ constexpr int c_stateB = 1;
 
 static int subGroupSizeFromVendor(const DeviceInformation& deviceInfo)
 {
-    switch (deviceInfo.deviceVendor)
+    if (deviceInfo.requiredWarpSize.has_value())
     {
-        case DeviceVendor::Amd: return 64;   // Handle RDNA2 devices, Issue #3972.
-        case DeviceVendor::Intel: return 16; // TODO: Choose best value, Issue #4153.
-        case DeviceVendor::Nvidia: return 32;
-        default: GMX_RELEASE_ASSERT(false, "Unknown device vendor"); return 0;
+        return *deviceInfo.requiredWarpSize;
+    }
+    else
+    {
+        switch (deviceInfo.deviceVendor)
+        {
+            case DeviceVendor::Intel: return 16; // TODO: Choose best value, Issue #4153.
+            default:
+                GMX_RELEASE_ASSERT(false, "Flexible sub-groups only supported for Intel GPUs");
+                return 0;
+        }
     }
 }
 

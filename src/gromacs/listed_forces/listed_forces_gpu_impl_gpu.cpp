@@ -105,13 +105,17 @@ ListedForcesGpu::Impl::Impl(const gmx_ffparams_t&    ffparams,
         kernelParams_.fTypeRangeStart[i] = 0;
         kernelParams_.fTypeRangeEnd[i]   = -1;
     }
-    switch (deviceInfo.deviceVendor)
+    if (deviceInfo.requiredWarpSize.has_value())
     {
-        // For AMD RDNA and Intel we might be overestimating the subgroup size, but that is ok for SYCL
-        case DeviceVendor::Amd: deviceSubGroupSize_ = 64; break;
-        case DeviceVendor::Intel:
-        case DeviceVendor::Nvidia: deviceSubGroupSize_ = 32; break;
-        default: GMX_RELEASE_ASSERT(false, "Unknown GPU vendor");
+        deviceSubGroupSize_ = *deviceInfo.requiredWarpSize;
+    }
+    else
+    {
+        switch (deviceInfo.deviceVendor)
+        {
+            case DeviceVendor::Intel: deviceSubGroupSize_ = 32; break;
+            default: GMX_RELEASE_ASSERT(false, "Flexible sub-groups only supported for Intel GPUs");
+        }
     }
 
     int fTypeRangeEnd = kernelParams_.fTypeRangeEnd[numFTypesOnGpu - 1];

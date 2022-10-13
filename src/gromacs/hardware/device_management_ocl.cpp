@@ -55,6 +55,7 @@
 #    include <sys/sysctl.h>
 #endif
 
+#include "gromacs/gpu_utils/ocl_compiler.h"
 #include "gromacs/gpu_utils/oclraii.h"
 #include "gromacs/gpu_utils/oclutils.h"
 #include "gromacs/hardware/device_management.h"
@@ -130,6 +131,48 @@ static bool runningOnCompatibleHWForNvidia(const DeviceInformation& deviceInfo)
     }
     return ccMajor < ccMajorBad;
 #endif
+}
+
+static std::optional<int> getRequiredWarpSize(cl_device_id devId, DeviceVendor deviceVendor)
+{
+    switch (deviceVendor)
+    {
+        case DeviceVendor::Amd:
+        {
+            cl_int status;
+            // Try to query the device:
+#ifdef CL_DEVICE_WAVEFRONT_WIDTH_AMD
+            cl_uint waveFrontSize;
+            status = clGetDeviceInfo(
+                    devId, CL_DEVICE_WAVEFRONT_WIDTH_AMD, sizeof(waveFrontSize), &waveFrontSize, nullptr);
+            if (status == CL_SUCCESS)
+            {
+                return waveFrontSize;
+            }
+#endif
+            // We couldn't query the device directly, try compiling a kernel for it:
+            cl_context context = clCreateContext(nullptr, 1, &devId, nullptr, nullptr, &status);
+            if (status == CL_SUCCESS)
+            {
+                try
+                {
+                    int warpSize = gmx::ocl::getDeviceWarpSize(context, devId);
+                    clReleaseContext(context);
+                    return warpSize;
+                }
+                catch (const gmx::InternalError&)
+                {
+                    clReleaseContext(context);
+                    // Fallthrough to the next method
+                }
+            }
+            // Everything else failed, make an educated guess:
+            return 64;
+        }
+        case DeviceVendor::Intel: return std::nullopt; // Flexible sub-group size
+        case DeviceVendor::Nvidia: return 32;
+        default: GMX_RELEASE_ASSERT(false, "Unknown vendor"); return std::nullopt;
+    }
 }
 
 /*!
@@ -487,6 +530,9 @@ std::vector<std::unique_ptr<DeviceInformation>> findDevices()
 
                     deviceInfoList[device_index]->deviceVendor =
                             getDeviceVendor(deviceInfoList[device_index]->vendorName);
+
+                    deviceInfoList[device_index]->requiredWarpSize = gmx::getRequiredWarpSize(
+                            ocl_device_ids[j], deviceInfoList[device_index]->deviceVendor);
 
                     clGetDeviceInfo(ocl_device_ids[j],
                                     CL_DEVICE_MAX_WORK_ITEM_SIZES,

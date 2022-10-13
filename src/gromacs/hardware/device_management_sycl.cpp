@@ -471,6 +471,22 @@ std::vector<std::unique_ptr<DeviceInformation>> findDevices()
         deviceInfos[i]->deviceVendor =
                 getDeviceVendor(syclDevice.get_info<sycl::info::device::vendor>().c_str());
 
+        deviceInfos[i]->requiredWarpSize = std::nullopt;
+        try
+        {
+            const std::vector<size_t> supportedSubGroupSizes =
+                    syclDevice.get_info<sycl::info::device::sub_group_sizes>();
+            if (supportedSubGroupSizes.size() == 1)
+            {
+                deviceInfos[i]->requiredWarpSize = supportedSubGroupSizes[0];
+            }
+        }
+        catch (std::exception)
+        {
+            // Do nothing.
+        }
+
+
         deviceInfos[i]->hardwareVersionMajor = std::nullopt;
         deviceInfos[i]->hardwareVersionMinor = std::nullopt;
         deviceInfos[i]->hardwareVersionPatch = std::nullopt;

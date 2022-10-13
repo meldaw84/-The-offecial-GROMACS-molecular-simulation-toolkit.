@@ -158,6 +158,8 @@ struct DeviceInformation
     int id;
     //! Device vendor.
     DeviceVendor deviceVendor;
+    //! Warp/sub-group size, if fixed. \c std::nullopt if flexible
+    std::optional<int> requiredWarpSize;
 #if GMX_GPU_CUDA
     //! CUDA device properties.
     cudaDeviceProp prop;
