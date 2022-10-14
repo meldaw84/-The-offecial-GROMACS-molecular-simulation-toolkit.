@@ -50,9 +50,9 @@
 #include <tuple>
 
 #include "gromacs/gpu_utils/gmxsycl.h"
+#include "gromacs/gpu_utils/sycl_kernel_utils.h"
 #include "gromacs/hardware/device_management.h"
 #include "gromacs/hardware/device_management_sycl_intel_device_ids.h"
-#include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/strconvert.h"
 #include "gromacs/utility/stringutil.h"
@@ -282,7 +282,55 @@ static DeviceStatus isDeviceCompatible(const sycl::device& syclDevice)
 
 // Declaring the class here to avoid long unreadable name in the profiler report
 //! \brief Class name for test kernel
-class DummyKernel;
+class TestKernel;
+
+static std::optional<std::string> verifyReportedValues(const DeviceInformation& deviceInfo,
+                                                       unsigned compileTimeCompressedValue,
+                                                       unsigned runTimeCompressedValue)
+{
+    const std::optional<int>      expectedSubGroupSize   = deviceInfo.requiredWarpSize;
+    const bool                    reportedCompiledOnHost = compileTimeCompressedValue & 1U;
+    std::unordered_map<int, bool> reportedCompiledForSubGroup;
+    reportedCompiledForSubGroup[4]        = compileTimeCompressedValue & 2U;
+    reportedCompiledForSubGroup[8]        = compileTimeCompressedValue & 4U;
+    reportedCompiledForSubGroup[16]       = compileTimeCompressedValue & 8U;
+    reportedCompiledForSubGroup[32]       = compileTimeCompressedValue & 16U;
+    reportedCompiledForSubGroup[64]       = compileTimeCompressedValue & 32U;
+    reportedCompiledForSubGroup[128]      = compileTimeCompressedValue & 64U;
+    const int reportedRuntimeSubGroupSize = runTimeCompressedValue;
+
+    if (reportedCompiledOnHost)
+    {
+        return gmx::formatString("Test kernel was compiled for host");
+    }
+    if (expectedSubGroupSize.has_value())
+    {
+        if (reportedRuntimeSubGroupSize != *expectedSubGroupSize)
+        {
+            return gmx::formatString(
+                    "Test kernel reported sub-group size %d, device expected to only support %d",
+                    reportedRuntimeSubGroupSize,
+                    *expectedSubGroupSize);
+        }
+    }
+    if (const auto e = reportedCompiledForSubGroup.find(reportedRuntimeSubGroupSize);
+        e != reportedCompiledForSubGroup.end())
+    {
+        if (!e->second)
+        {
+            return gmx::formatString(
+                    "Test kernel reported runtime sub-group size %d, but it was not expected "
+                    "during compilation",
+                    reportedRuntimeSubGroupSize);
+        }
+    }
+    else
+    { // Could not find among the sub-group values we checked, i.e., 4, 8, ..., 128
+        return gmx::formatString("Test kernel reported very unexpected runtime sub-group size %d",
+                                 reportedRuntimeSubGroupSize);
+    }
+    return std::nullopt; // No error
+}
 
 /*!
  * \brief Checks that device \c deviceInfo is sane (ie can run a kernel).
@@ -296,27 +344,63 @@ class DummyKernel;
  * \throws     std::bad_alloc  When out of memory.
  * \returns                    Whether the device passed sanity checks
  */
-static bool isDeviceFunctional(const sycl::device& syclDevice, std::string* errorMessage)
+static bool isDeviceFunctional(const DeviceInformation& deviceInfo, std::string* errorMessage)
 {
-    static const int numThreads = 8;
+    const sycl::device& syclDevice = deviceInfo.syclDevice;
+    static const int    numThreads = 64;
     try
     {
-        sycl::queue          queue(syclDevice);
-        sycl::buffer<int, 1> buffer(numThreads);
+        sycl::queue               queue(syclDevice);
+        sycl::buffer<unsigned, 1> buffer(numThreads);
         queue.submit([&](sycl::handler& cgh) {
-                 auto           d_buffer = buffer.get_access(cgh, sycl::write_only, sycl::no_init);
-                 sycl::range<1> range{ numThreads };
-                 cgh.parallel_for<DummyKernel>(
-                         range, [=](sycl::id<1> threadId) { d_buffer[threadId] = threadId.get(0); });
+                 auto d_buffer = buffer.get_access(cgh, sycl::write_only, sycl::no_init);
+                 sycl::nd_range<1> range{ numThreads, numThreads }; // numThreads work-items in a single work-group
+                 cgh.parallel_for<TestKernel>(range, [=](sycl::nd_item<1> threadId) {
+                     sycl::sub_group subGroup = threadId.get_sub_group();
+                     const int       tid      = threadId.get_global_linear_id();
+                     if (tid == 0)
+                     {
+                         /* Check compile-time constants and run-time values that kernels rely on,
+                          * mostly related to sub-groups */
+                         constexpr unsigned flagMask =
+                                 (static_cast<int>(compilingForHost()) << 0U)
+                                 | (static_cast<int>(compilingForSubGroupSize<4>()) << 1U)
+                                 | (static_cast<int>(compilingForSubGroupSize<8>()) << 2U)
+                                 | (static_cast<int>(compilingForSubGroupSize<16>()) << 3U)
+                                 | (static_cast<int>(compilingForSubGroupSize<32>()) << 4U)
+                                 | (static_cast<int>(compilingForSubGroupSize<64>()) << 5U)
+                                 | (static_cast<int>(compilingForSubGroupSize<128>()) << 6U);
+                         d_buffer[tid] = flagMask;
+                     }
+                     else if (tid == 1)
+                     {
+                         const unsigned subGroupSize = subGroup.get_max_local_range()[0];
+                         d_buffer[tid]               = subGroupSize;
+                     }
+                     else
+                     {
+                         d_buffer[tid] = tid;
+                     }
+                 });
              }).wait_and_throw();
         const auto h_Buffer = buffer.get_access<sycl::access_mode::read>();
-        for (int i = 0; i < numThreads; i++)
+        // First two threads reported kernel parameters in a compressed format, verify them
+        if (auto error = verifyReportedValues(deviceInfo, h_Buffer[0], h_Buffer[1]); error.has_value())
+        {
+            if (errorMessage != nullptr)
+            {
+                errorMessage->assign(*error);
+            }
+            return false;
+        }
+        // The rest just reported their ids
+        for (unsigned i = 2; i < numThreads; i++)
         {
             if (h_Buffer[i] != i)
             {
                 if (errorMessage != nullptr)
                 {
-                    errorMessage->assign("Dummy kernel produced invalid values");
+                    errorMessage->assign("Test kernel produced invalid filler values");
                 }
                 return false;
             }
@@ -357,7 +441,7 @@ static DeviceStatus checkDevice(size_t deviceId, const DeviceInformation& device
     }
 
     std::string errorMessage;
-    if (!isDeviceFunctional(deviceInfo.syclDevice, &errorMessage))
+    if (!isDeviceFunctional(deviceInfo, &errorMessage))
     {
         gmx_warning("While sanity checking device #%zu, %s", deviceId, errorMessage.c_str());
         return DeviceStatus::NonFunctional;

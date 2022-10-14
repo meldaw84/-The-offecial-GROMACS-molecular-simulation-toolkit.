@@ -35,7 +35,10 @@
 #ifndef GMX_GPU_UTILS_SYCL_KERNEL_UTILS_H
 #define GMX_GPU_UTILS_SYCL_KERNEL_UTILS_H
 
+#include "gromacs/utility/basedefinitions.h"
+
 #include "gmxsycl.h"
+#include "gputraits.h"
 
 /*! \file
  *  \brief SYCL kernel helper functions.
