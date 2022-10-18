@@ -66,7 +66,12 @@ namespace
 TEST(MdGraphTest, MdGpuGraphExecutesActivities)
 {
 
-    const auto& testDevice    = getTestHardwareEnvironment()->getTestDeviceList()[0];
+    const auto& testDeviceList = getTestHardwareEnvironment()->getTestDeviceList();
+    if (testDeviceList.empty())
+    {
+        GTEST_SKIP() << "No compatible GPUs to test on.";
+    }
+    const auto& testDevice    = testDeviceList.front();
     const auto& deviceContext = testDevice->deviceContext();
 
     // Initialize required structures
