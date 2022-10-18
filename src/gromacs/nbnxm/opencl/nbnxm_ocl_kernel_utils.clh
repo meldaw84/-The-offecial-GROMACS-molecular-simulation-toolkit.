@@ -52,7 +52,8 @@
 
 #define WARP_SIZE (CL_SIZE * CL_SIZE / 2) // Currently only c_nbnxnGpuClusterpairSplit=2 supported
 
-#if defined _NVIDIA_SOURCE_ || defined _AMD_SOURCE_
+//#if defined _NVIDIA_SOURCE_ || defined _AMD_SOURCE_
+#if defined _NVIDIA_SOURCE_
 /* Currently we enable CJ prefetch for AMD/NVIDIA and disable it for other vendors
  * Note that this should precede the kernel_utils include.
  */
@@ -77,7 +78,7 @@
 #if defined _INTEL_SOURCE_
 #    define SUBGROUP_SIZE 8
 #elif defined _AMD_SOURCE_
-#    define SUBGROUP_SIZE 64
+#    define SUBGROUP_SIZE warp_size
 #else
 #    define SUBGROUP_SIZE 32
 #endif
@@ -246,7 +247,8 @@ gmx_opencl_inline void preloadCjPackedGeneric(__local int*        sm_cjPreload,
                                               bool gmx_unused     iMaskCond)
 {
     /* Pre-load cj into shared memory */
-#    if defined _AMD_SOURCE_ // TODO: fix by setting c_nbnxnGpuClusterpairSplit properly
+#    if defined(_AMD_SOURCE_) \
+            && (warp_size == 64) // TODO: fix by setting c_nbnxnGpuClusterpairSplit properly
     if (tidxj == 0 & tidxi < c_nbnxnGpuJgroupSize)
     {
         sm_cjPreload[tidxi] = gm_cj[tidxi];
@@ -304,8 +306,8 @@ gmx_opencl_inline void preloadCjPacked(CjType gmx_unused* cjs,
 
 gmx_opencl_inline int loadCjPreload(__local int* sm_cjPreload, int jm, int gmx_unused tidxi, int gmx_unused tidxj)
 {
-#    if defined _AMD_SOURCE_
-    int         warpLoadOffset = 0; // TODO: fix by setting c_nbnxnGpuClusterpairSplit properly
+#    if defined(_AMD_SOURCE_) && (warp_size == 64)
+    int warpLoadOffset = 0; // TODO: fix by setting c_nbnxnGpuClusterpairSplit properly
 #    else
     const int c_clSize = CL_SIZE;
     const int c_nbnxnGpuClusterpairSplit = 2;

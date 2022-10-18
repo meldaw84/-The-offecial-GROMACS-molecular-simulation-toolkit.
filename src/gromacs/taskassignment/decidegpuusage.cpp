@@ -182,6 +182,7 @@ static bool canUseGpusForPme(const bool           useGpuForNonbonded,
     {
         return false;
     }
+    return false;
 
     std::string                 tempString;
     gmx::MessageStringCollector errorReasons;
