@@ -70,7 +70,7 @@ TEST_F(MsmTest, TransitionCountingTest)
 
     MarkovModel msm = MarkovModel(4);
 
-    msm.count_transitions(discretizedTraj, 1);
+    msm.countTransitions(discretizedTraj, 1);
     auto& transitions = msm.transitionCountsMatrix;
 
     const auto& dataView = transitions.asConstView();
@@ -93,9 +93,9 @@ TEST_F(MsmTest, TransitionProbabilityTest)
   std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
   //std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
   MarkovModel msm2 = MarkovModel(4);
-  msm2.count_transitions(discretizedTraj, 1);
+  msm2.countTransitions(discretizedTraj, 1);
 
-  msm2.compute_probabilities();
+  msm2.computeTransitionProbabilities();
   auto& probs = msm2.transitionProbabilityMatrix;
 
   const auto& dataView = probs.asConstView();

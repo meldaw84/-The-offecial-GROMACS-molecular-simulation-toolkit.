@@ -59,8 +59,9 @@ class MarkovModel
     MultiDimArray<std::vector<float>, extents<dynamic_extent, dynamic_extent>> transitionProbabilityMatrix;
 
     // Methods
-    void count_transitions(std::vector<int>& discretizedTraj, int lag);
-    void compute_probabilities();
+    void countTransitions(std::vector<int>& discretizedTraj, int lag);
+    void computeTransitionProbabilities();
+    void getEigenvectors();
 };
 
 } // namespace gmx

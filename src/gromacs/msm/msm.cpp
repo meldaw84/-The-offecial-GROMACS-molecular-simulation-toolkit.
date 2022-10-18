@@ -42,6 +42,8 @@
 #include "gmxpre.h"
 #include "msm.h"
 
+#include "gromacs/utility/exceptions.h"
+
 namespace gmx
 {
 
@@ -49,7 +51,6 @@ namespace gmx
 MarkovModel::MarkovModel(int nstates)
 {
   // TODO: scan clustered trajectory of highest state value?
-  //const int nstates = nstates;
 
   // Initialize the TCM and TPM and set the size
   transitionCountsMatrix.resize(nstates, nstates);
@@ -57,7 +58,7 @@ MarkovModel::MarkovModel(int nstates)
 
 }
 
-void MarkovModel::count_transitions(std::vector<int>& discretizedTraj, int lag)
+void MarkovModel::countTransitions(std::vector<int>& discretizedTraj, int lag)
 {
   // Extract time-lagged trajectories
   std::vector<int> rows(discretizedTraj.begin(), discretizedTraj.end() - lag);
@@ -70,7 +71,7 @@ void MarkovModel::count_transitions(std::vector<int>& discretizedTraj, int lag)
   }
 }
 
-void MarkovModel::compute_probabilities()
+void MarkovModel::computeTransitionProbabilities()
 {
   // Construct a transition probability matrix from a transition counts matrix
   // T_ij = c_ij/c_i; where c_i=sum_j(c_ij)
@@ -85,14 +86,23 @@ void MarkovModel::compute_probabilities()
       rowsum += transitionCountsMatrix(i, j);
     }
 
-    // If the sum is zero, avoid division by zero
-    if ( rowsum != 0 ) {
-      // Once we have the rowsum, loop through the row again
-      for (int k = 0; k < transitionCountsMatrix.extent(1); k++){
-        transitionProbabilityMatrix(i, k) = transitionCountsMatrix(i ,k)/rowsum;
+    // Make sure sum is positive, ignore sums of zero to avoid zero-division
+    if ( rowsum >= 0 ) {
+      if (rowsum != 0 ){
+        // Once we have the rowsum, loop through the row again
+        for (int k = 0; k < transitionCountsMatrix.extent(1); k++){
+          transitionProbabilityMatrix(i, k) = transitionCountsMatrix(i ,k) / rowsum;
+        }
       }
     }
+    else {
+      GMX_THROW(InternalError("Sum of transition counts must be positive!"));
+    }
   }
+}
+
+void MarkovModel::getEigenvectors()
+{
 }
 
 } // namespace gmx
