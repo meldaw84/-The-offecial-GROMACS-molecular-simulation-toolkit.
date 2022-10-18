@@ -987,7 +987,7 @@ int Mdrunner::mdrunner()
                 .asParagraph()
                 .appendText(
                         "GROMACS was built without MPI but appears to have been launched with "
-                        "mpirun.");
+                        "in an MPI context (e.g., by mpirun or mpiexec).");
     }
 #endif
 
