@@ -60,8 +60,7 @@ MdGpuGraph::Impl::Impl(const DeviceStreamManager& deviceStreamManager,
     launchStreamAlternate_(
             new DeviceStream(deviceStreamManager.context(), DeviceStreamPriority::Normal, false)),
     havePPDomainDecomposition_(simulationWork.havePpDomainDecomposition),
-    useGpuPme_(simulationWork.useGpuPme),
-    haveSeparatePmeRank_(simulationWork.haveSeparatePmeRank),
+    haveGpuPmeOnThisPpRank_(simulationWork.haveGpuPmeOnPpRank()),
     mpiComm_(mpiComm),
     evenOrOddStep_(evenOrOddStep),
     wcycle_(wcycle)
@@ -241,7 +240,7 @@ void MdGpuGraph::Impl::endRecord()
     GMX_ASSERT(graphIsCapturingThisStep_,
                "endRecord should not have been called if graph is not capturing this step");
 
-    if (useGpuPme_ && !haveSeparatePmeRank_)
+    if (haveGpuPmeOnThisPpRank_)
     {
         // Join PME stream to NB local stream on each rank
         helperEvent_->markEvent(deviceStreamManager_.stream(gmx::DeviceStreamType::Pme));
