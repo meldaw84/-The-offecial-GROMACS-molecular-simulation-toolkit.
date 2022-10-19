@@ -1677,8 +1677,40 @@ void do_force(FILE*                               fplog,
                                                cr->dd);
             }
         }
+
+        if (simulationWork.havePpDomainDecomposition)
+        {
+            // TODO: fuse this branch with the above large stepWork.doNeighborSearch block
+            wallcycle_start_nocount(wcycle, WallCycleCounter::NS);
+            wallcycle_sub_start(wcycle, WallCycleSubCounter::NBSSearchNonLocal);
+            /* Note that with a GPU the launch overhead of the list transfer is not timed separately */
+            nbv->constructPairlist(InteractionLocality::NonLocal, top->excls, step, nrnb);
+
+            nbv->setupGpuShortRangeWork(fr->listedForcesGpu.get(), InteractionLocality::NonLocal);
+            wallcycle_sub_stop(wcycle, WallCycleSubCounter::NBSSearchNonLocal);
+            wallcycle_stop(wcycle, WallCycleCounter::NS);
+            // TODO refactor this GPU halo exchange re-initialisation
+            // to location in do_md where GPU halo exchange is
+            // constructed at partitioning, after above stateGpu
+            // re-initialization has similarly been refactored
+            if (simulationWork.useGpuHaloExchange)
+            {
+                reinitGpuHaloExchange(*cr, stateGpu->getCoordinates(), stateGpu->getForces());
+            }
+        }
+
+        // With FEP we set up the reduction over threads for local+non-local simultaneously,
+        // so we need to do that here after the local and non-local pairlist construction.
+        if (fr->efep != FreeEnergyPerturbationType::No)
+        {
+            wallcycle_sub_start(wcycle, WallCycleSubCounter::NonbondedFep);
+            nbv->setupFepThreadedForceBuffer(fr->natoms_force_constr);
+            wallcycle_sub_stop(wcycle, WallCycleSubCounter::NonbondedFep);
+        }
+
     }
-    else if (!EI_TPI(inputrec.eI) && stepWork.computeNonbondedForces)
+
+    if (!stepWork.doNeighborSearch && !EI_TPI(inputrec.eI) && stepWork.computeNonbondedForces)
     {
         if (stepWork.useGpuXBufferOps)
         {
@@ -1744,27 +1776,8 @@ void do_force(FILE*                               fplog,
        do non-local pair search */
     if (simulationWork.havePpDomainDecomposition)
     {
-        if (stepWork.doNeighborSearch)
-        {
-            // TODO: fuse this branch with the above large stepWork.doNeighborSearch block
-            wallcycle_start_nocount(wcycle, WallCycleCounter::NS);
-            wallcycle_sub_start(wcycle, WallCycleSubCounter::NBSSearchNonLocal);
-            /* Note that with a GPU the launch overhead of the list transfer is not timed separately */
-            nbv->constructPairlist(InteractionLocality::NonLocal, top->excls, step, nrnb);
-
-            nbv->setupGpuShortRangeWork(fr->listedForcesGpu.get(), InteractionLocality::NonLocal);
-            wallcycle_sub_stop(wcycle, WallCycleSubCounter::NBSSearchNonLocal);
-            wallcycle_stop(wcycle, WallCycleCounter::NS);
-            // TODO refactor this GPU halo exchange re-initialisation
-            // to location in do_md where GPU halo exchange is
-            // constructed at partitioning, after above stateGpu
-            // re-initialization has similarly been refactored
-            if (simulationWork.useGpuHaloExchange)
-            {
-                reinitGpuHaloExchange(*cr, stateGpu->getCoordinates(), stateGpu->getForces());
-            }
-        }
-        else
+        // XXX
+        if (!stepWork.doNeighborSearch)
         {
             GpuEventSynchronizer* gpuCoordinateHaloLaunched = nullptr;
             if (stepWork.useGpuXHalo)
@@ -1843,15 +1856,6 @@ void do_force(FILE*                               fplog,
             wallcycle_sub_stop(wcycle, WallCycleSubCounter::LaunchGpuNonBonded);
             wallcycle_stop(wcycle, WallCycleCounter::LaunchGpuPp);
         }
-    }
-
-    // With FEP we set up the reduction over threads for local+non-local simultaneously,
-    // so we need to do that here after the local and non-local pairlist construction.
-    if (stepWork.doNeighborSearch && fr->efep != FreeEnergyPerturbationType::No)
-    {
-        wallcycle_sub_start(wcycle, WallCycleSubCounter::NonbondedFep);
-        nbv->setupFepThreadedForceBuffer(fr->natoms_force_constr);
-        wallcycle_sub_stop(wcycle, WallCycleSubCounter::NonbondedFep);
     }
 
     if (simulationWork.useGpuNonbonded && stepWork.computeNonbondedForces)
