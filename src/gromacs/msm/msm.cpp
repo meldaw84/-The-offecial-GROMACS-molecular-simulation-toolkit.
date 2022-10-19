@@ -42,6 +42,7 @@
 #include "gmxpre.h"
 #include "msm.h"
 
+#include "gromacs/linearalgebra/eigensolver.h"
 #include "gromacs/utility/exceptions.h"
 
 namespace gmx
@@ -101,7 +102,8 @@ void MarkovModel::computeTransitionProbabilities()
   }
 }
 
-void MarkovModel::getEigenvectors()
+// TODO: make it more general which attribute matrix we want to diagonalize?
+void MarkovModel::diagonalizeTPM()
 {
 }
 

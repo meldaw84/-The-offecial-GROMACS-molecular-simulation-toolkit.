@@ -61,7 +61,7 @@ class MarkovModel
     // Methods
     void countTransitions(std::vector<int>& discretizedTraj, int lag);
     void computeTransitionProbabilities();
-    void getEigenvectors();
+    void diagonalizeTPM();
 };
 
 } // namespace gmx
