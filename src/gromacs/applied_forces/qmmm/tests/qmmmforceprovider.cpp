@@ -49,7 +49,6 @@
 #include "gromacs/domdec/localatomsetmanager.h"
 #include "gromacs/fileio/confio.h"
 #include "gromacs/gmxpreprocess/grompp.h"
-#include "gromacs/math/vec.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/topology/mtop_lookup.h"
 #include "gromacs/topology/mtop_util.h"

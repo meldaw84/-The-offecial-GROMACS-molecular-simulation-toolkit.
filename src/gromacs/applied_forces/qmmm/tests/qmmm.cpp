@@ -46,8 +46,6 @@
 #include <gtest/gtest.h>
 
 #include "gromacs/gmxlib/network.h"
-#include "gromacs/math/paddedvector.h"
-#include "gromacs/math/vec.h"
 #include "gromacs/mdrunutility/mdmodulesnotifiers.h"
 #include "gromacs/mdtypes/enerdata.h"
 #include "gromacs/mdtypes/forceoutput.h"
