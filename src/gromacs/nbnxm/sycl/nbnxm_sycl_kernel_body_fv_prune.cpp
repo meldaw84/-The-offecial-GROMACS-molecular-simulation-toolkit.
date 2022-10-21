@@ -42,9 +42,19 @@
 
 #include "nbnxm_sycl_kernel_body.h"
 
+#define INSTANTIATE(SUBGROUP_SIZE)                                    \
+    template void launchNbnxmKernelHelper<SUBGROUP_SIZE, true, true>( \
+            NbnxmGpu * nb, const gmx::StepWorkload& stepWork, const InteractionLocality iloc)
+
 namespace Nbnxm
 {
-template void launchNbnxmKernelHelper<true, true>(NbnxmGpu*                 nb,
-                                                  const gmx::StepWorkload&  stepWork,
-                                                  const InteractionLocality iloc);
-}
+#if SYCL_NBNXM_SUPPORTS_SUBGROUP_SIZE_8
+INSTANTIATE(8);
+#endif
+#if SYCL_NBNXM_SUPPORTS_SUBGROUP_SIZE_32
+INSTANTIATE(32);
+#endif
+#if SYCL_NBNXM_SUPPORTS_SUBGROUP_SIZE_64
+INSTANTIATE(64);
+#endif
+} // namespace Nbnxm

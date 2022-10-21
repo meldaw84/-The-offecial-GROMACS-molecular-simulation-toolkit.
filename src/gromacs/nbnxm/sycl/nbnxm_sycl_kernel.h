@@ -48,6 +48,11 @@ class StepWorkload;
 } // namespace gmx
 struct NbnxmGpu;
 
+// Ensure any changes are in sync with device_management_sycl.cpp
+#define SYCL_NBNXM_SUPPORTS_SUBGROUP_SIZE_8 (GMX_GPU_NB_CLUSTER_SIZE == 4)
+#define SYCL_NBNXM_SUPPORTS_SUBGROUP_SIZE_32 (GMX_GPU_NB_CLUSTER_SIZE == 8)
+#define SYCL_NBNXM_SUPPORTS_SUBGROUP_SIZE_64 (GMX_GPU_NB_CLUSTER_SIZE == 8)
+
 namespace Nbnxm
 {
 using gmx::InteractionLocality;

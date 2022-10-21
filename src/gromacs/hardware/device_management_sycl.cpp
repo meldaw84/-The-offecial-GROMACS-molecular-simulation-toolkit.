@@ -45,9 +45,11 @@
 
 #include "config.h"
 
+#include <algorithm>
 #include <map>
 #include <optional>
 #include <tuple>
+#include <vector>
 
 #include "gromacs/gpu_utils/gmxsycl.h"
 #include "gromacs/hardware/device_management.h"
@@ -241,16 +243,20 @@ static DeviceStatus isDeviceCompatible(const sycl::device&      syclDevice,
         }
 #endif
 
-        // Ensure any changes stay in sync with subGroupSize in src/gromacs/nbnxm/sycl/nbnxm_sycl_kernel.cpp
-        constexpr size_t requiredSubGroupSizeForNbnxm =
-#if defined(HIPSYCL_PLATFORM_ROCM)
-                GMX_GPU_NB_CLUSTER_SIZE * GMX_GPU_NB_CLUSTER_SIZE;
-#else
-                GMX_GPU_NB_CLUSTER_SIZE * GMX_GPU_NB_CLUSTER_SIZE / 2;
+// Ensure any changes are in sync with nbnxm_sycl_kernel.h
+#if GMX_GPU_NB_CLUSTER_SIZE == 4
+        const std::vector<int> compiledNbnxmSubGroupSizes{ 8 };
+#elif GMX_GPU_NB_CLUSTER_SIZE == 8
+        const std::vector<int> compiledNbnxmSubGroupSizes{ 32, 64 };
 #endif
 
-        if (std::find(supportedSubGroupSizes.begin(), supportedSubGroupSizes.end(), requiredSubGroupSizeForNbnxm)
-            == supportedSubGroupSizes.end())
+        const auto subGroupSizeSupportedByDevice = [&supportedSubGroupSizes](const int sgSize) -> bool {
+            return std::find(supportedSubGroupSizes.begin(), supportedSubGroupSizes.end(), sgSize)
+                   == supportedSubGroupSizes.end();
+        };
+        if (std::none_of(compiledNbnxmSubGroupSizes.begin(),
+                         compiledNbnxmSubGroupSizes.end(),
+                         subGroupSizeSupportedByDevice))
         {
             return DeviceStatus::IncompatibleClusterSize;
         }
