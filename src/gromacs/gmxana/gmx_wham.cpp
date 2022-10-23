@@ -167,8 +167,8 @@ typedef struct
     double*  k;     //!< force constants for the nPull coords
     double*  pos;   //!< umbrella positions for the nPull coords
     double* z; //!< z=(-Fi/kT) for the nPull coords. These values are iteratively computed during wham
-    int*    N;    //!< nr of data points in nPull histograms.
-    int*    Ntot; //!< also nr of data points. N and Ntot only differ if bHistEq==TRUE
+    int* N;    //!< nr of data points in nPull histograms.
+    int* Ntot; //!< also nr of data points. N and Ntot only differ if bHistEq==TRUE
 
     /*! \brief  g = 1 + 2*tau[int]/dt where tau is the integrated autocorrelation time.
      *
@@ -256,7 +256,7 @@ typedef struct UmbrellaOptions // NOLINT(clang-analyzer-optin.performance.Paddin
     gmx_bool bTauIntGiven, bCalcTauInt; //!< IACT given or should be calculated?
     real     sigSmoothIact;             //!< sigma of Gaussian to smooth ACTs
     gmx_bool bAllowReduceIact; //!< Allow to reduce ACTs during smoothing. Otherwise ACT are only increased during smoothing
-    real     acTrestart; //!< when computing ACT, time between restarting points
+    real acTrestart; //!< when computing ACT, time between restarting points
 
     /* \brief Enforce the same weight for each umbella window, that is
      *  calculate with the same number of data points for
@@ -313,7 +313,7 @@ typedef struct UmbrellaOptions // NOLINT(clang-analyzer-optin.performance.Paddin
     double * tabX, *tabY, tabMin, tabMax, tabDz;
     int      tabNbins;
     /*!\}*/
-    gmx::DefaultRandomEngine           rng;                //!< gromacs random number generator
+    gmx::DefaultRandomEngine rng;                          //!< gromacs random number generator
     gmx::TabulatedNormalDistribution<> normalDistribution; //!< Uses default: real output, 14-bit table
 } t_UmbrellaOptions;
 
@@ -593,7 +593,7 @@ static void setup_acc_wham(const double* profile, t_UmbrellaWindow* window, int 
                 contrib2 = window[i].N[j]
                            * std::exp(-U / (gmx::c_boltz * opt->Temperature) + window[i].z[j]);
                 window[i].bContrib[j][k] = (contrib1 > wham_contrib_lim || contrib2 > wham_contrib_lim);
-                bAnyContrib              = bAnyContrib || window[i].bContrib[j][k];
+                bAnyContrib = bAnyContrib || window[i].bContrib[j][k];
                 if (window[i].bContrib[j][k])
                 {
                     nContrib++;
@@ -1007,7 +1007,7 @@ static void calc_cumulatives(t_UmbrellaWindow*  window,
             }
             fprintf(fp, "\n");
         }
-        printf("Wrote cumulative distribution functions to %s\n", fn.c_str());
+        printf("Wrote cumulative distribution functions to %s\n", fn.u8string().c_str());
         xvgrclose(fp);
     }
 }
@@ -1214,7 +1214,7 @@ static void print_histograms(const char*        fnhist,
         title = gmx::formatString("Umbrella histograms");
     }
 
-    fp   = xvgropen(fn, title.c_str(), xlabel, "count", opt->oenv);
+    fp   = xvgropen(fn, title.u8string().c_str(), xlabel, "count", opt->oenv);
     bins = opt->bins;
 
     /* Write histograms */
@@ -3002,7 +3002,7 @@ int gmx_wham(int argc, char* argv[])
         "the histograms."
     };
 
-    const char* en_unit[]       = { nullptr, "kJ", "kCal", "kT", nullptr };
+    const char* en_unit[] = { nullptr, "kJ", "kCal", "kT", nullptr };
     const char* en_unit_label[] = { "", "E (kJ mol\\S-1\\N)", "E (kcal mol\\S-1\\N)", "E (kT)", nullptr };
     const char* en_bsMethod[] = { nullptr, "b-hist", "hist", "traj", "traj-gauss", nullptr };
     static t_UmbrellaOptions opt;

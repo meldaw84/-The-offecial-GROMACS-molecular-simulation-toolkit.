@@ -151,7 +151,8 @@ choose_ff_impl(const char* ffsel, char* forcefield, int ff_maxlen, const gmx::MD
     ffs.reserve(ffdirs.size());
     for (int i = 0; i < nff; ++i)
     {
-        ffs.push_back(gmx::stripSuffixIfPresent(ffdirs[i].name, fflib_forcefield_dir_ext().c_str()));
+        ffs.push_back(gmx::stripSuffixIfPresent(ffdirs[i].name.u8string(),
+                                                fflib_forcefield_dir_ext().u8string().c_str()));
     }
 
     int sel;
@@ -274,7 +275,7 @@ choose_ff_impl(const char* ffsel, char* forcefield, int ff_maxlen, const gmx::MD
                 {
                     GMX_LOG(logger.info)
                             .asParagraph()
-                            .appendTextFormatted("From '%s':", ffdirs[i].dir.c_str());
+                            .appendTextFormatted("From '%s':", ffdirs[i].dir.u8string().c_str());
                 }
             }
             GMX_LOG(logger.info).asParagraph().appendTextFormatted("%2d: %s", i + 1, desc[i].c_str());
@@ -313,7 +314,7 @@ choose_ff_impl(const char* ffsel, char* forcefield, int ff_maxlen, const gmx::MD
                         "rename or move the force field directory present "
                         "in the current working directory.",
                         ffs[sel].c_str(),
-                        fflib_forcefield_dir_ext().c_str());
+                        fflib_forcefield_dir_ext().u8string().c_str());
                 GMX_THROW(gmx::NotImplementedError(message));
             }
         }
@@ -467,9 +468,9 @@ static int name2type(t_atoms*                               at,
         prevresind = resind;
         if (at->atom[i].resind != resind)
         {
-            resind     = at->atom[i].resind;
+            resind = at->atom[i].resind;
             bool bProt = namedResidueHasType(residueTypeMap, *(at->resinfo[resind].name), "Protein");
-            bNterm     = bProt && (resind == 0);
+            bNterm = bProt && (resind == 0);
             if (resind > 0)
             {
                 nmissat += missing_atoms(&usedPpResidues[prevresind], prevresind, at, i0, i, logger);
@@ -572,7 +573,7 @@ void print_top_comment(FILE* out, const std::filesystem::path& filename, const s
                 ";\tforce field must either be present in the current directory, or the location\n"
                 ";\tspecified in the GMXLIB path variable or with the 'include' mdp file "
                 "option.\n;\n\n",
-                ffdir_parent.c_str());
+                ffdir_parent.u8string().c_str());
     }
 }
 
@@ -589,14 +590,17 @@ void print_top_header(FILE*                        out,
 
     auto path = ffdir.has_parent_path() ? ffdir.parent_path() : ffdir;
 
-    fprintf(out, "#include \"%s/%s\"\n\n", path.c_str(), fflib_forcefield_itp().c_str());
+    fprintf(out,
+            "#include \"%s/%s\"\n\n",
+            path.u8string().c_str(),
+            fflib_forcefield_itp().u8string().c_str());
 }
 
 static void print_top_posre(FILE* out, const std::filesystem::path& pr)
 {
     fprintf(out, "; Include Position restraint file\n");
     fprintf(out, "#ifdef POSRES\n");
-    fprintf(out, "#include \"%s\"\n", pr.c_str());
+    fprintf(out, "#include \"%s\"\n", pr.u8string().c_str());
     fprintf(out, "#endif\n\n");
 }
 
@@ -607,7 +611,7 @@ static void print_top_water(FILE* out, const std::filesystem::path& ffdir, const
     auto path      = ffdir.has_parent_path() ? ffdir.parent_path() : ffdir;
     auto waterPath = path;
     waterPath.append(water).replace_extension("itp");
-    fprintf(out, "#include \"%s\"\n", waterPath.c_str());
+    fprintf(out, "#include \"%s\"\n", waterPath.u8string().c_str());
 
     fprintf(out, "\n");
     fprintf(out, "#ifdef POSRES_WATER\n");
@@ -624,7 +628,7 @@ static void print_top_water(FILE* out, const std::filesystem::path& ffdir, const
     if (fflib_fexist(ionPath))
     {
         fprintf(out, "; Include topology for ions\n");
-        fprintf(out, "#include \"%s\"\n", ionPath.c_str());
+        fprintf(out, "#include \"%s\"\n", ionPath.u8string().c_str());
         fprintf(out, "\n");
     }
 }
@@ -649,7 +653,7 @@ void print_top_mols(FILE*                                      out,
         fprintf(out, "; Include chain topologies\n");
         for (const auto& incl : incls)
         {
-            fprintf(out, "#include \"%s\"\n", incl.filename().c_str());
+            fprintf(out, "#include \"%s\"\n", incl.filename().u8string().c_str());
         }
         fprintf(out, "\n");
     }
@@ -1089,11 +1093,12 @@ void get_hackblocks_rtp(std::vector<MoleculePatchDatabase>*    globalPatches,
             if (patch->nr != 0)
             {
                 /* find atom in restp */
-                auto found = std::find_if(
-                        posres->atomname.begin(), posres->atomname.end(), [&patch](char** name) {
-                            return (patch->oname.empty() && patch->a[0] == *name)
-                                   || (patch->oname == *name);
-                        });
+                auto found = std::find_if(posres->atomname.begin(),
+                                          posres->atomname.end(),
+                                          [&patch](char** name) {
+                                              return (patch->oname.empty() && patch->a[0] == *name)
+                                                     || (patch->oname == *name);
+                                          });
 
                 if (found == posres->atomname.end())
                 {
@@ -1226,10 +1231,10 @@ static bool match_atomnames_with_rtp_atom(t_atoms*                     pdba,
 
             /* This atom still has the old name, rename it */
             std::string newnm = patch->nname;
-            auto        found = std::find_if(
-                    localPpResidue->atomname.begin(),
-                    localPpResidue->atomname.end(),
-                    [&newnm](char** name) { return gmx::equalCaseInsensitive(newnm, *name); });
+            auto        found = std::find_if(localPpResidue->atomname.begin(),
+                                      localPpResidue->atomname.end(),
+                                      [&newnm](char** name)
+                                      { return gmx::equalCaseInsensitive(newnm, *name); });
             if (found == localPpResidue->atomname.end())
             {
                 /* The new name is not present in the rtp.
@@ -1258,11 +1263,11 @@ static bool match_atomnames_with_rtp_atom(t_atoms*                     pdba,
                             start_at = gmx::formatString(
                                     "%s%d", singlePatch.hack[k].nname.c_str(), anmnr - 1);
                         }
-                        auto found2 = std::find_if(localPpResidue->atomname.begin(),
-                                                   localPpResidue->atomname.end(),
-                                                   [&start_at](char** name) {
-                                                       return gmx::equalCaseInsensitive(start_at, *name);
-                                                   });
+                        auto found2 =
+                                std::find_if(localPpResidue->atomname.begin(),
+                                             localPpResidue->atomname.end(),
+                                             [&start_at](char** name)
+                                             { return gmx::equalCaseInsensitive(start_at, *name); });
                         if (found2 == localPpResidue->atomname.end())
                         {
                             gmx_fatal(FARGS,
@@ -1314,10 +1319,10 @@ static bool match_atomnames_with_rtp_atom(t_atoms*                     pdba,
             /* This is a delete entry, check if this atom is present
              * in the rtp entry of this residue.
              */
-            auto found3 = std::find_if(
-                    localPpResidue->atomname.begin(),
-                    localPpResidue->atomname.end(),
-                    [&oldnm](char** name) { return gmx::equalCaseInsensitive(oldnm, *name); });
+            auto found3 = std::find_if(localPpResidue->atomname.begin(),
+                                       localPpResidue->atomname.end(),
+                                       [&oldnm](char** name)
+                                       { return gmx::equalCaseInsensitive(oldnm, *name); });
             if (found3 == localPpResidue->atomname.end())
             {
                 /* This atom is not present in the rtp entry,
@@ -1363,10 +1368,10 @@ void match_atomnames_with_rtp(gmx::ArrayRef<PreprocessResidue>     usedPpResidue
     {
         const char*        oldnm          = *pdba->atomname[i];
         PreprocessResidue* localPpResidue = &usedPpResidues[pdba->atom[i].resind];
-        auto               found          = std::find_if(
-                localPpResidue->atomname.begin(), localPpResidue->atomname.end(), [&oldnm](char** name) {
-                    return gmx::equalCaseInsensitive(oldnm, *name);
-                });
+        auto               found          = std::find_if(localPpResidue->atomname.begin(),
+                                  localPpResidue->atomname.end(),
+                                  [&oldnm](char** name)
+                                  { return gmx::equalCaseInsensitive(oldnm, *name); });
         if (found == localPpResidue->atomname.end())
         {
             /* Not found yet, check if we have to rename this atom */

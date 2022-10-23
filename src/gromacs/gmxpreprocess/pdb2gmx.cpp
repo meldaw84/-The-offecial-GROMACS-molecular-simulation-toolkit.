@@ -107,9 +107,10 @@ const char* res2bb_notermini(const std::string& name, gmx::ArrayRef<const RtpRen
     /* NOTE: This function returns the main building block name,
      *       it does not take terminal renaming into account.
      */
-    auto found = std::find_if(rr.begin(), rr.end(), [&name](const auto& rename) {
-        return gmx::equalCaseInsensitive(name, rename.gmx);
-    });
+    auto found = std::find_if(rr.begin(),
+                              rr.end(),
+                              [&name](const auto& rename)
+                              { return gmx::equalCaseInsensitive(name, rename.gmx); });
     return found != rr.end() ? found->main.c_str() : name.c_str();
 }
 
@@ -343,10 +344,13 @@ void read_rtprename(const char* fname, FILE* fp, std::vector<RtpRename>* rtprena
 
 std::string search_resrename(gmx::ArrayRef<const RtpRename> rr, const char* name, bool bStart, bool bEnd, bool bCompareFFRTPname)
 {
-    auto found = std::find_if(rr.begin(), rr.end(), [&name, &bCompareFFRTPname](const auto& rename) {
-        return ((!bCompareFFRTPname && (name == rename.gmx))
-                || (bCompareFFRTPname && (name == rename.main)));
-    });
+    auto found = std::find_if(rr.begin(),
+                              rr.end(),
+                              [&name, &bCompareFFRTPname](const auto& rename)
+                              {
+                                  return ((!bCompareFFRTPname && (name == rename.gmx))
+                                          || (bCompareFFRTPname && (name == rename.main)));
+                              });
 
     std::string newName;
     /* If found in the database, rename this residue's rtp building block,
@@ -1990,7 +1994,8 @@ int pdb2gmx::run()
 
     GMX_LOG(logger.info)
             .asParagraph()
-            .appendTextFormatted("Using the %s force field in directory %s", ffname_, ffdir_.c_str());
+            .appendTextFormatted(
+                    "Using the %s force field in directory %s", ffname_, ffdir_.u8string().c_str());
 
     choose_watermodel(c_waterTypeNames[waterType_], ffdir_, &watermodel_, logger);
 
@@ -2020,14 +2025,16 @@ int pdb2gmx::run()
     ResidueTypeMap residueTypeMap = residueTypeMapFromLibraryFile("residuetypes.dat");
 
     /* Read residue renaming database(s), if present */
-    auto rrn = fflib_search_file_end(ffdir_, ".r2b", FALSE);
+    auto rrn = fflib_search_file_end(ffdir_.u8string(), ".r2b", FALSE);
 
     std::vector<RtpRename> rtprename;
     for (const auto& filename : rrn)
     {
-        GMX_LOG(logger.info).asParagraph().appendTextFormatted("going to rename %s", filename.c_str());
+        GMX_LOG(logger.info)
+                .asParagraph()
+                .appendTextFormatted("going to rename %s", filename.u8string().c_str());
         FILE* fp = fflib_open(filename);
-        read_rtprename(filename.c_str(), fp, &rtprename);
+        read_rtprename(filename.u8string().c_str(), fp, &rtprename);
         gmx_ffclose(fp);
     }
 
@@ -2283,7 +2290,7 @@ int pdb2gmx::run()
         init_t_atoms(chains[i].pdba, pdb_ch[si].natom, true);
         for (j = 0; j < chains[i].pdba->nr; j++)
         {
-            chains[i].pdba->atom[j]     = pdba_all.atom[pdb_ch[si].start + j];
+            chains[i].pdba->atom[j] = pdba_all.atom[pdb_ch[si].start + j];
             chains[i].pdba->atomname[j] = put_symtab(&symtab, *pdba_all.atomname[pdb_ch[si].start + j]);
             chains[i].pdba->pdbinfo[j] = pdba_all.pdbinfo[pdb_ch[si].start + j];
             chains[i].x.emplace_back(pdbx[pdb_ch[si].start + j]);
@@ -2703,7 +2710,7 @@ int pdb2gmx::run()
             posre_fn.append(".itp");
             if (posre_fn == itp_fn)
             {
-                posre_fn = gmx::concatenateBeforeExtension(posre_fn, "_pr");
+                posre_fn = gmx::concatenateBeforeExtension(posre_fn, "_pr").u8string();
             }
             incls_.emplace_back();
             incls_.back() = itp_fn;
@@ -2810,7 +2817,7 @@ int pdb2gmx::run()
                     "The topology file '%s' for the selected water "
                     "model '%s' can not be found in the force field "
                     "directory. Select a different water model.",
-                    waterFile.c_str(),
+                    waterFile.u8string().c_str(),
                     watermodel_);
             GMX_THROW(InconsistentInputError(message));
         }
