@@ -186,7 +186,7 @@ void SimulationRunner::useTopGroAndMdpFromFepTestDatabase(const std::string& nam
 {
     GMX_RELEASE_ASSERT(mdpSource_ != SimulationRunnerMdpSource::String,
                        "Cannot mix .mdp file from database with options set via string.");
-    mdpSource_   = SimulationRunnerMdpSource::File;
+    mdpSource_ = SimulationRunnerMdpSource::File;
     topFileName_ =
             gmx::test::TestFileManager::getInputFilePath("freeenergy/" + name + "/topol.top").u8string();
     groFileName_ =

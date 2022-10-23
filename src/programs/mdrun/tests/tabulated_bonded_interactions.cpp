@@ -142,7 +142,7 @@ TEST_F(BondedInteractionsTest, TabulatedBondWorks)
     1     2     8  0  1000");
     EXPECT_EQ(0, runner_.callGrompp());
 
-    test::CommandLine rerunCaller   = setupMdrun();
+    test::CommandLine rerunCaller = setupMdrun();
     std::string tableFileName = gmx::test::TestFileManager::getInputFilePath("butane_b0.xvg").u8string();
     rerunCaller.addOption("-tableb", tableFileName);
     ASSERT_EQ(0, runner_.callMdrun(rerunCaller));
@@ -172,7 +172,7 @@ TEST_F(BondedInteractionsTest, TabulatedAngleWorks)
     1     2     3     8  0  1000");
     EXPECT_EQ(0, runner_.callGrompp());
 
-    test::CommandLine rerunCaller   = setupMdrun();
+    test::CommandLine rerunCaller = setupMdrun();
     std::string tableFileName = gmx::test::TestFileManager::getInputFilePath("butane_a0.xvg").u8string();
     rerunCaller.addOption("-tableb", tableFileName);
     ASSERT_EQ(0, runner_.callMdrun(rerunCaller));
@@ -202,7 +202,7 @@ TEST_F(BondedInteractionsTest, TabulatedDihedralWorks)
     1     2     3     4     8   0  1000");
     EXPECT_EQ(0, runner_.callGrompp());
 
-    test::CommandLine rerunCaller   = setupMdrun();
+    test::CommandLine rerunCaller = setupMdrun();
     std::string tableFileName = gmx::test::TestFileManager::getInputFilePath("butane_d0.xvg").u8string();
     rerunCaller.addOption("-tableb", tableFileName);
     ASSERT_EQ(0, runner_.callMdrun(rerunCaller));

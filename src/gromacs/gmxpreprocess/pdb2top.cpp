@@ -468,9 +468,9 @@ static int name2type(t_atoms*                               at,
         prevresind = resind;
         if (at->atom[i].resind != resind)
         {
-            resind = at->atom[i].resind;
+            resind     = at->atom[i].resind;
             bool bProt = namedResidueHasType(residueTypeMap, *(at->resinfo[resind].name), "Protein");
-            bNterm = bProt && (resind == 0);
+            bNterm     = bProt && (resind == 0);
             if (resind > 0)
             {
                 nmissat += missing_atoms(&usedPpResidues[prevresind], prevresind, at, i0, i, logger);
@@ -1093,12 +1093,11 @@ void get_hackblocks_rtp(std::vector<MoleculePatchDatabase>*    globalPatches,
             if (patch->nr != 0)
             {
                 /* find atom in restp */
-                auto found = std::find_if(posres->atomname.begin(),
-                                          posres->atomname.end(),
-                                          [&patch](char** name) {
-                                              return (patch->oname.empty() && patch->a[0] == *name)
-                                                     || (patch->oname == *name);
-                                          });
+                auto found = std::find_if(
+                        posres->atomname.begin(), posres->atomname.end(), [&patch](char** name) {
+                            return (patch->oname.empty() && patch->a[0] == *name)
+                                   || (patch->oname == *name);
+                        });
 
                 if (found == posres->atomname.end())
                 {
@@ -1231,10 +1230,10 @@ static bool match_atomnames_with_rtp_atom(t_atoms*                     pdba,
 
             /* This atom still has the old name, rename it */
             std::string newnm = patch->nname;
-            auto        found = std::find_if(localPpResidue->atomname.begin(),
-                                      localPpResidue->atomname.end(),
-                                      [&newnm](char** name)
-                                      { return gmx::equalCaseInsensitive(newnm, *name); });
+            auto        found = std::find_if(
+                    localPpResidue->atomname.begin(),
+                    localPpResidue->atomname.end(),
+                    [&newnm](char** name) { return gmx::equalCaseInsensitive(newnm, *name); });
             if (found == localPpResidue->atomname.end())
             {
                 /* The new name is not present in the rtp.
@@ -1263,11 +1262,11 @@ static bool match_atomnames_with_rtp_atom(t_atoms*                     pdba,
                             start_at = gmx::formatString(
                                     "%s%d", singlePatch.hack[k].nname.c_str(), anmnr - 1);
                         }
-                        auto found2 =
-                                std::find_if(localPpResidue->atomname.begin(),
-                                             localPpResidue->atomname.end(),
-                                             [&start_at](char** name)
-                                             { return gmx::equalCaseInsensitive(start_at, *name); });
+                        auto found2 = std::find_if(localPpResidue->atomname.begin(),
+                                                   localPpResidue->atomname.end(),
+                                                   [&start_at](char** name) {
+                                                       return gmx::equalCaseInsensitive(start_at, *name);
+                                                   });
                         if (found2 == localPpResidue->atomname.end())
                         {
                             gmx_fatal(FARGS,
@@ -1319,10 +1318,10 @@ static bool match_atomnames_with_rtp_atom(t_atoms*                     pdba,
             /* This is a delete entry, check if this atom is present
              * in the rtp entry of this residue.
              */
-            auto found3 = std::find_if(localPpResidue->atomname.begin(),
-                                       localPpResidue->atomname.end(),
-                                       [&oldnm](char** name)
-                                       { return gmx::equalCaseInsensitive(oldnm, *name); });
+            auto found3 = std::find_if(
+                    localPpResidue->atomname.begin(),
+                    localPpResidue->atomname.end(),
+                    [&oldnm](char** name) { return gmx::equalCaseInsensitive(oldnm, *name); });
             if (found3 == localPpResidue->atomname.end())
             {
                 /* This atom is not present in the rtp entry,
@@ -1368,10 +1367,10 @@ void match_atomnames_with_rtp(gmx::ArrayRef<PreprocessResidue>     usedPpResidue
     {
         const char*        oldnm          = *pdba->atomname[i];
         PreprocessResidue* localPpResidue = &usedPpResidues[pdba->atom[i].resind];
-        auto               found          = std::find_if(localPpResidue->atomname.begin(),
-                                  localPpResidue->atomname.end(),
-                                  [&oldnm](char** name)
-                                  { return gmx::equalCaseInsensitive(oldnm, *name); });
+        auto               found          = std::find_if(
+                localPpResidue->atomname.begin(), localPpResidue->atomname.end(), [&oldnm](char** name) {
+                    return gmx::equalCaseInsensitive(oldnm, *name);
+                });
         if (found == localPpResidue->atomname.end())
         {
             /* Not found yet, check if we have to rename this atom */
