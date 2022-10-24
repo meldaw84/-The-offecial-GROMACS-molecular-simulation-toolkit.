@@ -247,7 +247,11 @@ static DeviceStatus isDeviceCompatible(const sycl::device&      syclDevice,
 #if GMX_GPU_NB_CLUSTER_SIZE == 4
         const std::vector<int> compiledNbnxmSubGroupSizes{ 8 };
 #elif GMX_GPU_NB_CLUSTER_SIZE == 8
+#    if GMX_SYCL_HIPSYCL && !GMX_HIPSYCL_HAVE_HIP_TARGET
+        const std::vector<int> compiledNbnxmSubGroupSizes{ 32 };
+#    else
         const std::vector<int> compiledNbnxmSubGroupSizes{ 32, 64 };
+#    endif
 #endif
 
         const auto subGroupSizeSupportedByDevice = [&supportedSubGroupSizes](const int sgSize) -> bool {
