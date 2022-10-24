@@ -113,5 +113,16 @@ TEST_F(MsmTest, TransitionProbabilityTest)
   printf("\n");
 }
 
+TEST_F(MsmTest, DiagonalizationTest)
+{
+  std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
+  //std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
+  MarkovModel msm3 = MarkovModel(4);
+  msm3.countTransitions(discretizedTraj, 1);
+  msm3.computeTransitionProbabilities();
+
+  msm3.diagonalizeTPM();
+}
+
 } //namespace test
 } //namespace gmx

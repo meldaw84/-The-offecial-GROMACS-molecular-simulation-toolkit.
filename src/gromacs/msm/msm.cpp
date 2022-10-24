@@ -42,8 +42,11 @@
 #include "gmxpre.h"
 #include "msm.h"
 
+#include <cstring>
+
 #include "gromacs/linearalgebra/eigensolver.h"
 #include "gromacs/utility/exceptions.h"
+#include "gromacs/utility/real.h"
 
 namespace gmx
 {
@@ -52,6 +55,7 @@ namespace gmx
 MarkovModel::MarkovModel(int nstates)
 {
   // TODO: scan clustered trajectory of highest state value?
+  // TODO: use brace initialization
 
   // Initialize the TCM and TPM and set the size
   transitionCountsMatrix.resize(nstates, nstates);
@@ -59,6 +63,7 @@ MarkovModel::MarkovModel(int nstates)
 
 }
 
+// TODO: In function signatures use gmx::ArrayRef instead of std::vector
 void MarkovModel::countTransitions(std::vector<int>& discretizedTraj, int lag)
 {
   // Extract time-lagged trajectories
@@ -79,6 +84,7 @@ void MarkovModel::computeTransitionProbabilities()
   // TODO: implement reversibility
 
   // Use a float here to enable float division. Could there be issues having a float counter?
+  // TODO: use std::accumulate to get counts
   float rowsum;
   for (int i = 0; i < transitionCountsMatrix.extent(0); i++)
   {
@@ -97,14 +103,35 @@ void MarkovModel::computeTransitionProbabilities()
       }
     }
     else {
+      // TODO: Better to check after value is created rather than when it's used
+      // TODO: Assert error instead
       GMX_THROW(InternalError("Sum of transition counts must be positive!"));
     }
   }
 }
 
 // TODO: make it more general which attribute matrix we want to diagonalize?
+// TODO: add sparse solver
+// TODO: think about design here!
 void MarkovModel::diagonalizeTPM()
 {
+  // Create vector to store eigenvectors and eigenvalues
+  int dim = transitionProbabilityMatrix.extent(0);
+  std::vector<real> eigenvalues(dim);
+  std::vector<real> eigenvectors(dim * dim);
+
+  auto tmpTPM = transitionProbabilityMatrix.toArrayRef().data();
+
+  eigensolver(tmpTPM, dim, 0, dim, eigenvalues.data(), eigenvectors.data());
+
+  // TODO: move to unit test
+  for (int i=0; i<eigenvalues.size(); ++i){
+    printf("Val elm %d: %f\n", i, eigenvalues[i]);
+  }
+
+  for (int i=0; i<eigenvectors.size(); ++i){
+    printf("Vec elm %d: %f\n", i, eigenvectors[i]);
+  }
 }
 
 } // namespace gmx

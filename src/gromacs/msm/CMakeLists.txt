@@ -40,6 +40,7 @@ target_sources(msm PRIVATE
 target_link_libraries(msm PRIVATE
         common
         legacy_modules
+        linearalgebra
         math
 )
 
