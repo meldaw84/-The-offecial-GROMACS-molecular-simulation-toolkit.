@@ -79,7 +79,7 @@ public:
 
 private:
     TestFileManager& fileManager_;
-    bool redirected = false;
+    bool             redirected = false;
 
     GMX_DISALLOW_COPY_AND_ASSIGN(StdioTestHelper);
 };

@@ -46,9 +46,9 @@
 
 #include <filesystem>
 
+#include "gromacs/libgromacs_export.h"
 #include "gromacs/utility/basedefinitions.h"
 #include "gromacs/utility/stringutil.h"
-#include "gromacs/libgromacs_export.h"
 
 /*! \brief
  * Debug log file.
