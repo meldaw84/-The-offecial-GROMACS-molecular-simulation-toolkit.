@@ -68,10 +68,10 @@ TEST_F(MsmTest, TransitionCountingTest)
     std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
     //std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
 
-    MarkovModel msm = MarkovModel(4);
+    MarkovModel countTestMsm = MarkovModel(4);
 
-    msm.countTransitions(discretizedTraj, 1);
-    auto& transitions = msm.transitionCountsMatrix;
+    countTestMsm.countTransitions(discretizedTraj, 1);
+    auto& transitions = countTestMsm.transitionCountsMatrix;
 
     const auto& dataView = transitions.asConstView();
     const int numRows = transitions.extent(0);
@@ -90,38 +90,38 @@ TEST_F(MsmTest, TransitionCountingTest)
 
 TEST_F(MsmTest, TransitionProbabilityTest)
 {
-  std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
-  //std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
-  MarkovModel msm2 = MarkovModel(4);
-  msm2.countTransitions(discretizedTraj, 1);
+    std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
+    //std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
+    MarkovModel tpmTestMsm = MarkovModel(4);
+    tpmTestMsm.countTransitions(discretizedTraj, 1);
 
-  msm2.computeTransitionProbabilities();
-  auto& probs = msm2.transitionProbabilityMatrix;
+    tpmTestMsm.computeTransitionProbabilities();
+    auto& probs = tpmTestMsm.transitionProbabilityMatrix;
 
-  const auto& dataView = probs.asConstView();
-  const int numRows = probs.extent(0);
-  const int numCols = probs.extent(1);
+    const auto& dataView = probs.asConstView();
+    const int numRows = probs.extent(0);
+    const int numCols = probs.extent(1);
 
-  for (int i = 0; i < numRows; i++)
-  {
-      printf("\n");
-      for (int j=0; j < numCols; j++)
-      {
-          printf("%f ", dataView[i][j]);
-      }
-  }
-  printf("\n");
+    for (int i = 0; i < numRows; i++)
+    {
+        printf("\n");
+        for (int j=0; j < numCols; j++)
+        {
+            printf("%f ", dataView[i][j]);
+        }
+    }
+    printf("\n");
 }
 
 TEST_F(MsmTest, DiagonalizationTest)
 {
-  std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
-  //std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
-  MarkovModel msm3 = MarkovModel(4);
-  msm3.countTransitions(discretizedTraj, 1);
-  msm3.computeTransitionProbabilities();
+    std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
+    //std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
+    MarkovModel diagTestMsm = MarkovModel(4);
+    diagTestMsm.countTransitions(discretizedTraj, 1);
+    diagTestMsm.computeTransitionProbabilities();
 
-  msm3.diagonalizeTPM();
+    diagTestMsm.diagonalizeTPM();
 }
 
 } //namespace test

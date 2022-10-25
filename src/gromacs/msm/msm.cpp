@@ -39,6 +39,7 @@
  *
  * \author Cathrine Bergh
  */
+
 #include "gmxpre.h"
 #include "msm.h"
 
@@ -54,60 +55,56 @@ namespace gmx
 // Constructor
 MarkovModel::MarkovModel(int nstates)
 {
-  // TODO: scan clustered trajectory of highest state value?
-  // TODO: use brace initialization
+    // TODO: scan clustered trajectory of highest state value?
+    // TODO: use brace initialization?
 
-  // Initialize the TCM and TPM and set the size
-  transitionCountsMatrix.resize(nstates, nstates);
-  transitionProbabilityMatrix.resize(nstates, nstates);
+    // Initialize the TCM and TPM and set the size
+    transitionCountsMatrix.resize(nstates, nstates);
+    transitionProbabilityMatrix.resize(nstates, nstates);
 
 }
 
 // TODO: In function signatures use gmx::ArrayRef instead of std::vector
 void MarkovModel::countTransitions(std::vector<int>& discretizedTraj, int lag)
 {
-  // Extract time-lagged trajectories
-  std::vector<int> rows(discretizedTraj.begin(), discretizedTraj.end() - lag);
-  std::vector<int> cols(discretizedTraj.begin() + lag, discretizedTraj.end());
+    // Extract time-lagged trajectories
+    std::vector<int> rows(discretizedTraj.begin(), discretizedTraj.end() - lag);
+    std::vector<int> cols(discretizedTraj.begin() + lag, discretizedTraj.end());
 
-  // Iterate over trajectory and count transitions
-  for (int i = 0; i < rows.size(); i++)
-  {
-    transitionCountsMatrix(rows[i], cols[i]) += 1;
-  }
+    // Iterate over trajectory and count transitions
+    for (int i = 0; i < rows.size(); i++)
+    {
+        transitionCountsMatrix(rows[i], cols[i]) += 1;
+    }
 }
 
 void MarkovModel::computeTransitionProbabilities()
 {
-  // Construct a transition probability matrix from a transition counts matrix
-  // T_ij = c_ij/c_i; where c_i=sum_j(c_ij)
-  // TODO: implement reversibility
+    // Construct a transition probability matrix from a transition counts matrix
+    // T_ij = c_ij/c_i; where c_i=sum_j(c_ij)
+    // TODO: implement reversibility
 
-  // Use a float here to enable float division. Could there be issues having a float counter?
-  // TODO: use std::accumulate to get counts
-  float rowsum;
-  for (int i = 0; i < transitionCountsMatrix.extent(0); i++)
-  {
+    // Use a float here to enable float division. Could there be issues having a float counter?
+    // TODO: use std::accumulate to get counts
+    float rowsum;
+    for (int i = 0; i < transitionCountsMatrix.extent(0); i++)
+    {
     rowsum = 0;
-    for (int j = 0; j < transitionCountsMatrix.extent(1); j++){
-      rowsum += transitionCountsMatrix(i, j);
+    for (int j = 0; j < transitionCountsMatrix.extent(1); j++)
+    {
+        rowsum += transitionCountsMatrix(i, j);
     }
 
     // Make sure sum is positive, ignore sums of zero to avoid zero-division
-    if ( rowsum >= 0 ) {
-      if (rowsum != 0 ){
-        // Once we have the rowsum, loop through the row again
-        for (int k = 0; k < transitionCountsMatrix.extent(1); k++){
-          transitionProbabilityMatrix(i, k) = transitionCountsMatrix(i ,k) / rowsum;
+    GMX_ASSERT(rowsum >= 0, "Sum of transition counts must be positive!");
+        if (rowsum != 0 ){
+            // Once we have the rowsum, loop through the row again
+            for (int k = 0; k < transitionCountsMatrix.extent(1); k++)
+            {
+                transitionProbabilityMatrix(i, k) = transitionCountsMatrix(i ,k) / rowsum;
+            }
         }
-      }
     }
-    else {
-      // TODO: Better to check after value is created rather than when it's used
-      // TODO: Assert error instead
-      GMX_THROW(InternalError("Sum of transition counts must be positive!"));
-    }
-  }
 }
 
 // TODO: make it more general which attribute matrix we want to diagonalize?
@@ -115,23 +112,25 @@ void MarkovModel::computeTransitionProbabilities()
 // TODO: think about design here!
 void MarkovModel::diagonalizeTPM()
 {
-  // Create vector to store eigenvectors and eigenvalues
-  int dim = transitionProbabilityMatrix.extent(0);
-  std::vector<real> eigenvalues(dim);
-  std::vector<real> eigenvectors(dim * dim);
+    // Create vector to store eigenvectors and eigenvalues
+    int dim = transitionProbabilityMatrix.extent(0);
+    std::vector<real> eigenvalues(dim);
+    std::vector<real> eigenvectors(dim * dim);
 
-  auto tmpTPM = transitionProbabilityMatrix.toArrayRef().data();
+    auto tmpTPM = transitionProbabilityMatrix.toArrayRef().data();
 
-  eigensolver(tmpTPM, dim, 0, dim, eigenvalues.data(), eigenvectors.data());
+    eigensolver(tmpTPM, dim, 0, dim, eigenvalues.data(), eigenvectors.data());
 
-  // TODO: move to unit test
-  for (int i=0; i<eigenvalues.size(); ++i){
-    printf("Val elm %d: %f\n", i, eigenvalues[i]);
-  }
+    // TODO: move to unit test
+    for (int i=0; i<eigenvalues.size(); ++i)
+    {
+        printf("Val elm %d: %f\n", i, eigenvalues[i]);
+    }
 
-  for (int i=0; i<eigenvectors.size(); ++i){
-    printf("Vec elm %d: %f\n", i, eigenvectors[i]);
-  }
+    for (int i=0; i<eigenvectors.size(); ++i)
+    {
+        printf("Vec elm %d: %f\n", i, eigenvectors[i]);
+    }
 }
 
 } // namespace gmx
