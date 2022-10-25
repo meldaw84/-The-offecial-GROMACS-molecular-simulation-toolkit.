@@ -92,12 +92,12 @@ TEST_P(PathSearchTest, SearchOperationsWork)
     }
     {
         std::string result;
-        ASSERT_NO_THROW_GMX(result = stripExtension(input).u8string());
+        ASSERT_NO_THROW_GMX(result = stripExtension(input).generic_u8string());
         checker.checkString(result, "stripExtension");
     }
     {
         std::string result;
-        ASSERT_NO_THROW_GMX(result = concatenateBeforeExtension(input, "_34").u8string());
+        ASSERT_NO_THROW_GMX(result = concatenateBeforeExtension(input, "_34").generic_u8string());
         checker.checkString(result, "concatenateBeforeExtension");
     }
 }

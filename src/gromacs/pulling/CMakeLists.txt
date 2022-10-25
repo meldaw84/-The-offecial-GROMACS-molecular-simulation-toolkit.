@@ -43,6 +43,7 @@ target_sources(pulling PRIVATE
 if (BUILD_SHARED_LIBS)
     set_target_properties(pulling PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
+target_compile_definitions(pulling PRIVATE TMPI_USE_VISIBILITY)
 
 # Source files have the following dependencies on library infrastructure.
 target_link_libraries(pulling PRIVATE
