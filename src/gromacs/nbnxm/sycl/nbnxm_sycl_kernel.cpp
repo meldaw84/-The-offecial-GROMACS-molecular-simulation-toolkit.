@@ -62,7 +62,7 @@ static int getNbnxmSubGroupSize(const DeviceInformation& deviceInfo)
         {
             /* For Intel, choose 8 for 4x4 clusters, and 32 for 8x8 clusters.
              * The optimal one depends on the hardware, but we cannot choose c_nbnxnGpuClusterSize
-             * in the runtime anyway yet. */
+             * at runtime anyway yet. */
             case DeviceVendor::Intel:
                 return c_nbnxnGpuClusterSize * c_nbnxnGpuClusterSize / c_nbnxnGpuClusterpairSplit;
             default:

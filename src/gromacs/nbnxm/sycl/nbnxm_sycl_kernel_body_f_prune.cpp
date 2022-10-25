@@ -42,6 +42,7 @@
 
 #include "nbnxm_sycl_kernel_body.h"
 
+//! Instantiate launchNbnxmKernelHelper for SUBGROUP_SIZE (force-only, with pruning)
 #define INSTANTIATE(SUBGROUP_SIZE)                                     \
     template void launchNbnxmKernelHelper<SUBGROUP_SIZE, true, false>( \
             NbnxmGpu * nb, const gmx::StepWorkload& stepWork, const InteractionLocality iloc)
