@@ -593,14 +593,14 @@ void print_top_header(FILE*                        out,
     fprintf(out,
             "#include \"%s/%s\"\n\n",
             path.u8string().c_str(),
-            fflib_forcefield_itp().u8string().c_str());
+            fflib_forcefield_itp().generic_u8string().c_str());
 }
 
 static void print_top_posre(FILE* out, const std::filesystem::path& pr)
 {
     fprintf(out, "; Include Position restraint file\n");
     fprintf(out, "#ifdef POSRES\n");
-    fprintf(out, "#include \"%s\"\n", pr.u8string().c_str());
+    fprintf(out, "#include \"%s\"\n", pr.generic_u8string().c_str());
     fprintf(out, "#endif\n\n");
 }
 
@@ -611,7 +611,7 @@ static void print_top_water(FILE* out, const std::filesystem::path& ffdir, const
     auto path      = ffdir.has_parent_path() ? ffdir.parent_path() : ffdir;
     auto waterPath = path;
     waterPath.append(water).replace_extension("itp");
-    fprintf(out, "#include \"%s\"\n", waterPath.u8string().c_str());
+    fprintf(out, "#include \"%s\"\n", waterPath.generic_u8string().c_str());
 
     fprintf(out, "\n");
     fprintf(out, "#ifdef POSRES_WATER\n");
@@ -628,7 +628,7 @@ static void print_top_water(FILE* out, const std::filesystem::path& ffdir, const
     if (fflib_fexist(ionPath))
     {
         fprintf(out, "; Include topology for ions\n");
-        fprintf(out, "#include \"%s\"\n", ionPath.u8string().c_str());
+        fprintf(out, "#include \"%s\"\n", ionPath.generic_u8string().c_str());
         fprintf(out, "\n");
     }
 }
@@ -653,7 +653,7 @@ void print_top_mols(FILE*                                      out,
         fprintf(out, "; Include chain topologies\n");
         for (const auto& incl : incls)
         {
-            fprintf(out, "#include \"%s\"\n", incl.filename().u8string().c_str());
+            fprintf(out, "#include \"%s\"\n", incl.filename().generic_u8string().c_str());
         }
         fprintf(out, "\n");
     }
