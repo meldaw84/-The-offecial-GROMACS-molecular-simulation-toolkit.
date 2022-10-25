@@ -40,6 +40,10 @@
 #ifndef GMX_NBNXM_SYCL_NBNXM_SYCL_KERNEL_H
 #define GMX_NBNXM_SYCL_NBNXM_SYCL_KERNEL_H
 
+#include "config.h"
+
+#include <type_traits>
+
 // Forward declarations
 namespace gmx
 {
@@ -48,15 +52,39 @@ class StepWorkload;
 } // namespace gmx
 struct NbnxmGpu;
 
-// Ensure any changes are in sync with device_management_sycl.cpp
-#define SYCL_NBNXM_SUPPORTS_SUBGROUP_SIZE_8 (GMX_GPU_NB_CLUSTER_SIZE == 4)
-#define SYCL_NBNXM_SUPPORTS_SUBGROUP_SIZE_32 (GMX_GPU_NB_CLUSTER_SIZE == 8)
-#define SYCL_NBNXM_SUPPORTS_SUBGROUP_SIZE_64 \
-    (GMX_GPU_NB_CLUSTER_SIZE == 8 && !(GMX_SYCL_HIPSYCL && !GMX_HIPSYCL_HAVE_HIP_TARGET))
-
 namespace Nbnxm
 {
 using gmx::InteractionLocality;
+
+// Ensure any changes are in sync with device_management_sycl.cpp
+using GpuNBClusterSize = std::integral_constant<int, GMX_GPU_NB_CLUSTER_SIZE>;
+
+template<typename subGroupSize, class = void>
+struct NbnxmSupportsSubgroupSize
+{
+    using Size = std::integral_constant<int, 0>;
+};
+
+template<typename subGroupSize>
+struct NbnxmSupportsSubgroupSize<subGroupSize, std::enable_if<subGroupSize::value == 4>>
+{
+    using Size = std::integral_constant<int, 8>;
+};
+
+template<typename subGroupSize>
+struct NbnxmSupportsSubgroupSize<subGroupSize, std::enable_if<subGroupSize::value == 8>>
+{
+    using Size = std::integral_constant<int, 32>;
+};
+
+template<typename subGroupSize>
+struct NbnxmSupportsSubgroupSize<subGroupSize, std::enable_if<subGroupSize::value == 8 && !(GMX_SYCL_HIPSYCL && !GMX_HIPSYCL_HAVE_HIP_TARGET)>>
+{
+    using Size = std::integral_constant<int, 64>;
+};
+
+template<int subGroupSize, bool doPruneNBL, bool doCalcEnergies>
+void launchNbnxmKernelHelper(NbnxmGpu* nb, const gmx::StepWorkload& stepWork, const InteractionLocality iloc);
 
 /*! \brief Launch SYCL NBNXM kernel.
  *
