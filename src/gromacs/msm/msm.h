@@ -59,11 +59,13 @@ class MarkovModel
         MarkovModel(int nstates);
         MultiDimArray<std::vector<int>, extents<dynamic_extent, dynamic_extent>> transitionCountsMatrix;
         MultiDimArray<std::vector<real>, extents<dynamic_extent, dynamic_extent>> transitionProbabilityMatrix;
+        std::vector<real> eigenvalues;
+        std::vector<real> eigenvectors;
 
         // Methods
         void countTransitions(std::vector<int>& discretizedTraj, int lag);
         void computeTransitionProbabilities();
-        void diagonalizeTPM();
+        void diagonalizeMatrix(MultiDimArray<std::vector<real>, extents<dynamic_extent, dynamic_extent>> matrix);
 };
 
 } // namespace gmx

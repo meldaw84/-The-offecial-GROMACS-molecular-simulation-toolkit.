@@ -121,7 +121,26 @@ TEST_F(MsmTest, DiagonalizationTest)
     diagTestMsm.countTransitions(discretizedTraj, 1);
     diagTestMsm.computeTransitionProbabilities();
 
-    diagTestMsm.diagonalizeTPM();
+    auto tpm = diagTestMsm.transitionProbabilityMatrix;
+
+    // TODO: if diagonalization is not called before
+    // attributes are collected, they will be zero.
+    // Better to initialize them by running the method?
+    diagTestMsm.diagonalizeMatrix(tpm);
+
+    auto eigvals = diagTestMsm.eigenvalues;
+    auto eigvecs = diagTestMsm.eigenvectors;
+
+    for (int i = 0; i < eigvals.size(); ++i)
+    {
+        printf("Val elm %d: %f\n", i, eigvals[i]);
+    }
+
+    for (int i = 0; i < eigvecs.size(); ++i)
+    {
+        printf("Vec elm %d: %f\n", i, eigvecs[i]);
+    }
+
 }
 
 } //namespace test
