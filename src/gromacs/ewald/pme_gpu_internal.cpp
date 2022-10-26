@@ -122,10 +122,10 @@ static PmeGpuKernelParamsBase* pme_gpu_get_kernel_params_base_ptr(const PmeGpu* 
  */
 constexpr int c_pmeAtomDataBlockSize =
 #if GMX_GPU_CUDA
-64;
+        64;
 #else
-// With SYCL/OpenCL when warpSize=64 (AMD GCN/CDNA) and 4 threads per atom we need more padding.
-128;
+        // With SYCL/OpenCL when warpSize=64 (AMD GCN/CDNA) and 4 threads per atom we need more padding.
+        128;
 #endif
 
 int pme_gpu_get_atom_data_block_size()
