@@ -63,7 +63,7 @@ class MarkovModel
         std::vector<real> eigenvectors;
 
         // Methods
-        void countTransitions(std::vector<int>& discretizedTraj, int lag);
+        void countTransitions(gmx::ArrayRef<int> discretizedTraj, int lag);
         void computeTransitionProbabilities();
         void diagonalizeMatrix(MultiDimArray<std::vector<real>, extents<dynamic_extent, dynamic_extent>> matrix);
 };

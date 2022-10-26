@@ -65,11 +65,9 @@ MarkovModel::MarkovModel(int nstates)
     // Initialize eigenvalues and eigenvectors here?
     //eigenvalues.resize(nstates);
     //eigenvectors.resize(nstates * nstates);
-
 }
 
-// TODO: In function signatures use gmx::ArrayRef instead of std::vector
-void MarkovModel::countTransitions(std::vector<int>& discretizedTraj, int lag)
+void MarkovModel::countTransitions(gmx::ArrayRef<int> discretizedTraj, int lag)
 {
     // Extract time-lagged trajectories
     std::vector<int> rows(discretizedTraj.begin(), discretizedTraj.end() - lag);
