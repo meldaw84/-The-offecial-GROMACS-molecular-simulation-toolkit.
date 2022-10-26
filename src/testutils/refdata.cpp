@@ -360,7 +360,7 @@ void TestReferenceDataImpl::onTestEnd(bool testPassed) const
                 if (!std::filesystem::create_directory(dirname))
                 {
                     GMX_THROW(TestException(gmx::formatString(
-                            "Creation of reference data directory failed: %s", dirname.c_str())));
+                            "Creation of reference data directory failed: %s", dirname.u8string().c_str())));
                 }
             }
             writeReferenceDataFile(fullFilename_.u8string(), *outputRootEntry_);

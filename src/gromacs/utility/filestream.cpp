@@ -189,7 +189,7 @@ FilePtr TextInputFile::openRawHandle(const std::filesystem::path& filename)
 }
 
 TextInputFile::TextInputFile(const std::filesystem::path& filename) :
-    impl_(new FileStreamImpl(filename.c_str(), "r"))
+    impl_(new FileStreamImpl(filename, "r"))
 {
 }
 
