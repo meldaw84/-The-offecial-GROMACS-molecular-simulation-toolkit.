@@ -44,7 +44,6 @@ target_sources(taskassignment PRIVATE
 if (BUILD_SHARED_LIBS)
     set_target_properties(taskassignment PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
-target_compile_definitions(taskassignment PRIVATE TMPI_USE_VISIBILITY)
 
 # Note that this is a higher-level module that should not need
 # special compilation to suit e.g. GPU or MPI dependencies.
