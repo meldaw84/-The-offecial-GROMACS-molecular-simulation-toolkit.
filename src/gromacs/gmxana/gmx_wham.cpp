@@ -1214,7 +1214,7 @@ static void print_histograms(const char*        fnhist,
         title = gmx::formatString("Umbrella histograms");
     }
 
-    fp   = xvgropen(fn, title.u8string().c_str(), xlabel, "count", opt->oenv);
+    fp   = xvgropen(fn, title.c_str(), xlabel, "count", opt->oenv);
     bins = opt->bins;
 
     /* Write histograms */
