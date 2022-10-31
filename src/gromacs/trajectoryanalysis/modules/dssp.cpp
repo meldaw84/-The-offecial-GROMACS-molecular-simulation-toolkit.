@@ -50,8 +50,14 @@
 
 #include "gromacs/fileio/gmxfio.h"
 #include "gromacs/math/units.h"
+#include "gromacs/options/basicoptions.h"
+#include "gromacs/options/filenameoption.h"
+#include "gromacs/options/ioptionscontainer.h"
 #include "gromacs/pbcutil/pbc.h"
-#include "gromacs/trajectoryanalysis.h"
+#include "gromacs/selection/nbsearch.h"
+#include "gromacs/selection/selectionoption.h"
+#include "gromacs/trajectory/trajectoryframe.h"
+#include "gromacs/trajectoryanalysis/analysissettings.h"
 #include "gromacs/trajectoryanalysis/topologyinformation.h"
 
 namespace gmx
@@ -238,6 +244,20 @@ enum class NBSearchMethod : std::size_t
 //! String values corresponding to neighbour-search modes.
 const gmx::EnumerationArray<NBSearchMethod, const char*> NBSearchMethodNames = { { "nbsearch",
                                                                                    "direct" } };
+
+/*! \brief
+ * Enum of various size of strech of polyproline helices.
+ */
+enum class PPStreches : std::size_t
+{
+    Shortened,
+    Default,
+    Count
+};
+
+//! String values corresponding to neighbour-search modes.
+const gmx::EnumerationArray<PPStreches, const char*> PPStrechesNames = { { "shortened",
+                                                                           "default" } };
 
 /*! \brief
  * Class that precisely manipulates secondary structures' statuses and assigns additional
@@ -774,8 +794,8 @@ private:
     NBSearchMethod NBSmode = NBSearchMethod::NBSearch;
     //! Real value that defines maximum distance from residue to its neighbour-residue.
     real cutoff_ = 0.9;
-    //! Integer value that defines polyproline helix stretch. Can be only equal to 2 or 3. Sets in initial options.
-    int pp_stretch = 3;
+    //! Enum value that defines polyproline helix stretch. Can be only equal to 2 or 3. Sets in initial options.
+    PPStreches pp_stretch = PPStreches::Default;
     //! Constant float value that determines the minimum possible distance (in Å) between two Ca atoms of amino acids of the protein,
     //! exceeding which a hydrogen bond between these two residues will be impossible.
     const float minimalCAdistance = 9.0;
@@ -946,7 +966,7 @@ void Dssp::calculateDihedrals(const t_trxframe& fr, const t_pbc* pbc)
     {
         switch (pp_stretch)
         {
-            case 2:
+            case PPStreches::Shortened:
             {
                 if (phi_min > phi[i] or phi[i] > phi_max or phi_min > phi[i + 1] or phi[i + 1] > phi_max)
                 {
@@ -978,7 +998,7 @@ void Dssp::calculateDihedrals(const t_trxframe& fr, const t_pbc* pbc)
                 PatternSearch.SecondaryStructuresStatusMap[i + 1].setStatus(secondaryStructureTypes::Helix_PP);
                 break;
             }
-            case 3:
+            case PPStreches::Default:
             {
                 if (phi_min > phi[i] or phi[i] > phi_max or phi_min > phi[i + 1]
                     or phi[i + 1] > phi_max or phi_min > phi[i + 2] or phi[i + 2] > phi_max)
@@ -1186,15 +1206,16 @@ void Dssp::initOptions(IOptionsContainer* options, TrajectoryAnalysisSettings* s
         "to determine the secondary structure of a protein with a sufficiently high "
         "accuracy.[PAR]"
         "[TT]-hmode[tt] allows to create hydrogen pseudo-atoms based on C and O atom coordinates of"
-        "previous resi."
+        "previous resi.[PAR]"
         "[TT]-nb[tt] selects between two complitly diffrent ways of finding residues' pairs that"
-        "will be tested on existing of hydrogen bond between them."
+        "will be tested on existing of hydrogen bond between them.[PAR]"
         "[TT]-cutoff[tt]. Real value that defines maximum distance from residue to its "
         "neighbour-residue."
-        "Only makes sense when using with NBSearch. Recommended value is 0.9"
-        "[TT]-pihelix[tt] changes pattern-search algorithm towards preference of pi-helices."
-        "[TT]-ppstretch[tt] defines strech value of polyproline-helices. Only acceptable values is "
-        "2 and 3."
+        "Only makes sense when using with NBSearch. Recommended value is 0.9[PAR]"
+        "[TT]-pihelix[tt] changes pattern-search algorithm towards preference of pi-helices.[PAR]"
+        "[TT]-ppstretch[tt] defines strech value of polyproline-helices. \"Shortened\" means "
+        "strech with"
+        "size 2 and \"Default\" means strech with size 3.[PAR]"
         "Note that [THISMODULE] currently is not capable of reproducing "
         "the secondary structure of proteins whose structure is determined by methods other than "
         "X-ray crystallography (structures in .pdb format with "
@@ -1209,23 +1230,25 @@ void Dssp::initOptions(IOptionsContainer* options, TrajectoryAnalysisSettings* s
                                .description("Filename for DSSP output"));
     options->addOption(SelectionOption("sel").store(&sel_).defaultSelectionText("Protein").description(
             "Group for DSSP"));
-    options->addOption(
-            EnumOption<HydrogenMode>("hmode")
-                    .store(&hMode)
-                    .defaultValue(HydrogenMode::Gromacs)
-                    .enumValue(HydrogenModeNames)
-                    .description("Add hydrogens to protein. Use \"dssp\" option for .pdb files!"));
+    options->addOption(EnumOption<HydrogenMode>("hmode")
+                               .store(&hMode)
+                               .defaultValue(HydrogenMode::Gromacs)
+                               .enumValue(HydrogenModeNames)
+                               .description("Hydrogens pseudoatoms creating mode"));
     options->addOption(EnumOption<NBSearchMethod>("nb")
                                .store(&NBSmode)
                                .defaultValue(NBSearchMethod::NBSearch)
                                .enumValue(NBSearchMethodNames)
-                               .description("Algorithm for search residues' neighbours"));
+                               .description("Method of finding neighbours of residues"));
     options->addOption(RealOption("cutoff").store(&cutoff_).required().defaultValue(0.9).description(
-            "Real value that defines maximum distance from residue to its neighbour-residue"));
+            "Distance form residue to its neighbour-residue in neighbour search"));
     options->addOption(
             BooleanOption("pihelix").store(&PPHelices).defaultValue(true).description("Prefer Pi Helices"));
-    options->addOption(
-            IntegerOption("ppstretch").store(&pp_stretch).defaultValue(3).description("Stretch value for PP-helices"));
+    options->addOption(EnumOption<PPStreches>("ppstretch")
+                               .store(&pp_stretch)
+                               .defaultValue(PPStreches::Default)
+                               .enumValue(PPStrechesNames)
+                               .description("Stretch value for PP-helices"));
     settings->setHelpText(desc);
 }
 
