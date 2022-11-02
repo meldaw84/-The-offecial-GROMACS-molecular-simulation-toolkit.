@@ -75,6 +75,14 @@ void PeriodicActionsTest::doMdrun(const PeriodicOutputParameters& output)
                                                 propagation["tcoupl"],
                                                 propagation["pcoupl"]);
 
+    if (propagation["pcoupl"] == "C-rescale" && propagation["tcoupl"] == "no"
+        && propagation["integrator"] != "sd" && propagation["integrator"] != "bd")
+    {
+        mdpFieldValues["ensemble-temperature-setting"] = "constant";
+        mdpFieldValues["ensemble-temperature"]         = "298";
+    }
+
+
     // This lambda writes all mdp options in `source` into `target`, overwriting options already
     // present in `target`. It also filters out non-mdp option entries in the source maps
     auto overWriteMdpMapValues = [](const MdpFieldValues& source, MdpFieldValues& target) {
