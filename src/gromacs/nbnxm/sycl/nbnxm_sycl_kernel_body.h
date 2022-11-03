@@ -105,6 +105,28 @@ constexpr bool c_avoidFloatingPointAtomics = (c_clSize == 4);
 using sycl::access::fence_space;
 using mode = sycl::access_mode;
 
+#if GMX_SYCL_HIPSYCL && HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP
+/* !\brief Warp shuffle using AMD DPP intrinsic.
+ */
+template<class T, int dppCtrl, int rowMask = 0xf, int bankMask = 0xf, bool boundCtrl = true>
+__device__ __host__ inline
+T warp_move_dpp(const T& input)
+{
+    constexpr int wordCount = (sizeof(T) + sizeof(int) - 1) / sizeof(int);
+
+    struct V { int words[wordCount]; };
+    V a = __builtin_bit_cast(V, input);
+#pragma unroll
+    for (int i = 0; i < wordCount; i++)
+    {
+        a.words[i] = __builtin_amdgcn_update_dpp(0, a.words[i],
+                                                 dppCtrl, rowMask, bankMask, boundCtrl);
+    }
+
+    return __builtin_bit_cast(T, a);
+}
+#endif
+
 //! \brief Convert \p sigma and \p epsilon VdW parameters to \c c6,c12 pair.
 static inline Float2 convertSigmaEpsilonToC6C12(const float sigma, const float epsilon)
 {
@@ -322,6 +344,33 @@ static inline void reduceForceJShuffle(Float3                   f,
                                        const int                aidx,
                                        sycl::global_ptr<Float3> a_f)
 {
+    __builtin_assume(tidxi >= 0); 
+    __builtin_assume(aidx >= 0); 
+#if GMX_SYCL_HIPSYCL && HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP
+    // TODO: This causes massive amount of spills with the tabulated kernel on gfx803.
+    static_assert(c_clSize == 8);
+
+    f[0] += warp_move_dpp<float, /* row_shl:1 */ 0x101>(f[0]);
+    f[1] += warp_move_dpp<float, /* row_shr:1 */ 0x111>(f[1]);
+    f[2] += warp_move_dpp<float, /* row_shl:1 */ 0x101>(f[2]);
+
+    if (tidxi & 1)
+    {
+        f[0] = f[1];
+    }
+
+    f[0] += warp_move_dpp<float, /* row_shl:2 */ 0x102>(f[0]);
+    f[2] += warp_move_dpp<float, /* row_shr:2 */ 0x112>(f[2]);
+
+    if (tidxi & 2)
+    {
+        f[0] = f[2];
+    }
+
+    f[0] += warp_move_dpp<float, /* row_shl:4 */ 0x104>(f[0]);
+
+#else
+
     static_assert(c_clSize == 8 || c_clSize == 4);
     sycl::sub_group sg = itemIdx.get_sub_group();
 
@@ -344,6 +393,7 @@ static inline void reduceForceJShuffle(Float3                   f,
     {
         f[0] += sycl_2020::shift_left(sg, f[0], 4);
     }
+#endif
 
     if (tidxi < 3)
     {
