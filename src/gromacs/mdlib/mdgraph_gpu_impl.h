@@ -150,6 +150,7 @@ private:
     cudaGraph_t graph_;
     //! Instantiated graph object
     cudaGraphExec_t instance_;
+    cudaGraphExec_t instance2_;
     //! Whether graph has already been created
     bool graphCreated_ = false;
     //! Whether graph is capturing in this step

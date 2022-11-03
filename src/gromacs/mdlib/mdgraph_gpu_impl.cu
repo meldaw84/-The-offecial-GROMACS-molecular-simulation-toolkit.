@@ -47,6 +47,13 @@
 #include "gromacs/gpu_utils/gpueventsynchronizer.h"
 #include "gromacs/utility/gmxmpi.h"
 
+//#define CU_INIT_UUID_STATIC
+#include <omp.h>
+#include <stdio.h>
+
+//#include <cuda_etbl/cuda_graphs.h>
+//#include <cuda_etbl/graph_update.h>
+
 namespace gmx
 {
 
@@ -343,15 +350,30 @@ void MdGpuGraph::Impl::createExecutableGraph(bool forceGraphReinstantiation)
         // Update existing graph (which is cheaper than re-instantiation) if possible.
         // With current CUDA, only single-threaded update is possible.
         // Multi-threaded update support will be available in a future CUDA release.
-        if (graphInstanceAllocated_ && !havePPDomainDecomposition_ && !haveSeparatePmeRank_
-            && !forceGraphReinstantiation)
+        bool updated = false;
+        if (graphInstanceAllocated_
+            && (!forceGraphReinstantiation && (getenv("GMX_FORCE_REINSTANTIATION") == nullptr)))
         {
+            // const CUetblGraphExecUpdate* pETBL = nullptr;
+            // cuGetExportTable((const void**)&pETBL, &CU_ETID_GraphExecUpdate);
+            // CUgraphExecUpdateResultInfo info;
+            // stat_ = (cudaError_t)pETBL->GraphExecUpdateByEdge(instance_, graph_, &info);
             cudaGraphNode_t           hErrorNode_out;
             cudaGraphExecUpdateResult updateResult_out;
             stat_ = cudaGraphExecUpdate(instance_, graph_, &hErrorNode_out, &updateResult_out);
             CU_RET_ERR(stat_, "cudaGraphExecUpdate in MD graph definition finalization failed.");
+
+            if (stat_ == 0)
+            {
+                updated = true;
+            }
+            else
+            {
+                printf("Update failed, will revert to reinstantiation\n");
+                fflush(stdout);
+            }
         }
-        else
+        if (!updated)
         {
             if (graphInstanceAllocated_)
             {
@@ -363,6 +385,9 @@ void MdGpuGraph::Impl::createExecutableGraph(bool forceGraphReinstantiation)
             CU_RET_ERR(stat_, "cudaGraphInstantiate in MD graph definition finalization failed.");
             graphInstanceAllocated_ = true;
         }
+        // Instantiate another instance of same graph for repro
+        stat_ = cudaGraphInstantiate(&instance2_, graph_, nullptr, nullptr, 0);
+        CU_RET_ERR(stat_, "cudaGraphInstantiate in MD graph definition finalization failed.");
     }
 
     graphState_ = GraphState::Instantiated;
@@ -437,11 +462,38 @@ void MdGpuGraph::Impl::launchGraphMdStep(GpuEventSynchronizer* xUpdatedOnDeviceE
         enqueueEventFromAllPpRanksToRank0Stream(helperEvent_.get(), *thisLaunchStream);
     }
 
+    // static int writeFileCount;
     if (ppRank_ == 0)
     {
-        stat_ = cudaGraphLaunch(instance_, thisLaunchStream->stream());
+        cudaStreamSynchronize(thisLaunchStream->stream());
+        double t1 = -omp_get_wtime();
+        stat_     = cudaGraphLaunch(instance_, thisLaunchStream->stream());
         CU_RET_ERR(stat_, "cudaGraphLaunch in MD graph definition finalization failed.");
+        cudaStreamSynchronize(thisLaunchStream->stream());
+        t1 += omp_get_wtime();
+
+        // launch again with instance2
+        double t2 = -omp_get_wtime();
+        stat_     = cudaGraphLaunch(instance2_, thisLaunchStream->stream());
+        CU_RET_ERR(stat_, "cudaGraphLaunch in MD graph definition finalization failed.");
+        cudaStreamSynchronize(thisLaunchStream->stream());
+        t2 += omp_get_wtime();
+
+        printf("instance2 is %f X faster\n", t1 / t2);
+
         helperEvent_->markEvent(*thisLaunchStream);
+
+        // const CUetblCudaGraphs* pETBL_CG = nullptr;
+        // cuGetExportTable((const void**)&pETBL_CG, &CU_ETID_CudaGraphs);
+
+        // char filename[80];
+        // sprintf(filename, "instance.%d.dot", writeFileCount);
+        // pETBL_CG->GraphExecDebugDotPrint(instance_, filename, CU_GRAPH_DEBUG_DOT_FLAGS_VERBOSE);
+
+        // sprintf(filename, "instance2.%d.dot", writeFileCount);
+        // pETBL_CG->GraphExecDebugDotPrint(instance2_, filename, CU_GRAPH_DEBUG_DOT_FLAGS_VERBOSE);
+
+        // writeFileCount++;
     }
 
     // ensure that "xUpdatedOnDeviceEvent" is correctly marked on all PP tasks.
