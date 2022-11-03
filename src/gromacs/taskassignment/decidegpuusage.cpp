@@ -165,7 +165,7 @@ static bool decideWhetherToUseGpusForPmeFft(const TaskTarget pmeFftTarget)
 {
     const bool syclGpuFftForced = getenv("GMX_GPU_SYCL_USE_GPU_FFT") != nullptr;
     const bool fallbackToCpuFft =
-            (c_gpuBuildPrefersMixedModePme && !syclGpuFftForced) || c_gpuBuildSyclWithoutGpuFft;
+            (!syclGpuFftForced && c_gpuBuildPrefersMixedModePme) || c_gpuBuildSyclWithoutGpuFft;
     const bool useCpuFft = (pmeFftTarget == TaskTarget::Cpu)
                            || (pmeFftTarget == TaskTarget::Auto && fallbackToCpuFft);
     return !useCpuFft;

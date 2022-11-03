@@ -280,7 +280,7 @@ MessageStringCollector PmeTest::getSkipMessagesIfNecessary(const CommandLine& co
                 (GMX_GPU_SYCL != 0) && (GMX_SYCL_DPCPP != 0) && (GMX_GPU_FFT_MKL != 0);
         static constexpr bool sc_gpuBuildPrefersMixedModePme = sc_gpuBuildSyclDpcppWithMkl; // Issue #4219
 
-        messages.appendIf(commandLineTargetsPmeFftOnGpu && sc_gpuBuildPrefersMixedModePme && !syclGpuFftForced,
+        messages.appendIf(commandLineTargetsPmeFftOnGpu && !syclGpuFftForced && sc_gpuBuildPrefersMixedModePme,
                           "it targets GPU execution of FFT work, which is not stable with MKL "
                           "(use GMX_GPU_SYCL_USE_GPU_FFT=1 to override)");
 
