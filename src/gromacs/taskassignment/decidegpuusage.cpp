@@ -112,13 +112,12 @@ const char* const g_specifyEverythingFormatString =
         ;
 
 // The conditions below must be in sync with modeTargetsFftOnGpus check in src/programs/mdrun/tests/pmetest.cpp
-static constexpr bool sc_gpuBuildSyclDpcppWithMkl =
-        (GMX_GPU_SYCL != 0) && (GMX_SYCL_DPCPP != 0) && (GMX_GPU_FFT_MKL != 0);
-static constexpr bool sc_gpuBuildSyclWithoutGpuFft = (GMX_GPU_SYCL != 0) && (GMX_GPU_FFT_MKL == 0)
-                                                     && (GMX_GPU_FFT_ROCFFT == 0)
-                                                     && (GMX_GPU_FFT_VKFFT == 0);
-static constexpr bool sc_gpuBuildPrefersMixedModePme = sc_gpuBuildSyclDpcppWithMkl; // Issue #4219
-
+constexpr bool c_gpuBuildSyclDpcppWithMkl = (GMX_GPU_SYCL != 0) && (GMX_SYCL_DPCPP != 0)
+                                            && (GMX_GPU_FFT_MKL != 0); // NOLINT(misc-redundant-expression)
+constexpr bool c_gpuBuildSyclWithoutGpuFft =
+        (GMX_GPU_SYCL != 0) && (GMX_GPU_FFT_MKL == 0) && (GMX_GPU_FFT_ROCFFT == 0)
+        && (GMX_GPU_FFT_VKFFT == 0); // NOLINT(misc-redundant-expression)
+constexpr bool c_gpuBuildPrefersMixedModePme = c_gpuBuildSyclDpcppWithMkl; // Issue #4219
 } // namespace
 
 bool decideWhetherToUseGpusForNonbondedWithThreadMpi(const TaskTarget        nonbondedTarget,
@@ -166,7 +165,7 @@ static bool decideWhetherToUseGpusForPmeFft(const TaskTarget pmeFftTarget)
 {
     const bool syclGpuFftForced = getenv("GMX_GPU_SYCL_USE_GPU_FFT") != nullptr;
     const bool fallbackToCpuFft =
-            sc_gpuBuildSyclWithoutGpuFft || (sc_gpuBuildPrefersMixedModePme && !syclGpuFftForced);
+            (c_gpuBuildPrefersMixedModePme && !syclGpuFftForced) || c_gpuBuildSyclWithoutGpuFft;
     const bool useCpuFft = (pmeFftTarget == TaskTarget::Cpu)
                            || (pmeFftTarget == TaskTarget::Auto && fallbackToCpuFft);
     return !useCpuFft;
@@ -495,7 +494,7 @@ PmeRunMode determinePmeRunMode(const bool useGpuForPme, const TaskTarget& pmeFft
 
     if (useGpuForPme)
     {
-        if (sc_gpuBuildSyclWithoutGpuFft && pmeFftTarget == TaskTarget::Gpu)
+        if (c_gpuBuildSyclWithoutGpuFft && pmeFftTarget == TaskTarget::Gpu)
         {
             gmx_fatal(FARGS,
                       "GROMACS is built without SYCL GPU FFT library. Please use -pmefft cpu.");
