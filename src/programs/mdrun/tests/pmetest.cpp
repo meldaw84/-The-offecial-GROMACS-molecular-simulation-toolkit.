@@ -268,16 +268,15 @@ MessageStringCollector PmeTest::getSkipMessagesIfNecessary(const CommandLine& co
         const bool                      commandLineTargetsPmeFftOnGpu =
                 !pmeFftOptionArgument.has_value() || pmeFftOptionArgument.value() == "gpu";
 
-
         static constexpr bool sc_gpuBuildSyclWithoutGpuFft =
                 (GMX_GPU_SYCL != 0) && (GMX_GPU_FFT_MKL == 0) && (GMX_GPU_FFT_ROCFFT == 0)
-                && (GMX_GPU_FFT_VKFFT == 0);
+                && (GMX_GPU_FFT_VKFFT == 0); // NOLINT(misc-redundant-expression)
         messages.appendIf(commandLineTargetsPmeFftOnGpu && sc_gpuBuildSyclWithoutGpuFft,
                           "it targets GPU execution of FFT work, which is not supported in the "
                           "current build");
 
         const bool            syclGpuFftForced = getenv("GMX_GPU_SYCL_USE_GPU_FFT") != nullptr;
-        static constexpr bool sc_gpuBuildSyclDpcppWithMkl =
+        static constexpr bool sc_gpuBuildSyclDpcppWithMkl = // NOLINTNEXTLINE(misc-redundant-expression)
                 (GMX_GPU_SYCL != 0) && (GMX_SYCL_DPCPP != 0) && (GMX_GPU_FFT_MKL != 0);
         static constexpr bool sc_gpuBuildPrefersMixedModePme = sc_gpuBuildSyclDpcppWithMkl; // Issue #4219
 
