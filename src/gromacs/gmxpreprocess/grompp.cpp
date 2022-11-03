@@ -629,7 +629,10 @@ static void new_status(const char*                           topfile,
             /* Add a new molblock to the topology */
             sys->molblock.push_back(molb);
         }
-        sys->natoms += molb.nmol * (*mi)[sys->molblock.back().type].atoms.nr;
+        if (molb.nmol > 0)
+        {
+            sys->natoms += molb.nmol * (*mi)[sys->molblock.back().type].atoms.nr;
+        }
     }
     if (sys->molblock.empty())
     {
