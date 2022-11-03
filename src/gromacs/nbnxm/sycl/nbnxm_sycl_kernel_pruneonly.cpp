@@ -162,6 +162,11 @@ auto nbnxmKernelPruneOnly(sycl::handler&                                      cg
                 /* We only need to check pairs with different mask */
                 imaskCheck = (imaskNew ^ imaskFull);
             }
+#if GMX_SYCL_HIPSYCL && HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP
+            imaskFull  = (c_nbnxnGpuClusterpairSplit == 1) ? __builtin_amdgcn_readfirstlane(imaskFull) : imaskFull;
+            imaskNew   = (c_nbnxnGpuClusterpairSplit == 1) ? __builtin_amdgcn_readfirstlane(imaskNew) : imaskNew;
+            imaskCheck = (c_nbnxnGpuClusterpairSplit == 1) ? __builtin_amdgcn_readfirstlane(imaskCheck) : imaskCheck;
+#endif
 
             if (imaskCheck)
             {
