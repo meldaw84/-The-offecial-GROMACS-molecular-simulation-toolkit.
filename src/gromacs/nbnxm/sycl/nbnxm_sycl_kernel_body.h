@@ -1077,6 +1077,12 @@ static auto nbnxmKernel(sycl::handler&                                          
                 const Float3 shift = a_shiftVec[nbSci.shift];
                 Float4       xqi   = a_xq[ai];
                 xqi += Float4(shift[0], shift[1], shift[2], 0.0F);
+               // TODO: Remove `-` and reverse operators in `xi + xj` and `+- f_ij` when it's fixed.
+               // For some reason the compiler does not generate v_pk_add_f32 and v_sub_f32 for `xi - xj`
+               // but generates 3 v_sub_f32. Hence all this mess with signs.
+                xqi[0] = -xqi[0]; // XXX;
+                xqi[1] = -xqi[1]; // XXX;
+                xqi[2] = -xqi[2]; // XXX;
                 xqi[3] *= epsFac;
                 sm_xq[cacheIdx] = xqi;
 
@@ -1215,7 +1221,7 @@ static auto nbnxmKernel(sycl::handler&                                          
                         const Float3 xi(xqi[0], xqi[1], xqi[2]);
 
                         // distance between i and j atoms
-                        const Float3 rv = xi - xj;
+                        const Float3 rv = xi + xj; // XXX
                         float        r2 = norm2(rv);
 
                         if constexpr (doPruneNBL)
@@ -1404,11 +1410,11 @@ static auto nbnxmKernel(sycl::handler&                                          
                             const Float3 forceIJ = rv * fInvR;
 
                             /* accumulate j forces in registers */
-                            fCjBuf -= forceIJ;
+                            fCjBuf += forceIJ; // XXX
                             /* accumulate i forces in registers */
-                            fCiBufX[i] += forceIJ[0];
-                            fCiBufY[i] += forceIJ[1];
-                            fCiBufZ[i] += forceIJ[2];
+                            fCiBufX[i] -= forceIJ[0]; // XXX
+                            fCiBufY[i] -= forceIJ[1]; // XXX
+                            fCiBufZ[i] -= forceIJ[2]; // XXX
                         } // (r2 < rCoulombSq) && notExcluded
                     }     // (imask & maskJI)
                     /* shift the mask bit by 1 */
