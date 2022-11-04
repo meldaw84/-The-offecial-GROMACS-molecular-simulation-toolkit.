@@ -400,7 +400,7 @@ else()
 
     if("${SYCL_CXX_FLAGS_EXTRA}" MATCHES "fsycl-targets=.*(nvptx64|amdgcn)")
         # When compiling for NVIDIA/AMD, Intel LLVM produces tons of harmless warnings, ignore them
-        set(SYCL_WARNINGS_CXX_FLAGS "-Wno-linker-warnings -Wno-override-module")
+        set(SYCL_WARNINGS_CXX_FLAGS "-Wno-linker-warnings -Wno-override-module -Wno-sycl-target")
         gmx_check_source_compiles_with_flags(
             "${SAMPLE_SYCL_SOURCE}"
             "${SYCL_TOOLCHAIN_CXX_FLAGS} ${SYCL_WARNING_CXX_FLAGS}"
