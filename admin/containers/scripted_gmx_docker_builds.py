@@ -307,14 +307,16 @@ def get_rocm_packages(args) -> typing.List[str]:
     else:
         return _rocm_extra_packages
 
+
 def get_rocm_repository(args) -> "hpccm.building_blocks.base":
     dist_string = "ubuntu"
     return hpccm.building_blocks.packages(
-            apt_keys=["http://repo.radeon.com/rocm/rocm.gpg.key"],
-            apt_repositories=[
-                f"deb [arch=amd64] http://repo.radeon.com/rocm/apt/{args.rocm}/ {dist_string} main"
-            ],
-        )
+        apt_keys=["http://repo.radeon.com/rocm/rocm.gpg.key"],
+        apt_repositories=[
+            f"deb [arch=amd64] http://repo.radeon.com/rocm/apt/{args.rocm}/ {dist_string} main"
+        ],
+    )
+
 
 def get_cp2k_packages(args) -> typing.List[str]:
     cp2k_packages = []
@@ -786,14 +788,20 @@ def add_intel_llvm_compiler_build_stage(
     ]
 
     llvm_stage += hpccm.building_blocks.packages(
-        ospackages=["git", "ninja-build", "cmake", "python3", "python3-dev", "build-essential", "wget"]
+        ospackages=[
+            "git",
+            "ninja-build",
+            "cmake",
+            "python3",
+            "python3-dev",
+            "build-essential",
+            "wget",
+        ]
     )
 
     if args.rocm is not None:
         llvm_stage += get_rocm_repository(args)
-        llvm_stage += hpccm.building_blocks.packages(
-            ospackages=get_rocm_packages(args)
-        )
+        llvm_stage += hpccm.building_blocks.packages(ospackages=get_rocm_packages(args))
         buildbot_flags.extend(["--hip", "--hip-platform", "AMD"])
 
     llvm_stage += hpccm.building_blocks.generic_build(
