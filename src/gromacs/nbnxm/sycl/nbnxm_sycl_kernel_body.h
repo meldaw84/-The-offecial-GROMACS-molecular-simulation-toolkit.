@@ -322,17 +322,17 @@ static inline void reduceForceJShuffle(AmdCdna2PackedFloat3     f,
 
     f[0] += sycl_2020::shift_left(sg, f[0], 1);
     f[1] += sycl_2020::shift_right(sg, f[1], 1);
-    f[3] += sycl_2020::shift_left(sg, f[3], 1);
+    f[2] += sycl_2020::shift_left(sg, f[2], 1);
     if (tidxi & 1)
     {
         f[0] = f[1];
     }
 
     f[0] += sycl_2020::shift_left(sg, f[0], 2);
-    f[3] += sycl_2020::shift_right(sg, f[3], 2);
+    f[2] += sycl_2020::shift_right(sg, f[2], 2);
     if (tidxi & 2)
     {
-        f[0] = f[3];
+        f[0] = f[2];
     }
 
     if constexpr (c_clSize == 8)
@@ -407,7 +407,7 @@ static inline void reduceForceJGeneric(sycl::local_ptr<float>   sm_buf,
     int                  tidx             = tidxi + tidxj * c_clSize;
     sm_buf[0 * sc_fBufferStride + tidx]   = f[0];
     sm_buf[1 * sc_fBufferStride + tidx]   = f[1];
-    sm_buf[2 * sc_fBufferStride + tidx]   = f[3];
+    sm_buf[2 * sc_fBufferStride + tidx]   = f[2];
 
     subGroupBarrier(itemIdx);
 
@@ -475,7 +475,7 @@ static inline void reduceForceIAndFShiftGeneric(sycl::local_ptr<float> sm_buf,
         // Store i-forces in local memory
         sm_buf[tidx]                 = fCiBuf[ciOffset][0];
         sm_buf[bufStride + tidx]     = fCiBuf[ciOffset][1];
-        sm_buf[2 * bufStride + tidx] = fCiBuf[ciOffset][3];
+        sm_buf[2 * bufStride + tidx] = fCiBuf[ciOffset][2];
         itemIdx.barrier(fence_space::local_space);
 
         // Reduce the initial c_clSize values for each i atom to half every step by using c_clSize * i threads.
@@ -579,7 +579,7 @@ static inline void reduceForceIAndFShiftShuffles(const AmdCdna2PackedFloat3 fCiB
         const int aidx = (sci * c_nbnxnGpuNumClusterPerSupercluster + ciOffset) * c_clSize + tidxi;
         float     fx   = fCiBuf[ciOffset][0];
         float     fy   = fCiBuf[ciOffset][1];
-        float     fz   = fCiBuf[ciOffset][3];
+        float     fz   = fCiBuf[ciOffset][2];
         // First reduction step
         fx += sycl_2020::shift_left(sg, fx, c_clSize);
         fy += sycl_2020::shift_right(sg, fy, c_clSize);
@@ -658,7 +658,7 @@ inline void reduceForceIAndFShiftShuffles<1>(const AmdCdna2PackedFloat3 fCiBuf[c
         const int aidx = (sci * c_nbnxnGpuNumClusterPerSupercluster + ciOffset) * c_clSize + tidxi;
         float     fx   = fCiBuf[ciOffset][0];
         float     fy   = fCiBuf[ciOffset][1];
-        float     fz   = fCiBuf[ciOffset][3];
+        float     fz   = fCiBuf[ciOffset][2];
         // First reduction step
         fx += sycl_2020::shift_left(sg, fx, c_clSize);
         fy += sycl_2020::shift_right(sg, fy, c_clSize);
