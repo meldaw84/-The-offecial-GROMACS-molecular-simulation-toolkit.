@@ -379,7 +379,7 @@ macro (gmx_c_flags)
     if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
         if (GMX_COMPILER_WARNINGS)
             # If used, -Wall should precede other options that silence warnings it enables
-            # GMX_TEST_CXXFLAG(CXXFLAGS_WARN "-Wall" GMXC_CXXFLAGS)
+            GMX_TEST_CXXFLAG(CXXFLAGS_WARN "-Wall" GMXC_CXXFLAGS)
             if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "6.0") #LLVM BUG #21629
                 GMX_TEST_CXXFLAG(CXXFLAGS_WARN_NO_BRACES "-Wno-missing-braces" GMXC_CXXFLAGS)
             endif()
