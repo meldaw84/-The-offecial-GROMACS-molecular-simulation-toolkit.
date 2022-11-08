@@ -34,7 +34,8 @@
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
 
-add_definitions("-Wno-deprecated-declarations")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-declarations")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 
 # Test C flags FLAGS, and set VARIABLE to true if the work. Also add the
 # flags to CFLAGSVAR.
@@ -382,12 +383,12 @@ macro (gmx_c_flags)
     if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
         if (GMX_COMPILER_WARNINGS)
             # If used, -Wall should precede other options that silence warnings it enables
-            GMX_TEST_CXXFLAG(CXXFLAGS_WARN "-Wall" GMXC_CXXFLAGS)
+            # GMX_TEST_CXXFLAG(CXXFLAGS_WARN "-Wall" GMXC_CXXFLAGS)
             if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "6.0") #LLVM BUG #21629
                 GMX_TEST_CXXFLAG(CXXFLAGS_WARN_NO_BRACES "-Wno-missing-braces" GMXC_CXXFLAGS)
             endif()
             GMX_TEST_CXXFLAG(CXXFLAGS_WARN_EXTRA "-Wextra;-Wpointer-arith;-Wmissing-prototypes" GMXC_CXXFLAGS)
-            GMX_TEST_CXXFLAG(CXXFLAGS_DEPRECATED "-Wdeprecated" GMXC_CXXFLAGS)
+            # GMX_TEST_CXXFLAG(CXXFLAGS_DEPRECATED "-Wdeprecated" GMXC_CXXFLAGS)
             # Functions placed in headers for inlining are not always
             # used in every translation unit that includes the files,
             # so we must disable the warning that there are such
