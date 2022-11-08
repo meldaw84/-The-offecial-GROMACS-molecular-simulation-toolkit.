@@ -34,6 +34,8 @@
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
 
+add_definitions("-Wno-deprecated-declarations")
+
 # Test C flags FLAGS, and set VARIABLE to true if the work. Also add the
 # flags to CFLAGSVAR.
 MACRO(GMX_TEST_CFLAG VARIABLE FLAGS CFLAGSVAR)
