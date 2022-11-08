@@ -34,9 +34,6 @@
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
 
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-declarations")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
-
 # Test C flags FLAGS, and set VARIABLE to true if the work. Also add the
 # flags to CFLAGSVAR.
 MACRO(GMX_TEST_CFLAG VARIABLE FLAGS CFLAGSVAR)
@@ -384,7 +381,11 @@ macro (gmx_c_flags)
                 GMX_TEST_CXXFLAG(CXXFLAGS_WARN_NO_BRACES "-Wno-missing-braces" GMXC_CXXFLAGS)
             endif()
             GMX_TEST_CXXFLAG(CXXFLAGS_WARN_EXTRA "-Wextra;-Wpointer-arith;-Wmissing-prototypes" GMXC_CXXFLAGS)
-            GMX_TEST_CXXFLAG(CXXFLAGS_DEPRECATED "-Wdeprecated" GMXC_CXXFLAGS)
+
+            # GMX_TEST_CXXFLAG(CXXFLAGS_DEPRECATED "-Wdeprecated" GMXC_CXXFLAGS)
+            SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-declarations")
+            SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
+
             # Functions placed in headers for inlining are not always
             # used in every translation unit that includes the files,
             # so we must disable the warning that there are such
