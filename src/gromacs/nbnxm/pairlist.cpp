@@ -1527,8 +1527,6 @@ const int max_nrj_fep = 40;
  * LJ parameters have been zeroed in the nbnxn data structure.
  * Simultaneously make a group pair list for the perturbed pairs.
  *
- * Returns the number of excluded pairs in nlist that are with distance sqrt(rlist_fep2)
- *
  * \param[in] atomIndices  Local topology atom indices for NBNxM indices
  * \param[in] nbat         Non-bonded atom data
  * \param[in,out] nbl      The full pairlist, FEP pairs will be masked out
@@ -1536,10 +1534,13 @@ const int max_nrj_fep = 40;
  * \param[in] shx          Shift of i-atoms along x
  * \param[in] shy          Shift of i-atoms along y
  * \param[in] shz          Shift of i-atoms along z
+ * \param[in] rlist2       The normal rlist value squared
  * \param[in] rlist_fep2   This is the normal rlist + 1x1 list buffer difference
  * \param[in] iGrid        The grid with i-atoms
  * \param[in] jGrid        The grid with j-atoms
  * \param[in,out] nlist    FEP list to add the FEP pairs to
+ *
+ * \returns the number of excluded pairs in nlist that are with distance sqrt(rlist2)
  */
 static void make_fep_list(gmx::ArrayRef<const int> atomIndices,
                           const nbnxn_atomdata_t*  nbat,
@@ -1548,6 +1549,7 @@ static void make_fep_list(gmx::ArrayRef<const int> atomIndices,
                           const real               shx,
                           const real               shy,
                           const real               shz,
+                          const real gmx_unused    rlist2,
                           const real gmx_unused    rlist_fep2,
                           const Grid&              iGrid,
                           const Grid&              jGrid,
@@ -1715,8 +1717,7 @@ static void make_fep_list(gmx::ArrayRef<const int> atomIndices,
                             nlist->excl_fep[nlist->nrj] = pairIsIncluded;
                             nlist->nrj++;
                             /* Count excluded pairs within rlist */
-                            if (pairIsIncluded == 0
-                                && norm2(xiShifted - getCoordinate(*nbat, ind_j)) < rlist_fep2)
+                            if (pairIsIncluded == 0 && norm2(xiShifted - getCoordinate(*nbat, ind_j)) < rlist2)
                             {
                                 nlist->numExclusionsWithinRlist++;
                             }
@@ -1775,6 +1776,7 @@ static void make_fep_list(gmx::ArrayRef<const int> atomIndices,
                           real                     shx,
                           real                     shy,
                           real                     shz,
+                          real                     rlist2,
                           real                     rlist_fep2,
                           const Grid&              iGrid,
                           const Grid&              jGrid,
@@ -1886,7 +1888,8 @@ static void make_fep_list(gmx::ArrayRef<const int> atomIndices,
                                      * relative to the fast GPU kernels.
                                      * So we prune the FEP list here.
                                      */
-                                    if (dx * dx + dy * dy + dz * dz < rlist_fep2)
+                                    const real distance2 = dx * dx + dy * dy + dz * dz;
+                                    if (distance2 < rlist_fep2)
                                     {
                                         if (nlist->nrj - nlist->jindex[nri] >= max_nrj_fep)
                                         {
@@ -1900,7 +1903,7 @@ static void make_fep_list(gmx::ArrayRef<const int> atomIndices,
                                                 (excl.pair[excl_pair] & excl_bit) ? 1 : 0;
                                         nlist->excl_fep[nlist->nrj] = pairIsIncluded;
                                         nlist->nrj++;
-                                        if (pairIsIncluded == 0)
+                                        if (pairIsIncluded == 0 && distance2 < rlist2)
                                         {
                                             nlist->numExclusionsWithinRlist++;
                                         }
@@ -3605,6 +3608,7 @@ static void nbnxn_make_pairlist_part(const Nbnxm::GridSet&   gridSet,
                                       shx,
                                       shy,
                                       shz,
+                                      rlist2,
                                       rl_fep2,
                                       iGrid,
                                       jGrid,

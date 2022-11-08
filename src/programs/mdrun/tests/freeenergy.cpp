@@ -262,5 +262,35 @@ INSTANTIATE_TEST_SUITE_P(
         FreeEnergyReferenceTest::PrintParametersToString());
 #endif
 
+class FreeEnergyExclusionTest : public MdrunTestFixture
+{
+};
+
+TEST_F(FreeEnergyExclusionTest, CatchesBeyondRlist)
+{
+    {
+        MdpFieldValues mdpFieldValues;
+        mdpFieldValues["verlet-buffer-tolerance"] = "-1";
+        mdpFieldValues["rlist"]                   = "0.7";
+        mdpFieldValues["coulomb-type"]            = "PME";
+        mdpFieldValues["rcoulomb"]                = "0.7";
+        mdpFieldValues["rvdw"]                    = "0.7";
+        mdpFieldValues["free-energy"]             = "yes";
+        mdpFieldValues["couple-moltype"]          = "ALANINEDIPEPTIDE";
+        mdpFieldValues["couple-lambda0"]          = "vdw";
+        mdpFieldValues["couple-lambda1"]          = "vdw-q";
+        mdpFieldValues["init-lambda"]             = "0";
+
+        CommandLine caller;
+        caller.append("grompp");
+        runner_.useTopGroAndNdxFromDatabase("alanine_vacuo");
+        runner_.useStringAsMdpFile(prepareMdpFileContents(mdpFieldValues));
+        runner_.tprFileName_ = "fep_exclusion_check";
+        EXPECT_EQ(0, runner_.callGrompp(caller));
+    }
+
+    EXPECT_THROW_GMX(runMdrun(&runner_), RangeError);
+}
+
 } // namespace
 } // namespace gmx::test

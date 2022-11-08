@@ -179,20 +179,21 @@ void ExclusionChecker::Impl::check(const int numTotalPerturbedExclusionsFound)
 {
     if (numTotalPerturbedExclusionsFound != expectedNumGlobalPerturbedExclusions_)
     {
-        // Give error and exit
-        gmx_fatal_collective(
-                FARGS,
-                cr_->mpi_comm_mygroup,
-                MAIN(cr_),
-                "There are %d perturbed, excluded non-bonded pair interactions beyond the "
-                "pair-list "
-                "cut-off, which is not supported. This can happen because the system is "
-                "unstable or because intra-molecular interactions at long distances are "
-                "excluded. If the "
-                "latter is the case, you can try to increase nstlist or rlist to avoid this."
-                "The error is likely triggered by the use of couple-intramol=no "
-                "and the maximal distance in the decoupled molecule exceeding rlist.",
-                expectedNumGlobalPerturbedExclusions_ - numTotalPerturbedExclusionsFound);
+        if (MAIN(cr_))
+        {
+            auto errorString = gmx::formatString(
+                    "There are %d perturbed, excluded non-bonded pair interactions beyond "
+                    "the pair-list cut-off, which is not supported. "
+                    "This can happen because the system is unstable or because "
+                    "intra-molecular interactions at long distances are excluded. "
+                    "If the latter is the case, you can try to increase nstlist "
+                    "or rlist to avoid this. "
+                    "The error is likely triggered by the use of couple-intramol=no "
+                    "and the maximal distance in the decoupled molecule exceeding rlist.",
+                    expectedNumGlobalPerturbedExclusions_ - numTotalPerturbedExclusionsFound);
+            GMX_THROW(gmx::RangeError(errorString.c_str()));
+        }
+        gmx_barrier(cr_->mpi_comm_mygroup);
     }
 }
 
