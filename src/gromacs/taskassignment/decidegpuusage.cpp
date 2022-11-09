@@ -171,12 +171,12 @@ static bool decideWhetherToUseGpusForPmeFft(const TaskTarget pmeFftTarget)
     return !useCpuFft;
 }
 
-static bool canUseGpusForPme(const bool           useGpuForNonbonded,
-                             const TaskTarget     pmeTarget,
-                             const TaskTarget     pmeFftTarget,
-                             const gmx_hw_info_t& hardwareInfo,
-                             const t_inputrec&    inputrec,
-                             std::string*         errorMessage)
+static bool canUseGpusForPme(const bool                      useGpuForNonbonded,
+                             const TaskTarget                pmeTarget,
+                             const TaskTarget                pmeFftTarget,
+                             const gmx_hw_info_t& gmx_unused hardwareInfo,
+                             const t_inputrec&               inputrec,
+                             std::string*                    errorMessage)
 {
     if (pmeTarget == TaskTarget::Cpu)
     {
