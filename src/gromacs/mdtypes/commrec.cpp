@@ -45,19 +45,19 @@ t_commrec::t_commrec() = default;
 t_commrec::~t_commrec()
 {
 #if GMX_MPI
-    // TODO We need to be able to free communicators, but the
-    // structure of the commrec and domdec initialization code makes
-    // it hard to avoid both leaks and double frees.
-    bool mySimIsMyGroup = (mpi_comm_mysim == mpi_comm_mygroup);
-    if (mpi_comm_mysim != MPI_COMM_NULL && mpi_comm_mysim != MPI_COMM_WORLD)
+    int isFinalized;
+    MPI_Finalized(&isFinalized);
+    if (!isFinalized)
     {
-        // TODO see above
-        // MPI_Comm_free(&cr->mpi_comm_mysim);
-    }
-    if (!mySimIsMyGroup && mpi_comm_mygroup != MPI_COMM_NULL && mpi_comm_mygroup != MPI_COMM_WORLD)
-    {
-        // TODO see above
-        // MPI_Comm_free(&cr->mpi_comm_mygroup);
+        const bool myGroupIsMySim = (mpi_comm_mygroup == mpi_comm_mysim);
+        if (!myGroupIsMySim && mpi_comm_mygroup != MPI_COMM_NULL && mpi_comm_mygroup != MPI_COMM_WORLD)
+        {
+            MPI_Comm_free(&mpi_comm_mygroup);
+        }
+        if (mpi_comm_mysim != MPI_COMM_NULL && mpi_comm_mysim != MPI_COMM_WORLD)
+        {
+            MPI_Comm_free(&mpi_comm_mysim);
+        }
     }
 #endif
 }
