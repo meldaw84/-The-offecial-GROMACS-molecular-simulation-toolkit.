@@ -58,14 +58,14 @@ enum class NumRanks
     Multiple
 };
 
-typedef struct
+//! Settings and communicators for two-step communication: intra + inter-node
+struct gmx_nodecomm_t
 {
-    int      bUse;
-    MPI_Comm comm_intra;
-    int      rank_intra;
-    MPI_Comm comm_inter;
-
-} gmx_nodecomm_t;
+    int      bUse       = false;
+    MPI_Comm comm_intra = MPI_COMM_NULL;
+    int      rank_intra = 0;
+    MPI_Comm comm_inter = MPI_COMM_NULL;
+};
 
 struct t_commrec
 {
