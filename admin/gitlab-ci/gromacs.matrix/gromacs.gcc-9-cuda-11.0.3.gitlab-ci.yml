@@ -11,7 +11,7 @@
 #   Scope: configure, build, unit tests, regression tests
 # Test implementation choices (free to change as needed):
 #   OS: Ubuntu 20.04
-#   Build type: Debug
+#   Build type: RelWithAssert
 #   Compiler: GCC 9
 #   GPU: CUDA 11.0.3
 #   GPU direct communication: on / default
@@ -30,6 +30,7 @@ gromacs:gcc-9-cuda-11.0.3:configure:
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-9-cuda-11.0.3
   variables:
     CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE_BUILD_TYPE_OPTIONS : "-DCMAKE_BUILD_TYPE=RelWithAssert"
     CMAKE_SIMD_OPTIONS: "-DGMX_SIMD=SSE4.1"
     COMPILER_MAJOR_VERSION: 9
 
@@ -55,6 +56,7 @@ gromacs:gcc-9-cuda-11.0.3:test:
     CMAKE: /usr/local/cmake-3.18.4/bin/cmake
     KUBERNETES_EXTENDED_RESOURCE_NAME: "nvidia.com/gpu"
     KUBERNETES_EXTENDED_RESOURCE_LIMIT: 1
+    GMX_TEST_LABELS: "QuickGpuTest|SlowGpuTest"
   tags:
     - k8s-scilifelab
   needs:
@@ -70,6 +72,7 @@ gromacs:gcc-9-cuda-11.0.3:test-gpucommupd:
     KUBERNETES_EXTENDED_RESOURCE_NAME: "nvidia.com/gpu"
     KUBERNETES_EXTENDED_RESOURCE_LIMIT: 1
     GMX_FORCE_UPDATE_DEFAULT_GPU: 1
+    GMX_TEST_LABELS: "QuickGpuTest|SlowGpuTest"
   tags:
     - k8s-scilifelab
   needs:

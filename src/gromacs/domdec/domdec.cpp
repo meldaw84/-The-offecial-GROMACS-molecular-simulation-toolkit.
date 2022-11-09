@@ -152,6 +152,9 @@ static const int ddNonbondedZonePairRanges[DD_MAXIZONE][3] = { { 0, 0, 8 },
                                                                { 2, 5, 6 },
                                                                { 3, 5, 7 } };
 
+//! The minimum step interval for DD algorithms requiring global communication
+static constexpr int sc_minimumGCStepInterval = 100;
+
 static void ddindex2xyz(const ivec nc, int ind, ivec xyz)
 {
     xyz[XX] = ind / (nc[YY] * nc[ZZ]);
@@ -909,20 +912,20 @@ static void make_load_communicator(gmx_domdec_t* dd, int dim_ind, ivec loc)
         {
             DDCellsizesWithDlb& cellsizes = dd->comm->cellsizesWithDlb[dim_ind];
 
-            if (dd->ci[dim] == dd->master_ci[dim])
+            if (dd->ci[dim] == dd->main_ci[dim])
             {
                 /* This is the root process of this row */
-                cellsizes.rowMaster = std::make_unique<RowMaster>();
+                cellsizes.rowCoordinator = std::make_unique<RowCoordinator>();
 
-                RowMaster& rowMaster = *cellsizes.rowMaster;
-                rowMaster.cellFrac.resize(ddCellFractionBufferSize(dd, dim_ind));
-                rowMaster.oldCellFrac.resize(dd->numCells[dim] + 1);
-                rowMaster.isCellMin.resize(dd->numCells[dim]);
+                RowCoordinator& rowCoordinator = *cellsizes.rowCoordinator;
+                rowCoordinator.cellFrac.resize(ddCellFractionBufferSize(dd, dim_ind));
+                rowCoordinator.oldCellFrac.resize(dd->numCells[dim] + 1);
+                rowCoordinator.isCellMin.resize(dd->numCells[dim]);
                 if (dim_ind > 0)
                 {
-                    rowMaster.bounds.resize(dd->numCells[dim]);
+                    rowCoordinator.bounds.resize(dd->numCells[dim]);
                 }
-                rowMaster.buf_ncd.resize(dd->numCells[dim]);
+                rowCoordinator.buf_ncd.resize(dd->numCells[dim]);
             }
             else
             {
@@ -930,7 +933,7 @@ static void make_load_communicator(gmx_domdec_t* dd, int dim_ind, ivec loc)
                 cellsizes.fracRow.resize(ddCellFractionBufferSize(dd, dim_ind));
             }
         }
-        if (dd->ci[dim] == dd->master_ci[dim])
+        if (dd->ci[dim] == dd->main_ci[dim])
         {
             dd->comm->load[dim_ind].load.resize(dd->numCells[dim] * DD_NLOAD_MAX);
         }
@@ -1198,11 +1201,11 @@ static void make_pp_communicator(const gmx::MDLogger& mdlog,
         cartSetup.ddindex2ddnodeid.resize(dd->nnodes);
         cartSetup.ddindex2ddnodeid[dd_index(dd->numCells, dd->ci)] = dd->rank;
         gmx_sumi(dd->nnodes, cartSetup.ddindex2ddnodeid.data(), cr);
-        /* Get the rank of the DD master,
-         * above we made sure that the master node is a PP node.
+        /* Get the rank of the DD main,
+         * above we made sure that the main node is a PP node.
          */
-        int rank = MASTER(cr) ? dd->rank : 0;
-        MPI_Allreduce(&rank, &dd->masterrank, 1, MPI_INT, MPI_SUM, dd->mpi_comm_all);
+        int rank = MAIN(cr) ? dd->rank : 0;
+        MPI_Allreduce(&rank, &dd->mainrank, 1, MPI_INT, MPI_SUM, dd->mpi_comm_all);
     }
     else if (cartSetup.bCartesianPP)
     {
@@ -1229,20 +1232,20 @@ static void make_pp_communicator(const gmx::MDLogger& mdlog,
         /* Communicate the ddindex to simulation nodeid index */
         MPI_Allreduce(buf.data(), cartSetup.ddindex2simnodeid.data(), dd->nnodes, MPI_INT, MPI_SUM, cr->mpi_comm_mysim);
 
-        /* Determine the master coordinates and rank.
-         * The DD master should be the same node as the master of this sim.
+        /* Determine the main coordinates and rank.
+         * The DD main should be the same node as the main of this sim.
          */
         for (int i = 0; i < dd->nnodes; i++)
         {
             if (cartSetup.ddindex2simnodeid[i] == 0)
             {
-                ddindex2xyz(dd->numCells, i, dd->master_ci);
-                MPI_Cart_rank(dd->mpi_comm_all, dd->master_ci, &dd->masterrank);
+                ddindex2xyz(dd->numCells, i, dd->main_ci);
+                MPI_Cart_rank(dd->mpi_comm_all, dd->main_ci, &dd->mainrank);
             }
         }
         if (debug)
         {
-            fprintf(debug, "The master rank is %d\n", dd->masterrank);
+            fprintf(debug, "The main rank is %d\n", dd->mainrank);
         }
     }
     else
@@ -1250,9 +1253,9 @@ static void make_pp_communicator(const gmx::MDLogger& mdlog,
         /* No Cartesian communicators */
         /* We use the rank in dd->comm->all as DD index */
         ddindex2xyz(dd->numCells, dd->rank, dd->ci);
-        /* The simulation master nodeid is 0, so the DD master rank is also 0 */
-        dd->masterrank = 0;
-        clear_ivec(dd->master_ci);
+        /* The simulation main nodeid is 0, so the DD main rank is also 0 */
+        dd->mainrank = 0;
+        clear_ivec(dd->main_ci);
     }
 #endif
 
@@ -1377,7 +1380,7 @@ static CartesianRankSetup split_communicator(const gmx::MDLogger& mdlog,
         MPI_Comm comm_cart = MPI_COMM_NULL;
         MPI_Cart_create(cr->mpi_comm_mysim, DIM, cartSetup.ntot, periods, static_cast<int>(reorder), &comm_cart);
         MPI_Comm_rank(comm_cart, &rank);
-        if (MASTER(cr) && rank != 0)
+        if (MAIN(cr) && rank != 0)
         {
             gmx_fatal(FARGS, "MPI rank 0 was renumbered by MPI_Cart_create, we do not allow this");
         }
@@ -1550,8 +1553,8 @@ static void setupGroupCommunication(const gmx::MDLogger&     mdlog,
         dd->pme_nodeid = -1;
     }
 
-    /* We can not use DDMASTER(dd), because dd->masterrank is set later */
-    if (MASTER(cr))
+    /* We can not use DDMAIN(dd), because dd->mainrank is set later */
+    if (MAIN(cr))
     {
         dd->ma = std::make_unique<AtomDistribution>(dd->numCells, numAtomsInSystem, numAtomsInSystem);
     }
@@ -2000,7 +2003,7 @@ static DDSystemInfo getSystemInfo(const gmx::MDLogger&              mdlog,
             real r_2b = 0;
             real r_mb = 0;
 
-            if (ddRole == DDRole::Master)
+            if (ddRole == DDRole::Main)
             {
                 dd_bonded_cg_distance(mdlog, mtop, ir, xGlobal, box, options.ddBondedChecking, &r_2b, &r_mb);
             }
@@ -2100,7 +2103,7 @@ static void checkDDGridSetup(const DDGridSetup&   ddGridSetup,
 
         gmx_fatal_collective(FARGS,
                              communicator,
-                             ddRole == DDRole::Master,
+                             ddRole == DDRole::Main,
                              "There is no domain decomposition for %d ranks that is compatible "
                              "with the given box and a minimum cell size of %g nm\n"
                              "%s\n"
@@ -2124,7 +2127,7 @@ static void checkDDGridSetup(const DDGridSetup&   ddGridSetup,
             gmx_fatal_collective(
                     FARGS,
                     communicator,
-                    ddRole == DDRole::Master,
+                    ddRole == DDRole::Main,
                     "The initial cell size (%f) is smaller than the cell size limit (%f), change "
                     "options -dd, -rdd or -rcon, see the log file for details",
                     acs,
@@ -2138,7 +2141,7 @@ static void checkDDGridSetup(const DDGridSetup&   ddGridSetup,
     {
         gmx_fatal_collective(FARGS,
                              communicator,
-                             ddRole == DDRole::Master,
+                             ddRole == DDRole::Main,
                              "The size of the domain decomposition grid (%d) does not match the "
                              "number of PP ranks (%d). The total number of ranks is %d",
                              numPPRanks,
@@ -2149,7 +2152,7 @@ static void checkDDGridSetup(const DDGridSetup&   ddGridSetup,
     {
         gmx_fatal_collective(FARGS,
                              communicator,
-                             ddRole == DDRole::Master,
+                             ddRole == DDRole::Main,
                              "The number of separate PME ranks (%d) is larger than the number of "
                              "PP ranks (%d), this is not supported.",
                              ddGridSetup.numPmeOnlyRanks,
@@ -2352,7 +2355,7 @@ static void set_dd_limits(const gmx::MDLogger& mdlog,
                 comm->cellsize_limit);
     }
 
-    if (ddRole == DDRole::Master)
+    if (ddRole == DDRole::Main)
     {
         check_dd_restrictions(dd, ir, mdlog);
     }
@@ -2652,7 +2655,7 @@ static void set_ddgrid_parameters(const gmx::MDLogger& mdlog,
         {
             gmx_fatal_collective(FARGS,
                                  dd->mpi_comm_all,
-                                 DDMASTER(dd),
+                                 DDMAIN(dd),
                                  "Can not have separate PME ranks without PME electrostatics");
         }
     }
@@ -2664,6 +2667,13 @@ static void set_ddgrid_parameters(const gmx::MDLogger& mdlog,
     if (!isDlbDisabled(comm->dlbState))
     {
         set_cell_limits_dlb(mdlog, dd, dlb_scale, inputrec, ddbox);
+    }
+
+    // Make nstDDGlobalComm the first multiple of nstlist >= c_minimumGCStepInterval
+    dd->comm->nstDDGlobalComm = sc_minimumGCStepInterval;
+    if (dd->comm->nstDDGlobalComm % inputrec.nstlist != 0)
+    {
+        dd->comm->nstDDGlobalComm += inputrec.nstlist - (dd->comm->nstDDGlobalComm % inputrec.nstlist);
     }
 
     logSettings(mdlog, dd, mtop, inputrec, dlb_scale, ddbox);
@@ -2839,7 +2849,7 @@ DomainDecompositionBuilder::Impl::Impl(const MDLogger&                   mdlog,
     }
 
     systemInfo_ = getSystemInfo(mdlog_,
-                                MASTER(cr_) ? DDRole::Master : DDRole::Agent,
+                                MAIN(cr_) ? DDRole::Main : DDRole::Agent,
                                 cr->mpiDefaultCommunicator,
                                 options_,
                                 mtop_,
@@ -2886,7 +2896,7 @@ DomainDecompositionBuilder::Impl::Impl(const MDLogger&                   mdlog,
                                         systemInfo_.cellsizeLimit,
                                         numRanksRequested);
     ddGridSetup_ = getDDGridSetup(mdlog_,
-                                  MASTER(cr_) ? DDRole::Master : DDRole::Agent,
+                                  MAIN(cr_) ? DDRole::Main : DDRole::Agent,
                                   cr->mpiDefaultCommunicator,
                                   numRanksRequested,
                                   options_,
@@ -2900,7 +2910,7 @@ DomainDecompositionBuilder::Impl::Impl(const MDLogger&                   mdlog,
                                   xGlobal,
                                   &ddbox_);
     checkDDGridSetup(ddGridSetup_,
-                     MASTER(cr_) ? DDRole::Master : DDRole::Agent,
+                     MAIN(cr_) ? DDRole::Main : DDRole::Agent,
                      cr->mpiDefaultCommunicator,
                      cr->sizeOfDefaultCommunicator,
                      options_,
@@ -2934,7 +2944,7 @@ std::unique_ptr<gmx_domdec_t> DomainDecompositionBuilder::Impl::build(LocalAtomS
     dd->comm->cartesianRankSetup = cartSetup_;
 
     set_dd_limits(mdlog_,
-                  MASTER(cr_) ? DDRole::Master : DDRole::Agent,
+                  MAIN(cr_) ? DDRole::Main : DDRole::Agent,
                   dd.get(),
                   options_,
                   ddSettings_,
@@ -2961,6 +2971,11 @@ std::unique_ptr<gmx_domdec_t> DomainDecompositionBuilder::Impl::build(LocalAtomS
 
     dd->localTopologyChecker = std::make_unique<LocalTopologyChecker>(
             mdlog_, cr_, mtop_, localTopology, localState, dd->comm->systemInfo.useUpdateGroups, observablesReducerBuilder);
+
+#if GMX_MPI
+    MPI_Type_contiguous(DIM, GMX_MPI_REAL, &dd->comm->mpiRVec);
+    MPI_Type_commit(&dd->comm->mpiRVec);
+#endif
 
     return dd;
 }
@@ -3190,7 +3205,7 @@ void dd_init_local_state(const gmx_domdec_t& dd, const t_state* state_global, t_
 {
     std::array<int, 5> buf;
 
-    if (DDMASTER(dd))
+    if (DDMAIN(dd))
     {
         buf[0] = state_global->flags;
         buf[1] = state_global->ngtc;

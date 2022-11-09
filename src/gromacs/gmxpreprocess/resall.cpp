@@ -59,15 +59,15 @@
 
 #include "hackblock.h"
 
-PreprocessingAtomTypes read_atype(const char* ffdir)
+PreprocessingAtomTypes read_atype(const std::filesystem::path& ffdir)
 {
     FILE*  in;
     char   buf[STRLEN], name[STRLEN];
     double m;
     auto   atom = std::make_unique<t_atom>();
 
-    std::vector<std::string> files = fflib_search_file_end(ffdir, ".atp", TRUE);
-    PreprocessingAtomTypes   at;
+    auto                   files = fflib_search_file_end(ffdir, ".atp", TRUE);
+    PreprocessingAtomTypes at;
 
     for (const auto& filename : files)
     {
@@ -212,7 +212,7 @@ static void print_resbondeds(FILE* out, BondedTypes bt, const PreprocessResidue&
 }
 
 static void check_rtp(gmx::ArrayRef<const PreprocessResidue> rtpDBEntry,
-                      const std::string&                     libfn,
+                      const std::filesystem::path&           libfn,
                       const gmx::MDLogger&                   logger)
 {
     /* check for double entries, assuming list is already sorted */
@@ -223,7 +223,8 @@ static void check_rtp(gmx::ArrayRef<const PreprocessResidue> rtpDBEntry,
         {
             GMX_LOG(logger.warning)
                     .asParagraph()
-                    .appendTextFormatted("Double entry %s in file %s", it->resname.c_str(), libfn.c_str());
+                    .appendTextFormatted(
+                            "Double entry %s in file %s", it->resname.c_str(), libfn.u8string().c_str());
         }
     }
 }
@@ -298,7 +299,7 @@ void print_resall(FILE* out, gmx::ArrayRef<const PreprocessResidue> rtpDBEntry, 
     }
 }
 
-void readResidueDatabase(const std::string&              rrdb,
+void readResidueDatabase(const std::filesystem::path&    rrdb,
                          std::vector<PreprocessResidue>* rtpDBEntry,
                          PreprocessingAtomTypes*         atype,
                          t_symtab*                       tab,
@@ -306,12 +307,12 @@ void readResidueDatabase(const std::string&              rrdb,
                          bool                            bAllowOverrideRTP)
 {
     FILE* in;
-    char  filebase[STRLEN], line[STRLEN], header[STRLEN];
+    char  line[STRLEN], header[STRLEN];
     int   nparam;
     int   dum1, dum2, dum3;
     bool  bNextResidue, bError;
 
-    fflib_filename_base(rrdb.c_str(), filebase, STRLEN);
+    auto filebase = fflib_filename_base(rrdb);
 
     in = fflib_open(rrdb);
 
@@ -370,7 +371,7 @@ void readResidueDatabase(const std::string&              rrdb,
         {
             gmx_fatal(FARGS,
                       "need 4 to 8 parameters in the header of .rtp file %s at line:\n%s\n",
-                      rrdb.c_str(),
+                      rrdb.u8string().c_str(),
                       line);
         }
         header_settings.bKeepAllGeneratedDihedrals    = (dum1 != 0);
@@ -429,7 +430,7 @@ void readResidueDatabase(const std::string&              rrdb,
             gmx_fatal(FARGS, "in .rtp file at line:\n%s\n", line);
         }
         res->resname  = header;
-        res->filebase = filebase;
+        res->filebase = filebase.u8string();
 
         get_a_line(in, line, STRLEN);
         bError       = FALSE;
@@ -479,7 +480,10 @@ void readResidueDatabase(const std::string&              rrdb,
         {
             if (found >= oldArrayEnd)
             {
-                gmx_fatal(FARGS, "Found a second entry for '%s' in '%s'", res->resname.c_str(), rrdb.c_str());
+                gmx_fatal(FARGS,
+                          "Found a second entry for '%s' in '%s'",
+                          res->resname.c_str(),
+                          rrdb.u8string().c_str());
             }
             if (bAllowOverrideRTP)
             {
@@ -489,7 +493,7 @@ void readResidueDatabase(const std::string&              rrdb,
                                 "Found another rtp entry for '%s' in '%s',"
                                 " ignoring this entry and keeping the one from '%s.rtp'",
                                 res->resname.c_str(),
-                                rrdb.c_str(),
+                                rrdb.u8string().c_str(),
                                 found->filebase.c_str());
                 /* We should free all the data for this entry.
                  * The current code gives a lot of dangling pointers.
@@ -503,7 +507,7 @@ void readResidueDatabase(const std::string&              rrdb,
                           "definition to override the second one, set the -rtpo option of pdb2gmx.",
                           res->resname.c_str(),
                           found->filebase.c_str(),
-                          rrdb.c_str());
+                          rrdb.u8string().c_str());
             }
         }
     }

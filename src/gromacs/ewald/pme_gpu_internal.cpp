@@ -120,7 +120,12 @@ static PmeGpuKernelParamsBase* pme_gpu_get_kernel_params_base_ptr(const PmeGpu* 
  * the numbers of atoms used for determining the size of the memory
  * allocation must be divisible by this.
  */
+#if !GMX_GPU_SYCL
 constexpr int c_pmeAtomDataBlockSize = 64;
+#else
+// Use more padding to support 64-wide warps and ThreadsPerAtom::Order
+constexpr int c_pmeAtomDataBlockSize = 128;
+#endif
 
 int pme_gpu_get_atom_data_block_size()
 {
@@ -167,7 +172,7 @@ void pme_gpu_free_energy_virial(PmeGpu* pmeGpu)
     }
 }
 
-void pme_gpu_clear_energy_virial(const PmeGpu* pmeGpu)
+void pme_gpu_clear_energy_virial(const PmeGpu* pmeGpu, const bool useMdGpuGraph)
 {
     for (int gridIndex = 0; gridIndex < pmeGpu->common->ngrids; gridIndex++)
     {
@@ -175,6 +180,11 @@ void pme_gpu_clear_energy_virial(const PmeGpu* pmeGpu)
                                0,
                                c_virialAndEnergyCount,
                                pmeGpu->archSpecific->pmeStream_);
+    }
+    if (pmeGpu->settings.useGpuForceReduction && useMdGpuGraph)
+    {
+        // Mark forces ready event after this clearing, otherwise CUDA graph capture fails due to unjoined work
+        pmeGpu->archSpecific->pmeForcesReady.markEvent(pmeGpu->archSpecific->pmeStream_);
     }
 }
 
@@ -846,7 +856,14 @@ static gmx::FftBackend getFftBackend(const PmeGpu* pmeGpu)
     }
     else if (GMX_GPU_OPENCL)
     {
-        return gmx::FftBackend::Ocl;
+        if (GMX_GPU_FFT_VKFFT)
+        {
+            return gmx::FftBackend::OclVkfft;
+        }
+        else
+        {
+            return gmx::FftBackend::Ocl;
+        }
     }
     else if (GMX_GPU_SYCL)
     {
@@ -854,9 +871,20 @@ static gmx::FftBackend getFftBackend(const PmeGpu* pmeGpu)
         {
             return gmx::FftBackend::SyclMkl;
         }
-        else if ((GMX_SYCL_HIPSYCL != 0) && (GMX_HIPSYCL_HAVE_HIP_TARGET != 0)) // NOLINT(misc-redundant-expression)
+        else if (GMX_SYCL_HIPSYCL)
         {
-            return gmx::FftBackend::SyclRocfft;
+            if (GMX_GPU_FFT_VKFFT)
+            {
+                return gmx::FftBackend::SyclVkfft;
+            }
+            else if (GMX_GPU_FFT_ROCFFT)
+            {
+                return gmx::FftBackend::SyclRocfft;
+            }
+            else
+            {
+                return gmx::FftBackend::Sycl;
+            }
         }
         else
         {
@@ -1279,7 +1307,8 @@ void pme_gpu_get_real_grid_sizes(const PmeGpu* pmeGpu, gmx::IVec* gridSize, gmx:
 void pme_gpu_reinit(gmx_pme_t*           pme,
                     const DeviceContext* deviceContext,
                     const DeviceStream*  deviceStream,
-                    const PmeGpuProgram* pmeGpuProgram)
+                    const PmeGpuProgram* pmeGpuProgram,
+                    const bool           useMdGpuGraph)
 {
     GMX_ASSERT(pme != nullptr, "Need valid PME object");
 
@@ -1307,7 +1336,7 @@ void pme_gpu_reinit(gmx_pme_t*           pme,
     pme_gpu_reinit_grids(pme->gpu);
     // Note: if timing the reinit launch overhead becomes more relevant
     // (e.g. with regulat PP-PME re-balancing), we should pass wcycle here.
-    pme_gpu_reinit_computation(pme, nullptr);
+    pme_gpu_reinit_computation(pme, useMdGpuGraph, nullptr);
     /* Clear the previous box - doesn't hurt, and forces the PME CPU recipbox
      * update for mixed mode on grid switch. TODO: use shared recipbox field.
      */

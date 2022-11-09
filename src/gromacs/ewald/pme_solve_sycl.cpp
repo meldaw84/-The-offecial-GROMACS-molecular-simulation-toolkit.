@@ -88,6 +88,10 @@ auto makeSolveKernel(sycl::handler&                    cgh,
      */
     return [=](sycl::nd_item<3> itemIdx) [[intel::reqd_sub_group_size(subGroupSize)]]
     {
+        if constexpr (skipKernelCompilation<subGroupSize>())
+        {
+            return;
+        }
         /* This kernel supports 2 different grid dimension orderings: YZX and XYZ */
         int majorDim, middleDim, minorDim;
         switch (gridOrdering)
@@ -414,7 +418,7 @@ void PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, subGroupSiz
 }
 
 template<GridOrdering gridOrdering, bool computeEnergyAndVirial, int gridIndex, int subGroupSize>
-sycl::event PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, subGroupSize>::launch(
+void PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, subGroupSize>::launch(
         const KernelLaunchConfig& config,
         const DeviceStream&       deviceStream)
 {
@@ -430,7 +434,7 @@ sycl::event PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, subG
 
     sycl::queue q = deviceStream.stream();
 
-    sycl::event e = q.submit([&](sycl::handler& cgh) {
+    q.submit(GMX_SYCL_DISCARD_EVENT[&](sycl::handler & cgh) {
         auto kernel = makeSolveKernel<gridOrdering, computeEnergyAndVirial, subGroupSize>(
                 cgh,
                 gridParams_->d_splineModuli[gridIndex],
@@ -442,8 +446,6 @@ sycl::event PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, subG
 
     // Delete set args, so we don't forget to set them before the next launch.
     reset();
-
-    return e;
 }
 
 template<GridOrdering gridOrdering, bool computeEnergyAndVirial, int gridIndex, int subGroupSize>

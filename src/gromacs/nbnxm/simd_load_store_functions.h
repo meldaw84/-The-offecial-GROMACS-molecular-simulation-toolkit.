@@ -222,9 +222,9 @@ inline void accumulateGroupPairEnergies2xMM(SimdReal energies,
                                             real*    groupPairEnergyBuffersPtr1,
                                             const std::array<int, offsetJJSize>& offsetJJ)
 {
-    static_assert(offsetJJSize == GMX_SIMD_REAL_WIDTH / 2);
+    static_assert(offsetJJSize == GMX_SIMD_REAL_WIDTH / 4);
 
-    for (int jj = 0; jj < GMX_SIMD_REAL_WIDTH / 2; jj++)
+    for (int jj = 0; jj < GMX_SIMD_REAL_WIDTH / 4; jj++)
     {
         incrDualHsimd(groupPairEnergyBuffersPtr0 + offsetJJ[jj] + jj * GMX_SIMD_REAL_WIDTH / 2,
                       groupPairEnergyBuffersPtr1 + offsetJJ[jj] + jj * GMX_SIMD_REAL_WIDTH / 2,

@@ -15,7 +15,7 @@ if [ -z $GMX_TEST_REQUIRED_NUMBER_OF_DEVICES ] && [ -n $KUBERNETES_EXTENDED_RESO
     fi
 fi
 if grep -qF 'nvidia.com/gpu' <<< "$KUBERNETES_EXTENDED_RESOURCE_NAME"; then
-    nvidia-smi || true;
+    nvidia-smi -L && nvidia-smi || true;
 fi
 if grep -qF 'amd.com/gpu' <<< "$KUBERNETES_EXTENDED_RESOURCE_NAME"; then
     clinfo -l || true;
@@ -24,7 +24,11 @@ if grep -qF 'intel.com/gpu' <<< "$KUBERNETES_EXTENDED_RESOURCE_NAME"; then
     sycl-ls || true;
     export SYCL_CACHE_PERSISTENT=1; # Issue #4218
 fi
-ctest -D $CTEST_RUN_MODE --output-on-failure | tee ctestLog.log || true
+LABEL_REGEX=
+if [[ -n "$GMX_TEST_LABELS" ]] ; then
+    LABEL_REGEX="--label-regex $GMX_TEST_LABELS"
+fi
+ctest -D $CTEST_RUN_MODE $LABEL_REGEX --output-on-failure | tee ctestLog.log || true
 
 EXITCODE=$?
 

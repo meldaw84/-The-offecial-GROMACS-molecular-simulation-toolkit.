@@ -101,7 +101,7 @@
 #include "pme_output.h"
 #include "pme_pp_communication.h"
 
-/*! \brief Master PP-PME communication data structure */
+/*! \brief Main PP-PME communication data structure */
 struct gmx_pme_pp
 {
     MPI_Comm             mpi_comm_mysim; /**< MPI communicator for this simulation */
@@ -133,6 +133,8 @@ struct gmx_pme_pp
     bool useGpuDirectComm = false;
     /*! \brief whether GPU direct communications should send forces directly to remote GPU memory */
     bool sendForcesDirectToPpGpu = false;
+    /*! \brief Whether a GPU graph should be used to execute steps in the MD loop if run conditions allow */
+    bool useMdGpuGraph = false;
 };
 
 /*! \brief Initialize the PME-only side of the PME <-> PP communication */
@@ -200,8 +202,11 @@ static gmx_pme_t* gmx_pmeonly_switch(std::vector<gmx_pme_t*>* pmedata,
              * So, just some grid size updates in the GPU kernel parameters.
              * TODO: this should be something like gmx_pme_update_split_params()
              */
-            gmx_pme_reinit(&pme, cr, pme, ir, grid_size, ewaldcoeff_q, ewaldcoeff_lj);
-            return pme;
+            gmx_pme_t* pmeNew;
+            gmx_pme_reinit(&pmeNew, cr, pme, ir, grid_size, ewaldcoeff_q, ewaldcoeff_lj);
+            gmx_pme_destroy(pme, false);
+            pme = pmeNew;
+            return pmeNew;
         }
     }
 
@@ -291,6 +296,8 @@ static int gmx_pme_recv_coeffs_coords(struct gmx_pme_t*            pme,
                    "The use of GPU direct communication for PME-PP is enabled, "
                    "but the PME GPU force reciever object does not exist");
         pme_pp->sendForcesDirectToPpGpu = ((cnb.flags & PP_PME_RECVFTOGPU) != 0);
+
+        pme_pp->useMdGpuGraph = ((cnb.flags & PP_PME_MDGPUGRAPH) != 0);
 
         if (cnb.flags & PP_PME_FINISH)
         {
@@ -811,12 +818,20 @@ int gmx_pmeonly(struct gmx_pme_t*               pme,
         cycles = wallcycle_stop(
                 wcycle, useGpuForPme ? WallCycleCounter::PmeGpuMesh : WallCycleCounter::PmeMesh);
 
+
+        if (useGpuForPme && pme_pp->useMdGpuGraph)
+        {
+            // Reinit before PME->PP force send so it is included in graph
+            // which implicitly joins back to PP task as part of force transfer
+            pme_gpu_reinit_computation(pme, pme_pp->useMdGpuGraph, wcycle);
+        }
+
         gmx_pme_send_force_vir_ener(*pme, pme_pp.get(), output, cycles);
 
         // Reinit after PME->PP force send so it is removed from the critical path
-        if (useGpuForPme)
+        if (useGpuForPme && !pme_pp->useMdGpuGraph)
         {
-            pme_gpu_reinit_computation(pme, wcycle);
+            pme_gpu_reinit_computation(pme, pme_pp->useMdGpuGraph, wcycle);
         }
 
         count++;

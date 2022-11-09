@@ -81,15 +81,24 @@ if (GMX_GPU_CUDA)
         )
     endif()
 elseif (GMX_GPU_OPENCL)
-    gmx_add_libgromacs_sources(
-        # OpenCL-specific sources
-        gpu_3dfft_ocl.cpp
-        gpu_3dfft_impl.cpp
-        gpu_3dfft.cpp
-        )
+    if (GMX_GPU_FFT_VKFFT)
+        gmx_add_libgromacs_sources(
+            # OpenCL-specific sources
+            gpu_3dfft_ocl_vkfft.cpp
+            gpu_3dfft_impl.cpp
+            gpu_3dfft.cpp
+            )
+    else()
+        gmx_add_libgromacs_sources(
+            # OpenCL-specific sources
+            gpu_3dfft_ocl.cpp
+            gpu_3dfft_impl.cpp
+            gpu_3dfft.cpp
+            )
+    endif()
 elseif (GMX_GPU_SYCL)
     if (NOT GMX_SYCL_HIPSYCL AND GMX_FFT_MKL)
-            gmx_add_libgromacs_sources(
+        gmx_add_libgromacs_sources(
             gpu_3dfft_sycl_mkl.cpp
             gpu_3dfft_impl.cpp
             gpu_3dfft.cpp
@@ -100,17 +109,30 @@ elseif (GMX_GPU_SYCL)
             gpu_3dfft.cpp
             )
     endif()
-    if (GMX_SYCL_HIPSYCL AND GMX_HIPSYCL_HAVE_HIP_TARGET)
+    if (GMX_SYCL_HIPSYCL)
+        if(GMX_GPU_FFT_VKFFT)
             gmx_add_libgromacs_sources(
-            gpu_3dfft_sycl_rocfft.cpp
-            gpu_3dfft_impl.cpp
-            gpu_3dfft.cpp
+                gpu_3dfft_sycl_vkfft.cpp 
+                gpu_3dfft_impl.cpp 
+                gpu_3dfft.cpp
             )
-        _gmx_add_files_to_property(SYCL_SOURCES
-            gpu_3dfft_sycl_rocfft.cpp
-            gpu_3dfft_impl.cpp
-            gpu_3dfft.cpp
+            _gmx_add_files_to_property(SYCL_SOURCES
+                gpu_3dfft_sycl_vkfft.cpp
+                gpu_3dfft_impl.cpp
+                gpu_3dfft.cpp
             )
+        elseif(GMX_GPU_FFT_ROCFFT)
+            gmx_add_libgromacs_sources(
+                gpu_3dfft_sycl_rocfft.cpp
+                gpu_3dfft_impl.cpp
+                gpu_3dfft.cpp
+                )
+            _gmx_add_files_to_property(SYCL_SOURCES
+                gpu_3dfft_sycl_rocfft.cpp
+                gpu_3dfft_impl.cpp
+                gpu_3dfft.cpp
+                )
+        endif()
     endif()
     gmx_add_libgromacs_sources(
         gpu_3dfft_sycl.cpp

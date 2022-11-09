@@ -46,8 +46,19 @@
 #include "gmxapi/context.h"
 #include "gmxapi/md.h"
 
+#include "gmxpy_exceptions.h"
+
 namespace gmxpy
 {
+
+/*!
+ * \brief Computing resources are not suitable.
+ */
+class ResourceError : public ::gmxpy::Exception
+{
+public:
+    using Exception::Exception;
+};
 
 using gmxapi::MDArgs;
 
@@ -62,9 +73,13 @@ class PyContext
 {
 public:
     PyContext();
-    void                             setMDArgs(const MDArgs& mdArgs);
+    explicit PyContext(std::shared_ptr<gmxapi::Context> context);
+
+    void setMDArgs(const MDArgs& mdArgs);
+
     std::shared_ptr<gmxapi::Session> launch(const gmxapi::Workflow& work);
-    std::shared_ptr<gmxapi::Context> get() const;
+
+    [[nodiscard]] std::shared_ptr<gmxapi::Context> get() const;
 
     void addMDModule(const pybind11::object& forceProvider) const;
 
@@ -76,13 +91,23 @@ public:
      * \return handle to be passed to gmxapi::MDHolder
      *
      */
-    std::shared_ptr<gmxapi::MDWorkSpec> getSpec() const;
+    [[nodiscard]] std::shared_ptr<gmxapi::MDWorkSpec> getSpec() const;
 
 private:
+    // TODO(#4467): Directly hold a `gmxapi::Context` object.
     std::shared_ptr<gmxapi::Context>    context_;
     std::shared_ptr<gmxapi::MDWorkSpec> workNodes_;
 };
 
+PyContext create_context();
+PyContext create_context(pybind11::object communicator);
+
+namespace detail
+{
+
+void export_create_context(pybind11::module& module, const pybind11::exception<Exception>& exception);
+
+} // end namespace detail
 
 } // end namespace gmxpy
 

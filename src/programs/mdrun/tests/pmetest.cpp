@@ -216,7 +216,7 @@ void PmeTest::SetUpTestSuite()
 
         std::string tprFileNameSuffix = formatString("%s.tpr", enumValueToString(pmeTestFlavor));
         std::replace(tprFileNameSuffix.begin(), tprFileNameSuffix.end(), ' ', '_');
-        runner.tprFileName_ = s_testFileManager->getTemporaryFilePath(tprFileNameSuffix);
+        runner.tprFileName_ = s_testFileManager->getTemporaryFilePath(tprFileNameSuffix).u8string();
         // Note that only one rank actually generates a tpr file
         runner.callGrompp();
         s_tprFileNames[pmeTestFlavor] = runner.tprFileName_;
@@ -280,7 +280,6 @@ MessageStringCollector PmeTest::getSkipMessagesIfNecessary(const CommandLine& co
 
         std::string errorMessage;
         messages.appendIf(!pme_gpu_supports_build(&errorMessage), errorMessage);
-        messages.appendIf(!pme_gpu_supports_hardware(*s_hwinfo, &errorMessage), errorMessage);
         // A check on whether the .tpr is supported for PME on GPUs is
         // not needed, because it is supported by design.
     }
@@ -320,7 +319,7 @@ TEST_P(PmeTest, Runs)
 
         if (thisRankChecks)
         {
-            // Check the contents of the edr file. Only the master
+            // Check the contents of the edr file. Only the main
             // rank should do this I/O intensive operation
             checkEnergies(usePmeTuning);
         }

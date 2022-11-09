@@ -75,6 +75,7 @@
 #include "gromacs/gmxlib/network.h"
 #include "gromacs/gmxlib/nrnb.h"
 #include "gromacs/gpu_utils/device_stream_manager.h"
+#include "gromacs/gpu_utils/gpueventsynchronizer_helpers.h"
 #include "gromacs/hardware/cpuinfo.h"
 #include "gromacs/hardware/detecthardware.h"
 #include "gromacs/hardware/device_management.h"
@@ -100,6 +101,7 @@
 #include "gromacs/mdlib/makeconstraints.h"
 #include "gromacs/mdlib/md_support.h"
 #include "gromacs/mdlib/mdatoms.h"
+#include "gromacs/mdlib/mdgraph_gpu.h"
 #include "gromacs/mdlib/sighandler.h"
 #include "gromacs/mdlib/stophandler.h"
 #include "gromacs/mdlib/tgroup.h"
@@ -180,7 +182,6 @@
 namespace gmx
 {
 
-
 /*! \brief Manage any development feature flag variables encountered
  *
  * The use of dev features indicated by environment variables is
@@ -210,6 +211,30 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
     devFlags.enableGpuBufferOps = (GMX_GPU_CUDA || GMX_GPU_SYCL) && useGpuForNonbonded
                                   && (getenv("GMX_USE_GPU_BUFFER_OPS") != nullptr);
     devFlags.forceGpuUpdateDefault = (getenv("GMX_FORCE_UPDATE_DEFAULT_GPU") != nullptr) || GMX_FAHCORE;
+
+    if (getenv("GMX_CUDA_GRAPH") != nullptr)
+    {
+        if (GMX_HAVE_CUDA_GRAPH_SUPPORT)
+        {
+            devFlags.enableCudaGraphs = true;
+            GMX_LOG(mdlog.warning)
+                    .asParagraph()
+                    .appendText(
+                            "GMX_CUDA_GRAPH environment variable is detected. "
+                            "The experimental CUDA Graphs feature will be used if run conditions "
+                            "allow.");
+        }
+        else
+        {
+            devFlags.enableCudaGraphs = false;
+            GMX_LOG(mdlog.warning)
+                    .asParagraph()
+                    .appendText(
+                            "GMX_CUDA_GRAPH environment variable is detected, "
+                            "but the CUDA version in use is below the minumum requirement (11.1). "
+                            "CUDA Graphs will be disabled.");
+        }
+    }
 
     // Flag use to enable GPU-aware MPI depenendent features such PME GPU decomposition
     // GPU-aware MPI is marked available if it has been detected by GROMACS or detection fails but
@@ -377,7 +402,7 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
 
 /*! \brief Barrier for safe simultaneous thread access to mdrunner data
  *
- * Used to ensure that the master thread does not modify mdrunner during copy
+ * Used to ensure that the main thread does not modify mdrunner during copy
  * on the spawned threads. */
 static void threadMpiMdrunnerAccessBarrier()
 {
@@ -397,7 +422,7 @@ Mdrunner Mdrunner::cloneOnSpawnedThread() const
         newRunner.restraintManager_ = std::make_unique<RestraintManager>(*restraintManager_);
     }
 
-    // Copy members of master runner.
+    // Copy members of main runner.
     // \todo Replace with builder when Simulation context and/or runner phases are better defined.
     // Ref https://gitlab.com/gromacs/gromacs/-/issues/2587 and https://gitlab.com/gromacs/gromacs/-/issues/2375
     newRunner.hw_opt    = hw_opt;
@@ -431,7 +456,7 @@ Mdrunner Mdrunner::cloneOnSpawnedThread() const
 
 /*! \brief The callback used for running on spawned threads.
  *
- * Obtains the pointer to the master mdrunner object from the one
+ * Obtains the pointer to the main mdrunner object from the one
  * argument permitted to the thread-launch API call, copies it to make
  * a new runner for this thread, reinitializes necessary data, and
  * proceeds to the simulation. */
@@ -439,11 +464,11 @@ static void mdrunner_start_fn(const void* arg)
 {
     try
     {
-        const auto* masterMdrunner = reinterpret_cast<const gmx::Mdrunner*>(arg);
+        const auto* mainMdrunner = reinterpret_cast<const gmx::Mdrunner*>(arg);
         /* copy the arg list to make sure that it's thread-local. This
            doesn't copy pointed-to items, of course; fnm, cr and fplog
            are reset in the call below, all others should be const. */
-        gmx::Mdrunner mdrunner = masterMdrunner->cloneOnSpawnedThread();
+        gmx::Mdrunner mdrunner = mainMdrunner->cloneOnSpawnedThread();
         mdrunner.mdrunner();
     }
     GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR
@@ -461,7 +486,7 @@ void Mdrunner::spawnThreads(int numThreadsToLaunch)
         GMX_THROW(gmx::InternalError("Failed to spawn thread-MPI threads"));
     }
 
-    // Give the master thread the newly created valid communicator for
+    // Give the main thread the newly created valid communicator for
     // the simulation.
     libraryWorldCommunicator = MPI_COMM_WORLD;
     simulationCommunicator   = MPI_COMM_WORLD;
@@ -650,14 +675,14 @@ static bool gpuAccelerationOfNonbondedIsUseful(const MDLogger&   mdlog,
 }
 
 //! Initializes the logger for mdrun.
-static gmx::LoggerOwner buildLogger(FILE* fplog, const bool isSimulationMasterRank)
+static gmx::LoggerOwner buildLogger(FILE* fplog, const bool isSimulationMainRank)
 {
     gmx::LoggerBuilder builder;
     if (fplog != nullptr)
     {
         builder.addTargetFile(gmx::MDLogger::LogLevel::Info, fplog);
     }
-    if (isSimulationMasterRank)
+    if (isSimulationMainRank)
     {
         builder.addTargetStream(gmx::MDLogger::LogLevel::Warning, &gmx::TextOutputFile::standardError());
     }
@@ -706,7 +731,7 @@ static void finish_run(FILE*                     fplog,
     double elapsed_time, elapsed_time_over_all_ranks, elapsed_time_over_all_threads,
             elapsed_time_over_all_threads_over_all_ranks;
     /* Control whether it is valid to print a report. Only the
-       simulation master may print, but it should not do so if the run
+       simulation main may print, but it should not do so if the run
        terminated e.g. before a scheduled reset step. This is
        complicated by the fact that PME ranks are unaware of the
        reason why they were sent a pmerecvqxFINISH. To avoid
@@ -718,7 +743,7 @@ static void finish_run(FILE*                     fplog,
        Further, we only report performance for dynamical integrators,
        because those are the only ones for which we plan to
        consider doing any optimizations. */
-    bool printReport = EI_DYNAMICS(inputrec.eI) && SIMMASTER(cr);
+    bool printReport = EI_DYNAMICS(inputrec.eI) && SIMMAIN(cr);
 
     if (printReport && !walltime_accounting_get_valid_finish(walltime_accounting))
     {
@@ -880,11 +905,11 @@ int Mdrunner::mdrunner()
     {
         fplog = gmx_fio_getfp(logFileHandle);
     }
-    const bool isSimulationMasterRank = findIsSimulationMasterRank(ms, simulationCommunicator);
-    gmx::LoggerOwner logOwner(buildLogger(fplog, isSimulationMasterRank));
+    const bool       isSimulationMainRank = findIsSimulationMainRank(ms, simulationCommunicator);
+    gmx::LoggerOwner logOwner(buildLogger(fplog, isSimulationMainRank));
     gmx::MDLogger    mdlog(logOwner.logger());
 
-    gmx_print_detected_hardware(fplog, isSimulationMasterRank && isMasterSim(ms), mdlog, hwinfo_);
+    gmx_print_detected_hardware(fplog, isSimulationMainRank && isMainSim(ms), mdlog, hwinfo_);
 
     std::vector<int> availableDevices =
             makeListOfAvailableDevices(hwinfo_->deviceInfoList, hw_opt.devicesSelectedByUser);
@@ -900,10 +925,10 @@ int Mdrunner::mdrunner()
 
     auto partialDeserializedTpr = std::make_unique<PartialDeserializedTprFile>();
 
-    if (isSimulationMasterRank)
+    if (isSimulationMainRank)
     {
         // Allocate objects to be initialized by later function calls.
-        /* Only the master rank has the global state */
+        /* Only the main rank has the global state */
         globalState = std::make_unique<t_state>();
         inputrec    = std::make_unique<t_inputrec>();
 
@@ -916,9 +941,9 @@ int Mdrunner::mdrunner()
 
     /* Check and update the hardware options for internal consistency */
     checkAndUpdateHardwareOptions(
-            mdlog, &hw_opt, isSimulationMasterRank, domdecOptions.numPmeRanks, inputrec.get());
+            mdlog, &hw_opt, isSimulationMainRank, domdecOptions.numPmeRanks, inputrec.get());
 
-    if (GMX_THREAD_MPI && isSimulationMasterRank)
+    if (GMX_THREAD_MPI && isSimulationMainRank)
     {
         bool useGpuForNonbonded = false;
         bool useGpuForPme       = false;
@@ -968,7 +993,7 @@ int Mdrunner::mdrunner()
         // Now start the threads for thread MPI.
         spawnThreads(hw_opt.nthreads_tmpi);
         // The spawned threads enter mdrunner() and execution of
-        // master and spawned threads joins at the end of this block.
+        // main and spawned threads joins at the end of this block.
     }
 
     GMX_RELEASE_ASSERT(!GMX_MPI || ms || simulationCommunicator != MPI_COMM_NULL,
@@ -981,18 +1006,15 @@ int Mdrunner::mdrunner()
 
     if (PAR(cr))
     {
-        /* now broadcast everything to the non-master nodes/threads: */
-        if (!isSimulationMasterRank)
+        /* now broadcast everything to the non-main nodes/threads: */
+        if (!isSimulationMainRank)
         {
-            // Until now, only the master rank has a non-null pointer.
-            // On non-master ranks, allocate the object that will receive data in the following call.
+            // Until now, only the main rank has a non-null pointer.
+            // On non-main ranks, allocate the object that will receive data in the following call.
             inputrec = std::make_unique<t_inputrec>();
         }
-        init_parallel(cr->mpiDefaultCommunicator,
-                      MASTER(cr),
-                      inputrec.get(),
-                      &mtop,
-                      partialDeserializedTpr.get());
+        init_parallel(
+                cr->mpiDefaultCommunicator, MAIN(cr), inputrec.get(), &mtop, partialDeserializedTpr.get());
     }
     GMX_RELEASE_ASSERT(inputrec != nullptr, "All ranks should have a valid inputrec now");
     partialDeserializedTpr.reset(nullptr);
@@ -1053,7 +1075,7 @@ int Mdrunner::mdrunner()
                                                               membedHolder.doMembed());
 
     // Now the number of ranks is known to all ranks, and each knows
-    // the inputrec read by the master rank. The ranks can now all run
+    // the inputrec read by the main rank. The ranks can now all run
     // the task-deciding functions and will agree on the result
     // without needing to communicate.
     // The LBFGS minimizer, test-particle insertion, normal modes and shell dynamics don't support DD
@@ -1119,7 +1141,7 @@ int Mdrunner::mdrunner()
         fprintf(fplog, "\n");
     }
 
-    if (SIMMASTER(cr))
+    if (SIMMAIN(cr))
     {
         /* In rerun, set velocities to zero if present */
         if (doRerun && ((globalState->flags & enumValueToBitMask(StateEntry::V)) != 0))
@@ -1146,7 +1168,7 @@ int Mdrunner::mdrunner()
      */
     if (inputrec->eI == IntegrationAlgorithm::NM || inputrec->eI == IntegrationAlgorithm::TPI)
     {
-        if (!MASTER(cr))
+        if (!MAIN(cr))
         {
             globalState = std::make_unique<t_state>();
         }
@@ -1196,7 +1218,7 @@ int Mdrunner::mdrunner()
                 mtop,
                 inputrec.get(),
                 DisResRunMode::MDRun,
-                MASTER(cr) ? DDRole::Master : DDRole::Agent,
+                MAIN(cr) ? DDRole::Main : DDRole::Agent,
                 PAR(cr) ? NumRanks::Multiple : NumRanks::Single,
                 cr->mpi_comm_mysim,
                 ms,
@@ -1204,18 +1226,10 @@ int Mdrunner::mdrunner()
                 globalState.get(),
                 replExParams.exchangeInterval > 0);
 
-    if (gmx_mtop_ftype_count(mtop, F_ORIRES) > 0 && isSimulationMasterRank)
+    if (gmx_mtop_ftype_count(mtop, F_ORIRES) > 0 && isSimulationMainRank)
     {
         extendStateWithOriresHistory(mtop, *inputrec, globalState.get());
     }
-
-    std::unique_ptr<BoxDeformation> deform = buildBoxDeformation(
-            globalState != nullptr ? createMatrix3x3FromLegacyMatrix(globalState->box)
-                                   : diagonalMatrix<real, 3, 3>(0.0),
-            MASTER(cr) ? DDRole::Master : DDRole::Agent,
-            PAR(cr) ? NumRanks::Multiple : NumRanks::Single,
-            cr->mpi_comm_mygroup,
-            *inputrec);
 
 #if GMX_FAHCORE
     /* We have to remember the generation's first step before reading checkpoint.
@@ -1226,7 +1240,7 @@ int Mdrunner::mdrunner()
        the progress.
      */
     int gen_first_step = 0;
-    if (MASTER(cr))
+    if (MAIN(cr))
     {
         gen_first_step = inputrec->init_step;
     }
@@ -1277,13 +1291,13 @@ int Mdrunner::mdrunner()
             // Now we can start normal logging to the truncated log file.
             fplog = gmx_fio_getfp(logFileHandle);
             prepareLogAppending(fplog);
-            logOwner = buildLogger(fplog, MASTER(cr));
+            logOwner = buildLogger(fplog, MAIN(cr));
             mdlog    = logOwner.logger();
         }
     }
 
 #if GMX_FAHCORE
-    if (MASTER(cr))
+    if (MAIN(cr))
     {
         fcRegisterSteps(inputrec->nsteps + inputrec->init_step, gen_first_step);
     }
@@ -1303,7 +1317,7 @@ int Mdrunner::mdrunner()
     override_nsteps_cmdline(mdlog, mdrunOptions.numStepsCommandline, inputrec.get());
 
     matrix box;
-    if (isSimulationMasterRank)
+    if (isSimulationMainRank)
     {
         copy_mat(globalState->box, box);
     }
@@ -1329,7 +1343,7 @@ int Mdrunner::mdrunner()
                           inputrec.get(),
                           nstlist_cmdline,
                           mtop,
-                          MASTER(cr) ? globalState->x : gmx::ArrayRef<const gmx::RVec>(),
+                          MAIN(cr) ? globalState->x : gmx::ArrayRef<const gmx::RVec>(),
                           box,
                           useGpuForNonbonded || (emulateGpuNonbonded == EmulateGpuNonbonded::Yes),
                           *hwinfo_->cpuInfo);
@@ -1450,7 +1464,7 @@ int Mdrunner::mdrunner()
         }
     }
 
-    // Produce the task assignment for this rank - done after DD is constructed
+    // Produce the task assignment for all ranks on this node - done after DD is constructed
     GpuTaskAssignments gpuTaskAssignments = GpuTaskAssignmentsBuilder::build(
             availableDevices,
             userGpuTaskAssignment,
@@ -1468,7 +1482,8 @@ int Mdrunner::mdrunner()
             // algorithm is active, but currently does not.
             usingPme(inputrec->coulombtype) && thisRankHasDuty(cr, DUTY_PME));
 
-    // Get the device handles for the modules, nullptr when no task is assigned.
+    // Get the device handle for the modules on this rank, nullptr
+    // when no task is assigned.
     int                deviceId   = -1;
     DeviceInformation* deviceInfo = gpuTaskAssignments.initDevice(&deviceId);
 
@@ -1512,7 +1527,7 @@ int Mdrunner::mdrunner()
     // update groups (e.g. a single-rank simulation) cannot always be
     // correctly restarted in a way that does use update groups
     // (e.g. a multi-rank simulation).
-    if (isSimulationMasterRank)
+    if (isSimulationMainRank)
     {
         const bool useUpdateGroups = cr->dd ? ddUsesUpdateGroups(*cr->dd) : false;
         if (useUpdateGroups)
@@ -1557,8 +1572,13 @@ int Mdrunner::mdrunner()
                                                               canUseDirectGpuComm,
                                                               useGpuPmeDecomposition);
 
+    if (runScheduleWork.simulationWork.useGpuDirectCommunication && GMX_GPU_CUDA)
+    {
+        // Don't enable event counting with GPU Direct comm, see #3988.
+        gmx::internal::disableCudaEventConsumptionCounting();
+    }
 
-    if (isSimulationMasterRank && GMX_GPU_SYCL)
+    if (isSimulationMainRank && GMX_GPU_SYCL)
     {
         const SimulationWorkload& simWorkload    = runScheduleWork.simulationWork;
         bool                      haveAnyGpuWork = simWorkload.useGpuPme || simWorkload.useGpuBonded
@@ -1668,9 +1688,9 @@ int Mdrunner::mdrunner()
             numThreadsOnThisRank, cr->nodeid, *hwinfo_->hardwareTopology, physicalNodeComm, mdlog);
 
     // Enable Peer access between GPUs where available
-    // Only for DD, only master PP rank needs to perform setup, and only if thread MPI plus
+    // Only for DD, only main PP rank needs to perform setup, and only if thread MPI plus
     // any of the GPU communication features are active.
-    if (haveDDAtomOrdering(*cr) && MASTER(cr) && thisRankHasDuty(cr, DUTY_PP) && GMX_THREAD_MPI
+    if (haveDDAtomOrdering(*cr) && MAIN(cr) && thisRankHasDuty(cr, DUTY_PP) && GMX_THREAD_MPI
         && (runScheduleWork.simulationWork.useGpuHaloExchange
             || runScheduleWork.simulationWork.useGpuPmePpCommunication))
     {
@@ -1714,7 +1734,7 @@ int Mdrunner::mdrunner()
 
     if (PAR(cr))
     {
-        /* Master synchronizes its value of reset_counters with all nodes
+        /* Main synchronizes its value of reset_counters with all nodes
          * including PME only nodes */
         int64_t reset_counters = wcycle_get_reset_counters(wcycle.get());
         gmx_bcast(sizeof(reset_counters), &reset_counters, cr->mpi_comm_mysim);
@@ -1731,8 +1751,9 @@ int Mdrunner::mdrunner()
                                   cr,
                                   &mdrunOptions.checkpointOptions.period);
 
-    const bool               thisRankHasPmeGpuTask = gpuTaskAssignments.thisRankHasPmeGpuTask();
-    std::unique_ptr<MDAtoms> mdAtoms;
+    const bool thisRankHasPmeGpuTask = gpuTaskAssignments.thisRankHasPmeGpuTask();
+    std::unique_ptr<BoxDeformation>      deform;
+    std::unique_ptr<MDAtoms>             mdAtoms;
     std::unique_ptr<VirtualSitesHandler> vsite;
 
     t_nrnb nrnb;
@@ -1766,6 +1787,14 @@ int Mdrunner::mdrunner()
                     fplog, mtop, *inputrec, ms, globalState.get(), &atomSets);
         }
 
+        deform = buildBoxDeformation(globalState != nullptr
+                                             ? createMatrix3x3FromLegacyMatrix(globalState->box)
+                                             : diagonalMatrix<real, 3, 3>(0.0),
+                                     MAIN(cr) ? DDRole::Main : DDRole::Agent,
+                                     PAR(cr) ? NumRanks::Multiple : NumRanks::Single,
+                                     cr->mpi_comm_mygroup,
+                                     *inputrec);
+
         // Save a handle to device stream manager to use elsewhere in the code
         // TODO: Forcerec is not a correct place to store it.
         fr->deviceStreamManager = deviceStreamManager.get();
@@ -1797,7 +1826,7 @@ int Mdrunner::mdrunner()
                 runScheduleWork.simulationWork.useGpuNonbonded,
                 deviceStreamManager.get(),
                 mtop,
-                isSimulationMasterRank ? globalState->x : gmx::ArrayRef<const gmx::RVec>(),
+                isSimulationMainRank ? globalState->x : gmx::ArrayRef<const gmx::RVec>(),
                 box,
                 wcycle.get());
         // TODO: Move the logic below to a GPU bonded builder
@@ -1848,7 +1877,7 @@ int Mdrunner::mdrunner()
         /* With periodic molecules the charge groups should be whole at start up
          * and the virtual sites should not be far from their proper positions.
          */
-        if (!inputrec->bContinuation && MASTER(cr)
+        if (!inputrec->bContinuation && MAIN(cr)
             && !(inputrec->pbcType != PbcType::No && inputrec->bPeriodicMols))
         {
             /* Make molecules whole at start of run */
@@ -2018,7 +2047,7 @@ int Mdrunner::mdrunner()
             {
                 initPullHistory(pull_work, &observablesHistory);
             }
-            if (EI_DYNAMICS(inputrec->eI) && MASTER(cr))
+            if (EI_DYNAMICS(inputrec->eI) && MAIN(cr))
             {
                 init_pull_output_files(pull_work, filenames.size(), filenames.data(), oenv, startingBehavior);
             }
@@ -2047,7 +2076,7 @@ int Mdrunner::mdrunner()
             /* Initialize ion swapping code */
             swap = init_swapcoords(fplog,
                                    inputrec.get(),
-                                   opt2fn_master("-swap", filenames.size(), filenames.data(), cr),
+                                   opt2fn_main("-swap", filenames.size(), filenames.data(), cr),
                                    mtop,
                                    globalState.get(),
                                    &observablesHistory,
@@ -2083,7 +2112,9 @@ int Mdrunner::mdrunner()
                            "cos_acceleration is only supported by integrator=md");
 
         /* Kinetic energy data */
-        gmx_ekindata_t ekind(inputrec->opts.ngtc,
+        gmx_ekindata_t ekind(gmx::constArrayRefFromArray(inputrec->opts.ref_t, inputrec->opts.ngtc),
+                             inputrec->ensembleTemperatureSetting,
+                             inputrec->ensembleTemperature,
                              inputrec->cos_accel,
                              gmx_omp_nthreads_get(ModuleMultiThread::Update));
 
@@ -2095,7 +2126,7 @@ int Mdrunner::mdrunner()
                                          ms,
                                          mtop,
                                          mdlog,
-                                         MASTER(cr) ? globalState->x : gmx::ArrayRef<gmx::RVec>(),
+                                         MAIN(cr) ? globalState->x : gmx::ArrayRef<gmx::RVec>(),
                                          filenames.size(),
                                          filenames.data(),
                                          oenv,
@@ -2121,6 +2152,28 @@ int Mdrunner::mdrunner()
                     deviceStreamManager->context(),
                     deviceStreamManager->stream(gmx::DeviceStreamType::NonBondedNonLocal),
                     wcycle.get());
+
+            if (runScheduleWork.simulationWork.useMdGpuGraph)
+            {
+                fr->mdGraph[MdGraphEvenOrOddStep::EvenStep] =
+                        std::make_unique<gmx::MdGpuGraph>(*fr->deviceStreamManager,
+                                                          runScheduleWork.simulationWork,
+                                                          cr->mpi_comm_mygroup,
+                                                          MdGraphEvenOrOddStep::EvenStep,
+                                                          wcycle.get());
+
+                fr->mdGraph[MdGraphEvenOrOddStep::OddStep] =
+                        std::make_unique<gmx::MdGpuGraph>(*fr->deviceStreamManager,
+                                                          runScheduleWork.simulationWork,
+                                                          cr->mpi_comm_mygroup,
+                                                          MdGraphEvenOrOddStep::OddStep,
+                                                          wcycle.get());
+
+                fr->mdGraph[MdGraphEvenOrOddStep::EvenStep]->setAlternateStepPpTaskCompletionEvent(
+                        fr->mdGraph[MdGraphEvenOrOddStep::OddStep]->getPpTaskCompletionEvent());
+                fr->mdGraph[MdGraphEvenOrOddStep::OddStep]->setAlternateStepPpTaskCompletionEvent(
+                        fr->mdGraph[MdGraphEvenOrOddStep::EvenStep]->getPpTaskCompletionEvent());
+            }
         }
 
         std::unique_ptr<gmx::StatePropagatorDataGpu> stateGpu;
@@ -2297,9 +2350,9 @@ int Mdrunner::mdrunner()
 
 #if GMX_THREAD_MPI
     /* we need to join all threads. The sub-threads join when they
-       exit this function, but the master thread needs to be told to
+       exit this function, but the main thread needs to be told to
        wait for that. */
-    if (MASTER(cr))
+    if (MAIN(cr))
     {
         tMPI_Finalize();
     }

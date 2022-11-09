@@ -50,7 +50,7 @@
 #include "nbnxm_sycl_types.h"
 
 //! \brief Class name for NBNXM kernel
-template<bool doPruneNBL, bool doCalcEnergies, enum Nbnxm::ElecType elecType, enum Nbnxm::VdwType vdwType>
+template<bool doPruneNBL, bool doCalcEnergies, enum Nbnxm::ElecType elecType, enum Nbnxm::VdwType vdwType, int subGroupSize>
 class NbnxmKernel;
 
 namespace Nbnxm
@@ -453,7 +453,9 @@ static inline void reduceForceJ(sycl::local_ptr<float>   sm_buf,
  * used could be avoided on >=8-wide architectures.
  */
 static inline void reduceForceIAndFShiftGeneric(sycl::local_ptr<float> sm_buf,
-                                                const Float3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster],
+                                                const float fCiBufX[c_nbnxnGpuNumClusterPerSupercluster],
+                                                const float fCiBufY[c_nbnxnGpuNumClusterPerSupercluster],
+                                                const float fCiBufZ[c_nbnxnGpuNumClusterPerSupercluster],
                                                 const bool               calcFShift,
                                                 const sycl::nd_item<3>   itemIdx,
                                                 const int                tidxi,
@@ -472,9 +474,9 @@ static inline void reduceForceIAndFShiftGeneric(sycl::local_ptr<float> sm_buf,
     {
         const int aidx = (sci * c_nbnxnGpuNumClusterPerSupercluster + ciOffset) * c_clSize + tidxi;
         // Store i-forces in local memory
-        sm_buf[tidx]                 = fCiBuf[ciOffset][0];
-        sm_buf[bufStride + tidx]     = fCiBuf[ciOffset][1];
-        sm_buf[2 * bufStride + tidx] = fCiBuf[ciOffset][2];
+        sm_buf[tidx]                 = fCiBufX[ciOffset];
+        sm_buf[bufStride + tidx]     = fCiBufY[ciOffset];
+        sm_buf[2 * bufStride + tidx] = fCiBufZ[ciOffset];
         itemIdx.barrier(fence_space::local_space);
 
         // Reduce the initial c_clSize values for each i atom to half every step by using c_clSize * i threads.
@@ -554,7 +556,9 @@ static inline void reduceForceIAndFShiftGeneric(sycl::local_ptr<float> sm_buf,
  * approach, but we have two times less atomicFetchAdd's.
  */
 template<int numShuffleReductionSteps>
-static inline void reduceForceIAndFShiftShuffles(const Float3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster],
+static inline void reduceForceIAndFShiftShuffles(const float fCiBufX[c_nbnxnGpuNumClusterPerSupercluster],
+                                                 const float fCiBufY[c_nbnxnGpuNumClusterPerSupercluster],
+                                                 const float fCiBufZ[c_nbnxnGpuNumClusterPerSupercluster],
                                                  const bool               calcFShift,
                                                  const sycl::nd_item<3>   itemIdx,
                                                  const int                tidxi,
@@ -576,9 +580,9 @@ static inline void reduceForceIAndFShiftShuffles(const Float3 fCiBuf[c_nbnxnGpuN
     for (int ciOffset = 0; ciOffset < c_nbnxnGpuNumClusterPerSupercluster; ciOffset++)
     {
         const int aidx = (sci * c_nbnxnGpuNumClusterPerSupercluster + ciOffset) * c_clSize + tidxi;
-        float     fx   = fCiBuf[ciOffset][0];
-        float     fy   = fCiBuf[ciOffset][1];
-        float     fz   = fCiBuf[ciOffset][2];
+        float     fx   = fCiBufX[ciOffset];
+        float     fy   = fCiBufY[ciOffset];
+        float     fz   = fCiBufZ[ciOffset];
         // First reduction step
         fx += sycl_2020::shift_left(sg, fx, c_clSize);
         fy += sycl_2020::shift_right(sg, fy, c_clSize);
@@ -634,8 +638,10 @@ static inline void reduceForceIAndFShiftShuffles(const Float3 fCiBuf[c_nbnxnGpuN
  * by using local memory reduction after shuffles, but that's a TODO.
  */
 template<>
-inline void reduceForceIAndFShiftShuffles<1>(const Float3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster],
-                                             const bool   calcFShift,
+inline void reduceForceIAndFShiftShuffles<1>(const float fCiBufX[c_nbnxnGpuNumClusterPerSupercluster],
+                                             const float fCiBufY[c_nbnxnGpuNumClusterPerSupercluster],
+                                             const float fCiBufZ[c_nbnxnGpuNumClusterPerSupercluster],
+                                             const bool               calcFShift,
                                              const sycl::nd_item<3>   itemIdx,
                                              const int                tidxi,
                                              const int                tidxj,
@@ -655,9 +661,9 @@ inline void reduceForceIAndFShiftShuffles<1>(const Float3 fCiBuf[c_nbnxnGpuNumCl
     for (int ciOffset = 0; ciOffset < c_nbnxnGpuNumClusterPerSupercluster; ciOffset++)
     {
         const int aidx = (sci * c_nbnxnGpuNumClusterPerSupercluster + ciOffset) * c_clSize + tidxi;
-        float     fx   = fCiBuf[ciOffset][0];
-        float     fy   = fCiBuf[ciOffset][1];
-        float     fz   = fCiBuf[ciOffset][2];
+        float     fx   = fCiBufX[ciOffset];
+        float     fy   = fCiBufY[ciOffset];
+        float     fz   = fCiBufZ[ciOffset];
         // First reduction step
         fx += sycl_2020::shift_left(sg, fx, c_clSize);
         fy += sycl_2020::shift_right(sg, fy, c_clSize);
@@ -706,8 +712,10 @@ inline void reduceForceIAndFShiftShuffles<1>(const Float3 fCiBuf[c_nbnxnGpuNumCl
  */
 template<bool useShuffleReduction, int subGroupSize>
 static inline void reduceForceIAndFShift(sycl::local_ptr<float> sm_buf,
-                                         const Float3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster],
-                                         const bool   calcFShift,
+                                         const float fCiBufX[c_nbnxnGpuNumClusterPerSupercluster],
+                                         const float fCiBufY[c_nbnxnGpuNumClusterPerSupercluster],
+                                         const float fCiBufZ[c_nbnxnGpuNumClusterPerSupercluster],
+                                         const bool  calcFShift,
                                          const sycl::nd_item<3>   itemIdx,
                                          const int                tidxi,
                                          const int                tidxj,
@@ -725,19 +733,19 @@ static inline void reduceForceIAndFShift(sycl::local_ptr<float> sm_buf,
         static_assert(numSteps > 0 && numSteps <= 3,
                       "Invalid combination of sub-group size and cluster size");
         reduceForceIAndFShiftShuffles<numSteps>(
-                fCiBuf, calcFShift, itemIdx, tidxi, tidxj, sci, shift, a_f, a_fShift);
+                fCiBufX, fCiBufY, fCiBufZ, calcFShift, itemIdx, tidxi, tidxj, sci, shift, a_f, a_fShift);
     }
     else
     {
         reduceForceIAndFShiftGeneric(
-                sm_buf, fCiBuf, calcFShift, itemIdx, tidxi, tidxj, sci, shift, a_f, a_fShift);
+                sm_buf, fCiBufX, fCiBufY, fCiBufZ, calcFShift, itemIdx, tidxi, tidxj, sci, shift, a_f, a_fShift);
     }
 }
 
 /*! \brief Main kernel for NBNXM.
  *
  */
-template<bool doPruneNBL, bool doCalcEnergies, enum ElecType elecType, enum VdwType vdwType>
+template<int subGroupSize, bool doPruneNBL, bool doCalcEnergies, enum ElecType elecType, enum VdwType vdwType>
 static auto nbnxmKernel(sycl::handler&                                            cgh,
                         DeviceAccessor<Float4, mode::read>                        a_xq,
                         DeviceAccessor<Float3, mode::read_write>                  a_f,
@@ -761,7 +769,7 @@ static auto nbnxmKernel(sycl::handler&                                          
                         const float                                                 rlistOuterSq,
                         const float                                                 ewaldShift,
                         const float                                                 epsFac,
-                        const float                                                 ewaldCoeffLJ,
+                        const float                                                 ewaldCoeffLJ_2,
                         const float                                                 cRF,
                         const shift_consts_t                                        dispersionShift,
                         const shift_consts_t                                        repulsionShift,
@@ -803,17 +811,10 @@ static auto nbnxmKernel(sycl::handler&                                          
         a_coulombTab.bind(cgh);
     }
 
-    // The post-prune j-i cluster-pair organization is linked to how exclusion and interaction mask data is stored.
-    // Currently, this is ideally suited for 32-wide subgroup size but slightly less so for others,
-    // e.g. subGroupSize > prunedClusterPairSize on AMD GCN / CDNA.
-    // Hence, the two are decoupled.
-    // When changing this code, please update requiredSubGroupSizeForNbnxm in src/gromacs/hardware/device_management_sycl.cpp.
+    // The post-prune j-i cluster-pair organization is linked to how exclusion and interaction mask
+    // data is stored. Currently, this is ideally suited for 32-wide subgroup size but slightly less
+    // so for others, e.g. subGroupSize > prunedClusterPairSize on AMD GCN / CDNA.
     constexpr int prunedClusterPairSize = c_clSize * c_splitClSize;
-#if defined(HIPSYCL_PLATFORM_ROCM) // SYCL-TODO AMD RDNA/RDNA2 has 32-wide exec; how can we check for that?
-    gmx_unused constexpr int subGroupSize = c_clSize * c_clSize;
-#else
-    gmx_unused constexpr int subGroupSize = prunedClusterPairSize;
-#endif
 
     constexpr int numReductionSteps = gmx::StaticLog2<subGroupSize / c_clSize>::value;
     /* We use shuffles only if we:
@@ -866,8 +867,11 @@ static auto nbnxmKernel(sycl::handler&                                          
      */
     constexpr bool haveAnyLocalMemoryForceReduction =
             !useShuffleReductionForceI || !useShuffleReductionForceJ;
-    constexpr int sm_reductionBufferSize =
-            haveAnyLocalMemoryForceReduction ? c_clSize * c_clSize * DIM : 1;
+    // need one element for energy reduction (or dummy for DPCPP, https://github.com/intel/llvm/issues/4969)
+    constexpr bool needExtraElementForReduction = doCalcEnergies || (GMX_SYCL_DPCPP != 0);
+    constexpr int  sm_reductionBufferSize       = haveAnyLocalMemoryForceReduction
+                                                          ? c_clSize * c_clSize * DIM
+                                                          : (needExtraElementForReduction ? 1 : 0);
     sycl_2020::local_accessor<float, 1> sm_reductionBuffer(sycl::range<1>(sm_reductionBufferSize), cgh);
 
     /* Flag to control the calculation of exclusion forces in the kernel
@@ -878,14 +882,10 @@ static auto nbnxmKernel(sycl::handler&                                          
 
     return [=](sycl::nd_item<3> itemIdx) [[intel::reqd_sub_group_size(subGroupSize)]]
     {
-        // Skip compiling for CPU. Makes compiling this file ~10% faster for oneAPI/CUDA or
-        // hipSYCL/CUDA. For DPC++, any non-CPU targets must be explicitly allowed in the #if below.
-#if GMX_SYCL_HIPSYCL
-        __hipsycl_if_target_host(return;);
-#endif
-#if GMX_SYCL_DPCPP && !(defined(__NVPTX__) || !defined(__AMDGCN__) || !defined(__SPIR__))
-        return;
-#endif
+        if constexpr (skipKernelCompilation<subGroupSize>())
+        {
+            return;
+        }
         /* thread/block/warp id-s */
         const unsigned tidxi = itemIdx.get_local_id(2);
         const unsigned tidxj = itemIdx.get_local_id(1);
@@ -898,10 +898,14 @@ static auto nbnxmKernel(sycl::handler&                                          
         // and in cases where prunedClusterPairSize != subGroupSize we can't use it anyway
         const unsigned imeiIdx = tidx / prunedClusterPairSize;
 
-        Float3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster]; // i force buffer
+        float fCiBufX[c_nbnxnGpuNumClusterPerSupercluster]; // i force buffer
+        float fCiBufY[c_nbnxnGpuNumClusterPerSupercluster]; // i force buffer
+        float fCiBufZ[c_nbnxnGpuNumClusterPerSupercluster]; // i force buffer
         for (int i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i++)
         {
-            fCiBuf[i] = Float3(0.0F, 0.0F, 0.0F);
+            fCiBufX[i] = float(0.0F);
+            fCiBufY[i] = float(0.0F);
+            fCiBufZ[i] = float(0.0F);
         }
 
         const nbnxn_sci_t nbSci          = a_plistSci[bidx];
@@ -945,10 +949,9 @@ static auto nbnxmKernel(sycl::handler&                                          
         }
         itemIdx.barrier(fence_space::local_space);
 
-        float ewaldCoeffLJ_2, ewaldCoeffLJ_6_6; // Only needed if (props.vdwEwald)
+        float ewaldCoeffLJ_6_6; // Only needed if (props.vdwEwald)
         if constexpr (props.vdwEwald)
         {
-            ewaldCoeffLJ_2   = ewaldCoeffLJ * ewaldCoeffLJ;
             ewaldCoeffLJ_6_6 = ewaldCoeffLJ_2 * ewaldCoeffLJ_2 * ewaldCoeffLJ_2 * c_oneSixth;
         }
 
@@ -1013,6 +1016,10 @@ static auto nbnxmKernel(sycl::handler&                                          
             const int wexclIdx = a_plistCJPacked[jPacked].imei[imeiIdx].excl_ind;
             static_assert(gmx::isPowerOfTwo(prunedClusterPairSize));
             const unsigned wexcl = a_plistExcl[wexclIdx].pair[tidx & (prunedClusterPairSize - 1)];
+// Unrolling has been verified to improve performance on AMD
+#if defined __AMDGCN__
+#    pragma unroll c_nbnxnGpuJgroupSize
+#endif
             for (int jm = 0; jm < c_nbnxnGpuJgroupSize; jm++)
             {
                 const bool maskSet =
@@ -1246,7 +1253,9 @@ static auto nbnxmKernel(sycl::handler&                                          
                             /* accumulate j forces in registers */
                             fCjBuf -= forceIJ;
                             /* accumulate i forces in registers */
-                            fCiBuf[i] += forceIJ;
+                            fCiBufX[i] += forceIJ[0];
+                            fCiBufY[i] += forceIJ[1];
+                            fCiBufZ[i] += forceIJ[2];
                         } // (r2 < rCoulombSq) && notExcluded
                     }     // (imask & maskJI)
                     /* shift the mask bit by 1 */
@@ -1268,7 +1277,9 @@ static auto nbnxmKernel(sycl::handler&                                          
         const bool doCalcShift = (calcShift && nbSci.shift != gmx::c_centralShiftIndex);
 
         reduceForceIAndFShift<useShuffleReductionForceI, subGroupSize>(sm_reductionBuffer,
-                                                                       fCiBuf,
+                                                                       fCiBufX,
+                                                                       fCiBufY,
+                                                                       fCiBufZ,
                                                                        doCalcShift,
                                                                        itemIdx,
                                                                        tidxi,
@@ -1296,10 +1307,10 @@ static auto nbnxmKernel(sycl::handler&                                          
 }
 
 //! \brief NBNXM kernel launch code.
-template<bool doPruneNBL, bool doCalcEnergies, enum ElecType elecType, enum VdwType vdwType, class... Args>
-static sycl::event launchNbnxmKernel(const DeviceStream& deviceStream, const int numSci, Args&&... args)
+template<int subGroupSize, bool doPruneNBL, bool doCalcEnergies, enum ElecType elecType, enum VdwType vdwType, class... Args>
+static void launchNbnxmKernel(const DeviceStream& deviceStream, const int numSci, Args&&... args)
 {
-    using kernelNameType = NbnxmKernel<doPruneNBL, doCalcEnergies, elecType, vdwType>;
+    using kernelNameType = NbnxmKernel<doPruneNBL, doCalcEnergies, elecType, vdwType, subGroupSize>;
 
     /* Kernel launch config:
      * - The thread block dimensions match the size of i-clusters, j-clusters,
@@ -1313,29 +1324,27 @@ static sycl::event launchNbnxmKernel(const DeviceStream& deviceStream, const int
 
     sycl::queue q = deviceStream.stream();
 
-    sycl::event e = q.submit([&](sycl::handler& cgh) {
-        auto kernel = nbnxmKernel<doPruneNBL, doCalcEnergies, elecType, vdwType>(
+    q.submit(GMX_SYCL_DISCARD_EVENT[&](sycl::handler & cgh) {
+        auto kernel = nbnxmKernel<subGroupSize, doPruneNBL, doCalcEnergies, elecType, vdwType>(
                 cgh, std::forward<Args>(args)...);
         cgh.parallel_for<kernelNameType>(range, kernel);
     });
-
-    return e;
 }
 
 //! \brief Select templated kernel and launch it.
-template<bool doPruneNBL, bool doCalcEnergies, class... Args>
+template<int subGroupSize, bool doPruneNBL, bool doCalcEnergies, class... Args>
 void chooseAndLaunchNbnxmKernel(enum ElecType elecType, enum VdwType vdwType, Args&&... args)
 {
     gmx::dispatchTemplatedFunction(
             [&](auto elecType_, auto vdwType_) {
-                return launchNbnxmKernel<doPruneNBL, doCalcEnergies, elecType_, vdwType_>(
+                return launchNbnxmKernel<subGroupSize, doPruneNBL, doCalcEnergies, elecType_, vdwType_>(
                         std::forward<Args>(args)...);
             },
             elecType,
             vdwType);
 }
 
-template<bool doPruneNBL, bool doCalcEnergies>
+template<int subGroupSize, bool doPruneNBL, bool doCalcEnergies>
 void launchNbnxmKernelHelper(NbnxmGpu* nb, const gmx::StepWorkload& stepWork, const InteractionLocality iloc)
 {
     NBAtomDataGpu*      adat         = nb->atdat;
@@ -1346,41 +1355,41 @@ void launchNbnxmKernelHelper(NbnxmGpu* nb, const gmx::StepWorkload& stepWork, co
     GMX_ASSERT(doPruneNBL == (plist->haveFreshList && !nb->didPrune[iloc]), "Wrong template called");
     GMX_ASSERT(doCalcEnergies == stepWork.computeEnergy, "Wrong template called");
 
-    chooseAndLaunchNbnxmKernel<doPruneNBL, doCalcEnergies>(nbp->elecType,
-                                                           nbp->vdwType,
-                                                           deviceStream,
-                                                           plist->nsci,
-                                                           adat->xq,
-                                                           adat->f,
-                                                           adat->shiftVec,
-                                                           adat->fShift,
-                                                           adat->eElec,
-                                                           adat->eLJ,
-                                                           plist->cjPacked,
-                                                           plist->sci,
-                                                           plist->excl,
-                                                           adat->ljComb,
-                                                           adat->atomTypes,
-                                                           nbp->nbfp,
-                                                           nbp->nbfp_comb,
-                                                           nbp->coulomb_tab,
-                                                           adat->numTypes,
-                                                           nbp->rcoulomb_sq,
-                                                           nbp->rvdw_sq,
-                                                           nbp->two_k_rf,
-                                                           nbp->ewald_beta,
-                                                           nbp->rlistOuter_sq,
-                                                           nbp->sh_ewald,
-                                                           nbp->epsfac,
-                                                           nbp->ewaldcoeff_lj,
-                                                           nbp->c_rf,
-                                                           nbp->dispersion_shift,
-                                                           nbp->repulsion_shift,
-                                                           nbp->vdw_switch,
-                                                           nbp->rvdw_switch,
-                                                           nbp->sh_lj_ewald,
-                                                           nbp->coulomb_tab_scale,
-                                                           stepWork.computeVirial);
+    chooseAndLaunchNbnxmKernel<subGroupSize, doPruneNBL, doCalcEnergies>(nbp->elecType,
+                                                                         nbp->vdwType,
+                                                                         deviceStream,
+                                                                         plist->nsci,
+                                                                         adat->xq,
+                                                                         adat->f,
+                                                                         adat->shiftVec,
+                                                                         adat->fShift,
+                                                                         adat->eElec,
+                                                                         adat->eLJ,
+                                                                         plist->cjPacked,
+                                                                         plist->sci,
+                                                                         plist->excl,
+                                                                         adat->ljComb,
+                                                                         adat->atomTypes,
+                                                                         nbp->nbfp,
+                                                                         nbp->nbfp_comb,
+                                                                         nbp->coulomb_tab,
+                                                                         adat->numTypes,
+                                                                         nbp->rcoulomb_sq,
+                                                                         nbp->rvdw_sq,
+                                                                         nbp->two_k_rf,
+                                                                         nbp->ewald_beta,
+                                                                         nbp->rlistOuter_sq,
+                                                                         nbp->sh_ewald,
+                                                                         nbp->epsfac,
+                                                                         nbp->ewaldcoeff_lj * nbp->ewaldcoeff_lj,
+                                                                         nbp->c_rf,
+                                                                         nbp->dispersion_shift,
+                                                                         nbp->repulsion_shift,
+                                                                         nbp->vdw_switch,
+                                                                         nbp->rvdw_switch,
+                                                                         nbp->sh_lj_ewald,
+                                                                         nbp->coulomb_tab_scale,
+                                                                         stepWork.computeVirial);
 }
 
 } // namespace Nbnxm

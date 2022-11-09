@@ -62,6 +62,7 @@
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/real.h"
 
+class gmx_ekindata_t;
 struct t_inputrec;
 struct t_lambda;
 struct PressureCouplingOptions;
@@ -370,8 +371,9 @@ void printLambdaStateToLog(FILE* fplog, gmx::ArrayRef<const real> lambda, bool i
 
 /*! \brief Fills fep_state and lambda if needed
  *
- * If FEP or simulated tempering is in use,  fills fep_state
- * and lambda on master rank.
+ * If FEP or simulated tempering is in use, fills \p fep_state
+ * and \p lambda on the main rank and sets the reference temperatures
+ * in \p ekind on all ranks.
  *
  * Reports the initial lambda state to the log file. */
 void initialize_lambdas(FILE*                      fplog,
@@ -379,8 +381,8 @@ void initialize_lambdas(FILE*                      fplog,
                         bool                       haveSimulatedTempering,
                         const t_lambda&            fep,
                         gmx::ArrayRef<const real>  simulatedTemperingTemps,
-                        gmx::ArrayRef<real>        ref_t,
-                        bool                       isMaster,
+                        gmx_ekindata_t*            ekind,
+                        bool                       isMain,
                         int*                       fep_state,
                         gmx::ArrayRef<real>        lambda);
 

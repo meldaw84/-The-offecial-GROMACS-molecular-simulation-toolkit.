@@ -47,6 +47,7 @@
 #include "gromacs/mdlib/mdatoms.h"
 #include "gromacs/mdlib/stat.h"
 #include "gromacs/mdtypes/commrec.h"
+#include "gromacs/mdtypes/group.h"
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/md_enums.h"
 #include "gromacs/mdtypes/mdatom.h"
@@ -62,17 +63,21 @@ namespace gmx
 template<PressureCoupling pressureCouplingType>
 void FirstOrderPressureCoupling::calculateScalingMatrix(Step step)
 {
+    const auto& ekindata         = *energyData_->ekindata();
     const auto* pressure         = energyData_->pressure(step);
     const auto* forceVirial      = energyData_->forceVirial(step);
     const auto* constraintVirial = energyData_->constraintVirial(step);
     const auto* box              = statePropagatorData_->constBox();
+
+    const real ensembleTemperature =
+            (haveEnsembleTemperature(*inputrec_) ? ekindata.currentEnsembleTemperature() : 0.0_real);
 
     previousStepConservedEnergyContribution_ = conservedEnergyContribution_;
     pressureCouplingCalculateScalingMatrix<pressureCouplingType>(fplog_,
                                                                  step,
                                                                  inputrec_->pressureCouplingOptions,
                                                                  inputrec_->ld_seed,
-                                                                 inputrec_->opts.ref_t[0],
+                                                                 ensembleTemperature,
                                                                  couplingTimeStep_,
                                                                  pressure,
                                                                  box,
@@ -187,7 +192,7 @@ void FirstOrderPressureCoupling::doCheckpointData(CheckpointData<operation>* che
 void FirstOrderPressureCoupling::saveCheckpointState(std::optional<WriteCheckpointData> checkpointData,
                                                      const t_commrec*                   cr)
 {
-    if (MASTER(cr))
+    if (MAIN(cr))
     {
         doCheckpointData<CheckpointDataOperation::Write>(&checkpointData.value());
     }
@@ -196,7 +201,7 @@ void FirstOrderPressureCoupling::saveCheckpointState(std::optional<WriteCheckpoi
 void FirstOrderPressureCoupling::restoreCheckpointState(std::optional<ReadCheckpointData> checkpointData,
                                                         const t_commrec*                  cr)
 {
-    if (MASTER(cr))
+    if (MAIN(cr))
     {
         doCheckpointData<CheckpointDataOperation::Read>(&checkpointData.value());
     }

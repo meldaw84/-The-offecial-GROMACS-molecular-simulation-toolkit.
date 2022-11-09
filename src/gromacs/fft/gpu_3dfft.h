@@ -67,11 +67,13 @@ class ArrayRef;
 enum class FftBackend
 {
     Cufft,       //!< supports only single-GPU
+    OclVkfft,    //!< supports only single-GPU
     Ocl,         //!< supports only single-GPU
     CuFFTMp,     //!< supports only multi-gpu
     HeFFTe_CUDA, //!< supports only multi-gpu
     SyclMkl,     //!< supports only single-GPU
     SyclRocfft,  //!< supports only single-GPU
+    SyclVkfft,   //!< supports only single-GPU
     Sycl,        //!< stubs for not supported configurations
     Count
 };
@@ -129,9 +131,11 @@ private:
     class Impl;
     class ImplCuFft;
     class ImplCuFftMp;
+    class ImplOclVkfft;
     class ImplOcl;
     class ImplSyclMkl;
     class ImplSyclRocfft;
+    class ImplSyclVkfft;
     class ImplSycl;
 
     template<typename backend_tag>

@@ -16,6 +16,11 @@ the default value of -1 is specified in the mdp file and a lower value
 is used when required for accurate integration. The improves the performance
 of both GPU runs and parallel runs.
 
+The global communication frequency is independent of nstlist
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+The global communication frequency no longer depends on nstlist.
+This can improve performance in simulations using GPUs in particular.
 
 PME decomposition support with CUDA backend
 """"""""""""""""""""""""""""""""""""""""""""
@@ -28,3 +33,18 @@ those from equivalent runs using a single PME GPU). This feature can be enabled 
 variable. The |Gromacs| development team welcomes any feedback to help mature this feature.
 
 :issue:`3884`
+
+CUDA Graphs for GPU-resident Steps
+""""""""""""""""""""""""""""""""""
+
+New CUDA functionality has been introduced, allowing GPU activities
+to be launched as a single CUDA graph on each step rather than multiple
+activities scheduled to multiple CUDA streams. It only works for those
+cases which already support GPU-resident steps (where all force and
+update calculations are GPU-accelerated). This offers performance
+advantages, especially for small cases, through reduction in both CPU
+and GPU side scheduling overheads. The feature can optionally be
+activated via the ``GMX_CUDA_GRAPH`` environment variable. 
+
+:issue:`4277`
+

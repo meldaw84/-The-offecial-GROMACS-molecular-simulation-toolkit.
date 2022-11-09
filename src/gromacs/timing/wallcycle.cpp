@@ -41,6 +41,7 @@
 
 #include <array>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "gromacs/math/functions.h"
@@ -59,12 +60,26 @@
 #include "gromacs/utility/snprintf.h"
 #include "gromacs/utility/stringutil.h"
 
-//! True if only the master rank should print debugging output
-constexpr bool onlyMasterDebugPrints = true;
+//! True if only the main rank should print debugging output
+constexpr bool onlyMainDebugPrints = true;
 //! True if cycle counter nesting depth debugging prints are enabled
 constexpr bool debugPrintDepth = false;
 
-/* Each name should not exceed 19 printing characters
+template<int maxLength, typename Container>
+static constexpr bool checkStringsLengths(const Container& strings)
+{
+    // NOLINTNEXTLINE(readability-use-anyofallof) // std::all_of is constexpr only since C++20
+    for (const char* str : strings)
+    {
+        if (std::char_traits<char>::length(str) > maxLength)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+/* Each name should not exceed 22 printing characters
    (ie. terminating null can be twentieth) */
 static const char* enumValuetoString(WallCycleCounter enumValue)
 {
@@ -119,8 +134,10 @@ static const char* enumValuetoString(WallCycleCounter enumValue)
         "Add rot. forces",
         "Position swapping",
         "IMD",
+        "MD Graph",
         "Test"
     };
+    static_assert(checkStringsLengths<22>(wallCycleCounterNames));
     return wallCycleCounterNames[enumValue];
 }
 
@@ -139,33 +156,39 @@ static const char* enumValuetoString(WallCycleSubCounter enumValue)
         "DD top. other",
         "DD GPU ops.",
         "NS grid local",
-        "NS grid non-loc.",
+        "NS grid non-local",
         "NS search local",
-        "NS search non-loc.",
+        "NS search non-local",
         "Bonded F",
         "Bonded-FEP F",
         "Restraints F",
         "Listed buffer ops.",
-        "Nonbonded pruning",
-        "Nonbonded F kernel",
-        "Nonbonded F clear",
-        "Nonbonded FEP",
-        "Nonbonded FEP reduction",
-        "Launch NB GPU tasks",
-        "Launch Bonded GPU tasks",
+        "NB pruning",
+        "NB F kernel",
+        "NB F clear",
+        "NB FEP",
+        "NB FEP reduction",
+        "Launch GPU NB tasks",
+        "Launch GPU Bonded",
         "Launch state copy",
         "Ewald F correction",
         "NB X buffer ops.",
         "NB F buffer ops.",
         "Clear force buffer",
-        "Launch GPU NB X buffer ops.",
-        "Launch GPU NB F buffer ops.",
-        "Launch GPU Comm. coord.",
-        "Launch GPU Comm. force.",
+        "Launch GPU NB X ops.",
+        "Launch GPU NB F ops.",
+        "Launch GPU Comm. X",
+        "Launch GPU Comm. F",
         "Launch GPU update",
         "Launch PME GPU FFT",
+        "Graph wait pre-capture",
+        "Graph capture",
+        "Graph instantiate/upd.",
+        "Graph wait pre-launch",
+        "Graph launch",
         "Test subcounter"
     };
+    static_assert(checkStringsLengths<22>(wallCycleSubCounterNames));
     return wallCycleSubCounterNames[enumValue];
 }
 CLANG_DIAGNOSTIC_RESET
@@ -228,8 +251,8 @@ std::unique_ptr<gmx_wallcycle> wallcycle_init(FILE* fplog, int resetstep, const 
     // NOLINTNEXTLINE(readability-misleading-indentation)
     if constexpr (sc_enableWallcycleDebug)
     {
-        wc->count_depth  = 0;
-        wc->isMasterRank = MASTER(cr);
+        wc->count_depth = 0;
+        wc->isMainRank  = MAIN(cr);
     }
 
     return wc;
@@ -248,7 +271,7 @@ void debug_start_check(gmx_wallcycle* wc, WallCycleCounter ewc)
         wc->counterlist[wc->count_depth] = ewc;
         wc->count_depth++;
 
-        if (debugPrintDepth && (!onlyMasterDebugPrints || wc->isMasterRank))
+        if (debugPrintDepth && (!onlyMainDebugPrints || wc->isMainRank))
         {
             std::string indentStr(4 * wc->count_depth, ' ');
             fprintf(stderr,
@@ -265,7 +288,7 @@ void debug_stop_check(gmx_wallcycle* wc, WallCycleCounter ewc)
     // NOLINTNEXTLINE(readability-misleading-indentation)
     if constexpr (sc_enableWallcycleDebug)
     {
-        if (debugPrintDepth && (!onlyMasterDebugPrints || wc->isMasterRank))
+        if (debugPrintDepth && (!onlyMainDebugPrints || wc->isMainRank))
         {
             std::string indentStr(4 * wc->count_depth, ' ');
             fprintf(stderr,
@@ -449,7 +472,7 @@ void wallcycle_scale_by_num_threads(gmx_wallcycle* wc, bool isPmeRank, int nthre
  * uses cycles_sum to manage this, which works OK now because wcsc and
  * wcc_all are unused by the GPU reporting, but it is not satisfactory
  * for the future. Also, there's no need for MPI_Allreduce, since
- * only MASTERRANK uses any of the results. */
+ * only MAINRANK uses any of the results. */
 WallcycleCounts wallcycle_sum(const t_commrec* cr, gmx_wallcycle* wc)
 {
     WallcycleCounts                                    cycles_sum;
@@ -656,7 +679,7 @@ print_cycles(FILE* fplog, double c2t, const char* name, int nnodes, int nthreads
         wallt = c_sum * c2t;
 
         fprintf(fplog,
-                " %-19.19s %4s %4s %10s  %10.3f %14.3f %5.1f\n",
+                " %-22.22s %4s %4s %10s  %10.3f %14.3f %5.1f\n",
                 name,
                 nnodes_str,
                 nthreads_str,
@@ -720,8 +743,9 @@ static void print_header(FILE* fplog, int nrank_pp, int nth_pp, int nrank_pme, i
     }
 
     fprintf(fplog, "\n\n");
-    fprintf(fplog, " Activity:           Num   Num      Call    Wall time         Giga-Cycles\n");
-    fprintf(fplog, "                     Ranks Threads  Count      (s)         total sum    %%\n");
+    fprintf(fplog, " Activity:              Num   Num      Call    Wall time         Giga-Cycles\n");
+    fprintf(fplog,
+            "                        Ranks Threads  Count      (s)         total sum    %%\n");
 }
 
 
@@ -742,7 +766,7 @@ void wallcycle_print(FILE*                            fplog,
     int         npp, nth_tot;
     char        buf[STRLEN];
     const char* hline =
-            "-----------------------------------------------------------------------------";
+            "--------------------------------------------------------------------------------";
 
     if (wc == nullptr)
     {
@@ -807,7 +831,7 @@ void wallcycle_print(FILE*                            fplog,
         c2t_pme = 0;
     }
 
-    fprintf(fplog, "\n     R E A L   C Y C L E   A N D   T I M E   A C C O U N T I N G\n\n");
+    fprintf(fplog, "\n      R E A L   C Y C L E   A N D   T I M E   A C C O U N T I N G\n\n");
 
     print_header(fplog, npp, nth_pp, npme, nth_pme);
 
@@ -1050,7 +1074,7 @@ void wallcycle_print(FILE*                            fplog,
              * CPU-GPU load balancing is possible */
             if (gpu_cpu_ratio < 0.8 || gpu_cpu_ratio > 1.25)
             {
-                /* Only the sim master calls this function, so always print to stderr */
+                /* Only the sim main calls this function, so always print to stderr */
                 if (gpu_cpu_ratio < 0.8)
                 {
                     if (npp > 1)
@@ -1107,7 +1131,7 @@ void wallcycle_print(FILE*                            fplog,
         && (cyc_sum[static_cast<int>(WallCycleCounter::Domdec)] > tot * 0.1
             || cyc_sum[static_cast<int>(WallCycleCounter::NS)] > tot * 0.1))
     {
-        /* Only the sim master calls this function, so always print to stderr */
+        /* Only the sim main calls this function, so always print to stderr */
         if (wc->wcc[WallCycleCounter::Domdec].n == 0)
         {
             GMX_LOG(mdlog.warning)

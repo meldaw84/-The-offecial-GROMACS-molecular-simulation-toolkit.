@@ -88,6 +88,20 @@ enum class Channel : int
     Count
 };
 
+//! Whether and what kind of ensemble temperature we have for the system
+enum class EnsembleTemperatureSetting : int
+{
+    NotAvailable, //! There is no ensemble temperature available for the system
+    Constant,     //! The ensemble temperature is fixed over time
+    Variable,     //! The ensemble temperature varies over time
+    Auto,         //! Auto setting for grompp, should not be present in tpr and mdrun
+    Count,
+    Default = Auto
+};
+
+//! Return names of ensemble temperature settings
+const char* enumValueToString(EnsembleTemperatureSetting ensembleTemperatureSetting);
+
 /*! \brief Temperature coupling type
  *
  * yes is an alias for berendsen
@@ -864,6 +878,14 @@ enum class PbcType : int
     Unset   = 4, //!< The type of PBC is not set or invalid.
     Count   = 5,
     Default = Xyz
+};
+
+//! Enumeration to label different MD Graphs corresponding to even and odd simulation steps
+enum class MdGraphEvenOrOddStep : int
+{
+    EvenStep,
+    OddStep,
+    Count
 };
 
 #endif /* GMX_MDTYPES_MD_ENUMS_H */

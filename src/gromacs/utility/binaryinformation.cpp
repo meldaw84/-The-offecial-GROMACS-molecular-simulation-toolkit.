@@ -43,6 +43,8 @@
 
 #include "config.h"
 
+#include <filesystem>
+
 #if GMX_FFT_FFTW3 || GMX_FFT_ARMPL_FFTW3
 // Needed for construction of the FFT library description string
 #    include <fftw3.h>
@@ -247,13 +249,28 @@ std::string getGpuFftDescriptionString()
         }
         else if (GMX_GPU_OPENCL)
         {
-            return "clFFT";
+            if (GMX_GPU_FFT_VKFFT)
+            {
+                return std::string("VkFFT ") + vkfft_VERSION;
+            }
+            else
+            {
+                return "clFFT";
+            }
         }
         else if (GMX_GPU_SYCL)
         {
             if (GMX_FFT_MKL)
             {
                 return describeMkl();
+            }
+            else if (GMX_GPU_FFT_VKFFT)
+            {
+                return std::string("VkFFT ") + vkfft_VERSION;
+            }
+            else if (GMX_GPU_FFT_ROCFFT)
+            {
+                return std::string("rocFFT ") + rocfft_VERSION;
             }
             else
             {
@@ -359,7 +376,7 @@ void gmx_print_version_info(gmx::TextWriter* writer)
 
 
     /* TODO: The below strings can be quite long, so it would be nice to wrap
-     * them. Can wait for later, as the master branch has ready code to do all
+     * them. Can wait for later, as the main branch has ready code to do all
      * that. */
     writer->writeLine(formatString("C compiler:         %s", BUILD_C_COMPILER));
     writer->writeLine(formatString(
@@ -395,6 +412,7 @@ void gmx_print_version_info(gmx::TextWriter* writer)
 #if GMX_SYCL_HIPSYCL
     writer->writeLine(formatString("hipSYCL launcher:   %s", SYCL_HIPSYCL_COMPILER_LAUNCHER));
     writer->writeLine(formatString("hipSYCL flags:      %s", SYCL_HIPSYCL_COMPILER_FLAGS));
+    writer->writeLine(formatString("hipSYCL GPU flags:  %s", SYCL_HIPSYCL_DEVICE_COMPILER_FLAGS));
     writer->writeLine(formatString("hipSYCL targets:    %s", SYCL_HIPSYCL_TARGETS));
     writer->writeLine("hipSYCL version:    " + gmx::getSyclCompilerVersion());
 #endif
@@ -474,24 +492,26 @@ void printBinaryInformation(TextWriter*                      writer,
         writer->writeLine(formatString(
                 "%sGROMACS:      %s, version %s%s%s", prefix, name, gmx_version(), precisionString, suffix));
     }
-    const char* const binaryPath = programContext.fullBinaryPath();
-    if (!gmx::isNullOrEmpty(binaryPath))
+    const auto& binaryPath = programContext.fullBinaryPath();
+    if (!binaryPath.empty())
     {
-        writer->writeLine(formatString("%sExecutable:   %s%s", prefix, binaryPath, suffix));
+        writer->writeLine(
+                formatString("%sExecutable:   %s%s", prefix, binaryPath.u8string().c_str(), suffix));
     }
     const gmx::InstallationPrefixInfo installPrefix = programContext.installationPrefix();
-    if (!gmx::isNullOrEmpty(installPrefix.path))
+    if (!installPrefix.path.empty())
     {
         writer->writeLine(formatString("%sData prefix:  %s%s%s",
                                        prefix,
-                                       installPrefix.path,
+                                       installPrefix.path.u8string().c_str(),
                                        installPrefix.bSourceLayout ? " (source tree)" : "",
                                        suffix));
     }
-    const std::string workingDir = Path::getWorkingDirectory();
+    const auto workingDir = std::filesystem::current_path();
     if (!workingDir.empty())
     {
-        writer->writeLine(formatString("%sWorking dir:  %s%s", prefix, workingDir.c_str(), suffix));
+        writer->writeLine(
+                formatString("%sWorking dir:  %s%s", prefix, workingDir.u8string().c_str(), suffix));
     }
     if (settings.bProcessId_)
     {

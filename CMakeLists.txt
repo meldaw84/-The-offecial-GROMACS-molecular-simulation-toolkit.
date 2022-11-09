@@ -614,18 +614,11 @@ if(GMX_GPU)
 
     string(TOUPPER "${GMX_GPU}" _gmx_gpu_uppercase)
     if(${_gmx_gpu_uppercase} STREQUAL "CUDA")
-	enable_language(CUDA)
-        set(CMAKE_CUDA_STANDARD 14)
-        set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-	# Avoid new cmake policy of enforcing CMAKE_CUDA_ARCHITECTURES initialization
-	if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.18.0")
-	  cmake_policy(SET CMP0104 OLD)
-	endif()
         include(gmxManageCuda)
     elseif(${_gmx_gpu_uppercase} STREQUAL "OPENCL")
         message(STATUS "GPU support with OpenCL is deprecated. It is still fully supported (and " 
-            "recommended for AMD and Intel GPUs). It may be replaced by different approaches in "
-            "future releases of GROMACS.")
+            "recommended for AMD, Intel, and Apple GPUs). It may be replaced by different "
+            "approaches in future releases of GROMACS.")
         include(gmxManageOpenCL)
     elseif(${_gmx_gpu_uppercase} STREQUAL "SYCL")
         include(gmxManageSYCL)
@@ -645,7 +638,7 @@ if(GMX_GPU)
     # Only OpenCL and SYCL support changing the default cluster size
     if (${_gmx_gpu_uppercase} STREQUAL "CUDA")
         if (GMX_GPU_NB_CLUSTER_SIZE AND NOT "${GMX_GPU_NB_CLUSTER_SIZE}" EQUAL 8)
-            message(FATAL_ERROR "Setting GMX_GPU_NB_CLUSTER_SIZE is not supported in CUDA (the default GMX_GPU_NB_CLUSTER_SIZE=8 is used)")
+            message(FATAL_ERROR "Changing GMX_GPU_NB_CLUSTER_SIZE is not supported in CUDA (the default GMX_GPU_NB_CLUSTER_SIZE=8 is used)")
         endif()
         set(GMX_GPU_NB_CLUSTER_SIZE 8 CACHE STRING "Cluster size used by the nonbonded kernel.")
     else()
@@ -669,7 +662,27 @@ if(GMX_GPU)
         mark_as_advanced(GMX_GPU_NB_CLUSTER_SIZE)
     endif()
 
+    if (NOT (${_gmx_gpu_uppercase} STREQUAL "SYCL"))
+        if (GMX_GPU_NB_NUM_CLUSTER_PER_CELL_X AND NOT "${GMX_GPU_NB_NUM_CLUSTER_PER_CELL_X}" EQUAL 2)
+            message(FATAL_ERROR "Changing GMX_GPU_NB_NUM_CLUSTER_PER_CELL_X is only supported in SYCL (use value 2 everywhere else)")
+        endif()
+        if (GMX_GPU_NB_NUM_CLUSTER_PER_CELL_Y AND NOT "${GMX_GPU_NB_NUM_CLUSTER_PER_CELL_Y}" EQUAL 2)
+            message(FATAL_ERROR "Changing GMX_GPU_NB_NUM_CLUSTER_PER_CELL_Y is only supported in SYCL (use value 2 everywhere else)")
+        endif()
+        if (GMX_GPU_NB_NUM_CLUSTER_PER_CELL_Z AND NOT "${GMX_GPU_NB_NUM_CLUSTER_PER_CELL_Z}" EQUAL 2)
+            message(FATAL_ERROR "Changing GMX_GPU_NB_NUM_CLUSTER_PER_CELL_Z is only supported in SYCL (use value 2 everywhere else)")
+        endif()
+    endif()
+
+    if (NOT (${_gmx_gpu_uppercase} STREQUAL "SYCL"))
+        if (GMX_GPU_NB_DISABLE_CLUSTER_PAIR_SPLIT)
+            message(FATAL_ERROR "Disabling cluster pair splitting is only supported in SYCL, set GMX_GPU_NB_DISABLE_CLUSTER_PAIR_SPLIT=off otherwise")
+        endif()
+    endif()
 endif()
+set(GMX_GPU_NB_NUM_CLUSTER_PER_CELL_X 2 CACHE STRING "Number of clusters along X in a pair-search grid cell for GPU lists")
+set(GMX_GPU_NB_NUM_CLUSTER_PER_CELL_Y 2 CACHE STRING "Number of clusters along Y in a pair-search grid cell for GPU lists")
+set(GMX_GPU_NB_NUM_CLUSTER_PER_CELL_Z 2 CACHE STRING "Number of clusters along Z in a pair-search grid cell for GPU lists")
 
 # For build with CUDA/SYCL and Lib-MPI, check if underlying MPI implementation is GPU-aware
 # GPU-aware MPI allows direct GPU communication without staging data through host

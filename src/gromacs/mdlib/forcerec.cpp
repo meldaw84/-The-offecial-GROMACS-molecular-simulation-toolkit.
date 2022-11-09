@@ -96,6 +96,7 @@
 #include "gromacs/utility/strconvert.h"
 
 #include "gpuforcereduction.h"
+#include "mdgraph_gpu.h"
 
 ForceHelperBuffers::ForceHelperBuffers(bool haveDirectVirialContributions) :
     haveDirectVirialContributions_(haveDirectVirialContributions)
@@ -332,9 +333,9 @@ makeAtomInfoForEachMoleculeBlock(const gmx_mtop_t& mtop, const t_forcerec* fr)
                     {
                         atomInfo |= gmx::sc_atomInfo_FreeEnergyPerturbation;
                     }
-                    if (atomHasPerturbedChargeIn14Interaction(a, molt))
+                    if (atomHasPerturbedCharge(atom))
                     {
-                        atomInfo |= gmx::sc_atomInfo_HasPerturbedChargeIn14Interaction;
+                        atomInfo |= gmx::sc_atomInfo_HasPerturbedCharge;
                     }
                 }
             }
@@ -980,7 +981,7 @@ void init_forcerec(FILE*                            fplog,
     {
         t_fcdata& fcdata = *forcerec->fcdata;
         // Need to catch std::bad_alloc
-        // TODO Don't need to catch this here, when merging with master branch
+        // TODO Don't need to catch this here, when merging with main branch
         try
         {
             // TODO move these tables into a separate struct and store reference in ListedForces

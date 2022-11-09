@@ -73,6 +73,7 @@ from contextlib import contextmanager
 
 from gmxapi import exceptions
 from gmxapi import logger as root_logger
+
 try:
     from typing import Protocol
 except ImportError:
@@ -83,12 +84,15 @@ except ImportError:
 
 # Initialize module-level logger
 logger = root_logger.getChild(__name__)
-logger.info('Importing {}'.format(__name__))
+logger.info("Importing {}".format(__name__))
 
 
 try:
     import mpi4py.MPI as _MPI
     from mpi4py.MPI import Comm as Communicator
+    from mpi4py.MPI import COMM_NULL as MPI_COMM_NULL
+    from mpi4py.MPI import COMM_WORLD as MPI_COMM_WORLD
+    from mpi4py.MPI import UNDEFINED as MPI_UNDEFINED
 except (ImportError, ModuleNotFoundError):
     _MPI = None
     Communicator = None
@@ -98,24 +102,25 @@ _context_lock = threading.Lock()
 """Use to avoid race conditions when changing singleton state."""
 
 
-CommunicatorT = typing.TypeVar('CommunicatorT')
+CommunicatorT = typing.TypeVar("CommunicatorT")
 
 
 class ResourceAllocation(Protocol[CommunicatorT]):
     """The interface we expect for a ResourceAllocation role."""
+
     def communicator(self) -> CommunicatorT:
         ...
 
 
 def _finalize_communicator(comm):
     if _MPI is not None:
-        if comm == _MPI.COMM_NULL:
+        if comm == MPI_COMM_NULL:
             return
     # noinspection PyBroadException
     try:
         comm.Free()
     except Exception:
-        logger.exception(f'Could not Free {comm}.')
+        logger.exception(f"Could not Free {comm}.")
 
 
 class ResourceAssignment(ResourceAllocation[CommunicatorT]):
@@ -125,14 +130,17 @@ class ResourceAssignment(ResourceAllocation[CommunicatorT]):
     ownership of the communicator is assumed, and `comm.Free()` will be called
     when the ResourceAssignment is closed or finalized.
     """
+
     __communicator: typing.Optional[CommunicatorT]
     __finalizers: list
 
     def __init__(self, _mpi_comm: CommunicatorT = None):
         self.__communicator = _mpi_comm
-        self.__finalizers = [weakref.finalize(self, logger.debug, f'Closing {self}.')]
-        if hasattr(_mpi_comm, 'Free'):
-            self.__finalizers.append(weakref.finalize(self, _finalize_communicator, _mpi_comm))
+        self.__finalizers = [weakref.finalize(self, logger.debug, f"Closing {self}.")]
+        if hasattr(_mpi_comm, "Free"):
+            self.__finalizers.append(
+                weakref.finalize(self, _finalize_communicator, _mpi_comm)
+            )
 
     def communicator(self) -> CommunicatorT:
         return self.__communicator
@@ -148,12 +156,12 @@ class ResourceAssignment(ResourceAllocation[CommunicatorT]):
         on `close()`).
         """
         if self.__communicator is not None:
-            raise exceptions.UsageError('A communicator has already been assigned.')
+            raise exceptions.UsageError("A communicator has already been assigned.")
         self.__communicator = communicator
 
     def close(self):
         if self.closed:
-            logger.debug(f'{self}.close() called on an already-closed resource.')
+            logger.debug(f"{self}.close() called on an already-closed resource.")
         else:
             for finalizer in reversed(self.__finalizers):
                 finalizer()
@@ -161,12 +169,16 @@ class ResourceAssignment(ResourceAllocation[CommunicatorT]):
 
     def add_finalizer(self, func, *args, **kwargs):
         if self.closed:
-            raise exceptions.UsageError('Cannot add finalizer to a resource that is already closed.')
+            raise exceptions.UsageError(
+                "Cannot add finalizer to a resource that is already closed."
+            )
         self.__finalizers.append(weakref.finalize(self, func, *args, **kwargs))
 
     @property
     def closed(self):
-        return len(self.__finalizers) == 0 or all(not finalizer.alive for finalizer in self.__finalizers)
+        return len(self.__finalizers) == 0 or all(
+            not finalizer.alive for finalizer in self.__finalizers
+        )
 
 
 class BaseContext:
@@ -176,6 +188,7 @@ class BaseContext:
     until resources are assigned. That is, class data is only mutable while
     no instance exists.
     """
+
     __instance: typing.ClassVar[typing.Optional[weakref.ReferenceType]] = None
 
     __mpi_communicator: typing.ClassVar[typing.Optional[Communicator]] = None
@@ -199,13 +212,14 @@ class BaseContext:
     def set_base_communicator(cls, communicator):
         if cls.__instance is not None:
             raise exceptions.UsageError(
-                'Cannot edit resource defaults after initialization.')
+                "Cannot edit resource defaults after initialization."
+            )
         cls.__mpi_communicator = communicator
 
     @classmethod
     def instance(cls):
         if _MPI is not None and cls.__mpi_communicator is None:
-            cls.set_base_communicator(_MPI.COMM_WORLD)
+            cls.set_base_communicator(MPI_COMM_WORLD)
         return cls()
 
 
@@ -218,18 +232,21 @@ class ResourceRequirements:
 
 
 @contextmanager
-def scoped_resources(allocation: BaseContext, requirements: ResourceRequirements = None):
+def scoped_resources(
+    allocation: BaseContext, requirements: ResourceRequirements = None
+):
     """Manage computing resources with a lifecycle.
 
     Get a Python context manager for a new resource assignment that is released
     on exiting the `with` block.
 
-    For resources that include an MPI communicator, the new communicator is a
-    sub-communicator of the communicator in *allocation*, if provided,
-    *if requirements are specified*. (Note: for initial implementation without
-    resource locking, an allocation without a requirements specification is
-    simply borrowed for the context; no new communicator is split or duped and
-    freed.)
+    If *requirements* are specified, and *allocation* includes an MPI
+    communicator, the resources yielded will contain a sub-communicator of
+    *allocation.communicator()*.
+
+    (Note: for initial implementation without resource locking, an *allocation*
+    without a *requirements* specification is simply borrowed for the context;
+    no new communicator is split or duped and freed.)
 
     Args:
         allocation: available resources, or *None* to determine automatically.
@@ -238,18 +255,17 @@ def scoped_resources(allocation: BaseContext, requirements: ResourceRequirements
     *allocation* is required if *requirements* is not *None*. *requirements*
     may be validated in terms of the provided *allocation*.
 
-    .. tbd wrt #4423 and #4422
-        If ``gmxapi.version.has_feature('mpi_bindings') == True``, we assume that
-        ``mpi4py`` can be imported, and the returned object is guaranteed to be an
-        instance of :py:class:`mpi4py.MPI.Comm`. If the package was built without
-        ``mpi4py`` integration, and *original_comm* is not a
-        :py:class:`mpi4py.MPI.Comm` instance, the object produced will be a
-        (special module object) :py:class:`_NullCommunicator`.
+    .. versionchanged:: 0.4
 
         Previous versions transformed :py:class:`~mpi4py.MPI.COMM_NULL` into a mock
         communicator before returning for consistency in trivial cases with or
         without :py:mod:`mpi4py`. This translation adds unnecessary indirection,
         and has been removed.
+
+        Similarly, for *original_comm.Get_size()* or *requested_size* of 1,
+        an unspecified "fake" communicator could be produced to avoid an
+        ``MPI_Comm_split()``. While more efficient, the code complexity was
+        problematic and has been removed.
 
     When ``mpi4py`` is in use (``gmxapi.version.has_feature('mpi_bindings') == True``
     or *allocation.communicator()* is an :py:class:`mpi4py.MPI.Comm`), and
@@ -259,12 +275,6 @@ def scoped_resources(allocation: BaseContext, requirements: ResourceRequirements
 
     Callers should use ``allocation.communicator().Get_rank()`` to decide
     whether to use the new communicator.
-
-    ..
-        Previously, for *original_comm.Get_size()* or *requested_size* of 1,
-        an unspecified "fake" communicator could be produced to avoid an
-        ``MPI_Comm_split()``. While more efficient, the code complexity was
-        problematic.
 
     TODO(#4079):
         This context manager is called "scoped_resources" instead of "scoped_assignment"
@@ -280,13 +290,14 @@ def scoped_resources(allocation: BaseContext, requirements: ResourceRequirements
     if requirements is not None:
         if allocation is None:
             raise exceptions.UsageError(
-                'Provide allocated resources from which to request a sub-allocation.')
+                "Provide allocated resources from which to request a sub-allocation."
+            )
 
     if allocation is None:
         # We need to think more about race conditions and other structural
         # details before allowing implicit automatic detection of resources.
         raise exceptions.FeatureNotAvailableError(
-            'Implicit allocation is not currently available.'
+            "Implicit allocation is not currently available."
         )
 
     base_communicator = allocation.communicator()
@@ -304,11 +315,12 @@ def scoped_resources(allocation: BaseContext, requirements: ResourceRequirements
         except AttributeError:
             max_size = 1
         if requested_size > max_size:
-            error = f'Cannot get Comm size {requested_size} from {repr(allocation)}.'
+            error = f"Cannot get Comm size {requested_size} from {repr(allocation)}."
             logger.error(
-                error + ' '
-                + 'To get a scoped communicator of a specific size, provide a sufficient '
-                + 'communicator supporting the mpi4py.MPI.Comm interface.'
+                error
+                + " "
+                + "To get a scoped communicator of a specific size, provide a sufficient "
+                + "communicator supporting the mpi4py.MPI.Comm interface."
             )
             raise exceptions.UsageError(error)
 
@@ -317,7 +329,7 @@ def scoped_resources(allocation: BaseContext, requirements: ResourceRequirements
         except AttributeError:
             rank = None
         # TODO: How do we decide if we participate if we don't have a real communicator?
-        if not hasattr(base_communicator, 'Split'):
+        if not hasattr(base_communicator, "Split"):
             # TODO: Encapsulate getting the resources from the allocation.
             resources = ResourceAssignment()
             if base_communicator is not None:
@@ -326,7 +338,8 @@ def scoped_resources(allocation: BaseContext, requirements: ResourceRequirements
             if rank is not None and rank < requested_size:
                 color = 0
             else:
-                color = _MPI.UNDEFINED
+                assert _MPI is not None
+                color = MPI_UNDEFINED
             communicator = base_communicator.Split(color=color)
             resources = ResourceAssignment(communicator)
 
@@ -334,3 +347,82 @@ def scoped_resources(allocation: BaseContext, requirements: ResourceRequirements
         yield resources
     finally:
         resources.close()
+
+
+def assign_ensemble(
+    allocation: ResourceAllocation, membership: typing.Iterable[int]
+) -> ResourceAssignment:
+    """Assign resources to members of a new ensemble.
+
+    Args:
+        allocation: resource allocation from which to assign resources.
+        membership: ensemble member ID for each rank in *allocation*
+
+    *membership* IDs are in the *new* ensemble, sequenced by rank in *allocation*.
+    *membership* values begin at zero and should be monotonic. I.e. the number
+    of ensemble members is ``max(membership) + 1``. If the size of the original
+    allocation is larger than the required assignment, let *membership* be a
+    shorter sequence than ``allocation.communicator.Get_size()``
+
+    Each ensemble member gets its own sub-communicator, split from the allocation.
+
+    Ranks that are not part of any ensemble member get MPI_COMM_NULL.
+    (I.e. when ``len(membership) > allocation.communicator().Get_size()``)
+
+    This is a collective call. All ranks in *allocation* must call this function
+    with the same arguments.
+    """
+    membership = list(membership)
+    ensemble_size = max(membership) + 1
+    if set(membership) != set(range(ensemble_size)):
+        raise exceptions.UsageError(f"Invalid ensemble membership list: {membership}")
+
+    required_comm_size = len(membership)
+
+    base_communicator = allocation.communicator()
+    # If requested size is 1, we should not need to require mpi4py.
+    # However, it is not safe to proceed with tMPI if multiple processes are
+    # active and cannot be detected. This is also an issue without gmxapi,
+    # though, and we consider it a user error.
+    # See also https://gitlab.com/gromacs/gromacs/-/issues/4637
+    #
+    # With resolution of #4423, we require mpi4py for gmxapi.
+    #
+    # We could remove this requirement and rely instead on internal (C++ level)
+    # MPI management to detect the MPI context and call Init and Finalize the
+    # correct number of times, but the consensus among reviewers was that this
+    # would be an unnecessary development burden with little benefit.
+    if required_comm_size > 1:
+        # Ensembles require mpi4py and a valid base communicator.
+        if not hasattr(base_communicator, "Get_size"):
+            if _MPI is None:
+                error = f"Ensemble work requires the mpi4py Python package."
+            else:
+                error = f"Cannot get Comm size {required_comm_size} from {repr(allocation)}."
+            logger.error(
+                error
+                + " "
+                + "To get a scoped communicator of a specific size, provide a parent "
+                + "communicator supporting the mpi4py.MPI.Comm interface."
+            )
+            raise exceptions.UsageError(error)
+
+    if _MPI is None:
+        assert required_comm_size == 1
+        assert base_communicator is None
+        resources = ResourceAssignment()
+    else:
+        assert base_communicator is not None
+        original_comm_size = base_communicator.Get_size()
+        padding = original_comm_size - required_comm_size
+        if padding < 0:
+            raise exceptions.FeatureNotAvailableError(
+                f"Cannot produce a sub-communicator of size {required_comm_size}"
+                f" from a communicator of size {original_comm_size}."
+            )
+        split_color = membership + ([MPI_UNDEFINED] * padding)
+        assert len(split_color) == original_comm_size
+        current_rank = base_communicator.Get_rank()
+        communicator = base_communicator.Split(color=split_color[current_rank])
+        resources = ResourceAssignment(communicator)
+    return resources

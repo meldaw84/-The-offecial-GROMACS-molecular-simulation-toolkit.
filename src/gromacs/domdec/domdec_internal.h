@@ -99,8 +99,8 @@ struct gmx_domdec_comm_dim_t
     bool receiveInPlace = false;
 };
 
-/*! \brief Load balancing data along a dim used on the master rank of that dim */
-struct RowMaster
+/*! \brief Load balancing data along a dim used on the main rank of that dim */
+struct RowCoordinator
 {
     struct Bounds
     {
@@ -132,7 +132,7 @@ struct RowMaster
 struct DDCellsizesWithDlb
 {
     /**< Cell row root struct, only available on the first rank in a row */
-    std::unique_ptr<RowMaster> rowMaster;
+    std::unique_ptr<RowCoordinator> rowCoordinator;
     /**< The cell sizes, in fractions, along a row, not available on the first rank in a row */
     std::vector<real> fracRow;
     /**< The lower corner, in fractions, in triclinic space */
@@ -642,10 +642,16 @@ struct gmx_domdec_comm_t // NOLINT (clang-analyzer-optin.performance.Padding)
      * would violate this restriction. */
     int maxpulse = 0;
 
-    /** Which cg distribution is stored on the master node,
+    /** The step interval for algorithms that require global communication
+     *  such as DLB and the computation the extent of unbound dimensions
+     * (i.e. dimensions without PBC and without walls).
+     */
+    int nstDDGlobalComm = 0;
+
+    /** Which cg distribution is stored on the main node,
      *  stored as DD partitioning call count.
      */
-    int64_t master_cg_ddp_count = 0;
+    int64_t main_cg_ddp_count = 0;
 
     /** The number of cg's received from the direct neighbors */
     std::array<int, DD_MAXZONE> zone_ncg1 = { 0 };
@@ -693,6 +699,11 @@ struct gmx_domdec_comm_t // NOLINT (clang-analyzer-optin.performance.Padding)
 
     /**< Struct for timing the force load balancing region */
     BalanceRegion balanceRegion;
+
+#if GMX_MPI
+    /**< MPI data type corresponding to rvec */
+    MPI_Datatype mpiRVec;
+#endif
 
     /* Cycle counters over nstlist steps */
     /**< Total cycles counted */

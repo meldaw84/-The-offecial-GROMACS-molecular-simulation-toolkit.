@@ -129,23 +129,15 @@ bool pme_gpu_supports_build(std::string* error)
     // Before changing the prefix string, make sure that it is not searched for in regression tests.
     errorReasons.startContext("PME GPU does not support:");
     errorReasons.appendIf(GMX_DOUBLE, "Double-precision build of GROMACS.");
-    errorReasons.appendIf(!GMX_GPU, "Non-GPU build of GROMACS.");
-    errorReasons.finishContext();
-    if (error != nullptr)
-    {
-        *error = errorReasons.toString();
-    }
-    return errorReasons.isEmpty();
-}
-
-bool pme_gpu_supports_hardware(const gmx_hw_info_t gmx_unused& hwinfo, std::string* error)
-{
-    gmx::MessageStringCollector errorReasons;
-    // Before changing the prefix string, make sure that it is not searched for in regression tests.
-    errorReasons.startContext("PME GPU does not support:");
 #ifdef __APPLE__
-    errorReasons.appendIf(GMX_GPU_OPENCL, "Apple OS X operating system");
+#    if defined(__aarch64__)
+    // OpenCL compiler silently fails on macOS when using clFFT backend.
+    errorReasons.appendIf(GMX_GPU_OPENCL && !GMX_GPU_FFT_VKFFT, "macOS build using clFFT.");
+#    else
+    errorReasons.appendIf(true, "macOS build for x86 architecture.");
+#    endif
 #endif
+    errorReasons.appendIf(!GMX_GPU, "Non-GPU build of GROMACS.");
     errorReasons.finishContext();
     if (error != nullptr)
     {
@@ -990,7 +982,8 @@ gmx_pme_t* gmx_pme_init(const t_commrec*     cr,
         {
             GMX_THROW(gmx::NotImplementedError(errorString));
         }
-        pme_gpu_reinit(pme.get(), deviceContext, deviceStream, pmeGpuProgram);
+        const bool useMdGpuGraph = false; // This will be reset later after PP communication
+        pme_gpu_reinit(pme.get(), deviceContext, deviceStream, pmeGpuProgram, useMdGpuGraph);
     }
     else
     {
@@ -1425,7 +1418,7 @@ int gmx_pme_do(struct gmx_pme_t*              pme,
 
         if (computeEnergyAndVirial)
         {
-            /* This should only be called on the master thread
+            /* This should only be called on the main thread
              * and after the threads have synchronized.
              */
             if (grid_index < 2)
@@ -1595,7 +1588,7 @@ int gmx_pme_do(struct gmx_pme_t*              pme,
 
             if (computeEnergyAndVirial)
             {
-                /* This should only be called on the master thread and
+                /* This should only be called on the main thread and
                  * after the threads have synchronized.
                  */
                 get_pme_ener_vir_lj(pme->solve_work, pme->nthread, &output[fep_state]);

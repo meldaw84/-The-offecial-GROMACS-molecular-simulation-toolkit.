@@ -59,7 +59,10 @@
 namespace gmx
 {
 
-FreeEnergyPerturbationData::FreeEnergyPerturbationData(FILE* fplog, const t_inputrec& inputrec, MDAtoms* mdAtoms) :
+FreeEnergyPerturbationData::FreeEnergyPerturbationData(FILE*             fplog,
+                                                       const t_inputrec& inputrec,
+                                                       MDAtoms*          mdAtoms,
+                                                       gmx_ekindata_t*   ekindata) :
     element_(std::make_unique<Element>(this, inputrec.fepvals->delta_lambda)),
     lambda_(),
     currentFEPState_(0),
@@ -69,14 +72,14 @@ FreeEnergyPerturbationData::FreeEnergyPerturbationData(FILE* fplog, const t_inpu
 {
     std::fill(lambda_.begin(), lambda_.end(), 0);
     // The legacy implementation only filled the lambda vector in state_global, which is only
-    // available on master. We have the lambda vector available everywhere, so we pass a `true`
-    // for isMaster on all ranks. See #3647.
+    // available on main. We have the lambda vector available everywhere, so we pass a `true`
+    // for isMain on all ranks. See #3647.
     initialize_lambdas(fplog_,
                        inputrec_.efep,
                        inputrec_.bSimTemp,
                        *inputrec_.fepvals,
                        inputrec_.simtempvals->temperatures,
-                       gmx::arrayRefFromArray(inputrec_.opts.ref_t, inputrec_.opts.ngtc),
+                       ekindata,
                        true,
                        &currentFEPState_,
                        lambda_);
@@ -211,7 +214,7 @@ void FreeEnergyPerturbationData::Element::doCheckpointData(CheckpointData<operat
 void FreeEnergyPerturbationData::Element::saveCheckpointState(std::optional<WriteCheckpointData> checkpointData,
                                                               const t_commrec*                   cr)
 {
-    if (MASTER(cr))
+    if (MAIN(cr))
     {
         freeEnergyPerturbationData_->doCheckpointData<CheckpointDataOperation::Write>(
                 &checkpointData.value());
@@ -222,7 +225,7 @@ void FreeEnergyPerturbationData::Element::saveCheckpointState(std::optional<Writ
 void FreeEnergyPerturbationData::Element::restoreCheckpointState(std::optional<ReadCheckpointData> checkpointData,
                                                                  const t_commrec* cr)
 {
-    if (MASTER(cr))
+    if (MAIN(cr))
     {
         freeEnergyPerturbationData_->doCheckpointData<CheckpointDataOperation::Read>(
                 &checkpointData.value());
@@ -310,7 +313,7 @@ void FreeEnergyPerturbationData::readCheckpointToTrxFrame(t_trxframe* trxFrame,
 {
     if (readCheckpointData)
     {
-        FreeEnergyPerturbationData freeEnergyPerturbationData(nullptr, t_inputrec(), nullptr);
+        FreeEnergyPerturbationData freeEnergyPerturbationData(nullptr, t_inputrec(), nullptr, nullptr);
         freeEnergyPerturbationData.doCheckpointData(&readCheckpointData.value());
         trxFrame->lambda = freeEnergyPerturbationData.lambda_[FreeEnergyPerturbationCouplingType::Fep];
         trxFrame->fep_state = freeEnergyPerturbationData.currentFEPState_;

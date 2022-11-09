@@ -252,7 +252,7 @@ std::vector<std::string> makeLegend(const AwhBiasParams& awhBiasParams,
                                                                  "Coord distr",
                                                                  "Ref value distr",
                                                                  "Target ref value distr",
-                                                                 "Friction metric" } };
+                                                                 "sqrt(friction metric)" } };
 
     std::vector<std::string> legend;
     /* Give legends to dimensions higher than the first */
@@ -629,7 +629,7 @@ int gmx_awh(int argc, char* argv[])
                                                         fnm,
                                                         awhGraphSelection,
                                                         energyUnit,
-                                                        gmx::c_boltz * ir.opts.ref_t[0],
+                                                        gmx::c_boltz * constantEnsembleTemperature(ir),
                                                         block);
             }
 
