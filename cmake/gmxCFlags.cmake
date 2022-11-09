@@ -382,11 +382,11 @@ macro (gmx_c_flags)
             endif()
             GMX_TEST_CXXFLAG(CXXFLAGS_WARN_EXTRA "-Wextra;-Wpointer-arith;-Wmissing-prototypes" GMXC_CXXFLAGS)
 
-            if (APPLE AND ${CMAKE_SYSTEM_VERSION} VERSION_GREATER_EQUAL "22.0")
+            if (APPLE)
                 # macOS Ventura deprecated `sprintf` in favor of `snprintf`.
-                # This temporary workaround suppresses `sprintf` deprecation warnings.
-                SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-declarations")
-                SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
+                # This workaround suppresses the deprecation warnings.
+                # Must use `CMAKE_CXX_FLAGS`, as `GMXC_CXXFLAGS` does not suppress the warnings.
+                GMX_TEST_CXXFLAG(CXXFLAGS_NO_DEPRECATED_DECLARATIONS "-Wno-deprecated-declarations" CMAKE_CXX_FLAGS)
             else()
                 GMX_TEST_CXXFLAG(CXXFLAGS_DEPRECATED "-Wdeprecated" GMXC_CXXFLAGS)
             endif()
