@@ -65,11 +65,11 @@
 #    endif
 #endif
 
-#if GMX_USE_Heffte
+#if GMX_GPU_FFT_HEFFTE
 #    include "gpu_3dfft_heffte.h"
 #endif
 
-#if GMX_USE_cuFFTMp
+#if GMX_GPU_FFT_CUFFTMP
 #    include "gpu_3dfft_cufftmp.h"
 #endif
 
@@ -118,7 +118,7 @@ Gpu3dFft::Gpu3dFft(FftBackend           backend,
                                                           realGrid,
                                                           complexGrid);
             break;
-#    if GMX_USE_cuFFTMp
+#    if GMX_GPU_FFT_CUFFTMP
         case FftBackend::CuFFTMp:
             impl_ = std::make_unique<Gpu3dFft::ImplCuFftMp>(allocateRealGrid,
                                                             comm,
@@ -158,7 +158,7 @@ Gpu3dFft::Gpu3dFft(FftBackend           backend,
                                                              realGrid,
                                                              complexGrid);
             break;
-#    else
+#    elif GMX_GPU_FFT_CLFFT
         case FftBackend::Ocl:
             impl_ = std::make_unique<Gpu3dFft::ImplOcl>(allocateRealGrid,
                                                         comm,
@@ -248,7 +248,7 @@ Gpu3dFft::Gpu3dFft(FftBackend           backend,
     }
 #endif
 
-#if GMX_USE_Heffte
+#if GMX_GPU_FFT_HEFFTE && GMX_GPU_CUDA
     switch (backend)
     {
         case FftBackend::HeFFTe_CUDA:

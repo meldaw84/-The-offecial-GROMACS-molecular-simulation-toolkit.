@@ -252,14 +252,66 @@ mark_as_advanced(GMX_DISABLE_FFTW_MEASURE)
 
 gmx_dependent_option(
     GMX_USE_HEFFTE
-    "Use HeFFTe for FFT support. Used with CUDA backend"
+    "Deprecated, use GMX_GPU_FFT_LIBRARY=HeFFTe instead."
     OFF
     "GMX_GPU STREQUAL CUDA;GMX_MPI")
 gmx_dependent_option(
     GMX_USE_CUFFTMP
-    "Use cuFFTMp for FFT support. Used with CUDA backend"
+    "Deprecated, use GMX_GPU_FFT_LIBRARY=cuFFTMp instead."
     OFF
     "GMX_GPU STREQUAL CUDA;GMX_MPI")
+
+if (GMX_GPU)
+    if (GMX_GPU STREQUAL CUDA)
+        if (GMX_USE_HEFFTE)
+            set(GMX_GPU_FFT_LIBRARY_DEFAULT "HeFFTe")
+        elseif(GMX_USE_CUFFTMP)
+            set(GMX_GPU_FFT_LIBRARY_DEFAULT "cuFFTMp")
+        else()
+            set(GMX_GPU_FFT_LIBRARY_DEFAULT "cuFFT")
+        endif()
+    elseif(GMX_GPU STREQUAL OPENCL)
+        if (DEFINED GMX_GPU_FFT_VKFFT)
+            if (GMX_GPU_FFT_VKFFT)
+                set(GMX_GPU_FFT_LIBRARY_DEFAULT "VkFFT")
+            else()
+                set(GMX_GPU_FFT_LIBRARY_DEFAULT "clFFT")
+            endif()
+        else()  # Uses did not express their opinion about VkFFT
+            if (APPLE OR MSVC)
+                set(GMX_GPU_FFT_LIBRARY_DEFAULT "VkFFT")
+            else()
+                set(GMX_GPU_FFT_LIBRARY_DEFAULT "clFFT")
+            endif()
+        endif()
+    elseif(GMX_GPU STREQUAL SYCL)
+        if (GMX_FFT_LIBRARY STREQUAL "MKL")
+            set(GMX_GPU_FFT_LIBRARY_DEFAULT "MKL")
+        elseif(GMX_SYCL_HIPSYCL)
+            set(GMX_GPU_FFT_LIBRARY_DEFAULT "VkFFT")
+        else()
+            set(GMX_GPU_FFT_LIBRARY_DEFAULT "none")
+        endif()
+    endif()
+
+    gmx_option_multichoice(
+        GMX_GPU_FFT_LIBRARY
+        "GPU FFT library"
+        "${GMX_GPU_FFT_LIBRARY_DEFAULT}"
+        cuFFT cuFFTMp HeFFTe clFFT VkFFT MKL rocFFT none)
+    # The validity of chosen option is later verified by the selected backend
+
+    foreach (_gpu_fft_library cuFFT cuFFTMp HeFFTe clFFT VkFFT MKL rocFFT)
+        string(TOUPPER "${_gpu_fft_library}" _gpu_fft_library_upper)
+        if (GMX_GPU_FFT_LIBRARY STREQUAL ${_gpu_fft_library_upper})
+            message(STATUS "Using GPU FFT library - ${_gpu_fft_library}")
+            set(_value TRUE)
+        else()
+            set(_value FALSE)
+        endif()
+        set("GMX_GPU_FFT_${_gpu_fft_library_upper}" "${_value}" CACHE INTERNAL "Use ${_gpu_fft_library} library for FFT on GPUs")
+    endforeach()
+endif (GMX_GPU)
 
 gmx_dependent_cache_variable(GMX_SIMD_REF_FLOAT_WIDTH  "Reference SIMD single precision width" STRING "4" "GMX_SIMD STREQUAL REFERENCE")
 gmx_dependent_cache_variable(GMX_SIMD_REF_DOUBLE_WIDTH "Reference SIMD double precision width" STRING "2" "GMX_SIMD STREQUAL REFERENCE")
@@ -699,7 +751,7 @@ if(CYGWIN)
     set(GMX_CYGWIN 1)
 endif()
 
-if(GMX_USE_HEFFTE)
+if(GMX_GPU_FFT_HEFFTE)
     if(NOT GMX_GPU_CUDA)
         message(FATAL_ERROR "HeFFTe support requires a CUDA build")
     endif()
@@ -707,10 +759,9 @@ if(GMX_USE_HEFFTE)
         message(FATAL_ERROR "HeFFTe support requires a library MPI build")
     endif()
     find_package(Heffte 2.2.0 REQUIRED CUDA)
-    set(GMX_USE_Heffte ${Heffte_FOUND})
 endif()
 
-if(GMX_USE_CUFFTMP)
+if(GMX_GPU_FFT_CUFFTMP)
     if(NOT GMX_GPU_CUDA)
         message(FATAL_ERROR "cuFFTMp support requires a CUDA build")
     endif()
@@ -718,7 +769,6 @@ if(GMX_USE_CUFFTMP)
         message(FATAL_ERROR "cuFFTMp support requires a library MPI build")
     endif()
     find_package(cuFFTMp REQUIRED CUDA)
-    set(GMX_USE_cuFFTMp ${cuFFTMp_FOUND})
 endif()
 
 if(WIN32)

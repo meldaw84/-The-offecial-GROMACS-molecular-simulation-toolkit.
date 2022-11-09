@@ -27,7 +27,7 @@ gromacs:gcc-9-cuda-11.0.3:configureMPI:
   variables:
     CMAKE: /usr/local/cmake-3.18.4/bin/cmake
     CMAKE_SIMD_OPTIONS: "-DGMX_SIMD=SSE4.1"
-    CMAKE_EXTRA_OPTIONS: "-DGMX_USE_HEFFTE=ON"
+    CMAKE_EXTRA_OPTIONS: "-DGMX_GPU_FFT_LIBRARY=HeFFTe"
     COMPILER_MAJOR_VERSION: 9
 
 gromacs:gcc-9-cuda-11.0.3:buildMPI:

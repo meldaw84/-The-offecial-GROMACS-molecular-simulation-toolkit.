@@ -166,8 +166,8 @@ if (GMX_GPU_CUDA)
 endif()
 
 if (GMX_GPU_CUDA)
-    if(GMX_USE_cuFFTMp)
-        # needed as we need to inlude cufftmp include path before CUDA include path
+    if(GMX_GPU_FFT_CUFFTMP)
+        # needed as we need to include cufftmp include path before CUDA include path
         cuda_include_directories(${cuFFTMp_INCLUDE_DIR})
     endif()
     # Work around FindCUDA that prevents using target_link_libraries()
@@ -180,7 +180,7 @@ if (GMX_GPU_CUDA)
     endif()
 
     #we cannot link with both cufftmp and cufft
-    if(GMX_USE_cuFFTMp)
+    if(GMX_GPU_FFT_CUFFTMP)
         target_link_libraries(libgromacs PRIVATE ${cuFFTMp_LIBRARY})
     else()
         target_link_libraries(libgromacs PRIVATE ${CUDA_CUFFT_LIBRARIES})
@@ -239,7 +239,7 @@ target_include_directories(libgromacs SYSTEM BEFORE PRIVATE ${PROJECT_SOURCE_DIR
 if (GMX_GPU_OPENCL)
     if (GMX_GPU_FFT_VKFFT)
         target_link_libraries(libgromacs PRIVATE VkFFT)
-    else()
+    elseif(GMX_GPU_FFT_CLFFT)
         option(GMX_EXTERNAL_CLFFT "True if an external clFFT is required to be used" FALSE)
         mark_as_advanced(GMX_EXTERNAL_CLFFT)
 
@@ -262,7 +262,7 @@ clFFT to help with building for OpenCL, but that clFFT has not yet been
 ported to the more recent versions of that compiler that GROMACS itself
 requires. Thus for now, OpenCL is not available with MSVC and the internal
 build of clFFT in GROMACS 2019 and newer. Either change compiler, try
-installing a clFFT package, use VkFFT by setting -DGMX_GPU_FFT_VKFFT=ON,
+installing a clFFT package, use VkFFT by setting -DGMX_GPU_FFT_LIBRARY=VkFFT,
 or use GROMACS 2018.8 release (no longer maintained).")
             endif()
 

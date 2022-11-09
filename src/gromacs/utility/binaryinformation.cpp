@@ -243,51 +243,44 @@ std::string getGpuFftDescriptionString()
 {
     if (GMX_GPU)
     {
-        if (GMX_GPU_CUDA)
+        if (GMX_GPU_FFT_CUFFT)
         {
             return "cuFFT";
         }
-        else if (GMX_GPU_OPENCL)
+        else if (GMX_GPU_FFT_CUFFTMP)
         {
-            if (GMX_GPU_FFT_VKFFT)
-            {
-                return std::string("VkFFT ") + vkfft_VERSION;
-            }
-            else
-            {
-                return "clFFT";
-            }
+            return "cuFFTmp + cuFFT";
         }
-        else if (GMX_GPU_SYCL)
+        else if (GMX_GPU_FFT_HEFFTE)
         {
-            if (GMX_GPU_FFT_MKL)
-            {
-                return describeMkl();
-            }
-            else if (GMX_GPU_FFT_ROCFFT)
-            {
-                return std::string("rocFFT ") + rocfft_VERSION;
-            }
-            else if (GMX_GPU_FFT_VKFFT)
-            {
-                return std::string("VkFFT ") + vkfft_VERSION;
-            }
-            else
-            {
-                return "unknown";
-            }
+            return "heFFTe + cuFFT";
+        }
+        else if (GMX_GPU_FFT_CLFFT)
+        {
+            return "clFFT";
+        }
+        else if (GMX_GPU_FFT_VKFFT)
+        {
+            return std::string("VkFFT ") + vkfft_VERSION;
+        }
+        else if (GMX_GPU_FFT_MKL)
+        {
+            return describeMkl();
+        }
+        else if (GMX_GPU_FFT_ROCFFT)
+        {
+            return std::string("rocFFT ") + rocfft_VERSION;
         }
         else
         {
-            GMX_RELEASE_ASSERT(false, "Unknown GPU configuration");
-            return "impossible";
+            return "none / unknown";
         }
     }
     else
     {
         return "none";
     }
-};
+}
 
 /*! \brief Construct a string that describes the library (if any)
  * that provides multi-GPU FFT support to this build */

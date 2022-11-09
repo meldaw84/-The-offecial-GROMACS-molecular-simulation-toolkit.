@@ -778,7 +778,7 @@ static void pme_gpu_init_internal(PmeGpu* pmeGpu, const DeviceContext& deviceCon
     pmeGpu->kernelParams.reset(new PmeGpuKernelParams());
 
     pmeGpu->archSpecific->performOutOfPlaceFFT = true;
-    if (pmeGpu->settings.useDecomposition && GMX_USE_cuFFTMp)
+    if (pmeGpu->settings.useDecomposition && GMX_GPU_FFT_CUFFTMP)
     {
         pmeGpu->archSpecific->performOutOfPlaceFFT = false;
     }
@@ -836,11 +836,11 @@ static gmx::FftBackend getFftBackend(const PmeGpu* pmeGpu)
         }
         else
         {
-            if (GMX_USE_cuFFTMp)
+            if (GMX_GPU_FFT_CUFFTMP)
             {
                 return gmx::FftBackend::CuFFTMp;
             }
-            else if (GMX_USE_Heffte)
+            else if (GMX_GPU_FFT_HEFFTE)
             {
                 return gmx::FftBackend::HeFFTe_CUDA;
             }
@@ -862,6 +862,7 @@ static gmx::FftBackend getFftBackend(const PmeGpu* pmeGpu)
         }
         else
         {
+            GMX_RELEASE_ASSERT(GMX_GPU_FFT_CLFFT, "Only clFFT and VkFFT are supported with OpenCL");
             return gmx::FftBackend::Ocl;
         }
     }

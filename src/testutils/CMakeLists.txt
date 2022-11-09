@@ -49,7 +49,7 @@ if (GMX_GPU_CUDA)
         target_link_libraries(testutils PRIVATE ${GMX_CUDA_CLANG_LINK_LIBS})
     endif()
     #we cannot link with both cufftmp and cufft
-    if(GMX_USE_cuFFTMp)
+    if(GMX_GPU_FFT_CUFFTMP)
         target_link_libraries(testutils PRIVATE ${cuFFTMp_LIBRARY})
     else()
         target_link_libraries(testutils PRIVATE ${CUDA_CUFFT_LIBRARIES})

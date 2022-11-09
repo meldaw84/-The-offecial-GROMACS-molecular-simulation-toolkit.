@@ -47,7 +47,7 @@ target_link_libraries(
         utility
 )
 
-if(GMX_USE_Heffte OR GMX_USE_cuFFTMp)
+if(GMX_GPU_FFT_HEFFTE OR GMX_GPU_FFT_CUFFTMP)
 gmx_add_mpi_unit_test(FFTMpiUnitTests fft-mpi-test 4 HARDWARE_DETECTION
     GPU_CPP_SOURCE_FILES
         fft_mpi.cpp
