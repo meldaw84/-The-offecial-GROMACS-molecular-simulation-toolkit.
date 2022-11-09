@@ -64,7 +64,7 @@ MockThreadAffinityAccess::~MockThreadAffinityAccess() {}
 
 ThreadAffinityTestHelper::ThreadAffinityTestHelper()
 {
-    snew(cr_, 1);
+    cr_         = new t_commrec;
     cr_->nnodes = gmx_node_num();
     cr_->nodeid = gmx_node_rank();
     // Default communicator is needed for [SIM]MAIN(cr) to work
@@ -83,7 +83,7 @@ ThreadAffinityTestHelper::ThreadAffinityTestHelper()
 
 ThreadAffinityTestHelper::~ThreadAffinityTestHelper()
 {
-    sfree(cr_);
+    delete cr_;
 }
 
 void ThreadAffinityTestHelper::setLogicalProcessorCount(int logicalProcessorCount)
