@@ -258,7 +258,7 @@ gmx_dependent_option(
     GMX_USE_HEFFTE
     "Use HeFFTe for distributed FFT support. Used with CUDA backend"
     OFF
-    "GMX_GPU STREQUAL CUDA;GMX_MPI")
+    "GMX_GPU STREQUAL CUDA OR GMX_GPU STREQUAL SYCL;GMX_MPI")
 gmx_dependent_option(
     GMX_USE_CUFFTMP
     "Use cuFFTMp for distributed FFT support. Used with CUDA backend"
@@ -756,13 +756,25 @@ if(GMX_GPU_CUDA AND NOT GMX_GPU_FFT_CUFFT)
 endif()
 
 if(GMX_USE_HEFFTE)
-    if(NOT GMX_GPU_CUDA)
-        message(FATAL_ERROR "HeFFTe support requires a CUDA build")
+    if(NOT GMX_GPU_CUDA AND NOT GMX_GPU_SYCL)
+        message(FATAL_ERROR "HeFFTe support requires a CUDA or SYCL build")
     endif()
     if(NOT GMX_LIB_MPI)
         message(FATAL_ERROR "HeFFTe support requires a library MPI build")
     endif()
-    find_package(Heffte 2.2.0 REQUIRED CUDA)
+    # Find quietly the second time.
+    if (Heffte_FIND_QUIETLY_AFTER_FIRST_RUN)
+        set(Heffte_FIND_QUIETLY TRUE)
+    endif()
+    if(GMX_GPU_CUDA)
+        find_package(Heffte 2.2.0 REQUIRED CUDA)
+    elseif(GMX_GPU_SYCL)
+        if(GMX_SYCL_HIPSYCL)
+            find_package(Heffte 2.2.0 REQUIRED ROCM)
+        else()
+            find_package(Heffte 2.2.0 REQUIRED ONEAPI)
+        endif()
+    endif()
     set(GMX_USE_Heffte ${Heffte_FOUND})
 endif()
 
