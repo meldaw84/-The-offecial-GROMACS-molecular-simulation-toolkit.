@@ -53,8 +53,6 @@
 #include "gromacs/utility/real.h"
 #include "gromacs/utility/smalloc.h"
 
-void done_domdec(gmx_domdec_t* dd);
-
 /* The source code in this file should be thread-safe.
       Please keep it that way. */
 
@@ -63,8 +61,8 @@ CommrecHandle init_commrec(MPI_Comm communicator)
     CommrecHandle handle;
     t_commrec*    cr;
 
-    snew(cr, 1);
-    handle.reset(cr);
+    handle = std::make_unique<t_commrec>();
+    cr     = handle.get();
 
     int rankInCommunicator, sizeOfCommunicator;
 #if GMX_MPI
@@ -83,44 +81,10 @@ CommrecHandle init_commrec(MPI_Comm communicator)
     cr->sizeOfDefaultCommunicator = sizeOfCommunicator;
     cr->rankInDefaultCommunicator = rankInCommunicator;
 
-    // For now, we want things to go horribly wrong if this is used too early...
-    // TODO: Remove when communicators are removed from commrec (#2395)
-    cr->nnodes                    = -1;
-    cr->sizeOfMyGroupCommunicator = -1;
-    cr->nodeid                    = -1;
-    cr->sim_nodeid                = -1;
-    cr->mpi_comm_mysim            = MPI_COMM_NULL;
-    cr->mpi_comm_mygroup          = MPI_COMM_NULL;
-
     // TODO cr->duty should not be initialized here
     cr->duty = (DUTY_PP | DUTY_PME);
 
     return handle;
-}
-
-void done_commrec(t_commrec* cr)
-{
-    if (MAIN(cr))
-    {
-        done_domdec(cr->dd);
-    }
-#if GMX_MPI
-    // TODO We need to be able to free communicators, but the
-    // structure of the commrec and domdec initialization code makes
-    // it hard to avoid both leaks and double frees.
-    bool mySimIsMyGroup = (cr->mpi_comm_mysim == cr->mpi_comm_mygroup);
-    if (cr->mpi_comm_mysim != MPI_COMM_NULL && cr->mpi_comm_mysim != MPI_COMM_WORLD)
-    {
-        // TODO see above
-        // MPI_Comm_free(&cr->mpi_comm_mysim);
-    }
-    if (!mySimIsMyGroup && cr->mpi_comm_mygroup != MPI_COMM_NULL && cr->mpi_comm_mygroup != MPI_COMM_WORLD)
-    {
-        // TODO see above
-        // MPI_Comm_free(&cr->mpi_comm_mygroup);
-    }
-#endif
-    sfree(cr);
 }
 
 void gmx_setup_nodecomm(FILE gmx_unused* fplog, t_commrec* cr)

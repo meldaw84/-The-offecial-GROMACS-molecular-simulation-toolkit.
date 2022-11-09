@@ -69,44 +69,56 @@ typedef struct
 
 struct t_commrec
 {
+    t_commrec();
+
+    ~t_commrec();
+
+    //! Transfers the ownership of \p ddUniquePtr and sets \p dd
+    void setDD(std::unique_ptr<gmx_domdec_t>&& ddUniquePtr);
+
     /* The nodeids in one sim are numbered sequentially from 0.
      * All communication within some simulation should happen
      * in mpi_comm_mysim, or its subset mpi_comm_mygroup.
      */
     //! The rank-id in mpi_comm_mysim;
-    int sim_nodeid;
+    int sim_nodeid = -1;
     //! The number of ranks in mpi_comm_mysim
-    int nnodes;
+    int nnodes = -1;
     //! The number of separate PME ranks, 0 when no separate PME ranks are used
-    int npmenodes;
+    int npmenodes = -1;
 
     //! The rank-id in mpi_comm_mygroup;
-    int nodeid;
+    int nodeid = -1;
 
     /* MPI communicators within a single simulation
      * Note: other parts of the code may further subset these communicators.
      */
-    MPI_Comm mpi_comm_mysim;   /* communicator including all ranks of
+    MPI_Comm mpi_comm_mysim = MPI_COMM_NULL;   /* communicator including all ranks of
                                   a single simulation */
-    MPI_Comm mpi_comm_mygroup; /* subset of mpi_comm_mysim including only
+    MPI_Comm mpi_comm_mygroup = MPI_COMM_NULL; /* subset of mpi_comm_mysim including only
                                   the ranks in the same group (PP or PME) */
     //! The number of ranks in mpi_comm_mygroup
-    int sizeOfMyGroupCommunicator;
+    int sizeOfMyGroupCommunicator = 0;
 
     //! The communicator used before DD was initialized
-    MPI_Comm mpiDefaultCommunicator;
-    int      sizeOfDefaultCommunicator;
-    int      rankInDefaultCommunicator;
+    MPI_Comm mpiDefaultCommunicator    = MPI_COMM_NULL;
+    int      sizeOfDefaultCommunicator = -1;
+    int      rankInDefaultCommunicator = -1;
 
     gmx_nodecomm_t nc;
 
-    /* Handle to domain decomposition manager, owned elsewhere in mdrunner. */
-    gmx_domdec_t* dd;
+private:
+    //! Storage for the domain decomposition data
+    std::unique_ptr<gmx_domdec_t> ddUniquePtr_;
+
+public:
+    //! C-pointer to ddUniquePtr (should be replaced by a getter)
+    gmx_domdec_t* dd = nullptr;
 
     /* The duties of this node, see the DUTY_ defines above.
      * This should be read through thisRankHasDuty() or getThisRankDuties().
      */
-    int duty;
+    int duty = 0;
 };
 
 /*! \brief
