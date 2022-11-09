@@ -61,7 +61,7 @@ enum class NumRanks
 //! Settings and communicators for two-step communication: intra + inter-node
 struct gmx_nodecomm_t
 {
-    int      bUse       = false;
+    bool     bUse       = false;
     MPI_Comm comm_intra = MPI_COMM_NULL;
     int      rank_intra = 0;
     MPI_Comm comm_inter = MPI_COMM_NULL;
