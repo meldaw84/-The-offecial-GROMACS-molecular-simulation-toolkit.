@@ -69,6 +69,7 @@ struct gmx_nodecomm_t
 
 struct t_commrec
 {
+    //! Constructs a valid object with one rank and no communicators
     t_commrec();
 
     ~t_commrec();
@@ -83,7 +84,7 @@ struct t_commrec
     //! The rank-id in mpi_comm_mysim;
     int sim_nodeid = 0;
     //! The number of ranks in mpi_comm_mysim
-    int nnodes = 0;
+    int nnodes = 1;
     //! The number of separate PME ranks, 0 when no separate PME ranks are used
     int npmenodes = 0;
 
@@ -98,7 +99,7 @@ struct t_commrec
     MPI_Comm mpi_comm_mygroup = MPI_COMM_NULL; /* subset of mpi_comm_mysim including only
                                   the ranks in the same group (PP or PME) */
     //! The number of ranks in mpi_comm_mygroup
-    int sizeOfMyGroupCommunicator = 0;
+    int sizeOfMyGroupCommunicator = 1;
 
     //! The communicator used before DD was initialized
     MPI_Comm mpiDefaultCommunicator    = MPI_COMM_NULL;
