@@ -81,14 +81,14 @@ struct t_commrec
      * in mpi_comm_mysim, or its subset mpi_comm_mygroup.
      */
     //! The rank-id in mpi_comm_mysim;
-    int sim_nodeid = -1;
+    int sim_nodeid = 0;
     //! The number of ranks in mpi_comm_mysim
-    int nnodes = -1;
+    int nnodes = 0;
     //! The number of separate PME ranks, 0 when no separate PME ranks are used
-    int npmenodes = -1;
+    int npmenodes = 0;
 
     //! The rank-id in mpi_comm_mygroup;
-    int nodeid = -1;
+    int nodeid = 0;
 
     /* MPI communicators within a single simulation
      * Note: other parts of the code may further subset these communicators.
@@ -102,8 +102,8 @@ struct t_commrec
 
     //! The communicator used before DD was initialized
     MPI_Comm mpiDefaultCommunicator    = MPI_COMM_NULL;
-    int      sizeOfDefaultCommunicator = -1;
-    int      rankInDefaultCommunicator = -1;
+    int      sizeOfDefaultCommunicator = 0;
+    int      rankInDefaultCommunicator = 0;
 
     gmx_nodecomm_t nc;
 

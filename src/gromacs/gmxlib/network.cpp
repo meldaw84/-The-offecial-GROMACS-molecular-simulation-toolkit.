@@ -81,6 +81,15 @@ CommrecHandle init_commrec(MPI_Comm communicator)
     cr->sizeOfDefaultCommunicator = sizeOfCommunicator;
     cr->rankInDefaultCommunicator = rankInCommunicator;
 
+    // For now, we want things to go horribly wrong if this is used too early...
+    // TODO: Remove when communicators are removed from commrec (#2395)
+    cr->nnodes                    = -1;
+    cr->sizeOfMyGroupCommunicator = -1;
+    cr->nodeid                    = -1;
+    cr->sim_nodeid                = -1;
+    cr->mpi_comm_mysim            = MPI_COMM_NULL;
+    cr->mpi_comm_mygroup          = MPI_COMM_NULL;
+
     // TODO cr->duty should not be initialized here
     cr->duty = (DUTY_PP | DUTY_PME);
 
