@@ -277,7 +277,7 @@ if (GMX_GPU)
             else()
                 set(GMX_GPU_FFT_LIBRARY_DEFAULT "clFFT")
             endif()
-        else()  # Uses did not express their opinion about VkFFT
+        else()  # User did not express their opinion about VkFFT
             if (APPLE OR MSVC)
                 set(GMX_GPU_FFT_LIBRARY_DEFAULT "VkFFT")
             else()
@@ -311,7 +311,7 @@ if (GMX_GPU)
         endif()
         set("GMX_GPU_FFT_${_gpu_fft_library_upper}" "${_value}" CACHE INTERNAL "Use ${_gpu_fft_library} library for FFT on GPUs")
     endforeach()
-endif (GMX_GPU)
+endif()
 
 gmx_dependent_cache_variable(GMX_SIMD_REF_FLOAT_WIDTH  "Reference SIMD single precision width" STRING "4" "GMX_SIMD STREQUAL REFERENCE")
 gmx_dependent_cache_variable(GMX_SIMD_REF_DOUBLE_WIDTH "Reference SIMD double precision width" STRING "2" "GMX_SIMD STREQUAL REFERENCE")
