@@ -35,12 +35,13 @@
  *
  * \brief Implements update and constraints class.
  *
- * The class combines Leap-Frog integrator with LINCS and SETTLE constraints.
+ * The class combines Leap-Frog or SD integrator with LINCS and SETTLE constraints.
  *
  * \todo The computational procedures in members should be integrated to improve
  *       computational performance.
  *
  * \author Artem Zhmurov <zhmurov@gmail.com>
+ * \author Magnus Lundborg <lundborg.magnus@gmail.com>
  *
  * \ingroup module_mdlib
  */
