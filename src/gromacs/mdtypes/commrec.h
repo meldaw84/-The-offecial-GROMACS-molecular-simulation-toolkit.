@@ -77,6 +77,9 @@ struct t_commrec
     //! Transfers the ownership of \p ddUniquePtr and sets \p dd
     void setDD(std::unique_ptr<gmx_domdec_t>&& ddUniquePtr);
 
+    //! Destroys the dd object
+    void destroyDD();
+
     /* The nodeids in one sim are numbered sequentially from 0.
      * All communication within some simulation should happen
      * in mpi_comm_mysim, or its subset mpi_comm_mygroup.

@@ -67,3 +67,9 @@ void t_commrec::setDD(std::unique_ptr<gmx_domdec_t>&& ddUniquePtr)
     ddUniquePtr_ = std::move(ddUniquePtr);
     dd           = ddUniquePtr_.get();
 }
+
+void t_commrec::destroyDD()
+{
+    ddUniquePtr_.reset(nullptr);
+    dd = nullptr;
+}
