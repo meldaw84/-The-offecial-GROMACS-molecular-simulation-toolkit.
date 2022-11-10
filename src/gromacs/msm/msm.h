@@ -50,6 +50,18 @@
 
 namespace gmx
 {
+using MatrixNxM = MultiDimArray<std::vector<real>, extents<dynamic_extent, dynamic_extent>>;
+
+
+struct DiagonalizationResult
+{
+    DiagonalizationResult(int dimension);
+    std::vector<real> eigenvalues_;
+    MatrixNxM eigenvectors_;
+};
+
+DiagonalizationResult diagonalize(MatrixNxM matrix);
+
 class MarkovModel
 {
     private:

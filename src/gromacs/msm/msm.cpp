@@ -56,6 +56,30 @@
 namespace gmx
 {
 
+namespace
+{
+
+bool matrixIsSquare(const MatrixNxM & matrix)
+{
+    return matrix.extent(0) == matrix.extent(1);
+};
+
+} // namespace
+
+DiagonalizationResult::DiagonalizationResult(int dimension):eigenvalues_(dimension), eigenvectors_(dimension, dimension){}
+
+DiagonalizationResult diagonalize(MatrixNxM matrix)
+{
+    // Create vector to store eigenvectors and eigenvalues
+    GMX_ASSERT(matrixIsSquare(matrix), "Matrix must be square!");
+    
+    const int dim = matrix.extent(0);
+    DiagonalizationResult result(matrix.extent(0));
+
+    eigensolver(matrix.asView().data(), dim, 0, dim, result.eigenvalues_.data(), result.eigenvectors_.asView().data());
+    return result;
+}
+
 // Constructor
 MarkovModel::MarkovModel(int nstates)
 {

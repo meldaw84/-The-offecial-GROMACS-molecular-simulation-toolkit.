@@ -50,99 +50,115 @@ namespace gmx
 namespace test
 {
 
-class MsmTest : public ::testing::Test
+// class MsmTest : public ::testing::Test
+// {
+// protected:
+//     void SetUp() override
+//     {
+//       //msm = MarkovModel(4);
+//     }
+//     //MarkovModel msm;
+// };
+
+// // TODO: better reuse data in the tests
+
+// TEST_F(MsmTest, TransitionCountingTest)
+// {
+//     // TODO: Make test pass or fail
+//     //std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
+//     std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
+
+//     MarkovModel countTestMsm = MarkovModel(4);
+
+//     countTestMsm.countTransitions(discretizedTraj, 1);
+//     auto& transitions = countTestMsm.transitionCountsMatrix;
+
+//     const auto& dataView = transitions.asConstView();
+//     const int numRows = transitions.extent(0);
+//     const int numCols = transitions.extent(1);
+
+//     for (int i = 0; i < numRows; i++)
+//     {
+//         printf("\n");
+//         for (int j=0; j < numCols; j++)
+//         {
+//             printf("%d ", dataView[i][j]);
+//         }
+//     }
+//     printf("\n");
+// }
+
+// TEST_F(MsmTest, TransitionProbabilityTest)
+// {
+//     //std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
+//     std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
+//     MarkovModel tpmTestMsm = MarkovModel(4);
+//     tpmTestMsm.countTransitions(discretizedTraj, 1);
+
+//     tpmTestMsm.computeTransitionProbabilities();
+//     auto& probs = tpmTestMsm.transitionProbabilityMatrix;
+
+//     const auto& dataView = probs.asConstView();
+//     const int numRows = probs.extent(0);
+//     const int numCols = probs.extent(1);
+
+//     for (int i = 0; i < numRows; i++)
+//     {
+//         printf("\n");
+//         for (int j=0; j < numCols; j++)
+//         {
+//             printf("%f ", dataView[i][j]);
+//         }
+//     }
+//     printf("\n");
+// }
+
+
+TEST(Diagtest, Diagonalize)
 {
-protected:
-    void SetUp() override
-    {
-      //msm = MarkovModel(4);
-    }
-    //MarkovModel msm;
-};
+    MatrixNxM matrix(2,2);
+    matrix(0,0)=1;
+    matrix(0,1)=2;
+    matrix(1,0)=2;
+    matrix(1,1)=1;
+    
+    const auto result = diagonalize(matrix);
 
-// TODO: better reuse data in the tests
+    fprintf(stderr,"\n eigenvalue 1 = %f ", result.eigenvalues_[0]);
+    fprintf(stderr,"\n eigenvalue 2 = %f ", result.eigenvalues_[1]);
 
-TEST_F(MsmTest, TransitionCountingTest)
-{
-    // TODO: Make test pass or fail
-    //std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
-    std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
-
-    MarkovModel countTestMsm = MarkovModel(4);
-
-    countTestMsm.countTransitions(discretizedTraj, 1);
-    auto& transitions = countTestMsm.transitionCountsMatrix;
-
-    const auto& dataView = transitions.asConstView();
-    const int numRows = transitions.extent(0);
-    const int numCols = transitions.extent(1);
-
-    for (int i = 0; i < numRows; i++)
-    {
-        printf("\n");
-        for (int j=0; j < numCols; j++)
-        {
-            printf("%d ", dataView[i][j]);
-        }
-    }
-    printf("\n");
 }
 
-TEST_F(MsmTest, TransitionProbabilityTest)
-{
-    //std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
-    std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
-    MarkovModel tpmTestMsm = MarkovModel(4);
-    tpmTestMsm.countTransitions(discretizedTraj, 1);
+// TEST_F(MsmTest, DiagonalizationTest)
+// {
+//     std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2}; //runs, should get eigenvalues (0.8, 0.5, 0, 0)
+//     //std::vector<int> discretizedTraj = {2, 2, 0, 0, 0, 3, 3, 2}; //runs
+//     //std::vector<int> discretizedTraj = {0, 1, 1, 2, 3, 3, 3, 2}; //floating point exception
+//     MarkovModel diagTestMsm = MarkovModel(4);
+//     diagTestMsm.countTransitions(discretizedTraj, 1);
+//     diagTestMsm.computeTransitionProbabilities();
 
-    tpmTestMsm.computeTransitionProbabilities();
-    auto& probs = tpmTestMsm.transitionProbabilityMatrix;
+//     auto tpm = diagTestMsm.transitionProbabilityMatrix;
 
-    const auto& dataView = probs.asConstView();
-    const int numRows = probs.extent(0);
-    const int numCols = probs.extent(1);
+//     // TODO: if diagonalization is not called before
+//     // attributes are collected, they will be zero.
+//     // Better to initialize them by running the method?
+//     diagTestMsm.diagonalizeMatrix(tpm);
 
-    for (int i = 0; i < numRows; i++)
-    {
-        printf("\n");
-        for (int j=0; j < numCols; j++)
-        {
-            printf("%f ", dataView[i][j]);
-        }
-    }
-    printf("\n");
-}
+//     auto eigvals = diagTestMsm.eigenvalues;
+//     auto eigvecs = diagTestMsm.eigenvectors;
 
-TEST_F(MsmTest, DiagonalizationTest)
-{
-    std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2}; //runs, should get eigenvalues (0.8, 0.5, 0, 0)
-    //std::vector<int> discretizedTraj = {2, 2, 0, 0, 0, 3, 3, 2}; //runs
-    //std::vector<int> discretizedTraj = {0, 1, 1, 2, 3, 3, 3, 2}; //floating point exception
-    MarkovModel diagTestMsm = MarkovModel(4);
-    diagTestMsm.countTransitions(discretizedTraj, 1);
-    diagTestMsm.computeTransitionProbabilities();
+//     for (int i = 0; i < eigvals.size(); ++i)
+//     {
+//         printf("Val elm %d: %f\n", i, eigvals[i]);
+//     }
 
-    auto tpm = diagTestMsm.transitionProbabilityMatrix;
+//     for (int i = 0; i < eigvecs.size(); ++i)
+//     {
+//         printf("Vec elm %d: %f\n", i, eigvecs[i]);
+//     }
 
-    // TODO: if diagonalization is not called before
-    // attributes are collected, they will be zero.
-    // Better to initialize them by running the method?
-    diagTestMsm.diagonalizeMatrix(tpm);
-
-    auto eigvals = diagTestMsm.eigenvalues;
-    auto eigvecs = diagTestMsm.eigenvectors;
-
-    for (int i = 0; i < eigvals.size(); ++i)
-    {
-        printf("Val elm %d: %f\n", i, eigvals[i]);
-    }
-
-    for (int i = 0; i < eigvecs.size(); ++i)
-    {
-        printf("Vec elm %d: %f\n", i, eigvecs[i]);
-    }
-
-}
+// }
 
 } //namespace test
 } //namespace gmx
