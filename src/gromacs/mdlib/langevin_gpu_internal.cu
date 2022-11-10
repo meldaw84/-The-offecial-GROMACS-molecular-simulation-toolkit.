@@ -34,13 +34,14 @@
  */
 /*! \internal \file
  *
- * \brief Implements Leap-Frog using CUDA
+ * \brief Implements Langevin (SD) integrator using CUDA
  *
- * This file contains implementation of basic Leap-Frog integrator
+ * This file contains implementation of the Langevin (SD) integrator
  * using CUDA, including class initialization, data-structures management
  * and GPU kernel.
  *
  * \author Artem Zhmurov <zhmurov@gmail.com>
+ * \author Magnus Lundborg <lundborg.magnus@gmail.com>
  *
  * \ingroup module_mdlib
  */
