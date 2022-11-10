@@ -98,25 +98,48 @@ inline float readGridSize(const float* realGridSizeFP, const int dimIndex)
  * \param[in]  fz                 Input force partial component Z
  */
 template<int order, int atomDataSize, int workGroupSize, int subGroupSize>
-inline void reduceAtomForces(sycl::nd_item<3>        itemIdx,
-                             sycl::local_ptr<Float3> sm_forces,
-                             const int               atomIndexLocal,
-                             const int               splineIndex,
-                             const int gmx_unused    lineIndex,
-                             const float             realGridSizeFP[3],
-                             float&                  fx, // NOLINT(google-runtime-references)
-                             float&                  fy, // NOLINT(google-runtime-references)
-                             float&                  fz)                  // NOLINT(google-runtime-references)
+inline void reduceAtomForces(sycl::nd_item<3> gmx_unused itemIdx,
+                             sycl::local_ptr<Float3>     sm_forces,
+                             const int                   atomIndexLocal,
+                             const int                   splineIndex,
+                             const int gmx_unused        lineIndex,
+                             const float                 realGridSizeFP[3],
+                             float&                      fx, // NOLINT(google-runtime-references)
+                             float&                      fy, // NOLINT(google-runtime-references)
+                             float&                      fz)                      // NOLINT(google-runtime-references)
 {
     static_assert(gmx::isPowerOfTwo(order));
     // TODO: find out if this is the best in terms of transactions count
     static_assert(order == 4, "Only order of 4 is implemented");
 
-    sycl::sub_group sg = itemIdx.get_sub_group();
-
     static_assert(atomDataSize <= subGroupSize,
                   "TODO: rework for atomDataSize > subGroupSize (order 8 or larger)");
     static_assert(gmx::isPowerOfTwo(atomDataSize));
+
+#if defined(__SYCL_DEVICE_ONLY__) && defined(__AMDGCN__)
+    fx += amdDppUpdateShfl<float, /* row_shl:1 */ 0x101>(fx);
+    fy += amdDppUpdateShfl<float, /* row_shr:1 */ 0x111>(fy);
+    fz += amdDppUpdateShfl<float, /* row_shl:1 */ 0x101>(fz);
+
+    if (splineIndex & 1)
+    {
+        fx = fy;
+    }
+    fx += amdDppUpdateShfl<float, /* row_shl:2 */ 0x102>(fx);
+    fz += amdDppUpdateShfl<float, /* row_shr:2 */ 0x112>(fz);
+    if (splineIndex & 2)
+    {
+        fx = fz;
+    }
+    static_assert(atomDataSize >= 4);
+    // We have to just further reduce those groups of 4
+    fx += amdDppUpdateShfl<float, /* row_shl:4 */ 0x104>(fx);
+    if (atomDataSize >= 8)
+    {
+        fx += amdDppUpdateShfl<float, /* row_shl:8 */ 0x108>(fx);
+    }
+#else
+    sycl::sub_group sg = itemIdx.get_sub_group();
 
     fx += sycl_2020::shift_left(sg, fx, 1);
     fy += sycl_2020::shift_right(sg, fy, 1);
@@ -137,6 +160,7 @@ inline void reduceAtomForces(sycl::nd_item<3>        itemIdx,
     {
         fx += sycl_2020::shift_left(sg, fx, delta);
     }
+#endif
     const int dimIndex = splineIndex;
     if (dimIndex < DIM)
     {
