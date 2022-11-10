@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2020,2021, by the GROMACS development team, led by
+ * Copyright (c) 2019,2020,2021, by the GROMACS development team, led by
  * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
  * and including many others, as listed in the AUTHORS file in the
  * top-level source directory and at http://www.gromacs.org.
@@ -34,297 +34,368 @@
  */
 /*! \internal \file
  *
- * \brief Implements Leap-Frog using SYCL
+ * \brief Implements Langevin (SD) integrator using SYCL
  *
- * This file contains implementation of basic Leap-Frog integrator
+ * This file contains implementation of the Langevin (SD) integrator
  * using SYCL, including class initialization, data-structures management
  * and GPU kernel.
  *
  * \author Artem Zhmurov <zhmurov@gmail.com>
  * \author Andrey Alekseenko <al42and@gmail.com>
+ * \author Magnus Lundborg <lundborg.magnus@gmail.com>
  *
  * \ingroup module_mdlib
  */
 #include "gmxpre.h"
 
+#include <assert.h>
+#include <stdio.h>
+
+#include <cmath>
+
+#include <algorithm>
+
 #include "gromacs/gpu_utils/devicebuffer.h"
 #include "gromacs/gpu_utils/gmxsycl.h"
-#include "gromacs/gpu_utils/sycl_kernel_utils.h"
-// #include "gromacs/mdlib/leapfrog_gpu.h"
-// #include "gromacs/mdtypes/group.h"
-// #include "gromacs/utility/arrayref.h"
-// #include "gromacs/utility/fatalerror.h"
-#include "gromacs/utility/gmxassert.h"
-#include "gromacs/utility/template_mp.h"
+#include "gromacs/math/units.h"
+#include "gromacs/math/vec.h"
+#include "gromacs/mdtypes/group.h"
+#include "gromacs/pbcutil/pbc.h"
+#include "gromacs/random/tabulatednormaldistribution_cuda.h"
+#include "gromacs/utility/arrayref.h"
+
+#include "langevin_gpu.h"
 
 namespace gmx
 {
 
-using cl::sycl::access::mode;
-
-/*! \brief Main kernel for the Leap-Frog integrator.
+/*!\brief Number of CUDA threads in a block
+ *
+ * \todo Check if using smaller block size will lead to better performance.
+ */
+constexpr static int c_threadsPerBlock = 256;
+//! Maximum number of threads in a block (for __launch_bounds__)
+constexpr static int c_maxThreadsPerBlock = c_threadsPerBlock;
+/*! \brief Main kernel for Leap-Frog integrator.
  *
  *  The coordinates and velocities are updated on the GPU. Also saves the intermediate values of the coordinates for
- *   further use in constraints.
+ *  further use in constraints.
  *
- *  Each GPU thread works with a single particle.
+ *  Each GPU thread works with a single particle. Empty declaration is needed to
+ *  avoid "no previous prototype for function" clang warning.
  *
- * \tparam        numTempScaleValues               The number of different T-couple values.
- * \tparam        velocityScaling                  Type of the Parrinello-Rahman velocity rescaling.
- * \param         cgh                              SYCL's command group handler.
- * \param[in,out] a_x                              Coordinates to update upon integration.
- * \param[out]    a_xp                             A copy of the coordinates before the integration (for constraints).
- * \param[in,out] a_v                              Velocities to update.
- * \param[in]     a_f                              Atomic forces.
- * \param[in]     a_inverseMasses                  Reciprocal masses.
- * \param[in]     dt                               Timestep.
- * \param[in]     a_lambdas                        Temperature scaling factors (one per group).
- * \param[in]     a_tempScaleGroups                Mapping of atoms into groups.
- * \param[in]     prVelocityScalingMatrixDiagonal  Diagonal elements of Parrinello-Rahman velocity scaling matrix
+ *  \todo Check if the force should be set to zero here.
+ *  \todo This kernel can also accumulate incidental temperatures for each atom.
+ *
+ * \tparam        updateType         Langevin integrator update type. The integration is divided in
+ *                                   three steps if there are constraints:
+ *                                   SDUpdate::ForcesOnly, Constraints, SDUpdate::FrictionAndNoiseOnly
+ *                                   If there are no constraints it is only SDUpdate::Combined. Currently,
+ *                                   SDUpdate::Combined is not supported on GPU.
+ * \param         cgh                SYCL's command group handler.
+ * \param[in,out] a_x                Coordinates to update upon integration.
+ * \param[out]    a_xp               A copy of the coordinates before the integration (for constraints).
+ * \param[in,out] a_v                Velocities to update.
+ * \param[in]     a_f                Atomic forces.
+ * \param[in]     a_inverseMasses    Reciprocal masses.
+ * \param[in]     dt                 Timestep.
+ * \param[in]     a_tempCouplGroups  Mapping of atoms into temperate coupling groups.
  */
-template<NumTempScaleValues numTempScaleValues, VelocityScalingType velocityScaling>
-auto leapFrogKernel(
-        cl::sycl::handler&                          cgh,
-        DeviceAccessor<Float3, mode::read_write>    a_x,
-        DeviceAccessor<Float3, mode::discard_write> a_xp,
-        DeviceAccessor<Float3, mode::read_write>    a_v,
-        DeviceAccessor<Float3, mode::read>          a_f,
-        DeviceAccessor<float, mode::read>           a_inverseMasses,
-        float                                       dt,
-        OptionalAccessor<float, mode::read, numTempScaleValues != NumTempScaleValues::None> a_lambdas,
-        OptionalAccessor<unsigned short, mode::read, numTempScaleValues == NumTempScaleValues::Multiple> a_tempScaleGroups,
-        Float3 prVelocityScalingMatrixDiagonal)
+template<SDUpdate updateType>
+        void langevin_kernel(sycl::handler& cgh,
+                             DeviceAccessor<Float3, mode::read_write> a_x,
+                             DeviceAccessor<Float3, mode::discard_write> a_xp,
+                             DeviceAccessor<Float3, mode::read_write> a_v,
+                             DeviceAccessor<Float3, mode::read> a_f,
+                             DeviceAccessor<Float3, mode::read> a_inverseMasses,
+                             const float dt,
+                             const int   seed,
+                             const int   step,
+                             OptionalAccessor<unsigned short, mode::read> a_tempCouplGroups,
+                             DeviceAccessor<Float3, mode::read> a_sdSigmaV,
+                             DeviceAccessor<Float3, mode::read> a_sdConstEm,
+                             DeviceAccessor<Float3, mode::read> a_distributionTable)
 {
-    cgh.require(a_x);
-    cgh.require(a_xp);
-    cgh.require(a_v);
-    cgh.require(a_f);
-    cgh.require(a_inverseMasses);
-    if constexpr (numTempScaleValues != NumTempScaleValues::None)
+    a_x.bind(cgh);
+    a_xp.bind(cgh);
+    a_v.bind(cgh);
+    a_f.bind(cgh);
+    a_inverseMasses.bind(cgh);
+    a_tempCouplGroups.bind(cgh);
+    a_sdSigmaV.bind(cgh);
+    a_sdConstEm.bind(cgh);
+    a_distributionTable.bind(cgh);
+    if (threadIndex < numAtoms)
     {
-        cgh.require(a_lambdas);
-    }
-    if constexpr (numTempScaleValues == NumTempScaleValues::Multiple)
-    {
-        cgh.require(a_tempScaleGroups);
-    }
+        // Even 0 bits internal counter gives 2x64 ints (more than enough for three table lookups)
+        gmx::ThreeFry2x64<0> rng(seed, gmx::RandomDomain::UpdateCoordinates);
+        gmx::TabulatedNormalDistribution<c_normalDistributionTableBits> dist(gm_distributionTable);
+        rng.restart(step, threadIndex);
+        dist.reset();
 
-    return [=](cl::sycl::id<1> itemIdx) {
-        const Float3 x    = a_x[itemIdx];
-        const Float3 v    = a_v[itemIdx];
-        const Float3 f    = a_f[itemIdx];
-        const float  im   = a_inverseMasses[itemIdx];
-        const float  imdt = im * dt;
-
-        // Swapping places for xp and x so that the x will contain the updated coordinates and xp -
-        // the coordinates before update. This should be taken into account when (if) constraints
-        // are applied after the update: x and xp have to be passed to constraints in the 'wrong'
-        // order. See Issue #3727
-        a_xp[itemIdx] = x;
-
-        const float lambda = [=]() {
-            if constexpr (numTempScaleValues == NumTempScaleValues::None)
-            {
-                return 1.0F;
-            }
-            else if constexpr (numTempScaleValues == NumTempScaleValues::Single)
-            {
-                return a_lambdas[0];
-            }
-            else if constexpr (numTempScaleValues == NumTempScaleValues::Multiple)
-            {
-                const int tempScaleGroup = a_tempScaleGroups[itemIdx];
-                return a_lambdas[tempScaleGroup];
-            }
-        }();
-
-        const Float3 prVelocityDelta = [=]() {
-            if constexpr (velocityScaling == VelocityScalingType::Diagonal)
-            {
-                return Float3{ prVelocityScalingMatrixDiagonal[0] * v[0],
-                               prVelocityScalingMatrixDiagonal[1] * v[1],
-                               prVelocityScalingMatrixDiagonal[2] * v[2] };
-            }
-            else if constexpr (velocityScaling == VelocityScalingType::None)
-            {
-                return Float3{ 0, 0, 0 };
-            }
-        }();
-
-        const Float3 v_new = v * lambda - prVelocityDelta + f * imdt;
-        a_v[itemIdx]       = v_new;
-        a_x[itemIdx]       = x + v_new * dt;
-    };
-}
-
-// SYCL 1.2.1 requires providing a unique type for a kernel. Should not be needed for SYCL2020.
-template<NumTempScaleValues numTempScaleValues, VelocityScalingType velocityScaling>
-class LeapFrogKernelName;
-
-template<NumTempScaleValues numTempScaleValues, VelocityScalingType velocityScaling, class... Args>
-static cl::sycl::event launchLeapFrogKernel(const DeviceStream& deviceStream, int numAtoms, Args&&... args)
-{
-    // Should not be needed for SYCL2020.
-    using kernelNameType = LeapFrogKernelName<numTempScaleValues, velocityScaling>;
-
-    const cl::sycl::range<1> rangeAllAtoms(numAtoms);
-    cl::sycl::queue          q = deviceStream.stream();
-
-    cl::sycl::event e = q.submit([&](cl::sycl::handler& cgh) {
-        auto kernel =
-                leapFrogKernel<numTempScaleValues, velocityScaling>(cgh, std::forward<Args>(args)...);
-        cgh.parallel_for<kernelNameType>(rangeAllAtoms, kernel);
-    });
-
-    return e;
-}
-
-static NumTempScaleValues getTempScalingType(bool doTemperatureScaling, int numTempScaleValues)
-{
-    if (!doTemperatureScaling)
-    {
-        return NumTempScaleValues::None;
-    }
-    else if (numTempScaleValues == 1)
-    {
-        return NumTempScaleValues::Single;
-    }
-    else if (numTempScaleValues > 1)
-    {
-        return NumTempScaleValues::Multiple;
-    }
-    else
-    {
-        gmx_incons("Temperature coupling was requested with no temperature coupling groups.");
-    }
-}
-
-/*! \brief Select templated kernel and launch it. */
-template<class... Args>
-static inline cl::sycl::event launchLeapFrogKernel(NumTempScaleValues  tempScalingType,
-                                                   VelocityScalingType prVelocityScalingType,
-                                                   Args&&... args)
-{
-    GMX_ASSERT(prVelocityScalingType == VelocityScalingType::None
-                       || prVelocityScalingType == VelocityScalingType::Diagonal,
-               "Only isotropic Parrinello-Rahman pressure coupling is supported.");
-
-    return dispatchTemplatedFunction(
-            [&](auto tempScalingType_, auto prScalingType_) {
-                return launchLeapFrogKernel<tempScalingType_, prScalingType_>(std::forward<Args>(args)...);
-            },
-            tempScalingType,
-            prVelocityScalingType);
-}
-
-void LeapFrogGpu::integrate(DeviceBuffer<Float3>              d_x,
-                            DeviceBuffer<Float3>              d_xp,
-                            DeviceBuffer<Float3>              d_v,
-                            DeviceBuffer<Float3>              d_f,
-                            const real                        dt,
-                            const bool                        doTemperatureScaling,
-                            gmx::ArrayRef<const t_grp_tcstat> tcstat,
-                            const bool                        doParrinelloRahman,
-                            const float                       dtPressureCouple,
-                            const matrix                      prVelocityScalingMatrix)
-{
-    if (doTemperatureScaling)
-    {
-        GMX_ASSERT(checkDeviceBuffer(d_lambdas_, numTempScaleValues_),
-                   "Number of temperature scaling factors changed since it was set for the "
-                   "last time.");
-        GMX_RELEASE_ASSERT(gmx::ssize(h_lambdas_) == numTempScaleValues_,
-                           "Number of temperature scaling factors changed since it was set for the "
-                           "last time.");
-        /* We could use host accessors here, without h_lambdas_.
-         * According to a quick test, host accessor is slightly faster when using DPC++ and
-         * LevelZero compared to using h_lambdas_ + cgh.copy. But with DPC++ and OpenCL, the host
-         * accessor waits for fReadyOnDevice in UpdateConstrainGpu::Impl::integrate. See #4023. */
-
-        for (int i = 0; i < numTempScaleValues_; i++)
+        float3 distByDim;
+        if (updateType == SDUpdate::FrictionAndNoiseOnly)
         {
-            h_lambdas_[i] = tcstat[i].lambda;
+            distByDim.x = dist(rng);
+            distByDim.y = dist(rng);
+            distByDim.z = dist(rng);
         }
-        copyToDeviceBuffer(&d_lambdas_,
-                           h_lambdas_.data(),
-                           0,
-                           numTempScaleValues_,
-                           deviceStream_,
-                           GpuApiCallBehavior::Async,
-                           nullptr);
-    }
-    NumTempScaleValues tempVelocityScalingType =
-            getTempScalingType(doTemperatureScaling, numTempScaleValues_);
 
-    VelocityScalingType prVelocityScalingType = VelocityScalingType::None;
-    if (doParrinelloRahman)
-    {
-        prVelocityScalingType = VelocityScalingType::Diagonal;
-        GMX_ASSERT(prVelocityScalingMatrix[YY][XX] == 0 && prVelocityScalingMatrix[ZZ][XX] == 0
-                           && prVelocityScalingMatrix[ZZ][YY] == 0 && prVelocityScalingMatrix[XX][YY] == 0
-                           && prVelocityScalingMatrix[XX][ZZ] == 0 && prVelocityScalingMatrix[YY][ZZ] == 0,
-                   "Fully anisotropic Parrinello-Rahman pressure coupling is not yet supported "
-                   "in GPU version of Leap-Frog integrator.");
-        prVelocityScalingMatrixDiagonal_ = dtPressureCouple
-                                           * Float3{ prVelocityScalingMatrix[XX][XX],
-                                                     prVelocityScalingMatrix[YY][YY],
-                                                     prVelocityScalingMatrix[ZZ][ZZ] };
-    }
+        float3 x                     = gm_x[threadIndex];
+        float3 v                     = gm_v[threadIndex];
+        float3 f                     = gm_f[threadIndex];
+        float  inverseMass           = gm_inverseMasses[threadIndex];
+        float  inverseSqrtMass       = sqrt(inverseMass);
+        float  inverseMassDt         = inverseMass * dt;
+        int    temperatureCouplGroup = gm_tempCouplGroups[threadIndex];
+        float  sdSigmaV              = gm_sdSigmaV[temperatureCouplGroup];
+        float  sdConstEm             = gm_sdConstEm[temperatureCouplGroup];
 
-    launchLeapFrogKernel(tempVelocityScalingType,
-                         prVelocityScalingType,
-                         deviceStream_,
-                         numAtoms_,
-                         d_x,
-                         d_xp,
-                         d_v,
-                         d_f,
-                         d_inverseMasses_,
-                         dt,
-                         d_lambdas_,
-                         d_tempScaleGroups_,
-                         prVelocityScalingMatrixDiagonal_);
+
+        if (updateType != SDUpdate::FrictionAndNoiseOnly)
+        {
+            // Swapping places for xp and x so that the x will contain the updated coordinates and xp - the
+            // coordinates before update. This should be taken into account when (if) constraints are applied
+            // after the update: x and xp have to be passed to constraints in the 'wrong' order.
+            // TODO: Issue #3727
+            gm_xp[threadIndex] = x;
+        }
+
+        if (updateType == SDUpdate::ForcesOnly)
+        {
+            float3 vn = v + f * inverseMassDt;
+            v         = vn;
+            x += v * dt;
+        }
+        else if (updateType == SDUpdate::FrictionAndNoiseOnly)
+        {
+            float3 vn = v;
+            v         = vn * sdConstEm + inverseSqrtMass * sdSigmaV * distByDim;
+            // The previous phase already updated the
+            // positions with a full v*dt term that must
+            // now be half removed.
+            x += 0.5 * (v - vn) * dt;
+        }
+        else
+        {
+            float3 vn = v + f * inverseMassDt;
+            v += f * inverseMassDt;
+            v = v * sdConstEm + inverseSqrtMass * sdSigmaV * distByDim;
+            x += 0.5 * (v + vn) * dt;
+        }
+        gm_v[threadIndex] = v;
+        gm_x[threadIndex] = x;
+    }
+    return;
 }
 
-LeapFrogGpu::LeapFrogGpu(const DeviceContext& deviceContext,
-                         const DeviceStream&  deviceStream,
-                         const int            numTempScaleValues) :
-    deviceContext_(deviceContext),
-    deviceStream_(deviceStream),
-    numAtoms_(0),
-    numTempScaleValues_(numTempScaleValues)
+/*! \brief Select templated kernel.
+ *
+ * Returns pointer to a CUDA kernel based on the type of SD integration.
+ *
+ * \param[in]  updateType   Langevin integrator update type. The integration is divided in
+ *                          three steps if there are constraints:
+ *                          SDUpdate::ForcesOnly, Constraints, SDUpdate::FrictionAndNoiseOnly
+ *                          If there are no constraints it is only SDUpdate::Combined.
+ *
+ * \return                  Pointer to CUDA kernel
+ */
+inline auto selectLangevinKernelPtr(const SDUpdate updateType)
 {
-    // If the temperature coupling is enabled, we need to make space for scaling factors
-    if (numTempScaleValues_ > 0)
+    GMX_ASSERT(updateType == SDUpdate::ForcesOnly || updateType == SDUpdate::FrictionAndNoiseOnly,
+               "Langevin integrator on GPU cannot do the update in one step, even if there are no "
+               "constraints.");
+
+    auto kernelPtr = langevin_kernel<SDUpdate::ForcesOnly>;
+
+    if (updateType == SDUpdate::FrictionAndNoiseOnly)
     {
-        h_lambdas_.resize(numTempScaleValues_);
-        reallocateDeviceBuffer(
-                &d_lambdas_, numTempScaleValues_, &numLambdas_, &numLambdasAlloc_, deviceContext_);
+        kernelPtr = langevin_kernel<SDUpdate::FrictionAndNoiseOnly>;
     }
+    return kernelPtr;
 }
 
-LeapFrogGpu::~LeapFrogGpu()
+void LangevinGpu::integrate(DeviceBuffer<Float3>       d_x,
+                            DeviceBuffer<Float3>       d_xp,
+                            DeviceBuffer<Float3>       d_v,
+                            const DeviceBuffer<Float3> d_f,
+                            const real                 dt,
+                            const int                  seed,
+                            const int                  step,
+                            const SDUpdate             updateType)
+{
+
+    ensureNoPendingDeviceError("In CUDA version of Langevin integrator");
+    GMX_ASSERT(updateType == SDUpdate::ForcesOnly || updateType == SDUpdate::FrictionAndNoiseOnly,
+               "Langevin integrator on GPU cannot do the update in one step, even if there are no "
+               "constraints.");
+
+    auto kernelPtr = selectLangevinKernelPtr(updateType);
+
+    // Checking the buffer types against the kernel argument types
+    static_assert(sizeof(*d_inverseMasses_) == sizeof(float), "Incompatible types");
+    const auto kernelArgs = prepareGpuKernelArguments(kernelPtr,
+                                                      kernelLaunchConfig_,
+                                                      &numAtoms_,
+                                                      asFloat3Pointer(&d_x),
+                                                      asFloat3Pointer(&d_xp),
+                                                      asFloat3Pointer(&d_v),
+                                                      asFloat3Pointer(&d_f),
+                                                      &d_inverseMasses_,
+                                                      &dt,
+                                                      &seed,
+                                                      &step,
+                                                      &d_tempCouplGroups_,
+                                                      &d_sdSigmaV_,
+                                                      &d_sdConstEm_,
+                                                      &d_distributionTable_);
+    launchGpuKernel(kernelPtr, kernelLaunchConfig_, deviceStream_, nullptr, "langevin_kernel", kernelArgs);
+
+    return;
+}
+
+LangevinGpu::LangevinGpu(const DeviceContext& deviceContext,
+                         const DeviceStream&  deviceStream,
+                         const int            numTempCouplGroups,
+                         const float          delta_t,
+                         const float*         ref_t,
+                         const float*         tau_t) :
+    deviceContext_(deviceContext), deviceStream_(deviceStream), numTempCouplGroups_(numTempCouplGroups)
+{
+    numAtoms_ = 0;
+
+    kernelLaunchConfig_.blockSize[0]     = c_threadsPerBlock;
+    kernelLaunchConfig_.blockSize[1]     = 1;
+    kernelLaunchConfig_.blockSize[2]     = 1;
+    kernelLaunchConfig_.sharedMemorySize = 0;
+
+    std::vector<float> sdConstEm(numTempCouplGroups);
+    std::vector<float> sdSigmaV(numTempCouplGroups);
+
+    for (int i = 0; i < numTempCouplGroups; i++)
+    {
+        /* Compared to the CPU version we lose precision here by using float instead of double. */
+        if (tau_t[i] > 0)
+        {
+            sdConstEm[i] = exp(-delta_t / tau_t[i]);
+        }
+        else
+        {
+            /* No friction and noise on this group */
+            sdConstEm[i] = 1;
+        }
+
+        real kT = gmx::c_boltz * ref_t[i];
+        /* The mass is accounted for later, since this differs per atom */
+        sdSigmaV[i] = sqrt(kT * (1 - sdConstEm[i] * sdConstEm[i]));
+    }
+    reallocateDeviceBuffer(
+            &d_sdSigmaV_, numTempCouplGroups, &numSdSigmaV_, &numSdSigmaVAlloc_, deviceContext_);
+    copyToDeviceBuffer(
+            &d_sdSigmaV_, sdSigmaV.data(), 0, numTempCouplGroups, deviceStream_, GpuApiCallBehavior::Sync, nullptr);
+    reallocateDeviceBuffer(
+            &d_sdConstEm_, numTempCouplGroups, &numSdConstEm_, &numSdConstEmAlloc_, deviceContext_);
+    copyToDeviceBuffer(
+            &d_sdConstEm_, sdConstEm.data(), 0, numTempCouplGroups, deviceStream_, GpuApiCallBehavior::Sync, nullptr);
+
+    makeDistributionTable();
+}
+
+LangevinGpu::~LangevinGpu()
 {
     freeDeviceBuffer(&d_inverseMasses_);
+    freeDeviceBuffer(&d_tempCouplGroups_);
+    freeDeviceBuffer(&d_sdSigmaV_);
+    freeDeviceBuffer(&d_sdConstEm_);
 }
 
-void LeapFrogGpu::set(const int numAtoms, const real* inverseMasses, const unsigned short* tempScaleGroups)
+void LangevinGpu::set(const int                            numAtoms,
+                      const ArrayRef<const real>           inverseMasses,
+                      const ArrayRef<const unsigned short> tempCouplGroups)
 {
-    numAtoms_ = numAtoms;
+    numAtoms_                       = numAtoms;
+    kernelLaunchConfig_.gridSize[0] = (numAtoms_ + c_threadsPerBlock - 1) / c_threadsPerBlock;
 
     reallocateDeviceBuffer(
             &d_inverseMasses_, numAtoms_, &numInverseMasses_, &numInverseMassesAlloc_, deviceContext_);
     copyToDeviceBuffer(
-            &d_inverseMasses_, inverseMasses, 0, numAtoms_, deviceStream_, GpuApiCallBehavior::Sync, nullptr);
+            &d_inverseMasses_, inverseMasses.data(), 0, numAtoms_, deviceStream_, GpuApiCallBehavior::Sync, nullptr);
 
-    // Temperature scale group map only used if there are more then one group
-    if (numTempScaleValues_ > 1)
+    reallocateDeviceBuffer(
+            &d_tempCouplGroups_, numAtoms_, &numTempCouplGroups_, &numTempCouplGroupsAlloc_, deviceContext_);
+    if (!tempCouplGroups.empty())
     {
-        reallocateDeviceBuffer(
-                &d_tempScaleGroups_, numAtoms_, &numTempScaleGroups_, &numTempScaleGroupsAlloc_, deviceContext_);
-        copyToDeviceBuffer(
-                &d_tempScaleGroups_, tempScaleGroups, 0, numAtoms_, deviceStream_, GpuApiCallBehavior::Sync, nullptr);
+        copyToDeviceBuffer(&d_tempCouplGroups_,
+                           tempCouplGroups.data(),
+                           0,
+                           numAtoms_,
+                           deviceStream_,
+                           GpuApiCallBehavior::Sync,
+                           nullptr);
     }
+    else
+    {
+        std::vector<unsigned short> dummyTempCouplGroups(numAtoms_, 0);
+        copyToDeviceBuffer(&d_tempCouplGroups_,
+                           dummyTempCouplGroups.data(),
+                           0,
+                           numAtoms_,
+                           deviceStream_,
+                           GpuApiCallBehavior::Sync,
+                           nullptr);
+    }
+
+    reallocateDeviceBuffer(&d_distributionTable_,
+                           1 << c_normalDistributionTableBits,
+                           &sizeOfDistributionTable_,
+                           &sizeOfDistributionTableAlloc_,
+                           deviceContext_);
+    copyToDeviceBuffer(&d_distributionTable_,
+                       distributionTable_,
+                       0,
+                       1 << c_normalDistributionTableBits,
+                       deviceStream_,
+                       GpuApiCallBehavior::Sync,
+                       nullptr);
+}
+
+void LangevinGpu::makeDistributionTable()
+{
+    /* Fill the table with the integral of a gaussian distribution, which
+     * corresponds to the inverse error function.
+     * We avoid integrating a gaussian numerically, since that leads to
+     * some loss-of-precision which also accumulates so it is worse for
+     * larger indices in the table. */
+    constexpr std::size_t tableSize   = 1 << c_normalDistributionTableBits;
+    constexpr std::size_t halfSize    = tableSize / 2;
+    constexpr double      invHalfSize = 1.0 / halfSize;
+
+    // Fill in all but the extremal entries of the table
+    for (std::size_t i = 0; i < halfSize - 1; i++)
+    {
+        double r = (i + 0.5) * invHalfSize;
+        double x = std::sqrt(2.0) * erfinv(r);
+
+        distributionTable_[halfSize - 1 - i] = -x;
+        distributionTable_[halfSize + i]     = x;
+    }
+    // We want to fill in the extremal table entries with
+    // values that make the total variance equal to 1, so
+    // measure the variance by summing the squares of the
+    // other values of the distribution, starting from the
+    // smallest values.
+    double sumOfSquares = 0;
+    for (std::size_t i = 1; i < halfSize; i++)
+    {
+        double value = distributionTable_[i];
+        sumOfSquares += value * value;
+    }
+    double missingVariance = 1.0 - 2.0 * sumOfSquares / tableSize;
+    GMX_RELEASE_ASSERT(missingVariance > 0,
+                       "Incorrect computation of tabulated normal distribution");
+    double extremalValue              = std::sqrt(0.5 * missingVariance * tableSize);
+    distributionTable_[0]             = -extremalValue;
+    distributionTable_[tableSize - 1] = extremalValue;
 }
 
 } // namespace gmx
