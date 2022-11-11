@@ -50,6 +50,8 @@
 #include "gromacs/utility/fatalerror.h"
 #include "gromacs/utility/smalloc.h"
 
+#include "../nbnxm_geometry.h"
+
 /* Analytical reaction-field kernels */
 #define CALC_COUL_RF
 #define LJ_CUT

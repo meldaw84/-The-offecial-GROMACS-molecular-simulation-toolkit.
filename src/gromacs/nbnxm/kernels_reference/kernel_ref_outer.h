@@ -35,7 +35,7 @@
 #define UNROLLI 4
 #define UNROLLJ 4
 
-static_assert(UNROLLI == c_nbnxnCpuIClusterSize, "UNROLLI should match the i-cluster size");
+static_assert(UNROLLI == Nbnxm::c_iClusterSize(Nbnxm::KernelType::Cpu4x4_PlainC), "UNROLLI should match the i-cluster size");
 
 /* We could use nbat->xstride and nbat->fstride, but macros might be faster */
 #define X_STRIDE 3

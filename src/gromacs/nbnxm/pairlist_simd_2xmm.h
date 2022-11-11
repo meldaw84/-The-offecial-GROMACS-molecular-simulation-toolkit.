@@ -42,9 +42,8 @@
 
 
 //! Stride of the packed x coordinate array
-static constexpr int c_xStride2xNN = (GMX_SIMD_REAL_WIDTH >= 2 * c_nbnxnCpuIClusterSize)
-                                             ? GMX_SIMD_REAL_WIDTH / 2
-                                             : c_nbnxnCpuIClusterSize;
+static constexpr int c_xStride2xNN =
+        std::max(GMX_SIMD_REAL_WIDTH / 2, c_iClusterSize(NbnxnLayout::Simd2xNN));
 
 //! Copies PBC shifted i-cell packed atom coordinates to working array
 static inline void icell_set_x_simd_2xnn(int                   ci,

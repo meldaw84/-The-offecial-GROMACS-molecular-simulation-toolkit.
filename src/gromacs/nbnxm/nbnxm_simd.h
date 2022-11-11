@@ -49,6 +49,7 @@
 #include "gromacs/simd/simd.h"
 #include "gromacs/utility/real.h"
 
+#include "pairlist.h"
 #include "pairlistparams.h"
 
 //! The types of nbNxM SIMD kernel layout
@@ -57,6 +58,16 @@ enum class KernelLayout
     r4xM, //!< 4 'i'-registers each containing data for interaction with M j-atoms
     r2xMM //!< 2 'i'-registers each containing duplicated data, { M, M }, for interaction with M j-atoms
 };
+
+//! The nbnxn i-cluster size in atoms for the given NBNxM kernel layout
+static inline constexpr int c_iClusterSize(const KernelLayout kernelLayout)
+{
+    switch (kernelLayout)
+    {
+        case KernelLayout::r4xM: return 4;
+        case KernelLayout::r2xMM: return 4;
+    }
+}
 
 /*! \brief The nbnxn SIMD 4xN and 2x(N+N) kernels can be added independently.
  * Currently the 2xNN SIMD kernels only make sense with:
