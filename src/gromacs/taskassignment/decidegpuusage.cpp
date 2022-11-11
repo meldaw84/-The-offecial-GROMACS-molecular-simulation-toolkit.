@@ -497,7 +497,8 @@ PmeRunMode determinePmeRunMode(const bool useGpuForPme, const TaskTarget& pmeFft
         if (c_gpuBuildSyclWithoutGpuFft && pmeFftTarget == TaskTarget::Gpu)
         {
             gmx_fatal(FARGS,
-                      "GROMACS is built without SYCL GPU FFT library. Please do not use -pmefft gpu.");
+                      "GROMACS is built without SYCL GPU FFT library. Please do not use -pmefft "
+                      "gpu.");
         }
         if (!decideWhetherToUseGpusForPmeFft(pmeFftTarget))
         {
