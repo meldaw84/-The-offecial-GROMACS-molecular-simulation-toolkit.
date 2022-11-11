@@ -58,7 +58,8 @@
 #define UNROLLI 4
 #define UNROLLJ (GMX_SIMD_REAL_WIDTH / GMX_SIMD_J_UNROLL_SIZE)
 
-static_assert(UNROLLI == c_nbnxnCpuIClusterSize, "UNROLLI should match the i-cluster size");
+static_assert(UNROLLI == c_iClusterSize(KernelLayout::r2xMM),
+              "UNROLLI should match the i-cluster size");
 
 /* The stride of all the atom data arrays is equal to half the SIMD width */
 #define STRIDE UNROLLJ

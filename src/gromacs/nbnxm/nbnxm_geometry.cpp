@@ -45,12 +45,25 @@
 /* Clusters at the cut-off only increase rlist by 60% of their size */
 static constexpr real c_nbnxnRlistIncreaseOutsideFactor = 0.6;
 
-real nbnxn_get_rlist_effective_inc(const int jClusterSize, const real atomDensity)
+real nbnxmPairlistVolumeRadiusIncrease(const bool useGpu, const real atomDensity)
 {
-    /* We should get this from the setup, but currently it's the same for
-     * all setups, including GPUs.
-     */
-    const real iClusterSize = c_nbnxnCpuIClusterSize;
+    int iClusterSize;
+    int jClusterSize;
+    if (useGpu)
+    {
+        iClusterSize = 8;
+        jClusterSize = 4;
+    }
+    else
+    {
+        iClusterSize = 4;
+#if GMX_SIMD_HAVE_REAL                                                  \
+    && ((GMX_SIMD_REAL_WIDTH == 8 && defined GMX_SIMD_HAVE_FMA) || GMX_SIMD_REAL_WIDTH > 8)
+        jClusterSize = 8;
+#else
+        jClusterSize = 4;
+#endif
+    }
 
     const real iVolumeIncrease = (iClusterSize - 1) / atomDensity;
     const real jVolumeIncrease = (jClusterSize - 1) / atomDensity;

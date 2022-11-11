@@ -273,8 +273,8 @@ static KernelSetup pick_nbnxn_kernel(const gmx::MDLogger&     mdlog,
             .asParagraph()
             .appendTextFormatted("Using %s %dx%d nonbonded short-range kernels",
                                  lookup_kernel_name(kernelSetup.kernelType),
-                                 IClusterSizePerKernelType[kernelSetup.kernelType],
-                                 JClusterSizePerKernelType[kernelSetup.kernelType]);
+                                 c_iClusterSize(kernelSetup.kernelType),
+                                 c_jClusterSize(kernelSetup.kernelType));
 
     if (KernelType::Cpu4x4_PlainC == kernelSetup.kernelType
         || KernelType::Cpu8x8x8_PlainC == kernelSetup.kernelType)

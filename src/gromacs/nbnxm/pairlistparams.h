@@ -47,24 +47,65 @@
 #include "config.h"
 
 #include "gromacs/mdtypes/locality.h"
+#include "gromacs/simd/simd.h"
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/real.h"
+
+#include "pairlist.h"
 
 namespace Nbnxm
 {
 enum class KernelType;
 }
 
-//! The i-cluster size for CPU kernels, always 4 atoms
-static constexpr int c_nbnxnCpuIClusterSize = 4;
+//! Layout for the nonbonded NxM pair lists
+enum class NbnxnLayout
+{
+    NoSimd4x4, //!< i-cluster size 4, j-cluster size 4
+    Simd4xN,   //!< i-cluster size 4, j-cluster size SIMD width
+    Simd2xNN,  //!< i-cluster size 4, j-cluster size half SIMD width
+    Simd8xN,   //!< i-cluster size 8, j-cluster size SIMD width
+    Gpu8x8x8   //!< i-cluster size 8, j-cluster size 8 + super-clustering
+};
 
+//! The i-cluster size
+static constexpr int c_iClusterSize(const NbnxnLayout nbnxmLayout)
+{
+    switch (nbnxmLayout)
+    {
+    case NbnxnLayout::NoSimd4x4:
+    case NbnxnLayout::Simd4xN:
+    case NbnxnLayout::Simd2xNN: return 4;
+    case NbnxnLayout::Simd8xN:
+    case NbnxnLayout::Gpu8x8x8: return 8;
+    }
+}
+
+//! The j-cluster size
+static constexpr int c_jClusterSize(const NbnxnLayout nbnxmLayout)
+{
+    switch (nbnxmLayout)
+    {
+    case NbnxnLayout::NoSimd4x4: return 4;
+#if GMX_SIMD
+    case NbnxnLayout::Simd4xN: return GMX_SIMD_REAL_WIDTH;
+    case NbnxnLayout::Simd2xNN: return GMX_SIMD_REAL_WIDTH / 2;
+    case NbnxnLayout::Simd8xN: return GMX_SIMD_REAL_WIDTH;
+#endif
+    case NbnxnLayout::Gpu8x8x8: return 4;
+    }
+}
+
+#if 0
 //! The i- and j-cluster size for GPU lists, 8 atoms for CUDA, set at configure time for OpenCL and SYCL
 #if GMX_GPU_OPENCL || GMX_GPU_SYCL
 static constexpr int c_nbnxnGpuClusterSize = GMX_GPU_NB_CLUSTER_SIZE;
 #else
 static constexpr int c_nbnxnGpuClusterSize      = 8;
 #endif
+#endif
 
+#if 0
 /*! \brief The number of clusters along a direction in a pair-search grid cell for GPU lists
  *
  * Typically all 2, but X can be 1 when targeting Intel Ponte Vecchio */
@@ -76,8 +117,9 @@ static constexpr int c_gpuNumClusterPerCellX = GMX_GPU_NB_NUM_CLUSTER_PER_CELL_X
 //! The number of clusters in a pair-search grid cell for GPU lists
 static constexpr int c_gpuNumClusterPerCell =
         c_gpuNumClusterPerCellZ * c_gpuNumClusterPerCellY * c_gpuNumClusterPerCellX;
+#endif
 
-
+#if 0
 /*! \brief The number of sub-parts used for data storage for a GPU cluster pair
  *
  * In CUDA the number of threads in a warp is 32 and we have cluster pairs
@@ -92,10 +134,13 @@ static constexpr int c_nbnxnGpuClusterpairSplit = 1;
 #else
 static constexpr int c_nbnxnGpuClusterpairSplit = 2;
 #endif
+#endif
 
+#if 0
 //! The fixed size of the exclusion mask array for a half GPU cluster pair
 static constexpr int c_nbnxnGpuExclSize =
         c_nbnxnGpuClusterSize * c_nbnxnGpuClusterSize / c_nbnxnGpuClusterpairSplit;
+#endif
 
 //! The available pair list types
 enum class PairlistType : int
@@ -103,21 +148,22 @@ enum class PairlistType : int
     Simple4x2,
     Simple4x4,
     Simple4x8,
+    Simple8x4,
     HierarchicalNxN,
     Count
 };
 
 //! Gives the i-cluster size for each pairlist type
 static constexpr gmx::EnumerationArray<PairlistType, int> IClusterSizePerListType = {
-    { c_nbnxnCpuIClusterSize, c_nbnxnCpuIClusterSize, c_nbnxnCpuIClusterSize, c_nbnxnGpuClusterSize }
+    { 4, 4, 4, 8, c_nbnxnGpuClusterSize }
 };
 //! Gives the j-cluster size for each pairlist type
 static constexpr gmx::EnumerationArray<PairlistType, int> JClusterSizePerListType = {
-    { 2, 4, 8, c_nbnxnGpuClusterSize }
+    { 2, 4, 8, 4, c_nbnxnGpuClusterSize }
 };
 //! True if given pairlist type is used on GPU, false if on CPU.
 static constexpr gmx::EnumerationArray<PairlistType, bool> sc_isGpuPairListType = {
-    { false, false, false, true }
+    { false, false, false, false, true }
 };
 
 /*! \internal

@@ -114,8 +114,8 @@ VerletbufListSetup verletbufGetListSetup(Nbnxm::KernelType nbnxnKernelType)
      */
     VerletbufListSetup listSetup;
 
-    listSetup.cluster_size_i = Nbnxm::IClusterSizePerKernelType[nbnxnKernelType];
-    listSetup.cluster_size_j = Nbnxm::JClusterSizePerKernelType[nbnxnKernelType];
+    listSetup.cluster_size_i = Nbnxm::c_iClusterSize(nbnxnKernelType);
+    listSetup.cluster_size_j = Nbnxm::c_jClusterSize(nbnxnKernelType);
 
     if (!Nbnxm::kernelTypeUsesSimplePairlist(nbnxnKernelType))
     {

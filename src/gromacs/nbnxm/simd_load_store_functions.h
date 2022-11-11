@@ -106,17 +106,19 @@ loadSimdPairInteractionMasks(const int excl, SimdBitMask* filterBitMasksV)
 
 //! Loads interaction masks for a cluster pair for 4xM kernel layout
 template<bool loadMasks, KernelLayout kernelLayout>
-inline std::enable_if_t<loadMasks && kernelLayout == KernelLayout::r4xM, std::array<SimdBool, c_nbnxnCpuIClusterSize>>
+inline std::enable_if_t<loadMasks && kernelLayout == KernelLayout::r4xM, std::array<SimdBool, c_iClusterSize(kernelLayout)>>
 loadSimdPairInteractionMasks(const int excl, SimdBitMask* filterBitMasksV)
 {
     using namespace gmx;
 
-    std::array<SimdBool, c_nbnxnCpuIClusterSize> interactionMasksV;
+    constexpr int iClusterSize = c_iClusterSize(kernelLayout);
+
+    std::array<SimdBool, iClusterSize> interactionMasksV;
 
 #if GMX_SIMD_HAVE_INT32_LOGICAL
     /* Load integer interaction mask */
     SimdInt32 mask_pr_S(excl);
-    for (int i = 0; i < c_nbnxnCpuIClusterSize; i++)
+    for (int i = 0; i < iClusterSize; i++)
     {
         interactionMasksV[i] = cvtIB2B(testBits(mask_pr_S & filterBitMasksV[i]));
     }
@@ -135,7 +137,7 @@ loadSimdPairInteractionMasks(const int excl, SimdBitMask* filterBitMasksV)
     conv.i = excl;
     SimdReal mask_pr_S(conv.r);
 
-    for (int i = 0; i < c_nbnxnCpuIClusterSize; i++)
+    for (int i = 0; i < iClusterSize; i++)
     {
         interactionMasksV[i] = testBits(mask_pr_S & filterBitMasksV[i]);
     }
@@ -152,16 +154,19 @@ loadSimdPairInteractionMasks(const int excl, SimdBitMask* filterBitMasksV)
 
 //! Loads interaction masks for a cluster pair for 2xMM kernel layout
 template<bool loadMasks, KernelLayout kernelLayout>
-inline std::enable_if_t<loadMasks && kernelLayout == KernelLayout::r2xMM, std::array<SimdBool, c_nbnxnCpuIClusterSize / 2>>
+inline std::enable_if_t<loadMasks && kernelLayout == KernelLayout::r2xMM,
+                        std::array<SimdBool, c_iClusterSize(kernelLayout) / 2>>
 loadSimdPairInteractionMasks(const int excl, SimdBitMask* filterBitMasksV)
 {
     using namespace gmx;
 
-    std::array<SimdBool, c_nbnxnCpuIClusterSize / 2> interactionMasksV;
+    constexpr int iClusterSize = c_iClusterSize(kernelLayout);
+
+    std::array<SimdBool, iClusterSize / 2> interactionMasksV;
 
 #if GMX_SIMD_HAVE_INT32_LOGICAL
     SimdInt32 mask_pr_S(excl);
-    for (int i = 0; i < c_nbnxnCpuIClusterSize / 2; i++)
+    for (int i = 0; i < iClusterSize / 2; i++)
     {
         interactionMasksV[i] = cvtIB2B(testBits(mask_pr_S & filterBitMasksV[i]));
     }
@@ -179,7 +184,7 @@ loadSimdPairInteractionMasks(const int excl, SimdBitMask* filterBitMasksV)
     conv.i = excl;
     SimdReal mask_pr_S(conv.r);
 
-    for (int i = 0; i < c_nbnxnCpuIClusterSize / 2; i++)
+    for (int i = 0; i < iClusterSize / 2; i++)
     {
         interactionMasksV[i] = testBits(mask_pr_S & filterBitMasksV[i]);
     }

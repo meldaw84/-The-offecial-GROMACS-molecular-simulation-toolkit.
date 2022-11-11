@@ -40,6 +40,8 @@
 #include "gromacs/nbnxm/pairlist.h"
 #include "gromacs/utility/gmxassert.h"
 
+#include "../nbnxm_geometry.h"
+
 /* Prune a single NbnxnPairlistCpu entry with distance rlistInner */
 void nbnxn_kernel_prune_ref(NbnxnPairlistCpu*              nbl,
                             const nbnxn_atomdata_t*        nbat,
@@ -65,8 +67,8 @@ void nbnxn_kernel_prune_ref(NbnxnPairlistCpu*              nbl,
     GMX_ASSERT(c_xStride == nbat->xstride, "xStride should match nbat->xstride");
     constexpr int c_xiStride = 3;
 
-    constexpr int c_iUnroll = c_nbnxnCpuIClusterSize;
-    constexpr int c_jUnroll = c_nbnxnCpuIClusterSize;
+    constexpr int c_iUnroll = Nbnxm::c_iClusterSize(Nbnxm::KernelType::Cpu4x4_PlainC);
+    constexpr int c_jUnroll = Nbnxm::c_jClusterSize(Nbnxm::KernelType::Cpu4x4_PlainC);
 
     /* Initialize the new list as empty and add pairs that are in range */
     int       nciInner = 0;
