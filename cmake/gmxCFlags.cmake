@@ -385,6 +385,7 @@ macro (gmx_c_flags)
                 GMX_TEST_CXXFLAG(CXXFLAGS_WARN_NO_BRACES "-Wno-missing-braces" GMXC_CXXFLAGS)
             endif()
             GMX_TEST_CXXFLAG(CXXFLAGS_WARN_EXTRA "-Wextra;-Wpointer-arith;-Wmissing-prototypes" GMXC_CXXFLAGS)
+            GMX_TEST_CXXFLAG(CXXFLAGS_DEPRECATED "-Wdeprecated" GMXC_CXXFLAGS)
 
             if (APPLE)
                 # macOS Ventura deprecated `sprintf` in favor of `snprintf`.
@@ -392,8 +393,6 @@ macro (gmx_c_flags)
                 # Must use `CMAKE_CXX_FLAGS`, as `GMXC_CXXFLAGS` does not suppress the warnings.
                 GMX_TEST_CXXFLAG(CXXFLAGS_NO_DEPRECATED_DECLARATIONS "-Wno-deprecated-declarations" CMAKE_CXX_FLAGS)
             else()
-                GMX_TEST_CXXFLAG(CXXFLAGS_DEPRECATED "-Wdeprecated" GMXC_CXXFLAGS)
-            endif()
 
             # Functions placed in headers for inlining are not always
             # used in every translation unit that includes the files,
