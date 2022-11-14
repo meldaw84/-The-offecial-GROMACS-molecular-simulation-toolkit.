@@ -392,7 +392,7 @@ macro (gmx_c_flags)
                 # This workaround suppresses the deprecation warnings.
                 # Must use `CMAKE_CXX_FLAGS`, as `GMXC_CXXFLAGS` does not suppress the warnings.
                 GMX_TEST_CXXFLAG(CXXFLAGS_NO_DEPRECATED_DECLARATIONS "-Wno-deprecated-declarations" CMAKE_CXX_FLAGS)
-            else()
+            endif()
 
             # Functions placed in headers for inlining are not always
             # used in every translation unit that includes the files,
