@@ -485,8 +485,8 @@ static __global__ void pmeGpuPackHaloInternal(const float* __restrict__ gm_realG
 /*! \brief
  * A CUDA kernel which copies data from pme grid to FFT grid and back
  *
- * \param[inout] gm_realGrid     local PME grid
- * \param[inout] gm_fftGrid      local FFT grid
+ * \param[in,out] gm_realGrid    local PME grid
+ * \param[in,out] gm_fftGrid     local FFT grid
  * \param[in] fftNData           local FFT grid size without padding
  * \param[in] fftSize            local FFT grid padded size
  * \param[in] pmeSize            local PME grid padded size
