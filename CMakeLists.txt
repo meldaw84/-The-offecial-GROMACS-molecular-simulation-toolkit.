@@ -250,26 +250,9 @@ gmx_dependent_option(
 mark_as_advanced(GMX_BUILD_OWN_FFTW)
 mark_as_advanced(GMX_DISABLE_FFTW_MEASURE)
 
-gmx_dependent_option(
-    GMX_USE_HEFFTE
-    "Deprecated, use GMX_GPU_FFT_LIBRARY=HeFFTe instead."
-    OFF
-    "GMX_GPU STREQUAL CUDA;GMX_MPI")
-gmx_dependent_option(
-    GMX_USE_CUFFTMP
-    "Deprecated, use GMX_GPU_FFT_LIBRARY=cuFFTMp instead."
-    OFF
-    "GMX_GPU STREQUAL CUDA;GMX_MPI")
-
 if (GMX_GPU)
     if (GMX_GPU STREQUAL CUDA)
-        if (GMX_USE_HEFFTE)
-            set(GMX_GPU_FFT_LIBRARY_DEFAULT "HeFFTe")
-        elseif(GMX_USE_CUFFTMP)
-            set(GMX_GPU_FFT_LIBRARY_DEFAULT "cuFFTMp")
-        else()
-            set(GMX_GPU_FFT_LIBRARY_DEFAULT "cuFFT")
-        endif()
+        set(GMX_GPU_FFT_LIBRARY_DEFAULT "cuFFT")
     elseif(GMX_GPU STREQUAL OPENCL)
         if (DEFINED GMX_GPU_FFT_VKFFT)
             if (GMX_GPU_FFT_VKFFT)
