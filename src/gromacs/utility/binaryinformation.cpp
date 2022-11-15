@@ -273,6 +273,10 @@ std::string getGpuFftDescriptionString()
         }
         else
         {
+            /* Some SYCL builds (e.g., Intel DPC++ for AMD devices) have no support for GPU FFT,
+             * but that's a corner case not intended for general users */
+            GMX_RELEASE_ASSERT(GMX_GPU_SYCL,
+                               "Only SYCL build can function without a GPU FFT library");
             return "none / unknown";
         }
     }
