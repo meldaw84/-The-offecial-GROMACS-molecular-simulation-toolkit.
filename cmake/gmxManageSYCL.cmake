@@ -469,6 +469,15 @@ int main() {
     endfunction(add_sycl_to_target)
 endif()
 
+if(NOT ${_sycl_has_valid_fft} AND NOT GMX_GPU_FFT_LIBRARY STREQUAL "NONE")
+    set(_hint "")
+    if (GMX_GPU_FFT_CUFFT OR GMX_GPU_FFT_CUFFTMP OR GMX_GPU_FFT_CLFFT)
+        set(_hint " It is not supported with SYCL at all.")
+    elseif (GMX_SYCL_HIPSYCL AND GMX_GPU_FFT_MKL)
+        set(_hint " MKL is only supported with Intel compiler, not with hipSYCL")
+    endif()
+    message(FATAL_ERROR "Selected GPU FFT library ${GMX_GPU_FFT_LIBRARY} is not compatible.${_hint}")
+endif()
 
 if(NOT ${_sycl_has_valid_fft} AND NOT DEFINED ENV{GITLAB_CI}) # Don't warn in CI builds
     set(_hint "")

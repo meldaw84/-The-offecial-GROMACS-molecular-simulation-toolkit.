@@ -85,6 +85,9 @@
 /* rocFFT version */
 #define rocfft_VERSION "@rocfft_VERSION@"
 
+/* HeFFTe version */
+#define Heffte_VERSION "@Heffte_VERSION@"
+
 /* Target platform is x86 or x86_64 */
 #cmakedefine01 GMX_TARGET_X86
 

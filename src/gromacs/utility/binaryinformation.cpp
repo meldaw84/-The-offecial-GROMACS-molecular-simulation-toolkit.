@@ -253,7 +253,7 @@ std::string getGpuFftDescriptionString()
         }
         else if (GMX_GPU_FFT_HEFFTE)
         {
-            return "heFFTe + cuFFT";
+            return gmx::formatString("heFFTe %s + cuFFT", Heffte_VERSION);
         }
         else if (GMX_GPU_FFT_CLFFT)
         {
