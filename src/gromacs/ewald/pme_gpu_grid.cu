@@ -485,8 +485,8 @@ static __global__ void pmeGpuPackHaloInternal(const float* __restrict__ gm_realG
 /*! \brief
  * A CUDA kernel which copies data from pme grid to FFT grid and back
  *
- * \param[in] gm_pmeGrid          local PME grid
- * \param[in] gm_fftGrid          local FFT grid
+ * \param[inout] gm_realGrid     local PME grid
+ * \param[inout] gm_fftGrid      local FFT grid
  * \param[in] fftNData           local FFT grid size without padding
  * \param[in] fftSize            local FFT grid padded size
  * \param[in] pmeSize            local PME grid padded size
@@ -583,7 +583,7 @@ static void packHaloDataExternal(const PmeGpu*       pmeGpu,
                     config,
                     pmeGpu->archSpecific->pmeStream_,
                     nullptr,
-                    "PME Domdec GPU Pack Grid Halo Exchange",
+                    "PME Domdec GPU Pack Halo External",
                     kernelArgs);
 }
 
@@ -648,7 +648,7 @@ static void packHaloDataInternal(const PmeGpu*       pmeGpu,
                     config,
                     pmeGpu->archSpecific->pmeStream_,
                     nullptr,
-                    "PME Domdec GPU Pack Grid Halo Exchange",
+                    "PME Domdec GPU Pack Halo Internal",
                     kernelArgs);
 }
 
@@ -716,7 +716,7 @@ static void unpackAndAddHaloDataInternal(const PmeGpu*       pmeGpu,
                     config,
                     pmeGpu->archSpecific->pmeStream_,
                     nullptr,
-                    "PME Domdec GPU Pack Grid Halo Exchange",
+                    "PME Domdec GPU Unpack Halo Internal",
                     kernelArgs);
 }
 
@@ -782,12 +782,12 @@ static void unpackHaloDataExternal(const PmeGpu*       pmeGpu,
                     config,
                     pmeGpu->archSpecific->pmeStream_,
                     nullptr,
-                    "PME Domdec GPU Pack Grid Halo Exchange",
+                    "PME Domdec GPU Unpack Halo External",
                     kernelArgs);
 }
 
 /*! \brief
- * utility function to send and recv halo data from neighboring ranks
+ * Utility function to send and recv halo data from neighboring ranks
  */
 static void receiveAndSend(DeviceBuffer<float> sendBuf,
                            int                 sendCount,
