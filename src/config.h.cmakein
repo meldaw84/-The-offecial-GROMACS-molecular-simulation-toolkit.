@@ -66,10 +66,6 @@
 
 /* Use cuFFT library for FFT on GPUs */
 #cmakedefine01 GMX_GPU_FFT_CUFFT
-/* Use cuFFTMp library for FFT on GPUs. Implies cuFFT support. */
-#cmakedefine01 GMX_GPU_FFT_CUFFTMP
-/* Use HeFFTe library for FFT on GPUs. Implies cuFFT support. */
-#cmakedefine01 GMX_GPU_FFT_HEFFTE
 /* Use clFFT library for FFT on GPUs */
 #cmakedefine01 GMX_GPU_FFT_CLFFT
 /* Use VkFFT library for FFT on GPUs */
@@ -268,6 +264,12 @@
 #cmakedefine01 MPI_SUPPORTS_CUDA_AWARE_DETECTION
 #cmakedefine01 MPI_SUPPORTS_HIP_AWARE_DETECTION
 #cmakedefine01 MPI_SUPPORTS_ZE_AWARE_DETECTION
+
+/* Define if HeFFTe library found */
+#cmakedefine01 GMX_USE_Heffte
+
+/* Define if cuFFTMp library found */
+#cmakedefine01 GMX_USE_cuFFTMp
 
 // Cluster size used by GPU nonbonded kernel.
 #define GMX_GPU_NB_CLUSTER_SIZE @GMX_GPU_NB_CLUSTER_SIZE@

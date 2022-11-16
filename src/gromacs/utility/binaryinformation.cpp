@@ -247,14 +247,6 @@ std::string getGpuFftDescriptionString()
         {
             return "cuFFT";
         }
-        else if (GMX_GPU_FFT_CUFFTMP)
-        {
-            return "cuFFTmp + cuFFT";
-        }
-        else if (GMX_GPU_FFT_HEFFTE)
-        {
-            return gmx::formatString("heFFTe %s + cuFFT", Heffte_VERSION);
-        }
         else if (GMX_GPU_FFT_CLFFT)
         {
             return "clFFT";
@@ -292,7 +284,7 @@ std::string getMultiGpuFftDescriptionString()
 {
     if (GMX_USE_Heffte)
     {
-        return "HeFFTe with cuFFT backend";
+        return gmx::formatString("HeFFTe %s with cuFFT backend", Heffte_VERSION);
     }
     else if (GMX_USE_cuFFTMp)
     {

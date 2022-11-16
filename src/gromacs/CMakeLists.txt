@@ -166,7 +166,7 @@ if (GMX_GPU_CUDA)
 endif()
 
 if (GMX_GPU_CUDA)
-    if(GMX_GPU_FFT_CUFFTMP)
+    if(GMX_USE_cuFFTMp)
         # needed as we need to include cufftmp include path before CUDA include path
         cuda_include_directories(${cuFFTMp_INCLUDE_DIR})
     endif()
@@ -180,7 +180,7 @@ if (GMX_GPU_CUDA)
     endif()
 
     #we cannot link with both cufftmp and cufft
-    if(GMX_GPU_FFT_CUFFTMP)
+    if(GMX_USE_cuFFTMp)
         target_link_libraries(libgromacs PRIVATE ${cuFFTMp_LIBRARY})
     else()
         target_link_libraries(libgromacs PRIVATE ${CUDA_CUFFT_LIBRARIES})

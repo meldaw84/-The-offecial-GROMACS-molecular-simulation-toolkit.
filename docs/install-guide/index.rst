@@ -371,7 +371,7 @@ PME decomposition is supported with PME offloaded to NVIDIA GPUs when using a CU
 
 ::
 
-    cmake -DGMX_GPU_FFT_LIBRARY=cuFFTMp \
+    cmake -DGMX_USE_CUFFTMP=ON \
           -DcuFFTMp_ROOT=<path to NVIDIA HPC SDK math_libs folder>
 
 Please make sure `cuFFTMp's hardware and software requirements

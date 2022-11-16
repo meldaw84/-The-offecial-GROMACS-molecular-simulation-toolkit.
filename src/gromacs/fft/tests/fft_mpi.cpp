@@ -235,10 +235,10 @@ std::vector<GpuFftTestGridParams> const inputGrids{ { IVec{ 5, 6, 9 }, 4, 1 },
                                                     { IVec{ 5, 5, 10 }, 2, 2 } };
 std::vector<FftBackend> const           inputBackends
 {
-#if GMX_GPU_FFT_HEFFTE
+#if GMX_USE_Heffte
     FftBackend::HeFFTe_CUDA,
 #endif
-#if GMX_GPU_FFT_CUFFTMP
+#if GMX_USE_cuFFTMp
             FftBackend::CuFFTMp,
 #endif
 };

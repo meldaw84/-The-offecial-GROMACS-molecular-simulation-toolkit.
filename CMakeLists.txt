@@ -250,6 +250,17 @@ gmx_dependent_option(
 mark_as_advanced(GMX_BUILD_OWN_FFTW)
 mark_as_advanced(GMX_DISABLE_FFTW_MEASURE)
 
+gmx_dependent_option(
+    GMX_USE_HEFFTE
+    "Use HeFFTe for distributed FFT support. Used with CUDA backend"
+    OFF
+    "GMX_GPU STREQUAL CUDA;GMX_MPI")
+gmx_dependent_option(
+    GMX_USE_CUFFTMP
+    "Use cuFFTMp for distributed FFT support. Used with CUDA backend"
+    OFF
+    "GMX_GPU STREQUAL CUDA;GMX_MPI")
+
 if (GMX_GPU)
     if (GMX_GPU STREQUAL CUDA)
         set(GMX_GPU_FFT_LIBRARY_DEFAULT "cuFFT")
@@ -281,10 +292,10 @@ if (GMX_GPU)
         GMX_GPU_FFT_LIBRARY
         "GPU FFT library"
         "${GMX_GPU_FFT_LIBRARY_DEFAULT}"
-        cuFFT cuFFTMp HeFFTe clFFT VkFFT MKL rocFFT none)
+        cuFFT clFFT VkFFT MKL rocFFT none)
     # The validity of chosen option is later verified by the selected backend
 
-    foreach (_gpu_fft_library cuFFT cuFFTMp HeFFTe clFFT VkFFT MKL rocFFT)
+    foreach (_gpu_fft_library cuFFT clFFT VkFFT MKL rocFFT)
         string(TOUPPER "${_gpu_fft_library}" _gpu_fft_library_upper)
         if (GMX_GPU_FFT_LIBRARY STREQUAL ${_gpu_fft_library_upper})
             message(STATUS "Selected GPU FFT library - ${_gpu_fft_library}")
@@ -292,7 +303,7 @@ if (GMX_GPU)
         else()
             set(_value FALSE)
         endif()
-        set("GMX_GPU_FFT_${_gpu_fft_library_upper}" "${_value}" CACHE INTERNAL "Use ${_gpu_fft_library} library for FFT on GPUs")
+        set("GMX_GPU_FFT_${_gpu_fft_library_upper}" "${_value}" CACHE INTERNAL "Use ${_gpu_fft_library} library for FFTs on GPUs")
     endforeach()
 endif()
 
@@ -734,7 +745,11 @@ if(CYGWIN)
     set(GMX_CYGWIN 1)
 endif()
 
-if(GMX_GPU_FFT_HEFFTE)
+if(GMX_GPU_CUDA AND NOT GMX_GPU_FFT_CUFFT)
+    message(FATAL_ERROR "CUDA build only supports cuFFT GPU FFT library")
+endif()
+
+if(GMX_USE_HEFFTE)
     if(NOT GMX_GPU_CUDA)
         message(FATAL_ERROR "HeFFTe support requires a CUDA build")
     endif()
@@ -742,9 +757,10 @@ if(GMX_GPU_FFT_HEFFTE)
         message(FATAL_ERROR "HeFFTe support requires a library MPI build")
     endif()
     find_package(Heffte 2.2.0 REQUIRED CUDA)
+    set(GMX_USE_Heffte ${Heffte_FOUND})
 endif()
 
-if(GMX_GPU_FFT_CUFFTMP)
+if(GMX_USE_CUFFTMP)
     if(NOT GMX_GPU_CUDA)
         message(FATAL_ERROR "cuFFTMp support requires a CUDA build")
     endif()
@@ -752,6 +768,7 @@ if(GMX_GPU_FFT_CUFFTMP)
         message(FATAL_ERROR "cuFFTMp support requires a library MPI build")
     endif()
     find_package(cuFFTMp REQUIRED CUDA)
+    set(GMX_USE_cuFFTMp ${cuFFTMp_FOUND})
 endif()
 
 if(WIN32)

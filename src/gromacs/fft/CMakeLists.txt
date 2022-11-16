@@ -52,16 +52,12 @@ endif()
 if (GMX_FFT_MKL)
     gmx_add_libgromacs_sources(fft_mkl.cpp)
 endif()
-if(GMX_GPU_FFT_HEFFTE)
-    gmx_add_libgromacs_sources(
-        gpu_3dfft_heffte.cpp
-        )
+if(GMX_USE_Heffte)
+    gmx_add_libgromacs_sources(gpu_3dfft_heffte.cpp)
 endif()
 if (GMX_GPU_CUDA)
-    if(GMX_GPU_FFT_CUFFTMP)
-        gmx_add_libgromacs_sources(
-            gpu_3dfft_cufftmp.cpp
-            )
+    if(GMX_USE_cuFFTMp)
+        gmx_add_libgromacs_sources(gpu_3dfft_cufftmp.cpp)
     endif()
     gmx_add_libgromacs_sources(
         # CUDA-specific sources
@@ -74,7 +70,7 @@ if (GMX_GPU_CUDA)
         gpu_3dfft.cpp
         gpu_3dfft_impl.cpp
         )
-    if(GMX_GPU_FFT_CUFFTMP)
+    if(GMX_USE_cuFFTMp)
         _gmx_add_files_to_property(CUDA_SOURCES
             # Must add this files as it requires path set in cuda_include_directories
             gpu_3dfft_cufftmp.cpp
