@@ -480,12 +480,5 @@ if(NOT ${_sycl_has_valid_fft} AND NOT GMX_GPU_FFT_LIBRARY STREQUAL "NONE")
 endif()
 
 if(NOT ${_sycl_has_valid_fft} AND NOT DEFINED ENV{GITLAB_CI}) # Don't warn in CI builds
-    set(_hint "")
-    # We require either rocFFT or VkFFT for hipSYCL+HIP build, but for other combinations FFT is optional
-    if (GMX_SYCL_HIPSYCL AND GMX_HIPSYCL_HAVE_CUDA_TARGET)
-        set(_hint " Consider setting -DGMX_GPU_FFT_LIBRARY=VkFFT.")
-    elseif (NOT GMX_SYCL_HIPSYCL)
-        set(_hint " Consider installing MKL and using -DGMX_GPU_FFT_LIBRARY=MKL (Intel GPUs only).")
-    endif()
-    message(WARNING "Building SYCL version without GPU FFT library. Will not be able to perform FFTs on a GPU, which is not good for performance.${_hint}")
+    message(WARNING "Building SYCL version without GPU FFT library.  Will not be able to perform FFTs on a GPU, which is not good for performance.")
 endif()
