@@ -72,9 +72,11 @@ DiagonalizationResult diagonalize(MatrixNxM matrix)
 {
     // Create vector to store eigenvectors and eigenvalues
     GMX_ASSERT(matrixIsSquare(matrix), "Matrix must be square!");
-    
+
     const int dim = matrix.extent(0);
     DiagonalizationResult result(matrix.extent(0));
+
+    printf("Matrix dimensions: %d, %d\n", matrix.extent(0), matrix.extent(1));
 
     eigensolver(matrix.asView().data(), dim, 0, dim, result.eigenvalues_.data(), result.eigenvectors_.asView().data());
     return result;

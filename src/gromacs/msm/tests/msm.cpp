@@ -116,12 +116,20 @@ namespace test
 
 TEST(Diagtest, Diagonalize)
 {
+    /*
     MatrixNxM matrix(2,2);
     matrix(0,0)=1;
     matrix(0,1)=2;
     matrix(1,0)=2;
     matrix(1,1)=1;
-    
+    */
+
+    MatrixNxM matrix(2,2);
+    matrix(0,0)=1;
+    matrix(0,1)=1;
+    matrix(1,0)=1;
+    matrix(1,1)=1;
+
     const auto result = diagonalize(matrix);
 
     fprintf(stderr,"\n eigenvalue 1 = %f ", result.eigenvalues_[0]);
