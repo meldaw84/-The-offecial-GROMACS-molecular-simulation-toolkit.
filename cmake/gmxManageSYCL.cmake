@@ -476,7 +476,7 @@ if(NOT ${_sycl_has_valid_fft} AND NOT GMX_GPU_FFT_LIBRARY STREQUAL "NONE")
     elseif (GMX_SYCL_HIPSYCL AND GMX_GPU_FFT_MKL)
         set(_hint " MKL is only supported with Intel DPC++ compiler, not with hipSYCL")
     endif()
-    message(FATAL_ERROR "Selected GPU FFT library ${GMX_GPU_FFT_LIBRARY} is not compatible.${_hint}")
+    message(FATAL_ERROR "The selected GPU FFT library ${GMX_GPU_FFT_LIBRARY} is not compatible.${_hint}")
 endif()
 
 if(NOT ${_sycl_has_valid_fft} AND NOT DEFINED ENV{GITLAB_CI}) # Don't warn in CI builds

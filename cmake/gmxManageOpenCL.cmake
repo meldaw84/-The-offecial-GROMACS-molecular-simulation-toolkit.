@@ -83,7 +83,7 @@ if (GMX_GPU_FFT_VKFFT)
     gmx_target_interface_warning_suppression(VkFFT "-Wno-unused-but-set-variable" HAS_WARNING_NO_UNUSED_BUT_SET_VARIABLE)
     gmx_target_interface_warning_suppression(VkFFT "-Wno-sign-compare" HAS_WARNING_NO_SIGN_COMPARE)
 elseif(NOT GMX_GPU_FFT_CLFFT)
-    message(FATAL_ERROR "In OpenCL build, only -DGMX_GPU_FFT_LIBRARY=VkFFT and -DGMX_GPU_FFT_LIBRARY=clFFT are supported")
+    message(FATAL_ERROR "In the OpenCL build, only -DGMX_GPU_FFT_LIBRARY=VkFFT and -DGMX_GPU_FFT_LIBRARY=clFFT are supported")
 endif()
 
 add_definitions(${OpenCL_DEFINITIONS})

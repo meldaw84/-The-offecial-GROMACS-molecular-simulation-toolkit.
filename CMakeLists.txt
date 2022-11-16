@@ -746,7 +746,7 @@ if(CYGWIN)
 endif()
 
 if(GMX_GPU_CUDA AND NOT GMX_GPU_FFT_CUFFT)
-    message(FATAL_ERROR "CUDA build only supports cuFFT GPU FFT library")
+    message(FATAL_ERROR "The CUDA build only supports cuFFT GPU FFT library")
 endif()
 
 if(GMX_USE_HEFFTE)
