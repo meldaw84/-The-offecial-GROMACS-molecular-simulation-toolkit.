@@ -98,11 +98,23 @@ private:
     std::unique_ptr<heffte::fft3d_r2c<backend_tag, int>> fftPlan_;
 
 #if GMX_GPU_CUDA
-    heffte::gpu::vector<float>               localRealGrid_;
+    //! Raw stream for PME operations
+    cudaStream_t pmeRawStream_;
+    //! Local real grid
+    heffte::gpu::vector<float> localRealGrid_;
+    //! Local complex grid
     heffte::gpu::vector<std::complex<float>> localComplexGrid_;
 #elif GMX_GPU_SYCL
-    sycl::queue         pmeQueue_;
+    /*! \brief Raw stream for PME operations
+     *
+     * HeFFTe takes a std::reference_wrapper of the sycl::queue,
+     * so we cannot pass the temporary value returned by
+     * DeviceStream::stream().  Instead we keep a local copy to
+     * pass to HeFFTe. */
+    sycl::queue pmeRawStream_;
+    //! Local real grid
     DeviceBuffer<float> localRealGrid_;
+    //! Local complex grid
     DeviceBuffer<float> localComplexGrid_;
 #endif
 };
