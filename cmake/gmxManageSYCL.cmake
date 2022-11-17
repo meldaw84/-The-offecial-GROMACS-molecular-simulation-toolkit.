@@ -202,36 +202,6 @@ if(GMX_SYCL_HIPSYCL)
         endif()
     endif()
 
-
-    if(GMX_GPU_FFT_VKFFT)
-        # Use VkFFT with HIP back end as header-only library
-        set(vkfft_VERSION "1.2.26-b15cb0ca3e884bdb6c901a12d87aa8aadf7637d8")
-        if (GMX_HIPSYCL_HAVE_CUDA_TARGET)
-            set(_backend 1)
-        elseif (GMX_HIPSYCL_HAVE_HIP_TARGET)
-            set(_backend 2)
-        else()
-            message(FATAL_ERROR "VkFFT can only be used with the HIP backend")
-        endif()
-        add_library(VkFFT INTERFACE)
-        target_compile_definitions(VkFFT INTERFACE VKFFT_BACKEND=${_backend})
-        target_include_directories(VkFFT INTERFACE ${CMAKE_PROJECT_ROOT}/src/external/VkFFT)
-        gmx_target_interface_warning_suppression(VkFFT "-Wno-unused-parameter" HAS_WARNING_NO_UNUSED_PARAMETER)
-        gmx_target_interface_warning_suppression(VkFFT "-Wno-unused-variable" HAS_WARNING_NO_UNUSED_VARIABLE)
-        gmx_target_interface_warning_suppression(VkFFT "-Wno-newline-eof" HAS_WARNING_NO_NEWLINE_EOF)
-        gmx_target_interface_warning_suppression(VkFFT "-Wno-old-style-cast" HAS_WARNING_NO_OLD_STYLE_CAST)
-        gmx_target_interface_warning_suppression(VkFFT "-Wno-zero-as-null-pointer-constant" HAS_WARNING_NO_ZERO_AS_NULL_POINTER_CONSTANT)
-        gmx_target_interface_warning_suppression(VkFFT "-Wno-unused-but-set-variable" HAS_WARNING_NO_UNUSED_BUT_SET_VARIABLE)
-        gmx_target_interface_warning_suppression(VkFFT "-Wno-sign-compare" HAS_WARNING_NO_SIGN_COMPARE)
-
-        if (GMX_HIPSYCL_HAVE_CUDA_TARGET)
-            # This is not ideal, because it uses some random version of CUDA. See #4621.
-            find_package(CUDAToolkit REQUIRED)
-            target_link_libraries(VkFFT INTERFACE CUDA::cuda_driver CUDA::nvrtc)
-        endif()
-        set(_sycl_has_valid_fft TRUE)
-    endif()
-
     # Try to detect if we need RDNA support. Not very robust, but should cover the most common use.
     if (GMX_HIPSYCL_HAVE_HIP_TARGET AND ${HIPSYCL_TARGETS} MATCHES "gfx1[0-9][0-9][0-9]")
         set(_enable_rdna_support_automatically ON)
@@ -467,6 +437,54 @@ int main() {
             target_link_options(${ARGS_TARGET} PRIVATE ${SYCL_TOOLCHAIN_LINKER_FLAGS_LIST})
         endif()
     endfunction(add_sycl_to_target)
+endif()
+
+if(GMX_GPU_FFT_VKFFT)
+    # Use VkFFT with HIP or CUDA back end as header-only library
+    set(vkfft_VERSION "1.2.26-b15cb0ca3e884bdb6c901a12d87aa8aadf7637d8")
+    set(_backend -1)
+    if (DEFINED VKFFT_BACKEND) # If we have backend supplied, use it; otherwise, try to guess
+        set(_backend ${VKFFT_BACKEND})
+    elseif(GMX_SYCL_HIPSYCL)
+        if (GMX_HIPSYCL_HAVE_CUDA_TARGET)
+            set(_backend 1)
+        elseif (GMX_HIPSYCL_HAVE_HIP_TARGET)
+            set(_backend 2)
+        endif()
+    else() # DPC++
+        if("${SYCL_CXX_FLAGS_EXTRA}" MATCHES "fsycl-targets=.*nvptx64")
+            set(_backend 1) # CUDA
+        endif()
+    endif()
+    if (_backend EQUAL -1)
+        message(FATAL_ERROR "Cannot determine VkFFT backend to use. Please provide a valid value via -DVKFFT_BACKEND")
+    endif()
+    add_library(VkFFT INTERFACE)
+    target_compile_definitions(VkFFT INTERFACE VKFFT_BACKEND=${_backend})
+    target_include_directories(VkFFT INTERFACE ${CMAKE_PROJECT_ROOT}/src/external/VkFFT)
+    if (${_backend} EQUAL 1) # CUDA
+        # This is not ideal, because it uses some random version of CUDA. See #4621.
+        find_package(CUDAToolkit REQUIRED)
+        target_link_libraries(VkFFT INTERFACE CUDA::cuda_driver CUDA::nvrtc)
+        if (NOT GMX_SYCL_HIPSYCL)
+            target_link_libraries(VkFFT INTERFACE CUDA::cudart) # Needed only with DPC++
+        endif()
+    elseif (${_backend} EQUAL 2) # HIP
+        if (NOT GMX_SYCL_HIPSYCL)
+            # Note: It can work, but require setting compile/linker flags manually.
+            message(FATAL_ERROR "VkFFT with HIP backend is only supported with hipSYCL, not supported DPC++")
+        endif()
+    else()
+        message(FATAL_ERROR "Unsupported VkFFT backend. Only VKFFT_BACKEND=1 (CUDA) and VKFFT_BACKEND=2 (HIP) are currently supported")
+    endif()
+    gmx_target_interface_warning_suppression(VkFFT "-Wno-unused-parameter" HAS_WARNING_NO_UNUSED_PARAMETER)
+    gmx_target_interface_warning_suppression(VkFFT "-Wno-unused-variable" HAS_WARNING_NO_UNUSED_VARIABLE)
+    gmx_target_interface_warning_suppression(VkFFT "-Wno-newline-eof" HAS_WARNING_NO_NEWLINE_EOF)
+    gmx_target_interface_warning_suppression(VkFFT "-Wno-old-style-cast" HAS_WARNING_NO_OLD_STYLE_CAST)
+    gmx_target_interface_warning_suppression(VkFFT "-Wno-zero-as-null-pointer-constant" HAS_WARNING_NO_ZERO_AS_NULL_POINTER_CONSTANT)
+    gmx_target_interface_warning_suppression(VkFFT "-Wno-unused-but-set-variable" HAS_WARNING_NO_UNUSED_BUT_SET_VARIABLE)
+    gmx_target_interface_warning_suppression(VkFFT "-Wno-sign-compare" HAS_WARNING_NO_SIGN_COMPARE)
+    set(_sycl_has_valid_fft TRUE)
 endif()
 
 if(NOT ${_sycl_has_valid_fft} AND NOT GMX_GPU_FFT_LIBRARY STREQUAL "NONE")
