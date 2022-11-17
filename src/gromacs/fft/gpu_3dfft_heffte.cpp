@@ -68,11 +68,8 @@ Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealG
                                               ivec                 realGridSizePadded,
                                               ivec                 complexGridSizePadded,
                                               DeviceBuffer<float>* realGrid,
-                                              DeviceBuffer<float>* complexGrid)
-#if GMX_GPU_SYCL
-    :
-    pmeQueue_(pmeStream.stream())
-#endif
+                                              DeviceBuffer<float>* complexGrid) :
+    pmeRawStream_(pmeStream.stream())
 {
     const int numDomainsX = gridSizesInXForEachRank.size();
     const int numDomainsY = gridSizesInYForEachRank.size();
@@ -136,7 +133,7 @@ Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealG
 
         // Define 3D FFT plan
         fftPlan_ = std::make_unique<heffte::fft3d_r2c<backend_tag, int>>(
-                pmeQueue_, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
+                pmeRawStream_, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
     }
     else
     {
@@ -163,7 +160,7 @@ Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealG
 
         // Define 3D FFT plan
         fftPlan_ = std::make_unique<heffte::fft3d_r2c<backend_tag, int>>(
-                pmeQueue_, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
+                pmeRawStream_, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
     }
 
     workspace_ = heffte::gpu::vector<std::complex<float>>(fftPlan_->size_workspace());
@@ -225,16 +222,14 @@ void Gpu3dFft::ImplHeFfte<backend_tag>::perform3dFft(gmx_fft_direction dir, Comm
 }
 
 // instantiate relevant HeFFTe backend
-#if GMX_GPU_CUDA
+#if GMX_GPU_FFT_CUFFT
 template class Gpu3dFft::ImplHeFfte<heffte::backend::cufft>;
 #endif
-#if GMX_GPU_SYCL
-#    if GMX_SYCL_DPCPP
+#if GMX_GPU_FFT_MKL
 template class Gpu3dFft::ImplHeFfte<heffte::backend::onemkl>;
-#    endif
-#    if GMX_SYCL_HIPSYCL
+#endif
+#if GMX_GPU_FFT_ROCFFT
 template class Gpu3dFft::ImplHeFfte<heffte::backend::rocfft>;
-#    endif
 #endif
 
 } // namespace gmx
