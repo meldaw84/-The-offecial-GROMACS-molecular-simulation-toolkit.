@@ -67,12 +67,19 @@ public:
     /*! \brief
      * Returns the pack kernel
      *
-     * \param[in] cgh                 SYCL's command group handler.
-     * \param[in] myGrid*             local domain size in X and Y dimension
-     * \param[in] pmeSize             Local PME grid size
-     * \param[in] a_realGrid          PME device grid
-     * \param[out] a_transferGrid*    device arrays used to pack data in 8-neighboring directions
-     * \param[in] overlapSize*        halo size in 4 directions
+     * \param[in] cgh                       SYCL's command group handler.
+     * \param[in] myGridX,myGridY           Local domain size in X and Y dimension
+     * \param[in] pmeSize                   Local PME grid size
+     * \param[in] a_realGrid                PME device grid
+     * \param[out] a_transferGridUp         Device array used to pack data to go up
+     * \param[out] a_transferGridDown       Device array used to pack data to go down
+     * \param[out] a_transferGridLeft       Device array used to pack data to go left
+     * \param[out] a_transferGridRight      Device array used to pack data to go right
+     * \param[out] a_transferGridUpLeft     Device array used to pack data to go up+left
+     * \param[out] a_transferGridDownLeft   Device array used to pack data to go down+left
+     * \param[out] a_transferGridUpRight    Device array used to pack data to go up+right
+     * \param[out] a_transferGridDownRight  Device array used to pack data to go down+right
+     * \param[in] overlapSizeUp,overlapSizeDown,overlapSizeLeft,overlapSizeRight  Halo size in 4 directions
      */
     static auto kernel(sycl::handler&                     cgh,
                        size_t                             myGridX,
@@ -201,12 +208,19 @@ public:
     /*! \brief
      * Returns the unpack kernel
      *
-     * \param[in] cgh                 SYCL's command group handler.
-     * \param[in] myGrid*             local domain size in X and Y dimension
-     * \param[in] pmeSize             Local PME grid size
-     * \param[in] a_realGrid          PME device grid
-     * \param[out] a_transferGrid*    packed data in 8-neighboring directions
-     * \param[in] overlapSize*        halo size in 4 directions
+     * \param[in] cgh                       SYCL's command group handler.
+     * \param[in] myGridX,myGridY           Local domain size in X and Y dimension
+     * \param[in] pmeSize                   Local PME grid size
+     * \param[in] a_realGrid                PME device grid
+     * \param[out] a_transferGridUp         Device array used to pack data to go up
+     * \param[out] a_transferGridDown       Device array used to pack data to go down
+     * \param[out] a_transferGridLeft       Device array used to pack data to go left
+     * \param[out] a_transferGridRight      Device array used to pack data to go right
+     * \param[out] a_transferGridUpLeft     Device array used to pack data to go up+left
+     * \param[out] a_transferGridDownLeft   Device array used to pack data to go down+left
+     * \param[out] a_transferGridUpRight    Device array used to pack data to go up+right
+     * \param[out] a_transferGridDownRight  Device array used to pack data to go down+right
+     * \param[in] overlapSizeUp,overlapSizeDown,overlapSizeLeft,overlapSizeRight  Halo size in 4 directions
      */
     static auto kernel(sycl::handler&                     cgh,
                        size_t                             myGridX,
@@ -335,12 +349,19 @@ public:
     /*! \brief
      * Returns the unpack kernel
      *
-     * \param[in] cgh                 SYCL's command group handler.
-     * \param[in] myGrid*             local domain size in X and Y dimension
-     * \param[in] pmeSize             Local PME grid size
-     * \param[in] a_realGrid          PME device grid
-     * \param[out] a_transferGrid*    packed data in 8-neighboring directions
-     * \param[in] overlapSize*        halo size in 4 directions
+     * \param[in] cgh                       SYCL's command group handler.
+     * \param[in] myGridX,myGridY           Local domain size in X and Y dimension
+     * \param[in] pmeSize                   Local PME grid size
+     * \param[in] a_realGrid                PME device grid
+     * \param[out] a_transferGridUp         Device array used to pack data to go up
+     * \param[out] a_transferGridDown       Device array used to pack data to go down
+     * \param[out] a_transferGridLeft       Device array used to pack data to go left
+     * \param[out] a_transferGridRight      Device array used to pack data to go right
+     * \param[out] a_transferGridUpLeft     Device array used to pack data to go up+left
+     * \param[out] a_transferGridDownLeft   Device array used to pack data to go down+left
+     * \param[out] a_transferGridUpRight    Device array used to pack data to go up+right
+     * \param[out] a_transferGridDownRight  Device array used to pack data to go down+right
+     * \param[in] overlapSizeUp,overlapSizeDown,overlapSizeLeft,overlapSizeRight  Halo size in 4 directions
      */
     static auto kernel(sycl::handler&                     cgh,
                        size_t                             myGridX,
@@ -460,12 +481,19 @@ public:
     /*! \brief
      * Returns the pack kernel
      *
-     * \param[in] cgh                 SYCL's command group handler.
-     * \param[in] myGrid*              local domain size in X and Y dimension
-     * \param[in] pmeSize              Local PME grid size
-     * \param[in] a_realGrid          PME device grid
-     * \param[out] a_transferGrid*    packed data in 8-neighboring directions
-     * \param[in] overlapSize*         halo size in 4 directions
+     * \param[in] cgh                       SYCL's command group handler.
+     * \param[in] myGridX,myGridY           Local domain size in X and Y dimension
+     * \param[in] pmeSize                   Local PME grid size
+     * \param[in] a_realGrid                PME device grid
+     * \param[out] a_transferGridUp         Device array used to pack data to go up
+     * \param[out] a_transferGridDown       Device array used to pack data to go down
+     * \param[out] a_transferGridLeft       Device array used to pack data to go left
+     * \param[out] a_transferGridRight      Device array used to pack data to go right
+     * \param[out] a_transferGridUpLeft     Device array used to pack data to go up+left
+     * \param[out] a_transferGridDownLeft   Device array used to pack data to go down+left
+     * \param[out] a_transferGridUpRight    Device array used to pack data to go up+right
+     * \param[out] a_transferGridDownRight  Device array used to pack data to go down+right
+     * \param[in] overlapSizeUp,overlapSizeDown,overlapSizeLeft,overlapSizeRight  Halo size in 4 directions
      */
     static auto kernel(sycl::handler&                     cgh,
                        size_t                             myGridX,
@@ -578,11 +606,12 @@ public:
 
 /*! \brief Submits a GPU grid kernel
  *
- * \tparam    Kernel         The class containing a static kernel() method to return
- *                           the kernel to execute
- * \param[in] deviceStream   The device stream upon which to submit
- * \param[in] myGrid*        Local domain size in X and Y dimension
- * \param[in] pmeSize        Local PME grid size
+ * \tparam    Kernel           The class containing a static kernel() method to return
+ *                             the kernel to execute
+ * \param[in] deviceStream     The device stream upon which to submit
+ * \param[in] myGridX,myGridY  Local domain size in X and Y dimension
+ * \param[in] pmeSize          Local PME grid size
+ * \param[in] args             Parameter pack to pass to the kernel
  */
 template<typename Kernel, class... Args>
 static void
@@ -1239,7 +1268,8 @@ public:
     /*! \brief Submits kernel
      *
      * \param[in] deviceStream   The device stream upon which to submit
-     * \param[in] fftNData       Local FFT grid size without padding
+     * \param[in] localFftNData  Local FFT grid size without padding
+     * \param[in] args           Parameter pack to pass to the kernel builder
      */
     template<class... Args>
     static void submit(const DeviceStream& deviceStream, sycl::uint3 localFftNData, Args&&... args)
