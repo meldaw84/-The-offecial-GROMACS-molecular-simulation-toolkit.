@@ -441,12 +441,11 @@ static float dih_angle_gpu(const T                   xi,
                            sycl::private_ptr<Float3> m,
                            sycl::private_ptr<Float3> n,
                            sycl::private_ptr<int>    t1,
-                           sycl::private_ptr<int>    t2,
-                           sycl::private_ptr<int>    t3)
+                           sycl::private_ptr<int>    t2)
 {
     *t1 = pbcDxAiucSycl<returnShift>(pbcAiuc, xi, xj, *r_ij);
     *t2 = pbcDxAiucSycl<returnShift>(pbcAiuc, xk, xj, *r_kj);
-    *t3 = pbcDxAiucSycl<returnShift>(pbcAiuc, xk, xl, *r_kl);
+    pbcDxAiucSycl<returnShift>(pbcAiuc, xk, xl, *r_kl);
 
     *m         = r_ij->cross(*r_kj);
     *n         = r_kj->cross(*r_kl);
@@ -559,9 +558,8 @@ static void pdihs_gpu(const int                                  i,
         Float3 n;
         int    t1;
         int    t2;
-        int    t3;
         float  phi = dih_angle_gpu<calcVir>(
-                gm_xq[ai], gm_xq[aj], gm_xq[ak], gm_xq[al], pbcAiuc, &r_ij, &r_kj, &r_kl, &m, &n, &t1, &t2, &t3);
+                gm_xq[ai], gm_xq[aj], gm_xq[ak], gm_xq[al], pbcAiuc, &r_ij, &r_kj, &r_kl, &m, &n, &t1, &t2);
 
         float vpd;
         float ddphi;
@@ -611,9 +609,8 @@ static void rbdihs_gpu(const int                                  i,
         Float3 n;
         int    t1;
         int    t2;
-        int    t3;
         float  phi = dih_angle_gpu<calcVir>(
-                gm_xq[ai], gm_xq[aj], gm_xq[ak], gm_xq[al], pbcAiuc, &r_ij, &r_kj, &r_kl, &m, &n, &t1, &t2, &t3);
+                gm_xq[ai], gm_xq[aj], gm_xq[ak], gm_xq[al], pbcAiuc, &r_ij, &r_kj, &r_kl, &m, &n, &t1, &t2);
 
         /* Change to polymer convention */
         if (phi < c0)
@@ -732,9 +729,8 @@ static void idihs_gpu(const int                                  i,
         Float3 n;
         int    t1;
         int    t2;
-        int    t3;
         float  phi = dih_angle_gpu<calcVir>(
-                gm_xq[ai], gm_xq[aj], gm_xq[ak], gm_xq[al], pbcAiuc, &r_ij, &r_kj, &r_kl, &m, &n, &t1, &t2, &t3);
+                gm_xq[ai], gm_xq[aj], gm_xq[ak], gm_xq[al], pbcAiuc, &r_ij, &r_kj, &r_kl, &m, &n, &t1, &t2);
 
         /* phi can jump if phi0 is close to Pi/-Pi, which will cause huge
          * force changes if we just apply a normal harmonic.

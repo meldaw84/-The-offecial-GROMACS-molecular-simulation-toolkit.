@@ -383,12 +383,11 @@ __device__ __forceinline__ static float dih_angle_gpu(const T        xi,
                                                       float3*        m,
                                                       float3*        n,
                                                       int*           t1,
-                                                      int*           t2,
-                                                      int*           t3)
+                                                      int*           t2)
 {
     *t1 = pbcDxAiuc<returnShift>(pbcAiuc, xi, xj, *r_ij);
     *t2 = pbcDxAiuc<returnShift>(pbcAiuc, xk, xj, *r_kj);
-    *t3 = pbcDxAiuc<returnShift>(pbcAiuc, xk, xl, *r_kl);
+    pbcDxAiuc<returnShift>(pbcAiuc, xk, xl, *r_kl);
 
     *m         = cprod(*r_ij, *r_kj);
     *n         = cprod(*r_kj, *r_kl);
@@ -413,23 +412,22 @@ dopdihs_gpu(const float cpA, const float phiA, const int mult, const float phi, 
 }
 
 template<bool calcVir>
-__device__ __forceinline__ static void do_dih_fup_gpu(const int            i,
-                                                      const int            j,
-                                                      const int            k,
-                                                      const int            l,
-                                                      const float          ddphi,
-                                                      const float3         r_ij,
-                                                      const float3         r_kj,
-                                                      const float3         r_kl,
-                                                      const float3         m,
-                                                      const float3         n,
-                                                      float3               gm_f[],
-                                                      float3               sm_fShiftLoc[],
-                                                      const PbcAiuc&       pbcAiuc,
-                                                      const float4         gm_xq[],
-                                                      const int            t1,
-                                                      const int            t2,
-                                                      const int gmx_unused t3)
+__device__ __forceinline__ static void do_dih_fup_gpu(const int      i,
+                                                      const int      j,
+                                                      const int      k,
+                                                      const int      l,
+                                                      const float    ddphi,
+                                                      const float3   r_ij,
+                                                      const float3   r_kj,
+                                                      const float3   r_kl,
+                                                      const float3   m,
+                                                      const float3   n,
+                                                      float3         gm_f[],
+                                                      float3         sm_fShiftLoc[],
+                                                      const PbcAiuc& pbcAiuc,
+                                                      const float4   gm_xq[],
+                                                      const int      t1,
+                                                      const int      t2)
 {
     float iprm  = norm2(m);
     float iprn  = norm2(n);
@@ -498,9 +496,8 @@ __device__ __forceinline__ void pdihs_gpu(const int       i,
         float3 n;
         int    t1;
         int    t2;
-        int    t3;
         float  phi = dih_angle_gpu<calcVir>(
-                gm_xq[ai], gm_xq[aj], gm_xq[ak], gm_xq[al], pbcAiuc, &r_ij, &r_kj, &r_kl, &m, &n, &t1, &t2, &t3);
+                gm_xq[ai], gm_xq[aj], gm_xq[ak], gm_xq[al], pbcAiuc, &r_ij, &r_kj, &r_kl, &m, &n, &t1, &t2);
 
         float vpd;
         float ddphi;
@@ -517,7 +514,7 @@ __device__ __forceinline__ void pdihs_gpu(const int       i,
         }
 
         do_dih_fup_gpu<calcVir>(
-                ai, aj, ak, al, ddphi, r_ij, r_kj, r_kl, m, n, gm_f, sm_fShiftLoc, pbcAiuc, gm_xq, t1, t2, t3);
+                ai, aj, ak, al, ddphi, r_ij, r_kj, r_kl, m, n, gm_f, sm_fShiftLoc, pbcAiuc, gm_xq, t1, t2);
     }
 }
 
@@ -549,9 +546,8 @@ __device__ __forceinline__ void rbdihs_gpu(const int       i,
         float3 n;
         int    t1;
         int    t2;
-        int    t3;
         float  phi = dih_angle_gpu<calcVir>(
-                gm_xq[ai], gm_xq[aj], gm_xq[ak], gm_xq[al], pbcAiuc, &r_ij, &r_kj, &r_kl, &m, &n, &t1, &t2, &t3);
+                gm_xq[ai], gm_xq[aj], gm_xq[ak], gm_xq[al], pbcAiuc, &r_ij, &r_kj, &r_kl, &m, &n, &t1, &t2);
 
         /* Change to polymer convention */
         if (phi < c0)
@@ -617,7 +613,7 @@ __device__ __forceinline__ void rbdihs_gpu(const int       i,
         ddphi = -ddphi * sin_phi;
 
         do_dih_fup_gpu<calcVir>(
-                ai, aj, ak, al, ddphi, r_ij, r_kj, r_kl, m, n, gm_f, sm_fShiftLoc, pbcAiuc, gm_xq, t1, t2, t3);
+                ai, aj, ak, al, ddphi, r_ij, r_kj, r_kl, m, n, gm_f, sm_fShiftLoc, pbcAiuc, gm_xq, t1, t2);
         if (calcEner)
         {
             *vtot_loc += v;
@@ -664,9 +660,8 @@ __device__ __forceinline__ void idihs_gpu(const int       i,
         float3 n;
         int    t1;
         int    t2;
-        int    t3;
         float  phi = dih_angle_gpu<calcVir>(
-                gm_xq[ai], gm_xq[aj], gm_xq[ak], gm_xq[al], pbcAiuc, &r_ij, &r_kj, &r_kl, &m, &n, &t1, &t2, &t3);
+                gm_xq[ai], gm_xq[aj], gm_xq[ak], gm_xq[al], pbcAiuc, &r_ij, &r_kj, &r_kl, &m, &n, &t1, &t2);
 
         /* phi can jump if phi0 is close to Pi/-Pi, which will cause huge
          * force changes if we just apply a normal harmonic.
@@ -687,7 +682,7 @@ __device__ __forceinline__ void idihs_gpu(const int       i,
         float ddphi = -kA * dp;
 
         do_dih_fup_gpu<calcVir>(
-                ai, aj, ak, al, -ddphi, r_ij, r_kj, r_kl, m, n, gm_f, sm_fShiftLoc, pbcAiuc, gm_xq, t1, t2, t3);
+                ai, aj, ak, al, -ddphi, r_ij, r_kj, r_kl, m, n, gm_f, sm_fShiftLoc, pbcAiuc, gm_xq, t1, t2);
 
         if (calcEner)
         {
