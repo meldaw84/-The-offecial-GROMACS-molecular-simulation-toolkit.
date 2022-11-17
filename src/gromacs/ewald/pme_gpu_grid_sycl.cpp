@@ -361,7 +361,7 @@ public:
      * \param[out] a_transferGridDownLeft   Device array used to pack data to go down+left
      * \param[out] a_transferGridUpRight    Device array used to pack data to go up+right
      * \param[out] a_transferGridDownRight  Device array used to pack data to go down+right
-     * \param[in] overlapSizeX,overlapSizeY,overlapSizeUp,overlapSizeLeft  Halo size in 4 directions
+     * \param[in] overlapSizeX,overlapSizeY,overlapUp,overlapLeft  Halo size in 4 directions
      */
     static auto kernel(sycl::handler&                     cgh,
                        size_t                             myGridX,
@@ -493,7 +493,7 @@ public:
      * \param[out] a_transferGridDownLeft   Device array used to pack data to go down+left
      * \param[out] a_transferGridUpRight    Device array used to pack data to go up+right
      * \param[out] a_transferGridDownRight  Device array used to pack data to go down+right
-     * \param[in] overlapSizeX,overlapSizeY,overlapSizeUp,overlapSizeLeft  Halo size in 4 directions
+     * \param[in] overlapSizeX,overlapSizeY,overlapUp,overlapLeft  Halo size in 4 directions
      */
     static auto kernel(sycl::handler&                     cgh,
                        size_t                             myGridX,
