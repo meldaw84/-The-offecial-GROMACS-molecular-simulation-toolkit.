@@ -56,6 +56,7 @@ else()
     gmx_target_warning_suppression(scanner -Wno-unused-parameter HAS_NO_UNUSED_PARAMETER)
     gmx_target_warning_suppression(scanner -Wno-missing-declarations HAS_NO_MISSING_DECLARATIONS)
     gmx_target_warning_suppression(scanner -Wno-null-conversion HAS_NO_NULL_CONVERSIONS)
+    gmx_target_warning_suppression(scanner -Wno-reserved-identifier HAS_NO_RESERVED_IDENTIFIER)
 endif()
 target_link_libraries(scanner PRIVATE legacy_api)
 # TODO: Remove `legacy_modules` once specific modules are explicitly linked.
