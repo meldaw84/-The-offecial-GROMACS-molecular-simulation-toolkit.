@@ -255,6 +255,16 @@ std::unique_ptr<gmx_wallcycle> wallcycle_init(FILE* fplog, int resetstep, const 
         wc->isMainRank  = MAIN(cr);
     }
 
+    wc->ittDomain = __itt_domain_create("gmx");
+    for (const WallCycleCounter c : gmx::EnumerationWrapper<WallCycleCounter>{})
+    {
+        wc->ittTasks[c] = __itt_string_handle_create(enumValuetoString(c));
+    }
+    for (const WallCycleSubCounter c : gmx::EnumerationWrapper<WallCycleSubCounter>{})
+    {
+        wc->ittSubTasks[c] = __itt_string_handle_create(enumValuetoString(c));
+    }
+        
     return wc;
 }
 

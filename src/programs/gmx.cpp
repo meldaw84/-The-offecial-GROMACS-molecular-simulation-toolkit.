@@ -46,8 +46,11 @@
 
 #include "legacymodules.h"
 
+#include <ittnotify.h>
+
 int main(int argc, char* argv[])
 {
+    __itt_pause();
     gmx::CommandLineProgramContext& context = gmx::initForCommandLine(&argc, &argv);
     try
     {

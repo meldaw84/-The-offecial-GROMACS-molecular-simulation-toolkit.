@@ -47,6 +47,8 @@
 #include "gromacs/utility/basedefinitions.h"
 #include "gromacs/utility/enumerationhelpers.h"
 
+#include <ittnotify.h>
+
 #ifndef DEBUG_WCYCLE
 /*! \brief Enables consistency checking for the counters.
  *
@@ -184,6 +186,9 @@ struct wallcc_t
 struct gmx_wallcycle
 {
     gmx::EnumerationArray<WallCycleCounter, wallcc_t> wcc;
+        __itt_domain* ittDomain;
+        gmx::EnumerationArray<WallCycleCounter, __itt_string_handle*> ittTasks;
+        gmx::EnumerationArray<WallCycleSubCounter, __itt_string_handle*> ittSubTasks;
     /* did we detect one or more invalid cycle counts */
     bool haveInvalidCount;
     /* variables for testing/debugging */
@@ -247,6 +252,9 @@ inline void wallcycle_start(gmx_wallcycle* wc, WallCycleCounter ewc)
     }
     gmx_cycles_t cycle = gmx_cycles_read();
     wc->wcc[ewc].start = cycle;
+
+    __itt_task_begin(wc->ittDomain, __itt_null, __itt_null, wc->ittTasks[ewc]);
+    
     if (!wc->wcc_all.empty())
     {
         wc->wc_depth++;
@@ -322,6 +330,8 @@ inline double wallcycle_stop(gmx_wallcycle* wc, WallCycleCounter ewc)
         }
     }
 
+    __itt_task_end(wc->ittDomain);
+ 
     return last;
 }
 
@@ -359,6 +369,7 @@ inline void wallcycle_sub_start(gmx_wallcycle* wc, WallCycleSubCounter ewcs)
         {
             wc->wcsc[ewcs].start = gmx_cycles_read();
         }
+        __itt_task_begin(wc->ittDomain, __itt_null, __itt_null, wc->ittSubTasks[ewcs]);
     }
 }
 
@@ -385,6 +396,7 @@ inline void wallcycle_sub_stop(gmx_wallcycle* wc, WallCycleSubCounter ewcs)
             wc->wcsc[ewcs].c += gmx_cycles_read() - wc->wcsc[ewcs].start;
             wc->wcsc[ewcs].n++;
         }
+        __itt_task_end(wc->ittDomain);
     }
 }
 

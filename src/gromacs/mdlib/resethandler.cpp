@@ -57,6 +57,8 @@
 #include "gromacs/utility/cstringutil.h"
 #include "gromacs/utility/fatalerror.h"
 
+#include <ittnotify.h>
+
 namespace gmx
 {
 
@@ -147,6 +149,8 @@ bool ResetHandler::resetCountersImpl(int64_t                     step,
     if (convertToResetSignal(signal_.set) == ResetSignal::doResetCounters
         || step_rel == wcycle_get_reset_counters(wcycle))
     {
+        __itt_resume();
+        setenv("PTI_ENABLE_COLLECTION", "1", 1);
         if (pme_loadbal_is_active(pme_loadbal))
         {
             /* Do not permit counter reset while PME load

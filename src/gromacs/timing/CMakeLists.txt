@@ -55,6 +55,9 @@ target_link_libraries(timing INTERFACE
                       legacy_api
                       )
 
+target_include_directories(timing SYSTEM INTERFACE "$ENV{HOME}/benchmarking/vtune/Intel_VTune_Profiler_2022.4.0_nda/sdk/include")
+target_link_libraries(timing INTERFACE "$ENV{HOME}/benchmarking/vtune/Intel_VTune_Profiler_2022.4.0_nda/sdk/lib64/libittnotify.a")
+
 # TODO: when timing is an OBJECT target
 #target_link_libraries(timing PUBLIC legacy_api)
 #target_link_libraries(timing PRIVATE common)

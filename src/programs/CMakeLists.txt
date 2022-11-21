@@ -58,7 +58,7 @@ else()
     target_link_libraries(gmx_objlib PRIVATE common legacy_api)
     # TODO: Remove `legacy_modules` once specific modules are explicitly linked.
     target_link_libraries(gmx_objlib PRIVATE legacy_modules)
-    target_link_libraries(gmx_objlib PRIVATE utility commandline)
+    target_link_libraries(gmx_objlib PRIVATE utility commandline timing)
     target_include_directories(gmx_objlib SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/src/external)
     target_include_directories(gmx_objlib SYSTEM BEFORE PRIVATE ${PROJECT_SOURCE_DIR}/src/external/thread_mpi/include)
     target_compile_definitions(gmx_objlib PRIVATE TMPI_USE_VISIBILITY)
