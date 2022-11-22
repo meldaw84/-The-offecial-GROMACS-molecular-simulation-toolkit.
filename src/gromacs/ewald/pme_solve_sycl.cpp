@@ -405,8 +405,8 @@ void PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, subGroupSiz
         solveKernelParams_.ewaldFactor           = params->grid.ewaldFactor;
         solveKernelParams_.realGridSize          = params->grid.realGridSize;
         solveKernelParams_.kOffsets              = params->grid.kOffsets;
-        solveKernelParams_.complexGridSize       = params->grid.complexGridSize;
-        solveKernelParams_.complexGridSizePadded = params->grid.complexGridSizePadded;
+        solveKernelParams_.complexGridSize       = params->grid.localComplexGridSize;
+        solveKernelParams_.complexGridSizePadded = params->grid.localComplexGridSizePadded;
         solveKernelParams_.splineValuesOffset    = params->grid.splineValuesOffset;
         solveKernelParams_.recipBox[XX]          = params->current.recipBox[XX];
         solveKernelParams_.recipBox[YY]          = params->current.recipBox[YY];
