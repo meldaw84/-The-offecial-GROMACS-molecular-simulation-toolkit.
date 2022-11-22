@@ -139,6 +139,11 @@ struct ResInfo
      */
     std::array<std::size_t, static_cast<std::size_t>(backboneAtomTypes::Count)> _backboneIndices = { 0, 0, 0, 0, 0 };
     /*! \brief
+     * Bool array determining whether backbone atoms have been assigned.
+     */
+    std::array<bool, static_cast<std::size_t>(backboneAtomTypes::Count)>
+            _backboneIndicesStatus = { false, false, false, false, false };
+    /*! \brief
      * Function that returns atom's index based on specific atom type.
      */
     std::size_t getIndex(backboneAtomTypes atomTypeName) const;
@@ -281,7 +286,11 @@ public:
     /*! \brief
      * Function that sets status "Bridge" or "Anti-Bridge" to a residue and it's bridge partner.
      */
-    void setBridge(secondaryStructuresData* bridgePartner, std::size_t bridgePartnerIndex, bridgeTypes bridgeType);
+    void setBridge(std::size_t bridgePartnerIndex, bridgeTypes bridgeType);
+    /*! \brief
+     * Function that returns array of residue's bridges indexes.
+     */
+    std::vector<std::size_t> getBridges(bridgeTypes bridgeType);
     /*! \brief
      * Function that returns boolean status of specific secondary structure from a residue.
      */
@@ -314,10 +323,10 @@ private:
     };
     //! Array of pointers to other residues that forms breaks with this residue.
     secondaryStructuresData* breakPartners[2] = { nullptr, nullptr };
-    //! Array of pointers to other residues that forms bridges with this residue.
-    secondaryStructuresData* bridgePartners[2] = { nullptr, nullptr };
-    //! Indices of this residue's bridge partners.
-    std::size_t bridgePartnersIndexes[2] = { 0, 0 };
+    //! Array of other residues indexes that forms parralel bridges with this residue.
+    std::vector<std::size_t> ParallelBridgePartners;
+    //! Array of other residues indexes that forms antiparallel bridges with this residue.
+    std::vector<std::size_t> AntiBridgePartners;
     //! Secondary structure's status of this residue.
     secondaryStructureTypes SecondaryStructuresStatus = secondaryStructureTypes::Loop;
     //! Array of helix positions from different helix types of this residue.
@@ -380,19 +389,27 @@ void secondaryStructuresData::setBreak(secondaryStructuresData* breakPartner)
     setStatus(secondaryStructureTypes::Break);
 }
 
-void secondaryStructuresData::setBridge(secondaryStructuresData* bridgePartner,
-                                        std::size_t              bridgePartnerIndex,
-                                        bridgeTypes              bridgeType)
+void secondaryStructuresData::setBridge(std::size_t bridgePartnerIndex, bridgeTypes bridgeType)
 {
     if (bridgeType == bridgeTypes::ParallelBridge)
     {
-        bridgePartners[0]        = bridgePartner;
-        bridgePartnersIndexes[0] = bridgePartnerIndex;
+        ParallelBridgePartners.push_back(bridgePartnerIndex);
     }
     else if (bridgeType == bridgeTypes::AntiParallelBridge)
     {
-        bridgePartners[1]        = bridgePartner;
-        bridgePartnersIndexes[1] = bridgePartnerIndex;
+        AntiBridgePartners.push_back(bridgePartnerIndex);
+    }
+}
+
+std::vector<std::size_t> secondaryStructuresData::getBridges(bridgeTypes bridgeType)
+{
+    if (bridgeType == bridgeTypes::ParallelBridge)
+    {
+        return ParallelBridgePartners;
+    }
+    else
+    {
+        return AntiBridgePartners;
     }
 }
 
@@ -400,23 +417,12 @@ bool secondaryStructuresData::hasBridges(bridgeTypes bridgeType) const
 {
     if (bridgeType == bridgeTypes::ParallelBridge)
     {
-        return bridgePartners[0] != nullptr;
+        return ParallelBridgePartners.size() != 0;
     }
-    else if (bridgeType == bridgeTypes::AntiParallelBridge)
+    else
     {
-        return bridgePartners[1] != nullptr;
+        return AntiBridgePartners.size() != 0;
     }
-
-    return false;
-}
-
-std::size_t secondaryStructuresData::getBridgePartnerIndex(bridgeTypes bridgeType) const
-{
-    if (bridgeType == bridgeTypes::ParallelBridge)
-    {
-        return bridgePartnersIndexes[0];
-    }
-    return bridgePartnersIndexes[1];
 }
 
 /*! \brief
@@ -545,22 +551,14 @@ void secondaryStructures::analyzeBridgesAndStrandsPatterns()
             {
                 case bridgeTypes::ParallelBridge:
                 {
-                    SecondaryStructuresStatusMap[i].setBridge(
-                            &(SecondaryStructuresStatusMap[j]), j, bridgeTypes::ParallelBridge);
-                    SecondaryStructuresStatusMap[i].setStatus(secondaryStructureTypes::Bridge);
-                    SecondaryStructuresStatusMap[j].setBridge(
-                            &(SecondaryStructuresStatusMap[i]), i, bridgeTypes::ParallelBridge);
-                    SecondaryStructuresStatusMap[j].setStatus(secondaryStructureTypes::Bridge);
+                    SecondaryStructuresStatusMap[i].setBridge(j, bridgeTypes::ParallelBridge);
+                    SecondaryStructuresStatusMap[j].setBridge(i, bridgeTypes::ParallelBridge);
                     break;
                 }
                 case bridgeTypes::AntiParallelBridge:
                 {
-                    SecondaryStructuresStatusMap[i].setBridge(
-                            &(SecondaryStructuresStatusMap[j]), j, bridgeTypes::AntiParallelBridge);
-                    SecondaryStructuresStatusMap[i].setStatus(secondaryStructureTypes::Bridge);
-                    SecondaryStructuresStatusMap[j].setBridge(
-                            &(SecondaryStructuresStatusMap[i]), i, bridgeTypes::AntiParallelBridge);
-                    SecondaryStructuresStatusMap[j].setStatus(secondaryStructureTypes::Bridge);
+                    SecondaryStructuresStatusMap[i].setBridge(j, bridgeTypes::AntiParallelBridge);
+                    SecondaryStructuresStatusMap[j].setBridge(i, bridgeTypes::AntiParallelBridge);
                     break;
                 }
                 default: continue;
@@ -569,67 +567,68 @@ void secondaryStructures::analyzeBridgesAndStrandsPatterns()
     }
     for (std::size_t i = 1; i + 1 < SecondaryStructuresStatusMap.size(); ++i)
     {
-        bool is_Estrand = false;
-        for (std::size_t j = 2; j != 0; --j)
+        for (std::size_t j = 1; j < 3; ++j)
         {
             for (const bridgeTypes& bridgeType :
                  { bridgeTypes::ParallelBridge, bridgeTypes::AntiParallelBridge })
             {
                 if (SecondaryStructuresStatusMap[i].hasBridges(bridgeType)
-                    && SecondaryStructuresStatusMap[i + j].hasBridges(bridgeType))
+                    && SecondaryStructuresStatusMap[i + j].hasBridges(bridgeType)
+                    && (NoChainBreaksBetween(i - 1, i + 1) && NoChainBreaksBetween(i + j - 1, i + j + 1)))
                 {
-                    int i_partner = static_cast<int>(
-                            SecondaryStructuresStatusMap[i].getBridgePartnerIndex(bridgeType));
-                    int j_partner = static_cast<int>(
-                            SecondaryStructuresStatusMap[i + j].getBridgePartnerIndex(bridgeType));
-                    int second_strand = 0;
-                    if (abs(i_partner - j_partner) < 6)
+                    std::vector<std::size_t> i_partners =
+                            SecondaryStructuresStatusMap[i].getBridges(bridgeType);
+                    std::vector<std::size_t> j_partners =
+                            SecondaryStructuresStatusMap[i + j].getBridges(bridgeType);
+                    for (std::vector<std::size_t>::iterator i_partner = i_partners.begin();
+                         i_partner != i_partners.end();
+                         ++i_partner)
                     {
-                        if (i_partner < j_partner)
+                        for (std::vector<std::size_t>::iterator j_partner = j_partners.begin();
+                             j_partner != j_partners.end();
+                             ++j_partner)
                         {
-                            second_strand = i_partner;
-                        }
-                        else
-                        {
-                            second_strand = j_partner;
-                        }
-                        for (std::size_t k = 0; k <= static_cast<std::size_t>(abs(i_partner - j_partner));
-                             ++k)
-                        {
-                            if (SecondaryStructuresStatusMap[second_strand + k].getStatus(
-                                        secondaryStructureTypes::Bridge))
+                            int delta = abs(static_cast<int>(*i_partner) - static_cast<int>(*j_partner));
+                            if (delta < 6)
                             {
-                                SecondaryStructuresStatusMap[second_strand + k].setStatus(
-                                        secondaryStructureTypes::Bridge, false);
+                                int second_strand_start = *i_partner;
+                                int second_strand_end   = *j_partner;
+                                if (second_strand_start > second_strand_end)
+                                {
+                                    std::swap(second_strand_start, second_strand_end);
+                                }
+                                for (std::size_t k = second_strand_start;
+                                     k <= static_cast<std::size_t>(second_strand_end);
+                                     ++k)
+                                {
+                                    SecondaryStructuresStatusMap[k].setStatus(secondaryStructureTypes::Strand);
+                                }
+                                for (std::size_t k = 0; k <= j; ++k)
+                                {
+                                    SecondaryStructuresStatusMap[i + k].setStatus(
+                                            secondaryStructureTypes::Strand);
+                                }
                             }
-
-                            SecondaryStructuresStatusMap[second_strand + k].setStatus(
-                                    secondaryStructureTypes::Strand);
                         }
-                        is_Estrand = true;
                     }
                 }
             }
-            if (is_Estrand)
-            {
-                for (std::size_t k = 0; k <= j; ++k)
-                {
-                    if (SecondaryStructuresStatusMap[i + k].getStatus(secondaryStructureTypes::Bridge))
-                    {
-                        SecondaryStructuresStatusMap[i + k].setStatus(
-                                secondaryStructureTypes::Bridge, false);
-                    }
-                    SecondaryStructuresStatusMap[i + k].setStatus(secondaryStructureTypes::Strand);
-                }
-                break;
-            }
+        }
+    }
+    for (std::size_t i = 1; i + 1 < SecondaryStructuresStatusMap.size(); ++i)
+    {
+        if (!SecondaryStructuresStatusMap[i].getStatus(secondaryStructureTypes::Strand)
+            && (SecondaryStructuresStatusMap[i].hasBridges(bridgeTypes::ParallelBridge)
+                || SecondaryStructuresStatusMap[i].hasBridges(bridgeTypes::AntiParallelBridge)))
+        {
+            SecondaryStructuresStatusMap[i].setStatus(secondaryStructureTypes::Bridge);
         }
     }
 }
 
 void secondaryStructures::analyzeTurnsAndHelicesPatterns()
 {
-    for (const turnsTypes& i : { turnsTypes::Turn_4, turnsTypes::Turn_3, turnsTypes::Turn_5 })
+    for (const turnsTypes& i : { turnsTypes::Turn_3, turnsTypes::Turn_4, turnsTypes::Turn_5 })
     {
         std::size_t stride = static_cast<std::size_t>(i) + 3;
         for (std::size_t j = 0; j + stride < SecondaryStructuresStatusMap.size(); ++j)
@@ -674,21 +673,19 @@ void secondaryStructures::analyzeTurnsAndHelicesPatterns()
                     case turnsTypes::Turn_3:
                         for (std::size_t k = 0; empty && k < stride; ++k)
                         {
-                            empty = SecondaryStructuresStatusMap[j + k].getStatus(secondaryStructureTypes::Loop)
-                                    || SecondaryStructuresStatusMap[j + k].getStatus(
-                                            secondaryStructureTypes::Helix_3);
+                            empty = SecondaryStructuresStatusMap[j + k].getStatus()
+                                    <= secondaryStructureTypes::Helix_3;
                         }
                         Helix = secondaryStructureTypes::Helix_3;
                         break;
                     case turnsTypes::Turn_5:
                         for (std::size_t k = 0; empty && k < stride; ++k)
                         {
-                            empty = SecondaryStructuresStatusMap[j + k].getStatus(secondaryStructureTypes::Loop)
-                                    || SecondaryStructuresStatusMap[j + k].getStatus(
-                                            secondaryStructureTypes::Helix_5)
+                            empty = SecondaryStructuresStatusMap[j + k].getStatus()
+                                            <= secondaryStructureTypes::Helix_5
                                     || (PiHelixPreference
-                                        && SecondaryStructuresStatusMap[j + k].getStatus(
-                                                secondaryStructureTypes::Helix_4)); // TODO
+                                        && SecondaryStructuresStatusMap[j + k].getStatus()
+                                                   == secondaryStructureTypes::Helix_4);
                         }
                         Helix = secondaryStructureTypes::Helix_5;
                         break;
@@ -706,8 +703,7 @@ void secondaryStructures::analyzeTurnsAndHelicesPatterns()
     }
     for (std::size_t i = 1; i + 1 < SecondaryStructuresStatusMap.size(); ++i)
     {
-        if (static_cast<int>(SecondaryStructuresStatusMap[i].getStatus())
-            <= static_cast<int>(secondaryStructureTypes::Turn))
+        if (SecondaryStructuresStatusMap[i].getStatus() <= secondaryStructureTypes::Turn)
         {
             bool isTurn = false;
             for (const turnsTypes& j : { turnsTypes::Turn_3, turnsTypes::Turn_4, turnsTypes::Turn_5 })
@@ -742,6 +738,18 @@ std::string secondaryStructures::patternSearch()
             if (SecondaryStructuresStatusMap[j].getStatus(static_cast<secondaryStructureTypes>(i)))
             {
                 SecondaryStructuresStringLine[j] = secondaryStructureTypeNames[i];
+            }
+        }
+    }
+    if (PiHelixPreference)
+    {
+        for (std::size_t j = 0; j < SecondaryStructuresStatusMap.size(); ++j)
+        {
+            if (SecondaryStructuresStatusMap[j].getStatus(secondaryStructureTypes::Helix_5)
+                && SecondaryStructuresStatusMap[j].getStatus(secondaryStructureTypes::Helix_4))
+            {
+                SecondaryStructuresStringLine[j] =
+                        secondaryStructureTypeNames[secondaryStructureTypes::Helix_5];
             }
         }
     }
@@ -994,8 +1002,16 @@ void Dssp::calculateDihedrals(const t_trxframe& fr, const t_pbc* pbc)
                 }
                 PatternSearch.SecondaryStructuresStatusMap[i + 1].setStatus(HelixPositions::End,
                                                                             turnsTypes::Turn_PP);
-                PatternSearch.SecondaryStructuresStatusMap[i].setStatus(secondaryStructureTypes::Helix_PP);
-                PatternSearch.SecondaryStructuresStatusMap[i + 1].setStatus(secondaryStructureTypes::Helix_PP);
+                if (PatternSearch.SecondaryStructuresStatusMap[i].getStatus() == secondaryStructureTypes::Loop)
+                {
+                    PatternSearch.SecondaryStructuresStatusMap[i].setStatus(secondaryStructureTypes::Helix_PP);
+                }
+                if (PatternSearch.SecondaryStructuresStatusMap[i + 1].getStatus()
+                    == secondaryStructureTypes::Loop)
+                {
+                    PatternSearch.SecondaryStructuresStatusMap[i + 1].setStatus(
+                            secondaryStructureTypes::Helix_PP);
+                }
                 break;
             }
             case PPStreches::Default:
@@ -1029,9 +1045,22 @@ void Dssp::calculateDihedrals(const t_trxframe& fr, const t_pbc* pbc)
                                                                             turnsTypes::Turn_PP);
                 PatternSearch.SecondaryStructuresStatusMap[i + 2].setStatus(HelixPositions::End,
                                                                             turnsTypes::Turn_PP);
-                PatternSearch.SecondaryStructuresStatusMap[i].setStatus(secondaryStructureTypes::Helix_PP);
-                PatternSearch.SecondaryStructuresStatusMap[i + 1].setStatus(secondaryStructureTypes::Helix_PP);
-                PatternSearch.SecondaryStructuresStatusMap[i + 2].setStatus(secondaryStructureTypes::Helix_PP);
+                if (PatternSearch.SecondaryStructuresStatusMap[i].getStatus() == secondaryStructureTypes::Loop)
+                {
+                    PatternSearch.SecondaryStructuresStatusMap[i].setStatus(secondaryStructureTypes::Helix_PP);
+                }
+                if (PatternSearch.SecondaryStructuresStatusMap[i + 1].getStatus()
+                    == secondaryStructureTypes::Loop)
+                {
+                    PatternSearch.SecondaryStructuresStatusMap[i + 1].setStatus(
+                            secondaryStructureTypes::Helix_PP);
+                }
+                if (PatternSearch.SecondaryStructuresStatusMap[i + 2].getStatus()
+                    == secondaryStructureTypes::Loop)
+                {
+                    PatternSearch.SecondaryStructuresStatusMap[i + 2].setStatus(
+                            secondaryStructureTypes::Helix_PP);
+                }
                 break;
             }
             default: throw std::runtime_error("Unsupported stretch length");
@@ -1258,7 +1287,8 @@ void Dssp::initAnalysis(const TrajectoryAnalysisSettings& /* settings */, const 
 {
     ResInfo     _backboneAtoms;
     std::string proLINE;
-    int         resicompare = -1;
+    int         resicompare =
+            top.atoms()->atom[static_cast<std::size_t>(*(sel_.atomIndices().begin()))].resind - 1;
     for (gmx::ArrayRef<const int>::iterator ai = sel_.atomIndices().begin();
          ai != sel_.atomIndices().end();
          ++ai)
@@ -1267,8 +1297,8 @@ void Dssp::initAnalysis(const TrajectoryAnalysisSettings& /* settings */, const 
         {
             resicompare = top.atoms()->atom[static_cast<std::size_t>(*ai)].resind;
             IndexMap.emplace_back(_backboneAtoms);
-            IndexMap[resicompare].info = &(top.atoms()->resinfo[resicompare]);
-            proLINE                    = *(IndexMap[resicompare].info->name);
+            IndexMap.back().info = &(top.atoms()->resinfo[resicompare]);
+            proLINE              = *(IndexMap.back().info->name);
             if (proLINE == "PRO")
             {
                 IndexMap[resicompare].is_proline = true;
@@ -1277,36 +1307,51 @@ void Dssp::initAnalysis(const TrajectoryAnalysisSettings& /* settings */, const 
         std::string atomname(*(top.atoms()->atomname[static_cast<std::size_t>(*ai)]));
         if (atomname == backboneAtomTypeNames[backboneAtomTypes::AtomCA])
         {
-            IndexMap[resicompare]._backboneIndices[static_cast<std::size_t>(backboneAtomTypes::AtomCA)] =
-                    *ai;
+            IndexMap.back()._backboneIndices[static_cast<std::size_t>(backboneAtomTypes::AtomCA)] = *ai;
+            IndexMap.back()._backboneIndicesStatus[static_cast<std::size_t>(backboneAtomTypes::AtomCA)] =
+                    true;
         }
         else if (atomname == backboneAtomTypeNames[backboneAtomTypes::AtomC])
         {
-            IndexMap[resicompare]._backboneIndices[static_cast<std::size_t>(backboneAtomTypes::AtomC)] =
-                    *ai;
+            IndexMap.back()._backboneIndices[static_cast<std::size_t>(backboneAtomTypes::AtomC)] = *ai;
+            IndexMap.back()._backboneIndicesStatus[static_cast<std::size_t>(backboneAtomTypes::AtomC)] =
+                    true;
         }
         else if (atomname == backboneAtomTypeNames[backboneAtomTypes::AtomO])
         {
-            IndexMap[resicompare]._backboneIndices[static_cast<std::size_t>(backboneAtomTypes::AtomO)] =
-                    *ai;
+            IndexMap.back()._backboneIndices[static_cast<std::size_t>(backboneAtomTypes::AtomO)] = *ai;
+            IndexMap.back()._backboneIndicesStatus[static_cast<std::size_t>(backboneAtomTypes::AtomO)] =
+                    true;
         }
         else if (atomname == backboneAtomTypeNames[backboneAtomTypes::AtomN])
         {
-            IndexMap[resicompare]._backboneIndices[static_cast<std::size_t>(backboneAtomTypes::AtomN)] =
-                    *ai;
+            IndexMap.back()._backboneIndices[static_cast<std::size_t>(backboneAtomTypes::AtomN)] = *ai;
+            IndexMap.back()._backboneIndicesStatus[static_cast<std::size_t>(backboneAtomTypes::AtomN)] =
+                    true;
             if (hMode == HydrogenMode::Dssp)
             {
-                IndexMap[resicompare]._backboneIndices[static_cast<std::size_t>(backboneAtomTypes::AtomH)] =
-                        *ai;
+                IndexMap.back()._backboneIndices[static_cast<std::size_t>(backboneAtomTypes::AtomH)] = *ai;
+                IndexMap.back()._backboneIndicesStatus[static_cast<std::size_t>(backboneAtomTypes::AtomH)] =
+                        true;
             }
         }
         else if (hMode == HydrogenMode::Gromacs
                  && atomname == backboneAtomTypeNames[backboneAtomTypes::AtomH])
         {
-            IndexMap[resicompare]._backboneIndices[static_cast<std::size_t>(backboneAtomTypes::AtomH)] =
-                    *ai;
+            IndexMap.back()._backboneIndices[static_cast<std::size_t>(backboneAtomTypes::AtomH)] = *ai;
+            IndexMap.back()._backboneIndicesStatus[static_cast<std::size_t>(backboneAtomTypes::AtomH)] =
+                    true;
         }
     }
+    auto isCorrupted = [](const ResInfo& Res) -> bool {
+        return !Res._backboneIndicesStatus[static_cast<std::size_t>(backboneAtomTypes::AtomCA)]
+               || !Res._backboneIndicesStatus[static_cast<std::size_t>(backboneAtomTypes::AtomC)]
+               || !Res._backboneIndicesStatus[static_cast<std::size_t>(backboneAtomTypes::AtomO)]
+               || !Res._backboneIndicesStatus[static_cast<std::size_t>(backboneAtomTypes::AtomN)]
+               || !Res._backboneIndicesStatus[static_cast<std::size_t>(backboneAtomTypes::AtomH)];
+    };
+    auto corruptedResis = remove_if(IndexMap.begin(), IndexMap.end(), isCorrupted);
+    IndexMap.erase(corruptedResis, IndexMap.end());
     for (std::size_t i = 1; i < IndexMap.size(); ++i)
     {
         IndexMap[i].prevResi     = &(IndexMap[i - 1]);
