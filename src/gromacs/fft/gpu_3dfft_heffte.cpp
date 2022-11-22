@@ -174,7 +174,7 @@ Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealG
     GMX_UNUSED_VALUE(context);
 #elif GMX_GPU_SYCL
     allocateDeviceBuffer(&localRealGrid_, fftPlan_->size_inbox(), context);
-    allocateDeviceBuffer(&localComplexGrid_, fftPlan_->size_outbox(), context);
+    allocateDeviceBuffer(&localComplexGrid_, fftPlan_->size_outbox()*2, context);
     *realGrid                     = localRealGrid_;
     *complexGrid                  = localComplexGrid_;
 #else
