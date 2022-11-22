@@ -887,7 +887,20 @@ static gmx::FftBackend getFftBackend(const PmeGpu* pmeGpu)
         }
         else if (GMX_GPU_FFT_ROCFFT)
         {
-            return gmx::FftBackend::SyclRocfft;
+            if (!pmeGpu->settings.useDecomposition)
+            {
+                return gmx::FftBackend::SyclRocfft;
+            }
+            else if (GMX_USE_Heffte)
+            {
+                return gmx::FftBackend::HeFFTe_Rocfft;
+            }
+            else
+            {
+                GMX_THROW(gmx::NotImplementedError(
+                        "GROMACS must be built with HeFFTe to enable GPU-based "
+                        "PME decomposition on oneAPI-compatible GPUs"));
+            }
         }
         else if (GMX_GPU_FFT_VKFFT)
         {
