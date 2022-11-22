@@ -56,27 +56,11 @@
 namespace gmx
 {
 
-static auto getNativeStream(sycl::queue q)
-{
-#if GMX_SYCL_HIPSYCL
-#    if GMX_HIPSYCL_HAVE_CUDA_TARGET
-    cudaStream_t   stream;
-    constexpr auto backend = sycl::backend::cuda;
-#    elif GMX_HIPSYCL_HAVE_HIP_TARGET
-    hipStream_t    stream;
-    constexpr auto backend = sycl::backend::hip;
-#    endif
-    q.submit(GMX_SYCL_DISCARD_EVENT[&](sycl::handler & cgh) {
-        cgh.hipSYCL_enqueue_custom_operation([=, &stream](sycl::interop_handle& gmx_unused h) {
-            stream = h.get_native_queue<backend>();
-        });
-    });
-    return stream;
-#else
-    return q;
+#if GMX_HIPSYCL_HAVE_CUDA_TARGET
+        constexpr auto c_hipsyclBackend = sycl::backend::cuda;
+#elif GMX_HIPSYCL_HAVE_HIP_TARGET
+        constexpr auto c_hipsyclBackend = sycl::backend::hip;
 #endif
-}
-
 
 template<typename backend_tag>
 Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealGrid,
@@ -155,8 +139,31 @@ Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealG
                                              { gridOffsetsInZ_transformed[rank + 1] - 1, ny - 1, nx - 1 } };
 
         // Define 3D FFT plan
+#if GMX_SYCL_HIPSYCL
+#if 0
+       auto fftPlanView = sycl::make_async_writeback_view(&fftPlan_, sycl::range(1), pmeRawStream_);
+        pmeRawStream_.submit([&](sycl::handler & cgh) {
+            auto a_fftPlan = fftPlanView.get_access(cgh, sycl::read_write, sycl::no_init);
+            cgh.hipSYCL_enqueue_custom_operation([=](sycl::interop_handle& gmx_unused h) {
+                auto stream = h.get_native_queue<c_hipsyclBackend>();
+                a_fftPlan[0] = std::make_unique<heffte::fft3d_r2c<backend_tag, int>>(
+                        stream, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
+            });
+        }).wait();
+#else
+        pmeRawStream_
+                .submit([&, &fftPlanRef = fftPlan_](sycl::handler& cgh) {
+                    cgh.hipSYCL_enqueue_custom_operation([=, &fftPlanRef](sycl::interop_handle& gmx_unused h) {
+                        auto stream = h.get_native_queue<c_hipsyclBackend>();
+                        fftPlanRef  = std::make_unique<heffte::fft3d_r2c<backend_tag, int>>(
+                                stream, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
+                    });
+                }).wait();
+#endif
+#else
         fftPlan_ = std::make_unique<heffte::fft3d_r2c<backend_tag, int>>(
-                getNativeStream(pmeRawStream_), realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
+                pmeRawStream_, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
+#endif
     }
     else
     {
@@ -181,9 +188,33 @@ Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealG
             { gridOffsetsInZ_transformed[procY + 1] - 1, gridOffsetsInY_transformed[procX + 1] - 1, nx - 1 }
         };
 
-        // Define 3D FFT plan
+       // Define 3D FFT plan
+#if GMX_SYCL_HIPSYCL
+#if 0
+        auto fftPlanView = sycl::make_async_writeback_view(&fftPlan_, sycl::range(1), pmeRawStream_);
+        pmeRawStream_.submit([&](sycl::handler & cgh) {
+            auto a_fftPlan = fftPlanView.get_access(cgh, sycl::read_write, sycl::no_init);
+            cgh.hipSYCL_enqueue_custom_operation([=](sycl::interop_handle& gmx_unused h) {
+                auto stream = h.get_native_queue<c_hipsyclBackend>();
+                a_fftPlan[0] = std::make_unique<heffte::fft3d_r2c<backend_tag, int>>(
+                        stream, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
+
+            });
+        }).wait();
+#else
+        pmeRawStream_
+                .submit([&, &fftPlanRef = fftPlan_](sycl::handler& cgh) {
+                    cgh.hipSYCL_enqueue_custom_operation([=, &fftPlanRef](sycl::interop_handle& gmx_unused h) {
+                        auto stream = h.get_native_queue<c_hipsyclBackend>();
+                        fftPlanRef  = std::make_unique<heffte::fft3d_r2c<backend_tag, int>>(
+                                stream, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
+                    });
+                }).wait();
+#endif
+#else
         fftPlan_ = std::make_unique<heffte::fft3d_r2c<backend_tag, int>>(
-                getNativeStream(pmeRawStream_), realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
+                pmeRawStream_, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
+#endif
     }
 
     workspace_ = heffte::gpu::vector<std::complex<float>>(fftPlan_->size_workspace());
