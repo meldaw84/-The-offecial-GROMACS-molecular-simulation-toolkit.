@@ -117,6 +117,7 @@ namespace test
 TEST(Diagtest, Diagonalize)
 {
     /*
+    // Should give eigenvalues (3, -1) OK
     MatrixNxM matrix(2,2);
     matrix(0,0)=1;
     matrix(0,1)=2;
@@ -125,7 +126,23 @@ TEST(Diagtest, Diagonalize)
     */
 
     /*
-    // Should get eigenvalues (0, 2)
+    // Should give eigenvalues (2+sqrt(2), 2-sqrt(2)) NOT OK
+    MatrixNxM matrix(2,2);
+    matrix(0,0)=2;
+    matrix(0,1)=2;
+    matrix(1,0)=1;
+    matrix(1,1)=2;
+    */
+
+    // Should give eigenvalues (2+sqrt(5), 2-sqrt(5)) NOT OK
+    MatrixNxM matrix(2,2);
+    matrix(0,0)=2;
+    matrix(0,1)=1;
+    matrix(1,0)=5;
+    matrix(1,1)=2;
+
+    /*
+    // Should get eigenvalues (0, 2) OK
     MatrixNxM matrix(2,2);
     matrix(0,0)=1;
     matrix(0,1)=1;
@@ -133,7 +150,8 @@ TEST(Diagtest, Diagonalize)
     matrix(1,1)=1;
     */
 
-    // Should get eigenvalues (0, 0, 0, 4)
+    /*
+    // Should give eigenvalues (0, 0, 0, 4) OK
     MatrixNxM matrix(4,4);
     matrix(0,0)=1;
     matrix(0,1)=1;
@@ -147,18 +165,40 @@ TEST(Diagtest, Diagonalize)
     matrix(2,1)=1;
     matrix(2,2)=1;
     matrix(2,3)=1;
-    matrix(4,0)=1;
-    matrix(4,1)=1;
-    matrix(4,2)=1;
-    matrix(4,3)=1;
+    matrix(3,0)=1;
+    matrix(3,1)=1;
+    matrix(3,2)=1;
+    matrix(3,3)=1;
+    */
 
     /*
-    // Should get eigenvalues (0, 0, 0.8, 0.5)
+    // Should give eigenvalues (0, 0, 0.8, 0.5) NOT OK
     MatrixNxM matrix(4,4);
     matrix(0,0)=0.8;
+    matrix(0,1)=0.0;
+    matrix(0,2)=0.0;
+    matrix(0,3)=0.2;
+    matrix(1,0)=0.0;
+    matrix(1,1)=0.0;
+    matrix(1,2)=0.0;
+    matrix(1,3)=0.0;
+    matrix(2,0)=0.0;
+    matrix(2,1)=0.0;
+    matrix(2,2)=0.0;
+    matrix(2,3)=0.0;
+    matrix(3,0)=0.0;
+    matrix(3,1)=0.0;
+    matrix(3,2)=0.5;
+    matrix(3,3)=0.5;
+    */
+
+    /*
+    // Should give eigenvalues (0, 0, 2, 4) NOT OK
+    MatrixNxM matrix(4,4);
+    matrix(0,0)=4;
     matrix(0,1)=0;
     matrix(0,2)=0;
-    matrix(0,3)=0.2;
+    matrix(0,3)=2;
     matrix(1,0)=0;
     matrix(1,1)=0;
     matrix(1,2)=0;
@@ -167,10 +207,10 @@ TEST(Diagtest, Diagonalize)
     matrix(2,1)=0;
     matrix(2,2)=0;
     matrix(2,3)=0;
-    matrix(4,0)=0;
-    matrix(4,1)=0;
-    matrix(4,2)=0.5;
-    matrix(4,3)=0.5;
+    matrix(3,0)=0;
+    matrix(3,1)=0;
+    matrix(3,2)=3;
+    matrix(3,3)=2;
     */
 
     const auto result = diagonalize(matrix);
