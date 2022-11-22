@@ -125,6 +125,7 @@ TEST(Diagtest, Diagonalize)
     */
 
     /*
+    // Should get eigenvalues (0, 2)
     MatrixNxM matrix(2,2);
     matrix(0,0)=1;
     matrix(0,1)=1;
@@ -132,6 +133,7 @@ TEST(Diagtest, Diagonalize)
     matrix(1,1)=1;
     */
 
+    // Should get eigenvalues (0, 0, 0, 4)
     MatrixNxM matrix(4,4);
     matrix(0,0)=1;
     matrix(0,1)=1;
@@ -151,6 +153,7 @@ TEST(Diagtest, Diagonalize)
     matrix(4,3)=1;
 
     /*
+    // Should get eigenvalues (0, 0, 0.8, 0.5)
     MatrixNxM matrix(4,4);
     matrix(0,0)=0.8;
     matrix(0,1)=0;
