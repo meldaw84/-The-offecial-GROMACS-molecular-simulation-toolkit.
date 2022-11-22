@@ -326,6 +326,7 @@ Gpu3dFft::Gpu3dFft(FftBackend           backend,
                                "HeFFTe multi-GPU FFT backend is supported in GROMACS SYCL "
                                "build configurations only with oneMKL or rocFFT");
 #    endif
+            break;
         default: GMX_RELEASE_ASSERT(impl_ != nullptr, "Unsupported FFT backend requested");
     }
 #endif
