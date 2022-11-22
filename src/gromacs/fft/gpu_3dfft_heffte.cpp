@@ -162,11 +162,14 @@ Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealG
         // Define 3D FFT plan
 #if GMX_SYCL_HIPSYCL
         pmeRawStream_
-                .submit([&, &fftPlanRef = fftPlan_](sycl::handler& cgh) {
-                    cgh.hipSYCL_enqueue_custom_operation([=, &fftPlanRef](sycl::interop_handle& gmx_unused h) {
+                .submit([&, &fftPlanRef = fftPlan_, &workspaceRef = workspace_](sycl::handler& cgh) {
+                    cgh.hipSYCL_enqueue_custom_operation([=, &fftPlanRef, &workspaceRef](
+                                                                 sycl::interop_handle& gmx_unused h) {
                         auto stream = h.get_native_queue<c_hipsyclBackend>();
                         fftPlanRef  = std::make_unique<heffte::fft3d_r2c<backend_tag, int>>(
                                 stream, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
+                        workspaceRef =
+                                heffte::gpu::vector<std::complex<float>>(fftPlanRef->size_workspace());
                     });
                 }).wait();
 #else
@@ -200,11 +203,14 @@ Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealG
        // Define 3D FFT plan
 #if GMX_SYCL_HIPSYCL
         pmeRawStream_
-                .submit([&, &fftPlanRef = fftPlan_](sycl::handler& cgh) {
-                    cgh.hipSYCL_enqueue_custom_operation([=, &fftPlanRef](sycl::interop_handle& gmx_unused h) {
+                .submit([&, &fftPlanRef = fftPlan_, &workspaceRef = workspace_](sycl::handler& cgh) {
+                    cgh.hipSYCL_enqueue_custom_operation([=, &fftPlanRef, &workspaceRef](
+                                                                 sycl::interop_handle& gmx_unused h) {
                         auto stream = h.get_native_queue<c_hipsyclBackend>();
                         fftPlanRef  = std::make_unique<heffte::fft3d_r2c<backend_tag, int>>(
                                 stream, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
+                        workspaceRef =
+                                heffte::gpu::vector<std::complex<float>>(fftPlanRef->size_workspace());
                     });
                 }).wait();
 #else
@@ -213,7 +219,9 @@ Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealG
 #endif
     }
 
+#if !GMX_SYCL_HIPSYCL
     workspace_ = heffte::gpu::vector<std::complex<float>>(fftPlan_->size_workspace());
+#endif
 
     // allocate grid and return handles to it
 #if GMX_GPU_CUDA
