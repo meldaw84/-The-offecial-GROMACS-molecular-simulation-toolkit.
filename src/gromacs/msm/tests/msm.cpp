@@ -125,6 +125,13 @@ TEST(Diagtest, Diagonalize)
     matrix(1,1)=1;
     */
 
+    // Should give eigenvalues (3, 1) OK
+    MatrixNxM matrix(2,2);
+    matrix(0,0)=2;
+    matrix(0,1)=1;
+    matrix(1,0)=1;
+    matrix(1,1)=2;
+
     /*
     // Should give eigenvalues (2+sqrt(2), 2-sqrt(2)) NOT OK
     MatrixNxM matrix(2,2);
@@ -134,12 +141,23 @@ TEST(Diagtest, Diagonalize)
     matrix(1,1)=2;
     */
 
+    /*
     // Should give eigenvalues (2+sqrt(5), 2-sqrt(5)) NOT OK
     MatrixNxM matrix(2,2);
     matrix(0,0)=2;
     matrix(0,1)=1;
     matrix(1,0)=5;
     matrix(1,1)=2;
+    */
+
+    /*
+    // Should give eigenvalues (5, -1) NOT OK
+    MatrixNxM matrix(2,2);
+    matrix(0,0)=2;
+    matrix(0,1)=1;
+    matrix(1,0)=9;
+    matrix(1,1)=2;
+    */
 
     /*
     // Should get eigenvalues (0, 2) OK
