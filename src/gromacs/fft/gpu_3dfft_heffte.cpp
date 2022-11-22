@@ -43,6 +43,8 @@
 
 #include "gpu_3dfft_heffte.h"
 
+#include <iostream>
+
 #include "gromacs/gpu_utils/device_context.h"
 #include "gromacs/gpu_utils/device_stream.h"
 #include "gromacs/utility/arrayref.h"
@@ -57,9 +59,28 @@ namespace gmx
 {
 
 #if GMX_HIPSYCL_HAVE_CUDA_TARGET
-        constexpr auto c_hipsyclBackend = sycl::backend::cuda;
+constexpr auto c_hipsyclBackend = sycl::backend::cuda;
 #elif GMX_HIPSYCL_HAVE_HIP_TARGET
-        constexpr auto c_hipsyclBackend = sycl::backend::hip;
+constexpr auto c_hipsyclBackend = sycl::backend::hip;
+#endif
+
+static auto getNativeStream(sycl::queue q)
+{
+#if GMX_SYCL_HIPSYCL
+#    if GMX_HIPSYCL_HAVE_CUDA_TARGET
+    cudaStream_t   stream;
+    constexpr auto backend = sycl::backend::cuda;
+#    elif GMX_HIPSYCL_HAVE_HIP_TARGET
+    hipStream_t    stream;
+    constexpr auto backend = sycl::backend::hip;
+#    endif
+    q.submit([&](sycl::handler& cgh) {
+         cgh.hipSYCL_enqueue_custom_operation(
+                 [=, &stream](sycl::interop_handle& h) { stream = h.get_native_queue<backend>(); });
+     }).wait();
+    return stream;
+#else
+    return q;
 #endif
 
 template<typename backend_tag>
@@ -140,17 +161,6 @@ Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealG
 
         // Define 3D FFT plan
 #if GMX_SYCL_HIPSYCL
-#if 0
-       auto fftPlanView = sycl::make_async_writeback_view(&fftPlan_, sycl::range(1), pmeRawStream_);
-        pmeRawStream_.submit([&](sycl::handler & cgh) {
-            auto a_fftPlan = fftPlanView.get_access(cgh, sycl::read_write, sycl::no_init);
-            cgh.hipSYCL_enqueue_custom_operation([=](sycl::interop_handle& gmx_unused h) {
-                auto stream = h.get_native_queue<c_hipsyclBackend>();
-                a_fftPlan[0] = std::make_unique<heffte::fft3d_r2c<backend_tag, int>>(
-                        stream, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
-            });
-        }).wait();
-#else
         pmeRawStream_
                 .submit([&, &fftPlanRef = fftPlan_](sycl::handler& cgh) {
                     cgh.hipSYCL_enqueue_custom_operation([=, &fftPlanRef](sycl::interop_handle& gmx_unused h) {
@@ -159,7 +169,6 @@ Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealG
                                 stream, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
                     });
                 }).wait();
-#endif
 #else
         fftPlan_ = std::make_unique<heffte::fft3d_r2c<backend_tag, int>>(
                 pmeRawStream_, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
@@ -190,18 +199,6 @@ Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealG
 
        // Define 3D FFT plan
 #if GMX_SYCL_HIPSYCL
-#if 0
-        auto fftPlanView = sycl::make_async_writeback_view(&fftPlan_, sycl::range(1), pmeRawStream_);
-        pmeRawStream_.submit([&](sycl::handler & cgh) {
-            auto a_fftPlan = fftPlanView.get_access(cgh, sycl::read_write, sycl::no_init);
-            cgh.hipSYCL_enqueue_custom_operation([=](sycl::interop_handle& gmx_unused h) {
-                auto stream = h.get_native_queue<c_hipsyclBackend>();
-                a_fftPlan[0] = std::make_unique<heffte::fft3d_r2c<backend_tag, int>>(
-                        stream, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
-
-            });
-        }).wait();
-#else
         pmeRawStream_
                 .submit([&, &fftPlanRef = fftPlan_](sycl::handler& cgh) {
                     cgh.hipSYCL_enqueue_custom_operation([=, &fftPlanRef](sycl::interop_handle& gmx_unused h) {
@@ -210,7 +207,6 @@ Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealG
                                 stream, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
                     });
                 }).wait();
-#endif
 #else
         fftPlan_ = std::make_unique<heffte::fft3d_r2c<backend_tag, int>>(
                 pmeRawStream_, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
