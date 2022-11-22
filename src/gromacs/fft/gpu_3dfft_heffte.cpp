@@ -55,6 +55,29 @@
 
 namespace gmx
 {
+
+static auto getNativeStream(sycl::queue q)
+{
+#if GMX_SYCL_HIPSYCL
+#    if GMX_HIPSYCL_HAVE_CUDA_TARGET
+    cudaStream_t   stream;
+    constexpr auto backend = sycl::backend::cuda;
+#    elif GMX_HIPSYCL_HAVE_HIP_TARGET
+    hipStream_t    stream;
+    constexpr auto backend = sycl::backend::hip;
+#    endif
+    q.submit(GMX_SYCL_DISCARD_EVENT[&](sycl::handler & cgh) {
+        cgh.hipSYCL_enqueue_custom_operation([=, &stream](sycl::interop_handle& gmx_unused h) {
+            stream = h.get_native_queue<backend>();
+        });
+    });
+    return stream;
+#else
+    return q;
+#endif
+}
+
+
 template<typename backend_tag>
 Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealGrid,
                                               MPI_Comm             comm,
@@ -133,7 +156,7 @@ Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealG
 
         // Define 3D FFT plan
         fftPlan_ = std::make_unique<heffte::fft3d_r2c<backend_tag, int>>(
-                pmeRawStream_, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
+                getNativeStream(pmeRawStream_), realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
     }
     else
     {
@@ -160,7 +183,7 @@ Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealG
 
         // Define 3D FFT plan
         fftPlan_ = std::make_unique<heffte::fft3d_r2c<backend_tag, int>>(
-                pmeRawStream_, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
+                getNativeStream(pmeRawStream_), realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
     }
 
     workspace_ = heffte::gpu::vector<std::complex<float>>(fftPlan_->size_workspace());
@@ -211,10 +234,26 @@ void Gpu3dFft::ImplHeFfte<backend_tag>::perform3dFft(gmx_fft_direction dir, Comm
     switch (dir)
     {
         case GMX_FFT_REAL_TO_COMPLEX:
+#if GMX_SYCL_HIPSYCL
+            pmeRawStream_.submit(GMX_SYCL_DISCARD_EVENT[&](sycl::handler & cgh) {
+                cgh.hipSYCL_enqueue_custom_operation([=](sycl::interop_handle& gmx_unused h) {
+                    fftPlan_->forward(realGrid, complexGrid, workspace_.data());
+                });
+            });
+#else
             fftPlan_->forward(realGrid, complexGrid, workspace_.data());
+#endif
             break;
         case GMX_FFT_COMPLEX_TO_REAL:
+#if GMX_SYCL_HIPSYCL
+            pmeRawStream_.submit(GMX_SYCL_DISCARD_EVENT[&](sycl::handler & cgh) {
+                cgh.hipSYCL_enqueue_custom_operation([=](sycl::interop_handle& gmx_unused h) {
+                    fftPlan_->backward(complexGrid, realGrid, workspace_.data());
+                });
+            });
+#else
             fftPlan_->backward(complexGrid, realGrid, workspace_.data());
+#endif
             break;
         default:
             GMX_THROW(NotImplementedError("The chosen 3D-FFT case is not implemented on GPUs"));
