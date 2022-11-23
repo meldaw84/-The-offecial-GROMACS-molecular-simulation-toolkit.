@@ -63,7 +63,7 @@ namespace
  * Tests for gmx::analysismodules::Dssp.
  */
 
-using DsspTestParams = std::tuple<const char*, real>;
+using DsspTestParams = std::tuple<const char*, real, const char*, const char*>;
 
 //! Test fixture for the dssp analysis module.
 class DsspModuleTest :
@@ -73,12 +73,14 @@ class DsspModuleTest :
 };
 
 // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-TEST_P(DsspModuleTest, WorksWithCutoffs)
+TEST_P(DsspModuleTest, SecondaryStructuresTest)
 {
     auto              params    = GetParam();
     const char* const cmdline[] = { "dssp" };
     CommandLine       command(cmdline);
     command.addOption("-cutoff", std::get<1>(params));
+    command.addOption("-hmode", std::get<2>(params));
+    command.addOption("-nb", std::get<3>(params));
     setTopology(std::get<0>(params));
     setTrajectory(std::get<0>(params));
     setOutputFile("-o", "dssp.dat", ExactTextMatch());
@@ -88,8 +90,12 @@ TEST_P(DsspModuleTest, WorksWithCutoffs)
 INSTANTIATE_TEST_SUITE_P(
         MoleculeTests,
         DsspModuleTest,
-        ::testing::Combine(::testing::Values("RNAseA.pdb", "hdac.pdb", "zyncfinger.pdb"),
-                           ::testing::Values(0.5, 1.0, 2.0)));
+        ::testing::Combine(::testing::Values("1cos.pdb", "1hlc.pdb", "1vzj.pdb","3byc.pdb", "3kyy.pdb", "4r80.pdb", "4xjf.pdb", "5u5p.pdb", "7wgh.pdb", "1gmc.pdb",
+                                             "1v3y.pdb", "1yiw.pdb", "2os3.pdb", "3u04.pdb", "4r6c.pdb", "4wxl.pdb", "5cvq.pdb",
+                                             "5i2b.pdb", "5t8z.pdb", "6jet.pdb"),
+                           ::testing::Values(0.9, 2.0),
+                           ::testing::Values("dssp", "gromacs"),
+                           ::testing::Values("nb", "direct")));
 
 } // namespace
 } // namespace test
