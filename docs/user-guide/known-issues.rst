@@ -14,18 +14,6 @@ We recommend using CUDA 11.4 or newer.
 
 :issue:`4037`
 
-Verlet buffer underestimated for inhomogeneous systems
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The current Verlet buffer estimation code assumes that the density
-in the system is uniform. This leads to an underestimate of the buffer
-for strongly inhomogeneous systems. The temporary solution to this is
-to lower the verlet-buffer-tolerance parameter value by the factor between
-the uniform density and the local density. In the 2023 release this
-correction will be performed automatically.
-
-:issue:`4509`
-
 Verlet buffer underestimated when using only r^-12 potentials
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -34,7 +22,6 @@ as can be the case in coarse-grained systems, the Verlet buffer can be
 underestimated due to the extremely non-linear nature of the r^-12 potential.
 A temporary solution is to decrease the verlet-buffer-tolerance until you
 get a non-zero Verlet buffer. This issue will be fixed in the 2023 release.
-
 
 Build is fragile with gcc 7 and CUDA
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
