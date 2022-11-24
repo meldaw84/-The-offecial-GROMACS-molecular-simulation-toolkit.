@@ -48,7 +48,6 @@ gromacs:coverage:analyse:
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-11
   needs:
     - job: gromacs:gcc-11:coverage:build
-
   tags:
     - k8s-scilifelab
   script:
@@ -57,10 +56,13 @@ gromacs:coverage:analyse:
     - outputdir=`pwd`/public
     - cd $BUILD_DIR
     - ctest -T test ctest -T coverage || true
+    - mkdir html_report
+    - gcovr --html-details html_report/coverage.html --root $CI_PROJECT_DIR || true
   coverage: '/Percentage.*\: (\d+\.\d+)\%/'
   artifacts:
     paths:
       - $BUILD_DIR/Testing/`head -n 1 < $BUILD_DIR/Testing/TAG`/
+      - $BUILD_DIR/html_report/
     reports:
       coverage_report:
         coverage_format: cobertura
