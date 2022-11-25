@@ -82,6 +82,7 @@ static auto getNativeStream(sycl::queue q)
 #else
     return q;
 #endif
+}
 
 template<typename backend_tag>
 Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealGrid,
