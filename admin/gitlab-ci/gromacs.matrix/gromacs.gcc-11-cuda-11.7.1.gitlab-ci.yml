@@ -98,7 +98,7 @@ gromacs:gcc-11-cuda-11.7.1:build:
 gromacs:gcc-11-cuda-11.7.1:test-cudagraph:
   extends:
     - .gromacs:base:test
-    - .rules:post-merge-acceptance
+    - .rules:merge-and-post-merge-acceptance
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-11-cuda-11.7.1
   variables:
     CMAKE: /usr/local/cmake-3.18.4/bin/cmake
