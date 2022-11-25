@@ -172,7 +172,8 @@ Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealG
                         workspaceRef =
                                 heffte::gpu::vector<std::complex<float>>(fftPlanRef->size_workspace());
                     });
-                }).wait();
+                })
+                .wait();
 #else
         fftPlan_ = std::make_unique<heffte::fft3d_r2c<backend_tag, int>>(
                 pmeRawStream_, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
@@ -201,7 +202,7 @@ Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealG
             { gridOffsetsInZ_transformed[procY + 1] - 1, gridOffsetsInY_transformed[procX + 1] - 1, nx - 1 }
         };
 
-       // Define 3D FFT plan
+        // Define 3D FFT plan
 #if GMX_SYCL_HIPSYCL
         pmeRawStream_
                 .submit([&, &fftPlanRef = fftPlan_, &workspaceRef = workspace_](sycl::handler& cgh) {
@@ -213,7 +214,8 @@ Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealG
                         workspaceRef =
                                 heffte::gpu::vector<std::complex<float>>(fftPlanRef->size_workspace());
                     });
-                }).wait();
+                })
+                .wait();
 #else
         fftPlan_ = std::make_unique<heffte::fft3d_r2c<backend_tag, int>>(
                 pmeRawStream_, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
