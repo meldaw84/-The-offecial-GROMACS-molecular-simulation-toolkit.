@@ -165,7 +165,7 @@ Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealG
         pmeRawStream_
                 .submit([&, &fftPlanRef = fftPlan_, &workspaceRef = workspace_](sycl::handler& cgh) {
                     cgh.hipSYCL_enqueue_custom_operation([=, &fftPlanRef, &workspaceRef](
-                                                                 sycl::interop_handle& gmx_unused h) {
+                                                                 sycl::interop_handle& h) {
                         auto stream = h.get_native_queue<c_hipsyclBackend>();
                         fftPlanRef  = std::make_unique<heffte::fft3d_r2c<backend_tag, int>>(
                                 stream, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
@@ -206,7 +206,7 @@ Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealG
         pmeRawStream_
                 .submit([&, &fftPlanRef = fftPlan_, &workspaceRef = workspace_](sycl::handler& cgh) {
                     cgh.hipSYCL_enqueue_custom_operation([=, &fftPlanRef, &workspaceRef](
-                                                                 sycl::interop_handle& gmx_unused h) {
+                                                                 sycl::interop_handle& h) {
                         auto stream = h.get_native_queue<c_hipsyclBackend>();
                         fftPlanRef  = std::make_unique<heffte::fft3d_r2c<backend_tag, int>>(
                                 stream, realBox, complexBox, 0, comm, heffte::default_options<backend_tag>());
