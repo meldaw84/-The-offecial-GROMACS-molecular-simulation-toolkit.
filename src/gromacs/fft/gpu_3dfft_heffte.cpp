@@ -64,26 +64,6 @@ constexpr auto c_hipsyclBackend = sycl::backend::cuda;
 constexpr auto c_hipsyclBackend = sycl::backend::hip;
 #endif
 
-static auto getNativeStream(sycl::queue q)
-{
-#if GMX_SYCL_HIPSYCL
-#    if GMX_HIPSYCL_HAVE_CUDA_TARGET
-    cudaStream_t   stream;
-    constexpr auto backend = sycl::backend::cuda;
-#    elif GMX_HIPSYCL_HAVE_HIP_TARGET
-    hipStream_t    stream;
-    constexpr auto backend = sycl::backend::hip;
-#    endif
-    q.submit([&](sycl::handler& cgh) {
-         cgh.hipSYCL_enqueue_custom_operation(
-                 [=, &stream](sycl::interop_handle& h) { stream = h.get_native_queue<backend>(); });
-     }).wait();
-    return stream;
-#else
-    return q;
-#endif
-}
-
 template<typename backend_tag>
 Gpu3dFft::ImplHeFfte<backend_tag>::ImplHeFfte(bool                 allocateRealGrid,
                                               MPI_Comm             comm,
