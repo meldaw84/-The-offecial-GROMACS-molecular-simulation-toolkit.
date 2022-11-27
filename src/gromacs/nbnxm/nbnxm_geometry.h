@@ -75,6 +75,7 @@ static inline constexpr int c_iClusterSize(const KernelType kernelType)
     case KernelType::Cpu4x4_PlainC:
     case KernelType::Cpu4xN_Simd_4xN:
     case KernelType::Cpu4xN_Simd_2xNN: return 4;
+    case KernelType::Cpu8xN_Simd_8xN: return 8;
     case KernelType::Gpu8x8x8:
     case KernelType::Cpu8x8x8_PlainC: return c_nbnxnGpuClusterSize;
     case KernelType::NotSet:
@@ -91,6 +92,7 @@ static inline constexpr int c_jClusterSize(const KernelType kernelType)
 #if GMX_SIMD
     case KernelType::Cpu4xN_Simd_4xN: return GMX_SIMD_REAL_WIDTH;
     case KernelType::Cpu4xN_Simd_2xNN: return GMX_SIMD_REAL_WIDTH / 2;
+    case KernelType::Cpu8xN_Simd_8xN: return GMX_SIMD_REAL_WIDTH;
 #endif
     case KernelType::Gpu8x8x8: return c_nbnxnGpuClusterSize;
     case KernelType::Cpu8x8x8_PlainC: return c_nbnxnGpuClusterSize / 2;
@@ -103,13 +105,13 @@ static inline constexpr int c_jClusterSize(const KernelType kernelType)
 static constexpr bool kernelTypeUsesSimplePairlist(const KernelType kernelType)
 {
     return (kernelType == KernelType::Cpu4x4_PlainC || kernelType == KernelType::Cpu4xN_Simd_4xN
-            || kernelType == KernelType::Cpu4xN_Simd_2xNN);
+            || kernelType == KernelType::Cpu4xN_Simd_2xNN || kernelType == KernelType::Cpu8xN_Simd_8xN);
 }
 
 //! Returns whether a SIMD kernel is in use
 static constexpr bool kernelTypeIsSimd(const KernelType kernelType)
 {
-    return (kernelType == KernelType::Cpu4xN_Simd_4xN || kernelType == KernelType::Cpu4xN_Simd_2xNN);
+    return (kernelType == KernelType::Cpu4xN_Simd_4xN || kernelType == KernelType::Cpu4xN_Simd_2xNN || kernelType == KernelType::Cpu8xN_Simd_8xN);
 }
 
 } // namespace Nbnxm
