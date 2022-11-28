@@ -75,7 +75,7 @@ struct DsspStorageFrame
     //! Frame number.
     int frnr = 0;
     //! Frame dssp data.
-    std::string dsspData = "";
+    std::string dsspData;
 };
 
 /*! \brief
@@ -413,11 +413,11 @@ bool secondaryStructuresData::hasBridges(bridgeTypes bridgeType) const
 {
     if (bridgeType == bridgeTypes::ParallelBridge)
     {
-        return ParallelBridgePartners.size() != 0;
+        return !ParallelBridgePartners.empty();
     }
     else
     {
-        return AntiBridgePartners.size() != 0;
+        return !AntiBridgePartners.empty();
     }
 }
 
@@ -850,7 +850,7 @@ private:
      * if R is in A
      * Hbond exists if E < -0.5
      */
-    void calculateHBondEnergy(ResInfo& Donor, ResInfo& Acceptor, const t_trxframe& fr, const t_pbc* pbc) const;
+    void calculateHBondEnergy(ResInfo* Donor, ResInfo* Acceptor, const t_trxframe& fr, const t_pbc* pbc) const;
 };
 
 float Dssp::CalculateAtomicDistances(const std::size_t& atomA,
@@ -1126,7 +1126,7 @@ void Dssp::calculateBends(const t_trxframe& fr, const t_pbc* pbc)
     }
 }
 
-void Dssp::calculateHBondEnergy(ResInfo& Donor, ResInfo& Acceptor, const t_trxframe& fr, const t_pbc* pbc) const
+void Dssp::calculateHBondEnergy(ResInfo* Donor, ResInfo* Acceptor, const t_trxframe& fr, const t_pbc* pbc) const
 {
     const float kCouplingConstant   = 27.888;
     const float minimalAtomDistance = 0.5;
@@ -1136,37 +1136,37 @@ void Dssp::calculateHBondEnergy(ResInfo& Donor, ResInfo& Acceptor, const t_trxfr
     float       distanceHC          = 0;
     float       distanceHO          = 0;
     float       distanceNC          = 0;
-    if (!(Donor.is_proline)
-        && (Acceptor.getIndex(backboneAtomTypes::AtomC)
-            && Acceptor.getIndex(backboneAtomTypes::AtomO) && Donor.getIndex(backboneAtomTypes::AtomN)
-            && (Donor.getIndex(backboneAtomTypes::AtomH) || hMode == HydrogenMode::Dssp)))
+    if (!(Donor->is_proline)
+        && (Acceptor->getIndex(backboneAtomTypes::AtomC)
+            && Acceptor->getIndex(backboneAtomTypes::AtomO) && Donor->getIndex(backboneAtomTypes::AtomN)
+            && (Donor->getIndex(backboneAtomTypes::AtomH) || hMode == HydrogenMode::Dssp)))
     {
-        distanceNO = CalculateAtomicDistances(Donor.getIndex(backboneAtomTypes::AtomN),
-                                              Acceptor.getIndex(backboneAtomTypes::AtomO),
+        distanceNO = CalculateAtomicDistances(Donor->getIndex(backboneAtomTypes::AtomN),
+                                              Acceptor->getIndex(backboneAtomTypes::AtomO),
                                               fr,
                                               pbc);
-        distanceNC = CalculateAtomicDistances(Donor.getIndex(backboneAtomTypes::AtomN),
-                                              Acceptor.getIndex(backboneAtomTypes::AtomC),
+        distanceNC = CalculateAtomicDistances(Donor->getIndex(backboneAtomTypes::AtomN),
+                                              Acceptor->getIndex(backboneAtomTypes::AtomC),
                                               fr,
                                               pbc);
         if (hMode == HydrogenMode::Dssp)
         {
-            if (Donor.prevResi != nullptr && Donor.prevResi->getIndex(backboneAtomTypes::AtomC)
-                && Donor.prevResi->getIndex(backboneAtomTypes::AtomO))
+            if (Donor->prevResi != nullptr && Donor->prevResi->getIndex(backboneAtomTypes::AtomC)
+                && Donor->prevResi->getIndex(backboneAtomTypes::AtomO))
             {
-                gmx::RVec atomH  = fr.x[Donor.getIndex(backboneAtomTypes::AtomH)];
-                gmx::RVec prevCO = fr.x[Donor.prevResi->getIndex(backboneAtomTypes::AtomC)];
-                prevCO -= fr.x[Donor.prevResi->getIndex(backboneAtomTypes::AtomO)];
+                gmx::RVec atomH  = fr.x[Donor->getIndex(backboneAtomTypes::AtomH)];
+                gmx::RVec prevCO = fr.x[Donor->prevResi->getIndex(backboneAtomTypes::AtomC)];
+                prevCO -= fr.x[Donor->prevResi->getIndex(backboneAtomTypes::AtomO)];
                 float prevCODist =
-                        CalculateAtomicDistances(Donor.prevResi->getIndex(backboneAtomTypes::AtomC),
-                                                 Donor.prevResi->getIndex(backboneAtomTypes::AtomO),
+                        CalculateAtomicDistances(Donor->prevResi->getIndex(backboneAtomTypes::AtomC),
+                                                 Donor->prevResi->getIndex(backboneAtomTypes::AtomO),
                                                  fr,
                                                  pbc);
                 atomH += prevCO / prevCODist;
                 distanceHO = CalculateAtomicDistances(
-                        atomH, Acceptor.getIndex(backboneAtomTypes::AtomO), fr, pbc);
+                        atomH, Acceptor->getIndex(backboneAtomTypes::AtomO), fr, pbc);
                 distanceHC = CalculateAtomicDistances(
-                        atomH, Acceptor.getIndex(backboneAtomTypes::AtomC), fr, pbc);
+                        atomH, Acceptor->getIndex(backboneAtomTypes::AtomC), fr, pbc);
             }
             else
             {
@@ -1176,12 +1176,12 @@ void Dssp::calculateHBondEnergy(ResInfo& Donor, ResInfo& Acceptor, const t_trxfr
         }
         else
         {
-            distanceHO = CalculateAtomicDistances(Donor.getIndex(backboneAtomTypes::AtomH),
-                                                  Acceptor.getIndex(backboneAtomTypes::AtomO),
+            distanceHO = CalculateAtomicDistances(Donor->getIndex(backboneAtomTypes::AtomH),
+                                                  Acceptor->getIndex(backboneAtomTypes::AtomO),
                                                   fr,
                                                   pbc);
-            distanceHC = CalculateAtomicDistances(Donor.getIndex(backboneAtomTypes::AtomH),
-                                                  Acceptor.getIndex(backboneAtomTypes::AtomC),
+            distanceHC = CalculateAtomicDistances(Donor->getIndex(backboneAtomTypes::AtomH),
+                                                  Acceptor->getIndex(backboneAtomTypes::AtomC),
                                                   fr,
                                                   pbc);
         }
@@ -1196,30 +1196,30 @@ void Dssp::calculateHBondEnergy(ResInfo& Donor, ResInfo& Acceptor, const t_trxfr
                           * ((1 / distanceNO) + (1 / distanceHC) - (1 / distanceHO) - (1 / distanceNC));
         }
     }
-    if (HbondEnergy < Donor.acceptorEnergy[0])
+    if (HbondEnergy < Donor->acceptorEnergy[0])
     {
-        Donor.acceptor[1]       = Donor.acceptor[0];
-        Donor.acceptorEnergy[1] = Donor.acceptorEnergy[0];
-        Donor.acceptor[0]       = Acceptor.info;
-        Donor.acceptorEnergy[0] = HbondEnergy;
+        Donor->acceptor[1]       = Donor->acceptor[0];
+        Donor->acceptorEnergy[1] = Donor->acceptorEnergy[0];
+        Donor->acceptor[0]       = Acceptor->info;
+        Donor->acceptorEnergy[0] = HbondEnergy;
     }
-    else if (HbondEnergy < Donor.acceptorEnergy[1])
+    else if (HbondEnergy < Donor->acceptorEnergy[1])
     {
-        Donor.acceptor[1]       = Acceptor.info;
-        Donor.acceptorEnergy[1] = HbondEnergy;
+        Donor->acceptor[1]       = Acceptor->info;
+        Donor->acceptorEnergy[1] = HbondEnergy;
     }
 
-    if (HbondEnergy < Acceptor.donorEnergy[0])
+    if (HbondEnergy < Acceptor->donorEnergy[0])
     {
-        Acceptor.donor[1]       = Acceptor.donor[0];
-        Acceptor.donorEnergy[1] = Acceptor.donorEnergy[0];
-        Acceptor.donor[0]       = Donor.info;
-        Acceptor.donorEnergy[0] = HbondEnergy;
+        Acceptor->donor[1]       = Acceptor->donor[0];
+        Acceptor->donorEnergy[1] = Acceptor->donorEnergy[0];
+        Acceptor->donor[0]       = Donor->info;
+        Acceptor->donorEnergy[0] = HbondEnergy;
     }
-    else if (HbondEnergy < Acceptor.donorEnergy[1])
+    else if (HbondEnergy < Acceptor->donorEnergy[1])
     {
-        Acceptor.donor[1]       = Donor.info;
-        Acceptor.donorEnergy[1] = HbondEnergy;
+        Acceptor->donor[1]       = Donor->info;
+        Acceptor->donorEnergy[1] = HbondEnergy;
     }
 }
 
@@ -1386,10 +1386,10 @@ void Dssp::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* pbc, TrajectoryAn
                 {
                     continue;
                 }
-                calculateHBondEnergy(*Donor, *Acceptor, fr, pbc);
+                calculateHBondEnergy(Donor, Acceptor, fr, pbc);
                 if (Acceptor != Donor->nextResi)
                 {
-                    calculateHBondEnergy(*Acceptor, *Donor, fr, pbc);
+                    calculateHBondEnergy(Acceptor, Donor, fr, pbc);
                 }
             }
             break;
@@ -1406,10 +1406,10 @@ void Dssp::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* pbc, TrajectoryAn
                                                  pbc)
                         < minimalCAdistance)
                     {
-                        calculateHBondEnergy(*Donor, *Acceptor, fr, pbc);
+                        calculateHBondEnergy(&(*Donor), &(*Acceptor), fr, pbc);
                         if (Acceptor != Donor + 1)
                         {
-                            calculateHBondEnergy(*Acceptor, *Donor, fr, pbc);
+                            calculateHBondEnergy(&(*Donor), &(*Acceptor), fr, pbc);
                         }
                     }
                 }
