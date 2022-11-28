@@ -1396,20 +1396,20 @@ void Dssp::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* pbc, TrajectoryAn
         }
         case (NBSearchMethod::Direct):
         {
-            for (auto Donor = IndexMap.begin(); Donor != IndexMap.end(); ++Donor)
+            for (std::size_t Donor = 0; Donor < IndexMap.size(); ++Donor)
             {
-                for (auto Acceptor = Donor + 1; Acceptor != IndexMap.end(); ++Acceptor)
+                for (std::size_t Acceptor = 0; Acceptor < IndexMap.size(); ++Acceptor)
                 {
-                    if (CalculateAtomicDistances(Donor->getIndex(backboneAtomTypes::AtomCA),
-                                                 Acceptor->getIndex(backboneAtomTypes::AtomCA),
+                    if (CalculateAtomicDistances(IndexMap[Donor].getIndex(backboneAtomTypes::AtomCA),
+                                                 IndexMap[Acceptor].getIndex(backboneAtomTypes::AtomCA),
                                                  fr,
                                                  pbc)
                         < minimalCAdistance)
                     {
-                        calculateHBondEnergy(&(*Donor), &(*Acceptor), fr, pbc);
+                        calculateHBondEnergy(&IndexMap[Donor], &IndexMap[Acceptor], fr, pbc);
                         if (Acceptor != Donor + 1)
                         {
-                            calculateHBondEnergy(&(*Donor), &(*Acceptor), fr, pbc);
+                            calculateHBondEnergy(&IndexMap[Donor], &IndexMap[Acceptor], fr, pbc);
                         }
                     }
                 }
