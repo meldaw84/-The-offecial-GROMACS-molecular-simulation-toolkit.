@@ -310,11 +310,7 @@ public:
     /*! \brief
      * Function that returns status of specific secondary structure in a residue.
      */
-    secondaryStructureTypes getStatus() const;
-    /*! \brief
-     * Function that returns this residue's bridge partner's index.
-     */
-    std::size_t getBridgePartnerIndex(bridgeTypes bridgeType) const;
+    secondarygetBridgePartnerIndexStructureTypes getStatus() const;
 
 private:
     //! Boolean array of secondary structures' statuses of a residue.
