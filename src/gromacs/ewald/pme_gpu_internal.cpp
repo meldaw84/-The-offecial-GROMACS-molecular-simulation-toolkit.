@@ -902,6 +902,25 @@ static gmx::FftBackend getFftBackend(const PmeGpu* pmeGpu)
                         "PME decomposition on oneAPI-compatible GPUs"));
             }
         }
+        else if (GMX_GPU_FFT_CUFFT)
+        {
+            if (GMX_USE_Heffte)
+            {
+                if (pmeGpu->settings.useDecomposition)
+                {
+                    return gmx::FftBackend::HeFFTe_cuFFT;
+                }
+                else
+                {
+                    GMX_THROW(gmx::NotImplementedError(
+                            "GROMACS can only do multi-GPU FFT in SYCL+cuFFT+HeFFTe build"));
+                }
+            }
+            else
+            {
+                GMX_THROW(gmx::NotImplementedError("GROMACS does not support cuFFT in SYCL build"));
+            }
+        }
         else if (GMX_GPU_FFT_VKFFT)
         {
             return gmx::FftBackend::SyclVkfft;

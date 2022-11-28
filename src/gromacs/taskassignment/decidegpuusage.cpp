@@ -116,7 +116,7 @@ constexpr bool c_gpuBuildSyclDpcppWithMkl = (GMX_GPU_SYCL != 0) && (GMX_SYCL_DPC
                                             && (GMX_GPU_FFT_MKL != 0); // NOLINT(misc-redundant-expression)
 constexpr bool c_gpuBuildSyclWithoutGpuFft =
         (GMX_GPU_SYCL != 0) && (GMX_GPU_FFT_MKL == 0) && (GMX_GPU_FFT_ROCFFT == 0)
-        && (GMX_GPU_FFT_VKFFT == 0); // NOLINT(misc-redundant-expression)
+        && (GMX_GPU_FFT_VKFFT == 0) && (GMX_GPU_FFT_CUFFT == 0); // NOLINT(misc-redundant-expression)
 constexpr bool c_gpuBuildPrefersMixedModePme = c_gpuBuildSyclDpcppWithMkl; // Issue #4219
 } // namespace
 

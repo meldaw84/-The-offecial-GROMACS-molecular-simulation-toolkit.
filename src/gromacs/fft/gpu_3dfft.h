@@ -71,6 +71,7 @@ enum class FftBackend
     Ocl,           //!< supports only single-GPU
     CuFFTMp,       //!< supports only multi-gpu
     HeFFTe_CUDA,   //!< supports only multi-gpu
+    HeFFTe_cuFFT,  //!< supports only multi-gpu
     HeFFTe_OneMkl, //!< supports only multi-gpu
     HeFFTe_Rocfft, //!< supports only multi-gpu
     SyclMkl,       //!< supports only single-GPU

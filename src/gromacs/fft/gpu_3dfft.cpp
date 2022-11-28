@@ -245,7 +245,8 @@ Gpu3dFft::Gpu3dFft(FftBackend           backend,
                                                          complexGrid);
             break;
         default:
-            if (backend != FftBackend::HeFFTe_OneMkl && backend != FftBackend::HeFFTe_Rocfft)
+            if (backend != FftBackend::HeFFTe_OneMkl && backend != FftBackend::HeFFTe_Rocfft
+                && backend != FftBackend::HeFFTe_cuFFT)
             {
                 GMX_THROW(NotImplementedError("Unsupported FFT backend requested"));
             }
@@ -327,6 +328,31 @@ Gpu3dFft::Gpu3dFft(FftBackend           backend,
                                "build configurations only with oneMKL or rocFFT");
 #    endif
             break;
+        case FftBackend::HeFFTe_cuFFT:
+#    if GMX_GPU_SYCL && GMX_GPU_FFT_CUFFT
+            GMX_RELEASE_ASSERT(heffte::backend::is_enabled<heffte::backend::cufft>::value,
+                               "HeFFTe was not compiled with cuFFT support");
+            impl_ = std::make_unique<Gpu3dFft::ImplHeFfte<heffte::backend::cufft>>(
+                    allocateRealGrid,
+                    comm,
+                    gridSizesInXForEachRank,
+                    gridSizesInYForEachRank,
+                    nz,
+                    performOutOfPlaceFFT,
+                    context,
+                    pmeStream,
+                    realGridSize,
+                    realGridSizePadded,
+                    complexGridSizePadded,
+                    realGrid,
+                    complexGrid);
+#    else
+            GMX_RELEASE_ASSERT(false,
+                               "HeFFTe multi-GPU FFT backend is supported in GROMACS SYCL "
+                               "build configurations only with oneMKL or rocFFT");
+#    endif
+            break;
+
         default: GMX_RELEASE_ASSERT(impl_ != nullptr, "Unsupported FFT backend requested");
     }
 #endif
