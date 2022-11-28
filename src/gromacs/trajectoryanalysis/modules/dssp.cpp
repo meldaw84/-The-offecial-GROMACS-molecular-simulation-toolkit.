@@ -310,7 +310,7 @@ public:
     /*! \brief
      * Function that returns status of specific secondary structure in a residue.
      */
-    secondarygetBridgePartnerIndexStructureTypes getStatus() const;
+    secondaryStructureTypes getStatus() const;
 
 private:
     //! Boolean array of secondary structures' statuses of a residue.
