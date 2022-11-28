@@ -44,6 +44,9 @@
 
 #include "gromacs/trajectoryanalysis/modules/dssp.h"
 
+#include <regex>
+#include <string>
+
 #include <gtest/gtest-param-test.h>
 #include <gtest/gtest.h>
 
@@ -77,25 +80,44 @@ TEST_P(DsspModuleTest, SecondaryStructuresTest)
 {
     auto              params    = GetParam();
     const char* const cmdline[] = { "dssp" };
-    CommandLine       command(cmdline);
+    std::string       fin(std::get<0>(params));
+    // replace pdb in filename with dat to construct uniq output names
+    std::string fout = std::regex_replace(fin, std::regex("\\.pdb"), ".dat");
+    CommandLine command(cmdline);
     command.addOption("-cutoff", std::get<1>(params));
     command.addOption("-hmode", std::get<2>(params));
     command.addOption("-nb", std::get<3>(params));
-    setTopology(std::get<0>(params));
-    setTrajectory(std::get<0>(params));
-    setOutputFile("-o", "dssp.dat", ExactTextMatch());
+    setTopology(fin.c_str());
+    setTrajectory(fin.c_str());
+    setOutputFile("-o", fout.c_str(), ExactTextMatch());
     runTest(command);
 }
 
-INSTANTIATE_TEST_SUITE_P(
-        MoleculeTests,
-        DsspModuleTest,
-        ::testing::Combine(::testing::Values("1cos.pdb", "1hlc.pdb", "1vzj.pdb","3byc.pdb", "3kyy.pdb", "4r80.pdb", "4xjf.pdb", "5u5p.pdb", "7wgh.pdb", "1gmc.pdb",
-                                             "1v3y.pdb", "1yiw.pdb", "2os3.pdb", "3u04.pdb", "4r6c.pdb", "4wxl.pdb", "5cvq.pdb",
-                                             "5i2b.pdb", "5t8z.pdb", "6jet.pdb"),
-                           ::testing::Values(0.9, 2.0),
-                           ::testing::Values("dssp", "gromacs"),
-                           ::testing::Values("nb", "direct")));
+INSTANTIATE_TEST_SUITE_P(MoleculeTests,
+                         DsspModuleTest,
+                         ::testing::Combine(::testing::Values("1cos.pdb",
+                                                              "1hlc.pdb",
+                                                              "1vzj.pdb",
+                                                              "3byc.pdb",
+                                                              "3kyy.pdb",
+                                                              "4r80.pdb",
+                                                              "4xjf.pdb",
+                                                              "5u5p.pdb",
+                                                              "7wgh.pdb",
+                                                              "1gmc.pdb",
+                                                              "1v3y.pdb",
+                                                              "1yiw.pdb",
+                                                              "2os3.pdb",
+                                                              "3u04.pdb",
+                                                              "4r6c.pdb",
+                                                              "4wxl.pdb",
+                                                              "5cvq.pdb",
+                                                              "5i2b.pdb",
+                                                              "5t8z.pdb",
+                                                              "6jet.pdb"),
+                                            ::testing::Values(0.9, 2.0),
+                                            ::testing::Values("dssp", "gromacs"),
+                                            ::testing::Values("nb", "direct")));
 
 } // namespace
 } // namespace test
