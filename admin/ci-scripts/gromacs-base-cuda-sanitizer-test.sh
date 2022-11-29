@@ -30,11 +30,17 @@ TOOLS_FAILED=""
 
 for TOOL in memcheck racecheck synccheck initcheck; do
     echo "Running CUDA Compute Sanitizer in ${TOOL} mode"
+    EXTRA_FLAGS=""
+    if [[ ${TOOL} == "racecheck" ]]; then
+      # See issue #4500, the test is flaky with Clang-CUDA
+      EXTRA_FLAGS="--exclude-regex MdrunMpiTests"
+    fi
     "${CTEST}" -T MemCheck \
       --overwrite MemoryCheckCommand="${COMPUTE_SANITIZER_BIN}" \
       --overwrite MemoryCheckCommandOptions="--tool=${TOOL} ${COMPUTE_SANITIZER_FLAGS}" \
       --overwrite MemoryCheckType=CudaSanitizer \
       --label-regex "${TEST_LABELS}" \
+      ${EXTRA_FLAGS} \
       | tee ctestLog.log || TOOLS_FAILED="${TOOL},${TOOLS_FAILED}"
 done
 
