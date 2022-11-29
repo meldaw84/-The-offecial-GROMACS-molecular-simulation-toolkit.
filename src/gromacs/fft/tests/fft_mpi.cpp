@@ -243,7 +243,7 @@ std::vector<FftBackend> const           inputBackends
             FftBackend::HeFFTe_OneApi,
 #    endif
 #    if GMX_GPU_SYCL && GMX_SYCL_HIPSYCL
-            FftBackend::HeFFTe_Rocfft,
+            FftBackend::HeFFTe_Sycl_Rocfft,
 #    endif
 #endif
 #if GMX_USE_cuFFTMp

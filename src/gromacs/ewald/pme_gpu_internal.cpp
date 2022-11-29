@@ -876,7 +876,7 @@ static gmx::FftBackend getFftBackend(const PmeGpu* pmeGpu)
             }
             else if (GMX_USE_Heffte)
             {
-                return gmx::FftBackend::HeFFTe_OneMkl;
+                return gmx::FftBackend::HeFFTe_Sycl_OneMkl;
             }
             else
             {
@@ -893,7 +893,7 @@ static gmx::FftBackend getFftBackend(const PmeGpu* pmeGpu)
             }
             else if (GMX_USE_Heffte)
             {
-                return gmx::FftBackend::HeFFTe_Rocfft;
+                return gmx::FftBackend::HeFFTe_Sycl_Rocfft;
             }
             else
             {
