@@ -198,13 +198,15 @@ namespace gmx
  * \param[in]  pmeRunMode   Run mode indicating what resource is PME executed on.
  * \param[in]  numRanksPerSimulation   The number of ranks in each simulation.
  * \param[in]  numPmeRanksPerSimulation   The number of PME ranks in each simulation, can be -1
+ * \param[in]  deviceInfosAvailable   List of available devices
  * \returns                         The object populated with development feature flags.
  */
 static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& mdlog,
                                                          const bool           useGpuForNonbonded,
                                                          const PmeRunMode     pmeRunMode,
                                                          const int            numRanksPerSimulation,
-                                                         const int numPmeRanksPerSimulation)
+                                                         const int numPmeRanksPerSimulation,
+                                                         gmx::ArrayRef<const DeviceInformation*> availableDevices)
 {
     DevelopmentFeatureFlags devFlags;
 
@@ -246,9 +248,19 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
     if (GMX_LIB_MPI && (GMX_GPU_CUDA || GMX_GPU_SYCL))
     {
         // Allow overriding the detection for GPU-aware MPI
-        GpuAwareMpiStatus gpuAwareMpiStatus = checkMpiCudaAwareSupport();
-        const bool        forceGpuAwareMpi  = gpuAwareMpiStatus == GpuAwareMpiStatus::Forced;
-        const bool haveDetectedGpuAwareMpi  = gpuAwareMpiStatus == GpuAwareMpiStatus::Supported;
+        std::vector<GpuAwareMpiStatus> gpuAwareStatus;
+        std::transform(availableDevices.begin(),
+                       availableDevices.end(),
+                       std::back_inserter(gpuAwareStatus),
+                       [](const auto* deviceInfo) { return getDeviceGpuAwareMpiStatus(*deviceInfo); });
+        const bool gpuAwareMpiFullySupported =
+                std::all_of(gpuAwareStatus.begin(), gpuAwareStatus.end(), [](auto status) {
+                    return status == GpuAwareMpiStatus::Supported;
+                });
+        const bool gpuAwareMpiSupportedOrForced =
+                std::all_of(gpuAwareStatus.begin(), gpuAwareStatus.end(), [](auto status) {
+                    return status == GpuAwareMpiStatus::Supported || status == GpuAwareMpiStatus::Forced;
+                });
         if (getenv("GMX_FORCE_CUDA_AWARE_MPI") != nullptr)
         {
             GMX_LOG(mdlog.warning)
@@ -258,12 +270,12 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
                             "Please use GMX_FORCE_GPU_AWARE_MPI instead.");
         }
 
-        devFlags.canUseGpuAwareMpi = haveDetectedGpuAwareMpi || forceGpuAwareMpi;
+        devFlags.canUseGpuAwareMpi = gpuAwareMpiSupportedOrForced;
         if (getenv("GMX_ENABLE_DIRECT_GPU_COMM") != nullptr)
         {
-            if (!haveDetectedGpuAwareMpi && forceGpuAwareMpi)
+            if (gpuAwareMpiSupportedOrForced && !gpuAwareMpiFullySupported)
             {
-                // GPU-aware support not detected in MPI library but, user has forced it's use
+                // GPU-aware support not detected in MPI library but, user has forced its use
                 GMX_LOG(mdlog.warning)
                         .asParagraph()
                         .appendText(
@@ -295,7 +307,7 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
                                 "GMX_FORCE_GPU_AWARE_MPI environment variable.");
             }
         }
-        else if (haveDetectedGpuAwareMpi)
+        else if (gpuAwareMpiFullySupported)
         {
             // GPU-aware MPI was detected, let the user know that using it may improve performance
             GMX_LOG(mdlog.warning)
@@ -1051,8 +1063,17 @@ int Mdrunner::mdrunner()
 
     // Initialize development feature flags that enabled by environment variable
     // and report those features that are enabled.
-    const DevelopmentFeatureFlags devFlags = manageDevelopmentFeatures(
-            mdlog, useGpuForNonbonded, pmeRunMode, cr->sizeOfDefaultCommunicator, domdecOptions.numPmeRanks);
+    std::vector<const DeviceInformation*> availableDeviceInfos;
+    std::transform(availableDevices.begin(),
+                   availableDevices.end(),
+                   std::back_inserter(availableDeviceInfos),
+                   [&](const int deviceId) { return hwinfo_->deviceInfoList[deviceId].get(); });
+    const DevelopmentFeatureFlags devFlags = manageDevelopmentFeatures(mdlog,
+                                                                       useGpuForNonbonded,
+                                                                       pmeRunMode,
+                                                                       cr->sizeOfDefaultCommunicator,
+                                                                       domdecOptions.numPmeRanks,
+                                                                       availableDeviceInfos);
 
     const bool useModularSimulator = checkUseModularSimulator(false,
                                                               inputrec.get(),

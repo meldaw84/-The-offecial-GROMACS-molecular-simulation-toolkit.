@@ -57,6 +57,7 @@
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/fatalerror.h"
+#include "gromacs/utility/mpiinfo.h"
 #include "gromacs/utility/strconvert.h"
 #include "gromacs/utility/stringutil.h"
 
@@ -610,5 +611,23 @@ std::string getDeviceInformationString(const DeviceInformation& deviceInfo)
                 deviceInfo.syclDevice.get_info<sycl::info::device::version>().c_str(),
                 deviceInfo.syclDevice.get_info<sycl::info::device::driver_version>().c_str(),
                 c_deviceStateString[deviceInfo.status]);
+    }
+}
+
+gmx::GpuAwareMpiStatus getDeviceGpuAwareMpiStatus(const DeviceInformation& deviceInfo)
+{
+    switch (deviceInfo.syclDevice.get_backend())
+    {
+#if GMX_SYCL_DPCPP
+        case sycl::backend::opencl: return gmx::GpuAwareMpiStatus::NotSupported;
+        case sycl::backend::ext_oneapi_level_zero: return gmx::checkMpiZEAwareSupport();
+        case sycl::backend::ext_oneapi_cuda: return gmx::checkMpiCudaAwareSupport();
+        case sycl::backend::ext_oneapi_hip: return gmx::checkMpiHipAwareSupport();
+#elif GMX_SYCL_HIPSYCL
+        case hipsycl::rt::backend_id::cuda: return gmx::checkMpiCudaAwareSupport();
+        case hipsycl::rt::backend_id::hip: return gmx::checkMpiHipAwareSupport();
+        case hipsycl::rt::backend_id::level_zero: return gmx::checkMpiZEAwareSupport();
+#endif
+        default: return gmx::GpuAwareMpiStatus::NotSupported;
     }
 }

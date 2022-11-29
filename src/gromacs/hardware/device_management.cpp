@@ -69,3 +69,8 @@ bool isDeviceDetectionFunctional(std::string* /* errorMessage */)
 {
     return false;
 }
+
+gmx::GpuAwareMpiStatus getDeviceGpuAwareMpiStatus(const DeviceInformation& /*deviceInfo*/)
+{
+    gmx_fatal(FARGS, "Device information requested in CPU build.");
+}

@@ -63,6 +63,7 @@
 #include "gromacs/gpu_utils/oclutils.h"
 #include "gromacs/hardware/device_management.h"
 #include "gromacs/utility/fatalerror.h"
+#include "gromacs/utility/mpiinfo.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringutil.h"
 
@@ -710,4 +711,9 @@ std::string getDeviceInformationString(const DeviceInformation& deviceInfo)
                                  deviceInfo.device_version,
                                  c_deviceStateString[deviceInfo.status]);
     }
+}
+
+gmx::GpuAwareMpiStatus getDeviceGpuAwareMpiStatus(const DeviceInformation& /*deviceInfo*/)
+{
+    return gmx::GpuAwareMpiStatus::NotSupported;
 }

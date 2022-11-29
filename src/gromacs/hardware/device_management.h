@@ -62,6 +62,7 @@ enum class DeviceVendor : int;
 
 namespace gmx
 {
+enum class GpuAwareMpiStatus : int;
 template<typename>
 class ArrayRef;
 class MDLogger;
@@ -260,6 +261,13 @@ std::string getDeviceInformationString(const DeviceInformation& deviceInfo);
  */
 std::string getDeviceCompatibilityDescription(gmx::ArrayRef<const std::unique_ptr<DeviceInformation>> deviceInfoList,
                                               int deviceId);
+
+/*! \brief Return whether currently used MPI has support for using the device directly
+ *
+ * \param[in] deviceInfo  An information on device that is to be set.
+ * \returns                  An enum describing the compatibility status.
+ */
+gmx::GpuAwareMpiStatus getDeviceGpuAwareMpiStatus(const DeviceInformation& deviceInfo);
 
 /*! \brief Serialization of information on devices for MPI broadcasting.
  *
