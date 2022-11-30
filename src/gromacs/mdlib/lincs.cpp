@@ -83,7 +83,7 @@
 #include "gromacs/utility/listoflists.h"
 #include "gromacs/utility/pleasecite.h"
 
-namespace gmx
+namespace
 {
 
 //! \internal Indices of the two atoms involved in a single constraint
@@ -122,6 +122,11 @@ struct Task
     //! Temporary variable for lambda derivative.
     real dhdlambda;
 };
+
+} // namespace
+
+namespace gmx
+{
 
 /*! \brief Data for LINCS algorithm.
  */
