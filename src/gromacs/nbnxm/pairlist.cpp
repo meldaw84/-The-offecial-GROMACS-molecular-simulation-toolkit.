@@ -2399,6 +2399,11 @@ static void icell_set_x(int                             ci,
             icell_set_x_simd_2xnn(ci, shx, shy, shz, stride, x, work);
             break;
 #    endif
+#    ifdef GMX_NBNXN_SIMD_2XNN
+        case ClusterDistanceKernelType::CpuSimd_8xM:
+            icell_set_x_simd_4xn<KernelLayout::r8xM>(ci, shx, shy, shz, stride, x, work);
+            break;
+#    endif
 #endif
         case ClusterDistanceKernelType::CpuPlainC:
             icell_set_x_simple(ci, shx, shy, shz, stride, x, &work->iClusterData);

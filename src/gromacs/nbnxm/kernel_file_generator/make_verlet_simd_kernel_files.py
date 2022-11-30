@@ -164,6 +164,16 @@ VerletKernelTypeDict = {
         ),
         "UnrollSize": 1,
     },
+    "8xm": {
+        "Define": "GMX_NBNXN_SIMD_8XN",
+        "WidthSetup": (""),
+        "WidthCheck": (
+            "#if !(GMX_SIMD_REAL_WIDTH == 4)\n"
+            '#error "unsupported SIMD width"\n'
+            "#endif\n"
+        ),
+        "UnrollSize": 1,
+    },
 }
 
 KernelsHeaderTemplate = read_kernel_template("kernel_simd_template.h.pre")

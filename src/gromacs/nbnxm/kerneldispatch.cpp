@@ -305,6 +305,11 @@ static void nbnxn_kernel_cpu(const PairlistSet&             pairlistSet,
                     nbnxm_kernel_noener_simd_4xm[coulkt][vdwkt](pairlist, nbat, &ic, shiftVecPointer, out);
                     break;
 #endif
+#ifdef GMX_NBNXN_SIMD_8XN
+                case Nbnxm::KernelType::Cpu8xN_Simd_8xN:
+                    nbnxm_kernel_noener_simd_8xm[coulkt][vdwkt](pairlist, nbat, &ic, shiftVecPointer, out);
+                    break;
+#endif
                 default: GMX_RELEASE_ASSERT(false, "Unsupported kernel architecture");
             }
         }
@@ -456,6 +461,7 @@ void nonbonded_verlet_t::dispatchNonbondedKernel(gmx::InteractionLocality       
         case Nbnxm::KernelType::Cpu4x4_PlainC:
         case Nbnxm::KernelType::Cpu4xN_Simd_4xN:
         case Nbnxm::KernelType::Cpu4xN_Simd_2xNN:
+        case Nbnxm::KernelType::Cpu8xN_Simd_8xN:
             nbnxn_kernel_cpu(pairlistSet,
                              kernelSetup(),
                              nbat.get(),

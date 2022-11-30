@@ -181,6 +181,16 @@ static KernelSetup pick_nbnxn_kernel_cpu(const t_inputrec gmx_unused& inputrec,
                       "support for these kernels");
 #endif
         }
+        if (getenv("GMX_NBNXN_SIMD_8XN") != nullptr)
+        {
+#ifdef GMX_NBNXN_SIMD_8XN
+            kernelSetup.kernelType = KernelType::Cpu8xN_Simd_8xN;
+#else
+            gmx_fatal(FARGS,
+                      "SIMD 8xN kernels requested, but GROMACS has been compiled without "
+                      "support for these kernels");
+#endif
+        }
 
         /* Analytical Ewald exclusion correction is only an option in
          * the SIMD kernel.
@@ -223,6 +233,7 @@ const char* lookup_kernel_name(const KernelType kernelType)
         case KernelType::Cpu4x4_PlainC: return "plain C";
         case KernelType::Cpu4xN_Simd_4xN:
         case KernelType::Cpu4xN_Simd_2xNN:
+        case KernelType::Cpu8xN_Simd_8xN:
 #if GMX_SIMD
             return "SIMD";
 #else  // GMX_SIMD
