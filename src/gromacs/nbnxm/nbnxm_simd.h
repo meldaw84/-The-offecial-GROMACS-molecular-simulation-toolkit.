@@ -55,8 +55,9 @@
 //! The types of nbNxM SIMD kernel layout
 enum class KernelLayout
 {
-    r4xM, //!< 4 'i'-registers each containing data for interaction with M j-atoms
-    r2xMM //!< 2 'i'-registers each containing duplicated data, { M, M }, for interaction with M j-atoms
+    r4xM,  //!< 4 'i'-registers each containing data for interaction with M j-atoms
+    r2xMM, //!< 2 'i'-registers each containing duplicated data, { M, M }, for interaction with M j-atoms
+    r8xM   //!< 8 'i'-registers each containing data for interaction with M j-atoms
 };
 
 static inline constexpr int c_iClusterSize(const KernelLayout kernelLayout)
@@ -65,6 +66,7 @@ static inline constexpr int c_iClusterSize(const KernelLayout kernelLayout)
     {
         case KernelLayout::r4xM: return 4;
         case KernelLayout::r2xMM: return 4;
+        case KernelLayout::r8xM: return 4;
     }
 }
 
@@ -77,6 +79,7 @@ static inline constexpr int c_jClusterSize(const KernelLayout kernelLayout)
     {
         case KernelLayout::r4xM: return GMX_SIMD_REAL_WIDTH;
         case KernelLayout::r2xMM: return GMX_SIMD_REAL_WIDTH / 2;
+        case KernelLayout::r8xM: return GMX_SIMD_REAL_WIDTH;
     }
 }
 
@@ -89,15 +92,20 @@ static inline constexpr int c_jClusterSize(const KernelLayout kernelLayout)
         ((GMX_SIMD_REAL_WIDTH == 8 || GMX_SIMD_REAL_WIDTH == 16) && GMX_SIMD_HAVE_HSIMD_UTIL_REAL)
 #    define GMX_HAVE_NBNXM_SIMD_4XM \
         (GMX_SIMD_REAL_WIDTH == 2 || GMX_SIMD_REAL_WIDTH == 4 || GMX_SIMD_REAL_WIDTH == 8)
+#    define GMX_HAVE_NBNXM_SIMD_8XM \
+        (GMX_SIMD_REAL_WIDTH == 2 || GMX_SIMD_REAL_WIDTH == 4 || GMX_SIMD_REAL_WIDTH == 8)
 #else
 #    define GMX_HAVE_NBNXM_SIMD_2XMM 0
 #    define GMX_HAVE_NBNXM_SIMD_4XM 0
+#    define GMX_HAVE_NBNXM_SIMD_8XN 0
 #endif
 
-//! Whether we have support for NBNxM 2xM kernels
+//! Whether we have support for NBNxM 2xMM kernels
 static constexpr bool sc_haveNbnxmSimd2xmmKernels = GMX_HAVE_NBNXM_SIMD_2XMM;
 //! Whether we have support for NBNxM 4xM kernels
 static constexpr bool sc_haveNbnxmSimd4xmKernels = GMX_HAVE_NBNXM_SIMD_4XM;
+//! Whether we have support for NBNxM 8xM kernels
+static constexpr bool sc_haveNbnxmSimd8xmKernels = GMX_HAVE_NBNXM_SIMD_8XM;
 
 #if GMX_SIMD && GMX_USE_SIMD_KERNELS
 // We use the FDV0 tables for width==4 (when we can load it in one go), or if we don't have any unaligned loads
