@@ -59,7 +59,6 @@ enum class KernelLayout
     r2xMM //!< 2 'i'-registers each containing duplicated data, { M, M }, for interaction with M j-atoms
 };
 
-//! The nbnxn i-cluster size in atoms for the given NBNxM kernel layout
 static inline constexpr int c_iClusterSize(const KernelLayout kernelLayout)
 {
     switch (kernelLayout)
@@ -69,12 +68,23 @@ static inline constexpr int c_iClusterSize(const KernelLayout kernelLayout)
     }
 }
 
+#if GMX_SIMD && GMX_USE_SIMD_KERNELS
+
+//! The nbnxn i-cluster size in atoms for the given NBNxM kernel layout
+static inline constexpr int c_jClusterSize(const KernelLayout kernelLayout)
+{
+    switch (kernelLayout)
+    {
+        case KernelLayout::r4xM: return GMX_SIMD_REAL_WIDTH;
+        case KernelLayout::r2xMM: return GMX_SIMD_REAL_WIDTH / 2;
+    }
+}
+
 /*! \brief The nbnxn SIMD 4xN and 2x(N+N) kernels can be added independently.
  * Currently the 2xNN SIMD kernels only make sense with:
  *  8-way SIMD: 4x4 setup, performance wise only useful on CPUs without FMA or on AMD Zen1
  * 16-way SIMD: 4x8 setup, used in single precision with 512 bit wide SIMD
  */
-#if GMX_SIMD && GMX_USE_SIMD_KERNELS
 #    define GMX_HAVE_NBNXM_SIMD_2XMM \
         ((GMX_SIMD_REAL_WIDTH == 8 || GMX_SIMD_REAL_WIDTH == 16) && GMX_SIMD_HAVE_HSIMD_UTIL_REAL)
 #    define GMX_HAVE_NBNXM_SIMD_4XM \

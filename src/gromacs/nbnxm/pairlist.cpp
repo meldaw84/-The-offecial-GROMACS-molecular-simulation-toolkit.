@@ -117,12 +117,12 @@ static constexpr int jClusterSize()
 
 /*! \brief Returns the j-cluster index given the i-cluster index.
  *
- * \tparam    layout            The pair-list layout
+ * \tparam    layout            The pair search kernel layout
  * \tparam    jSubClusterIndex  The j-sub-cluster index (0/1), used when size(j-cluster) <
  *                              size(i-cluster)
  * \param[in] ci                The i-cluster index
  */
-template<NbnxnLayout layout, int jSubClusterIndex>
+template<KernelLayout layout, int jSubClusterIndex>
 static inline int cjFromCi(int ci)
 {
     constexpr int iClusterSize = c_iClusterSize(layout);
@@ -157,7 +157,7 @@ static inline int cjFromCi(int ci)
 }
 
 /* Returns the nbnxn coordinate data index given the i-cluster index */
-template<NbnxnLayout layout>
+template<KernelLayout layout>
 static inline int xIndexFromCi(int ci)
 {
     constexpr int iClusterSize = c_iClusterSize(layout);
@@ -180,7 +180,7 @@ static inline int xIndexFromCi(int ci)
 }
 
 /* Returns the nbnxn coordinate data index given the j-cluster index */
-template<NbnxnLayout layout>
+template<KernelLayout layout>
 static inline int xIndexFromCj(int cj)
 {
     constexpr int iClusterSize = c_iClusterSize(layout);
@@ -2388,7 +2388,7 @@ static void icell_set_x(int                             ci,
     {
 #if GMX_HAVE_NBNXM_SIMD_4XM
         case ClusterDistanceKernelType::CpuSimd_4xM:
-            icell_set_x_simd_4xn(ci, shx, shy, shz, stride, x, work);
+            icell_set_x_simd_4xn<KernelLayout::r4xM>(ci, shx, shy, shz, stride, x, work);
             break;
 #endif
 #if GMX_HAVE_NBNXM_SIMD_2XMM
@@ -3018,7 +3018,7 @@ static void makeClusterListWrapper(NbnxnPairlistCpu* nbl,
             break;
 #if GMX_HAVE_NBNXM_SIMD_4XM
         case ClusterDistanceKernelType::CpuSimd_4xM:
-            makeClusterListSimd4xn(
+            makeClusterListSimd4xn<KernelLayout::r4xM>(
                     jGrid, nbl, ci, firstCell, lastCell, excludeSubDiagonal, nbat->x().data(), rlist2, rbb2, numDistanceChecks);
             break;
 #endif
