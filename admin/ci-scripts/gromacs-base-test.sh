@@ -16,6 +16,13 @@ if [ -z $GMX_TEST_REQUIRED_NUMBER_OF_DEVICES ] && [ -n $KUBERNETES_EXTENDED_RESO
 fi
 if grep -qF 'nvidia.com/gpu' <<< "$KUBERNETES_EXTENDED_RESOURCE_NAME"; then
     nvidia-smi -L && nvidia-smi || true;
+    computeCapability=`nvidia-smi -i 0 --query-gpu=compute_cap  --format=csv | tail -1 | sed 's/\.//g' `
+    if [ "$GMX_GPU_PME_DECOMPOSITION_CUFFTMP" != "" ] && [ "$computeCapability" -lt "70" ]
+    then
+	echo "Compute Capability is less than 7.0, so disabling GPU PME DECOMPOSITION with cuFFTMp"
+	unset GMX_GPU_PME_DECOMPOSITION
+	export LD_PRELOAD=$CUFFTLIB #TODO remove this when cuFFTMp is fixed regarding "regular" ffts for older GPUs #3884
+    fi
 fi
 if grep -qF 'amd.com/gpu' <<< "$KUBERNETES_EXTENDED_RESOURCE_NAME"; then
     clinfo -l || true;

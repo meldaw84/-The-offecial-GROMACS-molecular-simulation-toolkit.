@@ -47,7 +47,8 @@ target_link_libraries(
         utility
 )
 
-if(GMX_USE_Heffte OR GMX_USE_cuFFTMp)
+#TODO enable also for GMX_USE_cuFFTMp once issues on consumer GPUs have been resolved #3884
+if(GMX_USE_Heffte)
 gmx_add_mpi_unit_test(FFTMpiUnitTests fft-mpi-test 4 HARDWARE_DETECTION
     GPU_CPP_SOURCE_FILES
         fft_mpi.cpp
