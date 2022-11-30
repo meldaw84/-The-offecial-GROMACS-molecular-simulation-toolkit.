@@ -56,7 +56,7 @@ static inline void icell_set_x_simd_2xnn(int                   ci,
 {
     real* x_ci_simd = work->iClusterData.xSimd.data();
 
-    const int ia = xIndexFromCi<NbnxnLayout::Simd2xNN>(ci);
+    const int ia = xIndexFromCi<KernelLayout::r2xMM>(ci);
 
     store(x_ci_simd + 0 * GMX_SIMD_REAL_WIDTH,
           loadU1DualHsimd(x + ia + 0 * c_xStride2xNN + 0) + SimdReal(shx));
@@ -117,8 +117,8 @@ static inline void makeClusterListSimd2xnn(const Grid&              jGrid,
 
     SimdReal rc2_S;
 
-    int jclusterFirst = cjFromCi<NbnxnLayout::Simd2xNN, 0>(firstCell);
-    int jclusterLast  = cjFromCi<NbnxnLayout::Simd2xNN, 1>(lastCell);
+    int jclusterFirst = cjFromCi<KernelLayout::r2xMM, 0>(firstCell);
+    int jclusterLast  = cjFromCi<KernelLayout::r2xMM, 1>(lastCell);
     GMX_ASSERT(jclusterLast >= jclusterFirst,
                "We should have a non-empty j-cluster range, since the calling code should have "
                "ensured a non-empty cell range");
@@ -142,8 +142,8 @@ static inline void makeClusterListSimd2xnn(const Grid&              jGrid,
         }
         else if (d2 < rlist2)
         {
-            const int xind_f = xIndexFromCj<NbnxnLayout::Simd2xNN>(
-                    cjFromCi<NbnxnLayout::Simd2xNN, 0>(jGrid.cellOffset()) + jclusterFirst);
+            const int xind_f = xIndexFromCj<KernelLayout::r2xMM>(
+                    cjFromCi<KernelLayout::r2xMM, 0>(jGrid.cellOffset()) + jclusterFirst);
 
             jx_S = loadDuplicateHsimd(x_j + xind_f + 0 * c_xStride2xNN);
             jy_S = loadDuplicateHsimd(x_j + xind_f + 1 * c_xStride2xNN);
@@ -197,8 +197,8 @@ static inline void makeClusterListSimd2xnn(const Grid&              jGrid,
         }
         else if (d2 < rlist2)
         {
-            const int xind_l = xIndexFromCj<NbnxnLayout::Simd2xNN>(
-                    cjFromCi<NbnxnLayout::Simd2xNN, 0>(jGrid.cellOffset()) + jclusterLast);
+            const int xind_l = xIndexFromCj<KernelLayout::r2xMM>(
+                    cjFromCi<KernelLayout::r2xMM, 0>(jGrid.cellOffset()) + jclusterLast);
 
             jx_S = loadDuplicateHsimd(x_j + xind_l + 0 * c_xStride2xNN);
             jy_S = loadDuplicateHsimd(x_j + xind_l + 1 * c_xStride2xNN);
@@ -237,7 +237,7 @@ static inline void makeClusterListSimd2xnn(const Grid&              jGrid,
         {
             /* Store cj and the interaction mask */
             nbnxn_cj_t cjEntry;
-            cjEntry.cj   = cjFromCi<NbnxnLayout::Simd2xNN, 0>(jGrid.cellOffset()) + jcluster;
+            cjEntry.cj   = cjFromCi<KernelLayout::r2xMM, 0>(jGrid.cellOffset()) + jcluster;
             cjEntry.excl = get_imask_simd_2xnn(excludeSubDiagonal, icluster, jcluster);
             nbl->cj.push_back(cjEntry);
         }
