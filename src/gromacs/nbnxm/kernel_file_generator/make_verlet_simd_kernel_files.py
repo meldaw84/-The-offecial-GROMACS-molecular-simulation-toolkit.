@@ -157,14 +157,8 @@ VerletKernelTypeDict = {
         "define": "GMX_HAVE_NBNXM_SIMD_4XM",
     },
     "8xm": {
-        "Define": "GMX_NBNXN_SIMD_8XN",
-        "WidthSetup": (""),
-        "WidthCheck": (
-            "#if !(GMX_SIMD_REAL_WIDTH == 4)\n"
-            '#error "unsupported SIMD width"\n'
-            "#endif\n"
-        ),
-        "UnrollSize": 1,
+        "param": "KernelLayout::r8xM",
+        "define": "GMX_HAVE_NBNXM_SIMD_8XM",
     },
 }
 

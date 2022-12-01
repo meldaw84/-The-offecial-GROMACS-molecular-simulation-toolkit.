@@ -73,6 +73,9 @@
 #if GMX_HAVE_NBNXM_SIMD_4XM
 #    include "kernels_simd_4xm/kernels.h"
 #endif
+#if GMX_HAVE_NBNXM_SIMD_8XM
+#    include "kernels_simd_8xm/kernels.h"
+#endif
 #undef INCLUDE_FUNCTION_TABLES
 
 /*! \brief Clears the energy group output buffers
@@ -306,9 +309,9 @@ static void nbnxn_kernel_cpu(const PairlistSet&             pairlistSet,
                     gmx::nbnxmKernelNoenerSimd4xm[coulkt][vdwkt](pairlist, nbat, &ic, shiftVecPointer, out);
                     break;
 #endif
-#ifdef GMX_NBNXN_SIMD_8XN
+#if GMX_HAVE_NBNXM_SIMD_8XM
                 case Nbnxm::KernelType::Cpu8xN_Simd_8xN:
-                    nbnxm_kernel_noener_simd_8xm[coulkt][vdwkt](pairlist, nbat, &ic, shiftVecPointer, out);
+                    gmx::nbnxmKernelNoenerSimd8xm[coulkt][vdwkt](pairlist, nbat, &ic, shiftVecPointer, out);
                     break;
 #endif
                 default: GMX_RELEASE_ASSERT(false, "Unsupported kernel architecture");
@@ -335,6 +338,11 @@ static void nbnxn_kernel_cpu(const PairlistSet&             pairlistSet,
                     gmx::nbnxmKernelEnerSimd4xm[coulkt][vdwkt](pairlist, nbat, &ic, shiftVecPointer, out);
                     break;
 #endif
+#if GMX_HAVE_NBNXM_SIMD_8XM
+                case Nbnxm::KernelType::Cpu8xN_Simd_8xN:
+                    gmx::nbnxmKernelEnerSimd8xm[coulkt][vdwkt](pairlist, nbat, &ic, shiftVecPointer, out);
+                    break;
+#endif
                 default: GMX_RELEASE_ASSERT(false, "Unsupported kernel architecture");
             }
         }
@@ -357,6 +365,12 @@ static void nbnxn_kernel_cpu(const PairlistSet&             pairlistSet,
 #if GMX_HAVE_NBNXM_SIMD_4XM
                 case Nbnxm::KernelType::Cpu4xN_Simd_4xN:
                     gmx::nbnxmKernelEnergrpSimd4xm[coulkt][vdwkt](
+                            pairlist, nbat, &ic, shiftVecPointer, out);
+                    break;
+#endif
+#ifdef GMX_NBNXN_SIMD_8XN
+                case Nbnxm::KernelType::Cpu8xN_Simd_8xN:
+                    gmx::nbnxmKernelEnergrpSimd8xm[coulkt][vdwkt](
                             pairlist, nbat, &ic, shiftVecPointer, out);
                     break;
 #endif

@@ -240,15 +240,15 @@
                 // Load 6*C6 and 6*C12 for all pairs
                 for (int i = 0; i < c_nRLJ; i++)
                 {
-                    if constexpr (kernelLayout == KernelLayout::r4xM)
-                    {
-                        gatherLoadTranspose<c_simdBestPairAlignment>(
-                                nbfpI[i], type + aj, &c6V[i], &c12V[i]);
-                    }
-                    else
+                    if constexpr (kernelLayout == KernelLayout::r2xMM)
                     {
                         gatherLoadTransposeHsimd<c_simdBestPairAlignment>(
                                 nbfpI[i * 2], nbfpI[i * 2 + 1], type + aj, &c6V[i], &c12V[i]);
+                    }
+                    else
+                    {
+                        gatherLoadTranspose<c_simdBestPairAlignment>(
+                                nbfpI[i], type + aj, &c6V[i], &c12V[i]);
                     }
                 }
             }
@@ -334,7 +334,7 @@
              * Energy groups are stored per i-cluster, so things get
              * complicated when the i- and j-cluster size don't match.
              */
-            static_assert(UNROLLJ == 2 || UNROLLI <= UNROLLJ);
+            //static_assert(UNROLLJ == 2 || UNROLLI <= UNROLLJ);
 
             if constexpr (UNROLLJ == 2)
             {
@@ -369,14 +369,14 @@
             {
                 for (int i = 0; i < nR; i++)
                 {
-                    if constexpr (kernelLayout == KernelLayout::r4xM)
-                    {
-                        accumulateGroupPairEnergies4xM<kernelLayout>(vCoulombV[i], vctp[i], egp_jj);
-                    }
-                    else
+                    if constexpr (kernelLayout == KernelLayout::r2xMM)
                     {
                         accumulateGroupPairEnergies2xMM<kernelLayout>(
                                 vCoulombV[i], vctp[i * 2], vctp[i * 2 + 1], egp_jj);
+                    }
+                    else
+                    {
+                        accumulateGroupPairEnergies4xM<kernelLayout>(vCoulombV[i], vctp[i], egp_jj);
                     }
                 }
             }
@@ -396,14 +396,14 @@
             {
                 for (int i = 0; i < c_nRLJ; i++)
                 {
-                    if constexpr (kernelLayout == KernelLayout::r4xM)
-                    {
-                        accumulateGroupPairEnergies4xM<kernelLayout>(vLJV[i], vvdwtp[i], egp_jj);
-                    }
-                    else
+                    if constexpr (kernelLayout == KernelLayout::r2xMM)
                     {
                         accumulateGroupPairEnergies2xMM<kernelLayout>(
                                 vLJV[i], vvdwtp[i * 2], vvdwtp[i * 2 + 1], egp_jj);
+                    }
+                    else
+                    {
+                        accumulateGroupPairEnergies4xM<kernelLayout>(vLJV[i], vvdwtp[i], egp_jj);
                     }
                 }
             }
@@ -451,15 +451,15 @@
     forceIZV = genArr<nR>([&](int i) { return forceIZV[i] + tzV[i]; });
 
     /* Decrement j atom force */
-    if constexpr (kernelLayout == KernelLayout::r4xM)
+    if constexpr (kernelLayout == KernelLayout::r2xMM)
     {
-        store(f + ajx, load<SimdReal>(f + ajx) - (txV[0] + txV[1] + txV[2] + txV[3]));
-        store(f + ajy, load<SimdReal>(f + ajy) - (tyV[0] + tyV[1] + tyV[2] + tyV[3]));
-        store(f + ajz, load<SimdReal>(f + ajz) - (tzV[0] + tzV[1] + tzV[2] + tzV[3]));
+        decr3Hsimd(f + aj * DIM, sum(txV), sum(tyV), sum(tzV));
     }
     else
     {
-        decr3Hsimd(f + aj * DIM, txV[0] + txV[1], tyV[0] + tyV[1], tzV[0] + tzV[1]);
+        store(f + ajx, load<SimdReal>(f + ajx) - sum(txV));
+        store(f + ajy, load<SimdReal>(f + ajy) - sum(tyV));
+        store(f + ajz, load<SimdReal>(f + ajz) - sum(tzV));
     }
 }
 

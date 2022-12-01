@@ -84,9 +84,11 @@ void nbnxmKernelSimd(const NbnxnPairlistCpu*    nbl,
     constexpr int GMX_SIMD_J_UNROLL_SIZE = (kernelLayout == KernelLayout::r2xMM ? 2 : 1);
 
     // The i-cluster size
-    constexpr int UNROLLI = 4;
+    constexpr int UNROLLI = c_iClusterSize(kernelLayout);
     // The j-cluster size
-    constexpr int UNROLLJ(GMX_SIMD_REAL_WIDTH / GMX_SIMD_J_UNROLL_SIZE);
+    constexpr int UNROLLJ = c_jClusterSize(kernelLayout);
+
+    static_assert(UNROLLJ * GMX_SIMD_J_UNROLL_SIZE == GMX_SIMD_REAL_WIDTH);
 
     // The stride of all atom data arrays
     constexpr int STRIDE = std::max(UNROLLI, UNROLLJ);
@@ -488,6 +490,15 @@ void nbnxmKernelSimd(const NbnxnPairlistCpu*    nbl,
             fShiftX = reduceIncr4ReturnSum(f + scix, forceIXV[0], forceIXV[1], forceIXV[2], forceIXV[3]);
             fShiftY = reduceIncr4ReturnSum(f + sciy, forceIYV[0], forceIYV[1], forceIYV[2], forceIYV[3]);
             fShiftZ = reduceIncr4ReturnSum(f + sciz, forceIZV[0], forceIZV[1], forceIZV[2], forceIZV[3]);
+            if constexpr (UNROLLI == 8)
+            {
+                fShiftX = fShiftX +
+                    reduceIncr4ReturnSum(f + scix + STRIDE / 2, forceIXV[4], forceIXV[5], forceIXV[6], forceIXV[7]);
+                fShiftY = fShiftY +
+                    reduceIncr4ReturnSum(f + sciy + STRIDE / 2, forceIYV[4], forceIYV[5], forceIYV[6], forceIYV[7]);
+                fShiftZ = fShiftZ +
+                    reduceIncr4ReturnSum(f + sciz + STRIDE / 2, forceIZV[4], forceIZV[5], forceIZV[6], forceIZV[7]);
+            }
         }
         else
         {

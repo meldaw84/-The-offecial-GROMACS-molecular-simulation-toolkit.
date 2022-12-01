@@ -42,7 +42,26 @@
  */
 
 //! Stride of the packed x coordinate array
-static constexpr int c_xStride4xN = std::max(GMX_SIMD_REAL_WIDTH, c_iClusterSize(KernelLayout::r4xM));
+template<KernelLayout kernelLayout>
+static constexpr int c_xStride4xN()
+{
+    return std::max(GMX_SIMD_REAL_WIDTH, c_iClusterSize(kernelLayout));
+}
+
+template<int clusterSize>
+constexpr int log2ClusterSize()
+{
+    static_assert(clusterSize == 4 || clusterSize == 8, "Only 4 and 8 are supported");
+
+    if constexpr (clusterSize == 4)
+    {
+        return 2;
+    }
+    else
+    {
+        return 3;
+    }
+}
 
 //! Copies PBC shifted i-cell packed atom coordinates to working array
 template<KernelLayout kernelLayout>
@@ -62,9 +81,12 @@ static inline void icell_set_x_simd_4xn(int                   ci,
 
     for (int i = 0; i < iClusterSize; i++)
     {
-        store(x_ci_simd + (3 * i + 0) * GMX_SIMD_REAL_WIDTH, SimdReal(x[ia + 0 * c_xStride4xN] + shx));
-        store(x_ci_simd + (3 * i + 1) * GMX_SIMD_REAL_WIDTH, SimdReal(x[ia + 1 * c_xStride4xN] + shy));
-        store(x_ci_simd + (3 * i + 2) * GMX_SIMD_REAL_WIDTH, SimdReal(x[ia + 2 * c_xStride4xN] + shz));
+        store(x_ci_simd + (3 * i + 0) * GMX_SIMD_REAL_WIDTH,
+              SimdReal(x[ia + 0 * c_xStride4xN<kernelLayout>() + i] + shx));
+        store(x_ci_simd + (3 * i + 1) * GMX_SIMD_REAL_WIDTH,
+              SimdReal(x[ia + 1 * c_xStride4xN<kernelLayout>() + i] + shy));
+        store(x_ci_simd + (3 * i + 2) * GMX_SIMD_REAL_WIDTH,
+              SimdReal(x[ia + 2 * c_xStride4xN<kernelLayout>() + i] + shz));
     }
 }
 
@@ -132,18 +154,18 @@ static inline void makeClusterListSimd4xn(const Grid&              jGrid,
             const int xind_f = xIndexFromCj<kernelLayout>(
                     cjFromCi<kernelLayout, 0>(jGrid.cellOffset()) + jclusterFirst);
 
-            const SimdReal jx_S = load<SimdReal>(x_j + xind_f + 0 * c_xStride4xN);
-            const SimdReal jy_S = load<SimdReal>(x_j + xind_f + 1 * c_xStride4xN);
-            const SimdReal jz_S = load<SimdReal>(x_j + xind_f + 2 * c_xStride4xN);
+            const SimdReal jx_S = load<SimdReal>(x_j + xind_f + 0 * c_xStride4xN<kernelLayout>());
+            const SimdReal jy_S = load<SimdReal>(x_j + xind_f + 1 * c_xStride4xN<kernelLayout>());
+            const SimdReal jz_S = load<SimdReal>(x_j + xind_f + 2 * c_xStride4xN<kernelLayout>());
 
 
             /* Calculate distance */
             std::array<std::array<SimdReal, 3>, iClusterSize> d;
             for (int i = 0; i < iClusterSize; i++)
             {
-                d[i][0] = load<SimdReal>(x_ci_simd + 0 * GMX_SIMD_REAL_WIDTH) - jx_S;
-                d[i][1] = load<SimdReal>(x_ci_simd + 1 * GMX_SIMD_REAL_WIDTH) - jy_S;
-                d[i][2] = load<SimdReal>(x_ci_simd + 2 * GMX_SIMD_REAL_WIDTH) - jz_S;
+                d[i][0] = load<SimdReal>(x_ci_simd + (i * 3 + 0) * GMX_SIMD_REAL_WIDTH) - jx_S;
+                d[i][1] = load<SimdReal>(x_ci_simd + (i * 3 + 1) * GMX_SIMD_REAL_WIDTH) - jy_S;
+                d[i][2] = load<SimdReal>(x_ci_simd + (i * 3 + 2) * GMX_SIMD_REAL_WIDTH) - jz_S;
             }
 
             /* rsq = dx*dx+dy*dy+dz*dz */
@@ -159,11 +181,17 @@ static inline void makeClusterListSimd4xn(const Grid&              jGrid,
                 wco[i] = (rsq[i] < rc2_S);
             }
 
-            const SimdBool wco_any_S01 = wco[0] || wco[1];
-            const SimdBool wco_any_S23 = wco[2] || wco[3];
-            const SimdBool wco_any_S   = wco_any_S01 || wco_any_S23;
+            const int numBitShifts = log2ClusterSize<iClusterSize>();
+            for (int bitShift = 0; bitShift < numBitShifts; bitShift++)
+            {
+                const int offset = (1 << bitShift);
+                for (int i = 0; i < iClusterSize; i += 2 * offset)
+                {
+                    wco[i] = wco[i] || wco[i + offset];
+                }
+            }
 
-            InRange = anyTrue(wco_any_S);
+            InRange = anyTrue(wco[0]);
 
             *numDistanceChecks += iClusterSize * GMX_SIMD_REAL_WIDTH;
         }
@@ -197,17 +225,17 @@ static inline void makeClusterListSimd4xn(const Grid&              jGrid,
             const int xind_l = xIndexFromCj<kernelLayout>(
                     cjFromCi<kernelLayout, 0>(jGrid.cellOffset()) + jclusterLast);
 
-            const SimdReal jx_S = load<SimdReal>(x_j + xind_l + 0 * c_xStride4xN);
-            const SimdReal jy_S = load<SimdReal>(x_j + xind_l + 1 * c_xStride4xN);
-            const SimdReal jz_S = load<SimdReal>(x_j + xind_l + 2 * c_xStride4xN);
+            const SimdReal jx_S = load<SimdReal>(x_j + xind_l + 0 * c_xStride4xN<kernelLayout>());
+            const SimdReal jy_S = load<SimdReal>(x_j + xind_l + 1 * c_xStride4xN<kernelLayout>());
+            const SimdReal jz_S = load<SimdReal>(x_j + xind_l + 2 * c_xStride4xN<kernelLayout>());
 
             /* Calculate distance */
             std::array<std::array<SimdReal, 3>, iClusterSize> d;
             for (int i = 0; i < iClusterSize; i++)
             {
-                d[i][0] = load<SimdReal>(x_ci_simd + 0 * GMX_SIMD_REAL_WIDTH) - jx_S;
-                d[i][1] = load<SimdReal>(x_ci_simd + 1 * GMX_SIMD_REAL_WIDTH) - jy_S;
-                d[i][2] = load<SimdReal>(x_ci_simd + 2 * GMX_SIMD_REAL_WIDTH) - jz_S;
+                d[i][0] = load<SimdReal>(x_ci_simd + (i * 3 + 0) * GMX_SIMD_REAL_WIDTH) - jx_S;
+                d[i][1] = load<SimdReal>(x_ci_simd + (i * 3 + 1) * GMX_SIMD_REAL_WIDTH) - jy_S;
+                d[i][2] = load<SimdReal>(x_ci_simd + (i * 3 + 2) * GMX_SIMD_REAL_WIDTH) - jz_S;
             }
 
             /* rsq = dx*dx+dy*dy+dz*dz */
@@ -223,14 +251,14 @@ static inline void makeClusterListSimd4xn(const Grid&              jGrid,
                 wco[i] = (rsq[i] < rc2_S);
             }
 
-            int offset = 1;
-            while (offset < iClusterSize)
+            const int numBitShifts = log2ClusterSize<iClusterSize>() + 1;
+            for (int bitShift = 1; bitShift < numBitShifts; bitShift++)
             {
+                const int offset = (1 << bitShift);
                 for (int i = 0; i < iClusterSize; i += 2 * offset)
                 {
                     wco[i] = wco[i] || wco[i + offset];
                 }
-                offset *= 2;
             }
 
             InRange = anyTrue(wco[0]);
@@ -249,8 +277,17 @@ static inline void makeClusterListSimd4xn(const Grid&              jGrid,
         {
             /* Store cj and the interaction mask */
             nbnxn_cj_t cjEntry;
-            cjEntry.cj   = cjFromCi<kernelLayout, 0>(jGrid.cellOffset()) + jcluster;
-            cjEntry.excl = get_imask_simd_4xn(excludeSubDiagonal, icluster, jcluster);
+            cjEntry.cj = cjFromCi<kernelLayout, 0>(jGrid.cellOffset()) + jcluster;
+            if constexpr (kernelLayout == KernelLayout::r4xM)
+            {
+                cjEntry.excl = get_imask_simd_4xn(excludeSubDiagonal, icluster, jcluster);
+            }
+#if GMX_HAVE_NBNXM_SIMD_8XM
+            else
+            {
+                cjEntry.excl = get_imask_simd_8xn(excludeSubDiagonal, icluster, jcluster);
+            }
+#endif
             nbl->cj.push_back(cjEntry);
         }
         /* Increase the closing index in the i list */

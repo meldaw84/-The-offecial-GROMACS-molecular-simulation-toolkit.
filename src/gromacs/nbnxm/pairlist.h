@@ -35,9 +35,9 @@
 #ifndef GMX_NBNXM_PAIRLIST_H
 #define GMX_NBNXM_PAIRLIST_H
 
-#include <cstddef>
-
 #include "config.h"
+
+#include <cstddef>
 
 #include "gromacs/gpu_utils/hostallocator.h"
 #include "gromacs/math/vectypes.h"
@@ -150,6 +150,11 @@ constexpr unsigned int NBNXN_INTERACTION_MASK_DIAG_J2_1 = 0x002fU;
 constexpr unsigned int NBNXN_INTERACTION_MASK_DIAG_J8_0 = 0xf0f8fcfeU;
 constexpr unsigned int NBNXN_INTERACTION_MASK_DIAG_J8_1 = 0x0080c0e0U;
 //! \}
+//! 8x4 kernel diagonal masks
+//! \{
+constexpr unsigned int NBNXN_INTERACTION_MASK_DIAG_8x4_0 = 0x000008ceU;
+constexpr unsigned int NBNXN_INTERACTION_MASK_DIAG_8x4_1 = 0x08ceffffU;
+//! \}
 //! \}
 
 /*! \brief Lower limit for square interaction distances in nonbonded kernels.
@@ -165,7 +170,7 @@ constexpr double c_nbnxnMinDistanceSquared = 1.0e-36;
 #else
 // The worst intermediate value we might evaluate is r^-12, which
 // means we should ensure r^2 stays above pow(GMX_FLOAT_MAX,-1.0/6.0)*1.01 (some margin)
-constexpr float c_nbnxnMinDistanceSquared = 3.82e-07F; // r > 6.2e-4
+constexpr float      c_nbnxnMinDistanceSquared  = 3.82e-07F; // r > 6.2e-4
 #endif
 
 //! The i- and j-cluster size for GPU lists, 8 atoms for CUDA, set at configure time for OpenCL and SYCL

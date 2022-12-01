@@ -92,12 +92,12 @@ inline std::array<std::array<SimdBool, nR>, diagonalMaskType == DiagonalMaskType
 generateDiagonalMasks(const nbnxn_atomdata_t::SimdMasks& simdMasks)
 {
     /* Load j-i for the first i */
-    SimdReal diagonalJMinusI = load<SimdReal>(kernelLayout == KernelLayout::r4xM
-                                                      ? simdMasks.diagonal_4xn_j_minus_i.data()
-                                                      : simdMasks.diagonal_2xnn_j_minus_i.data());
+    SimdReal diagonalJMinusI = load<SimdReal>(kernelLayout == KernelLayout::r2xMM
+                                                      ? simdMasks.diagonal_2xnn_j_minus_i.data()
+                                                      : simdMasks.diagonal_4xn_j_minus_i.data());
 
     /* With 2xMM layout there are two i-clusters in one register */
-    const SimdReal iIndexIncrement(kernelLayout == KernelLayout::r4xM ? 1 : 2);
+    const SimdReal iIndexIncrement(kernelLayout == KernelLayout::r2xMM ? 2 : 1);
     const SimdReal zero(0.0_real);
     /* Generate all the diagonal masks as comparison results */
     std::array<std::array<SimdBool, nR>, diagonalMaskType == DiagonalMaskType::JSizeEqualsISize ? 1 : 2> diagonalMaskVV;

@@ -68,6 +68,10 @@ PairlistParams::PairlistParams(const Nbnxm::KernelType kernelType,
     {
         pairlistType = PairlistType::HierarchicalNxN;
     }
+    else if (kernelType == Nbnxm::KernelType::Cpu8xN_Simd_8xN)
+    {
+        pairlistType = PairlistType::Simple8x4;
+    }
     else
     {
         switch (Nbnxm::c_jClusterSize(kernelType))

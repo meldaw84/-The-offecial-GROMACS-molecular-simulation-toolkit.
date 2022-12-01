@@ -102,19 +102,6 @@ constexpr bool c_useSimdGpuClusterPairDistance = false;
  */
 constexpr bool c_pbcShiftBackward = true;
 
-/* Returns the j-cluster size */
-template<NbnxnLayout layout>
-static constexpr int jClusterSize()
-{
-    static_assert(layout == NbnxnLayout::NoSimd4x4 || layout == NbnxnLayout::Simd4xN
-                          || layout == NbnxnLayout::Simd2xNN || layout == NbnxnLayout::Simd8xN,
-                  "Currently jClusterSize only supports CPU layouts");
-
-    return (layout == NbnxnLayout::Simd4xN || layout == NbnxnLayout::Simd8xN)
-                   ? GMX_SIMD_REAL_WIDTH
-        : (layout == NbnxnLayout::Simd2xNN ? GMX_SIMD_REAL_WIDTH / 2 : c_iClusterSize(layout));
-}
-
 /*! \brief Returns the j-cluster index given the i-cluster index.
  *
  * \tparam    layout            The pair search kernel layout
@@ -167,10 +154,18 @@ static inline int xIndexFromCi(int ci)
                           || jClusterSize == iClusterSize * 2,
                   "Only j-cluster sizes 2, 4 and 8 are currently implemented");
 
-    if (jClusterSize <= iClusterSize)
+    if constexpr (jClusterSize <= iClusterSize)
     {
-        /* Coordinates are stored packed in groups of 4 */
-        return ci * STRIDE_P4;
+        if constexpr (iClusterSize == 4)
+        {
+            /* Coordinates are stored packed in groups of 4 */
+            return ci * STRIDE_P4;
+        }
+        else
+        {
+            /* Coordinates are stored packed in groups of 8 */
+            return ci * STRIDE_P8;
+        }
     }
     else
     {
@@ -190,20 +185,29 @@ static inline int xIndexFromCj(int cj)
                           || jClusterSize == iClusterSize * 2,
                   "Only j-cluster sizes 2, 4 and 8 are currently implemented");
 
-    if constexpr (jClusterSize == iClusterSize / 2)
+    if constexpr (iClusterSize == 4 && jClusterSize == 2)
     {
         /* Coordinates are stored packed in groups of 4 */
         return (cj >> 1) * STRIDE_P4 + (cj & 1) * (c_packX4 >> 1);
     }
-    else if constexpr (jClusterSize == iClusterSize)
+    if constexpr (iClusterSize == 8 && jClusterSize == 4)
+    {
+        /* Coordinates are stored packed in groups of 8 */
+        return (cj >> 1) * STRIDE_P8 + (cj & 1) * (c_packX8 >> 1);
+    }
+    else if constexpr (iClusterSize == 4 && jClusterSize == 4)
     {
         /* Coordinates are stored packed in groups of 4 */
         return cj * STRIDE_P4;
     }
-    else
+    else if constexpr (iClusterSize == 4 && jClusterSize == 8)
     {
         /* Coordinates are stored packed in groups of 8 */
         return cj * STRIDE_P8;
+    }
+    else
+    {
+        GMX_RELEASE_ASSERT(false, "Unhandled kernel layout");
     }
 }
 
@@ -930,41 +934,50 @@ static unsigned int get_imask(gmx_bool rdiag, int ci, int cj)
     return (rdiag && ci == cj ? NBNXN_INTERACTION_MASK_DIAG : NBNXN_INTERACTION_MASK_ALL);
 }
 
-/* Returns a diagonal or off-diagonal interaction mask for cj-size=2 */
-gmx_unused static unsigned int get_imask_simd_j2(gmx_bool rdiag, int ci, int cj)
+/* Returns a diagonal or off-diagonal interaction mask for 4x2 cluster pairs */
+gmx_unused static unsigned int get_imask_simd_4x2(gmx_bool rdiag, int ci, int cj)
 {
     return (rdiag && ci * 2 == cj ? NBNXN_INTERACTION_MASK_DIAG_J2_0
                                   : (rdiag && ci * 2 + 1 == cj ? NBNXN_INTERACTION_MASK_DIAG_J2_1
                                                                : NBNXN_INTERACTION_MASK_ALL));
 }
 
-/* Returns a diagonal or off-diagonal interaction mask for cj-size=4 */
-gmx_unused static unsigned int get_imask_simd_j4(gmx_bool rdiag, int ci, int cj)
+/* Returns a diagonal or off-diagonal interaction mask for 4x4 cluster pairs */
+gmx_unused static unsigned int get_imask_simd_4x4(gmx_bool rdiag, int ci, int cj)
 {
     return (rdiag && ci == cj ? NBNXN_INTERACTION_MASK_DIAG : NBNXN_INTERACTION_MASK_ALL);
 }
 
-/* Returns a diagonal or off-diagonal interaction mask for cj-size=8 */
-gmx_unused static unsigned int get_imask_simd_j8(gmx_bool rdiag, int ci, int cj)
+/* Returns a diagonal or off-diagonal interaction mask for 4x8 cluster pairs */
+gmx_unused static unsigned int get_imask_simd_4x8(gmx_bool rdiag, int ci, int cj)
 {
     return (rdiag && ci == cj * 2 ? NBNXN_INTERACTION_MASK_DIAG_J8_0
                                   : (rdiag && ci == cj * 2 + 1 ? NBNXN_INTERACTION_MASK_DIAG_J8_1
                                                                : NBNXN_INTERACTION_MASK_ALL));
 }
 
+/* Returns a diagonal or off-diagonal interaction mask for 8x4 cluster pairs */
+gmx_unused static unsigned int get_imask_simd_8x4(gmx_bool rdiag, int ci, int cj)
+{
+    return (rdiag && ci * 2 == cj ? NBNXN_INTERACTION_MASK_DIAG_8x4_0
+                                  : (rdiag && ci * 2 + 1 == cj ? NBNXN_INTERACTION_MASK_DIAG_8x4_1
+                                                               : NBNXN_INTERACTION_MASK_ALL));
+}
+
 #if GMX_SIMD
 #    if GMX_SIMD_REAL_WIDTH == 2
-#        define get_imask_simd_4xn get_imask_simd_j2
+#        define get_imask_simd_4xn get_imask_simd_4x2
 #    endif
 #    if GMX_SIMD_REAL_WIDTH == 4
-#        define get_imask_simd_4xn get_imask_simd_j4
+#        define get_imask_simd_4xn get_imask_simd_4x4
+#        define get_imask_simd_8xn get_imask_simd_8x4
 #    endif
 #    if GMX_SIMD_REAL_WIDTH == 8
-#        define get_imask_simd_4xn get_imask_simd_j8
-#        define get_imask_simd_2xnn get_imask_simd_j4
+#        define get_imask_simd_4xn get_imask_simd_4x8
+#        define get_imask_simd_2xnn get_imask_simd_4x4
 #    endif
 #    if GMX_SIMD_REAL_WIDTH == 16
-#        define get_imask_simd_2xnn get_imask_simd_j8
+#        define get_imask_simd_2xnn get_imask_simd_4x8
 #    endif
 #endif
 
@@ -3030,6 +3043,12 @@ static void makeClusterListWrapper(NbnxnPairlistCpu* nbl,
 #if GMX_HAVE_NBNXM_SIMD_2XMM
         case ClusterDistanceKernelType::CpuSimd_2xMM:
             makeClusterListSimd2xnn(
+                    jGrid, nbl, ci, firstCell, lastCell, excludeSubDiagonal, nbat->x().data(), rlist2, rbb2, numDistanceChecks);
+            break;
+#endif
+#if GMX_HAVE_NBNXM_SIMD_8XM
+        case ClusterDistanceKernelType::CpuSimd_8xM:
+            makeClusterListSimd4xn<KernelLayout::r8xM>(
                     jGrid, nbl, ci, firstCell, lastCell, excludeSubDiagonal, nbat->x().data(), rlist2, rbb2, numDistanceChecks);
             break;
 #endif
