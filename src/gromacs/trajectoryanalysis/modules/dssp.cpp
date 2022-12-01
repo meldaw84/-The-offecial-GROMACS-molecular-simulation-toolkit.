@@ -279,10 +279,6 @@ public:
      */
     std::vector<std::size_t> const& getBridges(BridgeTypes bridgeType);
     /*! \brief
-     * Function that returns boolean status of specific secondary structure from a residue.
-     */
-    bool getSecondaryStructureStatus(SecondaryStructureTypes secondaryStructureTypeName) const;
-    /*! \brief
      * Function that returns boolean status of break existence with another specific residue.
      */
     bool isBreakPartnerWith(const SecondaryStructuresData* partner) const;
@@ -300,10 +296,6 @@ public:
     SecondaryStructureTypes getSecondaryStructure() const;
 
 private:
-    //! Boolean array of secondary structures' statuses of a residue.
-    std::array<bool, static_cast<std::size_t>(SecondaryStructureTypes::Count)> secondaryStructuresStatusArray_ = {
-        true, false, false, false, false, false, false
-    };
     //! Array of pointers to other residues that forms breaks with this residue.
     SecondaryStructuresData* breakPartners_[2] = { nullptr, nullptr };
     //! Array of other residues indexes that forms parralel bridges with this residue.
@@ -323,18 +315,12 @@ private:
 
 void SecondaryStructuresData::setSecondaryStructureType(const SecondaryStructureTypes secondaryStructureTypeName)
 {
-    secondaryStructuresStatusArray_[static_cast<std::size_t>(secondaryStructureTypeName)] = true;
     secondaryStructureLatestStatus_ = secondaryStructureTypeName;
 }
 
 void SecondaryStructuresData::setHelixPosition(const HelixPositions helixPosition, const TurnsTypes turn)
 {
     turnsStatusArray_[static_cast<std::size_t>(turn)] = helixPosition;
-}
-
-bool SecondaryStructuresData::getSecondaryStructureStatus(const SecondaryStructureTypes secondaryStructureTypeName) const
-{
-    return secondaryStructuresStatusArray_[static_cast<std::size_t>(secondaryStructureTypeName)];
 }
 
 bool SecondaryStructuresData::isBreakPartnerWith(const SecondaryStructuresData* partner) const
@@ -772,7 +758,7 @@ void SecondaryStructures::analyzeBridgesAndStrandsPatterns()
     }
     for (std::size_t i = 1; i + 1 < secondaryStructuresStatusVector_.size(); ++i)
     {
-        if (!secondaryStructuresStatusVector_[i].getSecondaryStructureStatus(SecondaryStructureTypes::Strand)
+        if (!(secondaryStructuresStatusVector_[i].getSecondaryStructure() == SecondaryStructureTypes::Strand)
             && (secondaryStructuresStatusVector_[i].hasBridges(BridgeTypes::ParallelBridge)
                 || secondaryStructuresStatusVector_[i].hasBridges(BridgeTypes::AntiParallelBridge)))
         {
@@ -909,8 +895,8 @@ std::string SecondaryStructures::performPatternSearch(const t_trxframe& fr,
     {
         for (std::size_t j = 0; j < secondaryStructuresStatusVector_.size(); ++j)
         {
-            if (secondaryStructuresStatusVector_[j].getSecondaryStructureStatus(
-                        static_cast<SecondaryStructureTypes>(i)))
+            if (secondaryStructuresStatusVector_[j].getSecondaryStructure()
+                == static_cast<SecondaryStructureTypes>(i))
             {
                 secondaryStructuresStringLine_[j] = c_secondaryStructureTypeNames[i];
             }
@@ -920,9 +906,9 @@ std::string SecondaryStructures::performPatternSearch(const t_trxframe& fr,
     {
         for (std::size_t j = 0; j < secondaryStructuresStatusVector_.size(); ++j)
         {
-            if (secondaryStructuresStatusVector_[j].getSecondaryStructureStatus(SecondaryStructureTypes::Helix_5)
-                && secondaryStructuresStatusVector_[j].getSecondaryStructureStatus(
-                        SecondaryStructureTypes::Helix_4))
+            if (secondaryStructuresStatusVector_[j].getSecondaryStructure() == SecondaryStructureTypes::Helix_5
+                && secondaryStructuresStatusVector_[j].getSecondaryStructure()
+                           == SecondaryStructureTypes::Helix_4)
             {
                 secondaryStructuresStringLine_[j] =
                         c_secondaryStructureTypeNames[SecondaryStructureTypes::Helix_5];
@@ -933,9 +919,9 @@ std::string SecondaryStructures::performPatternSearch(const t_trxframe& fr,
     {
         for (std::size_t i = 0, linefactor = 1; i + 1 < secondaryStructuresStatusVector_.size(); ++i)
         {
-            if (secondaryStructuresStatusVector_[i].getSecondaryStructureStatus(SecondaryStructureTypes::Break)
-                && secondaryStructuresStatusVector_[i + 1].getSecondaryStructureStatus(
-                        SecondaryStructureTypes::Break))
+            if (secondaryStructuresStatusVector_[i].getSecondaryStructure() == SecondaryStructureTypes::Break
+                && secondaryStructuresStatusVector_[i + 1].getSecondaryStructure()
+                           == SecondaryStructureTypes::Break)
             {
                 if (secondaryStructuresStatusVector_[i].isBreakPartnerWith(
                             &secondaryStructuresStatusVector_[i + 1])
