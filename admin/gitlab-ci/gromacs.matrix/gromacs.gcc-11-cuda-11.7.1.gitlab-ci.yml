@@ -53,6 +53,7 @@ gromacs:gcc-11-cuda-11.7.1:testMPI:
     KUBERNETES_EXTENDED_RESOURCE_LIMIT: 1
     GMX_ENABLE_DIRECT_GPU_COMM: 1
     GMX_GPU_PME_DECOMPOSITION: 1
+    GMX_GPU_PME_DECOMPOSITION_CUFFTMP: 1
     CUFFTLIB: "/opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs/11.7/lib64/libcufft.so"
     NVSHMEM_DISABLE_NCCL: 1
     GMX_TEST_LABELS: "QuickGpuTest|SlowGpuTest"

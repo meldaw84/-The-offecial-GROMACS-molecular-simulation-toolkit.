@@ -17,7 +17,7 @@ fi
 if grep -qF 'nvidia.com/gpu' <<< "$KUBERNETES_EXTENDED_RESOURCE_NAME"; then
     nvidia-smi -L && nvidia-smi || true;
     computeCapability=`nvidia-smi -i 0 --query-gpu=compute_cap  --format=csv | tail -1 | sed 's/\.//g' `
-    if ["$GMX_GPU_PME_DECOMPOSITION_CUFFTMP" != ""] && [ "$computeCapability" -lt "70" ]
+    if ["$GMX_GPU_PME_DECOMPOSITION_CUFFTMP" != ""] && [ "$computeCapability" -lt "80" ]
     then
 	echo "Compute Capability is less than 7.0, so disabling GPU PME DECOMPOSITION with cuFFTMp"
 	unset GMX_GPU_PME_DECOMPOSITION
