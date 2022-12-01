@@ -81,6 +81,10 @@ static inline constexpr int c_iClusterSize(const KernelType kernelType)
     case KernelType::NotSet:
     case KernelType::Count: return 0;
     }
+
+    GMX_RELEASE_ASSERT(false, "Unhandled case");
+
+    return 0;
 }
 
 //! The nbnxn j-cluster size in atoms for the given NBNxM kernel type
@@ -99,6 +103,10 @@ static inline constexpr int c_jClusterSize(const KernelType kernelType)
     case KernelType::NotSet:
     case KernelType::Count: return 0;
     }
+
+    GMX_RELEASE_ASSERT(false, "Unhandled case");
+
+    return 0;
 }
 
 /*! \brief Returns whether the pair-list corresponding to nb_kernel_type is simple */

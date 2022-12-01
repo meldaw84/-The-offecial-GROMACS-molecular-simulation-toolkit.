@@ -36,6 +36,7 @@ add_library(nbnxm INTERFACE)
 
 add_subdirectory(kernels_simd_4xm)
 add_subdirectory(kernels_simd_2xmm)
+add_subdirectory(kernels_simd_8xm)
 
 file(GLOB NBNXM_SOURCES
     # Source files

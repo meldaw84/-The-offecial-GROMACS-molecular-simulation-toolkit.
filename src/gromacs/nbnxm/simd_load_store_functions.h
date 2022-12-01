@@ -54,7 +54,7 @@ namespace gmx
 
 //! Load a single real for an i-atom into \p iRegister
 template<KernelLayout kernelLayout>
-inline std::enable_if_t<kernelLayout == KernelLayout::r4xM, SimdReal> loadIAtomData(const real* ptr,
+inline std::enable_if_t<kernelLayout == KernelLayout::r4xM || kernelLayout == KernelLayout::r8xM, SimdReal> loadIAtomData(const real* ptr,
                                                                                     const int offset,
                                                                                     const int iRegister)
 {
@@ -71,7 +71,7 @@ loadIAtomData(const real* ptr, const int offset, const int iRegister)
 
 //! Returns a SIMD register containing GMX_SIMD_REAL_WIDTH reals loaded from ptr + offset
 template<KernelLayout kernelLayout>
-inline std::enable_if_t<kernelLayout == KernelLayout::r4xM, SimdReal> loadJAtomData(const real* ptr,
+inline std::enable_if_t<kernelLayout == KernelLayout::r4xM || kernelLayout == KernelLayout::r8xM, SimdReal> loadJAtomData(const real* ptr,
                                                                                     const int offset)
 {
     return load<SimdReal>(ptr + offset);
@@ -106,7 +106,7 @@ loadSimdPairInteractionMasks(const int excl, SimdBitMask* filterBitMasksV)
 
 //! Loads interaction masks for a cluster pair for 4xM kernel layout
 template<bool loadMasks, KernelLayout kernelLayout>
-inline std::enable_if_t<loadMasks && kernelLayout == KernelLayout::r4xM, std::array<SimdBool, c_iClusterSize(kernelLayout)>>
+    inline std::enable_if_t<loadMasks && (kernelLayout == KernelLayout::r4xM || kernelLayout == KernelLayout::r8xM), std::array<SimdBool, c_iClusterSize(kernelLayout)>>
 loadSimdPairInteractionMasks(const int excl, SimdBitMask* filterBitMasksV)
 {
     using namespace gmx;
@@ -237,14 +237,28 @@ inline void accumulateGroupPairEnergies2xMM(SimdReal energies,
     }
 }
 
+//! Returns the sum of all elements in the list
+template<std::size_t nR>
+inline SimdReal sum(const std::array<SimdReal, nR>& list)
+{
+    SimdReal sum = list[0];
+
+    for (std::size_t i = 1; i < nR; i++)
+    {
+        sum = sum + list[i];
+    }
+
+    return sum;
+}
+
 //! Return the number of atoms pairs that are within the cut-off distance
-template<int nR>
-inline int pairCountWithinCutoff(SimdReal rSquaredV[nR], SimdReal cutoffSquared)
+template<std::size_t nR>
+inline int pairCountWithinCutoff(const std::array<SimdReal, nR>& rSquaredV, SimdReal cutoffSquared)
 {
     alignas(GMX_SIMD_ALIGNMENT) real tmp[GMX_SIMD_REAL_WIDTH];
 
     int npair = 0;
-    for (int i = 0; i < nR; i++)
+    for (std::size_t i = 0; i < nR; i++)
     {
         store(tmp, cutoffSquared - rSquaredV[i]);
         for (int j = 0; j < GMX_SIMD_REAL_WIDTH; j++)

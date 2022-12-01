@@ -493,49 +493,23 @@ static void calc_bounding_box(int na, int stride, const real* x, BoundingBox* bb
 }
 
 /*! \brief Computes the bounding box for na packed coordinates, bb order xyz0 */
-static void calc_bounding_box_x_x4(int na, const real* x, BoundingBox* bb)
+template<int packSize>
+static void calc_bounding_box_packed(int na, const real* x, BoundingBox* bb)
 {
-    real xl = x[XX * c_packX4];
-    real xh = x[XX * c_packX4];
-    real yl = x[YY * c_packX4];
-    real yh = x[YY * c_packX4];
-    real zl = x[ZZ * c_packX4];
-    real zh = x[ZZ * c_packX4];
+    real xl = x[XX * packSize];
+    real xh = x[XX * packSize];
+    real yl = x[YY * packSize];
+    real yh = x[YY * packSize];
+    real zl = x[ZZ * packSize];
+    real zh = x[ZZ * packSize];
     for (int j = 1; j < na; j++)
     {
-        xl = std::min(xl, x[j + XX * c_packX4]);
-        xh = std::max(xh, x[j + XX * c_packX4]);
-        yl = std::min(yl, x[j + YY * c_packX4]);
-        yh = std::max(yh, x[j + YY * c_packX4]);
-        zl = std::min(zl, x[j + ZZ * c_packX4]);
-        zh = std::max(zh, x[j + ZZ * c_packX4]);
-    }
-    /* Note: possible double to float conversion here */
-    bb->lower.x = R2F_D(xl);
-    bb->lower.y = R2F_D(yl);
-    bb->lower.z = R2F_D(zl);
-    bb->upper.x = R2F_U(xh);
-    bb->upper.y = R2F_U(yh);
-    bb->upper.z = R2F_U(zh);
-}
-
-/*! \brief Computes the bounding box for na coordinates, bb order xyz0 */
-static void calc_bounding_box_x_x8(int na, const real* x, BoundingBox* bb)
-{
-    real xl = x[XX * c_packX8];
-    real xh = x[XX * c_packX8];
-    real yl = x[YY * c_packX8];
-    real yh = x[YY * c_packX8];
-    real zl = x[ZZ * c_packX8];
-    real zh = x[ZZ * c_packX8];
-    for (int j = 1; j < na; j++)
-    {
-        xl = std::min(xl, x[j + XX * c_packX8]);
-        xh = std::max(xh, x[j + XX * c_packX8]);
-        yl = std::min(yl, x[j + YY * c_packX8]);
-        yh = std::max(yh, x[j + YY * c_packX8]);
-        zl = std::min(zl, x[j + ZZ * c_packX8]);
-        zh = std::max(zh, x[j + ZZ * c_packX8]);
+        xl = std::min(xl, x[j + XX * packSize]);
+        xh = std::max(xh, x[j + XX * packSize]);
+        yl = std::min(yl, x[j + YY * packSize]);
+        yh = std::max(yh, x[j + YY * packSize]);
+        zl = std::min(zl, x[j + ZZ * packSize]);
+        zh = std::max(zh, x[j + ZZ * packSize]);
     }
     /* Note: possible double to float conversion here */
     bb->lower.x = R2F_D(xl);
@@ -547,16 +521,19 @@ static void calc_bounding_box_x_x8(int na, const real* x, BoundingBox* bb)
 }
 
 /*! \brief Computes the bounding box for na packed coordinates, bb order xyz0 */
+template<int jClusterSize>
 gmx_unused static void calc_bounding_box_x_x4_halves(int na, const real* x, BoundingBox* bb, BoundingBox* bbj)
 {
     // TODO: During SIMDv2 transition only some archs use namespace (remove when done)
     using namespace gmx;
 
-    calc_bounding_box_x_x4(std::min(na, 2), x, bbj);
+    constexpr int packSize = (jClusterSize == 2 ? c_packX4 : c_packX8);
 
-    if (na > 2)
+    calc_bounding_box_packed<packSize>(std::min(na, jClusterSize), x, bbj);
+
+    if (na > jClusterSize)
     {
-        calc_bounding_box_x_x4(std::min(na - 2, 2), x + (c_packX4 >> 1), bbj + 1);
+        calc_bounding_box_packed<packSize>(std::min(na - jClusterSize, jClusterSize), x + ((jClusterSize == 2 ? c_packX4 : c_packX8) >> 1), bbj + 1);
     }
     else
     {
@@ -669,12 +646,15 @@ static void combine_bounding_box_pairs(const Grid&                      grid,
     // TODO: During SIMDv2 transition only some archs use namespace (remove when done)
     using namespace gmx;
 
+    const int iClusterSize    = grid.geometry().numAtomsICluster;
+    const int logIClusterSize = grid.geometry().numAtomsICluster2Log;
+
     for (int i = 0; i < grid.numColumns(); i++)
     {
         /* Starting bb in a column is expected to be 2-aligned */
         const int sc2 = grid.firstCellInColumn(i) >> 1;
         /* For odd numbers skip the last bb here */
-        const int nc2 = (grid.numAtomsInColumn(i) + 3) >> (2 + 1);
+        const int nc2 = (grid.numAtomsInColumn(i) + iClusterSize - 1) >> (logIClusterSize + 1);
         for (int c2 = sc2; c2 < sc2 + nc2; c2++)
         {
 #if NBNXN_SEARCH_BB_SIMD4
@@ -689,7 +669,7 @@ static void combine_bounding_box_pairs(const Grid&                      grid,
             bbj[c2].upper = BoundingBox::Corner::max(bb[c2 * 2 + 0].upper, bb[c2 * 2 + 1].upper);
 #endif
         }
-        if (((grid.numAtomsInColumn(i) + 3) >> 2) & 1)
+        if (((grid.numAtomsInColumn(i) + iClusterSize - 1) >> logIClusterSize) & 1)
         {
             /* The bb count in this column is odd: duplicate the last bb */
             int c2        = sc2 + nc2;
@@ -710,6 +690,15 @@ static void print_bbsizes_simple(FILE* fp, const Grid& grid)
         ba[XX] += bb.upper.x - bb.lower.x;
         ba[YY] += bb.upper.y - bb.lower.y;
         ba[ZZ] += bb.upper.z - bb.lower.z;
+    }
+    {
+        for (gmx::index c = 0; c < grid.jBoundingBoxes().ssize(); c++)
+        {
+            const BoundingBox& bb = grid.jBoundingBoxes()[c];
+            ba[XX] += bb.upper.x - bb.lower.x;
+            ba[YY] += bb.upper.y - bb.lower.y;
+            ba[ZZ] += bb.upper.z - bb.lower.z;
+        }
     }
     if (grid.numCells() > 0)
     {
@@ -940,7 +929,8 @@ void Grid::fillCell(GridSetData*                   gridSetData,
 #if GMX_SIMD && GMX_SIMD_REAL_WIDTH == 2
         if (2 * geometry_.numAtomsJCluster == geometry_.numAtomsICluster)
         {
-            calc_bounding_box_x_x4_halves(numAtoms,
+            GMX_ASSERT(geometry_.numAtomsJCluster == GMX_SIMD_REAL_WIDTH, "With i-clusters double the size of j-clusters, we expect the j-cluster size to match the SIMD width");
+            calc_bounding_box_x_x4_halves<GMX_SIMD_REAL_WIDTH>(numAtoms,
                                           nbat->x().data() + atom_to_x_index<c_packX4>(atomStart),
                                           bb_ptr,
                                           bbj_.data() + offset * 2);
@@ -948,7 +938,7 @@ void Grid::fillCell(GridSetData*                   gridSetData,
         else
 #endif
         {
-            calc_bounding_box_x_x4(numAtoms, nbat->x().data() + atom_to_x_index<c_packX4>(atomStart), bb_ptr);
+            calc_bounding_box_packed<c_packX4>(numAtoms, nbat->x().data() + atom_to_x_index<c_packX4>(atomStart), bb_ptr);
         }
     }
     else if (nbat->XFormat == nbatX8)
@@ -957,7 +947,20 @@ void Grid::fillCell(GridSetData*                   gridSetData,
         size_t       offset = atomToCluster(atomStart - cellOffset_ * geometry_.numAtomsICluster);
         BoundingBox* bb_ptr = bb_.data() + offset;
 
-        calc_bounding_box_x_x8(numAtoms, nbat->x().data() + atom_to_x_index<c_packX8>(atomStart), bb_ptr);
+#if GMX_SIMD && GMX_SIMD_REAL_WIDTH == 4
+        if (2 * geometry_.numAtomsJCluster == geometry_.numAtomsICluster)
+        {
+            GMX_ASSERT(geometry_.numAtomsJCluster == GMX_SIMD_REAL_WIDTH, "With i-clusters double the size of j-clusters, we expect the j-cluster size to match the SIMD width");
+            calc_bounding_box_x_x4_halves<GMX_SIMD_REAL_WIDTH>(numAtoms,
+                                          nbat->x().data() + atom_to_x_index<c_packX8>(atomStart),
+                                          bb_ptr,
+                                          bbj_.data() + offset * 2);
+        }
+        else
+#endif
+        {
+            calc_bounding_box_packed<c_packX8>(numAtoms, nbat->x().data() + atom_to_x_index<c_packX8>(atomStart), bb_ptr);
+        }
     }
 #if NBNXN_BBXXXX
     else if (!geometry_.isSimple)

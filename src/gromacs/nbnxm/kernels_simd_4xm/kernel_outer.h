@@ -277,13 +277,13 @@
             // Compute self interaction energies, when present
             const bool do_self = haveLJEwaldGeometric || do_coul;
 
-#if UNROLLJ == 4
+#if UNROLLJ == UNROLLI
             if (do_self && l_cj[ciEntry.cj_ind_start].cj == ci_sh)
 #endif
-#if UNROLLJ == 2
+#if 2 * UNROLLJ == UNROLLI
                 if (do_self && l_cj[ciEntry.cj_ind_start].cj == (ci_sh << 1))
 #endif
-#if UNROLLJ == 8
+#if UNROLLJ == 2 * UNROLLI
                     if (do_self && l_cj[ciEntry.cj_ind_start].cj == (ci_sh >> 1))
 #endif
                     {

@@ -73,6 +73,9 @@
 #ifdef GMX_NBNXN_SIMD_4XN
 #    include "kernels_simd_4xm/kernels.h"
 #endif
+#ifdef GMX_NBNXN_SIMD_8XN
+#    include "kernels_simd_8xm/kernels.h"
+#endif
 #undef INCLUDE_FUNCTION_TABLES
 
 /*! \brief Clears the energy group output buffers
@@ -334,6 +337,11 @@ static void nbnxn_kernel_cpu(const PairlistSet&             pairlistSet,
                     nbnxm_kernel_ener_simd_4xm[coulkt][vdwkt](pairlist, nbat, &ic, shiftVecPointer, out);
                     break;
 #endif
+#ifdef GMX_NBNXN_SIMD_8XN
+                case Nbnxm::KernelType::Cpu8xN_Simd_8xN:
+                    nbnxm_kernel_ener_simd_8xm[coulkt][vdwkt](pairlist, nbat, &ic, shiftVecPointer, out);
+                    break;
+#endif
                 default: GMX_RELEASE_ASSERT(false, "Unsupported kernel architecture");
             }
         }
@@ -356,6 +364,11 @@ static void nbnxn_kernel_cpu(const PairlistSet&             pairlistSet,
 #ifdef GMX_NBNXN_SIMD_4XN
                 case Nbnxm::KernelType::Cpu4xN_Simd_4xN:
                     nbnxm_kernel_energrp_simd_4xm[coulkt][vdwkt](pairlist, nbat, &ic, shiftVecPointer, out);
+                    break;
+#endif
+#ifdef GMX_NBNXN_SIMD_8XN
+                case Nbnxm::KernelType::Cpu8xN_Simd_8xN:
+                    nbnxm_kernel_energrp_simd_8xm[coulkt][vdwkt](pairlist, nbat, &ic, shiftVecPointer, out);
                     break;
 #endif
                 default: GMX_RELEASE_ASSERT(false, "Unsupported kernel architecture");

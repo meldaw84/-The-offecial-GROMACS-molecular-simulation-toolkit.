@@ -67,8 +67,12 @@ static inline constexpr int c_iClusterSize(const KernelLayout kernelLayout)
     {
         case KernelLayout::r4xM: return 4;
         case KernelLayout::r2xMM: return 4;
-        case KernelLayout::r8xM: return 4;
+        case KernelLayout::r8xM: return 8;
     }
+
+    GMX_RELEASE_ASSERT(false, "Unhandled case");
+
+    return 0;
 }
 
 #if GMX_SIMD && GMX_USE_SIMD_KERNELS
@@ -82,6 +86,10 @@ static inline constexpr int c_jClusterSize(const KernelLayout kernelLayout)
         case KernelLayout::r2xMM: return GMX_SIMD_REAL_WIDTH / 2;
         case KernelLayout::r8xM: return GMX_SIMD_REAL_WIDTH;
     }
+
+    GMX_RELEASE_ASSERT(false, "Unhandled case");
+
+    return 0;
 }
 
 /*! \brief The nbnxn SIMD 4xN and 2x(N+N) kernels can be added independently.
@@ -122,7 +130,7 @@ static constexpr bool c_useTableFormatFDV0 = false;
 template<int N, class F>
 std::array<gmx::SimdReal, N> genArr(F f)
 {
-    static_assert(N <= 2 || N == 4);
+    static_assert(N <= 2 || N == 4 || N == 8);
 
     if constexpr (N == 0)
     {
@@ -136,9 +144,13 @@ std::array<gmx::SimdReal, N> genArr(F f)
     {
         return std::array<gmx::SimdReal, 2>{ f(0), f(1) };
     }
-    else
+    else if constexpr (N == 4)
     {
         return std::array<gmx::SimdReal, 4>{ f(0), f(1), f(2), f(3) };
+    }
+    else
+    {
+        return std::array<gmx::SimdReal, 8>{ f(0), f(1), f(2), f(3), f(4), f(5), f(6), f(7) };
     }
 }
 
@@ -154,7 +166,7 @@ std::array<gmx::SimdReal, N> genArr(F f)
 template<int N, class F>
 std::array<gmx::SimdBool, N> genBoolArr(F f)
 {
-    static_assert(N <= 2 || N == 4);
+    static_assert(N <= 2 || N == 4 || N == 8);
 
     if constexpr (N == 0)
     {
@@ -168,9 +180,13 @@ std::array<gmx::SimdBool, N> genBoolArr(F f)
     {
         return std::array<gmx::SimdBool, 2>{ f(0), f(1) };
     }
-    else
+    else if constexpr (N == 4)
     {
         return std::array<gmx::SimdBool, 4>{ f(0), f(1), f(2), f(3) };
+    }
+    else
+    {
+        return std::array<gmx::SimdBool, 8>{ f(0), f(1), f(2), f(3), f(4), f(5), f(6), f(7) };
     }
 }
 

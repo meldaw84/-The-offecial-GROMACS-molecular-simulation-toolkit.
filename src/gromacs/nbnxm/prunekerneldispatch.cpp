@@ -37,6 +37,7 @@
 #include "kernels_reference/kernel_ref_prune.h"
 #include "kernels_simd_2xmm/kernel_prune.h"
 #include "kernels_simd_4xm/kernel_prune.h"
+#include "kernels_simd_8xm/kernel_prune.h"
 
 #include "gromacs/mdlib/gmx_omp_nthreads.h"
 #include "gromacs/nbnxm/nbnxm.h"
@@ -81,6 +82,11 @@ void PairlistSet::dispatchPruneKernel(const nbnxn_atomdata_t* nbat, gmx::ArrayRe
 #ifdef GMX_NBNXN_SIMD_2XNN
             case ClusterDistanceKernelType::CpuSimd_2xMM:
                 nbnxn_kernel_prune_2xnn(nbl, nbat, shift_vec, rlistInner);
+                break;
+#endif
+#ifdef GMX_NBNXN_SIMD_4XN
+            case ClusterDistanceKernelType::CpuSimd_8xM:
+                nbnxn_kernel_prune_8xn(nbl, nbat, shift_vec, rlistInner);
                 break;
 #endif
             case ClusterDistanceKernelType::CpuPlainC:
