@@ -1360,7 +1360,7 @@ void Dssp::initOptions(IOptionsContainer* options, TrajectoryAnalysisSettings* s
         "have a "
         "hydrogen bond instead of simply iterating over the residues among themselves.[PAR]"
         "[TT]-cutoff[tt] is a real value that defines maximum distance from residue to its "
-        "neighbour-residue."
+        "neighbour residue."
         "Only makes sense when using with [TT]-nb nbsearch[tt] option. Recommended value is "
         "0,9.[PAR]"
         "[TT]-pihelix[tt] changes pattern-search algorithm towards preference of pi-helices.[PAR]"
