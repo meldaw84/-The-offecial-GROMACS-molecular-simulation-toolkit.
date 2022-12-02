@@ -26,7 +26,7 @@ gromacs:gcc-11-cuda-11.7.1:configureMPI:
   variables:
     CMAKE: /usr/local/cmake-3.18.4/bin/cmake
     CMAKE_SIMD_OPTIONS: "-DGMX_SIMD=SSE4.1"
-    CMAKE_EXTRA_OPTIONS: "-DGMX_USE_CUFFTMP=ON -DcuFFTMp_ROOT=/opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs/11.7/lib64 -DcuFFTMp_INCLUDE_DIR=/opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs/11.7/include/cufftmp"
+    CMAKE_EXTRA_OPTIONS: "-DGMX_USE_CUFFTMP=ON -DcuFFTMp_ROOT=/opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs"
     COMPILER_MAJOR_VERSION: 11
 
 gromacs:gcc-11-cuda-11.7.1:buildMPI:
@@ -53,8 +53,12 @@ gromacs:gcc-11-cuda-11.7.1:testMPI:
     KUBERNETES_EXTENDED_RESOURCE_LIMIT: 1
     GMX_ENABLE_DIRECT_GPU_COMM: 1
     GMX_GPU_PME_DECOMPOSITION: 1
-    GMX_GPU_PME_DECOMPOSITION_CUFFTMP: 1
+    # Flag that cuFFTMp should be disabled when running on incompatible devices
+    GMX_CI_DISABLE_CUFFTMP_DECOMPOSITION_ON_INCOMPATIBLE_DEVICES: 1
+    # Location of CUDA FFT library, required for preload to avoid cuFFTMp on incompatible devices 
     CUFFTLIB: "/opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs/11.7/lib64/libcufft.so"
+    # cuFFTMp uses NVSHMEM, which in turn will use NCCL on single-node when available
+    # But NCCL has extra restrictions (such as only 1 rank per GPU) so we disable for CI
     NVSHMEM_DISABLE_NCCL: 1
     GMX_TEST_LABELS: "QuickGpuTest|SlowGpuTest"
   tags:
