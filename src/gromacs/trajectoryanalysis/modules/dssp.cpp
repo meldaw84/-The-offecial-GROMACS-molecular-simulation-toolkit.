@@ -59,6 +59,7 @@
 #include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/trajectoryanalysis/analysissettings.h"
 #include "gromacs/trajectoryanalysis/topologyinformation.h"
+#include "gromacs/utility/fatalerror.h"
 
 namespace gmx
 {
@@ -398,8 +399,8 @@ public:
      */
     void analyseTopology(const TopologyInformation& top, Selection& sel_, HydrogenMode& transferedHMode);
     /*! \brief
-     * Function that checks if ResVector_ is empty. Used after parsing topology data. If it is empty after
-     * running analyseTopology(), then some error has occurred.
+     * Function that checks if ResVector_ is empty. Used after parsing topology data. If it is empty
+     * after running analyseTopology(), then some error has occurred.
      */
     bool tolopogyIsIncorrect() const;
     /*! \brief
@@ -570,7 +571,8 @@ void SecondaryStructures::analyseTopology(const TopologyInformation& top, Select
     }
 }
 
-bool SecondaryStructures::tolopogyIsIncorrect() const{
+bool SecondaryStructures::tolopogyIsIncorrect() const
+{
     return (resVector_.empty());
 }
 
@@ -885,7 +887,8 @@ std::string SecondaryStructures::performPatternSearch(const t_trxframe& fr,
 {
     if (resVector_.empty())
     {
-        throw std::runtime_error(
+        gmx_fatal(
+                FARGS,
                 "Invalid usage of this function. You have to load topology information before. Run "
                 "analyseTopology(...) first.");
     }
@@ -1158,7 +1161,11 @@ void SecondaryStructures::calculateDihedrals(const t_trxframe& fr, const t_pbc* 
                 }
                 break;
             }
-            default: throw std::runtime_error("Unsupported stretch length");
+            default:
+            {
+                std::cerr << "Unsupported stretch length" << std::endl;
+                throw std::runtime_error("Unsupported stretch length");
+            }
         }
     }
 }
@@ -1371,7 +1378,8 @@ void Dssp::initOptions(IOptionsContainer* options, TrajectoryAnalysisSettings* s
         "hydrogen bond instead of simply iterating over the residues among themselves.[PAR]"
         "[TT]-cutoff[tt] is a real value that defines maximum distance from residue to its "
         "neighbour residue."
-        "Only makes sense when using with [TT]-nb nbsearch[tt] option. Minimum (and also recommended)"
+        "Only makes sense when using with [TT]-nb nbsearch[tt] option. Minimum (and also "
+        "recommended)"
         " value is 0,9.[PAR]"
         "[TT]-pihelix[tt] changes pattern-search algorithm towards preference of pi-helices.[PAR]"
         "[TT]-ppstretch[tt] defines strech value of polyproline-helices. \"Shortened\" means "
@@ -1414,7 +1422,7 @@ void Dssp::optionsFinished(TrajectoryAnalysisSettings* /* settings */)
 {
     if (cutoff_ < real(0.9))
     {
-        throw std::runtime_error("Invalid cutoff value. It must be >= 0,9.");
+        gmx_fatal(FARGS, "Invalid cutoff value. It must be >= 0,9.");
     }
 }
 
@@ -1423,14 +1431,18 @@ void Dssp::initAnalysis(const TrajectoryAnalysisSettings& /* settings */, const 
     patternSearch_.analyseTopology(top, sel_, hMode_);
 }
 
-void Dssp::initAfterFirstFrame(const TrajectoryAnalysisSettings& /* settings */, const t_trxframe& /* fr */){
+void Dssp::initAfterFirstFrame(const TrajectoryAnalysisSettings& /* settings */, const t_trxframe& /* fr */)
+{
     if (patternSearch_.tolopogyIsIncorrect())
     {
-        std::string error_desc = "From these inputs, it is not possible to obtain proper information about the patterns of hydrogen bonds.";
-        if(hMode_ != HydrogenMode::Dssp){
+        std::string error_desc =
+                "From these inputs, it is not possible to obtain proper information about the "
+                "patterns of hydrogen bonds.";
+        if (hMode_ != HydrogenMode::Dssp)
+        {
             error_desc += " Maybe you should add the \"-hmode dssp\" option?";
         }
-        throw std::runtime_error(error_desc);
+        gmx_fatal(FARGS, "%s", error_desc.c_str());
     }
 }
 

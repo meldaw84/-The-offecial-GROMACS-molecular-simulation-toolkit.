@@ -50,9 +50,10 @@
 #include <gtest/gtest-param-test.h>
 #include <gtest/gtest.h>
 
+#include "gromacs/utility/stringutil.h"
+
 #include "testutils/cmdlinetest.h"
 #include "testutils/textblockmatchers.h"
-#include "gromacs/utility/stringutil.h"
 
 #include "moduletest.h"
 
@@ -67,9 +68,9 @@ namespace
  * Tests for gmx::analysismodules::Dssp.
  */
 
-using DsspTestParamsDSSPNB = std::tuple<const char*, real>;
-using DsspTestParamsGROMACSNB = std::tuple<const char*, real>;
-using DsspTestParamsDSSPNoNB = const char*;
+using DsspTestParamsDSSPNB      = std::tuple<const char*, real>;
+using DsspTestParamsGROMACSNB   = std::tuple<const char*, real>;
+using DsspTestParamsDSSPNoNB    = const char*;
 using DsspTestParamsGROMACSNoNB = const char*;
 
 //! Test fixture for the dssp analysis module.
@@ -110,7 +111,9 @@ TEST_P(DsspModuleTestDSSPNB, )
     CommandLine command(cmdline);
     setTopology(fin.c_str());
     setTrajectory(fin.c_str());
-    setOutputFile("-o", formatString("%s-dssp-nb-%.1f.dat", finname.c_str(), std::get<1>(params)).c_str(), ExactTextMatch());
+    setOutputFile("-o",
+                  formatString("%s-dssp-nb-%.1f.dat", finname.c_str(), std::get<1>(params)).c_str(),
+                  ExactTextMatch());
     command.addOption("-hmode", "dssp");
     command.addOption("-nb");
     command.addOption("-cutoff", std::get<1>(params));
@@ -142,7 +145,6 @@ INSTANTIATE_TEST_SUITE_P(MoleculeTests,
                                             ::testing::Values(0.9, 2.0)));
 
 
-
 // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
 TEST_P(DsspModuleTestGROMACSNB, )
 {
@@ -154,19 +156,20 @@ TEST_P(DsspModuleTestGROMACSNB, )
     CommandLine command(cmdline);
     setTopology(fin.c_str());
     setTrajectory(fin.c_str());
-    setOutputFile("-o", formatString("%s-gromacs-nb-%.1f.dat", finname.c_str(), std::get<1>(params)).c_str(), ExactTextMatch());
+    setOutputFile("-o",
+                  formatString("%s-gromacs-nb-%.1f.dat", finname.c_str(), std::get<1>(params)).c_str(),
+                  ExactTextMatch());
     command.addOption("-hmode", "gromacs");
     command.addOption("-nb");
     command.addOption("-cutoff", std::get<1>(params));
     runTest(command);
 }
 
-INSTANTIATE_TEST_SUITE_P(MoleculeTests,
-                         DsspModuleTestGROMACSNB,
-                         ::testing::Combine(::testing::Values("hdac.pdb",
-                                                              "RNAseA.pdb",
-                                                              "zyncfinger.pdb"),
-                                            ::testing::Values(0.9, 2.0)));
+INSTANTIATE_TEST_SUITE_P(
+        MoleculeTests,
+        DsspModuleTestGROMACSNB,
+        ::testing::Combine(::testing::Values("hdac.pdb", "RNAseA.pdb", "zyncfinger.pdb"),
+                           ::testing::Values(0.9, 2.0)));
 
 // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
 TEST_P(DsspModuleTestDSSPNoNB, )
@@ -209,7 +212,6 @@ INSTANTIATE_TEST_SUITE_P(MoleculeTests,
                                            "6jet.pdb"));
 
 
-
 // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
 TEST_P(DsspModuleTestGROMACSNoNB, )
 {
@@ -229,9 +231,7 @@ TEST_P(DsspModuleTestGROMACSNoNB, )
 
 INSTANTIATE_TEST_SUITE_P(MoleculeTests,
                          DsspModuleTestGROMACSNoNB,
-                         ::testing::Values("hdac.pdb",
-                                           "RNAseA.pdb",
-                                           "zyncfinger.pdb"));
+                         ::testing::Values("hdac.pdb", "RNAseA.pdb", "zyncfinger.pdb"));
 
 
 //    command.addOption("-nonb");
