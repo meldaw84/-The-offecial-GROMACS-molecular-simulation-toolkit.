@@ -397,7 +397,7 @@ public:
     /*! \brief
      * Function that parses topology to construct vector containing information about the residues.
      */
-    void analyseTopology(const TopologyInformation& top, Selection& sel_, HydrogenMode& transferedHMode);
+    void analyseTopology(const TopologyInformation& top, Selection const& sel_, HydrogenMode const& transferedHMode);
     /*! \brief
      * Function that checks if ResVector_ is empty. Used after parsing topology data. If it is empty
      * after running analyseTopology(), then some error has occurred.
@@ -495,9 +495,11 @@ private:
     void calculateHBondEnergy(ResInfo* Donor, ResInfo* Acceptor, const t_trxframe& fr, const t_pbc* pbc);
 };
 
-void SecondaryStructures::analyseTopology(const TopologyInformation& top, Selection& sel_, HydrogenMode& parsedHMode)
+void SecondaryStructures::analyseTopology(const TopologyInformation& top,
+                                          Selection const&           sel_,
+                                          HydrogenMode const&        transferedHMode)
 {
-    hMode_ = parsedHMode;
+    hMode_ = transferedHMode;
     int resicompare =
             top.atoms()->atom[static_cast<std::size_t>(*(sel_.atomIndices().begin()))].resind - 1;
     for (gmx::ArrayRef<const int>::iterator ai = sel_.atomIndices().begin();
@@ -512,7 +514,7 @@ void SecondaryStructures::analyseTopology(const TopologyInformation& top, Select
             std::string proLINE     = *(resVector_.back().info_->name);
             if (proLINE == "PRO")
             {
-                resVector_[resicompare].isProline_ = true;
+                resVector_.back().isProline_ = true;
             }
         }
         std::string atomname(*(top.atoms()->atomname[static_cast<std::size_t>(*ai)]));
@@ -1161,11 +1163,7 @@ void SecondaryStructures::calculateDihedrals(const t_trxframe& fr, const t_pbc* 
                 }
                 break;
             }
-            default:
-            {
-                std::cerr << "Unsupported stretch length" << std::endl;
-                throw std::runtime_error("Unsupported stretch length");
-            }
+            default: gmx_fatal(FARGS, "Unsupported stretch length");
         }
     }
 }
