@@ -398,6 +398,11 @@ public:
      */
     void analyseTopology(const TopologyInformation& top, Selection& sel_, HydrogenMode& transferedHMode);
     /*! \brief
+     * Function that checks if ResVector_ is empty. Used after parsing topology data. If it is empty after
+     * running analyseTopology(), then some error has occurred.
+     */
+    bool tolopogyIsIncorrect() const;
+    /*! \brief
      * Complex function that provides h-bond patterns search and returns string of one-letter secondary structure definitions.
      */
     std::string performPatternSearch(const t_trxframe& fr,
@@ -563,6 +568,10 @@ void SecondaryStructures::analyseTopology(const TopologyInformation& top, Select
         resVector_[i].prevResi_     = &(resVector_[i - 1]);
         resVector_[i - 1].nextResi_ = &(resVector_[i]);
     }
+}
+
+bool SecondaryStructures::tolopogyIsIncorrect() const{
+    return (resVector_.empty());
 }
 
 void SecondaryStructures::analyzeFrame(const t_trxframe& fr, t_pbc* pbc, bool nBSmode_, real cutoff_)
@@ -1322,6 +1331,7 @@ public:
     void initOptions(IOptionsContainer* options, TrajectoryAnalysisSettings* settings) override;
     void optionsFinished(TrajectoryAnalysisSettings* settings) override;
     void initAnalysis(const TrajectoryAnalysisSettings& settings, const TopologyInformation& top) override;
+    void initAfterFirstFrame(const TrajectoryAnalysisSettings& settings, const t_trxframe& fr) override;
     void analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* pbc, TrajectoryAnalysisModuleData* pdata) override;
     void finishAnalysis(int nframes) override;
     void writeOutput() override;
@@ -1361,8 +1371,8 @@ void Dssp::initOptions(IOptionsContainer* options, TrajectoryAnalysisSettings* s
         "hydrogen bond instead of simply iterating over the residues among themselves.[PAR]"
         "[TT]-cutoff[tt] is a real value that defines maximum distance from residue to its "
         "neighbour residue."
-        "Only makes sense when using with [TT]-nb nbsearch[tt] option. Recommended value is "
-        "0,9.[PAR]"
+        "Only makes sense when using with [TT]-nb nbsearch[tt] option. Minimum (and also recommended)"
+        " value is 0,9.[PAR]"
         "[TT]-pihelix[tt] changes pattern-search algorithm towards preference of pi-helices.[PAR]"
         "[TT]-ppstretch[tt] defines strech value of polyproline-helices. \"Shortened\" means "
         "strech with"
@@ -1389,7 +1399,7 @@ void Dssp::initOptions(IOptionsContainer* options, TrajectoryAnalysisSettings* s
     options->addOption(BooleanOption("nb").store(&nBSmode_).defaultValue(true).description(
             "Use gromacs neighbors search method"));
     options->addOption(RealOption("cutoff").store(&cutoff_).required().defaultValue(0.9).description(
-            "Distance from residue to its neighbour residue in neighbour search"));
+            "Distance from residue to its neighbour residue in neighbour search. Must be >= 0,9."));
     options->addOption(
             BooleanOption("pihelix").store(&pPHelices_).defaultValue(true).description("Prefer Pi Helices"));
     options->addOption(EnumOption<PPStretches>("ppstretch")
@@ -1400,11 +1410,28 @@ void Dssp::initOptions(IOptionsContainer* options, TrajectoryAnalysisSettings* s
     settings->setHelpText(desc);
 }
 
-void Dssp::optionsFinished(TrajectoryAnalysisSettings* /* settings */) {}
+void Dssp::optionsFinished(TrajectoryAnalysisSettings* /* settings */)
+{
+    if (cutoff_ < real(0.9))
+    {
+        throw std::runtime_error("Invalid cutoff value. It must be >= 0,9.");
+    }
+}
 
 void Dssp::initAnalysis(const TrajectoryAnalysisSettings& /* settings */, const TopologyInformation& top)
 {
     patternSearch_.analyseTopology(top, sel_, hMode_);
+}
+
+void Dssp::initAfterFirstFrame(const TrajectoryAnalysisSettings& /* settings */, const t_trxframe& /* fr */){
+    if (patternSearch_.tolopogyIsIncorrect())
+    {
+        std::string error_desc = "From these inputs, it is not possible to obtain proper information about the patterns of hydrogen bonds.";
+        if(hMode_ != HydrogenMode::Dssp){
+            error_desc += " Maybe you should add the \"-hmode dssp\" option?";
+        }
+        throw std::runtime_error(error_desc);
+    }
 }
 
 void Dssp::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* pbc, TrajectoryAnalysisModuleData* /* pdata */)

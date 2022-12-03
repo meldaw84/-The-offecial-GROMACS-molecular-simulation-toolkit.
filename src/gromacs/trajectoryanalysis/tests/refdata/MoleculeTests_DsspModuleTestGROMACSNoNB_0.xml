@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="referencedata.xsl"?>
+<ReferenceData>
+  <String Name="CommandLine">dssp -hmode gromacs -nonb</String>
+  <OutputFiles Name="Files">
+    <File Name="-o">
+      <String Name="Contents"><![CDATA[
+~EEEEE~S~~TTS~~=~~~=~~~=~~HHHHHHHHTTT~~~GGGEEE~~=~~HHHHTTTS~HHHHHHHHHHHHHT~~=~~HHHHH~~STTT~=~~TTTTHHHHHHHHHHHHHHHHHHTT~EEE~=~~~~~S~~SS~~~SS~~S~~=~HHHHHHHHHT~~~EEEEE~~SS~~SHHHHTTTT~TTEEEEE~~~~=~~~~=~~~~~TT~~~STTTTT~~EE~=~=~~B~HHHHHHHHHHHHHHHHHH~~=~EEEEE~~~~=~TT~SS~~B~~~HHHHHHHHHHHHHHH~S~EEE~~S~~~=~~HHHHHHHHHHHHTT~~~=~B~~HHHHHHHHSS~~~~~~~S~~~TTGGGBS~~=~~~~PPPHHHHHHHHTT~
+]]></String>
+    </File>
+  </OutputFiles>
+</ReferenceData>

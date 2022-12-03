@@ -52,6 +52,7 @@
 
 #include "testutils/cmdlinetest.h"
 #include "testutils/textblockmatchers.h"
+#include "gromacs/utility/stringutil.h"
 
 #include "moduletest.h"
 
@@ -66,35 +67,58 @@ namespace
  * Tests for gmx::analysismodules::Dssp.
  */
 
-using DsspTestParams = std::tuple<const char*, real, const char*, const char*>;
+using DsspTestParamsDSSPNB = std::tuple<const char*, real>;
+using DsspTestParamsGROMACSNB = std::tuple<const char*, real>;
+using DsspTestParamsDSSPNoNB = const char*;
+using DsspTestParamsGROMACSNoNB = const char*;
 
 //! Test fixture for the dssp analysis module.
-class DsspModuleTest :
+class DsspModuleTestDSSPNB :
     public TrajectoryAnalysisModuleTestFixture<gmx::analysismodules::DsspInfo>,
-    public ::testing::WithParamInterface<DsspTestParams>
+    public ::testing::WithParamInterface<DsspTestParamsDSSPNB>
+{
+};
+
+//! Test fixture for the dssp analysis module.
+class DsspModuleTestGROMACSNB :
+    public TrajectoryAnalysisModuleTestFixture<gmx::analysismodules::DsspInfo>,
+    public ::testing::WithParamInterface<DsspTestParamsGROMACSNB>
+{
+};
+//! Test fixture for the dssp analysis module.
+class DsspModuleTestDSSPNoNB :
+    public TrajectoryAnalysisModuleTestFixture<gmx::analysismodules::DsspInfo>,
+    public ::testing::WithParamInterface<DsspTestParamsDSSPNoNB>
+{
+};
+
+//! Test fixture for the dssp analysis module.
+class DsspModuleTestGROMACSNoNB :
+    public TrajectoryAnalysisModuleTestFixture<gmx::analysismodules::DsspInfo>,
+    public ::testing::WithParamInterface<DsspTestParamsGROMACSNoNB>
 {
 };
 
 // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-TEST_P(DsspModuleTest, SecondaryStructuresTest)
+TEST_P(DsspModuleTestDSSPNB, )
 {
     auto              params    = GetParam();
     const char* const cmdline[] = { "dssp" };
     std::string       fin(std::get<0>(params));
     // replace pdb in filename with dat to construct uniq output names
-    std::string fout = std::regex_replace(fin, std::regex("\\.pdb"), ".dat");
+    std::string finname = std::regex_replace(fin, std::regex("\\.pdb"), "");
     CommandLine command(cmdline);
-    command.addOption("-cutoff", std::get<1>(params));
-    command.addOption("-hmode", std::get<2>(params));
-    command.addOption("-nb", std::get<3>(params));
     setTopology(fin.c_str());
     setTrajectory(fin.c_str());
-    setOutputFile("-o", fout.c_str(), ExactTextMatch());
+    setOutputFile("-o", formatString("%s-dssp-nb-%.1f.dat", finname.c_str(), std::get<1>(params)).c_str(), ExactTextMatch());
+    command.addOption("-hmode", "dssp");
+    command.addOption("-nb");
+    command.addOption("-cutoff", std::get<1>(params));
     runTest(command);
 }
 
 INSTANTIATE_TEST_SUITE_P(MoleculeTests,
-                         DsspModuleTest,
+                         DsspModuleTestDSSPNB,
                          ::testing::Combine(::testing::Values("1cos.pdb",
                                                               "1hlc.pdb",
                                                               "1vzj.pdb",
@@ -115,10 +139,103 @@ INSTANTIATE_TEST_SUITE_P(MoleculeTests,
                                                               "5i2b.pdb",
                                                               "5t8z.pdb",
                                                               "6jet.pdb"),
-                                            ::testing::Values(0.9, 2.0),
-                                            ::testing::Values("dssp", "gromacs"),
-                                            ::testing::Values("nb", "direct")));
+                                            ::testing::Values(0.9, 2.0)));
 
+
+
+// NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+TEST_P(DsspModuleTestGROMACSNB, )
+{
+    auto              params    = GetParam();
+    const char* const cmdline[] = { "dssp" };
+    std::string       fin(std::get<0>(params));
+    // replace pdb in filename with dat to construct uniq output names
+    std::string finname = std::regex_replace(fin, std::regex("\\.pdb"), "");
+    CommandLine command(cmdline);
+    setTopology(fin.c_str());
+    setTrajectory(fin.c_str());
+    setOutputFile("-o", formatString("%s-gromacs-nb-%.1f.dat", finname.c_str(), std::get<1>(params)).c_str(), ExactTextMatch());
+    command.addOption("-hmode", "gromacs");
+    command.addOption("-nb");
+    command.addOption("-cutoff", std::get<1>(params));
+    runTest(command);
+}
+
+INSTANTIATE_TEST_SUITE_P(MoleculeTests,
+                         DsspModuleTestGROMACSNB,
+                         ::testing::Combine(::testing::Values("hdac.pdb",
+                                                              "RNAseA.pdb",
+                                                              "zyncfinger.pdb"),
+                                            ::testing::Values(0.9, 2.0)));
+
+// NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+TEST_P(DsspModuleTestDSSPNoNB, )
+{
+    auto              params    = GetParam();
+    const char* const cmdline[] = { "dssp" };
+    std::string       fin(params);
+    // replace pdb in filename with dat to construct uniq output names
+    std::string finname = std::regex_replace(fin, std::regex("\\.pdb"), "");
+    CommandLine command(cmdline);
+    setTopology(fin.c_str());
+    setTrajectory(fin.c_str());
+    setOutputFile("-o", formatString("%s-dssp-nonb.dat", finname.c_str()).c_str(), ExactTextMatch());
+    command.addOption("-hmode", "dssp");
+    command.addOption("-nonb");
+    runTest(command);
+}
+
+INSTANTIATE_TEST_SUITE_P(MoleculeTests,
+                         DsspModuleTestDSSPNoNB,
+                         ::testing::Values("1cos.pdb",
+                                           "1hlc.pdb",
+                                           "1vzj.pdb",
+                                           "3byc.pdb",
+                                           "3kyy.pdb",
+                                           "4r80.pdb",
+                                           "4xjf.pdb",
+                                           "5u5p.pdb",
+                                           "7wgh.pdb",
+                                           "1gmc.pdb",
+                                           "1v3y.pdb",
+                                           "1yiw.pdb",
+                                           "2os3.pdb",
+                                           "3u04.pdb",
+                                           "4r6c.pdb",
+                                           "4wxl.pdb",
+                                           "5cvq.pdb",
+                                           "5i2b.pdb",
+                                           "5t8z.pdb",
+                                           "6jet.pdb"));
+
+
+
+// NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+TEST_P(DsspModuleTestGROMACSNoNB, )
+{
+    auto              params    = GetParam();
+    const char* const cmdline[] = { "dssp" };
+    std::string       fin(params);
+    // replace pdb in filename with dat to construct uniq output names
+    std::string finname = std::regex_replace(fin, std::regex("\\.pdb"), "");
+    CommandLine command(cmdline);
+    setTopology(fin.c_str());
+    setTrajectory(fin.c_str());
+    setOutputFile("-o", formatString("%s-gromacs-nonb.dat", finname.c_str()).c_str(), ExactTextMatch());
+    command.addOption("-hmode", "gromacs");
+    command.addOption("-nonb");
+    runTest(command);
+}
+
+INSTANTIATE_TEST_SUITE_P(MoleculeTests,
+                         DsspModuleTestGROMACSNoNB,
+                         ::testing::Values("hdac.pdb",
+                                           "RNAseA.pdb",
+                                           "zyncfinger.pdb"));
+
+
+//    command.addOption("-nonb");
+//    setOutputFile("-o", formatString("%s-%s-nonb.dat", finname.c_str(), std::get<2>(params)).c_str(), ExactTextMatch());
 } // namespace
 } // namespace test
 } // namespace gmx
