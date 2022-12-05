@@ -391,7 +391,7 @@ std::string getDeviceInformationString(const DeviceInformation& deviceInfo)
     }
 }
 
-gmx::GpuAwareMpiStatus getDeviceGpuAwareMpiStatus(const DeviceInformation& deviceInfo)
+gmx::GpuAwareMpiStatus getDeviceGpuAwareMpiStatus(const DeviceInformation& /*deviceInfo*/)
 {
     return gmx::checkMpiCudaAwareSupport();
 }
