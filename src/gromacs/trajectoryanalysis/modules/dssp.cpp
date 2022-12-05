@@ -74,7 +74,7 @@ namespace
 struct DsspStorageFrame
 {
     //! Frame number.
-    int frnr_ = 0;
+    int frameNumber_ = 0;
     //! Frame dssp data.
     std::string dsspData_;
 };
@@ -88,7 +88,7 @@ public:
     /*! \brief
      * Function that storeges frame information in storage.
      */
-    void addData(int frnr_, const std::string& data);
+    void addData(int frameNumber_, const std::string& data);
     /*! \brief
      * Function that returns frame information from storage.
      */
@@ -104,7 +104,7 @@ private:
 void DsspStorage::addData(int frnr, const std::string& data)
 {
     DsspStorageFrame dsspData_;
-    dsspData_.frnr_     = frnr;
+    dsspData_.frameNumber_     = frnr;
     dsspData_.dsspData_ = data;
     data_.push_back(dsspData_);
 }
@@ -411,15 +411,15 @@ public:
                                      bool              transferednBSmode_,
                                      real              tranferedCutoff,
                                      bool              transferedPiHelicesPreference,
-                                     PPStretches       transferedPPStretch);
+                                     PPStretches       transferedPolyProStretch);
 
 private:
     //! Vector that contains h-bond pattern information-manipulating class for each residue in selection.
     std::vector<SecondaryStructuresData> secondaryStructuresStatusVector_;
     //! Vector of ResInfo struct that contains all important information about residues in the protein structure.
     std::vector<ResInfo> resVector_;
-    //! Function that parses information from a frame to determine hydrogen patterns.
-    void analyzeFrame(const t_trxframe& fr, t_pbc* pbc, bool nBSmode_, real cutoff);
+    //! Function that parses information from a frame to determine hydrogen bonds patterns.
+    void analyzeHydrogenBondsInFrame(const t_trxframe& fr, t_pbc* pbc, bool nBSmode_, real cutoff);
     //! Constant float value of h-bond energy. If h-bond energy within residues is smaller than that value, then h-bond exists.
     const float hBondEnergyCutOff_ = -0.5;
     //! Boolean value that indicates the priority of calculating pi-helices.
@@ -433,11 +433,11 @@ private:
     /*! \brief
      * Function that provides a simple test if a chain break exists within two residues of specific indices.
      */
-    bool NoChainBreaksBetween(std::size_t ResiA, std::size_t ResiB) const;
+    bool NoChainBreaksBetween(std::size_t residueA, std::size_t residueB) const;
     /*! \brief
      * Function that calculates if bridge or anti-bridge exists within two residues of specific indices.
      */
-    BridgeTypes calculateBridge(std::size_t ResiA, std::size_t ResiB) const;
+    BridgeTypes calculateBridge(std::size_t residueA, std::size_t residueB) const;
     /*! \brief
      * Complex function that provides h-bond patterns search of bridges and strands. Part of patternSearch() complex function.
      */
@@ -452,7 +452,7 @@ private:
     //! Enum value for creating hydrogen atoms mode. Very useful for structures without hydrogen atoms. Sets in initial options.
     HydrogenMode hMode_ = HydrogenMode::Gromacs;
     //! Enum value that defines polyproline helix stretch. Can be only equal to 2 or 3. Sets in initial options.
-    PPStretches pp_stretch_ = PPStretches::Default;
+    PPStretches polyProStretch_ = PPStretches::Default;
     /*! \brief
      * Function that calculates atomic distances between atoms A and B based on atom indices.
      */
@@ -481,7 +481,7 @@ private:
      */
     void calculateDihedrals(const t_trxframe& fr, const t_pbc* pbc);
     /*! \brief
-     * Function that calculates bends and breakes in secondary structure map.
+     * Function that calculates bends and breaks in secondary structure map.
      */
     void calculateBends(const t_trxframe& fr, const t_pbc* pbc);
 
@@ -511,32 +511,32 @@ void SecondaryStructures::analyseTopology(const TopologyInformation& top,
             resicompare = top.atoms()->atom[static_cast<std::size_t>(*ai)].resind;
             resVector_.emplace_back();
             resVector_.back().info_ = &(top.atoms()->resinfo[resicompare]);
-            std::string proLINE     = *(resVector_.back().info_->name);
-            if (proLINE == "PRO")
+            std::string residueName     = *(resVector_.back().info_->name);
+            if (residueName == "PRO")
             {
                 resVector_.back().isProline_ = true;
             }
         }
-        std::string atomname(*(top.atoms()->atomname[static_cast<std::size_t>(*ai)]));
-        if (atomname == c_backboneAtomTypeNames[BackboneAtomTypes::AtomCA])
+        std::string atomName(*(top.atoms()->atomname[static_cast<std::size_t>(*ai)]));
+        if (atomName == c_backboneAtomTypeNames[BackboneAtomTypes::AtomCA])
         {
             resVector_.back().backboneIndices_[static_cast<std::size_t>(BackboneAtomTypes::AtomCA)] = *ai;
             resVector_.back().backboneIndicesStatus_[static_cast<std::size_t>(BackboneAtomTypes::AtomCA)] =
                     true;
         }
-        else if (atomname == c_backboneAtomTypeNames[BackboneAtomTypes::AtomC])
+        else if (atomName == c_backboneAtomTypeNames[BackboneAtomTypes::AtomC])
         {
             resVector_.back().backboneIndices_[static_cast<std::size_t>(BackboneAtomTypes::AtomC)] = *ai;
             resVector_.back().backboneIndicesStatus_[static_cast<std::size_t>(BackboneAtomTypes::AtomC)] =
                     true;
         }
-        else if (atomname == c_backboneAtomTypeNames[BackboneAtomTypes::AtomO])
+        else if (atomName == c_backboneAtomTypeNames[BackboneAtomTypes::AtomO])
         {
             resVector_.back().backboneIndices_[static_cast<std::size_t>(BackboneAtomTypes::AtomO)] = *ai;
             resVector_.back().backboneIndicesStatus_[static_cast<std::size_t>(BackboneAtomTypes::AtomO)] =
                     true;
         }
-        else if (atomname == c_backboneAtomTypeNames[BackboneAtomTypes::AtomN])
+        else if (atomName == c_backboneAtomTypeNames[BackboneAtomTypes::AtomN])
         {
             resVector_.back().backboneIndices_[static_cast<std::size_t>(BackboneAtomTypes::AtomN)] = *ai;
             resVector_.back().backboneIndicesStatus_[static_cast<std::size_t>(BackboneAtomTypes::AtomN)] =
@@ -550,7 +550,7 @@ void SecondaryStructures::analyseTopology(const TopologyInformation& top,
             }
         }
         else if (hMode_ == HydrogenMode::Gromacs
-                 && atomname == c_backboneAtomTypeNames[BackboneAtomTypes::AtomH])
+                 && atomName == c_backboneAtomTypeNames[BackboneAtomTypes::AtomH])
         {
             resVector_.back().backboneIndices_[static_cast<std::size_t>(BackboneAtomTypes::AtomH)] = *ai;
             resVector_.back().backboneIndicesStatus_[static_cast<std::size_t>(BackboneAtomTypes::AtomH)] =
@@ -578,7 +578,7 @@ bool SecondaryStructures::tolopogyIsIncorrect() const
     return (resVector_.empty());
 }
 
-void SecondaryStructures::analyzeFrame(const t_trxframe& fr, t_pbc* pbc, bool nBSmode_, real cutoff_)
+void SecondaryStructures::analyzeHydrogenBondsInFrame(const t_trxframe& fr, t_pbc* pbc, bool nBSmode_, real cutoff_)
 {
     if (nBSmode_)
     {
@@ -593,42 +593,42 @@ void SecondaryStructures::analyzeFrame(const t_trxframe& fr, t_pbc* pbc, bool nB
         gmx::AnalysisNeighborhoodSearch     start      = nb_.initSearch(pbc, nbPos_);
         gmx::AnalysisNeighborhoodPairSearch pairSearch = start.startPairSearch(nbPos_);
         gmx::AnalysisNeighborhoodPair       pair;
-        ResInfo*                            Donor;
-        ResInfo*                            Acceptor;
+        ResInfo*                            donor;
+        ResInfo*                            acceptor;
         while (pairSearch.findNextPair(&pair))
         {
             if (pair.refIndex() < pair.testIndex())
             {
-                Donor    = &resVector_[pair.refIndex()];
-                Acceptor = &resVector_[pair.testIndex()];
+                donor    = &resVector_[pair.refIndex()];
+                acceptor = &resVector_[pair.testIndex()];
             }
             else
             {
                 continue;
             }
-            calculateHBondEnergy(Donor, Acceptor, fr, pbc);
-            if (Acceptor != Donor->nextResi_)
+            calculateHBondEnergy(donor, acceptor, fr, pbc);
+            if (acceptor != donor->nextResi_)
             {
-                calculateHBondEnergy(Acceptor, Donor, fr, pbc);
+                calculateHBondEnergy(acceptor, donor, fr, pbc);
             }
         }
     }
     else
     {
-        for (std::size_t Donor = 0; Donor + 1 < resVector_.size(); ++Donor)
+        for (std::size_t donor = 0; donor + 1 < resVector_.size(); ++donor)
         {
-            for (std::size_t Acceptor = Donor + 1; Acceptor < resVector_.size(); ++Acceptor)
+            for (std::size_t acceptor = donor + 1; acceptor < resVector_.size(); ++acceptor)
             {
-                if (s_CalculateAtomicDistances(resVector_[Donor].getIndex(BackboneAtomTypes::AtomCA),
-                                               resVector_[Acceptor].getIndex(BackboneAtomTypes::AtomCA),
+                if (s_CalculateAtomicDistances(resVector_[donor].getIndex(BackboneAtomTypes::AtomCA),
+                                               resVector_[acceptor].getIndex(BackboneAtomTypes::AtomCA),
                                                fr,
                                                pbc)
                     < minimalCAdistance_)
                 {
-                    calculateHBondEnergy(&resVector_[Donor], &resVector_[Acceptor], fr, pbc);
-                    if (Acceptor != Donor + 1)
+                    calculateHBondEnergy(&resVector_[donor], &resVector_[acceptor], fr, pbc);
+                    if (acceptor != donor + 1)
                     {
-                        calculateHBondEnergy(&resVector_[Acceptor], &resVector_[Donor], fr, pbc);
+                        calculateHBondEnergy(&resVector_[acceptor], &resVector_[donor], fr, pbc);
                     }
                 }
             }
@@ -637,26 +637,26 @@ void SecondaryStructures::analyzeFrame(const t_trxframe& fr, t_pbc* pbc, bool nB
 }
 
 
-bool SecondaryStructures::hasHBondBetween(std::size_t Donor, std::size_t Acceptor) const
+bool SecondaryStructures::hasHBondBetween(std::size_t donor, std::size_t acceptor) const
 {
-    return ((resVector_[Donor].acceptor_[0] == resVector_[Acceptor].info_
-             && resVector_[Donor].acceptorEnergy_[0] < hBondEnergyCutOff_)
-            || (resVector_[Donor].acceptor_[1] == resVector_[Acceptor].info_
-                && resVector_[Donor].acceptorEnergy_[1] < hBondEnergyCutOff_));
+    return ((resVector_[donor].acceptor_[0] == resVector_[acceptor].info_
+             && resVector_[donor].acceptorEnergy_[0] < hBondEnergyCutOff_)
+            || (resVector_[donor].acceptor_[1] == resVector_[acceptor].info_
+                && resVector_[donor].acceptorEnergy_[1] < hBondEnergyCutOff_));
 }
 
-bool SecondaryStructures::NoChainBreaksBetween(std::size_t ResiA, std::size_t ResiB) const
+bool SecondaryStructures::NoChainBreaksBetween(std::size_t residueA, std::size_t residueB) const
 {
-    if (ResiA > ResiB)
+    if (residueA > residueB)
     {
-        std::swap(ResiA, ResiB);
+        std::swap(residueA, residueB);
     }
-    for (; ResiA != ResiB; ++ResiA)
+    for (; residueA != residueB; ++residueA)
     {
-        if (secondaryStructuresStatusVector_[ResiA].isBreakPartnerWith(
-                    &secondaryStructuresStatusVector_[ResiA + 1])
-            && secondaryStructuresStatusVector_[ResiA + 1].isBreakPartnerWith(
-                    &secondaryStructuresStatusVector_[ResiA]))
+        if (secondaryStructuresStatusVector_[residueA].isBreakPartnerWith(
+                    &secondaryStructuresStatusVector_[residueA + 1])
+            && secondaryStructuresStatusVector_[residueA + 1].isBreakPartnerWith(
+                    &secondaryStructuresStatusVector_[residueA]))
         {
             return false;
         }
@@ -664,23 +664,23 @@ bool SecondaryStructures::NoChainBreaksBetween(std::size_t ResiA, std::size_t Re
     return true;
 }
 
-BridgeTypes SecondaryStructures::calculateBridge(std::size_t ResiA, std::size_t ResiB) const
+BridgeTypes SecondaryStructures::calculateBridge(std::size_t residueA, std::size_t residueB) const
 {
-    if (ResiA < 1 || ResiB < 1 || ResiA + 1 >= resVector_.size() || ResiB + 1 >= resVector_.size())
+    if (residueA < 1 || residueB < 1 || residueA + 1 >= resVector_.size() || residueB + 1 >= resVector_.size())
     {
         return BridgeTypes::None;
     }
-    if (NoChainBreaksBetween(ResiA - 1, ResiA + 1) && NoChainBreaksBetween(ResiB - 1, ResiB + 1)
-        && resVector_[ResiA].prevResi_ && resVector_[ResiA].nextResi_ && resVector_[ResiB].prevResi_
-        && resVector_[ResiB].nextResi_)
+    if (NoChainBreaksBetween(residueA - 1, residueA + 1) && NoChainBreaksBetween(residueB - 1, residueB + 1)
+        && resVector_[residueA].prevResi_ && resVector_[residueA].nextResi_ && resVector_[residueB].prevResi_
+        && resVector_[residueB].nextResi_)
     {
-        if ((hasHBondBetween(ResiA + 1, ResiB) && hasHBondBetween(ResiB, ResiA - 1))
-            || (hasHBondBetween(ResiB + 1, ResiA) && hasHBondBetween(ResiA, ResiB - 1)))
+        if ((hasHBondBetween(residueA + 1, residueB) && hasHBondBetween(residueB, residueA - 1))
+            || (hasHBondBetween(residueB + 1, residueA) && hasHBondBetween(residueA, residueB - 1)))
         {
             return BridgeTypes::ParallelBridge;
         }
-        else if ((hasHBondBetween(ResiA + 1, ResiB - 1) && hasHBondBetween(ResiB + 1, ResiA - 1))
-                 || (hasHBondBetween(ResiB, ResiA) && hasHBondBetween(ResiA, ResiB)))
+        else if ((hasHBondBetween(residueA + 1, residueB - 1) && hasHBondBetween(residueB + 1, residueA - 1))
+                 || (hasHBondBetween(residueB, residueA) && hasHBondBetween(residueA, residueB)))
         {
             return BridgeTypes::AntiParallelBridge;
         }
@@ -727,31 +727,31 @@ void SecondaryStructures::analyzeBridgesAndStrandsPatterns()
                     && secondaryStructuresStatusVector_[i + j].hasBridges(bridgeType)
                     && (NoChainBreaksBetween(i - 1, i + 1) && NoChainBreaksBetween(i + j - 1, i + j + 1)))
                 {
-                    std::vector<std::size_t> i_partners =
+                    std::vector<std::size_t> iPartners =
                             secondaryStructuresStatusVector_[i].getBridges(bridgeType);
-                    std::vector<std::size_t> j_partners =
+                    std::vector<std::size_t> jPartners =
                             secondaryStructuresStatusVector_[i + j].getBridges(bridgeType);
-                    for (std::vector<std::size_t>::iterator i_partner = i_partners.begin();
-                         i_partner != i_partners.end();
-                         ++i_partner)
+                    for (std::vector<std::size_t>::iterator iPartner = iPartners.begin();
+                         iPartner != iPartners.end();
+                         ++iPartner)
                     {
 
-                        for (std::vector<std::size_t>::iterator j_partner = j_partners.begin();
-                             j_partner != j_partners.end();
-                             ++j_partner)
+                        for (std::vector<std::size_t>::iterator jPartner = jPartners.begin();
+                             jPartner != jPartners.end();
+                             ++jPartner)
                         {
 
-                            int delta = abs(static_cast<int>(*i_partner) - static_cast<int>(*j_partner));
+                            int delta = abs(static_cast<int>(*iPartner) - static_cast<int>(*jPartner));
                             if (delta < 6)
                             {
-                                int second_strand_start = *i_partner;
-                                int second_strand_end   = *j_partner;
-                                if (second_strand_start > second_strand_end)
+                                int secondStrandStart = *iPartner;
+                                int secondStrandEnd   = *jPartner;
+                                if (secondStrandStart > secondStrandEnd)
                                 {
-                                    std::swap(second_strand_start, second_strand_end);
+                                    std::swap(secondStrandStart, secondStrandEnd);
                                 }
-                                for (std::size_t k = second_strand_start;
-                                     k <= static_cast<std::size_t>(second_strand_end);
+                                for (std::size_t k = secondStrandStart;
+                                     k <= static_cast<std::size_t>(secondStrandEnd);
                                      ++k)
                                 {
                                     secondaryStructuresStatusVector_[k].setSecondaryStructureType(
@@ -821,7 +821,7 @@ void SecondaryStructures::analyzeTurnsAndHelicesPatterns()
                     || secondaryStructuresStatusVector_[j].getHelixPosition(i) == HelixPositions::Start_AND_End))
             {
                 bool                    empty = true;
-                SecondaryStructureTypes Helix;
+                SecondaryStructureTypes helix;
                 switch (i)
                 {
                     case TurnsTypes::Turn_3:
@@ -830,7 +830,7 @@ void SecondaryStructures::analyzeTurnsAndHelicesPatterns()
                             empty = secondaryStructuresStatusVector_[j + k].getSecondaryStructure()
                                     <= SecondaryStructureTypes::Helix_3;
                         }
-                        Helix = SecondaryStructureTypes::Helix_3;
+                        helix = SecondaryStructureTypes::Helix_3;
                         break;
                     case TurnsTypes::Turn_5:
                         for (std::size_t k = 0; empty && k < stride; ++k)
@@ -841,15 +841,15 @@ void SecondaryStructures::analyzeTurnsAndHelicesPatterns()
                                         && secondaryStructuresStatusVector_[j + k].getSecondaryStructure()
                                                    == SecondaryStructureTypes::Helix_4);
                         }
-                        Helix = SecondaryStructureTypes::Helix_5;
+                        helix = SecondaryStructureTypes::Helix_5;
                         break;
-                    default: Helix = SecondaryStructureTypes::Helix_4; break;
+                    default: helix = SecondaryStructureTypes::Helix_4; break;
                 }
-                if (empty || Helix == SecondaryStructureTypes::Helix_4)
+                if (empty || helix == SecondaryStructureTypes::Helix_4)
                 {
                     for (std::size_t k = 0; k < stride; ++k)
                     {
-                        secondaryStructuresStatusVector_[j + k].setSecondaryStructureType(Helix);
+                        secondaryStructuresStatusVector_[j + k].setSecondaryStructureType(helix);
                     }
                 }
             }
@@ -885,7 +885,7 @@ std::string SecondaryStructures::performPatternSearch(const t_trxframe& fr,
                                                       bool              transferednBSmode_,
                                                       real              tranferedCutoff,
                                                       bool        transferedPiHelicesPreference,
-                                                      PPStretches transferedPPStretch)
+                                                      PPStretches transferedPolyProStretch)
 {
     if (resVector_.empty())
     {
@@ -894,9 +894,9 @@ std::string SecondaryStructures::performPatternSearch(const t_trxframe& fr,
                 "Invalid usage of this function. You have to load topology information before. Run "
                 "analyseTopology(...) first.");
     }
-    analyzeFrame(fr, pbc, transferednBSmode_, tranferedCutoff);
+    analyzeHydrogenBondsInFrame(fr, pbc, transferednBSmode_, tranferedCutoff);
     piHelixPreference_ = transferedPiHelicesPreference;
-    pp_stretch_        = transferedPPStretch;
+    polyProStretch_        = transferedPolyProStretch;
     secondaryStructuresStatusVector_.resize(resVector_.size());
     secondaryStructuresStringLine_.resize(resVector_.size(), '~');
     calculateBends(fr, pbc);
@@ -931,7 +931,7 @@ std::string SecondaryStructures::performPatternSearch(const t_trxframe& fr,
     }
     if (secondaryStructuresStatusVector_.size() > 1)
     {
-        for (std::size_t i = 0, linefactor = 1; i + 1 < secondaryStructuresStatusVector_.size(); ++i)
+        for (std::size_t i = 0, lineFactor = 1; i + 1 < secondaryStructuresStatusVector_.size(); ++i)
         {
             if (secondaryStructuresStatusVector_[i].getSecondaryStructure() == SecondaryStructureTypes::Break
                 && secondaryStructuresStatusVector_[i + 1].getSecondaryStructure()
@@ -943,9 +943,9 @@ std::string SecondaryStructures::performPatternSearch(const t_trxframe& fr,
                             &secondaryStructuresStatusVector_[i]))
                 {
                     secondaryStructuresStringLine_.insert(
-                            secondaryStructuresStringLine_.begin() + i + linefactor,
+                            secondaryStructuresStringLine_.begin() + i + lineFactor,
                             c_secondaryStructureTypeNames[SecondaryStructureTypes::Break]);
-                    ++linefactor;
+                    ++lineFactor;
                 }
             }
         }
@@ -986,9 +986,9 @@ float SecondaryStructures::s_CalculateDihedralAngle(const int&        atomA,
     gmx::RVec vectorBA               = { 0, 0, 0 };
     gmx::RVec vectorCD               = { 0, 0, 0 };
     gmx::RVec vectorCB               = { 0, 0, 0 };
-    gmx::RVec vector_CBxBA           = { 0, 0, 0 };
-    gmx::RVec vector_CBxCD           = { 0, 0, 0 };
-    gmx::RVec vector_CBxvector_CBxCD = { 0, 0, 0 };
+    gmx::RVec vectorCBxBA           = { 0, 0, 0 };
+    gmx::RVec vectorCBxCD           = { 0, 0, 0 };
+    gmx::RVec vectorCBxvectorCBxCD = { 0, 0, 0 };
     pbc_dx(pbc, fr.x[atomA], fr.x[atomB], vectorBA.as_vec());
     pbc_dx(pbc, fr.x[atomD], fr.x[atomC], vectorCD.as_vec());
     pbc_dx(pbc, fr.x[atomB], fr.x[atomC], vectorCB.as_vec());
@@ -1005,8 +1005,8 @@ float SecondaryStructures::s_CalculateDihedralAngle(const int&        atomA,
         {
             k -= 3;
         }
-        vector_CBxBA[i] = (vectorCB[j] * vectorBA[k]) - (vectorCB[k] * vectorBA[j]);
-        vector_CBxCD[i] = (vectorCB[j] * vectorCD[k]) - (vectorCB[k] * vectorCD[j]);
+        vectorCBxBA[i] = (vectorCB[j] * vectorBA[k]) - (vectorCB[k] * vectorBA[j]);
+        vectorCBxCD[i] = (vectorCB[j] * vectorCD[k]) - (vectorCB[k] * vectorCD[j]);
     }
     for (std::size_t i = XX, j = i + 1, k = i + 2; i <= ZZ; ++i, ++j, ++k)
     {
@@ -1018,21 +1018,21 @@ float SecondaryStructures::s_CalculateDihedralAngle(const int&        atomA,
         {
             k -= 3;
         }
-        vector_CBxvector_CBxCD[i] = (vectorCB[j] * vector_CBxCD[k]) - (vectorCB[k] * vector_CBxCD[j]);
+        vectorCBxvectorCBxCD[i] = (vectorCB[j] * vectorCBxCD[k]) - (vectorCB[k] * vectorCBxCD[j]);
     }
-    vdist1 = (vector_CBxCD[XX] * vector_CBxCD[XX]) + (vector_CBxCD[YY] * vector_CBxCD[YY])
-             + (vector_CBxCD[ZZ] * vector_CBxCD[ZZ]);
-    vdist2 = (vector_CBxvector_CBxCD[XX] * vector_CBxvector_CBxCD[XX])
-             + (vector_CBxvector_CBxCD[YY] * vector_CBxvector_CBxCD[YY])
-             + (vector_CBxvector_CBxCD[ZZ] * vector_CBxvector_CBxCD[ZZ]);
+    vdist1 = (vectorCBxCD[XX] * vectorCBxCD[XX]) + (vectorCBxCD[YY] * vectorCBxCD[YY])
+             + (vectorCBxCD[ZZ] * vectorCBxCD[ZZ]);
+    vdist2 = (vectorCBxvectorCBxCD[XX] * vectorCBxvectorCBxCD[XX])
+             + (vectorCBxvectorCBxCD[YY] * vectorCBxvectorCBxCD[YY])
+             + (vectorCBxvectorCBxCD[ZZ] * vectorCBxvectorCBxCD[ZZ]);
     if (vdist1 > 0 and vdist2 > 0)
     {
-        vdist1 = ((vector_CBxBA[XX] * vector_CBxCD[XX]) + (vector_CBxBA[YY] * vector_CBxCD[YY])
-                  + (vector_CBxBA[ZZ] * vector_CBxCD[ZZ]))
+        vdist1 = ((vectorCBxBA[XX] * vectorCBxCD[XX]) + (vectorCBxBA[YY] * vectorCBxCD[YY])
+                  + (vectorCBxBA[ZZ] * vectorCBxCD[ZZ]))
                  / std::sqrt(vdist1);
-        vdist2 = ((vector_CBxBA[XX] * vector_CBxvector_CBxCD[XX])
-                  + (vector_CBxBA[YY] * vector_CBxvector_CBxCD[YY])
-                  + (vector_CBxBA[ZZ] * vector_CBxvector_CBxCD[ZZ]))
+        vdist2 = ((vectorCBxBA[XX] * vectorCBxvectorCBxCD[XX])
+                  + (vectorCBxBA[YY] * vectorCBxvectorCBxCD[YY])
+                  + (vectorCBxBA[ZZ] * vectorCBxvectorCBxCD[ZZ]))
                  / std::sqrt(vdist2);
         if (vdist1 != 0 or vdist2 != 0)
         {
@@ -1045,10 +1045,10 @@ float SecondaryStructures::s_CalculateDihedralAngle(const int&        atomA,
 void SecondaryStructures::calculateDihedrals(const t_trxframe& fr, const t_pbc* pbc)
 {
     const float        epsilon = 29;
-    const float        phi_min = -75 - epsilon;
-    const float        phi_max = -75 + epsilon;
-    const float        psi_min = 145 - epsilon;
-    const float        psi_max = 145 + epsilon;
+    const float        phiMin = -75 - epsilon;
+    const float        phiMax = -75 + epsilon;
+    const float        psiMin = 145 - epsilon;
+    const float        psiMax = 145 + epsilon;
     std::vector<float> phi(resVector_.size(), 360);
     std::vector<float> psi(resVector_.size(), 360);
     for (std::size_t i = 1; i + 1 < resVector_.size(); ++i)
@@ -1068,16 +1068,16 @@ void SecondaryStructures::calculateDihedrals(const t_trxframe& fr, const t_pbc* 
     }
     for (std::size_t i = 1; i + 3 < resVector_.size(); ++i)
     {
-        switch (pp_stretch_)
+        switch (polyProStretch_)
         {
             case PPStretches::Shortened:
             {
-                if (phi_min > phi[i] or phi[i] > phi_max or phi_min > phi[i + 1] or phi[i + 1] > phi_max)
+                if (phiMin > phi[i] or phi[i] > phiMax or phiMin > phi[i + 1] or phi[i + 1] > phiMax)
                 {
                     continue;
                 }
 
-                if (psi_min > psi[i] or psi[i] > psi_max or psi_min > psi[i + 1] or psi[i + 1] > psi_max)
+                if (psiMin > psi[i] or psi[i] > psiMax or psiMin > psi[i + 1] or psi[i + 1] > psiMax)
                 {
                     continue;
                 }
@@ -1114,14 +1114,14 @@ void SecondaryStructures::calculateDihedrals(const t_trxframe& fr, const t_pbc* 
             }
             case PPStretches::Default:
             {
-                if (phi_min > phi[i] or phi[i] > phi_max or phi_min > phi[i + 1]
-                    or phi[i + 1] > phi_max or phi_min > phi[i + 2] or phi[i + 2] > phi_max)
+                if (phiMin > phi[i] or phi[i] > phiMax or phiMin > phi[i + 1]
+                    or phi[i + 1] > phiMax or phiMin > phi[i + 2] or phi[i + 2] > phiMax)
                 {
                     continue;
                 }
 
-                if (psi_min > psi[i] or psi[i] > psi_max or psi_min > psi[i + 1]
-                    or psi[i + 1] > psi_max or psi_min > psi[i + 2] or psi[i + 2] > psi_max)
+                if (psiMin > psi[i] or psi[i] > psiMax or psiMin > psi[i + 1]
+                    or psi[i + 1] > psiMax or psiMin > psi[i + 2] or psi[i + 2] > psiMax)
                 {
                     continue;
                 }
@@ -1170,8 +1170,8 @@ void SecondaryStructures::calculateDihedrals(const t_trxframe& fr, const t_pbc* 
 
 void SecondaryStructures::calculateBends(const t_trxframe& fr, const t_pbc* pbc)
 {
-    const float benddegree = 70.0;
-    const float maxdist    = 2.5;
+    const float bendDegree = 70.0;
+    const float maxDist    = 2.5;
     float       degree     = 0;
     float       vdist      = 0;
     float       vprod      = 0;
@@ -1184,7 +1184,7 @@ void SecondaryStructures::calculateBends(const t_trxframe& fr, const t_pbc* pbc)
                     static_cast<int>(resVector_[i + 1].getIndex(BackboneAtomTypes::AtomN)),
                     fr,
                     pbc)
-            > maxdist)
+            > maxDist)
         {
             secondaryStructuresStatusVector_[i].setBreak(&secondaryStructuresStatusVector_[i + 1]);
             secondaryStructuresStatusVector_[i + 1].setBreak(&secondaryStructuresStatusVector_[i]);
@@ -1222,7 +1222,7 @@ void SecondaryStructures::calculateBends(const t_trxframe& fr, const t_pbc* pbc)
                                              pbc)
                 * gmx::c_angstrom / gmx::c_nano;
         degree = std::acos(vdist / vprod) * gmx::c_rad2Deg;
-        if (degree > benddegree)
+        if (degree > bendDegree)
         {
             secondaryStructuresStatusVector_[i].setSecondaryStructureType(SecondaryStructureTypes::Bend);
         }
@@ -1345,7 +1345,7 @@ private:
     //! Selections for DSSP output. Sets in initial options.
     Selection sel_;
     //! Boolean value for Preferring P-Helices mode. Sets in initial options.
-    bool pPHelices_ = true;
+    bool polyProHelices_ = true;
     //! Enum value for creating hydrogen atoms mode. Very useful for structures without hydrogen atoms. Sets in initial options.
     HydrogenMode hMode_ = HydrogenMode::Gromacs;
     //! Boolean value determines differend calculation methods for searching neighbour residues. Sets in initial options.
@@ -1353,7 +1353,7 @@ private:
     //! Real value that defines maximum distance from residue to its neighbour residue.
     real cutoff_ = 0.9;
     //! Enum value that defines polyproline helix stretch. Can be only equal to 2 or 3. Sets in initial options.
-    PPStretches pp_stretch_ = PPStretches::Default;
+    PPStretches polyProStretch_ = PPStretches::Default;
     //! String value that defines output filename. Sets in initial options.
     std::string fnmDSSPOut_ = "dssp.dat";
     //! Class that calculates h-bond patterns in secondary structure map based on original DSSP algo.
@@ -1407,9 +1407,9 @@ void Dssp::initOptions(IOptionsContainer* options, TrajectoryAnalysisSettings* s
     options->addOption(RealOption("cutoff").store(&cutoff_).required().defaultValue(0.9).description(
             "Distance from residue to its neighbour residue in neighbour search. Must be >= 0,9."));
     options->addOption(
-            BooleanOption("pihelix").store(&pPHelices_).defaultValue(true).description("Prefer Pi Helices"));
+            BooleanOption("pihelix").store(&polyProHelices_).defaultValue(true).description("Prefer Pi Helices"));
     options->addOption(EnumOption<PPStretches>("ppstretch")
-                               .store(&pp_stretch_)
+                               .store(&polyProStretch_)
                                .defaultValue(PPStretches::Default)
                                .enumValue(c_PPStretchesNames)
                                .description("Stretch value for PP-helices"));
@@ -1433,36 +1433,36 @@ void Dssp::initAfterFirstFrame(const TrajectoryAnalysisSettings& /* settings */,
 {
     if (patternSearch_.tolopogyIsIncorrect())
     {
-        std::string error_desc =
+        std::string errorDesc =
                 "From these inputs, it is not possible to obtain proper information about the "
                 "patterns of hydrogen bonds.";
         if (hMode_ != HydrogenMode::Dssp)
         {
-            error_desc += " Maybe you should add the \"-hmode dssp\" option?";
+            errorDesc += " Maybe you should add the \"-hmode dssp\" option?";
         }
-        gmx_fatal(FARGS, "%s", error_desc.c_str());
+        gmx_fatal(FARGS, "%s", errorDesc.c_str());
     }
 }
 
 void Dssp::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* pbc, TrajectoryAnalysisModuleData* /* pdata */)
 {
     storage_.addData(
-            frnr, patternSearch_.performPatternSearch(fr, pbc, nBSmode_, cutoff_, pPHelices_, pp_stretch_));
+            frnr, patternSearch_.performPatternSearch(fr, pbc, nBSmode_, cutoff_, polyProHelices_, polyProStretch_));
 }
 
 void Dssp::finishAnalysis(int /*nframes*/) {}
 
 void Dssp::writeOutput()
 {
-    std::vector<DsspStorageFrame> dataOut_;
-    FILE*                         fp_;
-    fp_      = gmx_ffopen(fnmDSSPOut_, "w");
-    dataOut_ = storage_.getData();
-    for (auto& i : dataOut_)
+    std::vector<DsspStorageFrame> dataOut;
+    FILE*                         fp;
+    fp      = gmx_ffopen(fnmDSSPOut_, "w");
+    dataOut = storage_.getData();
+    for (auto& i : dataOut)
     {
-        std::fprintf(fp_, "%s\n", i.dsspData_.c_str());
+        std::fprintf(fp, "%s\n", i.dsspData_.c_str());
     }
-    gmx_ffclose(fp_);
+    gmx_ffclose(fp);
 }
 
 } // namespace
