@@ -88,7 +88,7 @@ public:
     /*! \brief
      * Function that storeges frame information in storage.
      */
-    void addData(int frameNumber_, const std::string& data);
+    void addData(int frnr, const std::string& data);
     /*! \brief
      * Function that returns frame information from storage.
      */
