@@ -104,8 +104,8 @@ private:
 void DsspStorage::addData(int frnr, const std::string& data)
 {
     DsspStorageFrame dsspData_;
-    dsspData_.frameNumber_     = frnr;
-    dsspData_.dsspData_ = data;
+    dsspData_.frameNumber_ = frnr;
+    dsspData_.dsspData_    = data;
     data_.push_back(dsspData_);
 }
 
@@ -511,7 +511,7 @@ void SecondaryStructures::analyseTopology(const TopologyInformation& top,
             resicompare = top.atoms()->atom[static_cast<std::size_t>(*ai)].resind;
             resVector_.emplace_back();
             resVector_.back().info_ = &(top.atoms()->resinfo[resicompare]);
-            std::string residueName     = *(resVector_.back().info_->name);
+            std::string residueName = *(resVector_.back().info_->name);
             if (residueName == "PRO")
             {
                 resVector_.back().isProline_ = true;
@@ -666,13 +666,14 @@ bool SecondaryStructures::NoChainBreaksBetween(std::size_t residueA, std::size_t
 
 BridgeTypes SecondaryStructures::calculateBridge(std::size_t residueA, std::size_t residueB) const
 {
-    if (residueA < 1 || residueB < 1 || residueA + 1 >= resVector_.size() || residueB + 1 >= resVector_.size())
+    if (residueA < 1 || residueB < 1 || residueA + 1 >= resVector_.size()
+        || residueB + 1 >= resVector_.size())
     {
         return BridgeTypes::None;
     }
-    if (NoChainBreaksBetween(residueA - 1, residueA + 1) && NoChainBreaksBetween(residueB - 1, residueB + 1)
-        && resVector_[residueA].prevResi_ && resVector_[residueA].nextResi_ && resVector_[residueB].prevResi_
-        && resVector_[residueB].nextResi_)
+    if (NoChainBreaksBetween(residueA - 1, residueA + 1)
+        && NoChainBreaksBetween(residueB - 1, residueB + 1) && resVector_[residueA].prevResi_
+        && resVector_[residueA].nextResi_ && resVector_[residueB].prevResi_ && resVector_[residueB].nextResi_)
     {
         if ((hasHBondBetween(residueA + 1, residueB) && hasHBondBetween(residueB, residueA - 1))
             || (hasHBondBetween(residueB + 1, residueA) && hasHBondBetween(residueA, residueB - 1)))
@@ -896,7 +897,7 @@ std::string SecondaryStructures::performPatternSearch(const t_trxframe& fr,
     }
     analyzeHydrogenBondsInFrame(fr, pbc, transferednBSmode_, tranferedCutoff);
     piHelixPreference_ = transferedPiHelicesPreference;
-    polyProStretch_        = transferedPolyProStretch;
+    polyProStretch_    = transferedPolyProStretch;
     secondaryStructuresStatusVector_.resize(resVector_.size());
     secondaryStructuresStringLine_.resize(resVector_.size(), '~');
     calculateBends(fr, pbc);
@@ -980,14 +981,14 @@ float SecondaryStructures::s_CalculateDihedralAngle(const int&        atomA,
                                                     const t_trxframe& fr,
                                                     const t_pbc*      pbc)
 {
-    float     result                 = 360;
-    float     vdist1                 = 0;
-    float     vdist2                 = 0;
-    gmx::RVec vectorBA               = { 0, 0, 0 };
-    gmx::RVec vectorCD               = { 0, 0, 0 };
-    gmx::RVec vectorCB               = { 0, 0, 0 };
-    gmx::RVec vectorCBxBA           = { 0, 0, 0 };
-    gmx::RVec vectorCBxCD           = { 0, 0, 0 };
+    float     result               = 360;
+    float     vdist1               = 0;
+    float     vdist2               = 0;
+    gmx::RVec vectorBA             = { 0, 0, 0 };
+    gmx::RVec vectorCD             = { 0, 0, 0 };
+    gmx::RVec vectorCB             = { 0, 0, 0 };
+    gmx::RVec vectorCBxBA          = { 0, 0, 0 };
+    gmx::RVec vectorCBxCD          = { 0, 0, 0 };
     gmx::RVec vectorCBxvectorCBxCD = { 0, 0, 0 };
     pbc_dx(pbc, fr.x[atomA], fr.x[atomB], vectorBA.as_vec());
     pbc_dx(pbc, fr.x[atomD], fr.x[atomC], vectorCD.as_vec());
@@ -1045,10 +1046,10 @@ float SecondaryStructures::s_CalculateDihedralAngle(const int&        atomA,
 void SecondaryStructures::calculateDihedrals(const t_trxframe& fr, const t_pbc* pbc)
 {
     const float        epsilon = 29;
-    const float        phiMin = -75 - epsilon;
-    const float        phiMax = -75 + epsilon;
-    const float        psiMin = 145 - epsilon;
-    const float        psiMax = 145 + epsilon;
+    const float        phiMin  = -75 - epsilon;
+    const float        phiMax  = -75 + epsilon;
+    const float        psiMin  = 145 - epsilon;
+    const float        psiMax  = 145 + epsilon;
     std::vector<float> phi(resVector_.size(), 360);
     std::vector<float> psi(resVector_.size(), 360);
     for (std::size_t i = 1; i + 1 < resVector_.size(); ++i)
@@ -1114,14 +1115,14 @@ void SecondaryStructures::calculateDihedrals(const t_trxframe& fr, const t_pbc* 
             }
             case PPStretches::Default:
             {
-                if (phiMin > phi[i] or phi[i] > phiMax or phiMin > phi[i + 1]
-                    or phi[i + 1] > phiMax or phiMin > phi[i + 2] or phi[i + 2] > phiMax)
+                if (phiMin > phi[i] or phi[i] > phiMax or phiMin > phi[i + 1] or phi[i + 1] > phiMax
+                    or phiMin > phi[i + 2] or phi[i + 2] > phiMax)
                 {
                     continue;
                 }
 
-                if (psiMin > psi[i] or psi[i] > psiMax or psiMin > psi[i + 1]
-                    or psi[i + 1] > psiMax or psiMin > psi[i + 2] or psi[i + 2] > psiMax)
+                if (psiMin > psi[i] or psi[i] > psiMax or psiMin > psi[i + 1] or psi[i + 1] > psiMax
+                    or psiMin > psi[i + 2] or psi[i + 2] > psiMax)
                 {
                     continue;
                 }
@@ -1446,8 +1447,9 @@ void Dssp::initAfterFirstFrame(const TrajectoryAnalysisSettings& /* settings */,
 
 void Dssp::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* pbc, TrajectoryAnalysisModuleData* /* pdata */)
 {
-    storage_.addData(
-            frnr, patternSearch_.performPatternSearch(fr, pbc, nBSmode_, cutoff_, polyProHelices_, polyProStretch_));
+    storage_.addData(frnr,
+                     patternSearch_.performPatternSearch(
+                             fr, pbc, nBSmode_, cutoff_, polyProHelices_, polyProStretch_));
 }
 
 void Dssp::finishAnalysis(int /*nframes*/) {}
