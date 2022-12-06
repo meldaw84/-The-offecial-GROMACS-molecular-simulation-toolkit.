@@ -84,6 +84,8 @@ enum class ILJInteractions
     None  //!< none of i-particles
 };
 
+#if GMX_SIMD
+
 //! Base LJ calculator class, only specializations are used
 template<bool calculateEnergies, InteractionModifiers vdwModifier>
 class LennardJonesCalculator;
@@ -639,6 +641,8 @@ inline void addLennardJonesEwaldCorrections(const std::array<SimdReal, inputSize
         GMX_UNUSED_VALUE(sixth);
     }
 }
+
+#endif // GMX_SIMD
 
 } // namespace gmx
 

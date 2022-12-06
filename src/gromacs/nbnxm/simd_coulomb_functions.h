@@ -75,6 +75,8 @@ enum class KernelCoulombType
 template<KernelCoulombType coulombType>
 class CoulombCalculator;
 
+#if GMX_SIMD
+
 //! Specialized calculator for RF
 template<>
 class CoulombCalculator<KernelCoulombType::RF>
@@ -349,6 +351,8 @@ private:
     //! The self energy of the reciprocal part
     const real selfEnergy_;
 };
+
+#endif // GMX_SIMD
 
 } // namespace gmx
 

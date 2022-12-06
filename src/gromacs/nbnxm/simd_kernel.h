@@ -32,74 +32,102 @@
  * the research papers on the package. Check out https://www.gromacs.org.
  */
 
-{
-    using namespace gmx;
+#include "gmxpre.h"
 
-#if GMX_SIMD_J_UNROLL_SIZE == 1
-    constexpr KernelLayout kernelLayout = KernelLayout::r4xM;
-#else
-    constexpr KernelLayout            kernelLayout         = KernelLayout::r2xMM;
-#endif
+#include "config.h"
+
+#include "gromacs/pbcutil/ishift.h"
+#include "gromacs/simd/simd.h"
+#include "gromacs/simd/simd_math.h"
+#include "gromacs/simd/vector_operations.h"
+
+#include "kernel_common.h"
+#include "nbnxm_simd.h"
+#include "simd_coulomb_functions.h"
+#include "simd_diagonal_masker.h"
+#include "simd_lennardjones_functions.h"
+#include "simd_load_store_functions.h"
+
+/*! \internal \file
+ *
+ * \brief
+ * Declares and defines the NBNxM SIMD pair interaction kernel function.
+ *
+ * This definition is in an include file and not in a source file to enable
+ * parallel compilation of different template instantiatons in different
+ * compilation units.
+ *
+ * \author Berk Hess <hess@kth.se>
+ * \ingroup module_nbnxm
+ */
+
+namespace gmx
+{
+
+//! Whether we calculate shift forces, always true, because it's cheap anyhow
+static constexpr bool sc_calculateShiftForces = true;
+
+//! SIMD kernel definition for unsupported layouts
+template<KernelLayout         kernelLayout,
+         KernelCoulombType    coulombType,
+         bool                 haveVdwCutoffCheck,
+         LJCombinationRule    ljCombinationRule,
+         InteractionModifiers vdwModifier,
+         bool                 haveLJEwaldGeometric,
+         EnergyOutput         energyOutput>
+std::enable_if_t<((kernelLayout == KernelLayout::r2xMM && !sc_haveNbnxmSimd2xmmKernels)
+                  || (kernelLayout == KernelLayout::r4xM && !sc_haveNbnxmSimd4xmKernels)),
+                 void>
+nbnxmKernelSimd(const NbnxnPairlistCpu gmx_unused* nbl,
+                const nbnxn_atomdata_t gmx_unused* nbat,
+                const interaction_const_t gmx_unused* ic,
+                const rvec gmx_unused*  shift_vec,
+                nbnxn_atomdata_output_t gmx_unused* out)
+{
+    GMX_RELEASE_ASSERT(false, "NBNxM kernel should only be called when supported");
+}
+
+#if GMX_SIMD
+
+//! The actual NBNxM SIMD kernel
+template<KernelLayout         kernelLayout,
+         KernelCoulombType    coulombType,
+         bool                 haveVdwCutoffCheck,
+         LJCombinationRule    ljCombinationRule,
+         InteractionModifiers vdwModifier,
+         bool                 haveLJEwaldGeometric,
+         EnergyOutput         energyOutput>
+std::enable_if_t<!((kernelLayout == KernelLayout::r2xMM && !sc_haveNbnxmSimd2xmmKernels)
+                   || (kernelLayout == KernelLayout::r4xM && !sc_haveNbnxmSimd4xmKernels)),
+                 void>
+nbnxmKernelSimd(const NbnxnPairlistCpu gmx_unused* nbl,
+                const nbnxn_atomdata_t gmx_unused* nbat,
+                const interaction_const_t gmx_unused* ic,
+                const rvec gmx_unused*  shift_vec,
+                nbnxn_atomdata_output_t gmx_unused* out)
+{
+    constexpr int GMX_SIMD_J_UNROLL_SIZE = (kernelLayout == KernelLayout::r2xMM ? 2 : 1);
+
+    // The i-cluster size
+    constexpr int UNROLLI = 4;
+    // The j-cluster size
+    constexpr int UNROLLJ(GMX_SIMD_REAL_WIDTH / GMX_SIMD_J_UNROLL_SIZE);
+
+    // The stride of all atom data arrays
+    constexpr int STRIDE = std::max(UNROLLI, UNROLLJ);
 
     /* The number of 'i' SIMD registers */
     static_assert(UNROLLI % GMX_SIMD_J_UNROLL_SIZE == 0);
     constexpr int nR = UNROLLI / GMX_SIMD_J_UNROLL_SIZE;
 
-    /* Interaction type and output choice specific constexpr variables */
-#ifdef CALC_COUL_RF
-    constexpr KernelCoulombType coulombType = KernelCoulombType::RF;
-#endif
-#ifdef CALC_COUL_EWALD
-    constexpr KernelCoulombType coulombType = KernelCoulombType::EwaldAnalytical;
-#endif
-#ifdef CALC_COUL_TAB
-    constexpr KernelCoulombType coulombType = KernelCoulombType::EwaldTabulated;
-#endif
-#ifdef LJ_COMB_GEOM
-    constexpr LJCombinationRule ljCombinationRule = LJCombinationRule::Geometric;
-#else
-#    ifdef LJ_COMB_LB
-    constexpr LJCombinationRule       ljCombinationRule    = LJCombinationRule::LorentzBerthelot;
-#    else
-    constexpr LJCombinationRule ljCombinationRule = LJCombinationRule::None;
-#    endif
-#endif
-#ifdef LJ_POT_SWITCH
-    constexpr InteractionModifiers vdwModifier = InteractionModifiers::PotSwitch;
-#else
-#    ifdef LJ_FORCE_SWITCH
-    constexpr InteractionModifiers    vdwModifier          = InteractionModifiers::ForceSwitch;
-#    else
-    /* Note the we also use the potential-shift kernel for LJ without shift */
-    constexpr InteractionModifiers vdwModifier = InteractionModifiers::PotShift;
-#    endif
-#endif
-#ifdef LJ_EWALD_GEOM
-    constexpr bool haveLJEwaldGeometric = true;
-#else
-    constexpr bool                    haveLJEwaldGeometric = false;
-#endif
-#ifdef CALC_ENERGIES
-    constexpr bool calculateEnergies = true;
-#else
-    constexpr bool                    calculateEnergies    = false;
-#endif
-#if defined CALC_ENERGIES && defined ENERGY_GROUPS
-    constexpr bool useEnergyGroups = true;
-#else
-    constexpr bool                    useEnergyGroups      = false;
-#endif
-#ifdef VDW_CUTOFF_CHECK
-    constexpr bool haveVdwCutoffCheck = true;
-#else
-    constexpr bool                    haveVdwCutoffCheck   = false;
-#endif
+    constexpr bool calculateEnergies = (energyOutput != EnergyOutput::None);
+    constexpr bool useEnergyGroups   = (energyOutput == EnergyOutput::GroupPairs);
 
     /* Unpack pointers for output */
-    real* f      = out->f.data();
-    real* fshift = out->fshift.data();
-    real* Vvdw;
-    real* Vc;
+    real* f                 = out->f.data();
+    real gmx_unused* fshift = out->fshift.data();
+    real*            Vvdw;
+    real*            Vc;
     if constexpr (calculateEnergies)
     {
         if constexpr (useEnergyGroups)
@@ -118,9 +146,9 @@
 
     SimdReal zero_S(0.0);
 
-#ifdef COUNT_PAIRS
+#    ifdef COUNT_PAIRS
     int npair = 0;
-#endif
+#    endif
 
     const nbnxn_atomdata_t::Params& nbatParams = nbat->params();
 
@@ -142,11 +170,11 @@
     const DiagonalMasker<nR, kernelLayout, getDiagonalMaskType<UNROLLI, UNROLLJ>()> diagonalMasker(
             nbat->simdMasks);
 
-#if GMX_DOUBLE && !GMX_SIMD_HAVE_INT32_LOGICAL
+#    if GMX_DOUBLE && !GMX_SIMD_HAVE_INT32_LOGICAL
     const std::uint64_t* gmx_restrict exclusion_filter = nbat->simdMasks.exclusion_filter64.data();
-#else
+#    else
     const std::uint32_t* gmx_restrict exclusion_filter = nbat->simdMasks.exclusion_filter.data();
-#endif
+#    endif
 
     /* Here we cast the exclusion filters from unsigned * to int * or real *.
      * Since we only check bits, the actual value they represent does not
@@ -155,13 +183,13 @@
     SimdBitMask exclusionFilterV[nR];
     for (int i = 0; i < nR; i++)
     {
-#if GMX_SIMD_HAVE_INT32_LOGICAL
+#    if GMX_SIMD_HAVE_INT32_LOGICAL
         exclusionFilterV[i] = load<SimdBitMask>(
                 reinterpret_cast<const int*>(exclusion_filter + i * GMX_SIMD_J_UNROLL_SIZE * UNROLLJ));
-#else
+#    else
         exclusionFilterV[i] = load<SimdBitMask>(
                 reinterpret_cast<const real*>(exclusion_filter + i * GMX_SIMD_J_UNROLL_SIZE * UNROLLJ));
-#endif
+#    endif
     }
 
     CoulombCalculator<coulombType> coulombCalculator(*ic);
@@ -226,27 +254,29 @@
         const int cjind0 = ciEntry.cj_ind_start;
         const int cjind1 = ciEntry.cj_ind_end;
         const int ci     = ciEntry.ci;
-        const int ci_sh  = (ish == gmx::c_centralShiftIndex ? ci : -1);
+        const int ci_sh  = (ish == c_centralShiftIndex ? ci : -1);
 
         // Load the periodic shift vector for the i-atoms
         const SimdReal iShiftX(shiftvec[ish3]);
         const SimdReal iShiftY(shiftvec[ish3 + 1]);
         const SimdReal iShiftZ(shiftvec[ish3 + 2]);
 
-#if UNROLLJ <= 4
-        int sci  = ci * STRIDE;
-        int scix = sci * DIM;
-        //#    if defined LJ_COMB_LB || defined LJ_COMB_GEOM || defined LJ_EWALD_GEOM
-        int sci2 = sci * 2;
-        //#    endif
-#else
-        int sci  = (ci >> 1) * STRIDE;
-        int scix = sci * DIM + (ci & 1) * (STRIDE >> 1);
-        //#    if defined LJ_COMB_LB || defined LJ_COMB_GEOM || defined LJ_EWALD_GEOM
-        int sci2 = sci * 2 + (ci & 1) * (STRIDE >> 1);
-        //#    endif
-        sci += (ci & 1) * (STRIDE >> 1);
-#endif
+        int sci;
+        int scix;
+        int sci2;
+        if constexpr (UNROLLJ <= 4)
+        {
+            sci  = ci * STRIDE;
+            scix = sci * DIM;
+            sci2 = sci * 2;
+        }
+        else
+        {
+            sci  = (ci >> 1) * STRIDE;
+            scix = sci * DIM + (ci & 1) * (STRIDE >> 1);
+            sci2 = sci * 2 + (ci & 1) * (STRIDE >> 1);
+            sci += (ci & 1) * (STRIDE >> 1);
+        }
 
         /* We have 5 LJ/C combinations, but use only three inner loops,
          * as the other combinations are unlikely and/or not much faster:
@@ -277,54 +307,46 @@
             // Compute self interaction energies, when present
             const bool do_self = haveLJEwaldGeometric || do_coul;
 
-#if UNROLLJ == 4
-            if (do_self && l_cj[ciEntry.cj_ind_start].cj == ci_sh)
-#endif
-#if UNROLLJ == 2
-                if (do_self && l_cj[ciEntry.cj_ind_start].cj == (ci_sh << 1))
-#endif
-#if UNROLLJ == 8
-                    if (do_self && l_cj[ciEntry.cj_ind_start].cj == (ci_sh >> 1))
-#endif
+            if (do_self && l_cj[ciEntry.cj_ind_start].cj == cjFromCi<UNROLLI, UNROLLJ>(ci_sh))
+            {
+                if (do_coul)
+                {
+                    const real Vc_sub_self = coulombCalculator.selfEnergy();
+
+                    for (int ia = 0; ia < UNROLLI; ia++)
                     {
-                        if (do_coul)
+                        const real qi = q[sci + ia];
+                        if constexpr (useEnergyGroups)
                         {
-                            const real Vc_sub_self = coulombCalculator.selfEnergy();
-
-                            for (int ia = 0; ia < UNROLLI; ia++)
-                            {
-                                const real qi = q[sci + ia];
-                                if constexpr (useEnergyGroups)
-                                {
-                                    vctp[ia][((egps_i >> (ia * egps_ishift)) & egps_imask) * egps_jstride] -=
-                                            facel * qi * qi * Vc_sub_self;
-                                }
-                                else
-                                {
-                                    Vc[0] -= facel * qi * qi * Vc_sub_self;
-                                }
-                            }
+                            vctp[ia][((egps_i >> (ia * egps_ishift)) & egps_imask) * egps_jstride] -=
+                                    facel * qi * qi * Vc_sub_self;
                         }
-
-                        if constexpr (haveLJEwaldGeometric)
+                        else
                         {
-                            for (int ia = 0; ia < UNROLLI; ia++)
-                            {
-                                real c6_i =
-                                        nbatParams.nbfp[nbatParams.type[sci + ia] * (nbatParams.numTypes + 1) * 2]
-                                        / 6;
-                                if constexpr (useEnergyGroups)
-                                {
-                                    vvdwtp[ia][((egps_i >> (ia * egps_ishift)) & egps_imask) * egps_jstride] +=
-                                            0.5 * c6_i * lj_ewaldcoeff6_6;
-                                }
-                                else
-                                {
-                                    Vvdw[0] += 0.5 * c6_i * lj_ewaldcoeff6_6;
-                                }
-                            }
+                            Vc[0] -= facel * qi * qi * Vc_sub_self;
                         }
                     }
+                }
+
+                if constexpr (haveLJEwaldGeometric)
+                {
+                    for (int ia = 0; ia < UNROLLI; ia++)
+                    {
+                        real c6_i =
+                                nbatParams.nbfp[nbatParams.type[sci + ia] * (nbatParams.numTypes + 1) * 2]
+                                / 6;
+                        if constexpr (useEnergyGroups)
+                        {
+                            vvdwtp[ia][((egps_i >> (ia * egps_ishift)) & egps_imask) * egps_jstride] +=
+                                    0.5 * c6_i * lj_ewaldcoeff6_6;
+                        }
+                        else
+                        {
+                            Vvdw[0] += 0.5 * c6_i * lj_ewaldcoeff6_6;
+                        }
+                    }
+                }
+            }
 
         } // calulateEnergies
 
@@ -422,7 +444,7 @@
                 constexpr bool c_needToCheckExclusions = true;
                 while (cjind < cjind1 && nbl->cj.excl(cjind) != NBNXN_INTERACTION_MASK_ALL)
                 {
-#include "kernel_inner.h"
+#    include "simd_kernel_inner.h"
                     cjind++;
                 }
             }
@@ -430,7 +452,7 @@
                 constexpr bool c_needToCheckExclusions = false;
                 for (; (cjind < cjind1); cjind++)
                 {
-#include "kernel_inner.h"
+#    include "simd_kernel_inner.h"
                 }
             }
         }
@@ -443,7 +465,7 @@
                 constexpr bool c_needToCheckExclusions = true;
                 while (cjind < cjind1 && nbl->cj.excl(cjind) != NBNXN_INTERACTION_MASK_ALL)
                 {
-#include "kernel_inner.h"
+#    include "simd_kernel_inner.h"
                     cjind++;
                 }
             }
@@ -451,7 +473,7 @@
                 constexpr bool c_needToCheckExclusions = false;
                 for (; (cjind < cjind1); cjind++)
                 {
-#include "kernel_inner.h"
+#    include "simd_kernel_inner.h"
                 }
             }
         }
@@ -464,7 +486,7 @@
                 constexpr bool c_needToCheckExclusions = true;
                 while (cjind < cjind1 && nbl->cj.excl(cjind) != NBNXN_INTERACTION_MASK_ALL)
                 {
-#include "kernel_inner.h"
+#    include "simd_kernel_inner.h"
                     cjind++;
                 }
             }
@@ -472,29 +494,33 @@
                 constexpr bool c_needToCheckExclusions = false;
                 for (; (cjind < cjind1); cjind++)
                 {
-#include "kernel_inner.h"
+#    include "simd_kernel_inner.h"
                 }
             }
         }
         /* Add accumulated i-forces to the force array */
-#if GMX_SIMD_J_UNROLL_SIZE == 1
-        real fShiftX =
-                reduceIncr4ReturnSum(f + scix, forceIXV[0], forceIXV[1], forceIXV[2], forceIXV[3]);
-        real fShiftY =
-                reduceIncr4ReturnSum(f + sciy, forceIYV[0], forceIYV[1], forceIYV[2], forceIYV[3]);
-        real fShiftZ =
-                reduceIncr4ReturnSum(f + sciz, forceIZV[0], forceIZV[1], forceIZV[2], forceIZV[3]);
-#else
-        real fShiftX = reduceIncr4ReturnSumHsimd(f + scix, forceIXV[0], forceIXV[1]);
-        real fShiftY = reduceIncr4ReturnSumHsimd(f + sciy, forceIYV[0], forceIYV[1]);
-        real fShiftZ = reduceIncr4ReturnSumHsimd(f + sciz, forceIZV[0], forceIZV[1]);
-#endif
+        real fShiftX;
+        real fShiftY;
+        real fShiftZ;
+        if constexpr (GMX_SIMD_J_UNROLL_SIZE == 1)
+        {
+            fShiftX = reduceIncr4ReturnSum(f + scix, forceIXV[0], forceIXV[1], forceIXV[2], forceIXV[3]);
+            fShiftY = reduceIncr4ReturnSum(f + sciy, forceIYV[0], forceIYV[1], forceIYV[2], forceIYV[3]);
+            fShiftZ = reduceIncr4ReturnSum(f + sciz, forceIZV[0], forceIZV[1], forceIZV[2], forceIZV[3]);
+        }
+        else
+        {
+            fShiftX = reduceIncr4ReturnSumHsimd(f + scix, forceIXV[0], forceIXV[1]);
+            fShiftY = reduceIncr4ReturnSumHsimd(f + sciy, forceIYV[0], forceIYV[1]);
+            fShiftZ = reduceIncr4ReturnSumHsimd(f + sciz, forceIZV[0], forceIZV[1]);
+        }
 
-#ifdef CALC_SHIFTFORCES
-        fshift[ish3 + 0] += fShiftX;
-        fshift[ish3 + 1] += fShiftY;
-        fshift[ish3 + 2] += fShiftZ;
-#endif
+        if constexpr (sc_calculateShiftForces)
+        {
+            fshift[ish3 + 0] += fShiftX;
+            fshift[ish3 + 1] += fShiftY;
+            fshift[ish3 + 2] += fShiftZ;
+        }
 
         if constexpr (calculateEnergies)
         {
@@ -509,7 +535,11 @@
         /* Outer loop uses 6 flops/iteration */
     }
 
-#ifdef COUNT_PAIRS
+#    ifdef COUNT_PAIRS
     printf("atom pairs %d\n", npair);
-#endif
+#    endif
 }
+
+#endif // GMX_SIMD
+
+} // namespace gmx
