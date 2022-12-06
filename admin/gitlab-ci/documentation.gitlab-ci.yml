@@ -247,6 +247,9 @@ docs:build:
     KUBERNETES_CPU_REQUEST: 2
     KUBERNETES_MEMORY_REQUEST: 4Gi
   script:
+    # TODO: Remove the extra apt-get if/when !3372 is merged and images updated.
+    - apt-get update
+    - apt-get install -y plantuml
     - cd $BUILD_DIR
     - |
       cmake --build . --target sphinx-programs \
