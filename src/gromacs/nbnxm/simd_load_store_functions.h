@@ -52,6 +52,25 @@
 namespace gmx
 {
 
+template<int iClusterSize, int jClusterSize>
+static inline int cjFromCi(const int iCluster)
+{
+    if constexpr (jClusterSize == iClusterSize)
+    {
+        return iCluster;
+    }
+    else if constexpr (jClusterSize == 2 * iClusterSize)
+    {
+        return (iCluster >> 1);
+    }
+    else if constexpr (2 * jClusterSize == iClusterSize)
+    {
+        return (iCluster << 1);
+    }
+}
+
+#if GMX_SIMD
+
 //! Load a single real for an i-atom into \p iRegister
 template<KernelLayout kernelLayout>
 inline std::enable_if_t<kernelLayout == KernelLayout::r4xM, SimdReal> loadIAtomData(const real* ptr,
@@ -85,13 +104,13 @@ inline std::enable_if_t<kernelLayout == KernelLayout::r2xMM, SimdReal> loadJAtom
     return loadDuplicateHsimd(ptr + offset);
 }
 
-#if GMX_SIMD_HAVE_INT32_LOGICAL
+#    if GMX_SIMD_HAVE_INT32_LOGICAL
 //! Define SimdBitMask as an integer SIMD register
 typedef SimdInt32 SimdBitMask;
-#else
+#    else
 //! Define SimdBitMask as a real SIMD register
 typedef SimdReal SimdBitMask;
-#endif
+#    endif
 
 //! Loads no interaction masks, returns an empty array
 template<bool loadMasks, KernelLayout kernelLayout>
@@ -113,7 +132,7 @@ loadSimdPairInteractionMasks(const int excl, SimdBitMask* filterBitMasksV)
 
     std::array<SimdBool, c_nbnxnCpuIClusterSize> interactionMasksV;
 
-#if GMX_SIMD_HAVE_INT32_LOGICAL
+#    if GMX_SIMD_HAVE_INT32_LOGICAL
     /* Load integer interaction mask */
     SimdInt32 mask_pr_S(excl);
     for (int i = 0; i < c_nbnxnCpuIClusterSize; i++)
@@ -121,14 +140,14 @@ loadSimdPairInteractionMasks(const int excl, SimdBitMask* filterBitMasksV)
         interactionMasksV[i] = cvtIB2B(testBits(mask_pr_S & filterBitMasksV[i]));
     }
 
-#elif GMX_SIMD_HAVE_LOGICAL
+#    elif GMX_SIMD_HAVE_LOGICAL
     union
     {
-#    if GMX_DOUBLE
+#        if GMX_DOUBLE
         std::int64_t i;
-#    else
+#        else
         std::int32_t i;
-#    endif
+#        endif
         real         r;
     } conv;
 
@@ -140,12 +159,12 @@ loadSimdPairInteractionMasks(const int excl, SimdBitMask* filterBitMasksV)
         interactionMasksV[i] = testBits(mask_pr_S & filterBitMasksV[i]);
     }
 
-#else
+#    else
     // Note that there was exclusion support without logical support up to release-2022,
     // which could be resurrected. This is probably only efficient for 4-wide SIMD.
     static_assert(false,
                   "Need GMX_SIMD_HAVE_INT32_LOGICAL or GMX_SIMD_HAVE_LOGICAL for NBNxM kernels");
-#endif
+#    endif
 
     return interactionMasksV;
 }
@@ -159,20 +178,20 @@ loadSimdPairInteractionMasks(const int excl, SimdBitMask* filterBitMasksV)
 
     std::array<SimdBool, c_nbnxnCpuIClusterSize / 2> interactionMasksV;
 
-#if GMX_SIMD_HAVE_INT32_LOGICAL
+#    if GMX_SIMD_HAVE_INT32_LOGICAL
     SimdInt32 mask_pr_S(excl);
     for (int i = 0; i < c_nbnxnCpuIClusterSize / 2; i++)
     {
         interactionMasksV[i] = cvtIB2B(testBits(mask_pr_S & filterBitMasksV[i]));
     }
-#elif GMX_SIMD_HAVE_LOGICAL
+#    elif GMX_SIMD_HAVE_LOGICAL
     union
     {
-#    if GMX_DOUBLE
+#        if GMX_DOUBLE
         std::int64_t i;
-#    else
+#        else
         std::int32_t i;
-#    endif
+#        endif
         real         r;
     } conv;
 
@@ -183,10 +202,10 @@ loadSimdPairInteractionMasks(const int excl, SimdBitMask* filterBitMasksV)
     {
         interactionMasksV[i] = testBits(mask_pr_S & filterBitMasksV[i]);
     }
-#else
+#    else
     static_assert(false,
                   "Need GMX_SIMD_HAVE_INT32_LOGICAL or GMX_SIMD_HAVE_LOGICAL for NBNxM kernels");
-#endif
+#    endif
 
     return interactionMasksV;
 }
@@ -253,6 +272,8 @@ inline int pairCountWithinCutoff(SimdReal rSquaredV[nR], SimdReal cutoffSquared)
 
     return npair;
 }
+
+#endif // GMX_SIMD
 
 } // namespace gmx
 

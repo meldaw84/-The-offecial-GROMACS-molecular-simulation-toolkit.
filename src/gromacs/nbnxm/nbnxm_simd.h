@@ -64,16 +64,13 @@ enum class KernelLayout
  *  8-way SIMD: 4x4 setup, performance wise only useful on CPUs without FMA or on AMD Zen1
  * 16-way SIMD: 4x8 setup, used in single precision with 512 bit wide SIMD
  */
-#    if GMX_SIMD_REAL_WIDTH == 2 || GMX_SIMD_REAL_WIDTH == 4 || GMX_SIMD_REAL_WIDTH == 8
-#        define GMX_NBNXN_SIMD_4XN
-#    endif
-#    if GMX_SIMD_REAL_WIDTH == 8 || GMX_SIMD_REAL_WIDTH == 16
-#        define GMX_NBNXN_SIMD_2XNN
-#    endif
+static constexpr bool sc_haveNbnxmSimd4xmKernels =
+        (GMX_SIMD_REAL_WIDTH == 2 || GMX_SIMD_REAL_WIDTH == 4 || GMX_SIMD_REAL_WIDTH == 8);
+static constexpr bool sc_haveNbnxmSimd2xmmKernels =
+        (GMX_SIMD_REAL_WIDTH == 8 || GMX_SIMD_REAL_WIDTH == 16);
 
-#    if !(defined GMX_NBNXN_SIMD_4XN || defined GMX_NBNXN_SIMD_2XNN)
-#        error "No SIMD kernel type defined"
-#    endif
+static_assert(sc_haveNbnxmSimd4xmKernels || sc_haveNbnxmSimd2xmmKernels,
+              "Need a least one SIMD kernel type to be defined");
 
 // We use the FDV0 tables for width==4 (when we can load it in one go), or if we don't have any unaligned loads
 #    if GMX_SIMD_REAL_WIDTH == 4 || !GMX_SIMD_HAVE_GATHER_LOADU_BYSIMDINT_TRANSPOSE_REAL
@@ -145,6 +142,11 @@ std::array<gmx::SimdBool, N> genBoolArr(F f)
         return std::array<gmx::SimdBool, 4>{ f(0), f(1), f(2), f(3) };
     }
 }
+
+#else
+
+static constexpr bool sc_haveNbnxmSimd4xmKernels  = false;
+static constexpr bool sc_haveNbnxmSimd2xmmKernels = false;
 
 #endif // GMX_SIMD && GMX_USE_SIMD_KERNELS
 

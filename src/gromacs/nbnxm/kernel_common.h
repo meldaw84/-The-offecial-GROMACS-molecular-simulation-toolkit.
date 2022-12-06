@@ -62,31 +62,22 @@ namespace Nbnxm
 enum class EwaldExclusionType : int;
 }
 
+enum class EnergyOutput : int
+{
+    None,
+    System,
+    GroupPairs
+};
+
 // TODO: Consider using one nbk_func type now ener and noener are identical
 
 /*! \brief Pair-interaction kernel type that also calculates energies.
  */
-typedef void(nbk_func_ener)(const NbnxnPairlistCpu*    nbl,
-                            const nbnxn_atomdata_t*    nbat,
-                            const interaction_const_t* ic,
-                            const rvec*                shift_vec,
-                            nbnxn_atomdata_output_t*   out);
-
-/*! \brief Pointer to \p nbk_func_ener.
- */
-typedef nbk_func_ener* p_nbk_func_ener;
-
-/*! \brief Pair-interaction kernel type that does not calculates energies.
- */
-typedef void(nbk_func_noener)(const NbnxnPairlistCpu*    nbl,
+typedef void(NbnxmKernelFunc)(const NbnxnPairlistCpu*    nbl,
                               const nbnxn_atomdata_t*    nbat,
                               const interaction_const_t* ic,
                               const rvec*                shift_vec,
                               nbnxn_atomdata_output_t*   out);
-
-/*! \brief Pointer to \p nbk_func_noener.
- */
-typedef nbk_func_noener* p_nbk_func_noener;
 
 /*! \brief Kinds of electrostatic treatments in SIMD Verlet kernels
  */
