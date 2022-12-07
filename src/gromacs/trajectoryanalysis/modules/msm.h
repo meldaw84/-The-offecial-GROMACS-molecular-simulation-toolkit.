@@ -50,7 +50,7 @@ namespace gmx
 namespace analysismodules
 {
 
-class MsmInfo
+class MarkovModelInfo
 {
 public:
     static const char                      name[];

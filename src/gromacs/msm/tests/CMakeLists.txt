@@ -32,7 +32,7 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out http://www.gromacs.org.
 
-gmx_add_unit_test(MsmTest msm-test CPP_SOURCE_FILES msm.cpp)
+gmx_add_unit_test(MsmTest msm-test CPP_SOURCE_FILES msm_estimation.cpp)
 
 target_link_libraries(msm-test PRIVATE
         msm

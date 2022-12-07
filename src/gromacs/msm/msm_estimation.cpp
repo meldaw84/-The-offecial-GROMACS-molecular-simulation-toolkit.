@@ -41,16 +41,13 @@
  */
 
 #include "gmxpre.h"
-#include "msm.h"
+#include "msm_estimation.h"
 
 #include <cstring>
 
 #include "gromacs/linearalgebra/eigensolver.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/real.h"
-
-#include "gromacs/gmxana/cmat.h"
-//#include "gromacs/utility/smalloc.h"
 
 
 namespace gmx
@@ -65,20 +62,6 @@ MarkovModel::MarkovModel(int nstates)
     // Initialize the TCM and TPM and set the size
     transitionCountsMatrix.resize(nstates, nstates);
     transitionProbabilityMatrix.resize(nstates, nstates);
-
-    const auto& dataView = transitionProbabilityMatrix.asConstView();
-    const int numRows = transitionProbabilityMatrix.extent(0);
-    const int numCols = transitionProbabilityMatrix.extent(1);
-
-    for (int i = 0; i < numRows; i++)
-    {
-        printf("\n");
-        for (int j=0; j < numCols; j++)
-        {
-            printf("%f ", dataView[i][j]);
-        }
-    }
-    printf("\n");
 
     // Initialize eigenvalues and eigenvectors here?
     //eigenvalues.resize(nstates);
@@ -96,20 +79,6 @@ void MarkovModel::countTransitions(gmx::ArrayRef<int> discretizedTraj, int lag)
     {
         transitionCountsMatrix(rows[i], cols[i]) += 1;
     }
-
-    const auto& dataView = transitionCountsMatrix.asConstView();
-    const int numRows = transitionCountsMatrix.extent(0);
-    const int numCols = transitionCountsMatrix.extent(1);
-
-    for (int i = 0; i < numRows; i++)
-    {
-        printf("\n");
-        for (int j=0; j < numCols; j++)
-        {
-            printf("%d ", dataView[i][j]);
-        }
-    }
-    printf("\n");
 }
 
 void MarkovModel::computeTransitionProbabilities()
@@ -121,22 +90,6 @@ void MarkovModel::computeTransitionProbabilities()
     // Use a float here to enable float division. Could there be issues having a float counter?
     // TODO: cast rowsum in for loop instead? Compiler might be able to sort inefficiencies
     // TODO: use std::accumulate to get counts
-
-    const auto& dataView = transitionProbabilityMatrix.asConstView();
-    const int numRows = transitionProbabilityMatrix.extent(0);
-    const int numCols = transitionProbabilityMatrix.extent(1);
-
-    printf("IN TPM\n");
-
-    for (int i = 0; i < numRows; i++)
-    {
-        printf("\n");
-        for (int j=0; j < numCols; j++)
-        {
-            printf("%f ", dataView[i][j]);
-        }
-    }
-    printf("\n");
 
     real rowsum;
     for (int i = 0; i < transitionCountsMatrix.extent(0); i++)
@@ -153,25 +106,13 @@ void MarkovModel::computeTransitionProbabilities()
             // Once we have the rowsum, loop through the row again
             for (int k = 0; k < transitionCountsMatrix.extent(1); k++)
             {
-                printf("Rowsum: %f\n", rowsum);
-                printf("TPM val: %f\n", transitionProbabilityMatrix(i,k));
                 transitionProbabilityMatrix(i, k) = transitionCountsMatrix(i ,k) / rowsum;
             }
         }
     }
-    const auto& dataView2 = transitionProbabilityMatrix.asConstView();
-    for (int i = 0; i < numRows; i++)
-    {
-        printf("\n");
-        for (int j=0; j < numCols; j++)
-        {
-            printf("%f ", dataView2[i][j]);
-        }
-    }
-    printf("\n");
 }
 
-// TODO: add sparse solver
+// TODO: add sparse solver and symmetric solver
 // TODO: maybe there's a better way to handle function argument?
 void MarkovModel::diagonalizeMatrix(MultiDimArray<std::vector<real>, extents<dynamic_extent, dynamic_extent>> matrix)
 {
@@ -182,63 +123,19 @@ void MarkovModel::diagonalizeMatrix(MultiDimArray<std::vector<real>, extents<dyn
     eigenvalues.resize(dim, 0);
     eigenvectors.resize(dim * dim, 0);
 
-    const auto& dataView = transitionProbabilityMatrix.asConstView();
-    const int numRows = transitionProbabilityMatrix.extent(0);
-    const int numCols = transitionProbabilityMatrix.extent(1);
-
-    printf("IN DIAG\n");
-
-    for (int i = 0; i < numRows; i++)
-    {
-        printf("\n");
-        for (int j=0; j < numCols; j++)
-        {
-            printf("%f ", dataView[i][j]);
-        }
-    }
-    printf("\n");
-
-    //auto tmpMat = matrix.toArrayRef().data();
-
-    /*
-    for (int i = 0; i < tmpMat.size(); i++)
-    {
-        printf("tmpMat elm: %f\n", tmpMat[i]);
-    }
-    */
-
-    // We shouldn't need this...
-    /*
-    t_mat* t_matrix = init_mat(dim * dim, FALSE);
-
-    for (int i = 0; i < dim * dim; i++)
-    {
-        printf("Matrix: %f\n", *t_matrix->mat[0]);
-    }
-
-    */
-    //real* *mat;
-    //snew(mat, 4 * 4);
-
-    // Didn't make a difference
-    //std::vector<real> mat = {0.8, 0, 0, 0.2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.5, 0.5};
-
-    //std::memcpy(eigenvectors.data(), t_matrix->mat[0], dim * dim * sizeof(real));
-
-    //eigensolver(eigenvectors.data(), dim, 0, dim, eigenvalues.data(), t_matrix->mat[0]);
-    //std::memcpy(eigenvectors.data(), matrix.toArrayRef().data(), dim * dim * sizeof(real));
-    //eigensolver(eigenvectors.data(), dim, 0, dim, eigenvalues.data(), matrix.toArrayRef().data());
+    // TODO: the eigensolver only works for symmetric matrices, we need to implement
+    // a version that handles general matrices.
     eigensolver(transitionProbabilityMatrix.asView().data(), dim, 0, dim, eigenvalues.data(), eigenvectors.data());
-    //eigensolver(t_matrix->mat[0], dim, 0, dim, eigenvalues.data(), eigenvectors.data());
-    //eigensolver(mat.data(), dim, 0, dim, eigenvalues.data(), eigenvectors.data());
-    //eigensolver(mat.data(), dim, 0, dim, eigenvalues.data(), eigenvectors.data());
-    printf("Number of eigenvalues: %d\n", eigenvalues.size());
-    printf("Number of eigenvector components: %d\n", eigenvectors.size());
 }
 
 void MarkovModel::WriteOutput()
 {
-
+    // Output to be generated:
+    //      * Eigenvalues/timescales in a list (XVG) [Process ID, ITS, eigenvalue]
+    //      * Eigenvectors (XVG), what format?
+    //      * Free energies (XVG) [state, free energy]
+    //      * Log file
+    //const MDLogger& logger = loggerOwner_->logger();
 }
 
 } // namespace gmx

@@ -34,7 +34,7 @@
 
 add_library(msm OBJECT)
 target_sources(msm PRIVATE
-        msm.cpp
+        msm_estimation.cpp
 )
 
 target_link_libraries(msm PRIVATE
@@ -42,6 +42,7 @@ target_link_libraries(msm PRIVATE
         legacy_modules
         linearalgebra
         math
+        utility
 )
 
 target_link_libraries(msm INTERFACE math)

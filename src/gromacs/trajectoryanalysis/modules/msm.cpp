@@ -57,69 +57,14 @@ namespace
 {
 
 
-// WRITE MSM ESTIMATION STUFF HERE FOR NOW...
-// INPUT: Trajectory with states
-// Make TCM
-// Make TPM
-// Diagonalize
-// OUTPUT: eigenvalues, eigenvectors
-
-// WIP
-void count_transitions()
-{
-    // Create state-assigned trajectory vector for initial tesing
-    std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
-    // TODO: Take lag time as an argument
-    int lag = 1;
-    const int nstates = 4;
-
-    //using static_extents = extents<3, 3>;
-    //const double dynamicExtents2D extents<3,3>;
-
-    // Initialize TCM as MultiDimArray with zeros
-    // TODO: Move to initAnalysis
-    // TODO: Make matrix unique?
-    MultiDimArray<std::array<int, nstates*nstates>, extents<nstates, nstates>> transitionCountsMatrix = { { } };
-
-    //Extract time-lagged trajectories
-    std::vector<int> rows(discretizedTraj.begin(), discretizedTraj.end() - lag);
-    std::vector<int> cols(discretizedTraj.begin() + lag, discretizedTraj.end());
-
-    printf("\n ");
-
-    const auto& dataView = transitionCountsMatrix.asConstView();
-    const int numRows = transitionCountsMatrix.extent(0);
-    const int numCols = transitionCountsMatrix.extent(1);
-
-    // Iterate over trajectory and count transitions
-    for (int i = 0; i < rows.size(); i++)
-    {
-      printf("row: %d ", rows[i]);
-      printf("col: %d ", cols[i]);
-      printf("\n");
-
-      transitionCountsMatrix(rows[i], cols[i]) += 1;
-
-    }
-
-    for (int i = 0; i < numRows; i++)
-    {
-        printf("\n");
-        for (int j=0; j < numCols; j++)
-        {
-            printf("%d ", dataView[i][j]);
-        }
-    }
-}
-
 /*
  * MarkovModel
  */
 
-class MarkovModel : public TrajectoryAnalysisModule
+class MarkovModelModule : public TrajectoryAnalysisModule
 {
 public:
-    MarkovModel();
+    MarkovModelModule();
 
     void initOptions(IOptionsContainer* options, TrajectoryAnalysisSettings* settings) override;
     void optionsFinished(TrajectoryAnalysisSettings* settings) override;
@@ -133,7 +78,7 @@ private:
     std::unique_ptr<LoggerOwner>    loggerOwner_;
 };
 
-MarkovModel::MarkovModel()
+MarkovModelModule::MarkovModelModule()
 {
     LoggerBuilder builder;
     builder.addTargetStream(gmx::MDLogger::LogLevel::Info, &gmx::TextOutputFile::standardOutput());
@@ -141,43 +86,41 @@ MarkovModel::MarkovModel()
     loggerOwner_ = std::make_unique<LoggerOwner>(builder.build());
 }
 
-void MarkovModel::initOptions(IOptionsContainer* options, TrajectoryAnalysisSettings* settings)
+void MarkovModelModule::initOptions(IOptionsContainer* options, TrajectoryAnalysisSettings* settings)
 {
 }
 
-void MarkovModel::optionsFinished(TrajectoryAnalysisSettings* settings)
+void MarkovModelModule::optionsFinished(TrajectoryAnalysisSettings* settings)
 {
 }
 
-void MarkovModel::initAnalysis(const TrajectoryAnalysisSettings& settings, const TopologyInformation& top)
+void MarkovModelModule::initAnalysis(const TrajectoryAnalysisSettings& settings, const TopologyInformation& top)
 {
 }
 
-void MarkovModel::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* /* pbc */, TrajectoryAnalysisModuleData* /*pdata*/)
+void MarkovModelModule::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* /* pbc */, TrajectoryAnalysisModuleData* /*pdata*/)
 {
-// COLLECT TRANSITIONS INTO TPM HERE?
     printf("Doing stuff for every frame!\n");
 }
 
-void MarkovModel::finishAnalysis(int nframes)
+void MarkovModelModule::finishAnalysis(int nframes)
 {
 // RUN ANALYSIS HERE
-    count_transitions();
 }
 
-void MarkovModel::writeOutput()
+void MarkovModelModule::writeOutput()
 {
 // ALL FILE WRITING HERE
 }
 
 } // namespace
 
-const char MsmInfo::name[]                 = "msm";
-const char MsmInfo::shortDescription[]     = "Estimates MSM from TCM";
+const char MarkovModelInfo::name[]                 = "msm";
+const char MarkovModelInfo::shortDescription[]     = "Estimates MSM from TCM";
 
-TrajectoryAnalysisModulePointer MsmInfo::create()
+TrajectoryAnalysisModulePointer MarkovModelInfo::create()
 {
-    return TrajectoryAnalysisModulePointer(new MarkovModel);
+    return TrajectoryAnalysisModulePointer(new MarkovModelModule);
 }
 
 } // namespace analysismodules

@@ -41,7 +41,7 @@
  */
 
 #include "gmxpre.h"
-#include "gromacs/msm/msm.h"
+#include "gromacs/msm/msm_estimation.h"
 
 #include <gtest/gtest.h>
 
@@ -65,8 +65,8 @@ protected:
 TEST_F(MsmTest, TransitionCountingTest)
 {
     // TODO: Make test pass or fail
-    //std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
-    std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
+    std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
+    //std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
 
     MarkovModel countTestMsm = MarkovModel(4);
 
@@ -90,8 +90,8 @@ TEST_F(MsmTest, TransitionCountingTest)
 
 TEST_F(MsmTest, TransitionProbabilityTest)
 {
-    //std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
-    std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
+    std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
+    //std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
     MarkovModel tpmTestMsm = MarkovModel(4);
     tpmTestMsm.countTransitions(discretizedTraj, 1);
 
@@ -117,7 +117,7 @@ TEST_F(MsmTest, DiagonalizationTest)
 {
     std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2}; //runs, should get eigenvalues (0.8, 0.5, 0, 0)
     //std::vector<int> discretizedTraj = {2, 2, 0, 0, 0, 3, 3, 2}; //runs
-    //std::vector<int> discretizedTraj = {0, 1, 1, 2, 3, 3, 3, 2}; //floating point exception
+    //std::vector<int> discretizedTraj = {0, 1, 1, 2, 3, 3, 3, 2}; // previous floating point exception
     MarkovModel diagTestMsm = MarkovModel(4);
     diagTestMsm.countTransitions(discretizedTraj, 1);
     diagTestMsm.computeTransitionProbabilities();
@@ -135,11 +135,6 @@ TEST_F(MsmTest, DiagonalizationTest)
     for (int i = 0; i < eigvals.size(); ++i)
     {
         printf("Val elm %d: %f\n", i, eigvals[i]);
-    }
-
-    for (int i = 0; i < eigvecs.size(); ++i)
-    {
-        printf("Vec elm %d: %f\n", i, eigvecs[i]);
     }
 
 }
