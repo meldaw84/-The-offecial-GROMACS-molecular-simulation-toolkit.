@@ -2395,15 +2395,15 @@ static void icell_set_x(int                             ci,
 {
     switch (kernelType)
     {
-#if GMX_SIMD
+#if GMX_SIMD && GMX_SIMD_REAL_WIDTH <= 8
         case ClusterDistanceKernelType::CpuSimd_4xM:
             icell_set_x_simd_4xn(ci, shx, shy, shz, stride, x, work);
             break;
-#    if GMX_SIMD_HAVE_HSIMD_UTIL_REAL
+#endif
+#if GMX_SIMD && GMX_SIMD_HAVE_HSIMD_UTIL_REAL
         case ClusterDistanceKernelType::CpuSimd_2xMM:
             icell_set_x_simd_2xnn(ci, shx, shy, shz, stride, x, work);
             break;
-#    endif
 #endif
         case ClusterDistanceKernelType::CpuPlainC:
             icell_set_x_simple(ci, shx, shy, shz, stride, x, &work->iClusterData);
@@ -3025,7 +3025,7 @@ static void makeClusterListWrapper(NbnxnPairlistCpu* nbl,
             makeClusterListSimple(
                     jGrid, nbl, ci, firstCell, lastCell, excludeSubDiagonal, nbat->x().data(), rlist2, rbb2, numDistanceChecks);
             break;
-#if GMX_SIMD
+#if GMX_SIMD && GMX_SIMD_REAL_WIDTH <= 8
         case ClusterDistanceKernelType::CpuSimd_4xM:
             makeClusterListSimd4xn(
                     jGrid, nbl, ci, firstCell, lastCell, excludeSubDiagonal, nbat->x().data(), rlist2, rbb2, numDistanceChecks);
