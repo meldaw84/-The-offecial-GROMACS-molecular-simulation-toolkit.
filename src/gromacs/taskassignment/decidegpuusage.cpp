@@ -767,7 +767,7 @@ bool decideWhetherToUseGpuForUpdate(const bool           isDomainDecomposition,
                     .appendText(
                             "Update task can not run on the GPU, because the following "
                             "condition(s) were not satisfied:");
-            GMX_LOG(mdlog.warning).asParagraph().appendText(errorMessage.c_str());
+            GMX_LOG(mdlog.info).asParagraph().appendText(errorMessage.c_str());
         }
         else if (updateTarget == TaskTarget::Gpu)
         {
