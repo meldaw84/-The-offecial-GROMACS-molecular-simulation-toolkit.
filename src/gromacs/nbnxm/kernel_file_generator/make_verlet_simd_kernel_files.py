@@ -132,9 +132,18 @@ VdwTreatmentDict["VdwLJEwCombGeom"] = {
 
 # This is OK as an unordered dict
 EnergiesComputationDict = {
-    "F": {"function type": "NbnxmKernelFunc", "param": "EnergyOutput::None",},
-    "VF": {"function type": "NbnxmKernelFunc", "param": "EnergyOutput::System",},
-    "VgrpF": {"function type": "NbnxmKernelFunc", "param": "EnergyOutput::GroupPairs",},
+    "F": {
+        "function type": "NbnxmKernelFunc",
+        "param": "EnergyOutput::None",
+    },
+    "VF": {
+        "function type": "NbnxmKernelFunc",
+        "param": "EnergyOutput::System",
+    },
+    "VgrpF": {
+        "function type": "NbnxmKernelFunc",
+        "param": "EnergyOutput::GroupPairs",
+    },
 }
 
 # This is OK as an unordered dict
