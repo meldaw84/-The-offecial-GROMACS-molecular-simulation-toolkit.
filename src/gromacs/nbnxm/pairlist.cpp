@@ -1109,7 +1109,7 @@ static void makeClusterListSimple(const Grid&              jGrid,
     }
 }
 
-#if GMX_SIMD
+#if GMX_SIMD && GMX_SIMD_REAL_WIDTH <= 8
 #    include "pairlist_simd_4xm.h"
 #endif
 #if GMX_SIMD && GMX_SIMD_HAVE_HSIMD_UTIL_REAL
