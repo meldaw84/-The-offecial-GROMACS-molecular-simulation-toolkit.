@@ -127,7 +127,7 @@ VdwTreatmentDict["VdwLJPSw"] = {
     "param": "LJCombinationRule::None, InteractionModifiers::PotSwitch, false"
 }
 VdwTreatmentDict["VdwLJEwCombGeom"] = {
-    "param": "LJCombinationRule::Geometric, InteractionModifiers::PotShift, true"
+    "param": "LJCombinationRule::None, InteractionModifiers::PotShift, true"
 }
 
 # This is OK as an unordered dict

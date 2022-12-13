@@ -54,7 +54,7 @@ namespace gmx
 {
 
 template void
-nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::Geometric, InteractionModifiers::PotShift, true, EnergyOutput::None>(
+nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::None>(
         const NbnxnPairlistCpu gmx_unused* nbl,
         const nbnxn_atomdata_t gmx_unused* nbat,
         const interaction_const_t gmx_unused* ic,
