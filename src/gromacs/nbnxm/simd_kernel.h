@@ -152,13 +152,16 @@ nbnxmKernelSimd(const NbnxnPairlistCpu gmx_unused* nbl,
 
     const nbnxn_atomdata_t::Params& nbatParams = nbat->params();
 
-    const real* gmx_restrict ljc;
+    static_assert(!(haveLJEwaldGeometric && ljCombinationRule == LJCombinationRule::LorentzBerthelot),
+                  "Can not have LJ-PME with LB combination rule");
+
+    const real gmx_unused* gmx_restrict ljc;
     if constexpr (ljCombinationRule != LJCombinationRule::None || haveLJEwaldGeometric)
     {
         ljc = nbatParams.lj_comb.data();
     }
-    const real* gmx_restrict nbfp_ptr;
-    const int* gmx_restrict  type;
+    const real gmx_unused* gmx_restrict nbfp_ptr;
+    const int gmx_unused* gmx_restrict type;
     if constexpr (ljCombinationRule == LJCombinationRule::None)
     {
         /* No combination rule used */
@@ -204,10 +207,13 @@ nbnxmKernelSimd(const NbnxnPairlistCpu gmx_unused* nbl,
     SimdReal sixth_S(1.0_real / 6.0_real);
     SimdReal twelveth_S(1.0_real / 12.0_real);
 
+    static_assert(!(haveLJEwaldGeometric && vdwModifier != InteractionModifiers::PotShift),
+                  "LJ-PME only supports potential-shift");
+
     LennardJonesCalculator<calculateEnergies, vdwModifier> ljCalculator(*ic);
 
-    std::array<SimdReal, haveLJEwaldGeometric ? 5 : 0> ljEwaldParams;
-    real                                               lj_ewaldcoeff6_6;
+    std::array<SimdReal, haveLJEwaldGeometric ? 5 : 0> gmx_unused ljEwaldParams;
+    real                                                          lj_ewaldcoeff6_6;
     if constexpr (haveLJEwaldGeometric)
     {
         ljEwaldParams[0]          = SimdReal(1.0_real);
@@ -288,9 +294,9 @@ nbnxmKernelSimd(const NbnxnPairlistCpu gmx_unused* nbl,
         const bool do_coul = ((ciEntry.shift & NBNXN_CI_DO_COUL(0)) != 0);
         const bool half_LJ = (((ciEntry.shift & NBNXN_CI_HALF_LJ(0)) != 0) || !do_LJ) && do_coul;
 
-        std::array<real*, useEnergyGroups ? UNROLLI : 0> vvdwtp;
-        std::array<real*, useEnergyGroups ? UNROLLI : 0> vctp;
-        int                                              egps_i;
+        std::array<real*, useEnergyGroups ? UNROLLI : 0> gmx_unused vvdwtp;
+        std::array<real*, useEnergyGroups ? UNROLLI : 0> gmx_unused vctp;
+        int                                                         egps_i;
         if constexpr (useEnergyGroups)
         {
             egps_i = nbatParams.energrp[ci];
@@ -370,11 +376,11 @@ nbnxmKernelSimd(const NbnxnPairlistCpu gmx_unused* nbl,
 
         constexpr bool c_ljCombLB = (ljCombinationRule == LJCombinationRule::LorentzBerthelot);
         // Note that when half_lj==true we actually only need nR/2 LJ parameters
-        std::array<SimdReal, c_ljCombLB ? nR : 0> halfSigmaIV;
-        std::array<SimdReal, c_ljCombLB ? nR : 0> sqrtEpsilonIV;
-        std::array<SimdReal, (ljCombinationRule == LJCombinationRule::Geometric || haveLJEwaldGeometric) ? nR : 0> c6GeomV;
-        std::array<SimdReal, (ljCombinationRule == LJCombinationRule::Geometric) ? nR : 0> c12GeomV;
-        std::array<const real*, (ljCombinationRule == LJCombinationRule::None) ? UNROLLI : 0> nbfpI;
+        std::array<SimdReal, c_ljCombLB ? nR : 0> gmx_unused halfSigmaIV;
+        std::array<SimdReal, c_ljCombLB ? nR : 0> gmx_unused sqrtEpsilonIV;
+        std::array<SimdReal, (ljCombinationRule == LJCombinationRule::Geometric || haveLJEwaldGeometric) ? nR : 0> gmx_unused c6GeomV;
+        std::array<SimdReal, (ljCombinationRule == LJCombinationRule::Geometric) ? nR : 0> gmx_unused c12GeomV;
+        std::array<const real*, (ljCombinationRule == LJCombinationRule::None) ? UNROLLI : 0> gmx_unused nbfpI;
         if constexpr (c_ljCombLB)
         {
             for (int i = 0; i < nR; i++)
