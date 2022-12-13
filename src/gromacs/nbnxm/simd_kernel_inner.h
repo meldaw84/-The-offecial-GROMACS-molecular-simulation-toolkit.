@@ -203,8 +203,8 @@
 
     /* Lennard-Jones interaction */
     constexpr bool calculateLJInteractions = (c_iLJInteractions != ILJInteractions::None);
-    std::array<SimdReal, calculateLJInteractions ? c_nRLJ : 0>                        frLJV;
-    std::array<SimdReal, (calculateLJInteractions && calculateEnergies) ? c_nRLJ : 0> vLJV;
+    std::array<SimdReal, calculateLJInteractions ? c_nRLJ : 0> gmx_unused frLJV;
+    std::array<SimdReal, (calculateLJInteractions && calculateEnergies) ? c_nRLJ : 0> gmx_unused vLJV;
 
     if constexpr (calculateLJInteractions)
     {
@@ -326,7 +326,7 @@
     if constexpr (calculateEnergies)
     {
         /* Energy group indices for two atoms packed into one int */
-        std::array<int, useEnergyGroups ? UNROLLJ / 2 : 0> egp_jj;
+        std::array<int, useEnergyGroups ? UNROLLJ / 2 : 0> gmx_unused egp_jj;
 
         if constexpr (useEnergyGroups)
         {
