@@ -762,7 +762,7 @@ bool decideWhetherToUseGpuForUpdate(const bool           isDomainDecomposition,
     {
         if (updateTarget == TaskTarget::Auto && !forceCpuUpdateDefault)
         {
-            GMX_LOG(mdlog.warning)
+            GMX_LOG(mdlog.info)
                     .asParagraph()
                     .appendText(
                             "Update task can not run on the GPU, because the following "
