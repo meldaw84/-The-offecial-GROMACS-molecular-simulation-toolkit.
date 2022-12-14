@@ -273,7 +273,7 @@ MessageStringCollector PmeTest::getSkipMessagesIfNecessary(const CommandLine& co
                 !pmeFftOptionArgument.has_value() || pmeFftOptionArgument.value() == "gpu";
 
         messages.appendIf(commandLineTargetsPmeFftOnGpu && !commandLineTargetsPmeOnlyRanks
-                                  && buildSupportsGpuFft(numRanks),
+                                  && !buildSupportsGpuFft(numRanks),
                           "it targets GPU execution of FFT work on one or more ranks, which is "
                           "not supported in the current build");
 
