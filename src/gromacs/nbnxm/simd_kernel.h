@@ -67,28 +67,6 @@ namespace gmx
 //! Whether we calculate shift forces, always true, because it's cheap anyhow
 static constexpr bool sc_calculateShiftForces = true;
 
-//! SIMD kernel definition for unsupported layouts
-template<KernelLayout         kernelLayout,
-         KernelCoulombType    coulombType,
-         bool                 haveVdwCutoffCheck,
-         LJCombinationRule    ljCombinationRule,
-         InteractionModifiers vdwModifier,
-         bool                 haveLJEwaldGeometric,
-         EnergyOutput         energyOutput>
-std::enable_if_t<((kernelLayout == KernelLayout::r2xMM && !sc_haveNbnxmSimd2xmmKernels)
-                  || (kernelLayout == KernelLayout::r4xM && !sc_haveNbnxmSimd4xmKernels)),
-                 void>
-nbnxmKernelSimd(const NbnxnPairlistCpu gmx_unused* nbl,
-                const nbnxn_atomdata_t gmx_unused* nbat,
-                const interaction_const_t gmx_unused* ic,
-                const rvec gmx_unused*  shift_vec,
-                nbnxn_atomdata_output_t gmx_unused* out)
-{
-    GMX_RELEASE_ASSERT(false, "NBNxM kernel should only be called when supported");
-}
-
-#if GMX_SIMD
-
 //! The actual NBNxM SIMD kernel
 template<KernelLayout         kernelLayout,
          KernelCoulombType    coulombType,
@@ -97,14 +75,11 @@ template<KernelLayout         kernelLayout,
          InteractionModifiers vdwModifier,
          bool                 haveLJEwaldGeometric,
          EnergyOutput         energyOutput>
-std::enable_if_t<!((kernelLayout == KernelLayout::r2xMM && !sc_haveNbnxmSimd2xmmKernels)
-                   || (kernelLayout == KernelLayout::r4xM && !sc_haveNbnxmSimd4xmKernels)),
-                 void>
-nbnxmKernelSimd(const NbnxnPairlistCpu gmx_unused* nbl,
-                const nbnxn_atomdata_t gmx_unused* nbat,
-                const interaction_const_t gmx_unused* ic,
-                const rvec gmx_unused*  shift_vec,
-                nbnxn_atomdata_output_t gmx_unused* out)
+void nbnxmKernelSimd(const NbnxnPairlistCpu gmx_unused* nbl,
+                     const nbnxn_atomdata_t gmx_unused* nbat,
+                     const interaction_const_t gmx_unused* ic,
+                     const rvec gmx_unused*  shift_vec,
+                     nbnxn_atomdata_output_t gmx_unused* out)
 {
     constexpr int GMX_SIMD_J_UNROLL_SIZE = (kernelLayout == KernelLayout::r2xMM ? 2 : 1);
 
@@ -146,9 +121,9 @@ nbnxmKernelSimd(const NbnxnPairlistCpu gmx_unused* nbl,
 
     SimdReal zero_S(0.0);
 
-#    ifdef COUNT_PAIRS
+#ifdef COUNT_PAIRS
     int npair = 0;
-#    endif
+#endif
 
     const nbnxn_atomdata_t::Params& nbatParams = nbat->params();
 
@@ -173,11 +148,11 @@ nbnxmKernelSimd(const NbnxnPairlistCpu gmx_unused* nbl,
     const DiagonalMasker<nR, kernelLayout, getDiagonalMaskType<UNROLLI, UNROLLJ>()> diagonalMasker(
             nbat->simdMasks);
 
-#    if GMX_DOUBLE && !GMX_SIMD_HAVE_INT32_LOGICAL
+#if GMX_DOUBLE && !GMX_SIMD_HAVE_INT32_LOGICAL
     const std::uint64_t* gmx_restrict exclusion_filter = nbat->simdMasks.exclusion_filter64.data();
-#    else
+#else
     const std::uint32_t* gmx_restrict exclusion_filter = nbat->simdMasks.exclusion_filter.data();
-#    endif
+#endif
 
     /* Here we cast the exclusion filters from unsigned * to int * or real *.
      * Since we only check bits, the actual value they represent does not
@@ -186,13 +161,13 @@ nbnxmKernelSimd(const NbnxnPairlistCpu gmx_unused* nbl,
     SimdBitMask exclusionFilterV[nR];
     for (int i = 0; i < nR; i++)
     {
-#    if GMX_SIMD_HAVE_INT32_LOGICAL
+#if GMX_SIMD_HAVE_INT32_LOGICAL
         exclusionFilterV[i] = load<SimdBitMask>(
                 reinterpret_cast<const int*>(exclusion_filter + i * GMX_SIMD_J_UNROLL_SIZE * UNROLLJ));
-#    else
+#else
         exclusionFilterV[i] = load<SimdBitMask>(
                 reinterpret_cast<const real*>(exclusion_filter + i * GMX_SIMD_J_UNROLL_SIZE * UNROLLJ));
-#    endif
+#endif
     }
 
     CoulombCalculator<coulombType> coulombCalculator(*ic);
@@ -450,7 +425,7 @@ nbnxmKernelSimd(const NbnxnPairlistCpu gmx_unused* nbl,
                 constexpr bool c_needToCheckExclusions = true;
                 while (cjind < cjind1 && nbl->cj.excl(cjind) != NBNXN_INTERACTION_MASK_ALL)
                 {
-#    include "simd_kernel_inner.h"
+#include "simd_kernel_inner.h"
                     cjind++;
                 }
             }
@@ -458,7 +433,7 @@ nbnxmKernelSimd(const NbnxnPairlistCpu gmx_unused* nbl,
                 constexpr bool c_needToCheckExclusions = false;
                 for (; (cjind < cjind1); cjind++)
                 {
-#    include "simd_kernel_inner.h"
+#include "simd_kernel_inner.h"
                 }
             }
         }
@@ -471,7 +446,7 @@ nbnxmKernelSimd(const NbnxnPairlistCpu gmx_unused* nbl,
                 constexpr bool c_needToCheckExclusions = true;
                 while (cjind < cjind1 && nbl->cj.excl(cjind) != NBNXN_INTERACTION_MASK_ALL)
                 {
-#    include "simd_kernel_inner.h"
+#include "simd_kernel_inner.h"
                     cjind++;
                 }
             }
@@ -479,7 +454,7 @@ nbnxmKernelSimd(const NbnxnPairlistCpu gmx_unused* nbl,
                 constexpr bool c_needToCheckExclusions = false;
                 for (; (cjind < cjind1); cjind++)
                 {
-#    include "simd_kernel_inner.h"
+#include "simd_kernel_inner.h"
                 }
             }
         }
@@ -492,7 +467,7 @@ nbnxmKernelSimd(const NbnxnPairlistCpu gmx_unused* nbl,
                 constexpr bool c_needToCheckExclusions = true;
                 while (cjind < cjind1 && nbl->cj.excl(cjind) != NBNXN_INTERACTION_MASK_ALL)
                 {
-#    include "simd_kernel_inner.h"
+#include "simd_kernel_inner.h"
                     cjind++;
                 }
             }
@@ -500,7 +475,7 @@ nbnxmKernelSimd(const NbnxnPairlistCpu gmx_unused* nbl,
                 constexpr bool c_needToCheckExclusions = false;
                 for (; (cjind < cjind1); cjind++)
                 {
-#    include "simd_kernel_inner.h"
+#include "simd_kernel_inner.h"
                 }
             }
         }
@@ -541,11 +516,9 @@ nbnxmKernelSimd(const NbnxnPairlistCpu gmx_unused* nbl,
         /* Outer loop uses 6 flops/iteration */
     }
 
-#    ifdef COUNT_PAIRS
+#ifdef COUNT_PAIRS
     printf("atom pairs %d\n", npair);
-#    endif
+#endif
 }
-
-#endif // GMX_SIMD
 
 } // namespace gmx

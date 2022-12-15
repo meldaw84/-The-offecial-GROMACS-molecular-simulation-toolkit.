@@ -40,22 +40,11 @@ namespace gmx
 enum class KernelCoulombType;
 
 template<KernelLayout kernelLayout, KernelCoulombType coulombType, bool haveVdwCutoffCheck, LJCombinationRule ljCombinationRule, InteractionModifiers vdwModifier, bool haveLJEwaldGeometric, EnergyOutput energyOutput>
-std::enable_if_t<((kernelLayout == KernelLayout::r2xMM && !sc_haveNbnxmSimd2xmmKernels)
-	          || (kernelLayout == KernelLayout::r4xM && !sc_haveNbnxmSimd4xmKernels)), void>
-nbnxmKernelSimd(const NbnxnPairlistCpu    gmx_unused *nbl,
-                const nbnxn_atomdata_t    gmx_unused *nbat,
-                const interaction_const_t gmx_unused *ic,
-                const rvec                gmx_unused *shift_vec,
-                nbnxn_atomdata_output_t   gmx_unused *out);
-
-template<KernelLayout kernelLayout, KernelCoulombType coulombType, bool haveVdwCutoffCheck, LJCombinationRule ljCombinationRule, InteractionModifiers vdwModifier, bool haveLJEwaldGeometric, EnergyOutput energyOutput>
-std::enable_if_t<!((kernelLayout == KernelLayout::r2xMM && !sc_haveNbnxmSimd2xmmKernels)
-	           || (kernelLayout == KernelLayout::r4xM && !sc_haveNbnxmSimd4xmKernels)), void>
-nbnxmKernelSimd(const NbnxnPairlistCpu    gmx_unused *nbl,
-                const nbnxn_atomdata_t    gmx_unused *nbat,
-                const interaction_const_t gmx_unused *ic,
-                const rvec                gmx_unused *shift_vec,
-                nbnxn_atomdata_output_t   gmx_unused *out);
+void nbnxmKernelSimd(const NbnxnPairlistCpu    gmx_unused *nbl,
+                     const nbnxn_atomdata_t    gmx_unused *nbat,
+                     const interaction_const_t gmx_unused *ic,
+                     const rvec                gmx_unused *shift_vec,
+                     nbnxn_atomdata_output_t   gmx_unused *out);
 
 /* Declare all the different kernel functions.
  */
