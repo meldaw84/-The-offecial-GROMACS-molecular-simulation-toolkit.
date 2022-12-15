@@ -155,7 +155,7 @@ bool decideWhetherToUseGpusForNonbondedWithThreadMpi(const TaskTarget        non
     return haveAvailableDevices;
 }
 
-static bool decideWhetherToUseGpusForPmeFft(const TaskTarget pmeFftTarget, const int numPmeRanksPerSimulation)
+static bool decideWhetherToUseGpusForPmeFft(const TaskTarget pmeFftTarget)
 {
     const bool useCpuFft = (pmeFftTarget == TaskTarget::Cpu)
                            || (pmeFftTarget == TaskTarget::Auto && !buildSupportsGpuFft());
@@ -181,7 +181,7 @@ static bool canUseGpusForPme(const bool        useGpuForNonbonded,
     errorReasons.appendIf(!useGpuForNonbonded, "Nonbonded interactions must also run on GPUs.");
     errorReasons.appendIf(!pme_gpu_supports_build(&tempString), tempString);
     errorReasons.appendIf(!pme_gpu_supports_input(inputrec, &tempString), tempString);
-    if (!decideWhetherToUseGpusForPmeFft(pmeFftTarget, numPmeRanksPerSimulation))
+    if (!decideWhetherToUseGpusForPmeFft(pmeFftTarget))
     {
         // We need to do FFT on CPU, so we check whether we are able to use PME Mixed mode.
         errorReasons.appendIf(!pme_gpu_mixed_mode_supports_input(inputrec, &tempString), tempString);
@@ -476,10 +476,7 @@ bool decideWhetherToUseGpusForPme(const bool              useGpuForNonbonded,
 }
 
 
-PmeRunMode determinePmeRunMode(const bool        useGpuForPme,
-                               const int         numPmeRanksPerSimulation,
-                               const TaskTarget& pmeFftTarget,
-                               const t_inputrec& inputrec)
+PmeRunMode determinePmeRunMode(const bool useGpuForPme, const TaskTarget& pmeFftTarget, const t_inputrec& inputrec)
 {
     if (!usingPme(inputrec.coulombtype) && !usingLJPme(inputrec.vdwtype))
     {
@@ -494,7 +491,7 @@ PmeRunMode determinePmeRunMode(const bool        useGpuForPme,
                       "GROMACS is built without a suitable GPU FFT library. Please do not use "
                       "-pmefft gpu.");
         }
-        if (!decideWhetherToUseGpusForPmeFft(pmeFftTarget, numPmeRanksPerSimulation))
+        if (!decideWhetherToUseGpusForPmeFft(pmeFftTarget))
         {
             return PmeRunMode::Mixed;
         }
