@@ -57,4 +57,4 @@ nbnxmKernelSimd<{0}, {1}, {2}, {3}>(
 
 }} // namespace gmx
 
-#endif
+#endif // {4}
