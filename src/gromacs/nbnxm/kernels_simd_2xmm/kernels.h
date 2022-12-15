@@ -51,11 +51,11 @@ template<KernelLayout         kernelLayout,
          InteractionModifiers vdwModifier,
          bool                 haveLJEwaldGeometric,
          EnergyOutput         energyOutput>
-void nbnxmKernelSimd(const NbnxnPairlistCpu gmx_unused* nbl,
-                     const nbnxn_atomdata_t gmx_unused* nbat,
-                     const interaction_const_t gmx_unused* ic,
-                     const rvec gmx_unused*  shift_vec,
-                     nbnxn_atomdata_output_t gmx_unused* out);
+void nbnxmKernelSimd(const NbnxnPairlistCpu*    nbl,
+                     const nbnxn_atomdata_t*    nbat,
+                     const interaction_const_t* ic,
+                     const rvec*                shift_vec,
+                     nbnxn_atomdata_output_t*   out);
 
 /* Declare all the different kernel functions.
  */
