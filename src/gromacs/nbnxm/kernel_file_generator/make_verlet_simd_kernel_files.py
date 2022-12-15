@@ -148,8 +148,14 @@ EnergiesComputationDict = {
 
 # This is OK as an unordered dict
 VerletKernelTypeDict = {
-    "2xmm": {"param": "KernelLayout::r2xMM"},
-    "4xm": {"param": "KernelLayout::r4xM"},
+    "2xmm": {
+        "param": "KernelLayout::r2xMM",
+        "define": "GMX_HAVE_NBNXM_SIMD_2XMM",
+    },
+    "4xm": {
+        "param": "KernelLayout::r4xM",
+        "define": "GMX_HAVE_NBNXM_SIMD_4XM",
+    },
 }
 
 KernelsHeaderTemplate = read_kernel_template("kernel_simd_template.h.pre")
@@ -203,8 +209,7 @@ for type in VerletKernelTypeDict:
                             ElectrostaticsDict[elec]["param"],
                             VdwTreatmentDict[ljtreat]["param"],
                             EnergiesComputationDict[ener]["param"],
-                            KernelsHeaderPathName,
-                            KernelName,
+                            VerletKernelTypeDict[type]["define"],
                         )
                     )
 

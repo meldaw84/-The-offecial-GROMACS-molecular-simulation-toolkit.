@@ -66,8 +66,10 @@
 #include "pairlistsets.h"
 #define INCLUDE_KERNELFUNCTION_TABLES
 #include "kernels_reference/kernel_ref.h"
-#if GMX_SIMD && GMX_USE_SIMD_KERNELS
+#if GMX_HAVE_NBNXM_SIMD_2XMM
 #    include "kernels_simd_2xmm/kernels.h"
+#endif
+#if GMX_HAVE_NBNXM_SIMD_4XM
 #    include "kernels_simd_4xm/kernels.h"
 #endif
 #undef INCLUDE_FUNCTION_TABLES
@@ -292,11 +294,13 @@ static void nbnxn_kernel_cpu(const PairlistSet&             pairlistSet,
                 case Nbnxm::KernelType::Cpu4x4_PlainC:
                     nbnxn_kernel_noener_ref[coulkt][vdwkt](pairlist, nbat, &ic, shiftVecPointer, out);
                     break;
-#if GMX_SIMD && GMX_USE_SIMD_KERNELS
+#if GMX_HAVE_NBNXM_SIMD_2XMM
                 case Nbnxm::KernelType::Cpu4xN_Simd_2xNN:
                     gmx::nbnxmKernelNoenerSimd2xmm[coulkt][vdwkt](
                             pairlist, nbat, &ic, shiftVecPointer, out);
                     break;
+#endif
+#if GMX_HAVE_NBNXM_SIMD_4XM
                 case Nbnxm::KernelType::Cpu4xN_Simd_4xN:
                     gmx::nbnxmKernelNoenerSimd4xm[coulkt][vdwkt](pairlist, nbat, &ic, shiftVecPointer, out);
                     break;
@@ -315,10 +319,12 @@ static void nbnxn_kernel_cpu(const PairlistSet&             pairlistSet,
                 case Nbnxm::KernelType::Cpu4x4_PlainC:
                     nbnxn_kernel_ener_ref[coulkt][vdwkt](pairlist, nbat, &ic, shiftVecPointer, out);
                     break;
-#if GMX_SIMD && GMX_USE_SIMD_KERNELS
+#if GMX_HAVE_NBNXM_SIMD_2XMM
                 case Nbnxm::KernelType::Cpu4xN_Simd_2xNN:
                     gmx::nbnxmKernelEnerSimd2xmm[coulkt][vdwkt](pairlist, nbat, &ic, shiftVecPointer, out);
                     break;
+#endif
+#if GMX_HAVE_NBNXM_SIMD_4XM
                 case Nbnxm::KernelType::Cpu4xN_Simd_4xN:
                     gmx::nbnxmKernelEnerSimd4xm[coulkt][vdwkt](pairlist, nbat, &ic, shiftVecPointer, out);
                     break;
@@ -339,12 +345,14 @@ static void nbnxn_kernel_cpu(const PairlistSet&             pairlistSet,
                     unrollj = c_nbnxnCpuIClusterSize;
                     nbnxn_kernel_energrp_ref[coulkt][vdwkt](pairlist, nbat, &ic, shiftVecPointer, out);
                     break;
-#if GMX_SIMD && GMX_USE_SIMD_KERNELS
+#if GMX_HAVE_NBNXM_SIMD_2XMM
                 case Nbnxm::KernelType::Cpu4xN_Simd_2xNN:
                     unrollj = GMX_SIMD_REAL_WIDTH / 2;
                     gmx::nbnxmKernelEnergrpSimd2xmm[coulkt][vdwkt](
                             pairlist, nbat, &ic, shiftVecPointer, out);
                     break;
+#endif
+#if GMX_HAVE_NBNXM_SIMD_4XM
                 case Nbnxm::KernelType::Cpu4xN_Simd_4xN:
                     unrollj = GMX_SIMD_REAL_WIDTH;
                     gmx::nbnxmKernelEnergrpSimd4xm[coulkt][vdwkt](

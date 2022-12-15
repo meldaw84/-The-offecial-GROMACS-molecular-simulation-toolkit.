@@ -46,9 +46,8 @@
 
 #include "gromacs/mdtypes/interaction_const.h"
 #include "gromacs/nbnxm/nbnxm_simd.h"
-#include "gromacs/nbnxm/simd_kernel.h"
-
-#include "kernels.h"
+#if GMX_HAVE_NBNXM_SIMD_4XM
+#    include "gromacs/nbnxm/simd_kernel.h"
 
 namespace gmx
 {
@@ -62,3 +61,5 @@ nbnxmKernelSimd<KernelLayout::r4xM, KernelCoulombType::EwaldTabulated, true, LJC
         nbnxn_atomdata_output_t gmx_unused* out);
 
 } // namespace gmx
+
+#endif

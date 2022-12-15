@@ -41,9 +41,8 @@
 
 #include "gromacs/mdtypes/interaction_const.h"
 #include "gromacs/nbnxm/nbnxm_simd.h"
-#include "gromacs/nbnxm/simd_kernel.h"
-
-#include "{4}"
+#if {4}
+#    include "gromacs/nbnxm/simd_kernel.h"
 
 namespace gmx
 {{
@@ -57,3 +56,5 @@ nbnxmKernelSimd<{0}, {1}, {2}, {3}>(
         nbnxn_atomdata_output_t gmx_unused* out);
 
 }} // namespace gmx
+
+#endif

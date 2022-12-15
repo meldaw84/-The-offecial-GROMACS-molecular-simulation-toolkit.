@@ -58,20 +58,27 @@ enum class KernelLayout
     r2xMM //!< 2 'i'-registers each containing duplicated data, { M, M }, for interaction with M j-atoms
 };
 
-#if GMX_SIMD && GMX_USE_SIMD_KERNELS
 /*! \brief The nbnxn SIMD 4xN and 2x(N+N) kernels can be added independently.
  * Currently the 2xNN SIMD kernels only make sense with:
  *  8-way SIMD: 4x4 setup, performance wise only useful on CPUs without FMA or on AMD Zen1
  * 16-way SIMD: 4x8 setup, used in single precision with 512 bit wide SIMD
  */
-static constexpr bool sc_haveNbnxmSimd4xmKernels =
-        (GMX_SIMD_REAL_WIDTH == 2 || GMX_SIMD_REAL_WIDTH == 4 || GMX_SIMD_REAL_WIDTH == 8);
-static constexpr bool sc_haveNbnxmSimd2xmmKernels =
-        (GMX_SIMD_REAL_WIDTH == 8 || GMX_SIMD_REAL_WIDTH == 16);
+#if GMX_SIMD && GMX_USE_SIMD_KERNELS
+#    define GMX_HAVE_NBNXM_SIMD_2XMM \
+        ((GMX_SIMD_REAL_WIDTH == 8 || GMX_SIMD_REAL_WIDTH == 16) && GMX_SIMD_HAVE_HSIMD_UTIL_REAL)
+#    define GMX_HAVE_NBNXM_SIMD_4XM \
+        (GMX_SIMD_REAL_WIDTH == 2 || GMX_SIMD_REAL_WIDTH == 4 || GMX_SIMD_REAL_WIDTH == 8)
+#else
+#    define GMX_HAVE_NBNXM_SIMD_2XMM 0
+#    define GMX_HAVE_NBNXM_SIMD_4XM 0
+#endif
 
-static_assert(sc_haveNbnxmSimd4xmKernels || sc_haveNbnxmSimd2xmmKernels,
-              "Need a least one SIMD kernel type to be defined");
+//! Whether we have support for NBNxM 2xM kernels
+static constexpr bool sc_haveNbnxmSimd2xmmKernels = GMX_HAVE_NBNXM_SIMD_2XMM;
+//! Whether we have support for NBNxM 4xM kernels
+static constexpr bool sc_haveNbnxmSimd4xmKernels = GMX_HAVE_NBNXM_SIMD_4XM;
 
+#if GMX_SIMD && GMX_USE_SIMD_KERNELS
 // We use the FDV0 tables for width==4 (when we can load it in one go), or if we don't have any unaligned loads
 #    if GMX_SIMD_REAL_WIDTH == 4 || !GMX_SIMD_HAVE_GATHER_LOADU_BYSIMDINT_TRANSPOSE_REAL
 static constexpr bool c_useTableFormatFDV0 = true;
@@ -142,11 +149,6 @@ std::array<gmx::SimdBool, N> genBoolArr(F f)
         return std::array<gmx::SimdBool, 4>{ f(0), f(1), f(2), f(3) };
     }
 }
-
-#else
-
-static constexpr bool sc_haveNbnxmSimd4xmKernels  = false;
-static constexpr bool sc_haveNbnxmSimd2xmmKernels = false;
 
 #endif // GMX_SIMD && GMX_USE_SIMD_KERNELS
 
