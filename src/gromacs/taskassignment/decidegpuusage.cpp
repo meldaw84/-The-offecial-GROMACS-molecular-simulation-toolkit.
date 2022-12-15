@@ -157,9 +157,8 @@ bool decideWhetherToUseGpusForNonbondedWithThreadMpi(const TaskTarget        non
 
 static bool decideWhetherToUseGpusForPmeFft(const TaskTarget pmeFftTarget, const int numPmeRanksPerSimulation)
 {
-    const bool useCpuFft =
-            (pmeFftTarget == TaskTarget::Cpu)
-            || (pmeFftTarget == TaskTarget::Auto && !buildSupportsGpuFft(numPmeRanksPerSimulation));
+    const bool useCpuFft = (pmeFftTarget == TaskTarget::Cpu)
+                           || (pmeFftTarget == TaskTarget::Auto && !buildSupportsGpuFft());
     return !useCpuFft;
 }
 
@@ -489,7 +488,7 @@ PmeRunMode determinePmeRunMode(const bool        useGpuForPme,
 
     if (useGpuForPme)
     {
-        if (!buildSupportsGpuFft(numPmeRanksPerSimulation) && pmeFftTarget == TaskTarget::Gpu)
+        if (!buildSupportsGpuFft() && pmeFftTarget == TaskTarget::Gpu)
         {
             gmx_fatal(FARGS,
                       "GROMACS is built without a suitable GPU FFT library. Please do not use "

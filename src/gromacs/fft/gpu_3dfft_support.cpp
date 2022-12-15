@@ -33,7 +33,7 @@
  */
 
 /*! \internal \file
- * \brief Declares the stub routine that describes that GPU 3D FFT is
+ * \brief Declares the stub routines that describe that GPU 3D FFT is
  * not supported by this non-GPU build configuration.
  *
  *  \author Mark Abraham <mark.j.abraham@gmail.com>
@@ -47,7 +47,12 @@
 namespace gmx
 {
 
-bool buildSupportsGpuFft(const int /* numRanksForGpuFft */)
+bool buildSupportsGpuFft()
+{
+    return false;
+}
+
+bool buildSupportsGpuFftDecomposed()
 {
     return false;
 }

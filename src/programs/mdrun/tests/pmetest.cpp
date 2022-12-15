@@ -273,8 +273,12 @@ MessageStringCollector PmeTest::getSkipMessagesIfNecessary(const CommandLine& co
                 !pmeFftOptionArgument.has_value() || pmeFftOptionArgument.value() == "gpu";
 
         messages.appendIf(commandLineTargetsPmeFftOnGpu && !commandLineTargetsPmeOnlyRanks
-                                  && !buildSupportsGpuFft(numRanks),
-                          "it targets GPU execution of FFT work on one or more ranks, which is "
+                                  && (numRanks == 1) && !buildSupportsGpuFft(),
+                          "it targets GPU execution of FFT work on one rank, which is "
+                          "not supported in the current build");
+        messages.appendIf(commandLineTargetsPmeFftOnGpu && !commandLineTargetsPmeOnlyRanks
+                                  && (numRanks > 1) && !buildSupportsGpuFftDecomposed(),
+                          "it targets GPU execution of FFT work on more than one rank, which is "
                           "not supported in the current build");
 
         std::string errorMessage;
