@@ -1109,10 +1109,10 @@ static void makeClusterListSimple(const Grid&              jGrid,
     }
 }
 
-#if GMX_SIMD && GMX_SIMD_REAL_WIDTH <= 8
+#if GMX_HAVE_NBNXM_SIMD_4XM
 #    include "pairlist_simd_4xm.h"
 #endif
-#if GMX_SIMD && GMX_SIMD_HAVE_HSIMD_UTIL_REAL
+#if GMX_HAVE_NBNXM_SIMD_2XMM
 #    include "pairlist_simd_2xmm.h"
 #endif
 
@@ -2395,12 +2395,12 @@ static void icell_set_x(int                             ci,
 {
     switch (kernelType)
     {
-#if GMX_SIMD && GMX_SIMD_REAL_WIDTH <= 8
+#if GMX_HAVE_NBNXM_SIMD_4XM
         case ClusterDistanceKernelType::CpuSimd_4xM:
             icell_set_x_simd_4xn(ci, shx, shy, shz, stride, x, work);
             break;
 #endif
-#if GMX_SIMD && GMX_SIMD_HAVE_HSIMD_UTIL_REAL
+#if GMX_HAVE_NBNXM_SIMD_2XMM
         case ClusterDistanceKernelType::CpuSimd_2xMM:
             icell_set_x_simd_2xnn(ci, shx, shy, shz, stride, x, work);
             break;
@@ -3025,13 +3025,13 @@ static void makeClusterListWrapper(NbnxnPairlistCpu* nbl,
             makeClusterListSimple(
                     jGrid, nbl, ci, firstCell, lastCell, excludeSubDiagonal, nbat->x().data(), rlist2, rbb2, numDistanceChecks);
             break;
-#if GMX_SIMD && GMX_SIMD_REAL_WIDTH <= 8
+#if GMX_HAVE_NBNXM_SIMD_4XM
         case ClusterDistanceKernelType::CpuSimd_4xM:
             makeClusterListSimd4xn(
                     jGrid, nbl, ci, firstCell, lastCell, excludeSubDiagonal, nbat->x().data(), rlist2, rbb2, numDistanceChecks);
             break;
 #endif
-#if GMX_SIMD && GMX_SIMD_HAVE_HSIMD_UTIL_REAL
+#if GMX_HAVE_NBNXM_SIMD_2XMM
         case ClusterDistanceKernelType::CpuSimd_2xMM:
             makeClusterListSimd2xnn(
                     jGrid, nbl, ci, firstCell, lastCell, excludeSubDiagonal, nbat->x().data(), rlist2, rbb2, numDistanceChecks);

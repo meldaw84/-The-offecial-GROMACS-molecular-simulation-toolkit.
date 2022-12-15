@@ -82,8 +82,6 @@ static inline constexpr DiagonalMaskType getDiagonalMaskType()
     }
 }
 
-#if GMX_SIMD
-
 //! Base Coulomb calculator class, only specializations are used
 template<int, KernelLayout, DiagonalMaskType>
 class DiagonalMasker;
@@ -212,8 +210,6 @@ private:
      */
     const std::array<std::array<SimdBool, nR>, 2> diagonalMaskVV_;
 };
-
-#endif // GMX_SIMD
 
 } // namespace gmx
 
