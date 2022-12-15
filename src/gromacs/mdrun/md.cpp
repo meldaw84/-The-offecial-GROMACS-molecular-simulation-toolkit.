@@ -423,6 +423,8 @@ void gmx::LegacySimulator::do_md()
                            "the GPU to use GPU update.\n");
         GMX_RELEASE_ASSERT(ir->eI == IntegrationAlgorithm::MD || ir->eI == IntegrationAlgorithm::SD1,
                            "Only the md and sd integrators are supported with the GPU update.\n");
+        GMX_RELEASE_ASSERT(ir->eI != IntegrationAlgorithm::SD1 || GMX_GPU_CUDA,
+                           "The sd integrator can only use CUDA GPUs for updates.\n");
         GMX_RELEASE_ASSERT(
                 ir->etc != TemperatureCoupling::NoseHoover,
                 "Nose-Hoover temperature coupling is not supported with the GPU update.\n");

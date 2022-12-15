@@ -676,6 +676,10 @@ bool decideWhetherToUseGpuForUpdate(const bool                     isDomainDecom
     {
         errorMessage += "Only the md and sd integrators are supported.\n";
     }
+    if (inputrec.eI == IntegrationAlgorithm::SD1 && !GMX_GPU_CUDA)
+    {
+        errorMessage += "The sd integrator can only use CUDA GPUs for updates.\n";
+    }
     if (inputrec.etc == TemperatureCoupling::NoseHoover)
     {
         errorMessage += "Nose-Hoover temperature coupling is not supported.\n";
