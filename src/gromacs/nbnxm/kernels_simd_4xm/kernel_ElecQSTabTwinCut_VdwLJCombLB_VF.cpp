@@ -62,4 +62,4 @@ nbnxmKernelSimd<KernelLayout::r4xM, KernelCoulombType::EwaldTabulated, true, LJC
 
 } // namespace gmx
 
-#endif
+#endif // GMX_HAVE_NBNXM_SIMD_4XM

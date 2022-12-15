@@ -66,4 +66,4 @@ template void nbnxmKernelSimd<KernelLayout::r4xM,
 
 } // namespace gmx
 
-#endif
+#endif // GMX_HAVE_NBNXM_SIMD_4XM
