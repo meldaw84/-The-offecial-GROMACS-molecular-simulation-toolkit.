@@ -20,7 +20,7 @@ gromacs:oneapi-2022.2.0-opencl:release:configure:
    - .use-oneapi:base
    - .use-opencl
    - .rules:nightly-only-for-release
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2022.2.0-intel-compute-runtime
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2023.0.0-intel-compute-runtime
   variables:
     CMAKE: /usr/local/cmake-3.18.4/bin/cmake
     COMPILER_MAJOR_VERSION: 2021
@@ -39,7 +39,7 @@ gromacs:oneapi-2022.2.0-opencl:release:build:
     CMAKE: /usr/local/cmake-3.18.4/bin/cmake
     BUILD_DIR: release-builds-oneapi
     COMPILER_MAJOR_VERSION: 2021
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2022.2.0-intel-compute-runtime
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2023.0.0-intel-compute-runtime
   needs:
     - job: gromacs:oneapi-2022.2.0-opencl:release:configure
 
@@ -49,7 +49,7 @@ gromacs:oneapi-2022.2.0-opencl:release:test:
     - .use-oneapi:base
     - .rules:nightly-only-for-release
   stage: release-tests
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2022.2.0-intel-compute-runtime
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2023.0.0-intel-compute-runtime
   variables:
     CMAKE: /usr/local/cmake-3.18.4/bin/cmake
     BUILD_DIR: release-builds-oneapi
@@ -63,7 +63,7 @@ gromacs:oneapi-2022.2.0-opencl:release:regressiontest:
     - .use-oneapi:base
     - .rules:nightly-only-for-release
   stage: release-tests
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2022.2.0-intel-compute-runtime
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2023.0.0-intel-compute-runtime
   variables:
     CMAKE: /usr/local/cmake-3.18.4/bin/cmake
     BUILD_DIR: release-builds-oneapi
