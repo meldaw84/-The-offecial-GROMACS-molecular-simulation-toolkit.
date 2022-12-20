@@ -384,7 +384,8 @@ nbnxn_atomdata_t::SimdMasks::SimdMasks(const Nbnxm::KernelType kernelType)
         exclusion_filter[j] = (1U << j);
 #    endif
     }
-
+#else
+    GMX_UNUSED_VALUE(kernelType);
 #endif // GMX_SIMD
 }
 

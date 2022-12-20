@@ -97,6 +97,10 @@ static inline constexpr int c_jClusterSize(const KernelType kernelType)
         case KernelType::Cpu4xN_Simd_4xN: return GMX_SIMD_REAL_WIDTH;
         case KernelType::Cpu4xN_Simd_2xNN: return GMX_SIMD_REAL_WIDTH / 2;
         case KernelType::Cpu8xN_Simd_8xN: return GMX_SIMD_REAL_WIDTH;
+#else
+        case KernelType::Cpu4xN_Simd_4xN:
+        case KernelType::Cpu4xN_Simd_2xNN:
+        case KernelType::Cpu8xN_Simd_8xN: return 0;
 #endif
         case KernelType::Gpu8x8x8: return c_nbnxnGpuClusterSize;
         case KernelType::Cpu8x8x8_PlainC: return c_nbnxnGpuClusterSize / 2;

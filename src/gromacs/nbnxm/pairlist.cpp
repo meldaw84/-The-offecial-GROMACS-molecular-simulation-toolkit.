@@ -102,6 +102,8 @@ constexpr bool c_useSimdGpuClusterPairDistance = false;
  */
 constexpr bool c_pbcShiftBackward = true;
 
+#if GMX_SIMD
+
 /*! \brief Returns the j-cluster index given the i-cluster index.
  *
  * \tparam    layout            The pair search kernel layout
@@ -143,7 +145,7 @@ static inline int cjFromCi(int ci)
     }
 }
 
-/* Returns the nbnxn coordinate data index given the i-cluster index */
+//! Returns the nbnxn coordinate data index given the i-cluster index
 template<KernelLayout layout>
 static inline int xIndexFromCi(int ci)
 {
@@ -174,7 +176,7 @@ static inline int xIndexFromCi(int ci)
     }
 }
 
-/* Returns the nbnxn coordinate data index given the j-cluster index */
+//! Returns the nbnxn coordinate data index given the j-cluster index
 template<KernelLayout layout>
 static inline int xIndexFromCj(int cj)
 {
@@ -210,6 +212,8 @@ static inline int xIndexFromCj(int cj)
         GMX_RELEASE_ASSERT(false, "Unhandled kernel layout");
     }
 }
+
+#endif // GMX_SIMD
 
 static constexpr int sizeNeededForBufferFlags(const int numAtoms)
 {

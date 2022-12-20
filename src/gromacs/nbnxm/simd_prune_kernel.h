@@ -45,6 +45,8 @@
 #include "gromacs/utility/basedefinitions.h"
 #include "gromacs/utility/real.h"
 
+#include "nbnxm_simd.h"
+
 struct nbnxn_atomdata_t;
 struct NbnxnPairlistCpu;
 
@@ -54,12 +56,30 @@ template<typename>
 class ArrayRef;
 }
 
-/*! \brief Prune a single NbnxnPairlistCpu entry with distance \p rlistInner
- *
- * Reads a cluster pairlist \p nbl->ciOuter, \p nbl->cjOuter and writes
- * all cluster pairs within \p rlistInner to \p nbl->ci, \p nbl->cj.
- */
-void nbnxn_kernel_prune_4xn(NbnxnPairlistCpu*              nbl,
-                            const nbnxn_atomdata_t*        nbat,
-                            gmx::ArrayRef<const gmx::RVec> shiftvec,
-                            real                           rlistInner);
+//! Prune a single NbnxnPairlistCpu entry with distance rlistInner
+template<KernelLayout kernelLayout>
+void nbnxmSimdPruneKernel(NbnxnPairlistCpu*              nbl,
+                          const nbnxn_atomdata_t*        nbat,
+                          gmx::ArrayRef<const gmx::RVec> shiftvec,
+                          real                           rlistInner);
+
+#if GMX_HAVE_NBNXM_SIMD_2XMM
+extern template void nbnxmSimdPruneKernel<KernelLayout::r2xMM>(NbnxnPairlistCpu*              nbl,
+                                                               const nbnxn_atomdata_t*        nbat,
+                                                               gmx::ArrayRef<const gmx::RVec> shiftvec,
+                                                               real rlistInner);
+#endif
+
+#if GMX_HAVE_NBNXM_SIMD_4XM
+extern template void nbnxmSimdPruneKernel<KernelLayout::r4xM>(NbnxnPairlistCpu*              nbl,
+                                                              const nbnxn_atomdata_t*        nbat,
+                                                              gmx::ArrayRef<const gmx::RVec> shiftvec,
+                                                              real rlistInner);
+#endif
+
+#if GMX_HAVE_NBNXM_SIMD_8XM
+extern template void nbnxmSimdPruneKernel<KernelLayout::r8xM>(NbnxnPairlistCpu*              nbl,
+                                                              const nbnxn_atomdata_t*        nbat,
+                                                              gmx::ArrayRef<const gmx::RVec> shiftvec,
+                                                              real rlistInner);
+#endif

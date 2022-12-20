@@ -105,7 +105,7 @@ static inline constexpr int c_jClusterSize(const KernelLayout kernelLayout)
 #else
 #    define GMX_HAVE_NBNXM_SIMD_2XMM 0
 #    define GMX_HAVE_NBNXM_SIMD_4XM 0
-#    define GMX_HAVE_NBNXM_SIMD_8XN 0
+#    define GMX_HAVE_NBNXM_SIMD_8XM 0
 #endif
 
 //! Whether we have support for NBNxM 2xMM kernels

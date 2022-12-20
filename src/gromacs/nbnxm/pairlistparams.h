@@ -73,11 +73,11 @@ static constexpr int c_iClusterSize(const NbnxnLayout nbnxmLayout)
 {
     switch (nbnxmLayout)
     {
-    case NbnxnLayout::NoSimd4x4:
-    case NbnxnLayout::Simd4xN:
-    case NbnxnLayout::Simd2xNN: return 4;
-    case NbnxnLayout::Simd8xN:
-    case NbnxnLayout::Gpu8x8x8: return 8;
+        case NbnxnLayout::NoSimd4x4:
+        case NbnxnLayout::Simd4xN:
+        case NbnxnLayout::Simd2xNN: return 4;
+        case NbnxnLayout::Simd8xN:
+        case NbnxnLayout::Gpu8x8x8: return 8;
     }
 }
 
@@ -86,23 +86,27 @@ static constexpr int c_jClusterSize(const NbnxnLayout nbnxmLayout)
 {
     switch (nbnxmLayout)
     {
-    case NbnxnLayout::NoSimd4x4: return 4;
+        case NbnxnLayout::NoSimd4x4: return 4;
 #if GMX_SIMD
-    case NbnxnLayout::Simd4xN: return GMX_SIMD_REAL_WIDTH;
-    case NbnxnLayout::Simd2xNN: return GMX_SIMD_REAL_WIDTH / 2;
-    case NbnxnLayout::Simd8xN: return GMX_SIMD_REAL_WIDTH;
+        case NbnxnLayout::Simd4xN: return GMX_SIMD_REAL_WIDTH;
+        case NbnxnLayout::Simd2xNN: return GMX_SIMD_REAL_WIDTH / 2;
+        case NbnxnLayout::Simd8xN: return GMX_SIMD_REAL_WIDTH;
+#else
+        case NbnxnLayout::Simd4xN:
+        case NbnxnLayout::Simd2xNN:
+        case NbnxnLayout::Simd8xN: return 0;
 #endif
-    case NbnxnLayout::Gpu8x8x8: return 4;
+        case NbnxnLayout::Gpu8x8x8: return 4;
     }
 }
 
 #if 0
 //! The i- and j-cluster size for GPU lists, 8 atoms for CUDA, set at configure time for OpenCL and SYCL
-#if GMX_GPU_OPENCL || GMX_GPU_SYCL
+#    if GMX_GPU_OPENCL || GMX_GPU_SYCL
 static constexpr int c_nbnxnGpuClusterSize = GMX_GPU_NB_CLUSTER_SIZE;
-#else
+#    else
 static constexpr int c_nbnxnGpuClusterSize      = 8;
-#endif
+#    endif
 #endif
 
 #if 0
@@ -129,11 +133,11 @@ static constexpr int c_gpuNumClusterPerCell =
  * On architectures with 64-wide execution however it is better to avoid splitting
  * (e.g. AMD GCN, CDNA and later).
  */
-#if GMX_GPU_NB_DISABLE_CLUSTER_PAIR_SPLIT
+#    if GMX_GPU_NB_DISABLE_CLUSTER_PAIR_SPLIT
 static constexpr int c_nbnxnGpuClusterpairSplit = 1;
-#else
+#    else
 static constexpr int c_nbnxnGpuClusterpairSplit = 2;
-#endif
+#    endif
 #endif
 
 #if 0
