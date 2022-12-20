@@ -81,6 +81,30 @@ PullCoordExpressionParser::PullCoordExpressionParser(const std::string& expressi
 #endif
 }
 
+PullCoordExpressionParser::PullCoordExpressionParser(const std::string&          expression,
+                                                     ArrayRef<const std::string> variables) :
+    expression_(expression)
+{
+#if HAVE_MUPARSER
+    if (!expression.empty())
+    {
+        // Initialize the parser
+        parser_ = std::make_unique<mu::Parser>();
+        parser_->SetExpr(expression_);
+        variableValues_.resize(variables.size());
+        for (unsigned int n = 0; n < variables.size(); n++)
+        {
+            variableValues_[n] = 0;
+            parser_->DefineVar(variables[n], &variableValues_[n]);
+        }
+    }
+#else
+    GMX_UNUSED_VALUE(variables);
+    GMX_RELEASE_ASSERT(expression.empty(),
+                       "Can not use transformation pull coordinate without muparser");
+#endif
+}
+
 double PullCoordExpressionParser::evaluate(ArrayRef<const double> variables)
 {
 #if HAVE_MUPARSER

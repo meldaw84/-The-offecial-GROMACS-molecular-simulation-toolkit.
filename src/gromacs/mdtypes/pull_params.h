@@ -61,9 +61,10 @@
 /*! \brief Struct that defines a pull group */
 struct t_pull_group
 {
-    std::vector<int>  ind;     /**< The global atoms numbers */
-    std::vector<real> weight;  /**< Weights (use all 1 when weight==NULL) */
-    int               pbcatom; /**< The reference atom for pbc (global number) */
+    std::vector<int>  ind;                    /**< The global atoms numbers */
+    std::vector<real> weight;                 /**< Weights (use all 1 when weight==NULL) */
+    std::string       weightFactorExpression; /**< Weight factor expresssion */
+    int               pbcatom;                /**< The reference atom for pbc (global number) */
     int               pbcatom_input; /**< The reference atom for pbc (global number) as specified in the input parameters */
 };
 

@@ -498,6 +498,59 @@ static void sum_com_part_cosweight(const pull_group_work_t* pgrp,
     sum_com->sum_smp = sum_smp;
 }
 
+static real getWeightFactor(pull_group_work_t* pgrp, int g, const RVec x, const RVec v)
+{
+    real result = 0.0;
+    try
+    {
+        std::vector<double> position_velocity = { x[XX], x[YY], x[ZZ], v[XX], v[YY], v[ZZ] };
+        result = pgrp->weightFactorExpressionParser.evaluate(position_velocity);
+    }
+#if HAVE_MUPARSER
+    catch (mu::Parser::exception_type& e)
+    {
+        GMX_THROW(gmx::InconsistentInputError(gmx::formatString(
+                "failed to evaluate expression for pull-group%d: %s\n", g, e.GetMsg().c_str())));
+    }
+#endif
+    catch (std::exception& e)
+    {
+        GMX_THROW(gmx::InconsistentInputError(
+                gmx::formatString("failed to evaluate expression for pull-group%d.\n"
+                                  "Message:  %s\n",
+                                  g,
+                                  e.what())));
+    }
+    return result;
+}
+
+void pull_calc_weight_factors(struct pull_t* pull, ArrayRef<const RVec> x, ArrayRef<const RVec> v)
+{
+    for (size_t g = 0; g < pull->group.size(); g++)
+    {
+        pull_group_work_t& pgrp = pull->group[g];
+        if (!pgrp.params_.weightFactorExpression.empty())
+        {
+            for (size_t i = 0; i < pgrp.atomSet_.numAtomsLocal(); i++)
+            {
+                int ii = pgrp.atomSet_.localIndex()[i];
+                /* Check if x coordinate of the atom is in the slice */
+                RVec atom_position = x[ii];
+                RVec atom_velocity;
+                if (!v.empty())
+                {
+                    atom_velocity = v[ii];
+                }
+                else
+                {
+                    atom_velocity = { 0., 0., 0. };
+                }
+                pgrp.localWeightFactors[i] = getWeightFactor(&pgrp, g, atom_position, atom_velocity);
+            }
+        }
+    }
+}
+
 /* calculates center of mass of selection index from all coordinates x */
 void pull_calc_coms(const t_commrec*     cr,
                     pull_t*              pull,

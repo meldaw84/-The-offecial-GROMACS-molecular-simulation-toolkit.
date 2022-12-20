@@ -86,6 +86,9 @@ public:
     //! Constructor which takes a mathematical expression and the number of variables as arguments
     PullCoordExpressionParser(const std::string& expression, int numVariables, bool allowTimeAsVariable);
 
+    //! Constructor which takes a mathematical expression and the names of variables as arguments
+    PullCoordExpressionParser(const std::string& expression, ArrayRef<const std::string> variables);
+
     //! Evaluates the expression with the numerical values passed in \p variables.
     double evaluate(ArrayRef<const double> variables);
 

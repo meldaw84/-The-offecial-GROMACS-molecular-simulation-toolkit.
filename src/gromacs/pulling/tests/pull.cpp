@@ -54,6 +54,7 @@
 #    include <muParser.h>
 #endif
 
+#include "gromacs/domdec/localatomsetmanager.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/pulling/pull_internal.h"
@@ -66,6 +67,9 @@
 
 namespace gmx
 {
+
+extern template LocalAtomSet LocalAtomSetManager::add<void, void>(ArrayRef<const int> globalAtomIndex);
+
 namespace
 {
 
@@ -428,6 +432,66 @@ TEST_F(PullTest, TransformationCoordDummyExpression)
     double value = getTransformationPullCoordinateValue(
             &pull.coord[0], ArrayRef<const pull_coord_work_t>{}, 0.0);
     EXPECT_REAL_EQ_TOL(value, 10, defaultRealTolerance());
+}
+
+TEST_F(PullTest, WeightOneOrZero)
+{
+    //-----_SETUP-------
+    const RVec x[] = {
+        { 0.15, 0.0, 0.0 }, { 0.25, 0.0, 0.0 }, { 0.35, 0.0, 0.0 }, { 0.45, 0.0, 0.0 }, { 0.55, 0.0, 0.0 }
+    };
+    const int ind[] = { 1, 2, 4 };
+
+    LocalAtomSetManager atomSets;
+    pull_t              pull;
+    t_pull_group        params;
+    params.weightFactorExpression = "x >= 0.3 && x < 0.5 ? 1.0 : 0.0";
+
+    pull.group.emplace_back(params, atomSets.add(ind), false, 1);
+    pull_group_work_t& pgrp = pull.group[0];
+    pgrp.localWeightFactors.resize(pgrp.atomSet_.numAtomsLocal());
+
+    //-----TESTS -------
+    pull_calc_weight_factors(&pull, x, {});
+    EXPECT_REAL_EQ_TOL(pgrp.localWeightFactors[0], 0.0, defaultRealTolerance());
+    EXPECT_REAL_EQ_TOL(pgrp.localWeightFactors[1], 1.0, defaultRealTolerance());
+    EXPECT_REAL_EQ_TOL(pgrp.localWeightFactors[2], 0.0, defaultRealTolerance());
+}
+
+TEST_F(PullTest, WeightSumPositionOrVelocity)
+{
+    //-----_SETUP-------
+    const RVec x[] = {
+        { 1.1, 1.2, 1.3 }, { 2.1, 2.2, 2.3 }, { 3.1, 3.2, 3.3 }, { 4.1, 4.2, 4.3 }, { 5.1, 5.2, 5.3 }
+    };
+    const RVec v[]   = { { 0.11, 0.12, 0.13 },
+                       { 0.21, 0.22, 0.23 },
+                       { 0.31, 0.32, 0.33 },
+                       { 0.41, 0.42, 0.43 },
+                       { 0.51, 0.52, 0.53 } };
+    const int  ind[] = { 1, 2, 4 };
+
+    LocalAtomSetManager atomSets;
+    pull_t              pull;
+    t_pull_group        params0, params1;
+    params0.weightFactorExpression = "x + y + z";
+    params1.weightFactorExpression = "vx + vy + vz";
+
+    pull.group.emplace_back(params0, atomSets.add(ind), false, 1);
+    pull.group.emplace_back(params1, atomSets.add(ind), false, 1);
+    pull_group_work_t& pgrp0 = pull.group[0];
+    pull_group_work_t& pgrp1 = pull.group[1];
+    pgrp0.localWeightFactors.resize(pgrp0.atomSet_.numAtomsLocal());
+    pgrp1.localWeightFactors.resize(pgrp1.atomSet_.numAtomsLocal());
+
+    //-----TESTS -------
+    pull_calc_weight_factors(&pull, x, v);
+    EXPECT_REAL_EQ_TOL(pgrp0.localWeightFactors[0], 6.6, defaultRealTolerance());
+    EXPECT_REAL_EQ_TOL(pgrp0.localWeightFactors[1], 9.6, defaultRealTolerance());
+    EXPECT_REAL_EQ_TOL(pgrp0.localWeightFactors[2], 15.6, defaultRealTolerance());
+    EXPECT_REAL_EQ_TOL(pgrp1.localWeightFactors[0], 0.66, defaultRealTolerance());
+    EXPECT_REAL_EQ_TOL(pgrp1.localWeightFactors[1], 0.96, defaultRealTolerance());
+    EXPECT_REAL_EQ_TOL(pgrp1.localWeightFactors[2], 1.56, defaultRealTolerance());
 }
 #endif // HAVE_MUPARSER
 

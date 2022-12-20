@@ -281,6 +281,16 @@ struct pull_t* init_pull(FILE*                     fplog,
  */
 void finish_pull(struct pull_t* pull);
 
+/*! \brief Calculate the weight factors using the given expression.
+ *
+ * \param[in] pull     The pull data structure.
+ * \param[in] x        The local positions.
+ * \param[in] v        The velocities.
+ *
+ */
+void pull_calc_weight_factors(struct pull_t*                 pull,
+                              gmx::ArrayRef<const gmx::RVec> x,
+                              gmx::ArrayRef<const gmx::RVec> v);
 
 /*! \brief Calculates centers of mass all pull groups.
  *

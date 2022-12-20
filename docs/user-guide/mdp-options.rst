@@ -1711,6 +1711,11 @@ pull-coord2-vec, pull-coord2-k, and so on.
    the atoms to give the total weight for the COM. The number should
    be 0, meaning all 1, or the number of atoms in the pull group.
 
+.. mdp:: pull-group1-weight-factor-expression
+
+   Optional weight factor expression used to dynamically alter atom
+   weights. The mathematical expression is evaluated using muParser.
+
 .. mdp:: pull-group1-pbcatom
 
    (0)

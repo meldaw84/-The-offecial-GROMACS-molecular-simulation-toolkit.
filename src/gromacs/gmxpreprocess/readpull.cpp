@@ -395,7 +395,7 @@ std::vector<std::string> read_pullparams(std::vector<t_inpfile>* inp, pull_param
     int  nscan, idum;
     char buf[STRLEN];
     char provider[STRLEN], groups[STRLEN], dim_buf[STRLEN], expression[STRLEN];
-    char wbuf[STRLEN], origin_buf[STRLEN], vec_buf[STRLEN];
+    char wbuf[STRLEN], wfexpbuf[STRLEN], origin_buf[STRLEN], vec_buf[STRLEN];
 
     /* read pull parameters */
     printStringNoNewline(inp, "Cylinder radius for dynamic reaction force groups (nm)");
@@ -443,6 +443,9 @@ std::vector<std::string> read_pullparams(std::vector<t_inpfile>* inp, pull_param
         pullGroups[groupNum] = readBuffer;
         sprintf(buf, "pull-group%d-weights", groupNum);
         setStringEntry(inp, buf, wbuf, "");
+        sprintf(buf, "pull-group%d-weight-factor-expression", groupNum);
+        setStringEntry(inp, buf, wfexpbuf, "");
+        pullGroup.weightFactorExpression = wfexpbuf;
         sprintf(buf, "pull-group%d-pbcatom", groupNum);
         pullGroup.pbcatom       = get_eint(inp, buf, 0, wi);
         pullGroup.pbcatom_input = pullGroup.pbcatom;

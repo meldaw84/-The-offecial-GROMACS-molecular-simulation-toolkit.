@@ -95,6 +95,8 @@ constexpr gmx::EnumerationArray<PullGroupGeometry, bool> sc_isAngleType = {
     { false, false, false, false, false, true, true, true }
 };
 
+static const std::vector<std::string> posVelVarNames = { "x", "y", "z", "vx", "vy", "vz" };
+
 static int groupPbcFromParams(const t_pull_group& params, bool setPbcRefToPrevStepCOM)
 {
     if (params.ind.size() <= 1)
@@ -135,7 +137,9 @@ pull_group_work_t::pull_group_work_t(const t_pull_group& params,
     atomSet_(atomSet),
     mwscale(0),
     wscale(0),
-    invtm(0)
+    invtm(0),
+    weightFactorExpressionParser(!params.weightFactorExpression.empty() ? params.weightFactorExpression : "",
+                                 posVelVarNames)
 {
     clear_dvec(x);
     clear_dvec(xp);
@@ -196,6 +200,10 @@ static void apply_forces_grp_part(const pull_group_work_t& pgrp,
         if (!pgrp.localWeights.empty())
         {
             wmass *= pgrp.localWeights[i];
+        }
+        if (!pgrp.localWeightFactors.empty())
+        {
+            wmass *= pgrp.localWeightFactors[i];
         }
 
         for (int d = 0; d < DIM; d++)
@@ -267,6 +275,10 @@ static void apply_forces_cyl_grp(const pull_group_work_t& pgrp,
     for (int i = 0; i < numAtomsLocal; i++)
     {
         double weight = pgrp.localWeights[i];
+        if (!pgrp.localWeightFactors.empty())
+        {
+            weight *= pgrp.localWeightFactors[i];
+        }
         if (weight == 0)
         {
             continue;
@@ -848,7 +860,7 @@ static void do_constraint(struct pull_t* pull,
     gmx_bool bConverged_all, bConverged = FALSE;
     int      niter = 0, ii, j, m, max_iter = 100;
     double   a;
-    dvec     tmp, tmp3;
+    dvec     tmp, tmp2, tmp3;
 
     snew(r_ij, pull->coord.size());
     snew(dr_tot, pull->coord.size());
@@ -1155,13 +1167,18 @@ static void do_constraint(struct pull_t* pull,
 
         /* update the atom positions */
         auto localAtomIndices = pgrp->atomSet_.localIndex();
-        copy_dvec(dr, tmp);
+        copy_dvec(dr, tmp2);
         for (gmx::Index j = 0; j < localAtomIndices.ssize(); j++)
         {
             ii = localAtomIndices[j];
             if (!pgrp->localWeights.empty())
             {
-                dsvmul(pgrp->wscale * pgrp->localWeights[j], dr, tmp);
+                dsvmul(pgrp->wscale * pgrp->localWeights[j], dr, tmp2);
+            }
+            copy_dvec(tmp2, tmp);
+            if (!pgrp->localWeightFactors.empty())
+            {
+                dsvmul(pgrp->localWeightFactors[j], tmp2, tmp);
             }
             for (m = 0; m < DIM; m++)
             {
@@ -1610,6 +1627,8 @@ real pull_potential(struct pull_t*       pull,
     {
         real dVdl = 0;
 
+        pull_calc_weight_factors(pull, x, {});
+
         pull_calc_coms(cr, pull, masses, pbc, t, x, {});
 
         /* Evaluating coordinates needs to loop forward because transformation coordinates
@@ -1713,6 +1732,8 @@ void pull_constraint(struct pull_t*       pull,
 
     if (pull->comm.bParticipate)
     {
+        pull_calc_weight_factors(pull, x, v);
+
         pull_calc_coms(cr, pull, masses, pbc, t, x, xp);
 
         do_constraint(pull, pbc, xp, v, MAIN(cr), vir, dt, t);
@@ -1742,6 +1763,16 @@ void dd_make_local_pull_groups(const t_commrec* cr, struct pull_t* pull)
             for (size_t i = 0; i < group.atomSet_.numAtomsLocal(); ++i)
             {
                 group.localWeights[i] = group.globalWeights[group.atomSet_.collectiveIndex()[i]];
+            }
+        }
+
+        if (!group.globalWeightFactors.empty())
+        {
+            group.localWeightFactors.resize(group.atomSet_.numAtomsLocal());
+            for (size_t i = 0; i < group.atomSet_.numAtomsLocal(); ++i)
+            {
+                group.localWeightFactors[i] =
+                        group.globalWeightFactors[group.atomSet_.collectiveIndex()[i]];
             }
         }
 
@@ -1869,11 +1900,14 @@ static void init_pull_group_index(FILE*              fplog,
      * But we still want to have the correct mass-weighted COMs.
      * So we store the real masses in the weights.
      */
-    const bool setWeights = (!pg->params_.weight.empty() || EI_ENERGY_MINIMIZATION(ir->eI)
+    const bool setWeights       = (!pg->params_.weight.empty() || EI_ENERGY_MINIMIZATION(ir->eI)
                              || ir->eI == IntegrationAlgorithm::BD);
+    const bool setWeightFactors = !pg->params_.weightFactorExpression.empty();
 
     /* In parallel, store we need to extract localWeights from weights at DD time */
     std::vector<real>& weights = ((cr && PAR(cr)) ? pg->globalWeights : pg->localWeights);
+    std::vector<real>& weightFactors =
+            ((cr && PAR(cr)) ? pg->globalWeightFactors : pg->localWeightFactors);
 
     const SimulationGroups& groups = mtop.groups;
 
@@ -1947,6 +1981,10 @@ static void init_pull_group_index(FILE*              fplog,
         if (setWeights)
         {
             weights.push_back(w);
+        }
+        if (setWeightFactors)
+        {
+            weightFactors.push_back(1.0);
         }
         tmass += m;
         wmass += m * w;

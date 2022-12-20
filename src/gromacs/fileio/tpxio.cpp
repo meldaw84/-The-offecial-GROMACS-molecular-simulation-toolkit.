@@ -140,6 +140,7 @@ enum tpxv
     tpxv_RemoveAtomtypes,             /**< Remove unused atomtypes parameter from mtop */
     tpxv_EnsembleTemperature,         /**< Add ensemble temperature settings */
     tpxv_AwhGrowthFactor,             /**< Add AWH growth factor */
+    tpxv_WeightFactorExpression,      /**< Added weight factor expression */
     tpxv_Count                        /**< the total number of tpxv versions */
 };
 
@@ -277,7 +278,7 @@ static void do_pullgrp_tpx_pre95(gmx::ISerializer* serializer, t_pull_group* pgr
     serializer->doReal(&pcrd->kB);
 }
 
-static void do_pull_group(gmx::ISerializer* serializer, t_pull_group* pgrp)
+static void do_pull_group(gmx::ISerializer* serializer, t_pull_group* pgrp, int file_version)
 {
     int numAtoms = pgrp->ind.size();
     serializer->doInt(&numAtoms);
@@ -287,6 +288,10 @@ static void do_pull_group(gmx::ISerializer* serializer, t_pull_group* pgrp)
     serializer->doInt(&numWeights);
     pgrp->weight.resize(numWeights);
     serializer->doRealArray(pgrp->weight.data(), numWeights);
+    if (file_version >= tpxv_WeightFactorExpression)
+    {
+        serializer->doString(&pgrp->weightFactorExpression);
+    }
     serializer->doInt(&pgrp->pbcatom);
 }
 
@@ -771,7 +776,7 @@ static void do_pull(gmx::ISerializer* serializer, pull_params_t* pull, int file_
     {
         for (g = 0; g < pull->ngroup; g++)
         {
-            do_pull_group(serializer, &pull->group[g]);
+            do_pull_group(serializer, &pull->group[g], file_version);
         }
         for (g = 0; g < pull->ncoord; g++)
         {
