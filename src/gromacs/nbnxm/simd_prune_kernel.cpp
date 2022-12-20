@@ -43,7 +43,9 @@
 #include "gromacs/simd/vector_operations.h"
 #include "gromacs/utility/gmxassert.h"
 
-#include "simd_load_store_functions.h"
+#if GMX_SIMD
+#    include "simd_load_store_functions.h"
+#endif
 
 template<KernelLayout kernelLayout>
 void nbnxmSimdPruneKernel(NbnxnPairlistCpu*              nbl,
@@ -114,8 +116,8 @@ void nbnxmSimdPruneKernel(NbnxnPairlistCpu*              nbl,
         }
 
         /* Load i atom data */
-        int                                            sciy = scix + STRIDE;
-        int                                            sciz = sciy + STRIDE;
+        int                                       sciy = scix + STRIDE;
+        int                                       sciz = sciy + STRIDE;
         std::array<std::array<SimdReal, DIM>, nR> xi;
         for (int i = 0; i < nR; i++)
         {
@@ -213,21 +215,21 @@ void nbnxmSimdPruneKernel(NbnxnPairlistCpu*              nbl,
 
 #if GMX_HAVE_NBNXM_SIMD_2XMM
 template void nbnxmSimdPruneKernel<KernelLayout::r2xMM>(NbnxnPairlistCpu*              nbl,
-                          const nbnxn_atomdata_t*        nbat,
-                          gmx::ArrayRef<const gmx::RVec> shiftvec,
-                          real                           rlistInner);
+                                                        const nbnxn_atomdata_t*        nbat,
+                                                        gmx::ArrayRef<const gmx::RVec> shiftvec,
+                                                        real                           rlistInner);
 #endif
 
 #if GMX_HAVE_NBNXM_SIMD_4XM
 template void nbnxmSimdPruneKernel<KernelLayout::r4xM>(NbnxnPairlistCpu*              nbl,
-                          const nbnxn_atomdata_t*        nbat,
-                          gmx::ArrayRef<const gmx::RVec> shiftvec,
-                          real                           rlistInner);
+                                                       const nbnxn_atomdata_t*        nbat,
+                                                       gmx::ArrayRef<const gmx::RVec> shiftvec,
+                                                       real                           rlistInner);
 #endif
 
 #if GMX_HAVE_NBNXM_SIMD_8XM
 template void nbnxmSimdPruneKernel<KernelLayout::r8xM>(NbnxnPairlistCpu*              nbl,
-                          const nbnxn_atomdata_t*        nbat,
-                          gmx::ArrayRef<const gmx::RVec> shiftvec,
-                          real                           rlistInner);
+                                                       const nbnxn_atomdata_t*        nbat,
+                                                       gmx::ArrayRef<const gmx::RVec> shiftvec,
+                                                       real                           rlistInner);
 #endif

@@ -56,6 +56,7 @@ file(GLOB NBNXM_SOURCES
     pairlist_tuning.cpp
     pairsearch.cpp
     prunekerneldispatch.cpp
+    simd_prune_kernel.cpp
     # Reference kernel source files
     kernels_reference/kernel_gpu_ref.cpp
     kernels_reference/kernel_ref.cpp
