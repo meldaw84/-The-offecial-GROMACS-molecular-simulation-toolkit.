@@ -39,6 +39,24 @@ if(GMX_OPENMP)
     # We should do OpenMP detection if we get here
     # OpenMP check must come before other CFLAGS!
     find_package(OpenMP)
+    # Intel oneAPI has both proprietary (icpx) and open-source (clang++) versions of the compiler.
+    # The latter has troubles finding the OpenMP headers, so we try to help it
+    if(NOT OPENMP_FOUND AND CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM" AND NOT CMAKE_CXX_COMPILER MATCHES "icpx")
+        get_filename_component(_compiler_dir "${CMAKE_CXX_COMPILER}" DIRECTORY)
+        set(_dir "${_compiler_dir}/../compiler/include/")
+        if(EXISTS "${_dir}/omp.h")
+            # Setting OpenMP_C_INCLUDE_DIR / OpenMP_CXX_INCLUDE_DIR does not work, at least with CMake 3.25.0
+            set(CMAKE_C_FLAGS_BACKUP "${CMAKE_C_FLAGS}")
+            set(CMAKE_CXX_FLAGS_BACKUP "${CMAKE_CXX_FLAGS}")
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -isystem ${_dir}")
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${_dir}")
+            find_package(OpenMP)
+            if(NOT OPENMP_FOUND)
+                set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS_BACKUP}")
+                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_BACKUP}")
+            endif()
+        endif()
+    endif()
     if(NOT OPENMP_FOUND)
         if(CMAKE_CXX_COMPILER MATCHES "dpcpp")
             message(WARNING "The Intel dpcpp compiler does not support OpenMP; consider using the icx (C) & icpx (C++) compilers from the Intel HPC toolkit instead. For now, we are turning off OpenMP.")
