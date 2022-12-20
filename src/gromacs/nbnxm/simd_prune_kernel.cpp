@@ -49,7 +49,7 @@
 
 //! Returns the base 2 log of \p x
 template<int x>
-static constexpr int sc_log2()
+gmx_unused static constexpr int sc_log2()
 {
     static_assert(x == 2 || x == 4);
 
