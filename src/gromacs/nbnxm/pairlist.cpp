@@ -102,6 +102,10 @@ constexpr bool c_useSimdGpuClusterPairDistance = false;
  */
 constexpr bool c_pbcShiftBackward = true;
 
+// The interaction mask with all bits on;
+// constexpr JClusterList::IMask c_interactionMaskAll = NBNXN_INTERACTION_MASK_ALL;
+constexpr JClusterList::IMask c_interactionMaskAll = NBNXN_INTERACTION_MASK64_ALL;
+
 #if GMX_SIMD
 
 /*! \brief Returns the j-cluster index given the i-cluster index.
@@ -203,6 +207,11 @@ static inline int xIndexFromCj(int cj)
         return cj * STRIDE_P4;
     }
     else if constexpr (iClusterSize == 4 && jClusterSize == 8)
+    {
+        /* Coordinates are stored packed in groups of 8 */
+        return cj * STRIDE_P8;
+    }
+    else if constexpr (iClusterSize == 8 && jClusterSize == 8)
     {
         /* Coordinates are stored packed in groups of 8 */
         return cj * STRIDE_P8;
@@ -779,7 +788,7 @@ static void print_nblist_statistics(FILE*                   fp,
         cs[ciEntry.shift & NBNXN_CI_SHIFT] += ciEntry.cj_ind_end - ciEntry.cj_ind_start;
 
         int j = ciEntry.cj_ind_start;
-        while (j < ciEntry.cj_ind_end && nbl.cj.excl(j) != NBNXN_INTERACTION_MASK_ALL)
+        while (j < ciEntry.cj_ind_end && nbl.cj.excl(j) != c_interactionMaskAll)
         {
             npexcl++;
             j++;
@@ -968,6 +977,12 @@ gmx_unused static unsigned int get_imask_simd_8x4(gmx_bool rdiag, int ci, int cj
                                                                : NBNXN_INTERACTION_MASK_ALL));
 }
 
+/* Returns a diagonal or off-diagonal interaction mask for 8x8 cluster pairs */
+gmx_unused static uint64_t get_imask_simd_8x8(gmx_bool rdiag, int ci, int cj)
+{
+    return (rdiag && ci == cj ? NBNXN_INTERACTION_MASK64_DIAG_8x8 : NBNXN_INTERACTION_MASK64_ALL);
+}
+
 #if GMX_SIMD
 #    if GMX_SIMD_REAL_WIDTH == 2
 #        define get_imask_simd_4xn get_imask_simd_4x2
@@ -979,6 +994,7 @@ gmx_unused static unsigned int get_imask_simd_8x4(gmx_bool rdiag, int ci, int cj
 #    if GMX_SIMD_REAL_WIDTH == 8
 #        define get_imask_simd_4xn get_imask_simd_4x8
 #        define get_imask_simd_2xnn get_imask_simd_4x4
+#        define get_imask_simd_8xn get_imask_simd_8x8
 #    endif
 #    if GMX_SIMD_REAL_WIDTH == 16
 #        define get_imask_simd_2xnn get_imask_simd_4x8
@@ -1161,6 +1177,8 @@ static void make_cluster_list_supersub(const Grid&       iGrid,
 
     float* d2l = work.distanceBuffer.data();
 
+    constexpr JClusterList::IMask one = 1;
+
     for (int subc = 0; subc < jGrid.numClustersPerCell()[scj]; subc++)
     {
         const int cjPacked_ind = work.cj_ind / c_nbnxnGpuJgroupSize;
@@ -1180,8 +1198,8 @@ static void make_cluster_list_supersub(const Grid&       iGrid,
         *numDistanceChecks += c_nbnxnGpuClusterSize * 2;
 #endif
 
-        int          npair = 0;
-        unsigned int imask = 0;
+        int                 npair = 0;
+        JClusterList::IMask imask = 0;
         /* We use a fixed upper-bound instead of ci1 to help optimization */
         for (int ci = 0; ci < c_gpuNumClusterPerCell; ci++)
         {
@@ -1213,7 +1231,7 @@ static void make_cluster_list_supersub(const Grid&       iGrid,
 #endif
             {
                 /* Flag this i-subcell to be taken into account */
-                imask |= (1U << (cj_offset * c_gpuNumClusterPerCell + ci));
+                imask |= (one << (cj_offset * c_gpuNumClusterPerCell + ci));
 
 #if PRUNE_LIST_CPU_ONE
                 ci_last = ci;
@@ -1230,7 +1248,7 @@ static void make_cluster_list_supersub(const Grid&       iGrid,
         if (npair == 1 && d2l[ci_last] >= rbb2
             && !clusterpairInRange(work, ci_last, cj_gl, stride, x, rlist2))
         {
-            imask &= ~(1U << (cj_offset * c_gpuNumClusterPerCell + ci_last));
+            imask &= ~(one << (cj_offset * c_gpuNumClusterPerCell + ci_last));
             npair--;
         }
 #endif
@@ -1432,7 +1450,7 @@ static void setExclusionsForIEntry(const Nbnxm::GridSet&   gridSet,
                          */
                         const int innerJ = jIndex - (jCluster << na_cj_2log);
 
-                        nbl->cj.excl(index) &= ~(1U << ((i << na_cj_2log) + innerJ));
+                        nbl->cj.excl(index) &= ~(1UL << ((i << na_cj_2log) + innerJ));
                     }
                 }
             }
@@ -2081,17 +2099,17 @@ void JClusterList::sortOnExclusions(const int start, const int end, JClusterList
     int jnew = 0;
     for (int j = start; j < end; j++)
     {
-        if (excl(j) != NBNXN_INTERACTION_MASK_ALL)
+        if (excl(j) != c_interactionMaskAll)
         {
             work->copyEntry(*this, j, jnew++);
         }
     }
     /* Check if there are exclusions at all or not just the first entry */
-    if (!((jnew == 0) || (jnew == 1 && excl(start) != NBNXN_INTERACTION_MASK_ALL)))
+    if (!((jnew == 0) || (jnew == 1 && excl(start) != c_interactionMaskAll)))
     {
         for (int j = start; j < end; j++)
         {
-            if (excl(j) == NBNXN_INTERACTION_MASK_ALL)
+            if (excl(j) == c_interactionMaskAll)
             {
                 work->copyEntry(*this, j, jnew++);
             }
@@ -2658,7 +2676,7 @@ static void print_nblist_ci_cj(FILE* fp, const NbnxnPairlistCpu& nbl)
 
         for (int j = ciEntry.cj_ind_start; j < ciEntry.cj_ind_end; j++)
         {
-            fprintf(fp, "  cj %5d  imask %x\n", nbl.cj.cj(j), nbl.cj.excl(j));
+            fprintf(fp, "  cj %5d  imask %lx\n", nbl.cj.cj(j), uint64_t(nbl.cj.excl(j)));
         }
     }
 }

@@ -95,12 +95,15 @@ struct nbnxn_cj_t
 class JClusterList
 {
 public:
+    // typedef uint32_t IMask;
+    typedef uint64_t IMask;
+
     //! Return the j-cluster index for \c index from the pack list
     inline int cj(int index) const { return jCluster_[index]; }
     //! Return the exclusion mask for \c index
-    inline const unsigned int& excl(int index) const { return excl_[index]; }
+    inline const IMask& excl(int index) const { return excl_[index]; }
     //! Return the exclusion mask for \c index
-    unsigned int& excl(int index) { return excl_[index]; }
+    IMask& excl(int index) { return excl_[index]; }
     //! Return the size of the list (not the number of packed elements)
     gmx::index size() const noexcept { return jCluster_.size(); }
     //! Return whether the list is empty
@@ -114,7 +117,7 @@ public:
     //! Clear the list
     void clear() { resize(0); }
     //! Add a new element to the list
-    void push_back(const int jCluster, const unsigned int interactionMask)
+    void push_back(const int jCluster, const IMask interactionMask)
     {
         jCluster_.push_back(jCluster);
         excl_.push_back(interactionMask);
@@ -125,7 +128,7 @@ public:
         push_back(source.cj(sourceIndex), source.excl(sourceIndex));
     }
     //! Copy an entry from another list
-    void copyEntry(const JClusterList& source, int sourceIndex, int targetIndex)
+    void copyEntry(const JClusterList& source, int sourceIndex, IMask targetIndex)
     {
         jCluster_[targetIndex] = source.cj(sourceIndex);
         excl_[targetIndex]     = source.excl(sourceIndex);
@@ -137,7 +140,7 @@ private:
     //! The list of j-cluster indices
     FastVector<int> jCluster_;
     //! The list of exclusions, each cluster can use one or two (with NxM=64) entries
-    FastVector<unsigned int> excl_;
+    FastVector<IMask> excl_;
 };
 
 /*! \brief Constants for interpreting interaction flags
@@ -163,8 +166,10 @@ private:
  */
 //! \{
 // TODO: Rename according to convention when moving into Nbnxn namespace
-//! All interaction mask is the same for all kernels
+//! All interaction mask is the same for all kernels with up 32 atom pairs
 constexpr unsigned int NBNXN_INTERACTION_MASK_ALL = 0xffffffffU;
+//! All interaction mask is the same for all kernels with 64 atom pairs
+constexpr uint64_t NBNXN_INTERACTION_MASK64_ALL = 0xffffffffffffffffUL;
 //! 4x4 kernel diagonal mask
 constexpr unsigned int NBNXN_INTERACTION_MASK_DIAG = 0x08ceU;
 //! 4x2 kernel diagonal masks
@@ -181,6 +186,10 @@ constexpr unsigned int NBNXN_INTERACTION_MASK_DIAG_J8_1 = 0x0080c0e0U;
 //! \{
 constexpr unsigned int NBNXN_INTERACTION_MASK_DIAG_8x4_0 = 0x000008ceU;
 constexpr unsigned int NBNXN_INTERACTION_MASK_DIAG_8x4_1 = 0x08ceffffU;
+//! \}
+//! 8x8 kernel diagonal mask
+//! \{
+constexpr uint64_t NBNXN_INTERACTION_MASK64_DIAG_8x8 = 0x80c0e0f0f8fcfeUL;
 //! \}
 //! \}
 

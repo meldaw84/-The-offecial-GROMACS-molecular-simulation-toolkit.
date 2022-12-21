@@ -71,7 +71,7 @@
 
     /* Interaction (non-exclusion) mask of all 1's or 0's */
     const auto interactV = loadSimdPairInteractionMasks<c_needToCheckExclusions, kernelLayout>(
-            static_cast<int>(l_cj.excl(cjind)), exclusionFilterV);
+            l_cj.excl(cjind), exclusionFilterV);
 
     /* load j atom coordinates */
     SimdReal jx_S = loadJAtomData<kernelLayout>(x, ajx);
@@ -334,7 +334,7 @@
              * Energy groups are stored per i-cluster, so things get
              * complicated when the i- and j-cluster size don't match.
              */
-            //static_assert(UNROLLJ == 2 || UNROLLI <= UNROLLJ);
+            // static_assert(UNROLLJ == 2 || UNROLLI <= UNROLLJ);
 
             if constexpr (UNROLLJ == 2)
             {

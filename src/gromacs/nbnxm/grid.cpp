@@ -1435,7 +1435,7 @@ void Grid::setCellIndices(int                            ddZone,
             cxy_na_i += gridWork[thread].numAtomsPerColumn[i];
         }
         ncz = (cxy_na_i + numAtomsPerCell - 1) / numAtomsPerCell;
-        if (nbat->XFormat == nbatX8)
+        if (geometry_.numAtomsJCluster > geometry_.numAtomsICluster)
         {
             /* Make the number of cell a multiple of 2 */
             ncz = (ncz + 1) & ~1;

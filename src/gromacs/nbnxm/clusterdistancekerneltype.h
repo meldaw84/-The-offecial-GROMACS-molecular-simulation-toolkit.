@@ -98,6 +98,14 @@ static inline ClusterDistanceKernelType getClusterDistanceKernelType(const Pairl
         GMX_RELEASE_ASSERT(false, "Expect 4-wide or 8-wide SIMD with 4x4 list and nbat SIMD layout");
 #endif
     }
+    else if (pairlistType == PairlistType::Simple8x8)
+    {
+#if GMX_SIMD && GMX_SIMD_REAL_WIDTH == 8
+        return ClusterDistanceKernelType::CpuSimd_8xM;
+#else
+        GMX_RELEASE_ASSERT(false, "Expect 8-wide SIMD with 8x8 list and nbat SIMD layout");
+#endif
+    }
     else
     {
         GMX_ASSERT(pairlistType == PairlistType::Simple4x8, "Unhandled pairlist type");

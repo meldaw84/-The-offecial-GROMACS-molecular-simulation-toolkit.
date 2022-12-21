@@ -368,7 +368,7 @@ nbnxn_atomdata_t::SimdMasks::SimdMasks(const Nbnxm::KernelType kernelType)
      * In single precision this means the real and integer SIMD registers
      * are of equal size.
      */
-    const int simd_excl_size = Nbnxm::c_iClusterSize(kernelType) * simd_width;
+    const int simd_excl_size = std::min(Nbnxm::c_iClusterSize(kernelType) * simd_width, 32);
 #    if GMX_DOUBLE && !GMX_SIMD_HAVE_INT32_LOGICAL
     exclusion_filter64.resize(simd_excl_size);
 #    else

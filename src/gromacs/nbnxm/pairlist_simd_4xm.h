@@ -276,8 +276,8 @@ static inline void makeClusterListSimd4xn(const Grid&              jGrid,
         for (int jcluster = jclusterFirst; jcluster <= jclusterLast; jcluster++)
         {
             /* Store cj and the interaction mask */
-            const int    cj = cjFromCi<kernelLayout, 0>(jGrid.cellOffset()) + jcluster;
-            unsigned int excl;
+            const int           cj = cjFromCi<kernelLayout, 0>(jGrid.cellOffset()) + jcluster;
+            JClusterList::IMask excl;
             if constexpr (kernelLayout == KernelLayout::r4xM)
             {
                 excl = get_imask_simd_4xn(excludeSubDiagonal, icluster, jcluster);

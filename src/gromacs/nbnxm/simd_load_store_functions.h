@@ -49,6 +49,8 @@
 #include "gromacs/simd/simd.h"
 #include "gromacs/utility/real.h"
 
+#include "pairlist.h"
+
 namespace gmx
 {
 
@@ -113,7 +115,7 @@ typedef SimdReal SimdBitMask;
 //! Loads no interaction masks, returns an empty array
 template<bool loadMasks, KernelLayout kernelLayout>
 inline std::enable_if_t<!loadMasks, std::array<SimdBool, 0>>
-loadSimdPairInteractionMasks(const int excl, SimdBitMask* filterBitMasksV)
+loadSimdPairInteractionMasks(const JClusterList::IMask excl, SimdBitMask* filterBitMasksV)
 {
     return std::array<SimdBool, 0>{};
 
@@ -125,7 +127,7 @@ loadSimdPairInteractionMasks(const int excl, SimdBitMask* filterBitMasksV)
 template<bool loadMasks, KernelLayout kernelLayout>
 inline std::enable_if_t<loadMasks && (kernelLayout == KernelLayout::r4xM || kernelLayout == KernelLayout::r8xM),
                         std::array<SimdBool, c_iClusterSize(kernelLayout)>>
-loadSimdPairInteractionMasks(const int excl, SimdBitMask* filterBitMasksV)
+loadSimdPairInteractionMasks(const JClusterList::IMask iMask, SimdBitMask* filterBitMasksV)
 {
     using namespace gmx;
 
@@ -133,39 +135,48 @@ loadSimdPairInteractionMasks(const int excl, SimdBitMask* filterBitMasksV)
 
     std::array<SimdBool, iClusterSize> interactionMasksV;
 
-#if GMX_SIMD_HAVE_INT32_LOGICAL
-    /* Load integer interaction mask */
-    SimdInt32 mask_pr_S(excl);
-    for (int i = 0; i < iClusterSize; i++)
+    constexpr int iGroupSplit = (kernelLayout == KernelLayout::r8xM && GMX_SIMD_REAL_WIDTH == 8 ? 2 : 1);
+    constexpr int iGroupSize = iClusterSize / iGroupSplit;
+
+    for (int part = 0; part < iGroupSplit; part++)
     {
-        interactionMasksV[i] = cvtIB2B(testBits(mask_pr_S & filterBitMasksV[i]));
-    }
+        const unsigned int iMaskPart =
+                (sizeof(iMask) == 4 ? iMask : uint32_t((iMask >> (part * 32)) & 0xffffffffUL));
+#if GMX_SIMD_HAVE_INT32_LOGICAL
+        /* Load integer interaction mask */
+        SimdInt32 mask_pr_S(iMaskPart);
+        for (int i = 0; i < iGroupSize; i++)
+        {
+            interactionMasksV[part * iGroupSize + i] = cvtIB2B(testBits(mask_pr_S & filterBitMasksV[i]));
+        }
 
 #elif GMX_SIMD_HAVE_LOGICAL
-    union
-    {
+        union
+        {
 #    if GMX_DOUBLE
-        std::int64_t i;
+            std::int64_t i;
 #    else
-        std::int32_t i;
+            std::int32_t i;
 #    endif
-        real         r;
-    } conv;
+            real         r;
+        } conv;
 
-    conv.i = excl;
-    SimdReal mask_pr_S(conv.r);
+        conv.i = iMaskPart;
+        SimdReal mask_pr_S(conv.r);
 
-    for (int i = 0; i < iClusterSize; i++)
-    {
-        interactionMasksV[i] = testBits(mask_pr_S & filterBitMasksV[i]);
-    }
+        for (int i = 0; i < iClusterSize; i++)
+        {
+            interactionMasksV[part * iGroupSize + i] = testBits(mask_pr_S & filterBitMasksV[i]);
+        }
 
 #else
-    // Note that there was exclusion support without logical support up to release-2022,
-    // which could be resurrected. This is probably only efficient for 4-wide SIMD.
-    static_assert(false,
-                  "Need GMX_SIMD_HAVE_INT32_LOGICAL or GMX_SIMD_HAVE_LOGICAL for NBNxM kernels");
+        // Note that there was exclusion support without logical support up to release-2022,
+        // which could be resurrected. This is probably only efficient for 4-wide SIMD.
+        static_assert(
+                false,
+                "Need GMX_SIMD_HAVE_INT32_LOGICAL or GMX_SIMD_HAVE_LOGICAL for NBNxM kernels");
 #endif
+    }
 
     return interactionMasksV;
 }
@@ -174,7 +185,7 @@ loadSimdPairInteractionMasks(const int excl, SimdBitMask* filterBitMasksV)
 template<bool loadMasks, KernelLayout kernelLayout>
 inline std::enable_if_t<loadMasks && kernelLayout == KernelLayout::r2xMM,
                         std::array<SimdBool, c_iClusterSize(kernelLayout) / 2>>
-loadSimdPairInteractionMasks(const int excl, SimdBitMask* filterBitMasksV)
+loadSimdPairInteractionMasks(const JClusterList::IMask excl, SimdBitMask* filterBitMasksV)
 {
     using namespace gmx;
 

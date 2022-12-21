@@ -70,7 +70,12 @@ PairlistParams::PairlistParams(const Nbnxm::KernelType kernelType,
     }
     else if (kernelType == Nbnxm::KernelType::Cpu8xN_Simd_8xN)
     {
-        pairlistType = PairlistType::Simple8x4;
+        switch (Nbnxm::c_jClusterSize(kernelType))
+        {
+            case 4: pairlistType = PairlistType::Simple8x4; break;
+            case 8: pairlistType = PairlistType::Simple8x8; break;
+            default: GMX_RELEASE_ASSERT(false, "Kernel type does not have a pairlist type");
+        }
     }
     else
     {

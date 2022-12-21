@@ -90,6 +90,10 @@ void nbnxmKernelSimd(const NbnxnPairlistCpu*    nbl,
 
     static_assert(UNROLLJ * GMX_SIMD_J_UNROLL_SIZE == GMX_SIMD_REAL_WIDTH);
 
+    // The interaction mask with all bits on;
+    // constexpr JClusterList::IMask c_interactionMaskAll = NBNXN_INTERACTION_MASK_ALL;
+    constexpr JClusterList::IMask c_interactionMaskAll = NBNXN_INTERACTION_MASK64_ALL;
+
     // The stride of all atom data arrays
     constexpr int STRIDE = std::max(UNROLLI, UNROLLJ);
 
@@ -160,8 +164,9 @@ void nbnxmKernelSimd(const NbnxnPairlistCpu*    nbl,
      * Since we only check bits, the actual value they represent does not
      * matter, as long as both filter and mask data are treated the same way.
      */
-    SimdBitMask exclusionFilterV[nR];
-    for (int i = 0; i < nR; i++)
+    constexpr int nRExclusionFilter = std::min(nR, 32 / UNROLLJ);
+    SimdBitMask   exclusionFilterV[nRExclusionFilter];
+    for (int i = 0; i < nRExclusionFilter; i++)
     {
 #if GMX_SIMD_HAVE_INT32_LOGICAL
         exclusionFilterV[i] = load<SimdBitMask>(
@@ -247,7 +252,7 @@ void nbnxmKernelSimd(const NbnxnPairlistCpu*    nbl,
         int sci;
         int scix;
         int sci2;
-        if constexpr (UNROLLJ <= 4)
+        if constexpr (UNROLLJ <= UNROLLI)
         {
             sci  = ci * STRIDE;
             scix = sci * DIM;
@@ -425,7 +430,7 @@ void nbnxmKernelSimd(const NbnxnPairlistCpu*    nbl,
             constexpr ILJInteractions c_iLJInteractions              = ILJInteractions::Half;
             {
                 constexpr bool c_needToCheckExclusions = true;
-                while (cjind < cjind1 && nbl->cj.excl(cjind) != NBNXN_INTERACTION_MASK_ALL)
+                while (cjind < cjind1 && nbl->cj.excl(cjind) != c_interactionMaskAll)
                 {
 #include "simd_kernel_inner.h"
                     cjind++;
@@ -446,7 +451,7 @@ void nbnxmKernelSimd(const NbnxnPairlistCpu*    nbl,
             constexpr ILJInteractions c_iLJInteractions              = ILJInteractions::All;
             {
                 constexpr bool c_needToCheckExclusions = true;
-                while (cjind < cjind1 && nbl->cj.excl(cjind) != NBNXN_INTERACTION_MASK_ALL)
+                while (cjind < cjind1 && nbl->cj.excl(cjind) != c_interactionMaskAll)
                 {
 #include "simd_kernel_inner.h"
                     cjind++;
@@ -467,7 +472,7 @@ void nbnxmKernelSimd(const NbnxnPairlistCpu*    nbl,
             constexpr ILJInteractions c_iLJInteractions              = ILJInteractions::All;
             {
                 constexpr bool c_needToCheckExclusions = true;
-                while (cjind < cjind1 && nbl->cj.excl(cjind) != NBNXN_INTERACTION_MASK_ALL)
+                while (cjind < cjind1 && nbl->cj.excl(cjind) != c_interactionMaskAll)
                 {
 #include "simd_kernel_inner.h"
                     cjind++;
@@ -492,12 +497,15 @@ void nbnxmKernelSimd(const NbnxnPairlistCpu*    nbl,
             fShiftZ = reduceIncr4ReturnSum(f + sciz, forceIZV[0], forceIZV[1], forceIZV[2], forceIZV[3]);
             if constexpr (UNROLLI == 8)
             {
-                fShiftX = fShiftX +
-                    reduceIncr4ReturnSum(f + scix + STRIDE / 2, forceIXV[4], forceIXV[5], forceIXV[6], forceIXV[7]);
-                fShiftY = fShiftY +
-                    reduceIncr4ReturnSum(f + sciy + STRIDE / 2, forceIYV[4], forceIYV[5], forceIYV[6], forceIYV[7]);
-                fShiftZ = fShiftZ +
-                    reduceIncr4ReturnSum(f + sciz + STRIDE / 2, forceIZV[4], forceIZV[5], forceIZV[6], forceIZV[7]);
+                fShiftX = fShiftX
+                          + reduceIncr4ReturnSum(
+                                  f + scix + STRIDE / 2, forceIXV[4], forceIXV[5], forceIXV[6], forceIXV[7]);
+                fShiftY = fShiftY
+                          + reduceIncr4ReturnSum(
+                                  f + sciy + STRIDE / 2, forceIYV[4], forceIYV[5], forceIYV[6], forceIYV[7]);
+                fShiftZ = fShiftZ
+                          + reduceIncr4ReturnSum(
+                                  f + sciz + STRIDE / 2, forceIZV[4], forceIZV[5], forceIZV[6], forceIZV[7]);
             }
         }
         else
