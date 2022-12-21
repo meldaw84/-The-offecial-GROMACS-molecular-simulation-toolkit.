@@ -45,7 +45,7 @@
 #ifndef GMX_LISTED_FORCES_POSITION_RESTRAINTS_H
 #define GMX_LISTED_FORCES_POSITION_RESTRAINTS_H
 
-#include <cstdio>
+#include <stdio.h>
 
 #include "gromacs/math/vectypes.h"
 #include "gromacs/utility/arrayref.h"
@@ -58,11 +58,32 @@ class InteractionDefinitions;
 struct t_lambda;
 struct t_nrnb;
 struct t_pbc;
+enum class RefCoordScaling : int;
 
 namespace gmx
 {
 class ForceWithVirial;
-}
+
+/*! \brief Computes forces and potential for flat-bottom cylindrical restraints.
+ *         Returns the flat-bottom potential. */
+real do_fbposres_cylinder(int fbdim, rvec fm, rvec dx, real rfb, real kk, bool bInvert);
+
+/*! \brief returns dx, rdist, and dpdl for functions posres() and fbposres()
+ */
+void posres_dx(const rvec      x,
+               const rvec      pos0A,
+               const rvec      pos0B,
+               const rvec      comA_sc,
+               const rvec      comB_sc,
+               real            lambda,
+               const t_pbc*    pbc,
+               RefCoordScaling refcoord_scaling,
+               int             npbcdim,
+               rvec            dx,
+               rvec            rdist,
+               rvec            dpdl);
+
+} // namespace gmx
 
 /*! \brief Helper function that wraps calls to posres */
 void posres_wrapper(t_nrnb*                       nrnb,

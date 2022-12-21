@@ -37,6 +37,14 @@
 # \author Sebastian Keller <keller@cscs.ch>
 #
 
+set(TESTUTILS_DIR ${PROJECT_SOURCE_DIR}/src/testutils)
+if (BUILD_TESTING)
+    if(NOT GMX_DEVELOPER_BUILD)
+        set(UNITTEST_TARGET_OPTIONS EXCLUDE_FROM_ALL)
+    endif()
+    include(${TESTUTILS_DIR}/TestMacros.cmake)
+endif()
+
 add_custom_target(nblib-tests
         COMMENT "Target to build all nblib tests including samples"
         )
@@ -68,13 +76,40 @@ set_target_properties(nblib PROPERTIES
         OUTPUT_NAME "nblib_gmx")
 
 if (GMX_GPU_CUDA)
-    if(${CMAKE_VERSION} VERSION_LESS "3.17.0")
-        find_package(CUDA)
-        target_include_directories(nblib PRIVATE "${CUDA_INCLUDE_DIRS}")
-    else()
         find_package(CUDAToolkit)
         target_link_libraries(nblib PRIVATE CUDA::cudart)
-    endif()
+
+        enable_language(CUDA)
+        set(CMAKE_CUDA_ARCHITECTURES OFF)
+        set(CMAKE_CUDA_STANDARD 17)
+
+        # need to give sources here for this function to work
+        #gmx_cuda_add_library(integrator integrator_gpu_internal.cu)
+        add_library(integrator integrator_gpu_internal.cu)
+
+        target_sources(nblib
+                PRIVATE
+                gmxcalculatorgpu.cpp
+                integrator_gpu.cpp)
+        target_link_libraries(nblib PRIVATE integrator)
+
+        set_property(TARGET integrator PROPERTY CUDA_ARCHITECTURES "35;60;70;75;80")
+
+        target_include_directories(integrator PRIVATE ${PROJECT_SOURCE_DIR}/api)
+        target_compile_options(integrator PRIVATE -Wno-deprecated-gpu-targets)
+
+        target_link_libraries(integrator PRIVATE
+	  libgromacs
+	  common
+	  legacy_modules
+	  CUDA::cudart
+	  math
+	  utility
+	  )
+	
+        target_link_libraries(integrator PRIVATE libgromacs)
+        target_link_libraries(integrator PRIVATE common)
+        target_link_libraries(integrator PRIVATE legacy_modules)
 endif()
 
 target_sources(nblib
@@ -97,6 +132,7 @@ target_sources(nblib
 gmx_target_compile_options(nblib)
 
 target_link_libraries(nblib PRIVATE libgromacs)
+target_include_directories(nblib SYSTEM BEFORE PRIVATE ${PROJECT_SOURCE_DIR}/src/external/thread_mpi/include)
 target_include_directories(nblib PUBLIC
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>

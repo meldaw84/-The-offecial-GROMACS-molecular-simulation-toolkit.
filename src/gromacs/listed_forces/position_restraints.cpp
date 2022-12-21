@@ -65,7 +65,7 @@
 
 struct gmx_wallcycle;
 
-namespace
+namespace gmx
 {
 
 /*! \brief returns dx, rdist, and dpdl for functions posres() and fbposres()
@@ -183,6 +183,11 @@ real do_fbposres_cylinder(int fbdim, rvec fm, rvec dx, real rfb, real kk, gmx_bo
     return v;
 }
 
+} // namespace gmx
+
+namespace
+{
+
 /*! \brief Compute energies and forces for flat-bottomed position restraints
  *
  * Returns the flat-bottomed potential. Same PBC treatment as in
@@ -230,18 +235,18 @@ real fbposres(int                   nbonds,
         pr   = &forceparams[type];
 
         /* same calculation as for normal posres, but with identical A and B states, and lambda==0 */
-        posres_dx(x[ai],
-                  forceparams[type].fbposres.pos0,
-                  forceparams[type].fbposres.pos0,
-                  com_sc,
-                  com_sc,
-                  0.0,
-                  pbc,
-                  refcoord_scaling,
-                  npbcdim,
-                  dx,
-                  rdist,
-                  dpdl);
+        gmx::posres_dx(x[ai],
+                       forceparams[type].fbposres.pos0,
+                       forceparams[type].fbposres.pos0,
+                       com_sc,
+                       com_sc,
+                       0.0,
+                       pbc,
+                       refcoord_scaling,
+                       npbcdim,
+                       dx,
+                       rdist,
+                       dpdl);
 
         clear_rvec(fm);
         v = 0.0;
@@ -274,19 +279,19 @@ real fbposres(int                   nbonds,
             case efbposresCYLINDERX:
                 /* cylindrical flat-bottom posres in y-z plane. fm[XX] = 0. */
                 fbdim = XX;
-                v     = do_fbposres_cylinder(fbdim, fm, dx, rfb, kk, bInvert);
+                v     = gmx::do_fbposres_cylinder(fbdim, fm, dx, rfb, kk, bInvert);
                 break;
             case efbposresCYLINDERY:
                 /* cylindrical flat-bottom posres in x-z plane. fm[YY] = 0. */
                 fbdim = YY;
-                v     = do_fbposres_cylinder(fbdim, fm, dx, rfb, kk, bInvert);
+                v     = gmx::do_fbposres_cylinder(fbdim, fm, dx, rfb, kk, bInvert);
                 break;
             case efbposresCYLINDER:
             /* equivalent to efbposresCYLINDERZ for backwards compatibility */
             case efbposresCYLINDERZ:
                 /* cylindrical flat-bottom posres in x-y plane. fm[ZZ] = 0. */
                 fbdim = ZZ;
-                v     = do_fbposres_cylinder(fbdim, fm, dx, rfb, kk, bInvert);
+                v     = gmx::do_fbposres_cylinder(fbdim, fm, dx, rfb, kk, bInvert);
                 break;
             case efbposresX: /* fbdim=XX */
             case efbposresY: /* fbdim=YY */
@@ -381,18 +386,18 @@ real posres(int                   nbonds,
         pr   = &forceparams[type];
 
         /* return dx, rdist, and dpdl */
-        posres_dx(x[ai],
-                  forceparams[type].posres.pos0A,
-                  forceparams[type].posres.pos0B,
-                  comA_sc,
-                  comB_sc,
-                  lambda,
-                  pbc,
-                  refcoord_scaling,
-                  npbcdim,
-                  dx,
-                  rdist,
-                  dpdl);
+        gmx::posres_dx(x[ai],
+                       forceparams[type].posres.pos0A,
+                       forceparams[type].posres.pos0B,
+                       comA_sc,
+                       comB_sc,
+                       lambda,
+                       pbc,
+                       refcoord_scaling,
+                       npbcdim,
+                       dx,
+                       rdist,
+                       dpdl);
 
         for (m = 0; (m < DIM); m++)
         {
