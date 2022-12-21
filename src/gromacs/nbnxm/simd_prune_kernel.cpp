@@ -77,8 +77,8 @@ void nbnxmSimdPruneKernel(NbnxnPairlistCpu*              nbl,
     const nbnxn_ci_t* gmx_restrict ciOuter = nbl->ciOuter.data();
     nbnxn_ci_t* gmx_restrict       ciInner = nbl->ci.data();
 
-    const nbnxn_cj_t* gmx_restrict cjOuter = nbl->cjOuter.data();
-    nbnxn_cj_t* gmx_restrict       cjInner = nbl->cj.list_.data();
+    const JClusterList& cjOuter = nbl->cjOuter;
+    JClusterList&       cjInner = nbl->cj;
 
     const real* gmx_restrict x = nbat->x().data();
 
@@ -129,7 +129,7 @@ void nbnxmSimdPruneKernel(NbnxnPairlistCpu*              nbl,
         for (int cjind = ciEntry->cj_ind_start; cjind < ciEntry->cj_ind_end; cjind++)
         {
             /* j-cluster index */
-            int cj = cjOuter[cjind].cj;
+            int cj = cjOuter.cj(cjind);
 
             /* Atom indices (of the first atom in the cluster) */
             int ajx;
@@ -184,7 +184,7 @@ void nbnxmSimdPruneKernel(NbnxnPairlistCpu*              nbl,
             }
 
             /* Putting the assignment inside the conditional is slower */
-            cjInner[ncjInner] = cjOuter[cjind];
+            cjInner.copyEntry(cjOuter, cjind, ncjInner);
             if (anyTrue(wco[0]))
             {
                 ncjInner++;

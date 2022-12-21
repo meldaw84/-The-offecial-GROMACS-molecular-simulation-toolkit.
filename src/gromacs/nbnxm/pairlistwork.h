@@ -56,18 +56,13 @@
 //! Working data for the actual i-supercell during pair search \internal
 struct NbnxnPairlistCpuWork
 {
-    NbnxnPairlistCpuWork(const int iClusterSize) :
-        iClusterData(iClusterSize)
-    {
-    }
+    NbnxnPairlistCpuWork(const int iClusterSize) : iClusterData(iClusterSize) {}
 
     //! Struct for storing coordinates and bounding box for an i-entry during search \internal
     struct IClusterData
     {
         IClusterData(const int iClusterSize) :
-            bb(1),
-            x(iClusterSize * DIM),
-            xSimd(iClusterSize * DIM * GMX_REAL_MAX_SIMD_WIDTH)
+            bb(1), x(iClusterSize * DIM), xSimd(iClusterSize * DIM * GMX_REAL_MAX_SIMD_WIDTH)
         {
         }
 
@@ -85,7 +80,7 @@ struct NbnxnPairlistCpuWork
     //! Work data for generating an IEntry in the pairlist
     IClusterData iClusterData;
     //! Temporary j-cluster list, used for sorting on exclusions
-    std::vector<nbnxn_cj_t> cj;
+    JClusterList cj;
 
     //! Nr. of cluster pairs without Coulomb for flop counting
     int ncj_noq = 0;

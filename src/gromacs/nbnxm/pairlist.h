@@ -94,13 +94,21 @@ struct nbnxn_cj_t
 //! Simple j-cluster list
 class JClusterList
 {
+private:
+    //! A j-entry
+    struct JEntry
+    {
+        //! The j-cluster index
+        int cj;
+        //! The interaction bits
+        unsigned int excl;
+    };
+
 public:
-    //! The list of packed j-cluster groups
-    FastVector<nbnxn_cj_t> list_;
     //! Return the j-cluster index for \c index from the pack list
-    int cj(int index) const { return list_[index].cj; }
+    inline int cj(int index) const { return list_[index].cj; }
     //! Return the exclusion mask for \c index
-    const unsigned int& excl(int index) const { return list_[index].excl; }
+    inline const unsigned int& excl(int index) const { return list_[index].excl; }
     //! Return the exclusion mask for \c index
     unsigned int& excl(int index) { return list_[index].excl; }
     //! Return the size of the list (not the number of packed elements)
@@ -109,8 +117,30 @@ public:
     bool empty() const noexcept { return size() == 0; }
     //! Resize the list
     void resize(gmx::index count) { list_.resize(count); }
+    //! Clear the list
+    void clear() { resize(0); }
     //! Add a new element to the list
-    void push_back(const decltype(list_)::value_type& value) { list_.push_back(value); }
+    void push_back(const int jCluster, const unsigned int interactionMask)
+    {
+        list_.push_back({ jCluster, interactionMask });
+    }
+    //! Append an entry from another list
+    void appendEntry(const JClusterList& source, int sourceIndex)
+    {
+        list_.push_back({ source.cj(sourceIndex), source.excl(sourceIndex) });
+    }
+    //! Copy an entry from another list
+    void copyEntry(const JClusterList& source, int sourceIndex, int targetIndex)
+    {
+        list_[targetIndex].cj   = source.cj(sourceIndex);
+        list_[targetIndex].excl = source.excl(sourceIndex);
+    }
+    //! Sort the entries in the range so all exclusions come first
+    void sortOnExclusions(int start, int end, JClusterList* work);
+
+private:
+    //! The list of j-entries
+    FastVector<JEntry> list_;
 };
 
 /*! \brief Constants for interpreting interaction flags
@@ -345,7 +375,7 @@ struct NbnxnPairlistCpu
     //! The j-cluster list
     JClusterList cj;
     //! The outer, unpruned j-cluster list
-    FastVector<nbnxn_cj_t> cjOuter;
+    JClusterList cjOuter;
     //! The number of j-clusters that are used by ci entries in this list, will be <= cj.list.size()
     int ncjInUse;
 

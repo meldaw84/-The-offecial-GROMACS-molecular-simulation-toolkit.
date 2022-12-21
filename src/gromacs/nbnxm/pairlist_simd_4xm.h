@@ -276,19 +276,19 @@ static inline void makeClusterListSimd4xn(const Grid&              jGrid,
         for (int jcluster = jclusterFirst; jcluster <= jclusterLast; jcluster++)
         {
             /* Store cj and the interaction mask */
-            nbnxn_cj_t cjEntry;
-            cjEntry.cj = cjFromCi<kernelLayout, 0>(jGrid.cellOffset()) + jcluster;
+            const int    cj = cjFromCi<kernelLayout, 0>(jGrid.cellOffset()) + jcluster;
+            unsigned int excl;
             if constexpr (kernelLayout == KernelLayout::r4xM)
             {
-                cjEntry.excl = get_imask_simd_4xn(excludeSubDiagonal, icluster, jcluster);
+                excl = get_imask_simd_4xn(excludeSubDiagonal, icluster, jcluster);
             }
 #if GMX_HAVE_NBNXM_SIMD_8XM
             else
             {
-                cjEntry.excl = get_imask_simd_8xn(excludeSubDiagonal, icluster, jcluster);
+                excl = get_imask_simd_8xn(excludeSubDiagonal, icluster, jcluster);
             }
 #endif
-            nbl->cj.push_back(cjEntry);
+            nbl->cj.push_back(cj, excl);
         }
         /* Increase the closing index in the i list */
         nbl->ci.back().cj_ind_end = nbl->cj.size();

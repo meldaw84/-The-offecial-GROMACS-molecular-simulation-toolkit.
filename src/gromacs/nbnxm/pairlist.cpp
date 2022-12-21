@@ -1105,10 +1105,9 @@ static void makeClusterListSimple(const Grid&              jGrid,
         for (int jcluster = jclusterFirst; jcluster <= jclusterLast; jcluster++)
         {
             /* Store cj and the interaction mask */
-            nbnxn_cj_t cjEntry;
-            cjEntry.cj   = jGrid.cellOffset() + jcluster;
-            cjEntry.excl = get_imask(excludeSubDiagonal, icluster, jcluster);
-            nbl->cj.list_.push_back(cjEntry);
+            const int          cj   = jGrid.cellOffset() + jcluster;
+            const unsigned int excl = get_imask(excludeSubDiagonal, icluster, jcluster);
+            nbl->cj.push_back(cj, excl);
         }
         /* Increase the closing index in the i list */
         nbl->ci.back().cj_ind_end = nbl->cj.size();
@@ -2074,32 +2073,32 @@ static void addNewIEntry(NbnxnPairlistGpu* nbl, int sci, int shift, int gmx_unus
 /* Sort the simple j-list cj on exclusions.
  * Entries with exclusions will all be sorted to the beginning of the list.
  */
-static void sort_cj_excl(nbnxn_cj_t* cj, int ncj, NbnxnPairlistCpuWork* work)
+void JClusterList::sortOnExclusions(const int start, const int end, JClusterList* work)
 {
-    work->cj.resize(ncj);
+    work->resize(end - start);
 
     /* Make a list of the j-cells involving exclusions */
     int jnew = 0;
-    for (int j = 0; j < ncj; j++)
+    for (int j = start; j < end; j++)
     {
-        if (cj[j].excl != NBNXN_INTERACTION_MASK_ALL)
+        if (excl(j) != NBNXN_INTERACTION_MASK_ALL)
         {
-            work->cj[jnew++] = cj[j];
+            work->copyEntry(*this, j, jnew++);
         }
     }
     /* Check if there are exclusions at all or not just the first entry */
-    if (!((jnew == 0) || (jnew == 1 && cj[0].excl != NBNXN_INTERACTION_MASK_ALL)))
+    if (!((jnew == 0) || (jnew == 1 && excl(start) != NBNXN_INTERACTION_MASK_ALL)))
     {
-        for (int j = 0; j < ncj; j++)
+        for (int j = start; j < end; j++)
         {
-            if (cj[j].excl == NBNXN_INTERACTION_MASK_ALL)
+            if (excl(j) == NBNXN_INTERACTION_MASK_ALL)
             {
-                work->cj[jnew++] = cj[j];
+                work->copyEntry(*this, j, jnew++);
             }
         }
-        for (int j = 0; j < ncj; j++)
+        for (int j = start; j < end; j++)
         {
-            cj[j] = work->cj[j];
+            copyEntry(*work, j - start, j);
         }
     }
 }
@@ -2119,7 +2118,7 @@ static void closeIEntry(NbnxnPairlistCpu*   nbl,
     const int   jlen      = currentCi.cj_ind_end - currentCi.cj_ind_start;
     if (jlen > 0)
     {
-        sort_cj_excl(nbl->cj.list_.data() + currentCi.cj_ind_start, jlen, nbl->work.get());
+        nbl->cj.sortOnExclusions(currentCi.cj_ind_start, currentCi.cj_ind_start + jlen, &nbl->work->cj);
 
         /* The counts below are used for non-bonded pair/flop counts
          * and should therefore match the available kernel setups.
@@ -2274,7 +2273,7 @@ static void sync_work(NbnxnPairlistGpu* nbl)
 static void clear_pairlist(NbnxnPairlistCpu* nbl)
 {
     nbl->ci.clear();
-    nbl->cj.list_.clear();
+    nbl->cj.clear();
     nbl->ncjInUse = 0;
     nbl->ciOuter.clear();
     nbl->cjOuter.clear();
@@ -3120,10 +3119,12 @@ static void setBufferFlags(const NbnxnPairlistCpu& nbl,
                            gmx_bitmask_t*          gridj_flag,
                            const int               th)
 {
-    if (gmx::ssize(nbl.cj) > ncj_old_j)
+    const JClusterList& jClusterList = nbl.cj;
+
+    if (jClusterList.size() > ncj_old_j)
     {
-        int cbFirst = nbl.cj.cj(ncj_old_j) >> gridj_flag_shift;
-        int cbLast  = nbl.cj.list_.back().cj >> gridj_flag_shift;
+        int cbFirst = jClusterList.cj(ncj_old_j) >> gridj_flag_shift;
+        int cbLast  = jClusterList.cj(jClusterList.size() - 1) >> gridj_flag_shift;
         for (int cb = cbFirst; cb <= cbLast; cb++)
         {
             bitmask_init_bit(&gridj_flag[cb], th);
@@ -3748,7 +3749,7 @@ static void copySelectedListRange(const nbnxn_ci_t* gmx_restrict       srcCi,
 
     for (int j = srcCi->cj_ind_start; j < srcCi->cj_ind_end; j++)
     {
-        dest->cj.list_.push_back(src->cj.list_[j]);
+        dest->cj.appendEntry(src->cj, j);
 
         if (setFlags)
         {
@@ -4393,6 +4394,6 @@ static void prepareListsForDynamicPruning(gmx::ArrayRef<NbnxnPairlistCpu> lists)
                            "The outer lists should be empty before preparation");
 
         std::swap(list.ci, list.ciOuter);
-        std::swap(list.cj.list_, list.cjOuter);
+        std::swap(list.cj, list.cjOuter);
     }
 }

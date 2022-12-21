@@ -228,7 +228,7 @@ void nbnxmKernelSimd(const NbnxnPairlistCpu*    nbl,
     /* Major division is over i-particle energy groups, determine the stride */
     const int Vstride_i = nbatParams.nenergrp * (1 << nbatParams.neg_2log) * egps_jstride;
 
-    const nbnxn_cj_t* l_cj = nbl->cj.list_.data();
+    const JClusterList& l_cj = nbl->cj;
 
     for (const nbnxn_ci_t& ciEntry : nbl->ci)
     {
@@ -290,7 +290,7 @@ void nbnxmKernelSimd(const NbnxnPairlistCpu*    nbl,
             // Compute self interaction energies, when present
             const bool do_self = haveLJEwaldGeometric || do_coul;
 
-            if (do_self && l_cj[ciEntry.cj_ind_start].cj == cjFromCi<UNROLLI, UNROLLJ>(ci_sh))
+            if (do_self && l_cj.cj(ciEntry.cj_ind_start) == cjFromCi<UNROLLI, UNROLLJ>(ci_sh))
             {
                 if (do_coul)
                 {

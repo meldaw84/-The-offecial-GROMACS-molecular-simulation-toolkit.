@@ -40,7 +40,7 @@
 #endif
 
 {
-    const int cj = l_cj[cjind].cj;
+    const int cj = l_cj.cj(cjind);
 
 #ifdef ENERGY_GROUPS
     const int egp_cj = nbatParams.energrp[cj];
@@ -63,7 +63,7 @@
             /* A multiply mask used to zero an interaction
              * when that interaction should be excluded
              * (e.g. because of bonding). */
-            const real interact = static_cast<real>((l_cj[cjind].excl >> (i * UNROLLI + j)) & 1);
+            const real interact = static_cast<real>((l_cj.excl(cjind) >> (i * UNROLLI + j)) & 1);
 #    ifndef EXCL_FORCES
             real skipmask = interact;
 #    else

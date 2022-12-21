@@ -236,10 +236,9 @@ static inline void makeClusterListSimd2xnn(const Grid&              jGrid,
         for (int jcluster = jclusterFirst; jcluster <= jclusterLast; jcluster++)
         {
             /* Store cj and the interaction mask */
-            nbnxn_cj_t cjEntry;
-            cjEntry.cj   = cjFromCi<KernelLayout::r2xMM, 0>(jGrid.cellOffset()) + jcluster;
-            cjEntry.excl = get_imask_simd_2xnn(excludeSubDiagonal, icluster, jcluster);
-            nbl->cj.push_back(cjEntry);
+            const int          cj = cjFromCi<KernelLayout::r2xMM, 0>(jGrid.cellOffset()) + jcluster;
+            const unsigned int excl = get_imask_simd_2xnn(excludeSubDiagonal, icluster, jcluster);
+            nbl->cj.push_back(cj, excl);
         }
         /* Increase the closing index in the i list */
         nbl->ci.back().cj_ind_end = nbl->cj.size();

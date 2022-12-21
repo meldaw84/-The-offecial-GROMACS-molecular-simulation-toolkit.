@@ -35,7 +35,8 @@
 #define UNROLLI 4
 #define UNROLLJ 4
 
-static_assert(UNROLLI == Nbnxm::c_iClusterSize(Nbnxm::KernelType::Cpu4x4_PlainC), "UNROLLI should match the i-cluster size");
+static_assert(UNROLLI == Nbnxm::c_iClusterSize(Nbnxm::KernelType::Cpu4x4_PlainC),
+              "UNROLLI should match the i-cluster size");
 
 /* We could use nbat->xstride and nbat->fstride, but macros might be faster */
 #define X_STRIDE 3
@@ -178,7 +179,7 @@ void
     const real* shiftvec = shift_vec[0];
     const real* x        = nbat->x().data();
 
-    const nbnxn_cj_t* l_cj = nbl->cj.list_.data();
+    const JClusterList& l_cj = nbl->cj;
 
     for (const nbnxn_ci_t& ciEntry : nbl->ci)
     {
@@ -246,7 +247,7 @@ void
 #        endif
 #    endif
 
-            if (l_cj[ciEntry.cj_ind_start].cj == ci_sh)
+            if (l_cj.cj(ciEntry.cj_ind_start) == ci_sh)
             {
                 for (int i = 0; i < UNROLLI; i++)
                 {

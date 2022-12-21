@@ -60,7 +60,7 @@
     std::array<SimdReal, nR> fScalarV;
 
     /* j-cluster index */
-    const int cj = l_cj[cjind].cj;
+    const int cj = l_cj.cj(cjind);
 
     /* Atom indices (of the first atom in the cluster) */
     const int gmx_unused aj = cj * UNROLLJ;
@@ -71,7 +71,7 @@
 
     /* Interaction (non-exclusion) mask of all 1's or 0's */
     const auto interactV = loadSimdPairInteractionMasks<c_needToCheckExclusions, kernelLayout>(
-            static_cast<int>(l_cj[cjind].excl), exclusionFilterV);
+            static_cast<int>(l_cj.excl(cjind)), exclusionFilterV);
 
     /* load j atom coordinates */
     SimdReal jx_S = loadJAtomData<kernelLayout>(x, ajx);
