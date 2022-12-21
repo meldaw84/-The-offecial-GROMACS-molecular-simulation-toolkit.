@@ -94,53 +94,50 @@ struct nbnxn_cj_t
 //! Simple j-cluster list
 class JClusterList
 {
-private:
-    //! A j-entry
-    struct JEntry
-    {
-        //! The j-cluster index
-        int cj;
-        //! The interaction bits
-        unsigned int excl;
-    };
-
 public:
     //! Return the j-cluster index for \c index from the pack list
-    inline int cj(int index) const { return list_[index].cj; }
+    inline int cj(int index) const { return jCluster_[index]; }
     //! Return the exclusion mask for \c index
-    inline const unsigned int& excl(int index) const { return list_[index].excl; }
+    inline const unsigned int& excl(int index) const { return excl_[index]; }
     //! Return the exclusion mask for \c index
-    unsigned int& excl(int index) { return list_[index].excl; }
+    unsigned int& excl(int index) { return excl_[index]; }
     //! Return the size of the list (not the number of packed elements)
-    gmx::index size() const noexcept { return list_.size(); }
+    gmx::index size() const noexcept { return jCluster_.size(); }
     //! Return whether the list is empty
     bool empty() const noexcept { return size() == 0; }
     //! Resize the list
-    void resize(gmx::index count) { list_.resize(count); }
+    void resize(gmx::index count)
+    {
+        jCluster_.resize(count);
+        excl_.resize(count);
+    }
     //! Clear the list
     void clear() { resize(0); }
     //! Add a new element to the list
     void push_back(const int jCluster, const unsigned int interactionMask)
     {
-        list_.push_back({ jCluster, interactionMask });
+        jCluster_.push_back(jCluster);
+        excl_.push_back(interactionMask);
     }
     //! Append an entry from another list
     void appendEntry(const JClusterList& source, int sourceIndex)
     {
-        list_.push_back({ source.cj(sourceIndex), source.excl(sourceIndex) });
+        push_back(source.cj(sourceIndex), source.excl(sourceIndex));
     }
     //! Copy an entry from another list
     void copyEntry(const JClusterList& source, int sourceIndex, int targetIndex)
     {
-        list_[targetIndex].cj   = source.cj(sourceIndex);
-        list_[targetIndex].excl = source.excl(sourceIndex);
+        jCluster_[targetIndex] = source.cj(sourceIndex);
+        excl_[targetIndex]     = source.excl(sourceIndex);
     }
     //! Sort the entries in the range so all exclusions come first
     void sortOnExclusions(int start, int end, JClusterList* work);
 
 private:
-    //! The list of j-entries
-    FastVector<JEntry> list_;
+    //! The list of j-cluster indices
+    FastVector<int> jCluster_;
+    //! The list of exclusions, each cluster can use one or two (with NxM=64) entries
+    FastVector<unsigned int> excl_;
 };
 
 /*! \brief Constants for interpreting interaction flags
