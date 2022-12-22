@@ -1504,7 +1504,7 @@ void Grid::setCellIndices(int                            ddZone,
         GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR
     }
 
-    if (geometry_.isSimple && nbat->XFormat == nbatX8)
+    if (geometry_.isSimple && geometry_.numAtomsJCluster > geometry_.numAtomsICluster)
     {
         combine_bounding_box_pairs(*this, bb_, bbj_);
     }
