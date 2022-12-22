@@ -58,6 +58,7 @@
 #include "gromacs/nbnxm/atomdata.h"
 #include "gromacs/simd/simd.h"
 #include "gromacs/simd/vector_operations.h"
+#include "gromacs/utility/gmxassert.h"
 
 #include "boundingboxes.h"
 #include "gridsetdata.h"
@@ -533,9 +534,8 @@ gmx_unused static void calc_bounding_box_x_x4_halves(int na, const real* x, Boun
 
     if (na > jClusterSize)
     {
-        calc_bounding_box_packed<packSize>(std::min(na - jClusterSize, jClusterSize),
-                                           x + ((jClusterSize == 2 ? c_packX4 : c_packX8) >> 1),
-                                           bbj + 1);
+        calc_bounding_box_packed<packSize>(
+                std::min(na - jClusterSize, jClusterSize), x + (packSize >> 1), bbj + 1);
     }
     else
     {
@@ -640,7 +640,7 @@ static void calc_bounding_box_xxxx_simd4(int na, const float* x, BoundingBox* bb
 #endif /* NBNXN_SEARCH_SIMD4_FLOAT_X_BB */
 
 
-/*! \brief Combines pairs of consecutive bounding boxes */
+/*! \brief Combines pairs of consecutive 'i' bounding boxes into 'j' bounding boxes */
 static void combine_bounding_box_pairs(const Grid&                      grid,
                                        gmx::ArrayRef<const BoundingBox> bb,
                                        gmx::ArrayRef<BoundingBox>       bbj)
@@ -650,6 +650,10 @@ static void combine_bounding_box_pairs(const Grid&                      grid,
 
     const int iClusterSize    = grid.geometry().numAtomsICluster;
     const int logIClusterSize = grid.geometry().numAtomsICluster2Log;
+
+    GMX_RELEASE_ASSERT(
+            grid.geometry().numAtomsJCluster == 2 * iClusterSize,
+            "Should only combine bounding boxes when two i-clusters make up one j-cluster");
 
     for (int i = 0; i < grid.numColumns(); i++)
     {
@@ -685,45 +689,59 @@ static void combine_bounding_box_pairs(const Grid&                      grid,
 /*! \brief Prints the average bb size, used for debug output */
 static void print_bbsizes_simple(FILE* fp, const Grid& grid)
 {
-    dvec ba = { 0 };
-    for (int c = 0; c < grid.numCells(); c++)
+    const int numAtomsInCell =
+            std::max(grid.geometry().numAtomsICluster, grid.geometry().numAtomsJCluster);
+
+    dvec bbiAv = { 0 };
+    for (const BoundingBox& bb : grid.iBoundingBoxes())
     {
-        const BoundingBox& bb = grid.iBoundingBoxes()[c];
-        ba[XX] += bb.upper.x - bb.lower.x;
-        ba[YY] += bb.upper.y - bb.lower.y;
-        ba[ZZ] += bb.upper.z - bb.lower.z;
+        bbiAv[XX] += bb.upper.x - bb.lower.x;
+        bbiAv[YY] += bb.upper.y - bb.lower.y;
+        bbiAv[ZZ] += bb.upper.z - bb.lower.z;
     }
+    if (!grid.iBoundingBoxes().empty())
     {
-        for (gmx::index c = 0; c < grid.jBoundingBoxes().ssize(); c++)
-        {
-            const BoundingBox& bb = grid.jBoundingBoxes()[c];
-            ba[XX] += bb.upper.x - bb.lower.x;
-            ba[YY] += bb.upper.y - bb.lower.y;
-            ba[ZZ] += bb.upper.z - bb.lower.z;
-        }
+        dsvmul(1.0 / gmx::ssize(grid.iBoundingBoxes()), bbiAv, bbiAv);
     }
-    if (grid.numCells() > 0)
+    dvec bbjAv = { 0 };
+    for (const BoundingBox& bb : grid.jBoundingBoxes())
     {
-        dsvmul(1.0 / grid.numCells(), ba, ba);
+        bbjAv[XX] += bb.upper.x - bb.lower.x;
+        bbjAv[YY] += bb.upper.y - bb.lower.y;
+        bbjAv[ZZ] += bb.upper.z - bb.lower.z;
+    }
+    if (!grid.jBoundingBoxes().empty())
+    {
+        dsvmul(1.0 / gmx::ssize(grid.jBoundingBoxes()), bbjAv, bbjAv);
     }
 
     const Grid::Dimensions& dims = grid.dimensions();
     real                    avgCellSizeZ =
-            (dims.atomDensity > 0 ? grid.geometry().numAtomsICluster
-                                            / (dims.atomDensity * dims.cellSize[XX] * dims.cellSize[YY])
-                                  : 0.0);
+            (dims.atomDensity > 0
+                     ? numAtomsInCell / (dims.atomDensity * dims.cellSize[XX] * dims.cellSize[YY])
+                     : 0.0);
 
+    fprintf(fp, "ns bb: grid abs %5.3f %5.3f %5.3f\n", dims.cellSize[XX], dims.cellSize[YY], avgCellSizeZ);
     fprintf(fp,
-            "ns bb: grid %4.2f %4.2f %4.2f abs %4.2f %4.2f %4.2f rel %4.2f %4.2f %4.2f\n",
-            dims.cellSize[XX],
-            dims.cellSize[YY],
-            avgCellSizeZ,
-            ba[XX],
-            ba[YY],
-            ba[ZZ],
-            ba[XX] * dims.invCellSize[XX],
-            ba[YY] * dims.invCellSize[YY],
-            dims.atomDensity > 0 ? ba[ZZ] / avgCellSizeZ : 0.0);
+            "ns bb: bb-i abs %5.3f %5.3f %5.3f rel %5.3f %5.3f %5.3f\n",
+            bbiAv[XX],
+            bbiAv[YY],
+            bbiAv[ZZ],
+            bbiAv[XX] * dims.invCellSize[XX],
+            bbiAv[YY] * dims.invCellSize[YY],
+            dims.atomDensity > 0
+                    ? bbiAv[ZZ] * numAtomsInCell / (grid.geometry().numAtomsICluster * avgCellSizeZ)
+                    : 0.0);
+    fprintf(fp,
+            "ns bb: bb-j abs %5.3f %5.3f %5.3f rel %5.3f %5.3f %5.3f\n",
+            bbjAv[XX],
+            bbjAv[YY],
+            bbjAv[ZZ],
+            bbjAv[XX] * dims.invCellSize[XX],
+            bbjAv[YY] * dims.invCellSize[YY],
+            dims.atomDensity > 0
+                    ? bbjAv[ZZ] * numAtomsInCell / (grid.geometry().numAtomsJCluster * avgCellSizeZ)
+                    : 0.0);
 }
 
 /*! \brief Prints the average bb size, used for debug output */
@@ -1514,7 +1532,7 @@ void Grid::setCellIndices(int                            ddZone,
         GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR
     }
 
-    if (geometry_.isSimple && nbat->XFormat == nbatX8)
+    if (geometry_.isSimple && geometry_.numAtomsJCluster > geometry_.numAtomsICluster)
     {
         combine_bounding_box_pairs(*this, bb_, bbj_);
     }
