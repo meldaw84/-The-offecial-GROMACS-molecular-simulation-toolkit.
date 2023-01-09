@@ -54,10 +54,10 @@ namespace gmx
 
 template void nbnxmKernelSimd<KernelLayout::r2xMM,
                               KernelCoulombType::EwaldTabulated,
-                              true,
+                              VdwCutoffCheck::Yes,
                               LJCombinationRule::LorentzBerthelot,
                               InteractionModifiers::PotShift,
-                              false,
+                              LJEwald::None,
                               EnergyOutput::System>(const NbnxnPairlistCpu*    nbl,
                                                     const nbnxn_atomdata_t*    nbat,
                                                     const interaction_const_t* ic,

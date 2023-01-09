@@ -70,10 +70,10 @@ static constexpr bool sc_calculateShiftForces = true;
 //! The actual NBNxM SIMD kernel
 template<KernelLayout         kernelLayout,
          KernelCoulombType    coulombType,
-         bool                 haveVdwCutoffCheck,
+         VdwCutoffCheck       vdwCutoffCheck,
          LJCombinationRule    ljCombinationRule,
          InteractionModifiers vdwModifier,
-         bool                 haveLJEwaldGeometric,
+         LJEwald              ljEwald,
          EnergyOutput         energyOutput>
 void nbnxmKernelSimd(const NbnxnPairlistCpu*    nbl,
                      const nbnxn_atomdata_t*    nbat,
@@ -94,6 +94,10 @@ void nbnxmKernelSimd(const NbnxnPairlistCpu*    nbl,
     /* The number of 'i' SIMD registers */
     static_assert(UNROLLI % GMX_SIMD_J_UNROLL_SIZE == 0);
     constexpr int nR = UNROLLI / GMX_SIMD_J_UNROLL_SIZE;
+
+    constexpr bool haveVdwCutoffCheck = (vdwCutoffCheck != VdwCutoffCheck::No);
+
+    constexpr bool haveLJEwaldGeometric = (ljEwald == LJEwald::CombGeometric);
 
     constexpr bool calculateEnergies = (energyOutput != EnergyOutput::None);
     constexpr bool useEnergyGroups   = (energyOutput == EnergyOutput::GroupPairs);

@@ -62,6 +62,31 @@ namespace Nbnxm
 enum class EwaldExclusionType : int;
 }
 
+//! \brief Kinds of electrostatic treatments in SIMD Verlet kernels
+enum class CoulombKernelType : int
+{
+    ReactionField,
+    Table,
+    TableTwin,
+    Ewald,
+    EwaldTwin,
+    Count
+};
+
+//! \brief Whether have a separate cut-off check for VDW interactions
+enum class VdwCutoffCheck : int
+{
+    No,
+    Yes
+};
+
+//! \brief Kind of Lennard-Jones Ewald treatments in NBNxM SIMD kernels
+enum class LJEwald : int
+{
+    None,
+    CombGeometric
+};
+
 enum class EnergyOutput : int
 {
     None,
@@ -79,24 +104,12 @@ typedef void(NbnxmKernelFunc)(const NbnxnPairlistCpu*    nbl,
                               const rvec*                shift_vec,
                               nbnxn_atomdata_output_t*   out);
 
-/*! \brief Kinds of electrostatic treatments in SIMD Verlet kernels
- */
-enum class CoulombKernelType : int
-{
-    ReactionField,
-    Table,
-    TableTwin,
-    Ewald,
-    EwaldTwin,
-    Count
-};
-
 //! \brief Lookup function for Coulomb kernel type
 CoulombKernelType getCoulombKernelType(Nbnxm::EwaldExclusionType ewaldExclusionType,
                                        CoulombInteractionType    coulombInteractionType,
                                        bool                      haveEqualCoulombVwdRadii);
 
-/*! \brief Kinds of Van der Waals treatments in SIMD Verlet kernels
+/*! \brief Kinds of Van der Waals treatments in NBNxM SIMD kernels
  *
  * The \p LJCUT_COMB refers to the LJ combination rule for the short range.
  * The \p EWALDCOMB refers to the combination rule for the grid part.
