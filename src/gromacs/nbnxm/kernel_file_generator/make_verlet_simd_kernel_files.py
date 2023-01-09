@@ -100,13 +100,13 @@ def read_kernel_template(filename):
 # kernel_simd_template.c.pre
 ElectrostaticsDict = collections.OrderedDict()
 ElectrostaticsDict["ElecRF"] = {"param": "KernelCoulombType::RF, VdwCutoffCheck::No"}
-ElectrostaticsDict["ElecQSTab"] = {
-    "param": "KernelCoulombType::EwaldTabulated, VdwCutoffCheck::No"}
+ElectrostaticsDict["ElecQSTab"] = {"param": "KernelCoulombType::EwaldTabulated, VdwCutoffCheck::No"}
 ElectrostaticsDict["ElecQSTabTwinCut"] = {
     "param": "KernelCoulombType::EwaldTabulated, VdwCutoffCheck::Yes"
 }
 ElectrostaticsDict["ElecEw"] = {
-    "param": "KernelCoulombType::EwaldAnalytical, VdwCutoffCheck::No"}
+    "param": "KernelCoulombType::EwaldAnalytical, VdwCutoffCheck::No"
+}
 ElectrostaticsDict["ElecEwTwinCut"] = {
     "param": "KernelCoulombType::EwaldAnalytical, VdwCutoffCheck::Yes"
 }
