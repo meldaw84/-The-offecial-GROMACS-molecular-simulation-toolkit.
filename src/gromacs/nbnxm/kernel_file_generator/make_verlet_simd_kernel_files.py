@@ -104,7 +104,8 @@ ElectrostaticsDict["ElecQSTab"] = {"param": "KernelCoulombType::EwaldTabulated, 
 ElectrostaticsDict["ElecQSTabTwinCut"] = {
     "param": "KernelCoulombType::EwaldTabulated, VdwCutoffCheck::Yes"
 }
-ElectrostaticsDict["ElecEw"] = {"param": "KernelCoulombType::EwaldAnalytical, VdwCutoffCheck::No"}
+ElectrostaticsDict["ElecEw"] = {
+    "param": "KernelCoulombType::EwaldAnalytical, VdwCutoffCheck::No"}
 ElectrostaticsDict["ElecEwTwinCut"] = {
     "param": "KernelCoulombType::EwaldAnalytical, VdwCutoffCheck::Yes"
 }
