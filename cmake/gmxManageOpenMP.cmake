@@ -46,6 +46,7 @@ if(GMX_OPENMP)
         set(_dir "${_compiler_dir}/../compiler/include/")
         if(EXISTS "${_dir}/omp.h")
             # Setting OpenMP_C_INCLUDE_DIR / OpenMP_CXX_INCLUDE_DIR does not work, at least with CMake 3.25.0
+            # Ref https://gitlab.kitware.com/cmake/cmake/-/issues/24260
             set(CMAKE_C_FLAGS_BACKUP "${CMAKE_C_FLAGS}")
             set(CMAKE_CXX_FLAGS_BACKUP "${CMAKE_CXX_FLAGS}")
             set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -isystem ${_dir}")
