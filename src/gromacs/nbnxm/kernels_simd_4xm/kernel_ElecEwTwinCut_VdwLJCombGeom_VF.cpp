@@ -52,13 +52,17 @@
 namespace gmx
 {
 
-template void
-nbnxmKernelSimd<KernelLayout::r4xM, KernelCoulombType::EwaldAnalytical, true, LJCombinationRule::Geometric, InteractionModifiers::PotShift, false, EnergyOutput::System>(
-        const NbnxnPairlistCpu*    nbl,
-        const nbnxn_atomdata_t*    nbat,
-        const interaction_const_t* ic,
-        const rvec*                shift_vec,
-        nbnxn_atomdata_output_t*   out);
+template void nbnxmKernelSimd<KernelLayout::r4xM,
+                              KernelCoulombType::EwaldAnalytical,
+                              VdwCutoffCheck::Yes,
+                              LJCombinationRule::Geometric,
+                              InteractionModifiers::PotShift,
+                              LJEwald::None,
+                              EnergyOutput::System>(const NbnxnPairlistCpu*    nbl,
+                                                    const nbnxn_atomdata_t*    nbat,
+                                                    const interaction_const_t* ic,
+                                                    const rvec*                shift_vec,
+                                                    nbnxn_atomdata_output_t*   out);
 
 } // namespace gmx
 

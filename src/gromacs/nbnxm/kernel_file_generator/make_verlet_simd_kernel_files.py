@@ -99,35 +99,35 @@ def read_kernel_template(filename):
 # The dict order must match the order of an enumeration in
 # kernel_simd_template.c.pre
 ElectrostaticsDict = collections.OrderedDict()
-ElectrostaticsDict["ElecRF"] = {"param": "KernelCoulombType::RF, false"}
-ElectrostaticsDict["ElecQSTab"] = {"param": "KernelCoulombType::EwaldTabulated, false"}
+ElectrostaticsDict["ElecRF"] = {"param": "KernelCoulombType::RF, VdwCutoffCheck::No"}
+ElectrostaticsDict["ElecQSTab"] = {"param": "KernelCoulombType::EwaldTabulated, VdwCutoffCheck::No"}
 ElectrostaticsDict["ElecQSTabTwinCut"] = {
-    "param": "KernelCoulombType::EwaldTabulated, true"
+    "param": "KernelCoulombType::EwaldTabulated, VdwCutoffCheck::Yes"
 }
-ElectrostaticsDict["ElecEw"] = {"param": "KernelCoulombType::EwaldAnalytical, false"}
+ElectrostaticsDict["ElecEw"] = {"param": "KernelCoulombType::EwaldAnalytical, VdwCutoffCheck::No"}
 ElectrostaticsDict["ElecEwTwinCut"] = {
-    "param": "KernelCoulombType::EwaldAnalytical, true"
+    "param": "KernelCoulombType::EwaldAnalytical, VdwCutoffCheck::Yes"
 }
 
 # The dict order must match the order of a C enumeration.
 VdwTreatmentDict = collections.OrderedDict()
 VdwTreatmentDict["VdwLJCombGeom"] = {
-    "param": "LJCombinationRule::Geometric, InteractionModifiers::PotShift, false"
+    "param": "LJCombinationRule::Geometric, InteractionModifiers::PotShift, LJEwald::None"
 }
 VdwTreatmentDict["VdwLJCombLB"] = {
-    "param": "LJCombinationRule::LorentzBerthelot, InteractionModifiers::PotShift, false"
+    "param": "LJCombinationRule::LorentzBerthelot, InteractionModifiers::PotShift, LJEwald::None"
 }
 VdwTreatmentDict["VdwLJ"] = {
-    "param": "LJCombinationRule::None, InteractionModifiers::PotShift, false"
+    "param": "LJCombinationRule::None, InteractionModifiers::PotShift, LJEwald::None"
 }
 VdwTreatmentDict["VdwLJFSw"] = {
-    "param": "LJCombinationRule::None, InteractionModifiers::ForceSwitch, false"
+    "param": "LJCombinationRule::None, InteractionModifiers::ForceSwitch, LJEwald::None"
 }
 VdwTreatmentDict["VdwLJPSw"] = {
-    "param": "LJCombinationRule::None, InteractionModifiers::PotSwitch, false"
+    "param": "LJCombinationRule::None, InteractionModifiers::PotSwitch, LJEwald::None"
 }
 VdwTreatmentDict["VdwLJEwCombGeom"] = {
-    "param": "LJCombinationRule::None, InteractionModifiers::PotShift, true"
+    "param": "LJCombinationRule::None, InteractionModifiers::PotShift, LJEwald::CombGeometric"
 }
 
 # This is OK as an unordered dict
