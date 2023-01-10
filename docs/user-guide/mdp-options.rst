@@ -3215,7 +3215,7 @@ Mixed quantum/classical molecular dynamics
 
 .. mdp:: QMMM-grps
 
-   groups to be descibed at the QM level for MiMiC QM/MM
+   groups to be described at the QM level for MiMiC QM/MM
 
 .. MDP:: QMMM
 
