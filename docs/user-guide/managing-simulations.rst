@@ -183,7 +183,7 @@ The following factors affect the reproducibility of a simulation, and thus its o
   arithmetic means the result of a reduction depends on the order
   actually chosen
 * On GPUs, the reduction of e.g. non-bonded forces has a non-deterministic
-  summation order, so any fast implementation is non-reprodudible by
+  summation order, so any fast implementation is non-reproducible by
   design.
 
 The important question is whether it is a problem if simulations are
