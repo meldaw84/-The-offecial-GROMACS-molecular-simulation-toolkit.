@@ -617,7 +617,7 @@ void BiasState::doSkippedUpdatesForAllPoints(const BiasParams& params)
         bool didUpdate = pointState.performPreviouslySkippedUpdates(
                 params, histogramSize_.numUpdates(), weightHistScaling, logPmfsumScaling);
 
-        /* Update the bias for this point only if there were skipped updates in the past to avoid calculating the log unneccessarily */
+        /* Update the bias for this point only if there were skipped updates in the past to avoid calculating the log unnecessarily */
         if (didUpdate)
         {
             pointState.updateBias();
