@@ -206,7 +206,7 @@ static inline std::string toString(int64_t t)
 }
 static inline std::string toString(float t)
 {
-    return doubleToString(t);
+    return doubleToString(static_cast<double>(t));
 }
 static inline std::string toString(double t)
 {

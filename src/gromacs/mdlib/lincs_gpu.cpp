@@ -360,8 +360,8 @@ void LincsGpu::set(const InteractionDefinitions& idef, int numAtoms, const Array
 
                 int center = c1a1;
 
-                float sqrtmu1 = 1.0 / std::sqrt(invmass[c1a1] + invmass[c1a2]);
-                float sqrtmu2 = 1.0 / std::sqrt(invmass[c2a1] + invmass[c2a2]);
+                float sqrtmu1 = 1.0F / std::sqrt(invmass[c1a1] + invmass[c1a2]);
+                float sqrtmu2 = 1.0F / std::sqrt(invmass[c2a1] + invmass[c2a2]);
 
                 massFactorsHost[index] = -sign * invmass[center] * sqrtmu1 * sqrtmu2;
 
@@ -388,8 +388,8 @@ void LincsGpu::set(const InteractionDefinitions& idef, int numAtoms, const Array
 
                 int center = c1a2;
 
-                float sqrtmu1 = 1.0 / std::sqrt(invmass[c1a1] + invmass[c1a2]);
-                float sqrtmu2 = 1.0 / std::sqrt(invmass[c2a1] + invmass[c2a2]);
+                float sqrtmu1 = 1.0F / std::sqrt(invmass[c1a1] + invmass[c1a2]);
+                float sqrtmu2 = 1.0F / std::sqrt(invmass[c2a1] + invmass[c2a2]);
 
                 massFactorsHost[index] = sign * invmass[center] * sqrtmu1 * sqrtmu2;
 

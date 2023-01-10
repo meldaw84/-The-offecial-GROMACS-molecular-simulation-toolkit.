@@ -1053,7 +1053,7 @@ void pme_gpu_getEnergyAndVirial(const gmx_pme_t& pme, const float lambda, PmeOut
     {
         if (pmeGpu->common->ngrids == 2)
         {
-            scale = gridIndex == 0 ? (1.0 - lambda) : lambda;
+            scale = gridIndex == 0 ? (1.0F - lambda) : lambda;
         }
         output->coulombVirial_[XX][XX] +=
                 scale * 0.25F * pmeGpu->staging.h_virialAndEnergy[gridIndex][0];
@@ -1157,7 +1157,7 @@ static void pme_gpu_reinit_grids(PmeGpu* pmeGpu)
             "Only one (normal Coulomb PME) or two (FEP coulomb PME) PME grids can be used on GPU");
 
     kernelParamsPtr->grid.ewaldFactor =
-            (M_PI * M_PI) / (pmeGpu->common->ewaldcoeff_q * pmeGpu->common->ewaldcoeff_q);
+            (M_PI * M_PI) / static_cast<double>(pmeGpu->common->ewaldcoeff_q * pmeGpu->common->ewaldcoeff_q);
     /* The grid size variants */
     for (int i = 0; i < DIM; i++)
     {
@@ -1328,8 +1328,9 @@ static void pme_gpu_init(gmx_pme_t*           pme,
 
     GMX_ASSERT(pmeGpu->common->epsilon_r != 0.0F, "PME GPU: bad electrostatic coefficient");
 
-    auto* kernelParamsPtr               = pme_gpu_get_kernel_params_base_ptr(pmeGpu);
-    kernelParamsPtr->constants.elFactor = gmx::c_one4PiEps0 / pmeGpu->common->epsilon_r;
+    auto* kernelParamsPtr = pme_gpu_get_kernel_params_base_ptr(pmeGpu);
+    kernelParamsPtr->constants.elFactor =
+            gmx::c_one4PiEps0 / static_cast<double>(pmeGpu->common->epsilon_r);
 }
 
 void pme_gpu_get_real_grid_sizes(const PmeGpu* pmeGpu, gmx::IVec* gridSize, gmx::IVec* paddedGridSize)
@@ -1798,7 +1799,7 @@ void pme_gpu_spread(const PmeGpu*                  pmeGpu,
         }
         else
         {
-            kernelParamsPtr->current.scale = 1.0 - lambda;
+            kernelParamsPtr->current.scale = 1.0F - lambda;
         }
 
         KernelLaunchConfig config;
@@ -2356,7 +2357,7 @@ void pme_gpu_gather(PmeGpu*               pmeGpu,
         }
         else
         {
-            kernelParamsPtr->current.scale = 1.0 - lambda;
+            kernelParamsPtr->current.scale = 1.0F - lambda;
         }
 
 #if c_canEmbedBuffers

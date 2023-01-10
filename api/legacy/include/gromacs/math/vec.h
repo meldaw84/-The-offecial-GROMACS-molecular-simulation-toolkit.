@@ -208,9 +208,9 @@ static inline void copy_rvec(const rvec a, rvec b)
 
 static inline void copy_rvec_to_dvec(const rvec a, dvec b)
 {
-    b[XX] = a[XX];
-    b[YY] = a[YY];
-    b[ZZ] = a[ZZ];
+    b[XX] = static_cast<double>(a[XX]);
+    b[YY] = static_cast<double>(a[YY]);
+    b[ZZ] = static_cast<double>(a[ZZ]);
 }
 
 static inline void copy_dvec_to_rvec(const dvec a, rvec b)
@@ -386,8 +386,8 @@ static inline real cos_angle(const rvec a, const rvec b)
     ip = ipa = ipb = 0.0;
     for (m = 0; (m < DIM); m++) /* 18 */
     {
-        aa = a[m];
-        bb = b[m];
+        aa = static_cast<double>(a[m]);
+        bb = static_cast<double>(b[m]);
         ip += aa * bb;
         ipa += aa * aa;
         ipb += bb * bb;
@@ -402,13 +402,13 @@ static inline real cos_angle(const rvec a, const rvec b)
         cosval = 1;
     }
     /* 25 TOTAL */
-    if (cosval > 1.0)
+    if (cosval > 1.0_real)
     {
-        return 1.0;
+        return 1.0_real;
     }
-    if (cosval < -1.0)
+    if (cosval < -1.0_real)
     {
-        return -1.0;
+        return -1.0_real;
     }
 
     return cosval;

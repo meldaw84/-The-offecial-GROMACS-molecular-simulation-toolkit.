@@ -58,8 +58,8 @@ static inline t_complex rcexp(real r)
 {
     t_complex c;
 
-    c.re = cos(r);
-    c.im = sin(r);
+    c.re = std::cos(r);
+    c.im = std::sin(r);
 
     return c;
 }
@@ -120,7 +120,7 @@ static inline t_complex cdiv(t_complex teller, t_complex noemer)
     anoemer = cmul(conjugate(noemer), noemer);
     res     = cmul(teller, conjugate(noemer));
 
-    return rcmul(1.0 / anoemer.re, res);
+    return rcmul(1.0_real / anoemer.re, res);
 }
 
 inline bool operator==(const t_complex& lhs, const t_complex& rhs)

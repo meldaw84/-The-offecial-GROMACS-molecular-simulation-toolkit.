@@ -175,7 +175,7 @@ static inline Matrix3x3 invertBoxMatrix(const Matrix3x3& src)
 {
     assertMatrixIsBoxMatrix(src);
 
-    double tmp = src(XX, XX) * src(YY, YY) * src(ZZ, ZZ);
+    real tmp = src(XX, XX) * src(YY, YY) * src(ZZ, ZZ);
     if (std::fabs(tmp) <= 100 * GMX_REAL_MIN)
     {
         GMX_THROW(RangeError("Cannot invert matrix, determinant is too close to zero"));
@@ -205,7 +205,7 @@ static inline void invertBoxMatrix(const matrix src, matrix dest)
 {
     assertMatrixIsBoxMatrix(src);
 
-    double tmp = src[XX][XX] * src[YY][YY] * src[ZZ][ZZ];
+    real tmp = src[XX][XX] * src[YY][YY] * src[ZZ][ZZ];
     if (std::fabs(tmp) <= 100 * GMX_REAL_MIN)
     {
         GMX_THROW(RangeError("Cannot invert matrix, determinant is too close to zero"));

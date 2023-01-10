@@ -135,8 +135,8 @@ SettleGpu::SettleGpu(const gmx_mtop_t& mtop, const DeviceContext& deviceContext,
 
     settleParameters_ = settleParameters(settleParams.mO,
                                          settleParams.mH,
-                                         1.0 / settleParams.mO,
-                                         1.0 / settleParams.mH,
+                                         1.0_real / settleParams.mO,
+                                         1.0_real / settleParams.mH,
                                          settleParams.dOH,
                                          settleParams.dHH);
 

@@ -103,8 +103,10 @@ void UpdateConstrainGpu::Impl::integrate(GpuEventSynchronizer*             fRead
         // d_xp_ -> d_x_ copy after constraints. Note that the integrate saves them in the wrong order as well.
         if (sc_haveGpuConstraintSupport)
         {
-            lincsGpu_->apply(d_xp_, d_x_, updateVelocities, d_v_, 1.0 / dt, computeVirial, virial, pbcAiuc_);
-            settleGpu_->apply(d_xp_, d_x_, updateVelocities, d_v_, 1.0 / dt, computeVirial, virial, pbcAiuc_);
+            lincsGpu_->apply(
+                    d_xp_, d_x_, updateVelocities, d_v_, 1.0_real / dt, computeVirial, virial, pbcAiuc_);
+            settleGpu_->apply(
+                    d_xp_, d_x_, updateVelocities, d_v_, 1.0_real / dt, computeVirial, virial, pbcAiuc_);
         }
 
         // scaledVirial -> virial (methods above returns scaled values)

@@ -199,7 +199,7 @@ static inline void set_cutoff_parameters(NBParamGpu*                nbp,
     nbp->ewald_beta        = ic.ewaldcoeff_q;
     nbp->sh_ewald          = ic.sh_ewald;
     nbp->epsfac            = ic.epsfac;
-    nbp->two_k_rf          = 2.0 * ic.reactionFieldCoefficient;
+    nbp->two_k_rf          = 2.0F * ic.reactionFieldCoefficient;
     nbp->c_rf              = ic.reactionFieldShift;
     nbp->rvdw_sq           = ic.rvdw * ic.rvdw;
     nbp->rcoulomb_sq       = ic.rcoulomb * ic.rcoulomb;
