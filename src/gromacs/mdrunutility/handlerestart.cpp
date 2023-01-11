@@ -345,7 +345,7 @@ StartingBehaviorHandler chooseStartingBehavior(const AppendingBehavior appending
             }
         }
 
-        const char* logFilename = outputFiles[0].filename;
+        const char* logFilenameAppend = outputFiles[0].filename;
         // If the precision does not match, we cannot continue with
         // appending, and will switch to not appending unless
         // instructed otherwise.
@@ -365,7 +365,7 @@ StartingBehaviorHandler chooseStartingBehavior(const AppendingBehavior appending
         // If the previous log filename had a part number, then we
         // cannot continue with appending, and will continue without
         // appending.
-        else if (hasSuffixFromNoAppend(logFilename))
+        else if (hasSuffixFromNoAppend(logFilenameAppend))
         {
             if (appendingBehavior == AppendingBehavior::Appending)
             {

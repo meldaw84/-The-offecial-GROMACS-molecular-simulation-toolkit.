@@ -346,28 +346,28 @@ static void dd_move_cellx(gmx_domdec_t* dd, const gmx_ddbox_t* ddbox, rvec cell_
                 || (!applyPbc && dd->ci[dim] + 1 + pulse == dd->numCells[dim] - 1))
             {
                 /* Store the extremes */
-                int pos = 0;
+                int posEx = 0;
 
                 for (int d1 = d; d1 < dd->ndim - 1; d1++)
                 {
-                    extr_s[d1][1] = std::min(extr_s[d1][1], buf_e[pos].min0);
-                    extr_s[d1][0] = std::max(extr_s[d1][0], buf_e[pos].max1);
-                    extr_s[d1][2] = std::min(extr_s[d1][2], buf_e[pos].min1);
-                    pos++;
+                    extr_s[d1][1] = std::min(extr_s[d1][1], buf_e[posEx].min0);
+                    extr_s[d1][0] = std::max(extr_s[d1][0], buf_e[posEx].max1);
+                    extr_s[d1][2] = std::min(extr_s[d1][2], buf_e[posEx].min1);
+                    posEx++;
                 }
 
                 if (d == 1 || (d == 0 && dd->ndim == 3))
                 {
                     for (int i = d; i < 2; i++)
                     {
-                        comm->zone_d2[1 - d][i] = buf_e[pos];
-                        pos++;
+                        comm->zone_d2[1 - d][i] = buf_e[posEx];
+                        posEx++;
                     }
                 }
                 if (d == 0)
                 {
-                    comm->zone_d1[1] = buf_e[pos];
-                    pos++;
+                    comm->zone_d1[1] = buf_e[posEx];
+                    posEx++;
                 }
             }
             else
@@ -872,12 +872,12 @@ static void get_load_distribution(gmx_domdec_t* dd, gmx_wallcycle* wcycle)
                 load->flags    = 0;
                 load->mdf      = 0;
                 load->pme      = 0;
-                int pos        = 0;
+                int posRow     = 0;
                 for (int i = 0; i < dd->numCells[dim]; i++)
                 {
-                    load->sum += load->load[pos++];
-                    load->max = std::max(load->max, load->load[pos]);
-                    pos++;
+                    load->sum += load->load[posRow++];
+                    load->max = std::max(load->max, load->load[posRow]);
+                    posRow++;
                     if (isDlbOn(dd->comm->dlbState))
                     {
                         if (rowCoordinator->dlbIsLimited)
@@ -885,31 +885,31 @@ static void get_load_distribution(gmx_domdec_t* dd, gmx_wallcycle* wcycle)
                             /* This direction could not be load balanced properly,
                              * therefore we need to use the maximum iso the average load.
                              */
-                            load->sum_m = std::max(load->sum_m, load->load[pos]);
+                            load->sum_m = std::max(load->sum_m, load->load[posRow]);
                         }
                         else
                         {
-                            load->sum_m += load->load[pos];
+                            load->sum_m += load->load[posRow];
                         }
-                        pos++;
-                        load->cvol_min = std::min(load->cvol_min, load->load[pos]);
-                        pos++;
+                        posRow++;
+                        load->cvol_min = std::min(load->cvol_min, load->load[posRow]);
+                        posRow++;
                         if (d < dd->ndim - 1)
                         {
-                            load->flags = gmx::roundToInt(load->load[pos++]);
+                            load->flags = gmx::roundToInt(load->load[posRow++]);
                         }
                         if (d > 0)
                         {
-                            rowCoordinator->bounds[i].cellFracLowerMax = load->load[pos++];
-                            rowCoordinator->bounds[i].cellFracUpperMin = load->load[pos++];
+                            rowCoordinator->bounds[i].cellFracLowerMax = load->load[posRow++];
+                            rowCoordinator->bounds[i].cellFracUpperMin = load->load[posRow++];
                         }
                     }
                     if (bSepPME)
                     {
-                        load->mdf = std::max(load->mdf, load->load[pos]);
-                        pos++;
-                        load->pme = std::max(load->pme, load->load[pos]);
-                        pos++;
+                        load->mdf = std::max(load->mdf, load->load[posRow]);
+                        posRow++;
+                        load->pme = std::max(load->pme, load->load[posRow]);
+                        posRow++;
                     }
                 }
                 if (isDlbOn(comm->dlbState) && rowCoordinator->dlbIsLimited)
@@ -2430,9 +2430,9 @@ static void set_zones_size(gmx_domdec_t*      dd,
                  * This can affect the location of this corner along dd->dim[0]
                  * through the matrix operation below if box[d][dd->dim[0]]!=0.
                  */
-                int d = 1 - dd->dim[0];
+                int dshift = 1 - dd->dim[0];
 
-                corner[d] -= corner[ZZ] * box[ZZ][d] / box[ZZ][ZZ];
+                corner[dshift] -= corner[ZZ] * box[ZZ][dshift] / box[ZZ][ZZ];
             }
             /* Apply the triclinic couplings */
             for (i = YY; i < ddbox->npbcdim && i < DIM; i++)

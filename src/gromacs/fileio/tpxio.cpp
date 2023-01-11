@@ -1448,20 +1448,20 @@ static void do_inputrec(gmx::ISerializer* serializer, t_inputrec* ir, int file_v
         serializer->doBool(&ir->bAdress);
         if (ir->bAdress)
         {
-            int  idum, numThermoForceGroups, numEnergyGroups;
-            real rdum;
+            int  idumAdress, numThermoForceGroups, numEnergyGroups;
+            real rdumAdress;
             rvec rvecdum;
-            serializer->doInt(&idum);
-            serializer->doReal(&rdum);
-            serializer->doReal(&rdum);
-            serializer->doReal(&rdum);
-            serializer->doInt(&idum);
-            serializer->doInt(&idum);
+            serializer->doInt(&idumAdress);
+            serializer->doReal(&rdumAdress);
+            serializer->doReal(&rdumAdress);
+            serializer->doReal(&rdumAdress);
+            serializer->doInt(&idumAdress);
+            serializer->doInt(&idumAdress);
             serializer->doRvec(&rvecdum);
             serializer->doInt(&numThermoForceGroups);
-            serializer->doReal(&rdum);
+            serializer->doReal(&rdumAdress);
             serializer->doInt(&numEnergyGroups);
-            serializer->doInt(&idum);
+            serializer->doInt(&idumAdress);
 
             if (numThermoForceGroups > 0)
             {

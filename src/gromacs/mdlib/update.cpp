@@ -806,8 +806,8 @@ static void do_update_md(int                                  start,
             };
 
             dispatchTemplatedFunction(
-                    [=](auto numTempScaleValues, auto parrinelloRahmanVelocityScaling) {
-                        return updateMDLeapfrogSimple<StoreUpdatedVelocities::Yes, numTempScaleValues, parrinelloRahmanVelocityScaling>(
+                    [=](auto paramNumTempScaleValues, auto paramParrinelloRahmanVelocityScaling) {
+                        return updateMDLeapfrogSimple<StoreUpdatedVelocities::Yes, paramNumTempScaleValues, paramParrinelloRahmanVelocityScaling>(
                                 start, nrend, dt, dtPressureCouple, invMassPerDim, tcstat, cTC, diagM, x, xprime, v, f);
                     },
                     numTempScaleValues,
@@ -836,14 +836,14 @@ static void do_update_md(int                                  start,
             else
             {
                 dispatchTemplatedFunction(
-                        [=](auto numTempScaleValues) {
+                        [=](auto paramNumTempScaleValues) {
                             /* Note that modern compilers are pretty good at vectorizing
                              * updateMDLeapfrogSimple(). But the SIMD version will still
                              * be faster because invMass lowers the cache pressure
                              * compared to invMassPerDim.
                              */
                             {
-                                updateMDLeapfrogSimple<StoreUpdatedVelocities::Yes, numTempScaleValues, ParrinelloRahmanVelocityScaling::No>(
+                                updateMDLeapfrogSimple<StoreUpdatedVelocities::Yes, paramNumTempScaleValues, ParrinelloRahmanVelocityScaling::No>(
                                         start, nrend, dt, dtPressureCouple, invMassPerDim, tcstat, cTC, {}, x, xprime, v, f);
                             }
                         },

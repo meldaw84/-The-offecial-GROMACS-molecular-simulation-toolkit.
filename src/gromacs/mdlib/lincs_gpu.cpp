@@ -296,10 +296,10 @@ void LincsGpu::set(const InteractionDefinitions& idef, int numAtoms, const Array
         int a2   = iatoms[stride * c + 2];
         int type = iatoms[stride * c];
 
-        AtomPair pair;
-        pair.i                                    = a1;
-        pair.j                                    = a2;
-        constraintsHost[splitMap[c]]              = pair;
+        AtomPair aPair;
+        aPair.i                                   = a1;
+        aPair.j                                   = a2;
+        constraintsHost[splitMap[c]]              = aPair;
         constraintsTargetLengthsHost[splitMap[c]] = idef.iparams[type].constr.dA;
     }
 

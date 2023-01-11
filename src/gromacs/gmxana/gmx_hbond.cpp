@@ -3262,7 +3262,7 @@ int gmx_hbond(int argc, char* argv[])
         if (opt2bSet("-hbm", NFILE, fnm))
         {
             t_matrix mat;
-            int      id, ia, hh, x, y;
+            int      id, ia, hh, y;
             mat.flags = 0;
 
             if ((nframes > 0) && (hb.nrhb > 0))
@@ -3287,12 +3287,12 @@ int gmx_hbond(int argc, char* argv[])
                             {
                                 if (ISHB(hb.hbmap[id][ia]->history[hh]))
                                 {
-                                    for (x = 0; (x <= hb.hbmap[id][ia]->nframes); x++)
+                                    for (int xh = 0; (xh <= hb.hbmap[id][ia]->nframes); xh++)
                                     {
                                         int nn0 = hb.hbmap[id][ia]->n0;
                                         range_check(y, 0, mat.ny);
-                                        mat.matrix(x + nn0, y) = static_cast<t_matelmt>(
-                                                is_hb(hb.hbmap[id][ia]->h[hh], x));
+                                        mat.matrix(xh + nn0, y) = static_cast<t_matelmt>(
+                                                is_hb(hb.hbmap[id][ia]->h[hh], xh));
                                     }
                                     y++;
                                 }

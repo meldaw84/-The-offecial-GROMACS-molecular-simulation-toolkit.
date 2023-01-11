@@ -980,16 +980,16 @@ int gmx_editconf(int argc, char* argv[])
 
     if (bOrient)
     {
-        int*  index;
+        int*  oriindex;
         char* grpnames;
 
         /* Get a group for principal component analysis */
         fprintf(stderr, "\nSelect group for the determining the orientation\n");
-        get_index(&atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &isize, &index, &grpnames);
+        get_index(&atoms, ftp2fn_null(efNDX, NFILE, fnm), 1, &isize, &oriindex, &grpnames);
 
         /* Orient the principal axes along the coordinate axes */
-        orient_princ(&atoms, isize, index, natom, x, bHaveV ? v : nullptr, nullptr);
-        sfree(index);
+        orient_princ(&atoms, isize, oriindex, natom, x, bHaveV ? v : nullptr, nullptr);
+        sfree(oriindex);
         sfree(grpnames);
     }
 
@@ -1354,15 +1354,15 @@ int gmx_editconf(int argc, char* argv[])
             /* Need to bypass the regular write_pdbfile because I don't want to change
              * all instances to include the boolean flag for writing out PQR files.
              */
-            int* index;
-            snew(index, atoms.nr);
+            int* pdbindex;
+            snew(pdbindex, atoms.nr);
             for (int i = 0; i < atoms.nr; i++)
             {
-                index[i] = i;
+                pdbindex[i] = i;
             }
             write_pdbfile_indexed(
-                    out, name, &atoms, x, pbcType, box, ' ', -1, atoms.nr, index, conect, outftp == efPQR);
-            sfree(index);
+                    out, name, &atoms, x, pbcType, box, ' ', -1, atoms.nr, pdbindex, conect, outftp == efPQR);
+            sfree(pdbindex);
             if (bLegend)
             {
                 pdb_legend(out, atoms.nr, atoms.nres, &atoms, x);

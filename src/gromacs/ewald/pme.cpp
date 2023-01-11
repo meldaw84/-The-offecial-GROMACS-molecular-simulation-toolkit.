@@ -1155,8 +1155,8 @@ int gmx_pme_do(struct gmx_pme_t*              pme,
         atc.pd.resize(coordinates.ssize());
         for (int d = pme->ndecompdim - 1; d >= 0; d--)
         {
-            PmeAtomComm& atc = pme->atc[d];
-            atc.maxshift     = (atc.dimind == 0 ? maxshift_x : maxshift_y);
+            PmeAtomComm& atcDim = pme->atc[d];
+            atcDim.maxshift     = (atcDim.dimind == 0 ? maxshift_x : maxshift_y);
         }
     }
     else

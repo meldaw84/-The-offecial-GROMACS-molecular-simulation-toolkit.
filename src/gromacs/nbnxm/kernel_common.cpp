@@ -111,9 +111,9 @@ void reduce_energies_over_lists(const nbnxn_atomdata_t* nbat, int nlist, real* V
         for (int i = 0; i < nenergrp; i++)
         {
             /* Reduce the diagonal terms */
-            int ind = i * nenergrp + i;
-            Vvdw[ind] += nbat->out[nb].Vvdw[ind];
-            Vc[ind] += nbat->out[nb].Vc[ind];
+            int indd = i * nenergrp + i;
+            Vvdw[indd] += nbat->out[nb].Vvdw[indd];
+            Vc[indd] += nbat->out[nb].Vc[indd];
 
             /* Reduce the off-diagonal terms */
             for (int j = i + 1; j < nenergrp; j++)

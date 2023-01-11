@@ -378,7 +378,7 @@ static gmx_bool do_xdr(t_fileio*       fio,
             break;
         case InputOutputType::String:
         {
-            char* cptr;
+            char* cptrstr;
             int   slen;
 
             if (item)
@@ -409,15 +409,15 @@ static gmx_bool do_xdr(t_fileio*       fio,
             }
             if (!item && fio->bRead)
             {
-                snew(cptr, slen);
+                snew(cptrstr, slen);
             }
             else
             {
-                cptr = static_cast<char*>(item);
+                cptrstr = static_cast<char*>(item);
             }
-            if (cptr)
+            if (cptrstr)
             {
-                res = xdr_string(fio->xdr, &cptr, slen);
+                res = xdr_string(fio->xdr, &cptrstr, slen);
             }
             else
             {
@@ -425,7 +425,7 @@ static gmx_bool do_xdr(t_fileio*       fio,
             }
             if (!item && fio->bRead)
             {
-                sfree(cptr);
+                sfree(cptrstr);
             }
             break;
         }

@@ -130,7 +130,6 @@ static void do_ac_core(int nframes, int nout, real corr[], real c1[], int nresta
 {
     int  j, k, j3, jk3, m, n;
     real ccc, cth;
-    rvec xj, xk;
 
     if (nrestart < 1)
     {
@@ -178,6 +177,7 @@ static void do_ac_core(int nframes, int nout, real corr[], real c1[], int nresta
             else if (MODE(eacP1) || MODE(eacP2) || MODE(eacP3))
             {
                 unsigned int mmm;
+                rvec         xj, xk;
 
                 for (m = 0; (m < DIM); m++)
                 {
@@ -223,6 +223,7 @@ static void do_ac_core(int nframes, int nout, real corr[], real c1[], int nresta
             }
             else if (MODE(eacVector))
             {
+                rvec xj, xk;
                 for (m = 0; (m < DIM); m++)
                 {
                     xj[m] = c1[j3 + m];

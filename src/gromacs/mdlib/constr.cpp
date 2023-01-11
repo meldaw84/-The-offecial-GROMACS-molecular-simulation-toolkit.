@@ -692,8 +692,8 @@ bool Constraints::Impl::apply(bool                      bLog,
 
             if (bSettleErrorHasOccurred0)
             {
-                char buf[STRLEN];
-                sprintf(buf,
+                char bufSettleErr[STRLEN];
+                sprintf(bufSettleErr,
                         "\nstep "
                         "%" PRId64
                         ": One or more water molecules can not be settled.\n"
@@ -701,9 +701,9 @@ bool Constraints::Impl::apply(bool                      bLog,
                         step);
                 if (log)
                 {
-                    fprintf(log, "%s", buf);
+                    fprintf(log, "%s", bufSettleErr);
                 }
-                fprintf(stderr, "%s", buf);
+                fprintf(stderr, "%s", bufSettleErr);
                 warncount_settle++;
                 if (warncount_settle > maxwarn)
                 {

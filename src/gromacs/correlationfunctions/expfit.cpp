@@ -714,8 +714,8 @@ real do_lmfit(int                     ndata,
                 }
                 for (j = 0; (j < nfitpnts); j++)
                 {
-                    real ttt = x0 ? x0[j] : dt * j;
-                    fprintf(fp, "%10.5e  %10.5e  %10.5e\n", x[j], y[j], (lmcurves[eFitFn])(ttt, fitparms));
+                    real tttfit = x0 ? x0[j] : dt * j;
+                    fprintf(fp, "%10.5e  %10.5e  %10.5e\n", x[j], y[j], (lmcurves[eFitFn])(tttfit, fitparms));
                 }
                 xvgrclose(fp);
             }

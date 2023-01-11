@@ -576,7 +576,7 @@ void LegacySimulator::do_tpi()
         }
 
         /* Copy the coordinates from the input trajectory */
-        auto x = makeArrayRef(stateGlobal_->x);
+        x = makeArrayRef(stateGlobal_->x);
         for (i = 0; i < rerun_fr.natoms; i++)
         {
             copy_rvec(rerun_fr.x[i], x[i]);

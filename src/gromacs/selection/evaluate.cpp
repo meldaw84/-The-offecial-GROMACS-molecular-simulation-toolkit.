@@ -452,9 +452,9 @@ void SelectionEvaluator::evaluate(SelectionCollection* coll, t_trxframe* fr, t_p
     SelectionDataList::const_iterator isel;
     for (isel = sc->sel.begin(); isel != sc->sel.end(); ++isel)
     {
-        internal::SelectionData& sel = **isel;
-        sel.refreshMassesAndCharges(sc->top);
-        sel.updateCoveredFractionForFrame();
+        internal::SelectionData& seldat = **isel;
+        seldat.refreshMassesAndCharges(sc->top);
+        seldat.updateCoveredFractionForFrame();
     }
 }
 

@@ -587,44 +587,44 @@ std::vector<IndexGroup> analyse(const t_atoms* atoms, gmx_bool bASK, gmx_bool bV
     {
         const std::string& moleculeCategory = mcc.first;
 
-        std::vector<int> aid = mk_aid(atoms, moleculeCategoryOfResidues, moleculeCategory, TRUE);
+        std::vector<int> aidPrevious = mk_aid(atoms, moleculeCategoryOfResidues, moleculeCategory, TRUE);
 
         /* Check for special types to do fancy stuff with */
 
-        if (!gmx_strcasecmp(moleculeCategory.c_str(), "Protein") && !aid.empty())
+        if (!gmx_strcasecmp(moleculeCategory.c_str(), "Protein") && !aidPrevious.empty())
         {
             /* PROTEIN */
             analyse_prot(moleculeCategoryOfResidues, atoms, &indexGroups, bASK, bVerb);
 
             /* Create a Non-Protein group */
-            std::vector<int> aid = mk_aid(atoms, moleculeCategoryOfResidues, "Protein", FALSE);
-            if ((!aid.empty()) && (gmx::ssize(aid) < atoms->nr))
+            std::vector<int> aidNonProtein = mk_aid(atoms, moleculeCategoryOfResidues, "Protein", FALSE);
+            if ((!aidNonProtein.empty()) && (gmx::ssize(aidNonProtein) < atoms->nr))
             {
-                indexGroups.push_back({ "non-Protein", aid });
+                indexGroups.push_back({ "non-Protein", aidNonProtein });
             }
         }
-        else if (!gmx_strcasecmp(moleculeCategory.c_str(), "Water") && !aid.empty())
+        else if (!gmx_strcasecmp(moleculeCategory.c_str(), "Water") && !aidPrevious.empty())
         {
-            indexGroups.push_back({ moleculeCategory, aid });
+            indexGroups.push_back({ moleculeCategory, aidPrevious });
             /* Add this group as 'SOL' too, for backward compatibility with older gromacs versions */
-            indexGroups.push_back({ "SOL", aid });
+            indexGroups.push_back({ "SOL", aidPrevious });
 
 
             /* Solvent, create a negated group too */
-            std::vector<int> aid = mk_aid(atoms, moleculeCategoryOfResidues, "Water", FALSE);
-            if ((!aid.empty()) && (gmx::ssize(aid) < atoms->nr))
+            std::vector<int> aidNonWater = mk_aid(atoms, moleculeCategoryOfResidues, "Water", FALSE);
+            if ((!aidNonWater.empty()) && (gmx::ssize(aidNonWater) < atoms->nr))
             {
-                indexGroups.push_back({ "non-Water", aid });
+                indexGroups.push_back({ "non-Water", aidNonWater });
             }
         }
-        else if (!gmx_strcasecmp(moleculeCategory.c_str(), "Ion") && !aid.empty())
+        else if (!gmx_strcasecmp(moleculeCategory.c_str(), "Ion") && !aidPrevious.empty())
         {
-            indexGroups.push_back({ moleculeCategory, aid });
+            indexGroups.push_back({ moleculeCategory, aidPrevious });
         }
-        else if (!aid.empty() && !haveAnalysedOther)
+        else if (!aidPrevious.empty() && !haveAnalysedOther)
         {
             /* Other groups */
-            indexGroups.push_back({ moleculeCategory, aid });
+            indexGroups.push_back({ moleculeCategory, aidPrevious });
             analyse_other(moleculeCategoryOfResidues, atoms, &indexGroups, bASK, bVerb);
             haveAnalysedOther = true;
         }

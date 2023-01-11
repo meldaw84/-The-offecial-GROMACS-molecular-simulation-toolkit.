@@ -73,9 +73,9 @@ void dd_move_f_specat(const gmx_domdec_t* dd, gmx_domdec_specat_comm_t* spac, gm
         if (dd->numCells[dim] > 2)
         {
             /* Pulse the grid forward and backward */
-            const gmx_specatsend_t* spas = spac->spas[d];
-            int                     n0   = spas[0].nrecv;
-            int                     n1   = spas[1].nrecv;
+            const gmx_specatsend_t* spasDim = spac->spas[d];
+            int                     n0      = spasDim[0].nrecv;
+            int                     n1      = spasDim[1].nrecv;
             n -= n1 + n0;
             rvec* vbuf = as_rvec_array(spac->vbuf.data());
             /* Send and receive the coordinates */
@@ -84,22 +84,22 @@ void dd_move_f_specat(const gmx_domdec_t* dd, gmx_domdec_specat_comm_t* spac, gm
                               as_rvec_array(f + n + n1),
                               n0,
                               vbuf,
-                              spas[0].a.size(),
+                              spasDim[0].a.size(),
                               as_rvec_array(f + n),
                               n1,
-                              vbuf + spas[0].a.size(),
-                              spas[1].a.size());
+                              vbuf + spasDim[0].a.size(),
+                              spasDim[1].a.size());
             for (int dir = 0; dir < 2; dir++)
             {
                 bool bPBC   = ((dir == 0 && dd->ci[dim] == 0)
                              || (dir == 1 && dd->ci[dim] == dd->numCells[dim] - 1));
                 bool bScrew = (bPBC && dd->unitCellInfo.haveScrewPBC && dim == XX);
 
-                const gmx_specatsend_t* spas = &spac->spas[d][dir];
+                const gmx_specatsend_t* spasDir = &spac->spas[d][dir];
                 /* Sum the buffer into the required forces */
                 if (!bPBC || (!bScrew && fshift == nullptr))
                 {
-                    for (int a : spas->a)
+                    for (int a : spasDir->a)
                     {
                         rvec_inc(f[a], *vbuf);
                         vbuf++;
@@ -113,7 +113,7 @@ void dd_move_f_specat(const gmx_domdec_t* dd, gmx_domdec_specat_comm_t* spac, gm
                     if (!bScrew)
                     {
                         /* Sum and add to shift forces */
-                        for (int a : spas->a)
+                        for (int a : spasDir->a)
                         {
                             rvec_inc(f[a], *vbuf);
                             rvec_inc(fshift[is], *vbuf);
@@ -123,7 +123,7 @@ void dd_move_f_specat(const gmx_domdec_t* dd, gmx_domdec_specat_comm_t* spac, gm
                     else
                     {
                         /* Rotate the forces */
-                        for (int a : spas->a)
+                        for (int a : spasDir->a)
                         {
                             f[a][XX] += (*vbuf)[XX];
                             f[a][YY] -= (*vbuf)[YY];
@@ -141,20 +141,20 @@ void dd_move_f_specat(const gmx_domdec_t* dd, gmx_domdec_specat_comm_t* spac, gm
         else
         {
             /* Two cells, so we only need to communicate one way */
-            const gmx_specatsend_t* spas = &spac->spas[d][0];
-            n -= spas->nrecv;
+            const gmx_specatsend_t* spas0 = &spac->spas[d][0];
+            n -= spas0->nrecv;
             /* Send and receive the coordinates */
             ddSendrecv(dd,
                        d,
                        dddirForward,
-                       gmx::arrayRefFromArray(f + n, spas->nrecv),
-                       gmx::arrayRefFromArray(spac->vbuf.data(), spas->a.size()));
+                       gmx::arrayRefFromArray(f + n, spas0->nrecv),
+                       gmx::arrayRefFromArray(spac->vbuf.data(), spas0->a.size()));
             /* Sum the buffer into the required forces */
             if (dd->unitCellInfo.haveScrewPBC && dim == XX
                 && (dd->ci[dim] == 0 || dd->ci[dim] == dd->numCells[dim] - 1))
             {
                 int i = 0;
-                for (int a : spas->a)
+                for (int a : spas0->a)
                 {
                     /* Rotate the force */
                     f[a][XX] += spac->vbuf[i][XX];
@@ -166,7 +166,7 @@ void dd_move_f_specat(const gmx_domdec_t* dd, gmx_domdec_specat_comm_t* spac, gm
             else
             {
                 int i = 0;
-                for (int a : spas->a)
+                for (int a : spas0->a)
                 {
                     rvec_inc(f[a], spac->vbuf[i]);
                     i++;
@@ -263,17 +263,17 @@ void dd_move_x_specat(const gmx_domdec_t*       dd,
             int nr1 = spas[1].nrecv;
             if (nvec == 1)
             {
-                rvec* vbuf = as_rvec_array(spac->vbuf.data());
+                rvec* vbuf1 = as_rvec_array(spac->vbuf.data());
                 dd_sendrecv2_rvec(
-                        dd, d, vbuf + ns0, ns1, as_rvec_array(x0 + n), nr1, vbuf, ns0, as_rvec_array(x0 + n + nr1), nr0);
+                        dd, d, vbuf1 + ns0, ns1, as_rvec_array(x0 + n), nr1, vbuf1, ns0, as_rvec_array(x0 + n + nr1), nr0);
             }
             else
             {
-                rvec* vbuf = as_rvec_array(spac->vbuf.data());
+                rvec* vbuf2 = as_rvec_array(spac->vbuf.data());
                 /* Communicate both vectors in one buffer */
                 rvec* rbuf = as_rvec_array(spac->vbuf2.data());
                 dd_sendrecv2_rvec(
-                        dd, d, vbuf + 2 * ns0, 2 * ns1, rbuf, 2 * nr1, vbuf, 2 * ns0, rbuf + 2 * nr1, 2 * nr0);
+                        dd, d, vbuf2 + 2 * ns0, 2 * ns1, rbuf, 2 * nr1, vbuf2, 2 * ns0, rbuf + 2 * nr1, 2 * nr0);
                 /* Split the buffer into the two vectors */
                 int nn = n;
                 for (int dir = 1; dir >= 0; dir--)
@@ -335,13 +335,13 @@ void dd_move_x_specat(const gmx_domdec_t*       dd,
             }
             else
             {
-                gmx::RVec* vbuf = spac->vbuf.data();
+                gmx::RVec* vbuf2 = spac->vbuf.data();
                 /* Communicate both vectors in one buffer */
                 gmx::RVec* rbuf = spac->vbuf2.data();
                 ddSendrecv(dd,
                            d,
                            dddirBackward,
-                           gmx::arrayRefFromArray(vbuf, 2 * spas->a.size()),
+                           gmx::arrayRefFromArray(vbuf2, 2 * spas->a.size()),
                            gmx::arrayRefFromArray(rbuf, 2 * spas->nrecv));
                 /* Split the buffer into the two vectors */
                 int nr = spas[0].nrecv;

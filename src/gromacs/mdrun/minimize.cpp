@@ -2243,7 +2243,7 @@ void LegacySimulator::do_lbfgs()
 
     /* Set the gradient from the force */
     bool converged = false;
-    for (int step = 0; (number_steps < 0 || step <= number_steps) && !converged; step++)
+    for (step = 0; (number_steps < 0 || step <= number_steps) && !converged; step++)
     {
 
         /* Write coordinates if necessary */

@@ -270,15 +270,15 @@ void dd_move_x(gmx_domdec_t* dd, const matrix box, gmx::ArrayRef<gmx::RVec> x, g
 
     int nzone   = 1;
     int nat_tot = comm->atomRanges.numHomeAtoms();
-    for (int d = 0; d < dd->ndim; d++)
+    for (int dimind = 0; dimind < dd->ndim; dimind++)
     {
-        const bool bPBC   = (dd->ci[dd->dim[d]] == 0);
-        const bool bScrew = (bPBC && dd->unitCellInfo.haveScrewPBC && dd->dim[d] == XX);
+        const bool bPBC   = (dd->ci[dd->dim[dimind]] == 0);
+        const bool bScrew = (bPBC && dd->unitCellInfo.haveScrewPBC && dd->dim[dimind] == XX);
         if (bPBC)
         {
-            copy_rvec(box[dd->dim[d]], shift);
+            copy_rvec(box[dd->dim[dimind]], shift);
         }
-        gmx_domdec_comm_dim_t* cd = &comm->cd[d];
+        gmx_domdec_comm_dim_t* cd = &comm->cd[dimind];
         for (const gmx_domdec_ind_t& ind : cd->ind)
         {
             DDBufferAccess<gmx::RVec> sendBufferAccess(comm->rvecBuffer, ind.nsend[nzone + 1]);
@@ -333,7 +333,7 @@ void dd_move_x(gmx_domdec_t* dd, const matrix box, gmx::ArrayRef<gmx::RVec> x, g
                 receiveBuffer = receiveBufferAccess.buffer;
             }
             /* Send and receive the coordinates */
-            ddSendrecv(dd, d, dddirBackward, sendBuffer, receiveBuffer);
+            ddSendrecv(dd, dimind, dddirBackward, sendBuffer, receiveBuffer);
 
             if (!cd->receiveInPlace)
             {
@@ -364,20 +364,20 @@ void dd_move_f(gmx_domdec_t* dd, gmx::ForceWithShiftForces* forceWithShiftForces
     gmx_domdec_comm_t& comm    = *dd->comm;
     int                nzone   = comm.zones.n / 2;
     int                nat_tot = comm.atomRanges.end(DDAtomRanges::Type::Zones);
-    for (int d = dd->ndim - 1; d >= 0; d--)
+    for (int dimind = dd->ndim - 1; dimind >= 0; dimind--)
     {
         /* Only forces in domains near the PBC boundaries need to
            consider PBC in the treatment of fshift */
         const bool shiftForcesNeedPbc =
-                (forceWithShiftForces->computeVirial() && dd->ci[dd->dim[d]] == 0);
-        const bool applyScrewPbc = (dd->unitCellInfo.haveScrewPBC && dd->dim[d] == XX);
+                (forceWithShiftForces->computeVirial() && dd->ci[dd->dim[dimind]] == 0);
+        const bool applyScrewPbc = (dd->unitCellInfo.haveScrewPBC && dd->dim[dimind] == XX);
         /* Determine which shift vector we need */
-        ivec vis        = { 0, 0, 0 };
-        vis[dd->dim[d]] = 1;
-        const int is    = gmx::ivecToShiftIndex(vis);
+        ivec vis             = { 0, 0, 0 };
+        vis[dd->dim[dimind]] = 1;
+        const int is         = gmx::ivecToShiftIndex(vis);
 
         /* Loop over the pulses */
-        const gmx_domdec_comm_dim_t& cd = comm.cd[d];
+        const gmx_domdec_comm_dim_t& cd = comm.cd[dimind];
         for (int p = cd.numPulses() - 1; p >= 0; p--)
         {
             const gmx_domdec_ind_t&   ind = cd.ind[p];
@@ -407,7 +407,7 @@ void dd_move_f(gmx_domdec_t* dd, gmx::ForceWithShiftForces* forceWithShiftForces
                 }
             }
             /* Communicate the forces */
-            ddSendrecv(dd, d, dddirForward, sendBuffer, receiveBuffer);
+            ddSendrecv(dd, dimind, dddirForward, sendBuffer, receiveBuffer);
             /* Add the received forces */
             int n = 0;
             if (!applyScrewPbc && !shiftForcesNeedPbc)

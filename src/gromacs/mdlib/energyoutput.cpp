@@ -807,7 +807,6 @@ FILE* open_dhdl(const char* filename, const t_inputrec* ir, const gmx_output_env
         for (i = fep->lambda_start_n; i < fep->lambda_stop_n; i++)
         {
             print_lambda_vector(fep, i, false, false, lambda_vec_str);
-            std::string buf;
             if ((fep->init_lambda >= 0) && (n_lambda_terms == 1))
             {
                 /* for compatible dhdl.xvg files */
@@ -1382,8 +1381,7 @@ void EnergyOutput::printAverages(FILE* log, const SimulationGroups* groups)
                 for (int j = i; (j < nEg_); j++)
                 {
                     int nj = groups->groups[SimulationAtomGroupType::EnergyOutput][j];
-                    int padding =
-                            14 - (strlen(*(groups->groupNames[ni])) + strlen(*(groups->groupNames[nj])));
+                    padding = 14 - (strlen(*(groups->groupNames[ni])) + strlen(*(groups->groupNames[nj])));
                     fprintf(log, "%*s%s-%s", padding, "", *(groups->groupNames[ni]), *(groups->groupNames[nj]));
                     pr_ebin(log, ebin_, igrp_[n], nEc_, nEc_, eprAVER, false);
                     n++;

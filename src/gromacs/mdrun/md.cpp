@@ -1034,7 +1034,7 @@ void gmx::LegacySimulator::do_md()
             /* We need the kinetic energy at minus the half step for determining
              * the full step kinetic energy and possibly for T-coupling.*/
             /* This may not be quite working correctly yet . . . . */
-            int cglo_flags = CGLO_GSTAT | CGLO_TEMPERATURE;
+            cglo_flags = CGLO_GSTAT | CGLO_TEMPERATURE;
             compute_globals(gstat,
                             cr_,
                             ir,
@@ -1561,7 +1561,7 @@ void gmx::LegacySimulator::do_md()
                         // so the forces are on the host and have to be copied
                         stateGpu->copyForcesToGpu(f.view().force(), AtomLocality::Local);
                     }
-                    const bool doTemperatureScaling =
+                    const bool doTemperatureScalingGpu =
                             (ir->etc != TemperatureCoupling::No
                              && do_per_step(step + ir->nsttcouple - 1, ir->nsttcouple));
 
@@ -1573,7 +1573,7 @@ void gmx::LegacySimulator::do_md()
                             true,
                             bCalcVir,
                             shake_vir,
-                            doTemperatureScaling,
+                            doTemperatureScalingGpu,
                             ekind_->tcstat,
                             doParrinelloRahman,
                             ir->pressureCouplingOptions.nstpcouple * ir->delta_t,

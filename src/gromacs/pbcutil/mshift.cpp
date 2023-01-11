@@ -780,7 +780,7 @@ void mk_mshift(FILE* log, t_graph* g, PbcType pbcType, const matrix box, const r
          */
         constexpr real c_relativeDistanceThreshold = 0.25;
 
-        int npbcdim = numPbcDimensions(pbcType);
+        npbcdim = numPbcDimensions(pbcType);
         GMX_RELEASE_ASSERT(npbcdim > 0, "Expect PBC with graph");
         real minBoxSize = norm(box[XX]);
         for (int d = 1; d < npbcdim; d++)

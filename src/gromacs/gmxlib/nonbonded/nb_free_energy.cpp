@@ -776,9 +776,9 @@ static void nb_free_energy_kernel(const t_nblist&                               
 
                             if constexpr (scLambdasOrAlphasDiffer)
                             {
-                                RealType divisor =
+                                RealType difDivisor =
                                         (alphaVdwEff * softcoreLambdaFactorVdw[i] * sigma6[i] + rp);
-                                rPInvV = gmx::inv(divisor);
+                                rPInvV = gmx::inv(difDivisor);
                                 sixthRoot(rPInvV, &rInvV, &rV);
                             }
                             else

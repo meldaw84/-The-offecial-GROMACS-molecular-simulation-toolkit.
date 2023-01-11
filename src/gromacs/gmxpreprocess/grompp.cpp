@@ -2234,17 +2234,17 @@ int gmx_grompp(int argc, char* argv[])
             wi.addNote(warningMessage);
         }
 
-        const char* fn = opt2fn("-r", NFILE, fnm);
+        const char* fnr = opt2fn("-r", NFILE, fnm);
         const char* fnB;
 
-        if (!gmx_fexist(fn))
+        if (!gmx_fexist(fnr))
         {
             gmx_fatal(FARGS,
                       "Cannot find position restraint file %s (option -r).\n"
                       "From GROMACS-2018, you need to specify the position restraint "
                       "coordinate files explicitly to avoid mistakes, although you can "
                       "still use the same file as you specify for the -c option.",
-                      fn);
+                      fnr);
         }
 
         if (opt2bSet("-rb", NFILE, fnm))
@@ -2262,13 +2262,13 @@ int gmx_grompp(int argc, char* argv[])
         }
         else
         {
-            fnB = fn;
+            fnB = fnr;
         }
 
         if (bVerbose)
         {
-            std::string message = gmx::formatString("Reading position restraint coords from %s", fn);
-            if (strcmp(fn, fnB) != 0)
+            std::string message = gmx::formatString("Reading position restraint coords from %s", fnr);
+            if (strcmp(fnr, fnB) != 0)
             {
                 message += gmx::formatString(" and %s", fnB);
             }
@@ -2276,7 +2276,7 @@ int gmx_grompp(int argc, char* argv[])
         }
         gen_posres(&sys,
                    mi,
-                   fn,
+                   fnr,
                    fnB,
                    ir->pressureCouplingOptions.refcoord_scaling,
                    ir->pbcType,

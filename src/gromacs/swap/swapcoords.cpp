@@ -2109,26 +2109,26 @@ gmx_bool do_swapcoords(t_commrec*        cr,
     {
         /* Since we here know that we have to perform ion/water position exchanges,
          * we now assemble the solvent positions */
-        t_swapgrp* g = &(s->group[static_cast<int>(SwapGroupSplittingType::Solvent)]);
+        t_swapgrp* gsolv = &(s->group[static_cast<int>(SwapGroupSplittingType::Solvent)]);
         communicate_group_positions(cr,
-                                    g->xc,
+                                    gsolv->xc,
                                     nullptr,
                                     nullptr,
                                     FALSE,
                                     x,
-                                    g->atomSet.numAtomsGlobal(),
-                                    g->atomSet.numAtomsLocal(),
-                                    g->atomSet.localIndex().data(),
-                                    g->atomSet.collectiveIndex().data(),
+                                    gsolv->atomSet.numAtomsGlobal(),
+                                    gsolv->atomSet.numAtomsLocal(),
+                                    gsolv->atomSet.localIndex().data(),
+                                    gsolv->atomSet.collectiveIndex().data(),
                                     nullptr,
                                     nullptr);
 
         /* Determine how many molecules of solvent each compartment contains */
-        sortMoleculesIntoCompartments(g, cr, sc, s, box, step, s->fpout, bRerun, TRUE);
+        sortMoleculesIntoCompartments(gsolv, cr, sc, s, box, step, s->fpout, bRerun, TRUE);
 
         /* Save number of solvent molecules per compartment prior to any swaps */
-        g->comp[Compartment::A].nMolBefore = g->comp[Compartment::A].nMol;
-        g->comp[Compartment::B].nMolBefore = g->comp[Compartment::B].nMol;
+        gsolv->comp[Compartment::A].nMolBefore = gsolv->comp[Compartment::A].nMol;
+        gsolv->comp[Compartment::B].nMolBefore = gsolv->comp[Compartment::B].nMol;
 
         for (int ig = static_cast<int>(SwapGroupSplittingType::Count); ig < s->ngrp; ig++)
         {

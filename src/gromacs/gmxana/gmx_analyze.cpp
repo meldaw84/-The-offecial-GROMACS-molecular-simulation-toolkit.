@@ -159,10 +159,10 @@ static void plot_coscont(const char* ccfile, int n, int nset, real** val, const 
 
 static void regression_analysis(int n, gmx_bool bXYdy, real* x, int nset, real** val)
 {
-    real S, chi2, a, b, da, db, r = 0;
-
     if (bXYdy || (nset == 1))
     {
+        real S, chi2, a, b, da, db, r = 0;
+
         printf("Fitting data to a function f(x) = ax + b\n");
         printf("Minimizing residual chi2 = Sum_i w_i [f(x_i) - y_i]2\n");
         printf("Error estimates will be given if w_i (sigma) values are given\n");

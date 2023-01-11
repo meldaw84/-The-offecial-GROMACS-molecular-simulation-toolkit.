@@ -203,7 +203,7 @@ static gmx::ListOfLists<int> genBondedLinks(const gmx_mtop_t&                   
                     std::transform(linksForAtomInPreviousMolecule.begin(),
                                    linksForAtomInPreviousMolecule.end(),
                                    linksForAtom.begin(),
-                                   [&molt](const auto a) { return a + molt.atoms.nr; });
+                                   [&molt](const auto aLinks) { return aLinks + molt.atoms.nr; });
                     if (!linksForAtom.empty()
                         && atomIndex - atomInfoOfMoleculeBlock->indexOfFirstAtomInMoleculeBlock
                                    < gmx::ssize(atomInfoOfMoleculeBlock->atomInfo))

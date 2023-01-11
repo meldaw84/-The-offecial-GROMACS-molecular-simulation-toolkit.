@@ -448,18 +448,18 @@ static std::vector<VerletbufAtomtype> getVerletBufferAtomtypes(const gmx_mtop_t&
 
     if (gmx_debug_at)
     {
-        for (size_t a = 0; a < att.size(); a++)
+        for (size_t ai = 0; ai < att.size(); ai++)
         {
             fprintf(debug,
                     "type %zu: m %5.2f t %d q %6.3f con %s con_m %5.3f con_l %5.3f n %d\n",
-                    a,
-                    att[a].prop.mass,
-                    att[a].prop.type,
-                    att[a].prop.q,
-                    gmx::boolToString(att[a].prop.bConstr),
-                    att[a].prop.con_mass,
-                    att[a].prop.con_len,
-                    att[a].n);
+                    ai,
+                    att[ai].prop.mass,
+                    att[ai].prop.type,
+                    att[ai].prop.q,
+                    gmx::boolToString(att[ai].prop.bConstr),
+                    att[ai].prop.con_mass,
+                    att[ai].prop.con_len,
+                    att[ai].n);
         }
     }
 

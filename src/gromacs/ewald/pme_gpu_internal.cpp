@@ -1876,12 +1876,12 @@ void pme_gpu_spread(const PmeGpu*                  pmeGpu,
                 // set kernel configuration options specific to this stage of the pipeline
                 std::tie(kernelParamsPtr->pipelineAtomStart, kernelParamsPtr->pipelineAtomEnd) =
                         pmeCoordinateReceiverGpu->ppCommAtomRange(senderRank);
-                const int blockCount = static_cast<int>(std::ceil(
+                const int blockCountPipe = static_cast<int>(std::ceil(
                         static_cast<float>(kernelParamsPtr->pipelineAtomEnd - kernelParamsPtr->pipelineAtomStart)
                         / atomsPerBlock));
-                auto      dimGrid    = pmeGpuCreateGrid(pmeGpu, blockCount);
-                config.gridSize[0]   = dimGrid.first;
-                config.gridSize[1]   = dimGrid.second;
+                auto      dimGridPipe    = pmeGpuCreateGrid(pmeGpu, blockCountPipe);
+                config.gridSize[0]       = dimGridPipe.first;
+                config.gridSize[1]       = dimGridPipe.second;
 
 
 #if c_canEmbedBuffers

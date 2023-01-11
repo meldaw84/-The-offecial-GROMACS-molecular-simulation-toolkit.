@@ -583,8 +583,8 @@ void push_at(PreprocessingAtomTypes*    at,
         auto newAtomType = at->setType(*atomType, *atom, type, interactionType, batype_nr, atomnr);
         if (!newAtomType.has_value())
         {
-            auto message = gmx::formatString("Replacing atomtype %s failed", type);
-            warning_error_and_exit(wi, message, FARGS);
+            auto errorMessage = gmx::formatString("Replacing atomtype %s failed", type);
+            warning_error_and_exit(wi, errorMessage, FARGS);
         }
     }
     else
@@ -1985,12 +1985,12 @@ void push_bond(Directive                         d,
 
     /* default force parameters  */
     /* need to have an empty but initialized param array for some reason */
-    std::array<real, MAXFORCEPARAM> forceParam = { 0.0 };
+    std::array<real, MAXFORCEPARAM> defaultForceParam = { 0.0 };
 
     /* Get force params for normal and free energy perturbation
      * studies, as determined by types!
      */
-    InteractionOfType param(atomIndices, forceParam, "");
+    InteractionOfType param(atomIndices, defaultForceParam, "");
 
     std::vector<InteractionOfType>::iterator foundAParameter = bondtype[ftype].interactionTypes.end();
     std::vector<InteractionOfType>::iterator foundBParameter = bondtype[ftype].interactionTypes.end();

@@ -1313,23 +1313,23 @@ static void sim_data_impose_times(sim_data_t* sd, double begin, double end)
         {
             for (j = 0; j < sc->nsamples; j++)
             {
-                double start_t, end_t;
+                double start_t, stop_t;
 
                 start_t = sc->s[j]->start_time;
-                end_t   = sc->s[j]->start_time;
+                stop_t  = sc->s[j]->start_time;
                 if (sc->s[j]->hist)
                 {
-                    end_t += sc->s[j]->delta_time * sc->s[j]->hist->sum;
+                    stop_t += sc->s[j]->delta_time * sc->s[j]->hist->sum;
                 }
                 else
                 {
                     if (sc->s[j]->t)
                     {
-                        end_t = sc->s[j]->t[sc->s[j]->ndu - 1];
+                        stop_t = sc->s[j]->t[sc->s[j]->ndu - 1];
                     }
                     else
                     {
-                        end_t += sc->s[j]->delta_time * sc->s[j]->ndu;
+                        stop_t += sc->s[j]->delta_time * sc->s[j]->ndu;
                     }
                 }
 
@@ -1337,9 +1337,9 @@ static void sim_data_impose_times(sim_data_t* sd, double begin, double end)
                 {
                     first_t = start_t;
                 }
-                if (end_t > last_t)
+                if (stop_t > last_t)
                 {
-                    last_t = end_t;
+                    last_t = stop_t;
                 }
             }
             sc = sc->next;

@@ -348,9 +348,9 @@ void ForeignLambdaTerms::finalizeKineticContributions(gmx::ArrayRef<const real> 
 
         if (!fepvals.separate_dvdl[FreeEnergyPerturbationCouplingType::Mass])
         {
-            const double dlam = fepvals.all_lambda[FreeEnergyPerturbationCouplingType::Mass][i]
-                                - lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Mass)];
-            accumulateKinetic(1 + i, dlam * energyTerms[F_DKDL], energyTerms[F_DKDL]);
+            const double dlamMass = fepvals.all_lambda[FreeEnergyPerturbationCouplingType::Mass][i]
+                                    - lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Mass)];
+            accumulateKinetic(1 + i, dlamMass * energyTerms[F_DKDL], energyTerms[F_DKDL]);
         }
     }
 }

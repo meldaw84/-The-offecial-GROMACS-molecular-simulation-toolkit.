@@ -2775,7 +2775,7 @@ void get_ir(const char*     mdparin,
 
     if (mdparout)
     {
-        gmx::TextOutputFile stream(mdparout);
+        gmx::TextOutputFile streamOut(mdparout);
 
         // Set gen-seed line to actual value instead of -1
         if (opts->bMadeSeed)
@@ -2784,17 +2784,17 @@ void get_ir(const char*     mdparin,
             inp[ii].value_ = std::to_string(opts->seed);
         }
 
-        write_inpfile(&stream, mdparout, &inp, FALSE, writeMdpHeader, wi);
+        write_inpfile(&streamOut, mdparout, &inp, FALSE, writeMdpHeader, wi);
 
         // Transform module data into a flat key-value tree for output.
         gmx::KeyValueTreeBuilder       builder;
         gmx::KeyValueTreeObjectBuilder builderObject = builder.rootObject();
         mdModules->buildMdpOutput(&builderObject);
         {
-            gmx::TextWriter writer(&stream);
+            gmx::TextWriter writer(&streamOut);
             writeKeyValueTreeAsMdp(&writer, builder.build());
         }
-        stream.close();
+        streamOut.close();
     }
 
     /* Process options if necessary */

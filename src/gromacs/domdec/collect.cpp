@@ -166,9 +166,9 @@ static void dd_collect_vec_sendrecv(gmx_domdec_t*                  dd,
     {
         AtomDistribution& ma = *dd->ma;
 
-        int rank      = dd->mainrank;
+        int mainrank  = dd->mainrank;
         int localAtom = 0;
-        for (const int& globalAtom : ma.domainGroups[rank].atomGroups)
+        for (const int& globalAtom : ma.domainGroups[mainrank].atomGroups)
         {
             copy_rvec(lv[localAtom++], v[globalAtom]);
         }
@@ -199,10 +199,10 @@ static void dd_collect_vec_sendrecv(gmx_domdec_t*                  dd,
                          dd->mpi_comm_all,
                          MPI_STATUS_IGNORE);
 #endif
-                int localAtom = 0;
+                int localAtomRecv = 0;
                 for (const int& globalAtom : domainGroups.atomGroups)
                 {
-                    copy_rvec(ma.rvecBuffer[localAtom++], v[globalAtom]);
+                    copy_rvec(ma.rvecBuffer[localAtomRecv++], v[globalAtom]);
                 }
             }
         }

@@ -199,7 +199,7 @@ gmx_radial_distribution_histogram_t* calc_radial_distribution_histogram(gmx_sans
                                                                         unsigned int seed)
 {
     gmx_radial_distribution_histogram_t* pr = nullptr;
-    rvec                                 dist;
+    rvec                                 maxDist;
     double                               rmax;
     int                                  i, j;
 #if GMX_OPENMP
@@ -220,10 +220,10 @@ gmx_radial_distribution_histogram_t* calc_radial_distribution_histogram(gmx_sans
      * create max dist rvec
      * dist = box[xx] + box[yy] + box[zz]
      */
-    rvec_add(box[XX], box[YY], dist);
-    rvec_add(box[ZZ], dist, dist);
+    rvec_add(box[XX], box[YY], maxDist);
+    rvec_add(box[ZZ], maxDist, maxDist);
 
-    rmax = norm(dist);
+    rmax = norm(maxDist);
 
     pr->grn = static_cast<int>(std::floor(rmax / pr->binwidth) + 1);
 

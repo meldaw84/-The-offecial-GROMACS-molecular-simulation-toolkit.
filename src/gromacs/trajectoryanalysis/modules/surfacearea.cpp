@@ -168,7 +168,7 @@ static std::vector<real> ico_dot_arc(int densit)
     if (tess > 1)
     {
         int        tn = 12;
-        const real a  = rh * rh * 2. * (1. - cos(TORAD(72.)));
+        const real at = rh * rh * 2. * (1. - cos(TORAD(72.)));
         /* calculate tessalation of icosaeder edges */
         for (int i = 0; i < 11; i++)
         {
@@ -178,7 +178,7 @@ static std::vector<real> ico_dot_arc(int densit)
                 const real y = xus[1 + 3 * i] - xus[1 + 3 * j];
                 const real z = xus[2 + 3 * i] - xus[2 + 3 * j];
                 const real d = x * x + y * y + z * z;
-                if (std::fabs(a - d) > DP_TOL)
+                if (std::fabs(at - d) > DP_TOL)
                 {
                     continue;
                 }
@@ -209,7 +209,7 @@ static std::vector<real> ico_dot_arc(int densit)
                 real y = xus[1 + 3 * i] - xus[1 + 3 * j];
                 real z = xus[2 + 3 * i] - xus[2 + 3 * j];
                 real d = x * x + y * y + z * z;
-                if (std::fabs(a - d) > DP_TOL)
+                if (std::fabs(at - d) > DP_TOL)
                 {
                     continue;
                 }
@@ -220,7 +220,7 @@ static std::vector<real> ico_dot_arc(int densit)
                     y = xus[1 + 3 * i] - xus[1 + 3 * k];
                     z = xus[2 + 3 * i] - xus[2 + 3 * k];
                     d = x * x + y * y + z * z;
-                    if (std::fabs(a - d) > DP_TOL)
+                    if (std::fabs(at - d) > DP_TOL)
                     {
                         continue;
                     }
@@ -228,7 +228,7 @@ static std::vector<real> ico_dot_arc(int densit)
                     y = xus[1 + 3 * j] - xus[1 + 3 * k];
                     z = xus[2 + 3 * j] - xus[2 + 3 * k];
                     d = x * x + y * y + z * z;
-                    if (std::fabs(a - d) > DP_TOL)
+                    if (std::fabs(at - d) > DP_TOL)
                     {
                         continue;
                     }
@@ -354,13 +354,15 @@ static std::vector<real> ico_dot_dod(int densit)
     {
         for (int j = i + 1; j < 11; j++)
         {
-            const real x = xus[3 * i] - xus[3 * j];
-            const real y = xus[1 + 3 * i] - xus[1 + 3 * j];
-            const real z = xus[2 + 3 * i] - xus[2 + 3 * j];
-            const real d = x * x + y * y + z * z;
-            if (std::fabs(a - d) > DP_TOL)
             {
-                continue;
+                const real x = xus[3 * i] - xus[3 * j];
+                const real y = xus[1 + 3 * i] - xus[1 + 3 * j];
+                const real z = xus[2 + 3 * i] - xus[2 + 3 * j];
+                const real d = x * x + y * y + z * z;
+                if (std::fabs(a - d) > DP_TOL)
+                {
+                    continue;
+                }
             }
             for (int k = j + 1; k < 12; k++)
             {
@@ -384,21 +386,23 @@ static std::vector<real> ico_dot_dod(int densit)
                         continue;
                     }
                 }
-                const real x    = xus[3 * i] + xus[3 * j] + xus[3 * k];
-                const real y    = xus[1 + 3 * i] + xus[1 + 3 * j] + xus[1 + 3 * k];
-                const real z    = xus[2 + 3 * i] + xus[2 + 3 * j] + xus[2 + 3 * k];
-                const real d    = std::sqrt(x * x + y * y + z * z);
-                xus[3 * tn]     = x / d;
-                xus[1 + 3 * tn] = y / d;
-                xus[2 + 3 * tn] = z / d;
-                tn++;
+                {
+                    const real x    = xus[3 * i] + xus[3 * j] + xus[3 * k];
+                    const real y    = xus[1 + 3 * i] + xus[1 + 3 * j] + xus[1 + 3 * k];
+                    const real z    = xus[2 + 3 * i] + xus[2 + 3 * j] + xus[2 + 3 * k];
+                    const real d    = std::sqrt(x * x + y * y + z * z);
+                    xus[3 * tn]     = x / d;
+                    xus[1 + 3 * tn] = y / d;
+                    xus[2 + 3 * tn] = z / d;
+                    tn++;
+                }
             }
         }
     }
 
     if (tess > 1)
     {
-        int tn = 32;
+        tn = 32;
         /* square of the edge of an dodecaeder */
         const real adod = 4. * (cos(TORAD(108.)) - cos(TORAD(120.))) / (1. - cos(TORAD(120.)));
         /* square of the distance of two adjacent vertices of ico- and dodecaeder */
@@ -448,13 +452,15 @@ static std::vector<real> ico_dot_dod(int densit)
         {
             for (int j = 12; j < 31; j++)
             {
-                const real x = xus[3 * i] - xus[3 * j];
-                const real y = xus[1 + 3 * i] - xus[1 + 3 * j];
-                const real z = xus[2 + 3 * i] - xus[2 + 3 * j];
-                const real d = x * x + y * y + z * z;
-                if (std::fabs(ai_d - d) > DP_TOL)
                 {
-                    continue;
+                    const real x = xus[3 * i] - xus[3 * j];
+                    const real y = xus[1 + 3 * i] - xus[1 + 3 * j];
+                    const real z = xus[2 + 3 * i] - xus[2 + 3 * j];
+                    const real d = x * x + y * y + z * z;
+                    if (std::fabs(ai_d - d) > DP_TOL)
+                    {
+                        continue;
+                    }
                 }
 
                 for (int k = j + 1; k < 32; k++)
