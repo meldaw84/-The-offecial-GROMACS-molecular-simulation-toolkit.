@@ -44,6 +44,7 @@ target_link_libraries(mdrun_objlib PRIVATE
         legacy_api
         legacy_modules
         utility
+        msm
         )
 
 if(GMX_FAHCORE)

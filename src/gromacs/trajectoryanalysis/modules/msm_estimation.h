@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2021, by the GROMACS development team, led by
+ * Copyright (c) 2022, by the GROMACS development team, led by
  * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
  * and including many others, as listed in the AUTHORS file in the
  * top-level source directory and at http://www.gromacs.org.
@@ -32,33 +32,42 @@
  * To help us fund GROMACS development, we humbly ask that you cite
  * the research papers on the package. Check out http://www.gromacs.org.
  */
+
 /*! \internal \file
  * \brief
- * Declares trajectory analysis module for Markov model construction.
+ * Implements the MSM class.
  *
- * \author Cathrine Bergh <cathrine.bergh@gmail.com>
- * \ingroup module_trajectoryanalysis
+ * \author Cathrine Bergh
  */
-#ifndef GMX_TRAJECTORYANALYSIS_MODULES_MSM_H
-#define GMX_TRAJECTORYANALYSIS_MODULES_MSM_H
+#ifndef MSM_H
+#define MSM_H
 
-#include "gromacs/trajectoryanalysis/analysismodule.h"
+#include <array>
+#include <vector>
+
+#include "gromacs/math/multidimarray.h"
+#include "gromacs/utility/real.h"
 
 namespace gmx
 {
-
-namespace analysismodules
+class MarkovModel
 {
+    private:
+        // TODO: make class members private?
+    public:
+        // Attributes
+        MarkovModel(int nstates);
+        MultiDimArray<std::vector<int>, extents<dynamic_extent, dynamic_extent>> transitionCountsMatrix;
+        MultiDimArray<std::vector<real>, extents<dynamic_extent, dynamic_extent>> transitionProbabilityMatrix;
+        std::vector<real> eigenvalues;
+        std::vector<real> eigenvectors;
 
-class MarkovModelInfo
-{
-public:
-    static const char                      name[];
-    static const char                      shortDescription[];
-    static TrajectoryAnalysisModulePointer create();
+        // Methods
+        void countTransitions(gmx::ArrayRef<int> discretizedTraj, int lag);
+        void computeTransitionProbabilities();
+        void diagonalizeMatrix(MultiDimArray<std::vector<real>, extents<dynamic_extent, dynamic_extent>> matrix);
+        void WriteOutput();
 };
-
-} // namespace analysismodules
 
 } // namespace gmx
 

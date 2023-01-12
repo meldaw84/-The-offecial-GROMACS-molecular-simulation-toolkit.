@@ -43,7 +43,14 @@
 #include "gmxpre.h"
 #include "msm.h"
 
+#include "gromacs/analysisdata/analysisdata.h"
+#include "gromacs/analysisdata/modules/plot.h"
+#include "gromacs/analysisdata/paralleloptions.h"
 #include "gromacs/math/multidimarray.h"
+#include "gromacs/msm/msm_estimation.h"
+#include "gromacs/options/filenameoption.h"
+#include "gromacs/options/ioptionscontainer.h"
+#include "gromacs/trajectoryanalysis/analysissettings.h"
 #include "gromacs/utility/filestream.h"
 #include "gromacs/utility/loggerbuilder.h"
 
@@ -76,6 +83,11 @@ public:
 
 private:
     std::unique_ptr<LoggerOwner>    loggerOwner_;
+    AnalysisDataPlotSettings  plotSettings_;
+
+    std::string microstateDataFileName_;
+
+    AnalysisData microstates_;
 };
 
 MarkovModelModule::MarkovModelModule()
@@ -88,6 +100,19 @@ MarkovModelModule::MarkovModelModule()
 
 void MarkovModelModule::initOptions(IOptionsContainer* options, TrajectoryAnalysisSettings* settings)
 {
+    // TODO: Write documentation!
+    static const char* const desc[] = {
+        "[THISMODULE] shall be described here!"
+    };
+
+    settings->setHelpText(desc);
+
+    options->addOption(FileNameOption("microfe")
+                               .filetype(OptionFileType::Plot)
+                               .outputFile()
+                               .store(&microstateDataFileName_)
+                               .defaultBasename("microfe")
+                               .description("Free energies for each microstate"));
 }
 
 void MarkovModelModule::optionsFinished(TrajectoryAnalysisSettings* settings)
@@ -96,6 +121,7 @@ void MarkovModelModule::optionsFinished(TrajectoryAnalysisSettings* settings)
 
 void MarkovModelModule::initAnalysis(const TrajectoryAnalysisSettings& settings, const TopologyInformation& top)
 {
+    plotSettings_ = settings.plotSettings();
 }
 
 void MarkovModelModule::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* /* pbc */, TrajectoryAnalysisModuleData* /*pdata*/)
@@ -105,12 +131,26 @@ void MarkovModelModule::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* /* p
 
 void MarkovModelModule::finishAnalysis(int nframes)
 {
-// RUN ANALYSIS HERE
 }
 
 void MarkovModelModule::writeOutput()
 {
-// ALL FILE WRITING HERE
+
+    MarkovModel msm = MarkovModel(4);
+
+    // Write data relevant for microstates
+    registerAnalysisDataset(&microstates_, "Microstate IDs");
+
+    AnalysisDataPlotModulePointer plotm(new AnalysisDataPlotModule(plotSettings_));
+    plotm->setFileName(microstateDataFileName_);
+    plotm->setTitle("Free Energies");
+
+    microstates_.addModule(plotm);
+    microstates_.setDataSetCount(1);
+    microstates_.setColumnCount(0, 1);
+
+    AnalysisDataHandle dh = microstates_.startData({});
+
 }
 
 } // namespace
