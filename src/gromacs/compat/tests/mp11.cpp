@@ -83,9 +83,9 @@ TEST(TemplateMPTest, MpWithIndexInt)
 TEST(TemplateMPTest, MpWithIndexIntBad)
 {
     static constexpr int maxArgValue = 4;
-    int                  i           = maxArgValue;
+    int                  iArg        = maxArgValue;
     // Function requirement: i < maxArgValue
-    EXPECT_THROW(mp_with_index<maxArgValue>(i, [](auto i) { return testIncrement<i>(); }),
+    EXPECT_THROW(mp_with_index<maxArgValue>(iArg, [](auto i) { return testIncrement<i>(); }),
                  gmx::InternalError);
 }
 

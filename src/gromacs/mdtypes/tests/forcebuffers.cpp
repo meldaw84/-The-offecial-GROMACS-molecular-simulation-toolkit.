@@ -99,12 +99,12 @@ TEST(ForceBuffers, CopyWorks)
     ForceBuffers forceBuffers;
 
     forceBuffers.resize(2);
-    auto  force = forceBuffers.view().force();
-    Index i     = 0;
+    auto  force  = forceBuffers.view().force();
+    Index iForce = 0;
     for (RVec& v : force)
     {
-        v = c_forces[i];
-        i++;
+        v = c_forces[iForce];
+        iForce++;
     }
 
     ForceBuffers forceBuffersCopy;

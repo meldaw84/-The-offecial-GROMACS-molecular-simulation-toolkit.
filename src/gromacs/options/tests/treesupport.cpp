@@ -401,17 +401,12 @@ TEST_F(TreeValueSupportTest, SupportsDoubleOption)
 enum class TestEnum : int
 {
     Foo,
-    Bar
+    Bar,
+    Count
 };
 
 TEST_F(TreeValueSupportTest, SupportsEnumOption)
 {
-    enum class TestEnum : int
-    {
-        Foo,
-        Bar,
-        Count
-    };
     const gmx::EnumerationArray<TestEnum, const char*> testEnumNames = { { "foo", "bar" } };
     options_.addOption(gmx::EnumOption<TestEnum>("a").enumValue(testEnumNames).defaultValue(TestEnum::Foo));
     runTest();

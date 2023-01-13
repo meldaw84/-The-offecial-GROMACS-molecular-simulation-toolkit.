@@ -188,23 +188,25 @@ TYPED_TEST_SUITE(ArrayRefReadWriteTest, ArrayRefReadWriteTypes);
 
 TYPED_TEST(ArrayRefReadWriteTest, Assignment)
 {
-    constexpr int width = TestFixture::width;
+    constexpr int widthExpr = TestFixture::width;
 
-    alignas(width * sizeof(typename TestFixture::ElementType)) std::array<typename TestFixture::ElementType, width * 4> a;
+    alignas(widthExpr * sizeof(typename TestFixture::ElementType))
+            std::array<typename TestFixture::ElementType, widthExpr * 4>
+                    a;
 
     typename TestFixture::ArrayRefType arrayRef(a.data(), a.data() + a.size());
 
     arrayRef.front() = 1;
-    EXPECT_EQ(1, a[0 * width]);
+    EXPECT_EQ(1, a[0 * widthExpr]);
     (arrayRef.front() = 1) = 2;
-    EXPECT_EQ(2, a[0 * width]);
+    EXPECT_EQ(2, a[0 * widthExpr]);
 
     arrayRef[1] = 2;
-    EXPECT_EQ(2, a[1 * width]);
+    EXPECT_EQ(2, a[1 * widthExpr]);
     *(arrayRef.begin() + 2) = 3;
-    EXPECT_EQ(3, a[2 * width]);
+    EXPECT_EQ(3, a[2 * widthExpr]);
     arrayRef.back() = 4;
-    EXPECT_EQ(4, a[3 * width]);
+    EXPECT_EQ(4, a[3 * widthExpr]);
 }
 
 template<typename TypeParam>
@@ -220,20 +222,20 @@ TYPED_TEST_SUITE(ArrayRefArithmeticTest, ArrayRefArithmeticTypes);
 
 TYPED_TEST(ArrayRefArithmeticTest, Basic)
 {
-    constexpr int width = TestFixture::width;
+    constexpr int widthExpr = TestFixture::width;
 
-    alignas(width * sizeof(typename TestFixture::ElementType)) std::array<typename TestFixture::ElementType, width> a;
+    alignas(widthExpr * sizeof(typename TestFixture::ElementType)) std::array<typename TestFixture::ElementType, widthExpr> a;
 
     typename TestFixture::ArrayRefType arrayRef(a.data(), a.data() + a.size());
 
     arrayRef.front() = 1;
-    ASSERT_EQ(1, a[0 * width]);
+    ASSERT_EQ(1, a[0 * widthExpr]);
     arrayRef.front() += 1;
-    ASSERT_EQ(2, a[0 * width]);
+    ASSERT_EQ(2, a[0 * widthExpr]);
     arrayRef.front() *= 2;
-    ASSERT_EQ(4, a[0 * width]);
+    ASSERT_EQ(4, a[0 * widthExpr]);
     arrayRef.front() -= 3;
-    ASSERT_EQ(1, a[0 * width]);
+    ASSERT_EQ(1, a[0 * widthExpr]);
 }
 
 #    endif // GTEST_HAS_TYPED_TEST
