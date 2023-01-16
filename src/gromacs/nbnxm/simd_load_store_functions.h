@@ -54,6 +54,25 @@
 namespace gmx
 {
 
+template<int n>
+inline constexpr int log2()
+{
+    static_assert(n == 4 || n == 8 || n == 16);
+
+    if constexpr (n == 4)
+    {
+        return 2;
+    }
+    else if constexpr (n == 8)
+    {
+        return 3;
+    }
+    else
+    {
+        return 4;
+    }
+}
+
 //! Returns the j-cluster index for the given i-cluster index
 template<int iClusterSize, int jClusterSize>
 static inline int cjFromCi(const int iCluster)
@@ -70,11 +89,17 @@ static inline int cjFromCi(const int iCluster)
     {
         return (iCluster << 1);
     }
+    else
+    {
+        static_assert(jClusterSize >= 4 * iClusterSize);
+ 
+        return (iCluster >> log2<jClusterSize/iClusterSize>());
+    }
 }
 
 //! Load a single real for an i-atom into \p iRegister
 template<KernelLayout kernelLayout>
-inline std::enable_if_t<kernelLayout == KernelLayout::r4xM || kernelLayout == KernelLayout::r8xM, SimdReal>
+inline std::enable_if_t<kernelLayout != KernelLayout::r2xMM, SimdReal>
 loadIAtomData(const real* ptr, const int offset, const int iRegister)
 {
     return SimdReal(ptr[offset + iRegister]);
@@ -90,7 +115,7 @@ loadIAtomData(const real* ptr, const int offset, const int iRegister)
 
 //! Returns a SIMD register containing GMX_SIMD_REAL_WIDTH reals loaded from ptr + offset
 template<KernelLayout kernelLayout>
-inline std::enable_if_t<kernelLayout == KernelLayout::r4xM || kernelLayout == KernelLayout::r8xM, SimdReal>
+inline std::enable_if_t<kernelLayout != KernelLayout::r2xMM, SimdReal>
 loadJAtomData(const real* ptr, const int offset)
 {
     return load<SimdReal>(ptr + offset);
@@ -125,7 +150,7 @@ loadSimdPairInteractionMasks(const JClusterList::IMask excl, SimdBitMask* filter
 
 //! Loads interaction masks for a cluster pair for 4xM kernel layout
 template<bool loadMasks, KernelLayout kernelLayout>
-inline std::enable_if_t<loadMasks && (kernelLayout == KernelLayout::r4xM || kernelLayout == KernelLayout::r8xM),
+inline std::enable_if_t<loadMasks && (kernelLayout != KernelLayout::r2xMM),
                         std::array<SimdBool, c_iClusterSize(kernelLayout)>>
 loadSimdPairInteractionMasks(const JClusterList::IMask iMask, SimdBitMask* filterBitMasksV)
 {

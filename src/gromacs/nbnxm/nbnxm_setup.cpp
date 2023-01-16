@@ -117,6 +117,10 @@ static KernelSetup pick_nbnxn_kernel_cpu(const t_inputrec gmx_unused& inputrec,
         kernelSetup.kernelType         = KernelType::Cpu4x4_PlainC;
         kernelSetup.ewaldExclusionType = EwaldExclusionType::Table;
     }
+    else if (sc_haveNbnxmSimd2xmKernels)
+    {
+        kernelSetup.kernelType = KernelType::Cpu2xN_Simd_2xN;
+    }
     else if (sc_haveNbnxmSimd4xmKernels && !sc_haveNbnxmSimd2xmmKernels)
     {
         kernelSetup.kernelType = KernelType::Cpu4xN_Simd_4xN;
@@ -205,6 +209,7 @@ static KernelSetup pick_nbnxn_kernel_cpu(const t_inputrec gmx_unused& inputrec,
 
     if (kernelSetup.kernelType == KernelType::Cpu4xN_Simd_2xNN
         || kernelSetup.kernelType == KernelType::Cpu4xN_Simd_4xN
+        || kernelSetup.kernelType == KernelType::Cpu2xN_Simd_2xN
         || kernelSetup.kernelType == KernelType::Cpu8xN_Simd_8xN)
     {
         /* Analytical Ewald exclusion correction is only an option in
@@ -248,6 +253,7 @@ const char* lookup_kernel_name(const KernelType kernelType)
         case KernelType::Cpu4x4_PlainC: return "plain C";
         case KernelType::Cpu4xN_Simd_4xN:
         case KernelType::Cpu4xN_Simd_2xNN:
+        case KernelType::Cpu2xN_Simd_2xN:
         case KernelType::Cpu8xN_Simd_8xN:
 #if GMX_SIMD
             return "SIMD";

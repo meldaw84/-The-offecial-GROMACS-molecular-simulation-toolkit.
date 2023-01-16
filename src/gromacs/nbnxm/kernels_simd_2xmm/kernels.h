@@ -44,13 +44,7 @@ namespace gmx
 {
 enum class KernelCoulombType;
 
-template<KernelLayout         kernelLayout,
-         KernelCoulombType    coulombType,
-         bool                 haveVdwCutoffCheck,
-         LJCombinationRule    ljCombinationRule,
-         InteractionModifiers vdwModifier,
-         bool                 haveLJEwaldGeometric,
-         EnergyOutput         energyOutput>
+template<KernelLayout kernelLayout, KernelCoulombType coulombType, bool haveVdwCutoffCheck, LJCombinationRule ljCombinationRule, InteractionModifiers vdwModifier, bool haveLJEwaldGeometric, EnergyOutput energyOutput>
 void nbnxmKernelSimd(const NbnxnPairlistCpu*    nbl,
                      const nbnxn_atomdata_t*    nbat,
                      const interaction_const_t* ic,
@@ -70,21 +64,11 @@ extern template NbnxmKernelFunc
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::RF, false, LJCombinationRule::None, InteractionModifiers::PotSwitch, false, EnergyOutput::None>;
 extern template NbnxmKernelFunc
-                                nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::RF, false, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::None>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldTabulated,
-                                                false,
-                                                LJCombinationRule::Geometric,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::None>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldTabulated,
-                                                false,
-                                                LJCombinationRule::LorentzBerthelot,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::None>;
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::RF, false, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::None>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, false, LJCombinationRule::Geometric, InteractionModifiers::PotShift, false, EnergyOutput::None>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, false, LJCombinationRule::LorentzBerthelot, InteractionModifiers::PotShift, false, EnergyOutput::None>;
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, false, LJCombinationRule::None, InteractionModifiers::PotShift, false, EnergyOutput::None>;
 extern template NbnxmKernelFunc
@@ -94,14 +78,9 @@ extern template NbnxmKernelFunc
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, false, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::None>;
 extern template NbnxmKernelFunc
-                                nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, true, LJCombinationRule::Geometric, InteractionModifiers::PotShift, false, EnergyOutput::None>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldTabulated,
-                                                true,
-                                                LJCombinationRule::LorentzBerthelot,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::None>;
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, true, LJCombinationRule::Geometric, InteractionModifiers::PotShift, false, EnergyOutput::None>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, true, LJCombinationRule::LorentzBerthelot, InteractionModifiers::PotShift, false, EnergyOutput::None>;
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, true, LJCombinationRule::None, InteractionModifiers::PotShift, false, EnergyOutput::None>;
 extern template NbnxmKernelFunc
@@ -109,21 +88,11 @@ extern template NbnxmKernelFunc
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, true, LJCombinationRule::None, InteractionModifiers::PotSwitch, false, EnergyOutput::None>;
 extern template NbnxmKernelFunc
-                                nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, true, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::None>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldAnalytical,
-                                                false,
-                                                LJCombinationRule::Geometric,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::None>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldAnalytical,
-                                                false,
-                                                LJCombinationRule::LorentzBerthelot,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::None>;
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, true, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::None>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::Geometric, InteractionModifiers::PotShift, false, EnergyOutput::None>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::LorentzBerthelot, InteractionModifiers::PotShift, false, EnergyOutput::None>;
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::None, InteractionModifiers::PotShift, false, EnergyOutput::None>;
 extern template NbnxmKernelFunc
@@ -131,21 +100,11 @@ extern template NbnxmKernelFunc
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::None, InteractionModifiers::PotSwitch, false, EnergyOutput::None>;
 extern template NbnxmKernelFunc
-                                nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::None>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldAnalytical,
-                                                true,
-                                                LJCombinationRule::Geometric,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::None>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldAnalytical,
-                                                true,
-                                                LJCombinationRule::LorentzBerthelot,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::None>;
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::None>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, true, LJCombinationRule::Geometric, InteractionModifiers::PotShift, false, EnergyOutput::None>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, true, LJCombinationRule::LorentzBerthelot, InteractionModifiers::PotShift, false, EnergyOutput::None>;
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, true, LJCombinationRule::None, InteractionModifiers::PotShift, false, EnergyOutput::None>;
 extern template NbnxmKernelFunc
@@ -166,21 +125,11 @@ extern template NbnxmKernelFunc
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::RF, false, LJCombinationRule::None, InteractionModifiers::PotSwitch, false, EnergyOutput::System>;
 extern template NbnxmKernelFunc
-                                nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::RF, false, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::System>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldTabulated,
-                                                false,
-                                                LJCombinationRule::Geometric,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::System>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldTabulated,
-                                                false,
-                                                LJCombinationRule::LorentzBerthelot,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::System>;
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::RF, false, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::System>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, false, LJCombinationRule::Geometric, InteractionModifiers::PotShift, false, EnergyOutput::System>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, false, LJCombinationRule::LorentzBerthelot, InteractionModifiers::PotShift, false, EnergyOutput::System>;
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, false, LJCombinationRule::None, InteractionModifiers::PotShift, false, EnergyOutput::System>;
 extern template NbnxmKernelFunc
@@ -188,21 +137,11 @@ extern template NbnxmKernelFunc
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, false, LJCombinationRule::None, InteractionModifiers::PotSwitch, false, EnergyOutput::System>;
 extern template NbnxmKernelFunc
-                                nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, false, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::System>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldTabulated,
-                                                true,
-                                                LJCombinationRule::Geometric,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::System>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldTabulated,
-                                                true,
-                                                LJCombinationRule::LorentzBerthelot,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::System>;
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, false, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::System>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, true, LJCombinationRule::Geometric, InteractionModifiers::PotShift, false, EnergyOutput::System>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, true, LJCombinationRule::LorentzBerthelot, InteractionModifiers::PotShift, false, EnergyOutput::System>;
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, true, LJCombinationRule::None, InteractionModifiers::PotShift, false, EnergyOutput::System>;
 extern template NbnxmKernelFunc
@@ -210,21 +149,11 @@ extern template NbnxmKernelFunc
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, true, LJCombinationRule::None, InteractionModifiers::PotSwitch, false, EnergyOutput::System>;
 extern template NbnxmKernelFunc
-                                nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, true, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::System>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldAnalytical,
-                                                false,
-                                                LJCombinationRule::Geometric,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::System>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldAnalytical,
-                                                false,
-                                                LJCombinationRule::LorentzBerthelot,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::System>;
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, true, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::System>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::Geometric, InteractionModifiers::PotShift, false, EnergyOutput::System>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::LorentzBerthelot, InteractionModifiers::PotShift, false, EnergyOutput::System>;
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::None, InteractionModifiers::PotShift, false, EnergyOutput::System>;
 extern template NbnxmKernelFunc
@@ -232,21 +161,11 @@ extern template NbnxmKernelFunc
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::None, InteractionModifiers::PotSwitch, false, EnergyOutput::System>;
 extern template NbnxmKernelFunc
-                                nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::System>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldAnalytical,
-                                                true,
-                                                LJCombinationRule::Geometric,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::System>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldAnalytical,
-                                                true,
-                                                LJCombinationRule::LorentzBerthelot,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::System>;
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::System>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, true, LJCombinationRule::Geometric, InteractionModifiers::PotShift, false, EnergyOutput::System>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, true, LJCombinationRule::LorentzBerthelot, InteractionModifiers::PotShift, false, EnergyOutput::System>;
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, true, LJCombinationRule::None, InteractionModifiers::PotShift, false, EnergyOutput::System>;
 extern template NbnxmKernelFunc
@@ -267,21 +186,11 @@ extern template NbnxmKernelFunc
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::RF, false, LJCombinationRule::None, InteractionModifiers::PotSwitch, false, EnergyOutput::GroupPairs>;
 extern template NbnxmKernelFunc
-                                nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::RF, false, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::GroupPairs>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldTabulated,
-                                                false,
-                                                LJCombinationRule::Geometric,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::GroupPairs>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldTabulated,
-                                                false,
-                                                LJCombinationRule::LorentzBerthelot,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::GroupPairs>;
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::RF, false, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::GroupPairs>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, false, LJCombinationRule::Geometric, InteractionModifiers::PotShift, false, EnergyOutput::GroupPairs>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, false, LJCombinationRule::LorentzBerthelot, InteractionModifiers::PotShift, false, EnergyOutput::GroupPairs>;
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, false, LJCombinationRule::None, InteractionModifiers::PotShift, false, EnergyOutput::GroupPairs>;
 extern template NbnxmKernelFunc
@@ -289,21 +198,11 @@ extern template NbnxmKernelFunc
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, false, LJCombinationRule::None, InteractionModifiers::PotSwitch, false, EnergyOutput::GroupPairs>;
 extern template NbnxmKernelFunc
-                                nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, false, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::GroupPairs>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldTabulated,
-                                                true,
-                                                LJCombinationRule::Geometric,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::GroupPairs>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldTabulated,
-                                                true,
-                                                LJCombinationRule::LorentzBerthelot,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::GroupPairs>;
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, false, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::GroupPairs>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, true, LJCombinationRule::Geometric, InteractionModifiers::PotShift, false, EnergyOutput::GroupPairs>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, true, LJCombinationRule::LorentzBerthelot, InteractionModifiers::PotShift, false, EnergyOutput::GroupPairs>;
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, true, LJCombinationRule::None, InteractionModifiers::PotShift, false, EnergyOutput::GroupPairs>;
 extern template NbnxmKernelFunc
@@ -311,48 +210,23 @@ extern template NbnxmKernelFunc
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, true, LJCombinationRule::None, InteractionModifiers::PotSwitch, false, EnergyOutput::GroupPairs>;
 extern template NbnxmKernelFunc
-                                nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, true, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::GroupPairs>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldAnalytical,
-                                                false,
-                                                LJCombinationRule::Geometric,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::GroupPairs>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldAnalytical,
-                                                false,
-                                                LJCombinationRule::LorentzBerthelot,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::GroupPairs>;
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldTabulated, true, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::GroupPairs>;
 extern template NbnxmKernelFunc
-                                nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::None, InteractionModifiers::PotShift, false, EnergyOutput::GroupPairs>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldAnalytical,
-                                                false,
-                                                LJCombinationRule::None,
-                                                InteractionModifiers::ForceSwitch,
-                                                false,
-                                                EnergyOutput::GroupPairs>;
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::Geometric, InteractionModifiers::PotShift, false, EnergyOutput::GroupPairs>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::LorentzBerthelot, InteractionModifiers::PotShift, false, EnergyOutput::GroupPairs>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::None, InteractionModifiers::PotShift, false, EnergyOutput::GroupPairs>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::None, InteractionModifiers::ForceSwitch, false, EnergyOutput::GroupPairs>;
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::None, InteractionModifiers::PotSwitch, false, EnergyOutput::GroupPairs>;
 extern template NbnxmKernelFunc
-                                nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::GroupPairs>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldAnalytical,
-                                                true,
-                                                LJCombinationRule::Geometric,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::GroupPairs>;
-extern template NbnxmKernelFunc nbnxmKernelSimd<KernelLayout::r2xMM,
-                                                KernelCoulombType::EwaldAnalytical,
-                                                true,
-                                                LJCombinationRule::LorentzBerthelot,
-                                                InteractionModifiers::PotShift,
-                                                false,
-                                                EnergyOutput::GroupPairs>;
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, false, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::GroupPairs>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, true, LJCombinationRule::Geometric, InteractionModifiers::PotShift, false, EnergyOutput::GroupPairs>;
+extern template NbnxmKernelFunc
+        nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, true, LJCombinationRule::LorentzBerthelot, InteractionModifiers::PotShift, false, EnergyOutput::GroupPairs>;
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, true, LJCombinationRule::None, InteractionModifiers::PotShift, false, EnergyOutput::GroupPairs>;
 extern template NbnxmKernelFunc
@@ -361,6 +235,7 @@ extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, true, LJCombinationRule::None, InteractionModifiers::PotSwitch, false, EnergyOutput::GroupPairs>;
 extern template NbnxmKernelFunc
         nbnxmKernelSimd<KernelLayout::r2xMM, KernelCoulombType::EwaldAnalytical, true, LJCombinationRule::None, InteractionModifiers::PotShift, true, EnergyOutput::GroupPairs>;
+
 
 
 #ifdef INCLUDE_KERNELFUNCTION_TABLES

@@ -223,6 +223,7 @@ enum class KernelType : int
     Cpu4x4_PlainC,
     Cpu4xN_Simd_4xN,
     Cpu4xN_Simd_2xNN,
+    Cpu2xN_Simd_2xN,
     Cpu8xN_Simd_8xN,
     Gpu8x8x8,
     Cpu8x8x8_PlainC,

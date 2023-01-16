@@ -64,6 +64,7 @@ enum class NbnxnLayout
     NoSimd4x4, //!< i-cluster size 4, j-cluster size 4
     Simd4xN,   //!< i-cluster size 4, j-cluster size SIMD width
     Simd2xNN,  //!< i-cluster size 4, j-cluster size half SIMD width
+    Simd2xN,   //!< i-cluster size 2, j-cluster size SIMD width
     Simd8xN,   //!< i-cluster size 8, j-cluster size SIMD width
     Gpu8x8x8   //!< i-cluster size 8, j-cluster size 8 + super-clustering
 };
@@ -76,6 +77,7 @@ static constexpr int c_iClusterSize(const NbnxnLayout nbnxmLayout)
         case NbnxnLayout::NoSimd4x4:
         case NbnxnLayout::Simd4xN:
         case NbnxnLayout::Simd2xNN: return 4;
+        case NbnxnLayout::Simd2xN: return 2;
         case NbnxnLayout::Simd8xN:
         case NbnxnLayout::Gpu8x8x8: return 8;
     }
@@ -90,6 +92,7 @@ static constexpr int c_jClusterSize(const NbnxnLayout nbnxmLayout)
 #if GMX_SIMD
         case NbnxnLayout::Simd4xN: return GMX_SIMD_REAL_WIDTH;
         case NbnxnLayout::Simd2xNN: return GMX_SIMD_REAL_WIDTH / 2;
+        case NbnxnLayout::Simd2xN: return GMX_SIMD_REAL_WIDTH;
         case NbnxnLayout::Simd8xN: return GMX_SIMD_REAL_WIDTH;
 #else
         case NbnxnLayout::Simd4xN:
@@ -152,6 +155,7 @@ enum class PairlistType : int
     Simple4x2,
     Simple4x4,
     Simple4x8,
+    Simple2x32,
     Simple8x4,
     Simple8x8,
     HierarchicalNxN,
@@ -160,15 +164,15 @@ enum class PairlistType : int
 
 //! Gives the i-cluster size for each pairlist type
 static constexpr gmx::EnumerationArray<PairlistType, int> IClusterSizePerListType = {
-    { 4, 4, 4, 8, 8, c_nbnxnGpuClusterSize }
+    { 4, 4, 4, 2, 8, 8, c_nbnxnGpuClusterSize }
 };
 //! Gives the j-cluster size for each pairlist type
 static constexpr gmx::EnumerationArray<PairlistType, int> JClusterSizePerListType = {
-    { 2, 4, 8, 4, 8, c_nbnxnGpuClusterSize }
+    { 2, 4, 8, 32, 4, 8, c_nbnxnGpuClusterSize }
 };
 //! True if given pairlist type is used on GPU, false if on CPU.
 static constexpr gmx::EnumerationArray<PairlistType, bool> sc_isGpuPairListType = {
-    { false, false, false, false, false, true }
+    { false, false, false, false, false, false, true }
 };
 
 /*! \internal

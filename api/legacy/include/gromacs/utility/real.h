@@ -128,8 +128,8 @@
  * \brief The maximum supported number of `real` elements in a SIMD register.
  */
 
-#define GMX_FLOAT_MAX_SIMD_WIDTH 16
-#define GMX_DOUBLE_MAX_SIMD_WIDTH 8
+#define GMX_FLOAT_MAX_SIMD_WIDTH 32
+#define GMX_DOUBLE_MAX_SIMD_WIDTH 16
 
 #if GMX_DOUBLE
 

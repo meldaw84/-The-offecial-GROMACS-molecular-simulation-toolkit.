@@ -56,6 +56,7 @@ enum class ClusterDistanceKernelType : int
     CpuPlainC,    //!< Plain-C for CPU list
     CpuSimd_4xM,  //!< SIMD for CPU list for i-cluster size 4, j-cluster size SIMD width
     CpuSimd_2xMM, //!< SIMD for CPU list for i-cluster size 4, j-cluster size half the SIMD width
+    CpuSimd_2xM,  //!< SIMD for CPU list for i-cluster size 2, j-cluster size SIMD width
     CpuSimd_8xM,  //!< SIMD for CPU list for i-cluster size 8, j-cluster size SIMD width
     Gpu           //!< For GPU list, can be either plain-C or SIMD
 };

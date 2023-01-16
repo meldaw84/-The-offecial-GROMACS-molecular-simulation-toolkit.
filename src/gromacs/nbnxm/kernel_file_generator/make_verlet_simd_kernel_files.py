@@ -156,6 +156,10 @@ VerletKernelTypeDict = {
         "param": "KernelLayout::r4xM",
         "define": "GMX_HAVE_NBNXM_SIMD_4XM",
     },
+    "2xm": {
+        "param": "KernelLayout::r2xM",
+        "define": "GMX_HAVE_NBNXM_SIMD_2XM",
+    },
     "8xm": {
         "param": "KernelLayout::r8xM",
         "define": "GMX_HAVE_NBNXM_SIMD_8XM",
