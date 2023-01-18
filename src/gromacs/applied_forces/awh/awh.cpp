@@ -83,6 +83,16 @@
 namespace gmx
 {
 
+static FreeEnergyPerturbationCouplingType lambdaComponentFromAwhDim(int awhDim)
+{
+    return awhDim == 0 ? FreeEnergyPerturbationCouplingType::Vdw : FreeEnergyPerturbationCouplingType::Coul;
+}
+
+static int awhDimFromLambdaComponent(FreeEnergyPerturbationCouplingType lambdaComponent)
+{
+    return lambdaComponent == FreeEnergyPerturbationCouplingType::Vdw ? 0 : 1;
+}
+
 /*! \internal
  * \brief A bias and its coupling to the system.
  *
@@ -154,15 +164,15 @@ Awh::Awh(FILE*                 fplog,
          const AwhParams&      awhParams,
          const std::string&    biasInitFilename,
          pull_t*               pull_work,
-         int                   numFepLambdaStates,
-         int                   fepLambdaState) :
+         ArrayRef<const int>   numFepLambdaStates,
+         ArrayRef<const int>   fepLambdaState) :
     seed_(awhParams.seed()),
     nstout_(awhParams.nstout()),
     commRecord_(commRecord),
     pull_(pull_work),
     potentialOffset_(0),
-    numFepLambdaStates_(numFepLambdaStates),
-    fepLambdaState_(fepLambdaState)
+    numFepLambdaStates_(numFepLambdaStates.begin(), numFepLambdaStates.end()),
+    fepLambdaState_(fepLambdaState.begin(), fepLambdaState.end())
 {
     if (anyDimUsesProvider(awhParams, AwhCoordinateProviderType::Pull))
     {
@@ -258,7 +268,7 @@ Awh::Awh(FILE*                 fplog,
             }
             else
             {
-                dimParams.push_back(DimParams::fepLambdaDimParams(numFepLambdaStates_, beta));
+                dimParams.push_back(DimParams::fepLambdaDimParams(numFepLambdaStates_[static_cast<int>(lambdaComponentFromAwhDim(k))], beta));
             }
         }
 
@@ -338,7 +348,7 @@ real Awh::applyBiasForcesAndUpdateBias(PbcType                  pbcType,
             }
             else
             {
-                coordValue[d] = fepLambdaState_;
+                coordValue[d] = fepLambdaState_[static_cast<int>(lambdaComponentFromAwhDim(d))];
                 numLambdaDimsCounted += 1;
             }
         }
@@ -382,7 +392,7 @@ real Awh::applyBiasForcesAndUpdateBias(PbcType                  pbcType,
             else
             {
                 int umbrellaGridpointIndex = biasCts.bias_.state().coordState().umbrellaGridpoint();
-                fepLambdaState_ = biasCts.bias_.getGridCoordValue(umbrellaGridpointIndex)[d];
+                fepLambdaState_[static_cast<int>(lambdaComponentFromAwhDim(d))] = biasCts.bias_.getGridCoordValue(umbrellaGridpointIndex)[d];
                 numLambdaDimsCounted += 1;
             }
         }
@@ -587,6 +597,9 @@ std::unique_ptr<Awh> prepareAwhModule(FILE*                 fplog,
         GMX_THROW(InvalidInputError("AWH biasing does not support shell particles."));
     }
 
+    static std::vector<int> numLambdas = { inputRecord.fepvals->n_lambda, inputRecord.fepvals->n_lambda };
+    static std::vector<int> initFepState = { inputRecord.fepvals->init_fep_state, inputRecord.fepvals->init_fep_state };
+
     auto awh = std::make_unique<Awh>(fplog,
                                      inputRecord,
                                      commRecord,
@@ -594,8 +607,8 @@ std::unique_ptr<Awh> prepareAwhModule(FILE*                 fplog,
                                      *inputRecord.awhParams,
                                      biasInitFilename,
                                      pull_work,
-                                     inputRecord.fepvals->n_lambda,
-                                     inputRecord.fepvals->init_fep_state);
+                                     numLambdas,
+                                     initFepState);
 
     if (startingFromCheckpoint)
     {

@@ -249,9 +249,8 @@ void global_stat(const gmx_global_stat&   gs,
             idvdlnl = add_bind(rb, enerd->dvdl_nonlin);
             if (enerd->foreignLambdaTerms.numLambdas() > 0)
             {
-                iepl = add_bind(rb,
-                                enerd->foreignLambdaTerms.energies().size(),
-                                enerd->foreignLambdaTerms.energies().data());
+                const auto energies = enerd->foreignLambdaTerms.energies();
+                iepl = add_bind(rb, energies.size(), energies.data());
             }
         }
     }

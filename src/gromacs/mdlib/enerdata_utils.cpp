@@ -62,6 +62,21 @@ ForeignLambdaTerms::ForeignLambdaTerms(
     }
 }
 
+std::vector<double> ForeignLambdaTerms::energies() const
+{
+    std::vector<double> energies(1 + numLambdas_);
+
+    for (int i = 0; i < 1 + numLambdas_; i++)
+    {
+        for (auto comp : energies_[i])
+        {
+            energies[i] += comp;
+        }
+    }
+
+    return energies;
+}
+
 /*! \brief Composes dH/dlambda for the given lambda point \p lambdaIndex
  *
  * Different lambda components can be changed during different legs
@@ -123,14 +138,28 @@ const ForeignEnergyRefs* ForeignLambdaTerms::getTerms(const t_commrec* cr)
 
     if (reduceAndReturnBuffer_.empty())
     {
+        const int numComponents = static_cast<int>(FreeEnergyPerturbationCouplingType::Count);
+
+#if 0
         reduceAndReturnBuffer_.resize(2 * numLambdas_);
 
         foreignEnergyRefs_.energies[0] = gmx::constArrayRefFromArray(reduceAndReturnBuffer_.data(), numLambdas_);
         foreignEnergyRefs_.dhdl[0]     = gmx::constArrayRefFromArray(reduceAndReturnBuffer_.data() + numLambdas_, numLambdas_);
+#else
+        reduceAndReturnBuffer_.resize(numComponents * 2 * numLambdas_);
+
+        for (auto fepct : gmx::EnumerationWrapper<FreeEnergyPerturbationCouplingType>{})
+        {
+            const gmx::Index i = static_cast<int>(fepct);
+
+            foreignEnergyRefs_.energies[i] = gmx::constArrayRefFromArray(reduceAndReturnBuffer_.data() + (2 * i + 0) * numLambdas_, numLambdas_);
+            foreignEnergyRefs_.dhdl[i]     = gmx::constArrayRefFromArray(reduceAndReturnBuffer_.data() + (2 * i + 1) * numLambdas_, numLambdas_);
+        }
     }
+#endif
     for (int i = 0; i < numLambdas_; i++)
     {
-        reduceAndReturnBuffer_[i]               = energies_[1 + i] - energies_[0];
+        reduceAndReturnBuffer_[i]               = deltaH(i);
         reduceAndReturnBuffer_[numLambdas_ + i] = composeDhdl(i, *allLambdas_, dhdl_[1 + i]);
     }
     if (cr && cr->nnodes > 1)
@@ -143,7 +172,10 @@ const ForeignEnergyRefs* ForeignLambdaTerms::getTerms(const t_commrec* cr)
 
 void ForeignLambdaTerms::zeroAllTerms()
 {
-    std::fill(energies_.begin(), energies_.end(), 0.0);
+    for (auto& energies : energies_)
+    {
+        std::fill(energies.begin(), energies.end(), 0.0);
+    }
     for (auto& dhdl : dhdl_)
     {
         std::fill(dhdl.begin(), dhdl.end(), 0.0);
@@ -290,7 +322,8 @@ void ForeignLambdaTerms::finalizePotentialContributions(
 
             enerpart_lambda += dlam * dvdlLinear[j];
         }
-        accumulate(1 + i, enerpart_lambda, gmx::EnumerationArray<FreeEnergyPerturbationCouplingType, real>());
+#warning "Check coupling type for accumulation"
+        accumulate(1 + i, FreeEnergyPerturbationCouplingType::Fep, enerpart_lambda, 0.0);
     }
 
     finalizedPotentialContributions_ = true;
@@ -318,7 +351,7 @@ void accumulatePotentialEnergies(gmx_enerdata_t* enerd, gmx::ArrayRef<const real
 
 void ForeignLambdaTerms::accumulateKinetic(int listIndex, double energy, double dhdl)
 {
-    energies_[listIndex] += energy;
+    energies_[listIndex][FreeEnergyPerturbationCouplingType::Temperature] += energy;
     dhdl_[listIndex][FreeEnergyPerturbationCouplingType::Temperature] += dhdl;
 }
 

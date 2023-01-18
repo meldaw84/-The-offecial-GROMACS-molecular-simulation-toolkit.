@@ -98,8 +98,19 @@ public:
     int numLambdas() const { return numLambdas_; }
 
     //! Returns the H(lambdaIndex) - H(lambda_current)
-    double deltaH(int lambdaIndex) const { return energies_[1 + lambdaIndex] - energies_[0]; }
+    double deltaH(int lambdaIndex) const
+    {
+        double d = 0;
+        
+        for (auto i : gmx::EnumerationWrapper<FreeEnergyPerturbationCouplingType>{})
+        {
+            d += energies_[1 + lambdaIndex][i] - energies_[0][i];
+        }
 
+        return d;
+    }
+
+#if 0
     /*! \brief Returns a list of partial energies, the part which depends on lambda),
      * current lambda in entry 0, foreign lambda i in entry 1+i
      *
@@ -108,21 +119,18 @@ public:
     gmx::ArrayRef<double> energies()
     {
         GMX_ASSERT(finalizedPotentialContributions_, "Should be finalized");
-        return energies_;
+        return energiesAndDhdl_.energies;
     }
+#endif
 
     /*! \brief Returns a list of partial energies, the part which depends on lambda),
      * current lambda in entry 0, foreign lambda i in entry 1+i
      *
      * Note: the potential terms needs to be finalized before calling this method.
      */
-    gmx::ArrayRef<const double> energies() const
-    {
-        GMX_ASSERT(finalizedPotentialContributions_, "Should be finalized");
-        return energies_;
-    }
+    std::vector<double> energies() const;
 
-    /*! \brief Adds an energy and dV/dl constribution to lambda list index \p listIndex
+    /*! \brief Adds an energy and dV/dl contribution to lambda list index \p listIndex
      *
      * This should only be used for terms with non-linear dependence on lambda
      * The value passed as listIndex should be 0 for the current lambda
@@ -133,28 +141,8 @@ public:
         GMX_ASSERT(!finalizedPotentialContributions_,
                    "Can only accumulate with an unfinalized object");
 
-        energies_[listIndex] += energy;
+        energies_[listIndex][couplingType] += energy;
         dhdl_[listIndex][couplingType] += dvdl;
-    }
-
-    /*! \brief Adds an energy and dV/dl constribution to lambda list index \p listIndex
-     *
-     * This should only be used for terms with non-linear dependence on lambda
-     * The value passed as listIndex should be 0 for the current lambda
-     * and 1+i for foreign lambda index i.
-     */
-    void accumulate(int    listIndex,
-                    double energy,
-                    const gmx::EnumerationArray<FreeEnergyPerturbationCouplingType, real>& dvdl)
-    {
-        GMX_ASSERT(!finalizedPotentialContributions_,
-                   "Can only accumulate with an unfinalized object");
-
-        energies_[listIndex] += energy;
-        for (auto fepct : gmx::EnumerationWrapper<FreeEnergyPerturbationCouplingType>{})
-        {
-            dhdl_[listIndex][fepct] += dvdl[fepct];
-        }
     }
 
     /*! \brief Finalizes the potential (non-kinetic) terms
@@ -209,7 +197,7 @@ private:
     //! The lambda vectors for all components
     const gmx::EnumerationArray<FreeEnergyPerturbationCouplingType, std::vector<double>>* allLambdas_;
     //! Storage for foreign lambda energies
-    std::vector<double> energies_;
+    std::vector<gmx::EnumerationArray<FreeEnergyPerturbationCouplingType, double>> energies_;
     //! Storage for foreign lambda dH/dlambda
     std::vector<gmx::EnumerationArray<FreeEnergyPerturbationCouplingType, double>> dhdl_;
     //! Tells whether all potential energy contributions have been accumulated

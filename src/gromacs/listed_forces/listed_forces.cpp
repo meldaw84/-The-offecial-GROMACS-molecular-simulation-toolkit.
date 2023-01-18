@@ -795,7 +795,9 @@ void ListedForces::calculate(struct gmx_wallcycle*                     wcycle,
                                    fcdata,
                                    global_atom_index);
                 sum_epot(*foreignEnergyGroups_, foreign_term.data());
-                enerd->foreignLambdaTerms.accumulate(i, foreign_term[F_EPOT], dvdl);
+#warning "fix decomposition"
+                enerd->foreignLambdaTerms.accumulate(i, FreeEnergyPerturbationCouplingType::Bonded, foreign_term[F_EPOT], dvdl[FreeEnergyPerturbationCouplingType::Bonded]);
+                enerd->foreignLambdaTerms.accumulate(i, FreeEnergyPerturbationCouplingType::Restraint, 0, dvdl[FreeEnergyPerturbationCouplingType::Restraint]);
                 std::fill(std::begin(dvdl), std::end(dvdl), 0.0);
             }
             wallcycle_sub_stop(wcycle, WallCycleSubCounter::ListedFep);

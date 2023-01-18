@@ -69,6 +69,7 @@
 #include <vector>
 
 #include "gromacs/math/vectypes.h"
+#include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/basedefinitions.h"
 
 struct ForeignEnergyRefs;
@@ -137,8 +138,8 @@ public:
         const AwhParams&      awhParams,
         const std::string&    biasInitFilename,
         pull_t*               pull_work,
-        int                   numLambdaStates,
-        int                   lambdaState);
+        ArrayRef<const int>   numLambdaStates,
+        ArrayRef<const int>   lambdaState);
 
     ~Awh();
 
@@ -240,7 +241,7 @@ public:
     /*! \brief Get the current free energy lambda state.
      * \returns The value of lambdaState_.
      */
-    int fepLambdaState() const { return fepLambdaState_; }
+    ArrayRef<const int> fepLambdaState() const { return fepLambdaState_; }
 
     /*! \brief Returns if foreign energy differences are required during this step.
      * \param[in]     step             The current MD step.
@@ -266,8 +267,8 @@ private:
     std::unique_ptr<BiasSharing> biasSharing_;
     pull_t*                      pull_; /**< Pointer to the pull working data. */
     double potentialOffset_; /**< The offset of the bias potential which changes due to bias updates. */
-    const int numFepLambdaStates_; /**< The number of free energy lambda states of the system. */
-    int       fepLambdaState_;     /**< The current free energy lambda state. */
+    std::vector<int> numFepLambdaStates_; /**< The number of free energy lambda states of the system. */
+    std::vector<int> fepLambdaState_;     /**< The current free energy lambda state. */
 };
 
 /*! \brief Makes an Awh and prepares to use it if the user input

@@ -883,7 +883,9 @@ void gmx::LegacySimulator::do_md()
         t         = t0 + step * ir->delta_t;
 
         // TODO Refactor this, so that nstfep does not need a default value of zero
-        if (ir->efep != FreeEnergyPerturbationType::No || ir->bSimTemp)
+#warning "fix"
+        //if (ir->efep != FreeEnergyPerturbationType::No || ir->bSimTemp)
+        if (0)
         {
             /* find and set the current lambdas */
             state->lambda = currentLambdas(step, *(ir->fepvals), state->fep_state);
@@ -1973,7 +1975,10 @@ void gmx::LegacySimulator::do_md()
         }
         else if (ir->bDoAwh && awh->needForeignEnergyDifferences(step))
         {
-            state->fep_state = awh->fepLambdaState();
+#warning "fix"
+            //state->fep_state = awh->fepLambdaState();
+            const auto newFepLambdaState = awh->fepLambdaState();
+            std::copy(newFepLambdaState.begin(), newFepLambdaState.end(), state->lambda.begin());
         }
         /* Print the remaining wall clock time for the run */
         if (isMainSimMainRank(ms, MAIN(cr)) && (do_verbose || gmx_got_usr_signal()) && !bPMETunePrinting)
