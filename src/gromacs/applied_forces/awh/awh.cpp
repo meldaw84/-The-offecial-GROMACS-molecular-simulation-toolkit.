@@ -301,14 +301,13 @@ bool Awh::isOutputStep(int64_t step) const
     return (nstout_ > 0 && step % nstout_ == 0);
 }
 
-real Awh::applyBiasForcesAndUpdateBias(PbcType                pbcType,
-                                       ArrayRef<const double> neighborLambdaEnergies,
-                                       ArrayRef<const double> neighborLambdaDhdl,
-                                       const matrix           box,
-                                       double                 t,
-                                       int64_t                step,
-                                       gmx_wallcycle*         wallcycle,
-                                       FILE*                  fplog)
+real Awh::applyBiasForcesAndUpdateBias(PbcType                  pbcType,
+                                       const ForeignEnergyRefs* foreignEnergyRefs,
+                                       const matrix             box,
+                                       double                   t,
+                                       int64_t                  step,
+                                       gmx_wallcycle*           wallcycle,
+                                       FILE*                    fplog)
 {
     wallcycle_start(wallcycle, WallCycleCounter::Awh);
 
@@ -355,8 +354,7 @@ real Awh::applyBiasForcesAndUpdateBias(PbcType                pbcType,
          */
         gmx::ArrayRef<const double> biasForce =
                 biasCts.bias_.calcForceAndUpdateBias(coordValue,
-                                                     neighborLambdaEnergies,
-                                                     neighborLambdaDhdl,
+                                                     foreignEnergyRefs,
                                                      &biasPotential,
                                                      &biasPotentialJump,
                                                      t,

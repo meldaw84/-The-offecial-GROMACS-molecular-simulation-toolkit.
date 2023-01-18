@@ -182,7 +182,7 @@ double biasedLogWeightFromPoint(ArrayRef<const DimParams>  dimParams,
                                 int                        pointIndex,
                                 double                     pointBias,
                                 const awh_dvec             value,
-                                ArrayRef<const double>     neighborLambdaEnergies,
+                                ArrayRef<const ArrayRef<const double>> neighborLambdaEnergies,
                                 int                        gridpointIndex)
 {
     double logWeight = detail::c_largeNegativeExponent;
@@ -197,6 +197,8 @@ double biasedLogWeightFromPoint(ArrayRef<const DimParams>  dimParams,
         {
             if (dimParams[d].isFepLambdaDimension())
             {
+#warning "fix this index"
+                const int lambdaIndex = 0;
                 /* If this is not a sampling step or if this function is called from
                  * calcConvolvedBias(), when writing energy subblocks, neighborLambdaEnergies will
                  * be empty. No convolution is required along the lambda dimension. */
@@ -205,8 +207,8 @@ double biasedLogWeightFromPoint(ArrayRef<const DimParams>  dimParams,
                     const int pointLambdaIndex     = grid.point(pointIndex).coordValue[d];
                     const int gridpointLambdaIndex = grid.point(gridpointIndex).coordValue[d];
                     logWeight -= dimParams[d].fepDimParams().beta
-                                 * (neighborLambdaEnergies[pointLambdaIndex]
-                                    - neighborLambdaEnergies[gridpointLambdaIndex]);
+                                 * (neighborLambdaEnergies[lambdaIndex][pointLambdaIndex]
+                                    - neighborLambdaEnergies[lambdaIndex][gridpointLambdaIndex]);
                 }
             }
             else
@@ -435,7 +437,7 @@ int BiasState::warnForHistogramAnomalies(const BiasGrid& grid, int biasIndex, do
 double BiasState::calcUmbrellaForceAndPotential(ArrayRef<const DimParams> dimParams,
                                                 const BiasGrid&           grid,
                                                 int                       point,
-                                                ArrayRef<const double>    neighborLambdaDhdl,
+                                                ArrayRef<const ArrayRef<const double>> neighborLambdaDhdl,
                                                 ArrayRef<double>          force) const
 {
     double potential = 0;
@@ -444,10 +446,12 @@ double BiasState::calcUmbrellaForceAndPotential(ArrayRef<const DimParams> dimPar
         if (dimParams[d].isFepLambdaDimension())
         {
             /* The force we set here is only used for computing the friction metric */
+#warning "fix this index"
+            const int lambdaIndex = 0;
             if (!neighborLambdaDhdl.empty())
             {
                 const int coordpointLambdaIndex = grid.point(point).coordValue[d];
-                force[d]                        = neighborLambdaDhdl[coordpointLambdaIndex];
+                force[d]                        = neighborLambdaDhdl[lambdaIndex][coordpointLambdaIndex];
                 /* The potential should not be affected by the lambda dimension. */
             }
         }
@@ -469,7 +473,7 @@ double BiasState::calcUmbrellaForceAndPotential(ArrayRef<const DimParams> dimPar
 void BiasState::calcConvolvedForce(ArrayRef<const DimParams> dimParams,
                                    const BiasGrid&           grid,
                                    ArrayRef<const double>    probWeightNeighbor,
-                                   ArrayRef<const double>    neighborLambdaDhdl,
+                                   ArrayRef<const ArrayRef<const double>> neighborLambdaDhdl,
                                    ArrayRef<double>          forceWorkBuffer,
                                    ArrayRef<double>          force) const
 {
@@ -500,7 +504,7 @@ void BiasState::calcConvolvedForce(ArrayRef<const DimParams> dimParams,
 double BiasState::moveUmbrella(ArrayRef<const DimParams> dimParams,
                                const BiasGrid&           grid,
                                ArrayRef<const double>    probWeightNeighbor,
-                               ArrayRef<const double>    neighborLambdaDhdl,
+                               ArrayRef<const ArrayRef<const double>> neighborLambdaDhdl,
                                ArrayRef<double>          biasForce,
                                int64_t                   step,
                                int64_t                   seed,
@@ -1219,7 +1223,7 @@ void BiasState::updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParam
 
 double BiasState::updateProbabilityWeightsAndConvolvedBias(ArrayRef<const DimParams> dimParams,
                                                            const BiasGrid&           grid,
-                                                           ArrayRef<const double> neighborLambdaEnergies,
+                                                           ArrayRef<const ArrayRef<const double>> neighborLambdaEnergies,
                                                            std::vector<double, AlignedAllocator<double>>* weight) const
 {
     /* Only neighbors of the current coordinate value will have a non-negligible chance of getting sampled */

@@ -49,7 +49,8 @@ ForeignLambdaTerms::ForeignLambdaTerms(
     numLambdas_(allLambdas ? gmx::ssize((*allLambdas)[FreeEnergyPerturbationCouplingType::Fep]) : 0),
     allLambdas_(allLambdas),
     energies_(1 + numLambdas_),
-    dhdl_(1 + numLambdas_)
+    dhdl_(1 + numLambdas_),
+    foreignEnergyRefs_(1)
 {
     if (allLambdas_)
     {
@@ -115,24 +116,29 @@ composeDhdl(const int lambdaIndex,
     return dhdlSum;
 }
 
-std::pair<std::vector<double>, std::vector<double>> ForeignLambdaTerms::getTerms(const t_commrec* cr) const
+const ForeignEnergyRefs* ForeignLambdaTerms::getTerms(const t_commrec* cr)
 {
     GMX_RELEASE_ASSERT(finalizedPotentialContributions_,
                        "The object needs to be finalized before calling getTerms");
 
-    std::vector<double> data(2 * numLambdas_);
+    if (reduceAndReturnBuffer_.empty())
+    {
+        reduceAndReturnBuffer_.resize(2 * numLambdas_);
+
+        foreignEnergyRefs_.energies[0] = gmx::constArrayRefFromArray(reduceAndReturnBuffer_.data(), numLambdas_);
+        foreignEnergyRefs_.dhdl[0]     = gmx::constArrayRefFromArray(reduceAndReturnBuffer_.data() + numLambdas_, numLambdas_);
+    }
     for (int i = 0; i < numLambdas_; i++)
     {
-        data[i]               = energies_[1 + i] - energies_[0];
-        data[numLambdas_ + i] = composeDhdl(i, *allLambdas_, dhdl_[1 + i]);
+        reduceAndReturnBuffer_[i]               = energies_[1 + i] - energies_[0];
+        reduceAndReturnBuffer_[numLambdas_ + i] = composeDhdl(i, *allLambdas_, dhdl_[1 + i]);
     }
     if (cr && cr->nnodes > 1)
     {
-        gmx_sumd(data.size(), data.data(), cr);
+        gmx_sumd(reduceAndReturnBuffer_.size(), reduceAndReturnBuffer_.data(), cr);
     }
-    auto dataMid = data.begin() + numLambdas_;
-
-    return { { data.begin(), dataMid }, { dataMid, data.end() } };
+ 
+    return &foreignEnergyRefs_;
 }
 
 void ForeignLambdaTerms::zeroAllTerms()

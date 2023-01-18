@@ -64,6 +64,7 @@
 #include "biaswriter.h"
 #include "dimparams.h"
 
+struct ForeignEnergyRefs;
 struct t_commrec;
 struct t_enxsubblock;
 
@@ -192,13 +193,7 @@ public:
      * - reweight samples to extract the PMF.
      *
      * \param[in]     coordValue     The current coordinate value(s).
-     * \param[in]     neighborLambdaEnergies An array containing the energy of the system
-     * in neighboring lambdas. The array is of length numLambdas+1, where numLambdas is
-     * the number of free energy lambda states. Element 0 in the array is the energy
-     * of the current state and elements 1..numLambdas contain the energy of the system in the
-     * neighboring lambda states (also including the current state). When there are no free
-     * energy lambda state dimensions this can be empty.
-     * \param[in]     neighborLambdaDhdl     An array containing the dHdL at the neighboring lambda
+     * \param[in]     foreignEnergyRefs Energy differences and dHdlambda needed for free-energy lambda dimensions, can be nullptr when there are no lambda dimensions.
      * points. The array is of length numLambdas+1, where numLambdas is the number of free
      * energy lambda states. Element 0 in the array is the dHdL
      * of the current state and elements 1..numLambdas contain the dHdL of the system in the
@@ -213,8 +208,7 @@ public:
      * \returns a reference to the bias force, size \ref ndim(), valid until the next call of this method or destruction of Bias, whichever comes first.
      */
     gmx::ArrayRef<const double> calcForceAndUpdateBias(const awh_dvec         coordValue,
-                                                       ArrayRef<const double> neighborLambdaEnergies,
-                                                       ArrayRef<const double> neighborLambdaDhdl,
+                                                       const ForeignEnergyRefs* foreignEnergyRefs,
                                                        double*                awhPotential,
                                                        double*                potentialJump,
                                                        double                 t,
@@ -323,8 +317,8 @@ private:
      * energy lambda state dimensions this can be empty.
      * \param[in] t                   The time.
      */
-    void updateForceCorrelationGrid(gmx::ArrayRef<const double> probWeightNeighbor,
-                                    ArrayRef<const double>      neighborLambdaDhdl,
+    void updateForceCorrelationGrid(const ArrayRef<const double>           probWeightNeighbor,
+                                    ArrayRef<const ArrayRef<const double>> neighborLambdaDhdl,
                                     double                      t);
 
 public:

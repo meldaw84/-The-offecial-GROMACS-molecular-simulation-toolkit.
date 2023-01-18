@@ -47,6 +47,7 @@
 #include "gromacs/applied_forces/awh/pointstate.h"
 #include "gromacs/applied_forces/awh/tests/awh_setup.h"
 #include "gromacs/mdtypes/awh_params.h"
+#include "gromacs/mdtypes/enerdata.h"
 #include "gromacs/utility/stringutil.h"
 
 #include "testutils/refdata.h"
@@ -166,14 +167,17 @@ TEST_P(BiasFepLambdaStateTest, ForcesBiasPmf)
         neighborLambdaDhdl[i]     = magnitude * std::cos(i * 0.1);
     }
 
+    ForeignEnergyRefs feRefs(1);
+    feRefs.energies[0] = neighborLambdaEnergies;
+    feRefs.dhdl[0]     = neighborLambdaDhdl;
+
     for (int step = 0; step < nSteps; step++)
     {
         int      umbrellaGridpointIndex = bias.state().coordState().umbrellaGridpoint();
         awh_dvec coordValue = { bias.getGridCoordValue(umbrellaGridpointIndex)[0], 0, 0, 0 };
         double   potential  = 0;
         gmx::ArrayRef<const double> biasForce = bias.calcForceAndUpdateBias(coordValue,
-                                                                            neighborLambdaEnergies,
-                                                                            neighborLambdaDhdl,
+                                                                            &feRefs,
                                                                             &potential,
                                                                             &potentialJump,
                                                                             step * mdTimeStep,
@@ -271,6 +275,10 @@ TEST(BiasFepLambdaStateTest, DetectsCovering)
         neighborLambdaDhdl[i]     = magnitude * std::cos(i * 0.1);
     }
 
+    ForeignEnergyRefs feRefs(1);
+    feRefs.energies[0] = neighborLambdaEnergies;
+    feRefs.dhdl[0]     = neighborLambdaDhdl;
+
     int64_t step;
     /* Normally this loop exits at exitStepRef, but we extend with failure */
     for (step = 0; step <= 2 * exitStepRef; step++)
@@ -281,8 +289,7 @@ TEST(BiasFepLambdaStateTest, DetectsCovering)
         double potential     = 0;
         double potentialJump = 0;
         bias.calcForceAndUpdateBias(coordValue,
-                                    neighborLambdaEnergies,
-                                    neighborLambdaDhdl,
+                                    &feRefs,
                                     &potential,
                                     &potentialJump,
                                     step,

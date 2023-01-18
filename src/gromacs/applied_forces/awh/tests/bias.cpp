@@ -172,7 +172,7 @@ TEST_P(BiasTest, ForcesBiasPmfWeightSum)
         awh_dvec                    coordValue = { coord, 0, 0, 0 };
         double                      potential  = 0;
         gmx::ArrayRef<const double> biasForce  = bias.calcForceAndUpdateBias(
-                coordValue, {}, {}, &potential, &potentialJump, step, step, seed_, nullptr);
+                coordValue, nullptr, &potential, &potentialJump, step, step, seed_, nullptr);
 
         force.push_back(biasForce[0]);
         pot.push_back(potential);
@@ -288,7 +288,7 @@ TEST(BiasTest, DetectsCovering)
         double   potential     = 0;
         double   potentialJump = 0;
         bias.calcForceAndUpdateBias(
-                coordValue, {}, {}, &potential, &potentialJump, step, step, params.awhParams.seed(), nullptr);
+                coordValue, nullptr, &potential, &potentialJump, step, step, params.awhParams.seed(), nullptr);
 
         inInitialStage = bias.state().inInitialStage();
         if (!inInitialStage)

@@ -675,17 +675,17 @@ static void computeSpecialForces(FILE*                          fplog,
     }
     if (awh && (pullMtsLevel == 0 || stepWork.computeSlowForces))
     {
-        const bool          needForeignEnergyDifferences = awh->needForeignEnergyDifferences(step);
-        std::vector<double> foreignLambdaDeltaH, foreignLambdaDhDl;
+        const bool               needForeignEnergyDifferences = awh->needForeignEnergyDifferences(step);
+        const ForeignEnergyRefs* foreignEnergyRefs = nullptr;
         if (needForeignEnergyDifferences)
         {
             enerd->foreignLambdaTerms.finalizePotentialContributions(
                     enerd->dvdl_lin, lambda, *inputrec.fepvals);
-            std::tie(foreignLambdaDeltaH, foreignLambdaDhDl) = enerd->foreignLambdaTerms.getTerms(cr);
+            foreignEnergyRefs = enerd->foreignLambdaTerms.getTerms(cr);
         }
 
         enerd->term[F_COM_PULL] += awh->applyBiasForcesAndUpdateBias(
-                inputrec.pbcType, foreignLambdaDeltaH, foreignLambdaDhDl, box, t, step, wcycle, fplog);
+                inputrec.pbcType, foreignEnergyRefs, box, t, step, wcycle, fplog);
     }
     if (doPulling)
     {

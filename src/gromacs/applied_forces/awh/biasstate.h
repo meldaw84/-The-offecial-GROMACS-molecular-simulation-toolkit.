@@ -228,7 +228,7 @@ public:
     double calcUmbrellaForceAndPotential(ArrayRef<const DimParams> dimParams,
                                          const BiasGrid&           grid,
                                          int                       point,
-                                         ArrayRef<const double>    neighborLambdaDhdl,
+                                         ArrayRef<const ArrayRef<const double>> neighborLambdaDhdl,
                                          ArrayRef<double>          force) const;
 
     /*! \brief
@@ -252,7 +252,7 @@ public:
     void calcConvolvedForce(ArrayRef<const DimParams> dimParams,
                             const BiasGrid&           grid,
                             ArrayRef<const double>    probWeightNeighbor,
-                            ArrayRef<const double>    neighborLambdaDhdl,
+                            ArrayRef<const ArrayRef<const double>> neighborLambdaDhdl,
                             ArrayRef<double>          forceWorkBuffer,
                             ArrayRef<double>          force) const;
 
@@ -285,7 +285,7 @@ public:
     double moveUmbrella(ArrayRef<const DimParams> dimParams,
                         const BiasGrid&           grid,
                         ArrayRef<const double>    probWeightNeighbor,
-                        ArrayRef<const double>    neighborLambdaDhdl,
+                        ArrayRef<const ArrayRef<const double>> neighborLambdaDhdl,
                         ArrayRef<double>          biasForce,
                         int64_t                   step,
                         int64_t                   seed,
@@ -417,7 +417,7 @@ public:
 
     double updateProbabilityWeightsAndConvolvedBias(ArrayRef<const DimParams> dimParams,
                                                     const BiasGrid&           grid,
-                                                    ArrayRef<const double> neighborLambdaEnergies,
+                                                    ArrayRef<const ArrayRef<const double>> neighborLambdaEnergies,
                                                     std::vector<double, AlignedAllocator<double>>* weight) const;
 
     /*! \brief

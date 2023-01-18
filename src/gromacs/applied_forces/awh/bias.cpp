@@ -62,6 +62,7 @@
 #include "gromacs/mdtypes/awh_history.h"
 #include "gromacs/mdtypes/awh_params.h"
 #include "gromacs/mdtypes/commrec.h"
+#include "gromacs/mdtypes/enerdata.h"
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/stringutil.h"
@@ -103,8 +104,7 @@ void Bias::doSkippedUpdatesForAllPoints()
 }
 
 gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         coordValue,
-                                                         ArrayRef<const double> neighborLambdaEnergies,
-                                                         ArrayRef<const double> neighborLambdaDhdl,
+                                                         const ForeignEnergyRefs* foreignEnergyRefs,
                                                          double*                awhPotential,
                                                          double*                potentialJump,
                                                          double                 t,
@@ -118,9 +118,13 @@ gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         
                 "The step number is negative which is not supported by the AWH code."));
     }
 
-    GMX_RELEASE_ASSERT(!(params_.convolveForce && grid_.hasLambdaAxis()),
+    const bool hasLambdaAxis = grid_.hasLambdaAxis();
+
+    GMX_RELEASE_ASSERT(!(params_.convolveForce && hasLambdaAxis),
                        "When using AWH to sample an FEP lambda dimension the AWH potential cannot "
                        "be convolved.");
+    GMX_RELEASE_ASSERT(!hasLambdaAxis || foreignEnergyRefs != nullptr,
+                       "Need foreignEnergyRefs for lambda axes");
 
     state_.setCoordValue(grid_, coordValue);
 
@@ -134,6 +138,7 @@ gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         
     const bool        moveUmbrella      = (isSampleCoordStep || step == 0);
     double            convolvedBias     = 0;
     const CoordState& coordState        = state_.coordState();
+    const auto        neighborLambdaDhdl = foreignEnergyRefs ? makeConstArrayRef(foreignEnergyRefs->dhdl) : ArrayRef<const ArrayRef<const double>>{};
 
     if (params_.convolveForce || moveUmbrella || isSampleCoordStep)
     {
@@ -142,7 +147,7 @@ gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         
             state_.doSkippedUpdatesInNeighborhood(params_, grid_);
         }
         convolvedBias = state_.updateProbabilityWeightsAndConvolvedBias(
-                dimParams_, grid_, moveUmbrella ? neighborLambdaEnergies : ArrayRef<const double>{}, &probWeightNeighbor);
+                dimParams_, grid_, foreignEnergyRefs ? makeConstArrayRef(foreignEnergyRefs->energies) : ArrayRef<const ArrayRef<const double>>{}, &probWeightNeighbor);
 
         if (isSampleCoordStep)
         {
@@ -165,7 +170,7 @@ gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         
         state_.calcConvolvedForce(dimParams_,
                                   grid_,
                                   probWeightNeighbor,
-                                  moveUmbrella ? neighborLambdaDhdl : ArrayRef<const double>{},
+                                  moveUmbrella ? neighborLambdaDhdl : ArrayRef<const ArrayRef<const double>>{},
                                   tempForce_,
                                   biasForce_);
 
@@ -181,7 +186,7 @@ gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         
                 dimParams_,
                 grid_,
                 coordState.umbrellaGridpoint(),
-                moveUmbrella ? neighborLambdaDhdl : ArrayRef<const double>{},
+                moveUmbrella ? neighborLambdaDhdl : ArrayRef<const ArrayRef<const double>>{},
                 biasForce_);
 
         /* Moving the umbrella results in a force correction and
@@ -220,13 +225,13 @@ gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         
     }
     /* If there is a lambda axis it is still controlled using an umbrella even if the force
      * is convolved in the other dimensions. */
-    if (moveUmbrella && params_.convolveForce && grid_.hasLambdaAxis())
+    if (moveUmbrella && params_.convolveForce && hasLambdaAxis)
     {
         const bool onlySampleUmbrellaGridpoint = true;
         state_.moveUmbrella(dimParams_,
                             grid_,
                             probWeightNeighbor,
-                            neighborLambdaDhdl,
+                            foreignEnergyRefs->dhdl,
                             biasForce_,
                             step,
                             seed,
@@ -426,8 +431,8 @@ void Bias::printInitializationToLog(FILE* fplog) const
     }
 }
 
-void Bias::updateForceCorrelationGrid(gmx::ArrayRef<const double> probWeightNeighbor,
-                                      ArrayRef<const double>      neighborLambdaDhdl,
+void Bias::updateForceCorrelationGrid(ArrayRef<const double> probWeightNeighbor,
+                                      ArrayRef<const ArrayRef<const double>> neighborLambdaDhdl,
                                       double                      t)
 {
     if (forceCorrelationGrid_ == nullptr)

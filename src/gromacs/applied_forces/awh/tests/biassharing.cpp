@@ -178,7 +178,7 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
         double   potential     = 0;
         double   potentialJump = 0;
         bias.calcForceAndUpdateBias(
-                coordValue, {}, {}, &potential, &potentialJump, step, step, params.awhParams.seed(), nullptr);
+                coordValue, nullptr, &potential, &potentialJump, step, step, params.awhParams.seed(), nullptr);
     }
     bias.updateBiasStateSharedCorrelationTensorTimeIntegral();
     std::vector<double> rankWeightSumIteration, rankWeightSumTot, rankLocalWeightSum,

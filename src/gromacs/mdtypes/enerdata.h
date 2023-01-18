@@ -76,6 +76,14 @@ struct gmx_grppairener_t
     gmx::EnumerationArray<NonBondedEnergyTerms, std::vector<real>> energyGroupPairTerms; /* Energy terms for each pair of groups */
 };
 
+struct ForeignEnergyRefs
+{
+    ForeignEnergyRefs(int numLambdaDimensions) : energies(numLambdaDimensions), dhdl(numLambdaDimensions) {}
+
+    std::vector<gmx::ArrayRef<const double>> energies;
+    std::vector<gmx::ArrayRef<const double>> dhdl;
+};
+
 //! Accumulates free-energy foreign lambda energies and dH/dlamba
 class ForeignLambdaTerms
 {
@@ -184,7 +192,7 @@ public:
      *
      * \param[in] cr  Communication record, used to reduce the terms when !=nullptr
      */
-    std::pair<std::vector<double>, std::vector<double>> getTerms(const t_commrec* cr) const;
+    const ForeignEnergyRefs* getTerms(const t_commrec* cr);
 
     //! Sets all terms to 0
     void zeroAllTerms();
@@ -206,6 +214,10 @@ private:
     std::vector<gmx::EnumerationArray<FreeEnergyPerturbationCouplingType, double>> dhdl_;
     //! Tells whether all potential energy contributions have been accumulated
     bool finalizedPotentialContributions_ = false;
+    //! Buffer for reduction as well as returning values
+    std::vector<double> reduceAndReturnBuffer_;
+    //! Buffer for returning arrayrefs of foreign energies and dhdl
+    ForeignEnergyRefs foreignEnergyRefs_;
 };
 
 //! Struct for accumulating all potential energy terms and some kinetic energy terms

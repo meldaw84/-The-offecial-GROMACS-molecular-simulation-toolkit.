@@ -71,6 +71,7 @@
 #include "gromacs/math/vectypes.h"
 #include "gromacs/utility/basedefinitions.h"
 
+struct ForeignEnergyRefs;
 struct gmx_multisim_t;
 struct gmx_wallcycle;
 struct pull_t;
@@ -83,8 +84,6 @@ enum class PbcType : int;
 namespace gmx
 {
 
-template<typename>
-class ArrayRef;
 struct AwhHistory;
 class AwhParams;
 class Bias;
@@ -164,18 +163,7 @@ public:
      * to take into account the updated pull forces AWH might be applied to.
      *
      * \param[in]     pbcType          Type of periodic boundary conditions.
-     * \param[in]     neighborLambdaEnergies An array containing the energy of the system
-     * in neighboring lambdas. The array is of length numLambdas+1, where numLambdas is
-     * the number of free energy lambda states. Element 0 in the array is the energy
-     * of the current state and elements 1..numLambdas contain the energy of the system in the
-     * neighboring lambda states (also including the current state). When there are no free
-     * energy lambda state dimensions this can be empty.
-     * \param[in]     neighborLambdaDhdl     An array containing the dHdL at the neighboring lambda
-     * points. The array is of length numLambdas+1, where numLambdas is the number of free
-     * energy lambda states. Element 0 in the array is the dHdL
-     * of the current state and elements 1..numLambdas contain the dHdL of the system in the
-     * neighboring lambda states (also including the current state). When there are no free
-     * energy lambda state dimensions this can be empty.
+     * \param[in]     foreignEnergyRefs Energy differences and dHdlambda needed for free-energy lambda dimensions, can be nullptr when there are no lambda dimensions.
      * \param[in]     box              Box vectors.
      * \param[in]     t                Time.
      * \param[in]     step             The current MD step.
@@ -183,14 +171,13 @@ public:
      * \param[in,out] fplog            General output file, normally md.log, can be nullptr.
      * \returns the potential energy for the bias.
      */
-    real applyBiasForcesAndUpdateBias(PbcType                pbcType,
-                                      ArrayRef<const double> neighborLambdaEnergies,
-                                      ArrayRef<const double> neighborLambdaDhdl,
-                                      const matrix           box,
-                                      double                 t,
-                                      int64_t                step,
-                                      gmx_wallcycle*         wallcycle,
-                                      FILE*                  fplog);
+    real applyBiasForcesAndUpdateBias(PbcType                  pbcType,
+                                      const ForeignEnergyRefs* foreignEnergyRefs,                                     
+                                      const matrix             box,
+                                      double                   t,
+                                      int64_t                  step,
+                                      gmx_wallcycle*           wallcycle,
+                                      FILE*                    fplog);
 
     /*! \brief
      * Update the AWH history in preparation for writing to checkpoint file.
