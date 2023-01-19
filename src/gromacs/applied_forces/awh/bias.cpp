@@ -123,8 +123,6 @@ gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         
     GMX_RELEASE_ASSERT(!(params_.convolveForce && hasLambdaAxis),
                        "When using AWH to sample an FEP lambda dimension the AWH potential cannot "
                        "be convolved.");
-    GMX_RELEASE_ASSERT(!hasLambdaAxis || foreignEnergyRefs != nullptr,
-                       "Need foreignEnergyRefs for lambda axes");
 
     state_.setCoordValue(grid_, coordValue);
 
@@ -138,7 +136,11 @@ gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         
     const bool        moveUmbrella      = (isSampleCoordStep || step == 0);
     double            convolvedBias     = 0;
     const CoordState& coordState        = state_.coordState();
-    const auto        neighborLambdaDhdl = foreignEnergyRefs ? makeConstArrayRef(foreignEnergyRefs->dhdl) : ArrayRef<const ArrayRef<const double>>{};
+
+    GMX_RELEASE_ASSERT(!(hasLambdaAxis && moveUmbrella && foreignEnergyRefs == nullptr),
+                       "Need foreignEnergyRefs for moving umbrella for lambda axes");
+
+    const auto neighborLambdaDhdl = foreignEnergyRefs ? makeConstArrayRef(foreignEnergyRefs->dhdl) : ArrayRef<const ArrayRef<const double>>{};
 
     if (params_.convolveForce || moveUmbrella || isSampleCoordStep)
     {

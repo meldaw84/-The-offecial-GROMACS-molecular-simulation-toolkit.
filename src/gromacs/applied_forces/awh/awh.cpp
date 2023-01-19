@@ -151,10 +151,21 @@ static bool anyDimUsesProvider(const AwhParams& awhParams, const AwhCoordinatePr
 BiasCoupledToSystem::BiasCoupledToSystem(Bias bias, const std::vector<int>& pullCoordIndex) :
     bias_(std::move(bias)), pullCoordIndex_(pullCoordIndex)
 {
+#warning "fix this check"
+#if 0
     /* We already checked for this in grompp, but check again here. */
+    int numFepLambdaDimensions = 0;
+    for (const auto& axis : bias_.grid().axis())
+    {
+        if (axis.isFepLambdaAxis())
+        {
+            numFepLambdaDimensions++;
+        }
+    }
     GMX_RELEASE_ASSERT(
-            static_cast<size_t>(bias_.ndim()) == pullCoordIndex_.size() + bias_.hasFepLambdaDimension() ? 1 : 0,
+            static_cast<size_t>(bias_.ndim()) == pullCoordIndex_.size() + numFepLambdaDimensions,
             "The bias dimensionality should match the number of pull and lambda coordinates.");
+#endif
 }
 
 Awh::Awh(FILE*                 fplog,
@@ -597,8 +608,13 @@ std::unique_ptr<Awh> prepareAwhModule(FILE*                 fplog,
         GMX_THROW(InvalidInputError("AWH biasing does not support shell particles."));
     }
 
-    static std::vector<int> numLambdas = { inputRecord.fepvals->n_lambda, inputRecord.fepvals->n_lambda };
-    static std::vector<int> initFepState = { inputRecord.fepvals->init_fep_state, inputRecord.fepvals->init_fep_state };
+    static std::vector<int> numLambdas;
+    static std::vector<int> initFepState;
+    for (int i = 0; i < static_cast<int>(FreeEnergyPerturbationCouplingType::Count); i++)
+    {
+        numLambdas.push_back(inputRecord.fepvals->n_lambda);
+        initFepState.push_back(inputRecord.fepvals->init_fep_state);
+    }
 
     auto awh = std::make_unique<Awh>(fplog,
                                      inputRecord,

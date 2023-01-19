@@ -1978,7 +1978,12 @@ void gmx::LegacySimulator::do_md()
 #warning "fix"
             //state->fep_state = awh->fepLambdaState();
             const auto newFepLambdaState = awh->fepLambdaState();
-            std::copy(newFepLambdaState.begin(), newFepLambdaState.end(), state->lambda.begin());
+            for (gmx::Index i = 0; i < gmx::ssize(newFepLambdaState); i++)
+            {
+                state->lambda[i] = ir->fepvals->all_lambda[i][newFepLambdaState[i]];
+                printf(" %f", state->lambda[i]);
+            }
+            printf("\n");
         }
         /* Print the remaining wall clock time for the run */
         if (isMainSimMainRank(ms, MAIN(cr)) && (do_verbose || gmx_got_usr_signal()) && !bPMETunePrinting)

@@ -136,17 +136,17 @@ const ForeignEnergyRefs* ForeignLambdaTerms::getTerms(const t_commrec* cr)
     GMX_RELEASE_ASSERT(finalizedPotentialContributions_,
                        "The object needs to be finalized before calling getTerms");
 
+    const int numComponents = static_cast<int>(FreeEnergyPerturbationCouplingType::Count);
+
     if (reduceAndReturnBuffer_.empty())
     {
-        const int numComponents = static_cast<int>(FreeEnergyPerturbationCouplingType::Count);
-
 #if 0
         reduceAndReturnBuffer_.resize(2 * numLambdas_);
 
         foreignEnergyRefs_.energies[0] = gmx::constArrayRefFromArray(reduceAndReturnBuffer_.data(), numLambdas_);
         foreignEnergyRefs_.dhdl[0]     = gmx::constArrayRefFromArray(reduceAndReturnBuffer_.data() + numLambdas_, numLambdas_);
 #else
-        reduceAndReturnBuffer_.resize(numComponents * 2 * numLambdas_);
+        reduceAndReturnBuffer_.resize((1 + numComponents) * 2 * numLambdas_);
 
         for (auto fepct : gmx::EnumerationWrapper<FreeEnergyPerturbationCouplingType>{})
         {
@@ -161,6 +161,16 @@ const ForeignEnergyRefs* ForeignLambdaTerms::getTerms(const t_commrec* cr)
     {
         reduceAndReturnBuffer_[i]               = deltaH(i);
         reduceAndReturnBuffer_[numLambdas_ + i] = composeDhdl(i, *allLambdas_, dhdl_[1 + i]);
+    }
+    for (auto fepct : gmx::EnumerationWrapper<FreeEnergyPerturbationCouplingType>{})
+    {
+        const gmx::Index c = static_cast<int>(fepct);
+
+        for (int i = 0; i < numLambdas_; i++)
+        {
+            reduceAndReturnBuffer_[((1 + c) * 2 + 0) * numComponents + i] = energies_[1 + i][c] - energies_[0][c];
+            reduceAndReturnBuffer_[((1 + c) * 2 + 1) * numComponents + i] = dhdl_[1 + i][c];
+        }
     }
     if (cr && cr->nnodes > 1)
     {
