@@ -48,7 +48,6 @@
 #include "gromacs/utility/stringutil.h"
 
 #include "testutils/mpitest.h"
-#include "testutils/setenv.h"
 #include "testutils/simulationdatabase.h"
 
 #include "moduletest.h"
@@ -72,7 +71,7 @@ namespace
  * are equivalent.
  */
 using SimulatorComparisonTestParams =
-        std::tuple<std::tuple<std::string, std::string, std::string, std::string, MdpParameterDatabase>, std::string>;
+        std::tuple<std::tuple<std::string, std::string, std::string, std::string, MdpParameterDatabase>, SimulatorChoice>;
 class SimulatorComparisonTest :
     public MdrunTestFixture,
     public ::testing::WithParamInterface<SimulatorComparisonTestParams>
@@ -88,7 +87,7 @@ TEST_P(SimulatorComparisonTest, WithinTolerances)
     const auto& tcoupling           = std::get<2>(mdpParams);
     const auto& pcoupling           = std::get<3>(mdpParams);
     const auto& additionalParameter = std::get<4>(mdpParams);
-    const auto& environmentVariable = std::get<1>(params);
+    const auto& simulatorChoice     = std::get<1>(params);
 
     int maxNumWarnings = 0;
 
@@ -152,14 +151,6 @@ TEST_P(SimulatorComparisonTest, WithinTolerances)
         return;
     }
 
-    const std::string envVariableModSimOn  = "GMX_USE_MODULAR_SIMULATOR";
-    const std::string envVariableModSimOff = "GMX_DISABLE_MODULAR_SIMULATOR";
-
-    GMX_RELEASE_ASSERT(
-            environmentVariable == envVariableModSimOn || environmentVariable == envVariableModSimOff,
-            ("Expected tested environment variable to be " + envVariableModSimOn + " or " + envVariableModSimOff)
-                    .c_str());
-
     const auto hasConservedField = !(tcoupling == "no" && pcoupling == "no")
                                    && !(tcoupling == "andersen-massive" || tcoupling == "andersen");
 
@@ -171,7 +162,7 @@ TEST_P(SimulatorComparisonTest, WithinTolerances)
             integrator.c_str(),
             tcoupling.c_str(),
             pcoupling.c_str(),
-            environmentVariable.c_str()));
+            c_environmentVariableNames[simulatorChoice]));
 
     auto mdpFieldValues = prepareMdpFieldValues(
             simulationName.c_str(), integrator.c_str(), tcoupling.c_str(), pcoupling.c_str(), additionalParameter);
@@ -251,37 +242,20 @@ TEST_P(SimulatorComparisonTest, WithinTolerances)
     runner_.setMaxWarn(maxNumWarnings);
     runGrompp(&runner_);
 
-    // Backup current state of both environment variables and unset them
-    const char* environmentVariableBackupOn  = getenv(envVariableModSimOn.c_str());
-    const char* environmentVariableBackupOff = getenv(envVariableModSimOff.c_str());
-    gmxUnsetenv(envVariableModSimOn.c_str());
-    gmxUnsetenv(envVariableModSimOff.c_str());
-
-    // Do first mdrun
-    runner_.fullPrecisionTrajectoryFileName_ = simulator1TrajectoryFileName.u8string();
-    runner_.edrFileName_                     = simulator1EdrFileName.u8string();
-    runMdrun(&runner_);
-
-    // Set tested environment variable
-    const int overWriteEnvironmentVariable = 1;
-    gmxSetenv(environmentVariable.c_str(), "ON", overWriteEnvironmentVariable);
-
-    // Do second mdrun
-    runner_.fullPrecisionTrajectoryFileName_ = simulator2TrajectoryFileName.u8string();
-    runner_.edrFileName_                     = simulator2EdrFileName.u8string();
-    runMdrun(&runner_);
-
-    // Unset tested environment variable
-    gmxUnsetenv(environmentVariable.c_str());
-    // Reset both environment variables to leave further tests undisturbed
-    if (environmentVariableBackupOn != nullptr)
-    {
-        gmxSetenv(environmentVariable.c_str(), environmentVariableBackupOn, overWriteEnvironmentVariable);
-    }
-    if (environmentVariableBackupOff != nullptr)
-    {
-        gmxSetenv(environmentVariable.c_str(), environmentVariableBackupOff, overWriteEnvironmentVariable);
-    }
+    changeSimulatorBetweenSimulations(
+            simulatorChoice,
+            [&]() {
+                // Do first mdrun
+                runner_.fullPrecisionTrajectoryFileName_ = simulator1TrajectoryFileName.u8string();
+                runner_.edrFileName_                     = simulator1EdrFileName.u8string();
+                runMdrun(&runner_);
+            },
+            [&]() {
+                // Do second mdrun
+                runner_.fullPrecisionTrajectoryFileName_ = simulator2TrajectoryFileName.u8string();
+                runner_.edrFileName_                     = simulator2EdrFileName.u8string();
+                runMdrun(&runner_);
+            });
 
     // Compare simulation results
     compareEnergies(simulator1EdrFileName.u8string(), simulator2EdrFileName.u8string(), energyTermsToCompare);
@@ -310,7 +284,7 @@ INSTANTIATE_TEST_SUITE_P(
                                                      "andersen"),
                                    ::testing::Values("mttk", "no", "berendsen", "c-rescale", "mttk"),
                                    ::testing::Values(MdpParameterDatabase::Default)),
-                ::testing::Values("GMX_DISABLE_MODULAR_SIMULATOR")));
+                ::testing::Values(SimulatorChoice::DisableModularSimulator)));
 INSTANTIATE_TEST_SUITE_P(
         SimulatorsAreEquivalentDefaultLegacy,
         SimulatorComparisonTest,
@@ -321,7 +295,7 @@ INSTANTIATE_TEST_SUITE_P(
                         ::testing::Values("no", "v-rescale", "berendsen", "nose-hoover"),
                         ::testing::Values("no", "Parrinello-Rahman", "berendsen", "c-rescale"),
                         ::testing::Values(MdpParameterDatabase::Default)),
-                ::testing::Values("GMX_USE_MODULAR_SIMULATOR")));
+                ::testing::Values(SimulatorChoice::UseModularSimulator)));
 INSTANTIATE_TEST_SUITE_P(SimulatorsAreEquivalentDefaultModularPull,
                          SimulatorComparisonTest,
                          ::testing::Combine(::testing::Combine(::testing::Values("spc2"),
@@ -329,7 +303,7 @@ INSTANTIATE_TEST_SUITE_P(SimulatorsAreEquivalentDefaultModularPull,
                                                                ::testing::Values("no"),
                                                                ::testing::Values("no"),
                                                                ::testing::Values(MdpParameterDatabase::Pull)),
-                                            ::testing::Values("GMX_DISABLE_MODULAR_SIMULATOR")));
+                                            ::testing::Values(SimulatorChoice::DisableModularSimulator)));
 INSTANTIATE_TEST_SUITE_P(SimulatorsAreEquivalentDefaultLegacyPull,
                          SimulatorComparisonTest,
                          ::testing::Combine(::testing::Combine(::testing::Values("spc2"),
@@ -337,7 +311,7 @@ INSTANTIATE_TEST_SUITE_P(SimulatorsAreEquivalentDefaultLegacyPull,
                                                                ::testing::Values("no"),
                                                                ::testing::Values("no"),
                                                                ::testing::Values(MdpParameterDatabase::Pull)),
-                                            ::testing::Values("GMX_USE_MODULAR_SIMULATOR")));
+                                            ::testing::Values(SimulatorChoice::UseModularSimulator)));
 #else
 INSTANTIATE_TEST_SUITE_P(
         DISABLED_SimulatorsAreEquivalentDefaultModular,
@@ -353,7 +327,7 @@ INSTANTIATE_TEST_SUITE_P(
                                                      "nose-hoover"),
                                    ::testing::Values("no", "berendsen", "c-rescale", "mttk"),
                                    ::testing::Values(MdpParameterDatabase::Default)),
-                ::testing::Values("GMX_DISABLE_MODULAR_SIMULATOR")));
+                ::testing::Values(SimulatorChoice::DisableModularSimulator)));
 INSTANTIATE_TEST_SUITE_P(
         DISABLED_SimulatorsAreEquivalentDefaultLegacy,
         SimulatorComparisonTest,
@@ -364,7 +338,7 @@ INSTANTIATE_TEST_SUITE_P(
                         ::testing::Values("no", "v-rescale", "berendsen", "nose-hoover"),
                         ::testing::Values("no", "Parrinello-Rahman", "berendsen", "c-rescale"),
                         ::testing::Values(MdpParameterDatabase::Default)),
-                ::testing::Values("GMX_USE_MODULAR_SIMULATOR")));
+                ::testing::Values(SimulatorChoice::UseModularSimulator)));
 INSTANTIATE_TEST_SUITE_P(DISABLED_SimulatorsAreEquivalentDefaultModularPull,
                          SimulatorComparisonTest,
                          ::testing::Combine(::testing::Combine(::testing::Values("spc2"),
@@ -372,7 +346,7 @@ INSTANTIATE_TEST_SUITE_P(DISABLED_SimulatorsAreEquivalentDefaultModularPull,
                                                                ::testing::Values("no"),
                                                                ::testing::Values("no"),
                                                                ::testing::Values(MdpParameterDatabase::Pull)),
-                                            ::testing::Values("GMX_DISABLE_MODULAR_SIMULATOR")));
+                                            ::testing::Values(SimulatorChoice::DisableModularSimulator)));
 INSTANTIATE_TEST_SUITE_P(DISABLED_SimulatorsAreEquivalentDefaultLegacyPull,
                          SimulatorComparisonTest,
                          ::testing::Combine(::testing::Combine(::testing::Values("spc2"),
@@ -380,7 +354,7 @@ INSTANTIATE_TEST_SUITE_P(DISABLED_SimulatorsAreEquivalentDefaultLegacyPull,
                                                                ::testing::Values("no"),
                                                                ::testing::Values("no"),
                                                                ::testing::Values(MdpParameterDatabase::Pull)),
-                                            ::testing::Values("GMX_USE_MODULAR_SIMULATOR")));
+                                            ::testing::Values(SimulatorChoice::UseModularSimulator)));
 #endif
 
 } // namespace
