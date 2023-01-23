@@ -132,9 +132,9 @@ TEST_F(MsmTest, DiagonalizationTest)
     auto eigvals = diagTestMsm.eigenvalues;
     auto eigvecs = diagTestMsm.eigenvectors;
 
-    for (int i = 0; i < eigvals.size(); ++i)
+    for (size_t i = 0; i < eigvals.size(); ++i)
     {
-        printf("Val elm %d: %f\n", i, eigvals[i]);
+        printf("Val elm %zu: %f\n", i, eigvals[i]);
     }
 
 }

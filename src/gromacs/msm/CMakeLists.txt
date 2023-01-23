@@ -36,6 +36,9 @@ add_library(msm OBJECT)
 target_sources(msm PRIVATE
         msm_estimation.cpp
 )
+if (BUILD_SHARED_LIBS)
+    set_target_properties(msm PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endif()
 
 target_link_libraries(msm PRIVATE
         common
