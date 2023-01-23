@@ -43,6 +43,8 @@
 #include "gmxpre.h"
 #include "msm.h"
 
+#include <numeric>
+
 #include "gromacs/analysisdata/analysisdata.h"
 #include "gromacs/analysisdata/modules/plot.h"
 #include "gromacs/analysisdata/paralleloptions.h"
@@ -85,9 +87,9 @@ private:
     std::unique_ptr<LoggerOwner>    loggerOwner_;
     AnalysisDataPlotSettings  plotSettings_;
 
-    std::string microstateDataFileName_;
+    std::string freeEnergyDataFileName_;
 
-    AnalysisData microstates_;
+    AnalysisData freeEnergies_;
 };
 
 MarkovModelModule::MarkovModelModule()
@@ -110,7 +112,7 @@ void MarkovModelModule::initOptions(IOptionsContainer* options, TrajectoryAnalys
     options->addOption(FileNameOption("microfe")
                                .filetype(OptionFileType::Plot)
                                .outputFile()
-                               .store(&microstateDataFileName_)
+                               .store(&freeEnergyDataFileName_)
                                .defaultBasename("microfe")
                                .description("Free energies for each microstate"));
 }
@@ -135,21 +137,32 @@ void MarkovModelModule::finishAnalysis(int nframes)
 
 void MarkovModelModule::writeOutput()
 {
-
-    MarkovModel msm = MarkovModel(4);
+    int nstates = 4;
+    MarkovModel msm = MarkovModel(nstates);
 
     // Write data relevant for microstates
-    registerAnalysisDataset(&microstates_, "Microstate IDs");
+    registerAnalysisDataset(&freeEnergies_, "Free Energies of Microstates");
 
     AnalysisDataPlotModulePointer plotm(new AnalysisDataPlotModule(plotSettings_));
-    plotm->setFileName(microstateDataFileName_);
+    plotm->setFileName(freeEnergyDataFileName_);
     plotm->setTitle("Free Energies");
 
-    microstates_.addModule(plotm);
-    microstates_.setDataSetCount(1);
-    microstates_.setColumnCount(0, 1);
+    freeEnergies_.addModule(plotm);
+    freeEnergies_.setDataSetCount(1);
+    freeEnergies_.setColumnCount(0, 1);
 
-    AnalysisDataHandle dh = microstates_.startData({});
+    AnalysisDataHandle dh = freeEnergies_.startData({});
+
+    // TODO: decide whether to have zero or one indexing for states
+    // 1-indexing agrees with Paul's clustering method
+    for (int i = 0; i < nstates; ++i)
+    {
+        dh.startFrame(i, i + 1);
+        dh.setPoint(0, 1);
+        dh.finishFrame();
+    }
+    dh.finishData();
+
 
 }
 
