@@ -107,8 +107,9 @@ public:
         // Prepare a ForceProviderInput
         std::vector<real>  chargeA{ 1 };
         t_commrec          cr;
-        matrix             boxDummy = { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } };
-        ForceProviderInput forceProviderInput({}, ssize(chargeA), chargeA, {}, 0.0, 0, boxDummy, cr);
+        ForceProviderInput forceProviderInput(cr);
+        forceProviderInput.chargeA_ = chargeA;
+        forceProviderInput.homenr_  = ssize(chargeA);
 
         // Prepare a ForceProviderOutput
         PaddedVector<RVec>  f = { { 0, 0, 0 } };
