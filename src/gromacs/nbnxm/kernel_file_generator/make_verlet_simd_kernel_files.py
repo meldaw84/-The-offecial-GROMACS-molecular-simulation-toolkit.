@@ -35,34 +35,22 @@
 # This script is used by the GROMACS developers to build most of the
 # files from which the nbnxn kernels are compiled. It is not called at
 # CMake time, and users should never need to use it. It currently
-# works for nbnxn kernel structure types 2xMM and 4xM. The generated
+# works for NBNxM kernel structure types 2xMM and 4xM. The generated
 # files are versions of the *.pre files in this directory, customized
 # for the kernel structure type and/or the detailed kernel type. These
 # are:
 #
 #   A single header file that declares all the kernel functions for
-#   this nbnxn kernel structure type and a function pointer table.
+#   this NBNxM kernel structure type and a function pointer table.
 #
-#   Many C kernel files, each defining a single kernel function. These
-#   functions can take a noticeable time to compile, and should tend
-#   to be in separate files to take advantage of make-time
+#   Many C++ kernel files, each defining a single kernel function template.
+#   specialization. These functions can take a noticeable time to compile,
+#   and should tend to be in separate files to take advantage of make-time
 #   parallelism.
 #
-# This script should be run from the directory in which it is
-# located. The generated files are located in ../kernels_simd_<type>.
-# There are three other files in those locations that are not generated.
-# These contain:
-#
-#   setup logic peculiar to the kernel structure type but common to
-#   all the kernels within that type, and
-#
-#   the logic for the outer and inner loops of the kernels, as
-#   customized by numerous preprocessor defines to suit the hardware
-#   and kernel type.
-#
-# Note that while functions for both nbnxn kernel structures are
+# Note that while functions for both NBNxM kernel structures are
 # compiled and built into an mdrun executable, because that executable
-# is not portable, only the functions for the useful nbnxn kernel
+# is not portable, only the functions for the useful NBNxM kernel
 # structure for the hardware selected at CMake time contain real
 # kernel logic. A run-time error occurs if an inappropriate kernel
 # dispatcher function is called (but that is normally impossible).
