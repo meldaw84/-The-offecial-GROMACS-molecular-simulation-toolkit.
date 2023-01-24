@@ -78,16 +78,19 @@ class ForceWithVirial;
 class ForceProviderInput
 {
 public:
-    /*! \brief Constructor assembles all necessary force provider input data
+    /*! \brief The constructor assembles all possible force provider input data
+     *
+     * This constructor should only be used in the main MD loop.
+     * It collects all the data that can be used by the individual force providers.
      *
      * \param[in]  x        Atomic positions.
      * \param[in]  homenr   Number of atoms on the domain.
      * \param[in]  chargeA  Atomic charges for atoms on the domain.
      * \param[in]  massT    Atomic masses for atoms on the domain.
      * \param[in]  time     The current time in the simulation.
-     * \param[in]  step     The current step in the simulation
+     * \param[in]  step     The current step in the simulation.
      * \param[in]  box      The simulation box.
-     * \param[in]  cr       Communication record structure.
+     * \param[in]  cr       Communication structure for parallel runs.
      */
     ForceProviderInput(ArrayRef<const RVec> x,
                        int                  homenr,
@@ -100,16 +103,32 @@ public:
         x_(x), homenr_(homenr), chargeA_(chargeA), massT_(massT), t_(time), step_(step), cr_(cr)
     {
         copy_mat(box, box_);
-    }
+    };
 
-    ArrayRef<const RVec> x_; //!< The atomic positions
-    int                  homenr_;
-    ArrayRef<const real> chargeA_;
-    ArrayRef<const real> massT_;
-    double               t_;    //!< The current time in the simulation
-    int64_t              step_; //!< The current step in the simulation
-    matrix               box_ = { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } }; //!< The simulation box
-    const t_commrec&     cr_; //!< Communication record structure
+    /*! \brief Basic constructor for individual force providers that do not need all parameters
+     *
+     * This constructor should be used for calls to an individual force provider,
+     * as e.g. in the tests. Here typically only a part of the parameters that get
+     * passed to the above full constructor is actually needed. After calling
+     * the basic constructor ForceProviderInput fpi(cr),
+     * additional required data can be passed by setting the public variables, e.g.
+     * fpi.step_ = step.
+     * If future force providers require additional data, only the full constructor call
+     * in the main MD loop has to be expanded with the new parameter, but no changes will
+     * have to be done in the tests of unrelated force providers.
+     *
+     * \param[in]  cr       Communication structure for parallel runs.
+     */
+    explicit ForceProviderInput(const t_commrec& cr) : cr_(cr){};
+
+    ArrayRef<const RVec> x_;          //!< The atomic positions
+    int                  homenr_ = 0; //!< Number of atoms on the domain.
+    ArrayRef<const real> chargeA_{};  //!< Atomic charges for atoms on the domain.
+    ArrayRef<const real> massT_{};    //!< Atomic masses for atoms on the domain.
+    double               t_    = 0.0; //!< The current time in the simulation
+    int64_t              step_ = 0;   //!< The current step in the simulation
+    matrix               box_{ 0 };   //!< The simulation box
+    const t_commrec&     cr_;         //!< Communication structure for parallel runs.
 };
 
 /*! \brief Take pointer, check if valid, return reference
