@@ -59,15 +59,19 @@ static constexpr unsigned int c_cudaFullWarpMask = 0xffffffff;
 
 #if GMX_SYCL_HIPSYCL && HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP
 HIPSYCL_UNIVERSAL_TARGET
-static inline void atomicAddOptimizedAmd(float gmx_unused* ptr, const float gmx_unused delta)
+static inline void atomicAddOptimizedAmd(float * ptr, const float delta)
 {
 #    if defined(__gfx908__) // Special function for AMD MI100
 #        pragma clang diagnostic push
 #        pragma clang diagnostic ignored "-Wdeprecated-declarations"
     atomicAddNoRet(ptr, delta);
 #        pragma clang diagnostic pop
-#    elif defined(__gfx90a__) // Special function for AMD MI200
-    unsafeAtomicAdd(ptr, delta); // Not checked on real hardware, see #4465
+#    elif defined(__gfx90a__) // Special function for AMD MI200-series
+    /* Calling unsafeAtomicAdd is possible, but it generates code for dynamic deduction of
+     * pointer's address space. We know it's global_device, so we can just call the intrinsic
+     * directly. Trying to annotate the pointer with [[clang::opencl_global_device]] causes
+     * compile-time error, since unsafeAtomicAdd requires a "generic" pointer. */
+    __builtin_amdgcn_global_atomic_fadd_f32(ptr, delta);
 #    else
     atomicAdd(ptr, delta);
 #    endif
