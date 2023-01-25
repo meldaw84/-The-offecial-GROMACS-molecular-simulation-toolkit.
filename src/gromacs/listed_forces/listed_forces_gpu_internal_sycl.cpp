@@ -821,6 +821,28 @@ static void pairs_gpu(const int                                  i,
     }
 }
 
+struct FTypeArray
+{
+    FTypeArray(const int in[gmx::numFTypesOnGpu])
+    {
+#pragma unroll
+        for (int i = 0; i < gmx::numFTypesOnGpu; i++)
+        {
+            data[i] = in[i];
+        }
+    }
+    constexpr int operator[](int idx) const
+    {
+#pragma unroll
+        for (int i = 0; i < gmx::numFTypesOnGpu; i++)
+        {
+            if (i == idx)
+                return data[i];
+        }
+    }
+    int data[gmx::numFTypesOnGpu];
+};
+
 template<bool calcVir, bool calcEner>
 class BondedKernel;
 
@@ -856,6 +878,12 @@ auto bondedKernel(sycl::handler&                                        cgh,
         }
     }
 
+    const FTypeArray fTypeRangeStart(kernelParams.fTypeRangeStart);
+    const FTypeArray fTypeRangeEnd(kernelParams.fTypeRangeEnd);
+    const FTypeArray numFTypeBonds(kernelParams.numFTypeBonds);
+    const auto       electrostaticsScaleFactor = kernelParams.electrostaticsScaleFactor;
+    // FTypeArray fTypeRangeStart(kernelParams.fTypeRangeStart);
+
     sycl_2020::local_accessor<Float3, 1> sm_fShiftLoc{ sycl::range<1>(c_numShiftVectors), cgh };
 
     const PbcAiuc pbcAiuc = kernelParams.pbcAiuc;
@@ -885,12 +913,12 @@ auto bondedKernel(sycl::handler&                                        cgh,
 #pragma unroll
         for (int j = 0; j < numFTypesOnGpu; j++)
         {
-            if (tid >= kernelParams.fTypeRangeStart[j] && tid <= kernelParams.fTypeRangeEnd[j])
+            if (tid >= fTypeRangeStart[j] && tid <= fTypeRangeEnd[j])
             {
-                const int numBonds = kernelParams.numFTypeBonds[j];
-                const int fTypeTid = tid - kernelParams.fTypeRangeStart[j];
-                const sycl::global_ptr<const t_iatom> iatoms = a_iatoms[j]->get_pointer();
-                fType                                        = fTypesOnGpu[j];
+                const int                             numBonds = numFTypeBonds[j];
+                const int                             fTypeTid = tid - fTypeRangeStart[j];
+                const sycl::global_ptr<const t_iatom> iatoms   = a_iatoms[j]->get_pointer();
+                fType                                          = fTypesOnGpu[j];
                 if (calcEner)
                 {
                     threadComputedPotential = true;
@@ -932,7 +960,7 @@ auto bondedKernel(sycl::handler&                                        cgh,
                                                      gm_f,
                                                      sm_fShiftLoc,
                                                      pbcAiuc,
-                                                     kernelParams.electrostaticsScaleFactor,
+                                                     electrostaticsScaleFactor,
                                                      &vtot_loc,
                                                      &vtotElec_loc,
                                                      localId);
