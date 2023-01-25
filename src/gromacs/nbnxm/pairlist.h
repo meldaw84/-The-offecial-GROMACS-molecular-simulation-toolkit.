@@ -95,8 +95,8 @@ struct nbnxn_cj_t
 class JClusterList
 {
 public:
-    // typedef uint32_t IMask;
-    typedef uint64_t IMask;
+    typedef uint32_t IMask;
+    // typedef uint64_t IMask;
 
     //! Return the j-cluster index for \c index from the pack list
     inline int cj(int index) const { return jCluster_[index]; }
@@ -170,27 +170,6 @@ private:
 constexpr unsigned int NBNXN_INTERACTION_MASK_ALL = 0xffffffffU;
 //! All interaction mask is the same for all kernels with 64 atom pairs
 constexpr uint64_t NBNXN_INTERACTION_MASK64_ALL = 0xffffffffffffffffUL;
-//! 4x4 kernel diagonal mask
-constexpr unsigned int NBNXN_INTERACTION_MASK_DIAG = 0x08ceU;
-//! 4x2 kernel diagonal masks
-//! \{
-constexpr unsigned int NBNXN_INTERACTION_MASK_DIAG_J2_0 = 0x0002U;
-constexpr unsigned int NBNXN_INTERACTION_MASK_DIAG_J2_1 = 0x002fU;
-//! \}
-//! 4x8 kernel diagonal masks
-//! \{
-constexpr unsigned int NBNXN_INTERACTION_MASK_DIAG_J8_0 = 0xf0f8fcfeU;
-constexpr unsigned int NBNXN_INTERACTION_MASK_DIAG_J8_1 = 0x0080c0e0U;
-//! \}
-//! 8x4 kernel diagonal masks
-//! \{
-constexpr unsigned int NBNXN_INTERACTION_MASK_DIAG_8x4_0 = 0x000008ceU;
-constexpr unsigned int NBNXN_INTERACTION_MASK_DIAG_8x4_1 = 0x08ceffffU;
-//! \}
-//! 8x8 kernel diagonal mask
-//! \{
-constexpr uint64_t NBNXN_INTERACTION_MASK64_DIAG_8x8 = 0x80c0e0f0f8fcfeUL;
-//! \}
 //! \}
 
 /*! \brief Lower limit for square interaction distances in nonbonded kernels.

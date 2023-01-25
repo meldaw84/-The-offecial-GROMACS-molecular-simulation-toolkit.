@@ -91,8 +91,8 @@ void nbnxmKernelSimd(const NbnxnPairlistCpu*    nbl,
     static_assert(UNROLLJ * GMX_SIMD_J_UNROLL_SIZE == GMX_SIMD_REAL_WIDTH);
 
     // The interaction mask with all bits on;
-    // constexpr JClusterList::IMask c_interactionMaskAll = NBNXN_INTERACTION_MASK_ALL;
-    constexpr JClusterList::IMask c_interactionMaskAll = NBNXN_INTERACTION_MASK64_ALL;
+    constexpr JClusterList::IMask c_interactionMaskAll = NBNXN_INTERACTION_MASK_ALL;
+    // constexpr JClusterList::IMask c_interactionMaskAll = NBNXN_INTERACTION_MASK64_ALL;
 
     // The stride of all atom data arrays
     constexpr int STRIDE = std::max(UNROLLI, UNROLLJ);
