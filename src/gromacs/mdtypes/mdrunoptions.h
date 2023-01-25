@@ -99,7 +99,7 @@ struct ImdOptions
 //! \internal \brief Collection of all options of mdrun that are not processed separately
 struct MdrunOptions
 {
-    //! Re-compute energies, and possibly forces, for frames from an input tracjectory
+    //! Re-compute energies, and possibly forces, for frames from an input trajectory
     gmx_bool rerun = FALSE;
     //! Re-construct virual sites durin a rerun simulation
     gmx_bool rerunConstructVsites = FALSE;
