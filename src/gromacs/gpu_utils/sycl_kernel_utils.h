@@ -67,7 +67,7 @@ static inline void atomicAddOptimizedAmd(float gmx_unused* ptr, const float gmx_
     atomicAddNoRet(ptr, delta);
 #        pragma clang diagnostic pop
 #    elif defined(__gfx90a__) // Special function for AMD MI200
-    unsafeAtomicAdd(ptr, delta); // Not checked on real hardware, see #4465
+    __builtin_amdgcn_global_atomic_fadd_f32(ptr, delta); // Not checked on real hardware, see #4465
 #    else
     atomicAdd(ptr, delta);
 #    endif
