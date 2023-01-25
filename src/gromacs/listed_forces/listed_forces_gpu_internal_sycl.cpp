@@ -868,13 +868,16 @@ auto bondedKernel(sycl::handler&                                        cgh,
     a_f.bind(cgh);
     a_fShift.bind(cgh);
 
-    std::optional<DeviceAccessor<t_iatom, sycl::access_mode::read>> a_iatoms[numFTypesOnGpu];
+    sycl::global_ptr<const t_iatom> gm_iatoms[numFTypesOnGpu];
     for (int i = 0; i < numFTypesOnGpu; i++)
     {
         if (d_iatoms[i])
         {
-            a_iatoms[i].emplace<DeviceAccessor<t_iatom, sycl::access_mode::read>>(d_iatoms[i]);
-            a_iatoms[i]->bind(cgh);
+            gm_iatoms[i] = d_iatoms[i].buffer_->ptr_;
+        }
+        else
+        {
+            gm_iatoms[i] = nullptr;
         }
     }
 
@@ -917,7 +920,7 @@ auto bondedKernel(sycl::handler&                                        cgh,
             {
                 const int                             numBonds = numFTypeBonds[j];
                 const int                             fTypeTid = tid - fTypeRangeStart[j];
-                const sycl::global_ptr<const t_iatom> iatoms   = a_iatoms[j]->get_pointer();
+                const sycl::global_ptr<const t_iatom> iatoms   = gm_iatoms[j];
                 fType                                          = fTypesOnGpu[j];
                 if (calcEner)
                 {
