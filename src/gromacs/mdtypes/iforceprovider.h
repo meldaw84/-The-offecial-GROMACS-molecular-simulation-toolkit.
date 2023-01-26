@@ -105,6 +105,23 @@ public:
         copy_mat(box, box_);
     }
 
+    /*! \brief The constructor for force provider input data of a module
+     *
+     * This constructor is used, e.g. by the E-field module
+     *
+     * \param[in]  homenr   Number of charges on the local domain.
+     * \param[in]  chargeA  Atomic charges for atoms on the domain.
+     * \param[in]  time     The current time in the simulation.
+     * \param[in]  cr       Communication structure for parallel runs.
+     */
+    ForceProviderInput(int homenr, ArrayRef<const real> chargeA, double time, const t_commrec& cr) :
+        ForceProviderInput(cr)
+    {
+        homenr_  = homenr;
+        chargeA_ = chargeA;
+        t_       = time;
+    }
+
     /*! \brief Basic constructor for individual force providers that do not need all parameters
      *
      * This constructor should be used for calls to an individual force provider,
@@ -123,8 +140,8 @@ public:
 
     ArrayRef<const RVec> x_;            //!< The atomic positions
     int                  homenr_ = 0;   //!< Number of atoms on the domain.
-    ArrayRef<const real> chargeA_{};    //!< Atomic charges for atoms on the domain.
-    ArrayRef<const real> massT_{};      //!< Atomic masses for atoms on the domain.
+    ArrayRef<const real> chargeA_;      //!< Atomic charges for atoms on the domain.
+    ArrayRef<const real> massT_;        //!< Atomic masses for atoms on the domain.
     double               t_    = 0.0;   //!< The current time in the simulation
     int64_t              step_ = 0;     //!< The current step in the simulation
     matrix               box_{ { 0 } }; //!< The simulation box
