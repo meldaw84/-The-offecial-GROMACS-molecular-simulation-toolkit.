@@ -651,11 +651,14 @@ static void computeSpecialForces(FILE*                          fplog,
                 x,
                 mdatoms->homenr,
                 gmx::makeArrayRef(mdatoms->chargeA).subArray(0, mdatoms->homenr),
+                gmx::makeArrayRef(mdatoms->chargeA).subArray(0, mdatoms->homenr),
                 gmx::makeArrayRef(mdatoms->massT).subArray(0, mdatoms->homenr),
+                lambda,
                 t,
                 step,
                 box,
-                *cr);
+                *cr,
+                stepWork);
         gmx::ForceProviderOutput forceProviderOutput(forceWithVirialMtsLevel0, enerd);
 
         /* Collect forces from modules */

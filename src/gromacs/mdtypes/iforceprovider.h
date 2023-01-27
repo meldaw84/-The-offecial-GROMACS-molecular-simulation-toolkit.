@@ -53,15 +53,12 @@
 
 struct gmx_enerdata_t;
 struct t_commrec;
-struct t_forcerec;
 
 namespace gmx
 {
 
-template<typename T>
-class ArrayRef;
 class ForceWithVirial;
-
+class StepWorkload;
 
 /*! \libinternal \brief
  * Helper struct that bundles data for passing it over to the force providers
@@ -75,6 +72,7 @@ class ForceWithVirial;
  * data structs together for handing it over to calculateForces(). Apart from the
  * POD entries they own nothing.
  */
+
 class ForceProviderInput
 {
 public:
@@ -83,25 +81,72 @@ public:
      * This constructor should only be used in the main MD loop.
      * It collects all the data that can be used by the individual force providers.
      *
-     * \param[in]  x        Atomic positions.
-     * \param[in]  homenr   Number of atoms on the domain.
-     * \param[in]  chargeA  Atomic charges for atoms on the domain.
-     * \param[in]  massT    Atomic masses for atoms on the domain.
-     * \param[in]  time     The current time in the simulation.
-     * \param[in]  step     The current step in the simulation.
-     * \param[in]  box      The simulation box.
-     * \param[in]  cr       Communication structure for parallel runs.
+     * \param[in]  x             Atomic positions
+     * \param[in]  homenr        Number of atoms on the domain
+     * \param[in]  chargeA       Atomic charges for atoms on the domain
+     * \param[in]  chargeB       Same for the B state, if any
+     * \param[in]  massT         Atomic masses for atoms on the domain
+     * \param[in]  lambda        Array of free-energy lambda values
+     * \param[in]  time          The current time in the simulation
+     * \param[in]  step          The current step in the simulation
+     * \param[in]  box           The simulation box
+     * \param[in]  cr            Communication record structure
+     * \param[in]  stepWorkload  Work to be done this step
      */
     ForceProviderInput(ArrayRef<const RVec> x,
                        int                  homenr,
                        ArrayRef<const real> chargeA,
+                       ArrayRef<const real> chargeB,
+                       ArrayRef<const real> massT,
+                       ArrayRef<const real> lambda,
+                       double               time,
+                       int64_t              step,
+                       const matrix         box,
+                       const t_commrec&     cr,
+                       const StepWorkload&  stepWorkload) :
+        x_(x),
+        homenr_(homenr),
+        chargeA_(chargeA),
+        chargeB_(chargeB),
+        massT_(massT),
+        lambda_(lambda),
+        t_(time),
+        step_(step),
+        cr_(cr),
+        stepWorkload_(stepWorkload)
+    {
+        copy_mat(box, box_);
+    }
+
+    /*! \brief The constructor for force provider input data of a module
+     *
+     * This constructor is for for the typical case where forces depend
+     * on the positions of the atoms, e.g. pulling and enforced rotation
+     *
+     * \param[in]  x             Atomic positions
+     * \param[in]  homenr        Number of atoms on the domain
+     * \param[in]  massT         Atomic masses for atoms on the domain
+     * \param[in]  time          The current time in the simulation
+     * \param[in]  step          The current step in the simulation
+     * \param[in]  box           The simulation box
+     * \param[in]  cr            Communication structure for parallel runs
+     * \param[in]  stepWorkload  Work to be done this step
+     */
+    ForceProviderInput(ArrayRef<const RVec> x,
+                       int                  homenr,
                        ArrayRef<const real> massT,
                        double               time,
                        int64_t              step,
                        const matrix         box,
-                       const t_commrec&     cr) :
-        x_(x), homenr_(homenr), chargeA_(chargeA), massT_(massT), t_(time), step_(step), cr_(cr)
+                       const t_commrec&     cr,
+                       const StepWorkload&  stepWorkload) :
+        ForceProviderInput(cr, stepWorkload)
     {
+        x_      = x;
+        homenr_ = homenr;
+        massT_  = massT;
+        t_      = time;
+        step_   = step;
         copy_mat(box, box_);
     }
 
@@ -109,43 +154,45 @@ public:
      *
      * This constructor is used, e.g. by the E-field module
      *
-     * \param[in]  homenr   Number of charges on the local domain.
-     * \param[in]  chargeA  Atomic charges for atoms on the domain.
-     * \param[in]  time     The current time in the simulation.
-     * \param[in]  cr       Communication structure for parallel runs.
+     * \param[in]  homenr        Number of charges on the local domain
+     * \param[in]  chargeA       Atomic charges for atoms on the domain
+     * \param[in]  time          The current time in the simulation
+     * \param[in]  cr            Communication structure for parallel runs
+     * \param[in]  stepWorkload  Work to be done this step
      */
-    ForceProviderInput(int homenr, ArrayRef<const real> chargeA, double time, const t_commrec& cr) :
-        ForceProviderInput(cr)
+    ForceProviderInput(int                  homenr,
+                       ArrayRef<const real> chargeA,
+                       double               time,
+                       const t_commrec&     cr,
+                       const StepWorkload&  stepWorkload) :
+        ForceProviderInput(cr, stepWorkload)
     {
         homenr_  = homenr;
         chargeA_ = chargeA;
         t_       = time;
     }
 
-    /*! \brief Basic constructor for individual force providers that do not need all parameters
+    /*! \brief Minimal constructor
      *
-     * This constructor should be used for calls to an individual force provider,
-     * as e.g. in the tests. Here typically only a part of the parameters that get
-     * passed to the above full constructor is actually needed. After calling
-     * the basic constructor ForceProviderInput fpi(cr),
-     * additional required data can be passed by setting the public variables, e.g.
-     * fpi.step_ = step.
-     * If future force providers require additional data, only the full constructor call
-     * in the main MD loop has to be expanded with the new parameter, but no changes will
-     * have to be done in the tests of unrelated force providers.
-     *
-     * \param[in]  cr       Communication structure for parallel runs.
+     * \param[in]  cr            Communication structure for parallel runs
+     * \param[in]  stepWorkload  Work to be done this step
      */
-    explicit ForceProviderInput(const t_commrec& cr) : cr_(cr) {}
+    ForceProviderInput(const t_commrec& cr, const StepWorkload& stepWorkload) :
+        cr_(cr), stepWorkload_(stepWorkload)
+    {
+    }
 
     ArrayRef<const RVec> x_;            //!< The atomic positions
-    int                  homenr_ = 0;   //!< Number of atoms on the domain.
-    ArrayRef<const real> chargeA_;      //!< Atomic charges for atoms on the domain.
-    ArrayRef<const real> massT_;        //!< Atomic masses for atoms on the domain.
+    int                  homenr_ = 0;   //!< Number of atoms on the domain
+    ArrayRef<const real> chargeA_;      //!< Atomic charges for atoms on the domain
+    ArrayRef<const real> chargeB_;      //!< Same for the B state if present
+    ArrayRef<const real> massT_;        //!< Atomic masses for atoms on the domain
+    ArrayRef<const real> lambda_;       //!< Array of free-energy lambda values
     double               t_    = 0.0;   //!< The current time in the simulation
     int64_t              step_ = 0;     //!< The current step in the simulation
     matrix               box_{ { 0 } }; //!< The simulation box
-    const t_commrec&     cr_;           //!< Communication structure for parallel runs.
+    const t_commrec&     cr_;           //!< Communication structure for parallel runs
+    const StepWorkload&  stepWorkload_; //!< Kind of calculations to be done this time step
 };
 
 /*! \brief Take pointer, check if valid, return reference

@@ -55,6 +55,7 @@
 #include "gromacs/mdtypes/imdpoptionprovider.h"
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/mdatom.h"
+#include "gromacs/mdtypes/simulation_workload.h"
 #include "gromacs/options/options.h"
 #include "gromacs/options/treesupport.h"
 #include "gromacs/utility/arrayref.h"
@@ -105,9 +106,11 @@ public:
         }
 
         // Prepare a ForceProviderInput
-        std::vector<real>  chargeA{ 1 };
+        std::vector<real> chargeA{ 1 };
+        StepWorkload      swl;
+        swl.computeForces = true;
         t_commrec          cr;
-        ForceProviderInput forceProviderInput(ssize(chargeA), chargeA, 0.0, cr);
+        ForceProviderInput forceProviderInput(ssize(chargeA), chargeA, 0.0, cr, swl);
 
         // Prepare a ForceProviderOutput
         PaddedVector<RVec>  f = { { 0, 0, 0 } };
