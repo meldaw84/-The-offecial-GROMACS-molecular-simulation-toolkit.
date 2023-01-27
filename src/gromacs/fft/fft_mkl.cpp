@@ -334,6 +334,10 @@ int gmx_fft_init_2d_real(gmx_fft_t* pfft, int nxInt, int nyInt, gmx_fft_flag gmx
         status = DftiCommitDescriptor(fft->ooplace[0]);
     }
 
+    // See #4691
+    MKLVersion mklVersion;
+    MKL_Get_Version(&mklVersion);
+    const int mklOutputDistanceFactor = (mklVersion.MajorVersion == 2023) ? 1 : 2;
 
     /* In-place Y FFT  */
     MKL_LONG ny = nyInt;
@@ -351,7 +355,7 @@ int gmx_fft_init_2d_real(gmx_fft_t* pfft, int nxInt, int nyInt, gmx_fft_flag gmx
                   || DftiSetValue(fft->inplace[1], DFTI_NUMBER_OF_TRANSFORMS, nx)
                   || DftiSetValue(fft->inplace[1], DFTI_INPUT_DISTANCE, 2 * nyc)
                   || DftiSetValue(fft->inplace[1], DFTI_INPUT_STRIDES, stride)
-                  || DftiSetValue(fft->inplace[1], DFTI_OUTPUT_DISTANCE, 2 * nyc)
+                  || DftiSetValue(fft->inplace[1], DFTI_OUTPUT_DISTANCE, mklOutputDistanceFactor * nyc)
                   || DftiSetValue(fft->inplace[1], DFTI_OUTPUT_STRIDES, stride)
                   || DftiCommitDescriptor(fft->inplace[1]));
     }
@@ -372,7 +376,7 @@ int gmx_fft_init_2d_real(gmx_fft_t* pfft, int nxInt, int nyInt, gmx_fft_flag gmx
                   || DftiSetValue(fft->ooplace[1], DFTI_NUMBER_OF_TRANSFORMS, nx)
                   || DftiSetValue(fft->ooplace[1], DFTI_INPUT_DISTANCE, ny)
                   || DftiSetValue(fft->ooplace[1], DFTI_INPUT_STRIDES, stride)
-                  || DftiSetValue(fft->ooplace[1], DFTI_OUTPUT_DISTANCE, 2 * nyc)
+                  || DftiSetValue(fft->ooplace[1], DFTI_OUTPUT_DISTANCE, mklOutputDistanceFactor * nyc)
                   || DftiSetValue(fft->ooplace[1], DFTI_OUTPUT_STRIDES, stride)
                   || DftiCommitDescriptor(fft->ooplace[1]));
     }
