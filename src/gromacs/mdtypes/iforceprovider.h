@@ -78,8 +78,7 @@ class ForceProviderInput
 public:
     /*! \brief The constructor assembles all possible force provider input data
      *
-     * This constructor should only be used in the main MD loop.
-     * It collects all the data that can be used by the individual force providers.
+     * This constructor collects all the data that can be used by the individual force providers.
      *
      * \param[in]  x             Atomic positions
      * \param[in]  homenr        Number of atoms on the domain
