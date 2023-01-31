@@ -65,6 +65,11 @@ files, and inform about this behavior in their log file.
 
 :issue:`4629`
 
+Fix checkpointing of expanded ensemble simulations with the modular simulator and domain decomposition
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+:issue:`4629`
+
 Fixes for ``gmx`` tools
 ^^^^^^^^^^^^^^^^^^^^^^^
 

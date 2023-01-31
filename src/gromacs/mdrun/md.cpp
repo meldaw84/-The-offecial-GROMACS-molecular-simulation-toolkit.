@@ -1291,11 +1291,6 @@ void gmx::LegacySimulator::do_md()
                                               md->homenr,
                                               md->cTC ? gmx::arrayRefFromArray(md->cTC, md->nr)
                                                                       : gmx::ArrayRef<const unsigned short>());
-            /* history is maintained in state->dfhist, but state_global is what is sent to trajectory and log output */
-            if (MASTER(cr))
-            {
-                copy_df_history(state_global->dfhist, state->dfhist);
-            }
         }
 
         // Copy coordinate from the GPU for the output/checkpointing if the update is offloaded and
