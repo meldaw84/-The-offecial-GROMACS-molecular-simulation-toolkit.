@@ -823,9 +823,9 @@ static void update_top(t_atoms*        atoms,
             int         resCount = 0;
 
             // Iterate through solvent molecules and increment a count until new resname found
-            for (int i = firstSolventResidueIndex; i < atoms->nres; i++)
+            for (int iRes = firstSolventResidueIndex; iRes < atoms->nres; iRes++)
             {
-                if ((currRes == *atoms->resinfo[i].name))
+                if ((currRes == *atoms->resinfo[iRes].name))
                 {
                     resCount += 1;
                 }
@@ -839,7 +839,7 @@ static void update_top(t_atoms*        atoms,
                             currRes.c_str(),
                             topinout);
                     fprintf(fpout, "%-15s %5d\n", currRes.c_str(), resCount);
-                    currRes  = *atoms->resinfo[i].name;
+                    currRes  = *atoms->resinfo[iRes].name;
                     resCount = 1;
                 }
             }

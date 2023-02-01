@@ -1356,9 +1356,9 @@ int gmx_editconf(int argc, char* argv[])
              */
             int* pdbindex;
             snew(pdbindex, atoms.nr);
-            for (int i = 0; i < atoms.nr; i++)
+            for (int iAtom = 0; iAtom < atoms.nr; iAtom++)
             {
-                pdbindex[i] = i;
+                pdbindex[iAtom] = iAtom;
             }
             write_pdbfile_indexed(
                     out, name, &atoms, x, pbcType, box, ' ', -1, atoms.nr, pdbindex, conect, outftp == efPQR);

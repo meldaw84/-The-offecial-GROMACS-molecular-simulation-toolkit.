@@ -425,14 +425,14 @@ int gmx_g_angle(int argc, char* argv[])
         real b_aver = aver_angle[0];
         real b      = dih[0][0];
         real delta;
-        for (int i = 0; (i < nframes); i++)
+        for (int iFrame = 0; (iFrame < nframes); iFrame++)
         {
-            delta = correctRadianAngleRange(aver_angle[i] - b_aver);
+            delta = correctRadianAngleRange(aver_angle[iFrame] - b_aver);
             b_aver += delta;
             aver += b_aver;
-            for (int j = 0; (j < nangles); j++)
+            for (int iAngle = 0; (iAngle < nangles); iAngle++)
             {
-                delta = correctRadianAngleRange(dih[j][i] - b);
+                delta = correctRadianAngleRange(dih[iAngle][iFrame] - b);
                 b += delta;
             }
         }

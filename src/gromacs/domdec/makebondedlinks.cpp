@@ -144,22 +144,22 @@ static gmx::ListOfLists<int> genBondedLinks(const gmx_mtop_t&                   
 
                 if (mtop.bIntermolecularInteractions)
                 {
-                    int i = ril_intermol.index[atomIndex];
-                    while (i < ril_intermol.index[atomIndex + 1])
+                    int iInter = ril_intermol.index[atomIndex];
+                    while (iInter < ril_intermol.index[atomIndex + 1])
                     {
-                        int ftype = ril_intermol.il[i++];
+                        int ftype = ril_intermol.il[iInter++];
                         int nral  = NRAL(ftype);
                         /* Skip the ifunc index */
-                        i++;
+                        iInter++;
                         for (int j = 0; j < nral; j++)
                         {
                             /* Here we assume we have no charge groups;
                              * this has been checked above.
                              */
-                            int aj = ril_intermol.il[i + j];
+                            int aj = ril_intermol.il[iInter + j];
                             check_link(&linksForOneAtom, aj);
                         }
-                        i += nral_rt(ftype);
+                        iInter += nral_rt(ftype);
                     }
                 }
                 if (!linksForOneAtom.empty())

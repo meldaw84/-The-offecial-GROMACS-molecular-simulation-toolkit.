@@ -2294,17 +2294,17 @@ int pdb2gmx::run()
         int k                = chains[i].pdba->atom[0].resind;
         int nres             = chains[i].pdba->atom[chains[i].pdba->nr - 1].resind - k + 1;
         chains[i].pdba->nres = nres;
-        for (int j = 0; j < chains[i].pdba->nr; j++)
+        for (int iAtom = 0; iAtom < chains[i].pdba->nr; iAtom++)
         {
-            chains[i].pdba->atom[j].resind -= k;
+            chains[i].pdba->atom[iAtom].resind -= k;
         }
         srenew(chains[i].pdba->resinfo, nres);
-        for (int j = 0; j < nres; j++)
+        for (int iRes = 0; iRes < nres; iRes++)
         {
-            chains[i].pdba->resinfo[j]      = pdba_all.resinfo[k + j];
-            chains[i].pdba->resinfo[j].name = put_symtab(&symtab, *pdba_all.resinfo[k + j].name);
+            chains[i].pdba->resinfo[iRes]      = pdba_all.resinfo[k + iRes];
+            chains[i].pdba->resinfo[iRes].name = put_symtab(&symtab, *pdba_all.resinfo[k + iRes].name);
             /* make all chain identifiers equal to that of the chain */
-            chains[i].pdba->resinfo[j].chainid = pdb_ch[si].chainid;
+            chains[i].pdba->resinfo[iRes].chainid = pdb_ch[si].chainid;
         }
     }
 
@@ -2663,9 +2663,9 @@ int pdb2gmx::run()
 
             /* Check if there have been previous chains with the same id */
             int nid_used = 0;
-            for (int k = 0; k < chain; k++)
+            for (int iChain = 0; iChain < chain; iChain++)
             {
-                if (cc->chainid == chains[k].chainid)
+                if (cc->chainid == chains[iChain].chainid)
                 {
                     nid_used++;
                 }
@@ -2852,18 +2852,18 @@ int pdb2gmx::run()
                                          chains[i].pdba->nr,
                                          chains[i].pdba->nres);
         }
-        for (int j = 0; (j < chains[i].pdba->nr); j++)
+        for (int iAtom = 0; (iAtom < chains[i].pdba->nr); iAtom++)
         {
-            atoms->atom[k] = chains[i].pdba->atom[j];
+            atoms->atom[k] = chains[i].pdba->atom[iAtom];
             atoms->atom[k].resind += l; /* l is processed nr of residues */
-            atoms->atomname[k]                            = chains[i].pdba->atomname[j];
+            atoms->atomname[k]                            = chains[i].pdba->atomname[iAtom];
             atoms->resinfo[atoms->atom[k].resind].chainid = chains[i].chainid;
-            x.push_back(chains[i].x[j]);
+            x.push_back(chains[i].x[iAtom]);
             k++;
         }
-        for (int j = 0; (j < chains[i].pdba->nres); j++)
+        for (int iRes = 0; (iRes < chains[i].pdba->nres); iRes++)
         {
-            atoms->resinfo[l] = chains[i].pdba->resinfo[j];
+            atoms->resinfo[l] = chains[i].pdba->resinfo[iRes];
             if (bRTPresname_)
             {
                 atoms->resinfo[l].name = atoms->resinfo[l].rtp;

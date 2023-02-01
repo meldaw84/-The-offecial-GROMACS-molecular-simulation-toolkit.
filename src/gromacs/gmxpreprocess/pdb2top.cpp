@@ -1660,9 +1660,9 @@ void pdb2top(FILE*                                  top_file,
         /* We can copy the bonded types from the first restp,
          * since the types have to be identical for all residues in one molecule.
          */
-        for (auto i : gmx::EnumerationWrapper<BondedTypes>{})
+        for (auto iType : gmx::EnumerationWrapper<BondedTypes>{})
         {
-            bts[i] = usedPpResidues[0].rb[i].type;
+            bts[iType] = usedPpResidues[0].rb[iType].type;
         }
         write_top(top_file,
                   posre_fn,

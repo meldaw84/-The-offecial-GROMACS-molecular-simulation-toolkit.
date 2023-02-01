@@ -602,21 +602,21 @@ void low_do_autocorr(const char*             fn,
      * In this loop the actual correlation functions are computed, but without
      * normalizing them.
      */
-    for (int i = 0; i < nitem; i++)
+    for (int iItem = 0; iItem < nitem; iItem++)
     {
-        if (bVerbose && (((i % 100) == 0) || (i == nitem - 1)))
+        if (bVerbose && (((iItem % 100) == 0) || (iItem == nitem - 1)))
         {
-            fprintf(stderr, "\rThingie %d", i + 1);
+            fprintf(stderr, "\rThingie %d", iItem + 1);
             fflush(stderr);
         }
 
         if (bFour)
         {
-            do_four_core(mode, nframes, c1[i], csum, ctmp);
+            do_four_core(mode, nframes, c1[iItem], csum, ctmp);
         }
         else
         {
-            do_ac_core(nframes, nout, ctmp, c1[i], nrestart, mode);
+            do_ac_core(nframes, nout, ctmp, c1[iItem], nrestart, mode);
         }
     }
     if (bVerbose)

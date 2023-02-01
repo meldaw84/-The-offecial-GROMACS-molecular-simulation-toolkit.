@@ -102,14 +102,13 @@ static void mde_delta_h_init(t_mde_delta_h* dh,
     }
     else
     {
-        int i;
         /* pre-allocate the histogram */
         dh->nhist = 2; /* energies and derivatives histogram */
         dh->dx    = dx;
         dh->nbins = nbins;
-        for (i = 0; i < dh->nhist; i++)
+        for (int iHist = 0; iHist < dh->nhist; iHist++)
         {
-            dh->bin[i].resize(dh->nbins);
+            dh->bin[iHist].resize(dh->nbins);
         }
     }
     mde_delta_h_reset(dh);
@@ -252,16 +251,14 @@ static void mde_delta_h_handle_block(t_mde_delta_h* dh, t_enxblock* blk)
         /*if (dh->ndh > 1)*/
         if (dh->ndh > 0)
         {
-            unsigned int i;
-
             blk->sub[2].nr = dh->ndh;
             /* Michael commented in 2012 that this use of explicit
                XdrDataType::Float was good for F@H for now.
                Apparently it's still good enough. */
             blk->sub[2].type = XdrDataType::Float;
-            for (i = 0; i < dh->ndh; i++)
+            for (unsigned int iDH = 0; iDH < dh->ndh; iDH++)
             {
-                dh->dhf[i] = static_cast<float>(dh->dh[i]);
+                dh->dhf[iDH] = static_cast<float>(dh->dh[iDH]);
             }
             blk->sub[2].fval = dh->dhf.data();
             dh->written      = TRUE;
@@ -385,9 +382,9 @@ t_mde_delta_h_coll::t_mde_delta_h_coll(const t_inputrec& inputrec)
         /* create the native lambda vectors */
         lambda_index = fep->init_fep_state;
         n_lambda_vec = 0;
-        for (auto i : keysOf(fep->separate_dvdl))
+        for (auto iFEP : keysOf(fep->separate_dvdl))
         {
-            if (fep->separate_dvdl[i])
+            if (fep->separate_dvdl[iFEP])
             {
                 n_lambda_vec++;
             }
@@ -395,14 +392,14 @@ t_mde_delta_h_coll::t_mde_delta_h_coll(const t_inputrec& inputrec)
         native_lambda_vec.resize(n_lambda_vec);
         native_lambda_components.resize(n_lambda_vec);
         j = 0;
-        for (auto i : keysOf(fep->separate_dvdl))
+        for (auto iFEP : keysOf(fep->separate_dvdl))
         {
-            if (fep->separate_dvdl[i])
+            if (fep->separate_dvdl[iFEP])
             {
-                native_lambda_components[j] = static_cast<int>(i);
+                native_lambda_components[j] = static_cast<int>(iFEP);
                 if (fep->init_fep_state >= 0 && fep->init_fep_state < fep->n_lambda)
                 {
-                    native_lambda_vec[j] = fep->all_lambda[i][fep->init_fep_state];
+                    native_lambda_vec[j] = fep->all_lambda[iFEP][fep->init_fep_state];
                 }
                 else
                 {
@@ -443,9 +440,9 @@ t_mde_delta_h_coll::t_mde_delta_h_coll(const t_inputrec& inputrec)
         /* add the dhdl's */
         if (fep->dhdl_derivatives == DhDlDerivativeCalculation::Yes)
         {
-            for (auto i : keysOf(fep->separate_dvdl))
+            for (auto iFEP : keysOf(fep->separate_dvdl))
             {
-                if (inputrec.fepvals->separate_dvdl[i])
+                if (inputrec.fepvals->separate_dvdl[iFEP])
                 {
                     ndh += 1;
                     ndhdl += 1;
@@ -515,9 +512,9 @@ t_mde_delta_h_coll::t_mde_delta_h_coll(const t_inputrec& inputrec)
         if (fep->dhdl_derivatives == DhDlDerivativeCalculation::Yes)
         {
             dh_dhdl_index = n;
-            for (auto i : keysOf(fep->separate_dvdl))
+            for (auto iFEP : keysOf(fep->separate_dvdl))
             {
-                if (inputrec.fepvals->separate_dvdl[i])
+                if (inputrec.fepvals->separate_dvdl[iFEP])
                 {
                     /* we give it init_lambda for compatibility */
                     mde_delta_h_init(&dh[n],
@@ -535,9 +532,9 @@ t_mde_delta_h_coll::t_mde_delta_h_coll(const t_inputrec& inputrec)
         }
         else
         {
-            for (auto i : keysOf(fep->separate_dvdl))
+            for (auto iFEP : keysOf(fep->separate_dvdl))
             {
-                if (fep->separate_dvdl[i])
+                if (fep->separate_dvdl[iFEP])
                 {
                     n_lambda_components++; /* count the components */
                 }
@@ -550,11 +547,11 @@ t_mde_delta_h_coll::t_mde_delta_h_coll(const t_inputrec& inputrec)
         {
             int k = 0;
 
-            for (auto j : keysOf(fep->separate_dvdl))
+            for (auto iFEP : keysOf(fep->separate_dvdl))
             {
-                if (fep->separate_dvdl[j])
+                if (fep->separate_dvdl[iFEP])
                 {
-                    lambda_vec[k++] = fep->all_lambda[j][i];
+                    lambda_vec[k++] = fep->all_lambda[iFEP][i];
                 }
             }
 

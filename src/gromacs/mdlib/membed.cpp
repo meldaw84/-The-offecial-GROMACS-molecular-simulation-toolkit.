@@ -595,9 +595,9 @@ static int gen_rm_list(rm_t*             rm_p,
                     {
                         if (mol_id == mem_p->mol_id[l])
                         {
-                            for (int k : molecules.block(mol_id))
+                            for (int iAtom : molecules.block(mol_id))
                             {
-                                z_lip += r[k][ZZ];
+                                z_lip += r[iAtom][ZZ];
                             }
                             z_lip /= molecules.block(mol_id).size();
                             if (z_lip < mem_p->zmed)
@@ -665,9 +665,9 @@ static int gen_rm_list(rm_t*             rm_p,
             if (bRM)
             {
                 z_lip = 0;
-                for (int k : molecules.block(mol_id))
+                for (int iAtom : molecules.block(mol_id))
                 {
-                    z_lip += r[k][ZZ];
+                    z_lip += r[iAtom][ZZ];
                 }
                 z_lip /= molecules.block(mol_id).size();
                 if (nupper > nlower && z_lip < mem_p->zmed)
@@ -957,10 +957,10 @@ static void top_update(const char* topfile, rm_t* rm_p, gmx_mtop_t* mtop)
             }
             else if (bMolecules == 1)
             {
-                for (size_t i = 0; i < mtop->molblock.size(); i++)
+                for (size_t iBlock = 0; iBlock < mtop->molblock.size(); iBlock++)
                 {
-                    nmol = mtop->molblock[i].nmol;
-                    sprintf(buf, "%-15s %5d\n", *(mtop->moltype[mtop->molblock[i].type].name), nmol);
+                    nmol = mtop->molblock[iBlock].nmol;
+                    sprintf(buf, "%-15s %5d\n", *(mtop->moltype[mtop->molblock[iBlock].type].name), nmol);
                     fprintf(fpout, "%s", buf);
                 }
                 bMolecules = 2;
@@ -1342,17 +1342,19 @@ gmx_membed_t* init_membed(FILE*          fplog,
             }
         }
 
-        for (size_t i = 0; i < mtop->molblock.size(); i++)
+        for (size_t iBlock = 0; iBlock < mtop->molblock.size(); iBlock++)
         {
             ntype = 0;
             for (j = 0; j < rm_p->nr; j++)
             {
-                if (rm_p->block[j] == static_cast<int>(i))
+                if (rm_p->block[j] == static_cast<int>(iBlock))
                 {
                     ntype++;
                 }
             }
-            printf("Will remove %d %s molecules\n", ntype, *(mtop->moltype[mtop->molblock[i].type].name));
+            printf("Will remove %d %s molecules\n",
+                   ntype,
+                   *(mtop->moltype[mtop->molblock[iBlock].type].name));
         }
 
         if (lip_rm > max_lip_rm)

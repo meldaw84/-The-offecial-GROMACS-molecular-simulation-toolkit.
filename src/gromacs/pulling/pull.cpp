@@ -1156,12 +1156,12 @@ static void do_constraint(struct pull_t* pull,
         /* update the atom positions */
         auto localAtomIndices = pgrp->atomSet_.localIndex();
         copy_dvec(dr, tmp);
-        for (gmx::Index j = 0; j < localAtomIndices.ssize(); j++)
+        for (gmx::Index iLA = 0; iLA < localAtomIndices.ssize(); iLA++)
         {
-            ii = localAtomIndices[j];
+            ii = localAtomIndices[iLA];
             if (!pgrp->localWeights.empty())
             {
-                dsvmul(pgrp->wscale * pgrp->localWeights[j], dr, tmp);
+                dsvmul(pgrp->wscale * pgrp->localWeights[iLA], dr, tmp);
             }
             for (m = 0; m < DIM; m++)
             {

@@ -3269,7 +3269,7 @@ static void read_barsim_edr(const char* fn, real* temp, sim_data_t* sd)
                 int type = static_cast<int>(fr->block[i].sub[1].lval[1]);
                 if (type == dhbtDH || type == dhbtDHDL)
                 {
-                    int        j;
+                    int        iB;
                     int        nb = 0;
                     samples_t* s; /* this is where the data will go */
                     s = read_edr_hist_block(
@@ -3281,9 +3281,9 @@ static void read_barsim_edr(const char* fn, real* temp, sim_data_t* sd)
                     }
                     k++;
                     /* and insert the new sample immediately */
-                    for (j = 0; j < nb; j++)
+                    for (iB = 0; iB < nb; iB++)
                     {
-                        lambda_data_list_insert_sample(sd->lb, s + j);
+                        lambda_data_list_insert_sample(sd->lb, s + iB);
                     }
                 }
             }

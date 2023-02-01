@@ -1477,9 +1477,9 @@ gmx_bool gmx_read_next_tng_frame(gmx_tng_trajectory_t gmx_tng_input,
         return FALSE;
     }
 
-    for (int64_t i = 0; i < nBlocks; i++)
+    for (int64_t iBlock = 0; iBlock < nBlocks; iBlock++)
     {
-        blockId = blockIds[i];
+        blockId = blockIds[iBlock];
         tng_data_block_dependency_get(input, blockId, &blockDependency);
         if (blockDependency & TNG_PARTICLE_DEPENDENT)
         {

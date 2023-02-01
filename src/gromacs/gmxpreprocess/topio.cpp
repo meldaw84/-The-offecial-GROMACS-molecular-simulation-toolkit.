@@ -1336,11 +1336,11 @@ static void generate_qmexcl_moltype(gmx_moltype_t*       molt,
     for (int i = F_LJ14; i < F_COUL14; i++)
     {
         int nratoms = interaction_function[i].nratoms;
-        int j       = 0;
-        while (j < molt->ilist[i].size())
+        int iAtom   = 0;
+        while (iAtom < molt->ilist[i].size())
         {
-            int  a1    = molt->ilist[i].iatoms[j + 1];
-            int  a2    = molt->ilist[i].iatoms[j + 2];
+            int  a1    = molt->ilist[i].iatoms[iAtom + 1];
+            int  a2    = molt->ilist[i].iatoms[iAtom + 2];
             bool bexcl = (bQMMM[a1] && bQMMM[a2]);
             if (bexcl)
             {
@@ -1348,7 +1348,7 @@ static void generate_qmexcl_moltype(gmx_moltype_t*       molt,
                  * removed from the MM ilist
                  */
                 InteractionList& ilist = molt->ilist[i];
-                for (int k = j; k < ilist.size() - (nratoms + 1); k++)
+                for (int k = iAtom; k < ilist.size() - (nratoms + 1); k++)
                 {
                     ilist.iatoms[k] = ilist.iatoms[k + (nratoms + 1)];
                 }
@@ -1356,7 +1356,7 @@ static void generate_qmexcl_moltype(gmx_moltype_t*       molt,
             }
             else
             {
-                j += nratoms + 1; /* the +1 is for the functype */
+                iAtom += nratoms + 1; /* the +1 is for the functype */
             }
         }
     }

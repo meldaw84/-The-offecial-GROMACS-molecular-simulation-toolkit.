@@ -323,7 +323,7 @@ std::vector<double> vectorSecondDerivative(ArrayRef<const double> f, double spac
     i = 1;
     d[i] = (-f[i + 3] + 4 * f[i + 2] + 6 * f[i + 1] - 20 * f[i] + 11 * f[i - 1]) / (12 * spacing * spacing);
 
-    for (std::size_t i = 2; i < d.size() - 2; i++)
+    for (i = 2; i < d.size() - 2; i++)
     {
         // 5-point formula evaluated for central point (2)
         d[i] = (-f[i + 2] + 16 * f[i + 1] - 30 * f[i] + 16 * f[i - 1] - f[i - 2]) / (12 * spacing * spacing);

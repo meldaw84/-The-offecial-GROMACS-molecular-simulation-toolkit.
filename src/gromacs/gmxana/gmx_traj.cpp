@@ -1179,17 +1179,17 @@ int gmx_traj(int argc, char* argv[])
     // Free index and isize only if they are distinct from index0 and isize0
     if (bMol)
     {
-        for (int i = 0; i < ngroups; i++)
+        for (int iGroup = 0; iGroup < ngroups; iGroup++)
         {
-            sfree(index[i]);
+            sfree(index[iGroup]);
         }
         sfree(index);
         sfree(isize);
     }
-    for (int i = 0; i < ngroups; i++)
+    for (int iGroup = 0; iGroup < ngroups; iGroup++)
     {
-        sfree(index0[i]);
-        sfree(grpname[i]);
+        sfree(index0[iGroup]);
+        sfree(grpname[iGroup]);
     }
     sfree(index0);
     sfree(isize0);

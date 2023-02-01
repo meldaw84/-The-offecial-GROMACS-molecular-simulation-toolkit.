@@ -300,10 +300,10 @@ gmx_shellfc_t* init_shell_flexcon(FILE*             fplog,
     for (const AtomProxy atomP : AtomRange(mtop))
     {
         const t_atom& local = atomP.atom();
-        int           i     = atomP.globalAtomNumber();
+        int           iAtom = atomP.globalAtomNumber();
         if (local.ptype == ParticleType::Shell)
         {
-            shell_index[i] = nshell++;
+            shell_index[iAtom] = nshell++;
         }
     }
 

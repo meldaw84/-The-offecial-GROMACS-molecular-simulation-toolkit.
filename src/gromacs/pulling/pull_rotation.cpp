@@ -513,16 +513,16 @@ static void reduce_output(const t_commrec* cr, gmx_enfrot* er, real t, int64_t s
 
                 if (bPotAngle(er, rotg, step))
                 {
-                    for (int i = 0; i < rotg->PotAngle_nstep; i++)
+                    for (int iStep = 0; iStep < rotg->PotAngle_nstep; iStep++)
                     {
-                        erg->PotAngleFit->V[i] = er->mpi_outbuf[count++];
+                        erg->PotAngleFit->V[iStep] = er->mpi_outbuf[count++];
                     }
                 }
                 if (bSlabTau(er, rotg, step))
                 {
-                    for (int i = 0; i < nslabs; i++)
+                    for (int iSlab = 0; iSlab < nslabs; iSlab++)
                     {
-                        erg->slab_torque_v[i] = er->mpi_outbuf[count++];
+                        erg->slab_torque_v[iSlab] = er->mpi_outbuf[count++];
                     }
                 }
             }
@@ -568,13 +568,13 @@ static void reduce_output(const t_commrec* cr, gmx_enfrot* er, real t, int64_t s
                 if (bFlex)
                 {
                     fprintf(er->out_torque, "%12.3e%6d", t, erg->groupIndex);
-                    for (int i = erg->slab_first; i <= erg->slab_last; i++)
+                    for (int iSlab = erg->slab_first; iSlab <= erg->slab_last; iSlab++)
                     {
-                        islab = i - erg->slab_first; /* slab index */
+                        islab = iSlab - erg->slab_first; /* slab index */
                         /* Only output if enough weight is in slab */
                         if (erg->slab_weights[islab] > rotg->min_gaussian)
                         {
-                            fprintf(er->out_torque, "%6d%12.3e", i, erg->slab_torque_v[islab]);
+                            fprintf(er->out_torque, "%6d%12.3e", iSlab, erg->slab_torque_v[islab]);
                         }
                     }
                     fprintf(er->out_torque, "\n");
@@ -585,9 +585,9 @@ static void reduce_output(const t_commrec* cr, gmx_enfrot* er, real t, int64_t s
                 {
                     fprintf(er->out_angles, "%12.3e%6d%12.4f", t, erg->groupIndex, erg->degangle);
                     /* Output energies at a set of angles around the reference angle */
-                    for (int i = 0; i < rotg->PotAngle_nstep; i++)
+                    for (int iStep = 0; iStep < rotg->PotAngle_nstep; iStep++)
                     {
-                        fprintf(er->out_angles, "%12.3e", erg->PotAngleFit->V[i]);
+                        fprintf(er->out_angles, "%12.3e", erg->PotAngleFit->V[iStep]);
                     }
                     fprintf(er->out_angles, "\n");
                 }

@@ -653,9 +653,9 @@ FILE* open_dhdl(const char* filename, const t_inputrec* ir, const gmx_output_env
     bool write_pV = false;
 
     /* count the number of different lambda terms */
-    for (auto i : keysOf(fep->separate_dvdl))
+    for (auto iFEP : keysOf(fep->separate_dvdl))
     {
-        if (fep->separate_dvdl[i])
+        if (fep->separate_dvdl[iFEP])
         {
             n_lambda_terms++;
         }
@@ -759,9 +759,9 @@ FILE* open_dhdl(const char* filename, const t_inputrec* ir, const gmx_output_env
 
     if (fep->dhdl_derivatives == DhDlDerivativeCalculation::Yes)
     {
-        for (auto i : keysOf(fep->separate_dvdl))
+        for (auto iFEP : keysOf(fep->separate_dvdl))
         {
-            if (fep->separate_dvdl[i])
+            if (fep->separate_dvdl[iFEP])
             {
                 std::string derivative;
                 if ((fep->init_lambda >= 0) && (n_lambda_terms == 1))
@@ -774,9 +774,10 @@ FILE* open_dhdl(const char* filename, const t_inputrec* ir, const gmx_output_env
                     double lam = fep->init_lambda;
                     if (fep->init_lambda < 0)
                     {
-                        lam = fep->all_lambda[i][fep->init_fep_state];
+                        lam = fep->all_lambda[iFEP][fep->init_fep_state];
                     }
-                    derivative = gmx::formatString("%s %s = %.4f", dhdl, enumValueToStringSingular(i), lam);
+                    derivative = gmx::formatString(
+                            "%s %s = %.4f", dhdl, enumValueToStringSingular(iFEP), lam);
                 }
                 setname[s++] = derivative;
             }

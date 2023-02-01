@@ -768,8 +768,8 @@ static void new_status(const char*                           topfile,
         for (const AtomProxy atomP : AtomRange(*sys))
         {
             const t_atom& local = atomP.atom();
-            int           i     = atomP.globalAtomNumber();
-            mass[i]             = local.m;
+            int           iAtom = atomP.globalAtomNumber();
+            mass[iAtom]         = local.m;
         }
 
         if (opts->bMadeSeed)

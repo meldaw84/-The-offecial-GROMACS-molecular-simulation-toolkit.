@@ -773,9 +773,9 @@ int gmx_rms(int argc, char* argv[])
     gmx_rmpbc_done(gpbc);
     std::vector<std::string> names;
     names.resize(nrms);
-    for (int i = 0; i < nrms; ++i)
+    for (int iRMS = 0; iRMS < nrms; ++iRMS)
     {
-        names[i] = gn_rms[i];
+        names[iRMS] = gn_rms[iRMS];
     }
 
     if (bMat || bBond)

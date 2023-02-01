@@ -1809,36 +1809,36 @@ static void do_fep_params(t_inputrec*                ir,
     /* first, identify the number of lambda values for each type.
        All that are nonzero must have the same number */
 
-    for (auto i : keysOf(nfep))
+    for (auto iFEP : keysOf(nfep))
     {
-        count_fep_lambdas[i] = parse_n_real(fep_lambda[static_cast<int>(i)], &(nfep[i]), wi);
+        count_fep_lambdas[iFEP] = parse_n_real(fep_lambda[static_cast<int>(iFEP)], &(nfep[iFEP]), wi);
     }
 
     /* now, determine the number of components.  All must be either zero, or equal. */
 
     max_n_lambda = 0;
-    for (auto i : keysOf(nfep))
+    for (auto iFEP : keysOf(nfep))
     {
-        if (nfep[i] > max_n_lambda)
+        if (nfep[iFEP] > max_n_lambda)
         {
-            max_n_lambda = nfep[i]; /* here's a nonzero one.  All of them
+            max_n_lambda = nfep[iFEP]; /* here's a nonzero one.  All of them
                                        must have the same number if its not zero.*/
             break;
         }
     }
 
-    for (auto i : keysOf(nfep))
+    for (auto iFEP : keysOf(nfep))
     {
-        if (nfep[i] == 0)
+        if (nfep[iFEP] == 0)
         {
-            ir->fepvals->separate_dvdl[i] = FALSE;
+            ir->fepvals->separate_dvdl[iFEP] = FALSE;
         }
-        else if (nfep[i] == max_n_lambda)
+        else if (nfep[iFEP] == max_n_lambda)
         {
-            if (i != FreeEnergyPerturbationCouplingType::Temperature) /* we treat this differently -- not really a reason to compute
+            if (iFEP != FreeEnergyPerturbationCouplingType::Temperature) /* we treat this differently -- not really a reason to compute
                                          the derivative with respect to the temperature currently */
             {
-                ir->fepvals->separate_dvdl[i] = TRUE;
+                ir->fepvals->separate_dvdl[iFEP] = TRUE;
             }
         }
         else
@@ -1846,8 +1846,8 @@ static void do_fep_params(t_inputrec*                ir,
             gmx_fatal(FARGS,
                       "Number of lambdas (%d) for FEP type %s not equal to number of other types "
                       "(%d)",
-                      nfep[i],
-                      enumValueToString(i),
+                      nfep[iFEP],
+                      enumValueToString(iFEP),
                       max_n_lambda);
         }
     }
@@ -1864,15 +1864,15 @@ static void do_fep_params(t_inputrec*                ir,
         ir->fepvals->separate_dvdl[FreeEnergyPerturbationCouplingType::Fep] = TRUE;
     }
     /* otherwise allocate the space for all of the lambdas, and transfer the data */
-    for (auto i : keysOf(nfep))
+    for (auto iFEP : keysOf(nfep))
     {
-        fep->all_lambda[i].resize(fep->n_lambda);
-        if (nfep[i] > 0) /* if it's zero, then the count_fep_lambda arrays
+        fep->all_lambda[iFEP].resize(fep->n_lambda);
+        if (nfep[iFEP] > 0) /* if it's zero, then the count_fep_lambda arrays
                             are zero */
         {
             for (j = 0; j < fep->n_lambda; j++)
             {
-                fep->all_lambda[i][j] = static_cast<double>(count_fep_lambdas[i][j]);
+                fep->all_lambda[iFEP][j] = static_cast<double>(count_fep_lambdas[iFEP][j]);
             }
         }
     }
@@ -1897,9 +1897,9 @@ static void do_fep_params(t_inputrec*                ir,
     }
     else
     {
-        for (auto i : keysOf(nfep))
+        for (auto iFEP : keysOf(nfep))
         {
-            if ((nfep[i] != 0) && (i != FreeEnergyPerturbationCouplingType::Fep))
+            if ((nfep[iFEP] != 0) && (iFEP != FreeEnergyPerturbationCouplingType::Fep))
             {
                 bOneLambda = FALSE;
             }
@@ -1914,13 +1914,13 @@ static void do_fep_params(t_inputrec*                ir,
        specified (i.e. nfep[i] == 0).  This means if fep is not defined,
        they are all zero. */
 
-    for (auto i : keysOf(nfep))
+    for (auto iFEP : keysOf(nfep))
     {
-        if ((nfep[i] == 0) && (i != FreeEnergyPerturbationCouplingType::Fep))
+        if ((nfep[iFEP] == 0) && (iFEP != FreeEnergyPerturbationCouplingType::Fep))
         {
             for (j = 0; j < fep->n_lambda; j++)
             {
-                fep->all_lambda[i][j] = fep->all_lambda[FreeEnergyPerturbationCouplingType::Fep][j];
+                fep->all_lambda[iFEP][j] = fep->all_lambda[FreeEnergyPerturbationCouplingType::Fep][j];
             }
         }
     }
@@ -4236,9 +4236,9 @@ void do_index(const char*                    mdparin,
 
     if (ir->bPull)
     {
-        for (int i = 1; i < ir->pull->ngroup; i++)
+        for (int iGroup = 1; iGroup < ir->pull->ngroup; iGroup++)
         {
-            const int gid = getGroupIndex(inputrecStrings->pullGroupNames[i], defaultIndexGroups);
+            const int gid = getGroupIndex(inputrecStrings->pullGroupNames[iGroup], defaultIndexGroups);
             GMX_ASSERT(!defaultIndexGroups.empty(), "Must have initialized default index groups");
             atomGroupRangeValidation(natoms, defaultIndexGroups[gid].particleIndices);
         }
@@ -4858,14 +4858,13 @@ void triple_check(const char* mdparin, t_inputrec* ir, gmx_mtop_t* sys, WarningH
         /* For safety: 2 DOF per atom (typical with constraints) */
         const real nrdf_at = 2;
         real       T, tau, max_T_error;
-        int        i;
 
         T   = 0;
         tau = 0;
-        for (i = 0; i < ir->opts.ngtc; i++)
+        for (int iGTC = 0; iGTC < ir->opts.ngtc; iGTC++)
         {
-            T   = std::max(T, ir->opts.ref_t[i]);
-            tau = std::max(tau, ir->opts.tau_t[i]);
+            T   = std::max(T, ir->opts.ref_t[iGTC]);
+            tau = std::max(tau, ir->opts.tau_t[iGTC]);
         }
         if (T > 0)
         {
@@ -4895,37 +4894,35 @@ void triple_check(const char* mdparin, t_inputrec* ir, gmx_mtop_t* sys, WarningH
 
     if (ETC_ANDERSEN(ir->etc))
     {
-        int i;
-
-        for (i = 0; i < ir->opts.ngtc; i++)
+        for (int iGTC = 0; iGTC < ir->opts.ngtc; iGTC++)
         {
             sprintf(err_buf,
                     "all tau_t must currently be equal using Andersen temperature control, "
                     "violated for group %d",
-                    i);
-            CHECK(ir->opts.tau_t[0] != ir->opts.tau_t[i]);
+                    iGTC);
+            CHECK(ir->opts.tau_t[0] != ir->opts.tau_t[iGTC]);
             sprintf(err_buf,
                     "all tau_t must be positive using Andersen temperature control, "
                     "tau_t[%d]=%10.6f",
-                    i,
-                    ir->opts.tau_t[i]);
-            CHECK(ir->opts.tau_t[i] < 0);
+                    iGTC,
+                    ir->opts.tau_t[iGTC]);
+            CHECK(ir->opts.tau_t[iGTC] < 0);
         }
 
         if (ir->etc == TemperatureCoupling::AndersenMassive && ir->comm_mode != ComRemovalAlgorithm::No)
         {
-            for (i = 0; i < ir->opts.ngtc; i++)
+            for (int iGTC = 0; iGTC < ir->opts.ngtc; iGTC++)
             {
-                int nsteps = gmx::roundToInt(ir->opts.tau_t[i] / ir->delta_t);
+                int nsteps = gmx::roundToInt(ir->opts.tau_t[iGTC] / ir->delta_t);
                 sprintf(err_buf,
                         "tau_t/delta_t for group %d for temperature control method %s must be a "
                         "multiple of nstcomm (%d), as velocities of atoms in coupled groups are "
                         "randomized every time step. The input tau_t (%8.3f) leads to %d steps per "
                         "randomization",
-                        i,
+                        iGTC,
                         enumValueToString(ir->etc),
                         ir->nstcomm,
-                        ir->opts.tau_t[i],
+                        ir->opts.tau_t[iGTC],
                         nsteps);
                 CHECK(nsteps % ir->nstcomm != 0);
             }
@@ -5052,9 +5049,10 @@ void triple_check(const char* mdparin, t_inputrec* ir, gmx_mtop_t* sys, WarningH
     }
 
     ir->useConstantAcceleration = false;
-    for (int i = 0; (i < gmx::ssize(sys->groups.groups[SimulationAtomGroupType::Acceleration])); i++)
+    for (int iAccel = 0; (iAccel < gmx::ssize(sys->groups.groups[SimulationAtomGroupType::Acceleration]));
+         iAccel++)
     {
-        if (norm2(ir->opts.acceleration[i]) != 0)
+        if (norm2(ir->opts.acceleration[iAccel]) != 0)
         {
             ir->useConstantAcceleration = true;
         }
@@ -5066,8 +5064,8 @@ void triple_check(const char* mdparin, t_inputrec* ir, gmx_mtop_t* sys, WarningH
         for (const AtomProxy atomP : AtomRange(*sys))
         {
             const t_atom& local = atomP.atom();
-            int           i     = atomP.globalAtomNumber();
-            mgrp[getGroupType(sys->groups, SimulationAtomGroupType::Acceleration, i)] += local.m;
+            int           iAtom = atomP.globalAtomNumber();
+            mgrp[getGroupType(sys->groups, SimulationAtomGroupType::Acceleration, iAtom)] += local.m;
         }
         mt = 0.0;
         for (i = 0; (i < gmx::ssize(sys->groups.groups[SimulationAtomGroupType::Acceleration])); i++)

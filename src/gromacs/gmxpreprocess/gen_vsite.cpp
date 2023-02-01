@@ -2190,15 +2190,17 @@ void do_vsites(gmx::ArrayRef<const PreprocessResidue> rtpFFDB,
                     /* set atom parameters for the masses */
                     for (int j = 0; (j < NMASS); j++)
                     {
-                        /* make name: "M??#" or "M?#" (? is atomname, # is number) */
-                        name[0] = 'M';
-                        int k;
-                        for (k = 0; (*at->atomname[Heavy])[k] && (k < NMASS); k++)
                         {
-                            name[k + 1] = (*at->atomname[Heavy])[k];
+                            /* make name: "M??#" or "M?#" (? is atomname, # is number) */
+                            name[0] = 'M';
+                            int iChar;
+                            for (iChar = 0; (*at->atomname[Heavy])[iChar] && (iChar < NMASS); iChar++)
+                            {
+                                name[iChar + 1] = (*at->atomname[Heavy])[iChar];
+                            }
+                            name[iChar + 1] = atomnamesuffix[j];
+                            name[iChar + 2] = '\0';
                         }
-                        name[k + 1]          = atomnamesuffix[j];
-                        name[k + 2]          = '\0';
                         newatomname[ni0 + j] = put_symtab(symtab, name.c_str());
                         newatom[ni0 + j].m = newatom[ni0 + j].mB = mtot / NMASS;
                         newatom[ni0 + j].q = newatom[ni0 + j].qB = 0.0;

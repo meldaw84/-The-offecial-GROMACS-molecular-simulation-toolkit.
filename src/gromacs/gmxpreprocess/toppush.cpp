@@ -866,9 +866,9 @@ void push_bt(Directive                         d,
     std::vector<int> atomTypes =
             atomTypesFromAtomNames(at, bondAtomType, gmx::arrayRefFromArray(alc, nral), wi);
     std::array<real, MAXFORCEPARAM> forceParam;
-    for (int i = 0; (i < nrfp); i++)
+    for (int iFP = 0; (iFP < nrfp); iFP++)
     {
-        forceParam[i] = c[i];
+        forceParam[iFP] = c[iFP];
     }
     push_bondtype(&(bt[ftype]), InteractionOfType(atomTypes, forceParam), nral, ftype, FALSE, line, wi);
 }
@@ -1014,26 +1014,26 @@ void push_dihedraltype(Directive                         d,
 
     std::vector<int>                atoms;
     std::array<real, MAXFORCEPARAM> forceParam;
-    for (int i = 0; (i < 4); i++)
+    for (int iALC = 0; (iALC < 4); iALC++)
     {
-        if (!strcmp(alc[i], "X"))
+        if (!strcmp(alc[iALC], "X"))
         {
             atoms.emplace_back(-1);
         }
         else
         {
-            auto atomNumber = bondAtomType->bondAtomTypeFromName(alc[i]);
+            auto atomNumber = bondAtomType->bondAtomTypeFromName(alc[iALC]);
             if (!atomNumber.has_value())
             {
-                auto message = gmx::formatString("Unknown bond_atomtype %s", alc[i]);
+                auto message = gmx::formatString("Unknown bond_atomtype %s", alc[iALC]);
                 warning_error_and_exit(wi, message, FARGS);
             }
             atoms.emplace_back(*atomNumber);
         }
     }
-    for (int i = 0; (i < nrfp); i++)
+    for (int iFP = 0; (iFP < nrfp); iFP++)
     {
-        forceParam[i] = c[i];
+        forceParam[iFP] = c[iFP];
     }
     /* Always use 4 atoms here, since we created two wildcard atoms
      * if there wasn't of them 4 already.

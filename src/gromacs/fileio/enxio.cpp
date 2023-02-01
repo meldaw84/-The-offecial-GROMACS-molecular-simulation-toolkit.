@@ -1076,11 +1076,10 @@ gmx_bool do_enx(ener_file_t ef, t_enxframe* fr)
     {
         /* now read the subblocks. */
         int nsub = fr->block[b].nsub; /* shortcut */
-        int i;
 
-        for (i = 0; i < nsub; i++)
+        for (int iSub = 0; iSub < nsub; iSub++)
         {
-            t_enxsubblock* sub = &(fr->block[b].sub[i]); /* shortcut */
+            t_enxsubblock* sub = &(fr->block[b].sub[iSub]); /* shortcut */
 
             if (bRead)
             {

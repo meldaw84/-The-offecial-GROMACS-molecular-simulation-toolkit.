@@ -639,11 +639,11 @@ int gmx_trjcat(int argc, char* argv[])
         const char* out_file = outFiles[0].c_str();
         ftpout               = fn2ftp(out_file);
         n_append             = -1;
-        for (size_t i = 0; i < inFilesEdited.size() && n_append == -1; i++)
+        for (size_t iFile = 0; iFile < inFilesEdited.size() && n_append == -1; iFile++)
         {
-            if (std::strcmp(inFilesEdited[i].c_str(), out_file) == 0)
+            if (std::strcmp(inFilesEdited[iFile].c_str(), out_file) == 0)
             {
-                n_append = i;
+                n_append = iFile;
             }
         }
         if (n_append == 0)
@@ -783,12 +783,12 @@ int gmx_trjcat(int argc, char* argv[])
         }
         /* Lets stitch up some files */
         timestep = timest[0];
-        for (size_t i = n_append + 1; i < inFilesEdited.size(); i++)
+        for (size_t iFile = n_append + 1; iFile < inFilesEdited.size(); iFile++)
         {
             /* Open next file */
 
             /* set the next time from the last frame in previous file */
-            if (i > 0)
+            if (iFile > 0)
             {
                 /* When writing TNG the step determine which frame to write. Use an
                  * offset to be able to increase steps properly when changing files. */
@@ -799,14 +799,14 @@ int gmx_trjcat(int argc, char* argv[])
 
                 if (frame_out >= 0)
                 {
-                    if (cont_type[i] == TIME_CONTINUE)
+                    if (cont_type[iFile] == TIME_CONTINUE)
                     {
                         begin = frout.time;
                         begin += 0.5 * timestep;
-                        settime[i]   = frout.time;
-                        cont_type[i] = TIME_EXPLICIT;
+                        settime[iFile]   = frout.time;
+                        cont_type[iFile] = TIME_EXPLICIT;
                     }
-                    else if (cont_type[i] == TIME_LAST)
+                    else if (cont_type[iFile] == TIME_LAST)
                     {
                         begin = frout.time;
                         begin += 0.5 * timestep;
@@ -820,9 +820,9 @@ int gmx_trjcat(int argc, char* argv[])
                      */
                 }
                 /* Or, if time is set explicitly, we check for overlap/gap */
-                if (cont_type[i] == TIME_EXPLICIT)
+                if (cont_type[iFile] == TIME_EXPLICIT)
                 {
-                    if (i < inFilesEdited.size() && frout.time < settime[i] - 1.5 * timestep)
+                    if (iFile < inFilesEdited.size() && frout.time < settime[iFile] - 1.5 * timestep)
                     {
                         fprintf(stderr,
                                 "WARNING: Frames around t=%f %s have a different "
@@ -836,20 +836,20 @@ int gmx_trjcat(int argc, char* argv[])
             }
 
             /* if we don't have a timestep in the current file, use the old one */
-            if (timest[i] != 0)
+            if (timest[iFile] != 0)
             {
-                timestep = timest[i];
+                timestep = timest[iFile];
             }
-            read_first_frame(oenv, &status, inFilesEdited[i].c_str(), &fr, FLAGS);
+            read_first_frame(oenv, &status, inFilesEdited[iFile].c_str(), &fr, FLAGS);
             if (!fr.bTime)
             {
                 fr.time = 0;
                 fprintf(stderr, "\nWARNING: Couldn't find a time in the frame.\n");
             }
 
-            if (cont_type[i] == TIME_EXPLICIT)
+            if (cont_type[iFile] == TIME_EXPLICIT)
             {
-                t_corr = settime[i] - fr.time;
+                t_corr = settime[iFile] - fr.time;
             }
             /* t_corr is the amount we want to change the time.
              * If the user has chosen not to change the time for
@@ -883,7 +883,7 @@ int gmx_trjcat(int argc, char* argv[])
                 /* quit if we have reached the end of what should be written */
                 if ((end > 0) && (frout.time > end + GMX_REAL_EPS))
                 {
-                    i = inFilesEdited.size();
+                    iFile = inFilesEdited.size();
                     break;
                 }
 
@@ -892,7 +892,7 @@ int gmx_trjcat(int argc, char* argv[])
                 {
                     bWrite = TRUE;
                 }
-                else if (bKeepLast || (bKeepLastAppend && i == 1))
+                else if (bKeepLast || (bKeepLastAppend && iFile == 1))
                 /* write till last frame of this traj
                    and skip first frame(s) of next traj */
                 {
@@ -900,7 +900,7 @@ int gmx_trjcat(int argc, char* argv[])
                 }
                 else /* write till first frame of next traj */
                 {
-                    bWrite = (frout.time < settime[i + 1] - 0.5 * timestep);
+                    bWrite = (frout.time < settime[iFile + 1] - 0.5 * timestep);
                 }
 
                 if (bWrite && (frout.time >= begin))
@@ -921,7 +921,7 @@ int gmx_trjcat(int argc, char* argv[])
                             fprintf(stderr,
                                     "\nContinue writing frames from %s t=%g %s, "
                                     "frame=%d      \n",
-                                    inFilesEdited[i].c_str(),
+                                    inFilesEdited[iFile].c_str(),
                                     output_env_conv_time(oenv, frout.time),
                                     timeUnit.c_str(),
                                     frame);

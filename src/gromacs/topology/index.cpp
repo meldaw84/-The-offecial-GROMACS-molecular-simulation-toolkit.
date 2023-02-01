@@ -249,22 +249,22 @@ static void analyse_other(gmx::ArrayRef<std::string> restype,
                 }
             }
         }
-        for (int i = 0; (i < gmx::ssize(restp)); i++)
+        for (int iRes = 0; (iRes < gmx::ssize(restp)); iRes++)
         {
             std::vector<int> aid;
             for (int j = 0; (j < atoms->nr); j++)
             {
                 const char* rname = *atoms->resinfo[atoms->atom[j].resind].name;
-                if ((strcmp(restp[i].rname, rname) == 0 && !restp[i].bNeg)
-                    || (strcmp(restp[i].rname, rname) != 0 && restp[i].bNeg))
+                if ((strcmp(restp[iRes].rname, rname) == 0 && !restp[iRes].bNeg)
+                    || (strcmp(restp[iRes].rname, rname) != 0 && restp[iRes].bNeg))
                 {
                     aid.push_back(j);
                 }
             }
-            indexGroups->push_back({ restp[i].gname, aid });
+            indexGroups->push_back({ restp[iRes].gname, aid });
             if (bASK)
             {
-                printf("split %s into atoms (y/n) ? ", restp[i].gname);
+                printf("split %s into atoms (y/n) ? ", restp[iRes].gname);
                 fflush(stdout);
                 if (gmx_ask_yesno(bASK))
                 {
@@ -299,8 +299,8 @@ static void analyse_other(gmx::ArrayRef<std::string> restype,
                     }
                 }
             }
-            sfree(restp[i].rname);
-            sfree(restp[i].gname);
+            sfree(restp[iRes].rname);
+            sfree(restp[iRes].gname);
         }
     }
 }

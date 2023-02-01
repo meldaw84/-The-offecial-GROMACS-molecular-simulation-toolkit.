@@ -694,7 +694,6 @@ int gmx_eneconv(int argc, char* argv[])
                 {
                     if (remove_dh)
                     {
-                        int i;
                         if (!blocks || nblocks_alloc < fr->nblock)
                         {
                             /* we pre-allocate the blocks */
@@ -703,13 +702,13 @@ int gmx_eneconv(int argc, char* argv[])
                         }
                         nblocks = 0; /* number of blocks so far */
 
-                        for (i = 0; i < fr->nblock; i++)
+                        for (int iBlock = 0; iBlock < fr->nblock; iBlock++)
                         {
-                            if ((fr->block[i].id != enxDHCOLL) && (fr->block[i].id != enxDH)
-                                && (fr->block[i].id != enxDHHIST))
+                            if ((fr->block[iBlock].id != enxDHCOLL) && (fr->block[iBlock].id != enxDH)
+                                && (fr->block[iBlock].id != enxDHHIST))
                             {
                                 /* copy everything verbatim */
-                                blocks[nblocks] = fr->block[i];
+                                blocks[nblocks] = fr->block[iBlock];
                                 nblocks++;
                             }
                         }

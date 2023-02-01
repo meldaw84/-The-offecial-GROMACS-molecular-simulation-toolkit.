@@ -549,8 +549,8 @@ static void histogramming(FILE*                    log,
         snew(Jcsig[i], NJC);
     }
 
-    int j = 0;
-    n     = 0;
+    int jDih = 0;
+    n        = 0;
     for (int Dih = 0; (Dih < NONCHI + maxchi); Dih++)
     {
         int i = 0;
@@ -559,7 +559,7 @@ static void histogramming(FILE*                    log,
             if (((Dih < edOmega)) || ((Dih == edOmega) && (has_dihedral(edOmega, dihedral)))
                 || ((Dih > edOmega) && (dihedral.atm.Cn[Dih - NONCHI + 3] != -1)))
             {
-                make_histo(log, nf, dih[j], nbin, histmp, -M_PI, M_PI);
+                make_histo(log, nf, dih[jDih], nbin, histmp, -M_PI, M_PI);
 
                 if (bSSHisto)
                 {
@@ -577,7 +577,7 @@ static void histogramming(FILE*                    log,
                     }
                     if (bOccup && ((bfac_max <= 0) || bBfac))
                     {
-                        hindex = static_cast<int>(((dih[j][0] + M_PI) * nbin) / (2 * M_PI));
+                        hindex = static_cast<int>(((dih[jDih][0] + M_PI) * nbin) / (2 * M_PI));
                         range_check(hindex, 0, nbin);
 
                         /* Assign dihedral to either of the structure determined
@@ -640,7 +640,7 @@ static void histogramming(FILE*                    log,
                     his_aa[Dih][dihedral.residueName][k] += histmp[k];
                     histmp[k] = 0;
                 }
-                j++;
+                jDih++;
             }
             else /* dihed not defined */
             {
@@ -800,22 +800,22 @@ static void histogramming(FILE*                    log,
                         ssfp[k]               = gmx_ffopen(sshisfile, "w");
                     }
                 }
-                for (int j = 0; (j < nbin); j++)
+                for (int jBin = 0; (jBin < nbin); jBin++)
                 {
-                    angle = -180 + (360 / nbin) * j;
+                    angle = -180 + (360 / nbin) * jBin;
                     if (bNormalize)
                     {
-                        fprintf(fp, "%5d  %10g\n", angle, normhisto[j]);
+                        fprintf(fp, "%5d  %10g\n", angle, normhisto[jBin]);
                     }
                     else
                     {
-                        fprintf(fp, "%5d  %10d\n", angle, his_aa[Dih][residueName][j]);
+                        fprintf(fp, "%5d  %10d\n", angle, his_aa[Dih][residueName][jBin]);
                     }
                     if (bSSHisto)
                     {
                         for (int k = 0; (k < 3); k++)
                         {
-                            fprintf(ssfp[k], "%5d  %10d\n", angle, his_aa_ss[k][residueName][Dih][j]);
+                            fprintf(ssfp[k], "%5d  %10d\n", angle, his_aa_ss[k][residueName][Dih][jBin]);
                         }
                     }
                 }

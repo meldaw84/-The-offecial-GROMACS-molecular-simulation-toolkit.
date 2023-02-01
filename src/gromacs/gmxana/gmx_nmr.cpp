@@ -216,14 +216,14 @@ static int get_bounds(real** bounds, int** index, int** dr_pair, int* npairs, co
 
     /* Fill the bound array */
     nb = 0;
-    for (gmx::Index i = 0; i < functype.ssize(); i++)
+    for (gmx::Index iFType = 0; iFType < functype.ssize(); iFType++)
     {
-        ftype = functype[i];
+        ftype = functype[iFType];
         if (ftype == F_DISRES)
         {
 
-            label1  = iparams[i].disres.label;
-            b[nb]   = iparams[i].disres.up1;
+            label1  = iparams[iFType].disres.label;
+            b[nb]   = iparams[iFType].disres.up1;
             ind[nb] = label1;
             nb++;
         }
