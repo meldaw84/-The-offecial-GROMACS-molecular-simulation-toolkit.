@@ -199,11 +199,11 @@ static void bwlzh_compress_gen(unsigned int *vals, const int nvals,
                                 mtf3);
       for (imtfinner=0; imtfinner<3; imtfinner++)
         {
-          int i;
+          int j;
           if (verbose)
             fprintf(stderr,"Doing partial MTF: %d\n",imtfinner);
-          for (i=0; i<nvals16; i++)
-            mtf[i]=(unsigned int)mtf3[imtfinner*nvals16+i];
+          for (j=0; j<nvals16; j++)
+            mtf[j]=(unsigned int)mtf3[imtfinner*nvals16+j];
 #else
 #ifdef PARTIAL_MTF
           Ptngc_comp_conv_to_mtf_partial(bwt,nvals16,mtf);
@@ -662,12 +662,12 @@ static void bwlzh_decompress_gen(unsigned char *input, const int nvals,
                     }
                   else
                     {
-                      int i;
+                      int j;
                       if (verbose)
                         fprintf(stderr,"Reading offset block.\n");
-                      for (i=0; i<noffsets; i++)
+                      for (j=0; j<noffsets; j++)
                         {
-                          offsets[i]=(int)(((unsigned int)input[inpdata]) |
+                          offsets[j]=(int)(((unsigned int)input[inpdata]) |
                                            (((unsigned int)input[inpdata+1])<<8));
                           inpdata+=2;
                         }
