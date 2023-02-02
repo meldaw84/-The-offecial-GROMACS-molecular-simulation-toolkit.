@@ -49,9 +49,9 @@
 #define NBLIB_PBC_HPP
 
 #include "gromacs/math/vec.h"
-#include "gromacs/pbcutil/ishift.h"
+#include "gromacs/pbcutil/include/gromacs/pbcutil/ishift.h"
 #include "gromacs/pbcutil/pbc.h"
-#include "gromacs/pbcutil/pbc_aiuc.h"
+#include "gromacs/pbcutil/include/gromacs/pbcutil/pbc_aiuc.h"
 
 #include "nblib/box.h"
 #include "nblib/util/annotation.hpp"

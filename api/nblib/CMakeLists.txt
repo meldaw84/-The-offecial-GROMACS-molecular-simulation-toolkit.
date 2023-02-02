@@ -37,13 +37,13 @@
 # \author Sebastian Keller <keller@cscs.ch>
 #
 
-set(TESTUTILS_DIR ${PROJECT_SOURCE_DIR}/src/testutils)
-if (BUILD_TESTING)
-    if(NOT GMX_DEVELOPER_BUILD)
-        set(UNITTEST_TARGET_OPTIONS EXCLUDE_FROM_ALL)
-    endif()
-    include(${TESTUTILS_DIR}/TestMacros.cmake)
-endif()
+#set(TESTUTILS_DIR ${PROJECT_SOURCE_DIR}/src/testutils)
+#if (BUILD_TESTING)
+#    if(NOT GMX_DEVELOPER_BUILD)
+#        set(UNITTEST_TARGET_OPTIONS EXCLUDE_FROM_ALL)
+#    endif()
+#    include(${TESTUTILS_DIR}/TestMacros.cmake)
+#endif()
 
 add_custom_target(nblib-tests
         COMMENT "Target to build all nblib tests including samples"
@@ -124,12 +124,24 @@ target_sources(nblib
 gmx_target_compile_options(nblib)
 
 target_link_libraries(nblib PRIVATE libgromacs)
-target_include_directories(nblib SYSTEM BEFORE PRIVATE ${PROJECT_SOURCE_DIR}/src/external/thread_mpi/include)
+#target_include_directories(nblib SYSTEM BEFORE PRIVATE ${PROJECT_SOURCE_DIR}/src/external/thread_mpi/include)
 target_include_directories(nblib PUBLIC
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
                            $<INSTALL_INTERFACE:include>)
 target_link_libraries(nblib PRIVATE common)
+target_link_libraries(nblib PRIVATE
+                      fileio
+                      gmxlib
+                      listed_forces
+                      math
+                      mdtypes
+                      mdlib
+                      pbcutil
+                      simd
+                      topology
+                      utility)
+
 # There are transitive interface dependencies on the legacy GROMACS headers.
 # TODO(#3288): Explicitly link specific modules for public API dependencies as legacy_api is removed.
 target_link_libraries(nblib PUBLIC legacy_api)
