@@ -104,7 +104,7 @@ ListedGmxCalculator::ListedGmxCalculator(const InteractionDefinitions& idefs,
     mdatoms_        = { 0 };
     mdatoms_.nr     = nP;
     energyGroup_.resize(nP, 0);
-    mdatoms_.cENER = energyGroup_;
+    mdatoms_.cENER = energyGroup_.data();
 
     interaction_const_t interactionConst;
     interactionConst.vdwtype      = VanDerWaalsType::Cut;
@@ -172,11 +172,7 @@ void ListedGmxCalculator::compute(gmx::ArrayRef<const gmx::RVec> x,
                                 &enerd,
                                 &nrnb,
                                 lambdaBuffer,
-                                q,
-                                q,
-                                makeConstArrayRef(mdatoms_.bPerturbed),
-                                mdatoms_.cENER,
-                                mdatoms_.nPerturbed,
+                                &mdatoms_,
                                 nullptr,
                                 stepWork);
 

@@ -47,12 +47,12 @@
 #include <string>
 #include <vector>
 
-#include "gromacs/topology/idef.h"
-
 #include "nblib/basicdefinitions.h"
 #include "nblib/box.h"
 #include "nblib/topology.h"
 #include "nblib/vector.h"
+
+class InteractionDefinitions;
 
 struct gmx_ffparams_t;
 struct gmx_localtop_t;

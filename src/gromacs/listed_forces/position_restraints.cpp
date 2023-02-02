@@ -58,7 +58,6 @@
 #include "gromacs/mdtypes/forceoutput.h"
 #include "gromacs/mdtypes/forcerec.h"
 #include "gromacs/mdtypes/inputrec.h"
-#include "gromacs/mdtypes/md_enums.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/timing/wallcycle.h"
 #include "gromacs/topology/idef.h"
@@ -67,9 +66,8 @@
 
 struct gmx_wallcycle;
 
-namespace
+namespace gmx
 {
-
 /*! \brief returns dx, rdist, and dpdl for functions posres() and fbposres()
  */
 void posres_dx(const rvec      x,
@@ -104,26 +102,26 @@ void posres_dx(const rvec      x,
                     rdist[m] = L1 * posA + lambda * posB;
                     dpdl[m]  = posB - posA;
                     break;
-                case RefCoordScaling::All:
-                    /* Box relative coordinates are stored for dimensions with pbc */
-                    posA *= pbc->box[m][m];
-                    posB *= pbc->box[m][m];
-                    assert(npbcdim <= DIM);
-                    for (d = m + 1; d < npbcdim && d < DIM; d++)
-                    {
-                        posA += pos0A[d] * pbc->box[d][m];
-                        posB += pos0B[d] * pbc->box[d][m];
-                    }
-                    ref      = L1 * posA + lambda * posB;
-                    rdist[m] = 0;
-                    dpdl[m]  = posB - posA;
-                    break;
-                case RefCoordScaling::Com:
-                    ref      = L1 * comA_sc[m] + lambda * comB_sc[m];
-                    rdist[m] = L1 * posA + lambda * posB;
-                    dpdl[m]  = comB_sc[m] - comA_sc[m] + posB - posA;
-                    break;
-                default: gmx_fatal(FARGS, "No such scaling method implemented");
+                    case RefCoordScaling::All:
+                        /* Box relative coordinates are stored for dimensions with pbc */
+                        posA *= pbc->box[m][m];
+                        posB *= pbc->box[m][m];
+                        assert(npbcdim <= DIM);
+                        for (d = m + 1; d < npbcdim && d < DIM; d++)
+                        {
+                            posA += pos0A[d] * pbc->box[d][m];
+                            posB += pos0B[d] * pbc->box[d][m];
+                        }
+                        ref      = L1 * posA + lambda * posB;
+                        rdist[m] = 0;
+                        dpdl[m]  = posB - posA;
+                        break;
+                        case RefCoordScaling::Com:
+                            ref      = L1 * comA_sc[m] + lambda * comB_sc[m];
+                            rdist[m] = L1 * posA + lambda * posB;
+                            dpdl[m]  = comB_sc[m] - comA_sc[m] + posB - posA;
+                            break;
+                            default: gmx_fatal(FARGS, "No such scaling method implemented");
             }
         }
         else
@@ -148,6 +146,11 @@ void posres_dx(const rvec      x,
         rvec_sub(x, pos, dx);
     }
 }
+
+}
+
+namespace
+{
 
 /*! \brief Computes forces and potential for flat-bottom cylindrical restraints.
  *         Returns the flat-bottom potential. */
@@ -232,7 +235,7 @@ real fbposres(int                   nbonds,
         pr   = &forceparams[type];
 
         /* same calculation as for normal posres, but with identical A and B states, and lambda==0 */
-        posres_dx(x[ai],
+        gmx::posres_dx(x[ai],
                   forceparams[type].fbposres.pos0,
                   forceparams[type].fbposres.pos0,
                   com_sc,
@@ -383,7 +386,7 @@ real posres(int                   nbonds,
         pr   = &forceparams[type];
 
         /* return dx, rdist, and dpdl */
-        posres_dx(x[ai],
+        gmx::posres_dx(x[ai],
                   forceparams[type].posres.pos0A,
                   forceparams[type].posres.pos0B,
                   comA_sc,

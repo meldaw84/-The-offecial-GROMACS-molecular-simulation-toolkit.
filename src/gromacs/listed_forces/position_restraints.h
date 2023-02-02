@@ -51,6 +51,7 @@
 #include <stdio.h>
 
 #include "gromacs/math/vectypes.h"
+#include "gromacs/mdtypes/md_enums.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/real.h"
 
@@ -65,6 +66,21 @@ struct t_pbc;
 namespace gmx
 {
 class ForceWithVirial;
+
+/*! \brief returns dx, rdist, and dpdl for functions posres() and fbposres()
+ */
+void posres_dx(const rvec      x,
+               const rvec      pos0A,
+               const rvec      pos0B,
+               const rvec      comA_sc,
+               const rvec      comB_sc,
+               real            lambda,
+               const t_pbc*    pbc,
+               RefCoordScaling refcoord_scaling,
+               int             npbcdim,
+               rvec            dx,
+               rvec            rdist,
+               rvec            dpdl);
 }
 
 /*! \brief Helper function that wraps calls to posres */
