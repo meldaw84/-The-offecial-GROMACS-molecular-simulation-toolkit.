@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2020- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief
@@ -41,9 +40,12 @@
  * \author Prashanth Kanduri <kanduri@cscs.ch>
  * \author Sebastian Keller <keller@cscs.ch>
  */
+#include "nblib/box.h"
+
 #include <cmath>
 
-#include "nblib/box.h"
+#include <algorithm>
+
 #include "nblib/exception.h"
 
 namespace nblib
@@ -51,16 +53,31 @@ namespace nblib
 
 Box::Box(real l) : Box(l, l, l) {}
 
-Box::Box(real x, real y, real z) : legacyMatrix_{ { 0 } }
+Box::Box(real x, real y, real z) : Box({ x, 0, 0, 0, y, 0, 0, 0, z }) {}
+
+Box::Box(std::array<real, 9> boxMatrix) : legacyMatrix_{ { 0 } }
 {
-    if (std::isnan(x) || std::isinf(x) || std::isnan(y) || std::isinf(y) || std::isnan(z) || std::isinf(z))
+    bool hasNaN =
+            std::any_of(boxMatrix.begin(), boxMatrix.end(), [](auto val) { return std::isnan(val); });
+    bool hasInf =
+            std::any_of(boxMatrix.begin(), boxMatrix.end(), [](auto val) { return std::isinf(val); });
+    if (hasNaN || hasInf)
     {
         throw InputException("Cannot have NaN or Inf box length.");
     }
 
-    legacyMatrix_[dimX][dimX] = x;
-    legacyMatrix_[dimY][dimY] = y;
-    legacyMatrix_[dimZ][dimZ] = z;
+    fillMatrix(boxMatrix, legacyMatrix_);
+}
+
+void fillMatrix(std::array<real, 9> boxMatrix, Box::LegacyMatrix legacyMatrix)
+{
+    for (int i = 0; i < dimSize; ++i)
+    {
+        for (int j = 0; j < dimSize; ++j)
+        {
+            legacyMatrix[i][j] = boxMatrix[j + i * dimSize];
+        }
+    }
 }
 
 bool operator==(const Box& rhs, const Box& lhs)

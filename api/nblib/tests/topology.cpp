@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2020- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief
@@ -41,18 +40,20 @@
  * \author Prashanth Kanduri <kanduri@cscs.ch>
  * \author Sebastian Keller <keller@cscs.ch>
  */
+#include "nblib/topology.h"
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "gromacs/topology/exclusionblocks.h"
 #include "gromacs/utility/listoflists.h"
+
 #include "nblib/exception.h"
+#include "nblib/particlesequencer.h"
 #include "nblib/particletype.h"
 #include "nblib/sequencing.hpp"
 #include "nblib/tests/testsystems.h"
-#include "nblib/topology.h"
 #include "nblib/topologyhelpers.h"
-#include "nblib/particlesequencer.h"
 
 namespace nblib
 {
@@ -303,13 +304,12 @@ TEST(NBlibTest, TopologyListedInteractions)
     auto& harmonicBonds   = pickType<HarmonicBondType>(interactionData);
 
     auto& indices = harmonicBonds.indices;
-    auto& bonds   = harmonicBonds.parameters;
+    auto& bonds   = harmonicBonds.parametersA;
 
-    std::map<std::tuple<int, int>, HarmonicBondType> interactions_test;
+    std::map<IndexArray<2>, HarmonicBondType> interactions_test;
     for (auto& ituple : indices)
     {
-        interactions_test[std::make_tuple(std::get<0>(ituple), std::get<1>(ituple))] =
-                bonds[std::get<2>(ituple)];
+        interactions_test[IndexArray<2>{ ituple[0], ituple[1] }] = bonds[ituple[2]];
     }
 
     // there should be 3 unique HarmonicBondType instances
@@ -321,7 +321,7 @@ TEST(NBlibTest, TopologyListedInteractions)
     HarmonicBondType ohBondMethanol(1.01, 1.02);
     HarmonicBondType ometBond(1.1, 1.2);
 
-    std::map<std::tuple<int, int>, HarmonicBondType> interactions_reference;
+    std::map<IndexArray<2>, HarmonicBondType> interactions_reference;
 
     int Ow = spcTopology.sequenceID(MoleculeName("SOL"), 0, ResidueName("SOL"), ParticleName("Oxygen"));
     int H1 = spcTopology.sequenceID(MoleculeName("SOL"), 0, ResidueName("SOL"), ParticleName("H1"));
@@ -337,12 +337,12 @@ TEST(NBlibTest, TopologyListedInteractions)
 
     /// \cond DO_NOT_DOCUMENT
 #define SORT(i, j) (i < j) ? i : j, (i < j) ? j : i
-    interactions_reference[std::make_tuple(SORT(Ow, H1))]     = ohBond;
-    interactions_reference[std::make_tuple(SORT(Ow, H2))]     = ohBond;
-    interactions_reference[std::make_tuple(SORT(MeO1, MeH1))] = ohBondMethanol;
-    interactions_reference[std::make_tuple(SORT(MeO1, Me1))]  = ometBond;
-    interactions_reference[std::make_tuple(SORT(MeO2, MeH2))] = ohBondMethanol;
-    interactions_reference[std::make_tuple(SORT(MeO2, Me2))]  = ometBond;
+    interactions_reference[IndexArray<2>{ SORT(Ow, H1) }]     = ohBond;
+    interactions_reference[IndexArray<2>{ SORT(Ow, H2) }]     = ohBond;
+    interactions_reference[IndexArray<2>{ SORT(MeO1, MeH1) }] = ohBondMethanol;
+    interactions_reference[IndexArray<2>{ SORT(MeO1, Me1) }]  = ometBond;
+    interactions_reference[IndexArray<2>{ SORT(MeO2, MeH2) }] = ohBondMethanol;
+    interactions_reference[IndexArray<2>{ SORT(MeO2, Me2) }]  = ometBond;
 #undef SORT
     /// \endcond
 
@@ -385,7 +385,7 @@ TEST(NBlibTest, TopologyListedInteractionsMultipleTypes)
     HarmonicBondType              ometBond(1.1, 1.2);
     std::vector<HarmonicBondType> harmonicBondsReference{ ohBond, ohBondMethanol, ometBond };
 
-    EXPECT_EQ(harmonicBonds.parameters, harmonicBondsReference);
+    EXPECT_EQ(harmonicBonds.parametersA, harmonicBondsReference);
 
     int H1 = topology.sequenceID(MoleculeName("SOL"), 0, ResidueName("SOL"), ParticleName("H1"));
     int H2 = topology.sequenceID(MoleculeName("SOL"), 0, ResidueName("SOL"), ParticleName("H2"));
@@ -399,7 +399,7 @@ TEST(NBlibTest, TopologyListedInteractionsMultipleTypes)
     std::vector<InteractionIndex<CubicBondType>> cubicIndicesReference{
         { std::min(H1, H2), std::max(H1, H2), 0 }
     };
-    EXPECT_EQ(cubicBondsReference, cubicBonds.parameters);
+    EXPECT_EQ(cubicBondsReference, cubicBonds.parametersA);
     EXPECT_EQ(cubicIndicesReference, cubicBonds.indices);
 
     HarmonicAngle                                methanolAngle(397.5, Degrees(108.52));
@@ -407,7 +407,7 @@ TEST(NBlibTest, TopologyListedInteractionsMultipleTypes)
     std::vector<InteractionIndex<HarmonicAngle>> angleIndicesReference{
         { std::min(H1, H2), Ow, std::max(H1, H2), 0 }, { std::min(MeH1, MeO1), Me1, std::max(MeO1, MeH1), 1 }
     };
-    EXPECT_EQ(angleReference, angleInteractions.parameters);
+    EXPECT_EQ(angleReference, angleInteractions.parametersA);
     EXPECT_EQ(angleIndicesReference, angleInteractions.indices);
 }
 

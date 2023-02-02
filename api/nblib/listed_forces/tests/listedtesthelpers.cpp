@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2021- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief
@@ -44,43 +43,63 @@
  * \author Sebastian Keller <keller@cscs.ch>
  */
 
-#include "gromacs/utility/arrayref.h"
-#include "nblib/listed_forces/tests/gmxcalculator.h"
-#include "nblib/listed_forces/tests/listedtesthelpers.h"
+#include "listedtesthelpers.h"
 
-#include "testutils/testasserts.h"
-#include "testutils/testmatchers.h"
+#include "nblib/listed_forces/conversionscommon.h"
+#include "nblib/vector.h"
+
+#include "gmxcalculator.h"
 
 namespace nblib
 {
 
-void compareNblibAndGmxListedImplementations(const ListedInteractionData&  interactionData,
-                                             const std::vector<gmx::RVec>& coordinates,
-                                             size_t                        numParticles,
-                                             int                           numThreads,
-                                             const Box&                    box,
-                                             real                          tolerance)
+void compareNblibAndGmxListedImplementations(const ListedInteractionData& interactionData,
+                                             const std::vector<Vec3>&     coordinates,
+                                             const std::vector<real>&     charges,
+                                             size_t                       numParticles,
+                                             int                          numThreads,
+                                             const Box&                   box,
+                                             Vec3                         com,
+                                             real                         tolerance)
 {
-    ListedForceCalculator calculator(interactionData, numParticles, numThreads, box);
+    ListedForceCalculator calculator(
+            interactionData, numParticles, numThreads, box, PbcType::Xyz, RefCoordScaling::No);
 
-    std::vector<gmx::RVec>            forces(numParticles, gmx::RVec{ 0, 0, 0 });
-    std::vector<gmx::RVec>            shiftForces(gmx::c_numShiftVectors, gmx::RVec{ 0, 0, 0 });
-    ListedForceCalculator::EnergyType energies;
+    std::vector<Vec3> forces(numParticles, Vec3{ 0, 0, 0 });
+    std::vector<Vec3> shiftForces(gmx::c_numShiftVectors, Vec3{ 0, 0, 0 });
+    std::vector<real> virial(9, 0);
+    ListedEnergies    energies;
 
-    calculator.compute(coordinates, forces, shiftForces, energies, true);
+    if (!charges.empty())
+    {
+        calculator.compute(coordinates, charges, forces, shiftForces, virial, energies, com);
+    }
+    else
+    {
+        std::vector<real> zeroCharges(numParticles, 0.0);
+        calculator.compute(coordinates, zeroCharges, forces, shiftForces, virial, energies, com);
+    }
 
-    ListedGmxCalculator gmxCalculator(interactionData, numParticles, numThreads, box);
+    auto [idef, ffparams] = convertToGmxInteractions(interactionData);
+    ListedGmxCalculator gmxCalculator(*idef, *ffparams, numParticles, numThreads, box);
 
-    std::vector<gmx::RVec>            gmxForces(numParticles, gmx::RVec{ 0, 0, 0 });
-    std::vector<gmx::RVec>            gmxShiftForces(gmx::c_numShiftVectors, gmx::RVec{ 0, 0, 0 });
-    ListedForceCalculator::EnergyType gmxEnergies;
+    std::vector<Vec3> gmxForces(numParticles, Vec3{ 0, 0, 0 });
+    std::vector<Vec3> gmxShiftForces(gmx::c_numShiftVectors, Vec3{ 0, 0, 0 });
+    ListedEnergies    gmxEnergies;
+    std::vector<real> gmxVirial(9, 0);
 
-    gmxCalculator.compute(coordinates, gmxForces, gmxShiftForces, gmxEnergies, true);
+    gmxCalculator.compute(coordinates, charges, gmxForces, gmxShiftForces, gmxVirial, gmxEnergies, com);
 
-    gmx::test::FloatingPointTolerance tolSetting(tolerance, tolerance, 1.0e-5, 1.0e-8, 200, 100, false);
+    gmx::test::FloatingPointTolerance tolSetting(tolerance, tolerance, 1.0e-5, 1.0e-7, 200, 100, false);
 
-    EXPECT_THAT(forces, Pointwise(gmx::test::RVecEq(tolSetting), gmxForces));
-    EXPECT_THAT(shiftForces, Pointwise(gmx::test::RVecEq(tolSetting), gmxShiftForces));
+    compareVectors(forces.begin(), forces.end(), gmxForces.begin(), tolSetting);
+    compareVectors(shiftForces.begin(), shiftForces.end(), gmxShiftForces.begin(), tolSetting);
+    compareEnergies(energies.begin(), energies.end(), gmxEnergies.begin(), tolSetting);
+
+    for (std::size_t i = 0; i < virial.size(); ++i)
+    {
+        EXPECT_REAL_EQ_TOL(virial[i], gmxVirial[i], tolSetting);
+    }
 }
 
 } // namespace nblib

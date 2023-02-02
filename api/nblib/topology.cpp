@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2020- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief
@@ -42,18 +41,21 @@
  * \author Sebastian Keller <keller@cscs.ch>
  * \author Artem Zhmurov <zhmurov@gmail.com>
  */
+#include "nblib/topology.h"
+
 #include <algorithm>
 #include <numeric>
 
 #include "gromacs/topology/exclusionblocks.h"
 #include "gromacs/utility/listoflists.h"
 #include "gromacs/utility/smalloc.h"
+
 #include "nblib/exception.h"
 #include "nblib/particletype.h"
-#include "nblib/sequencing.hpp"
-#include "nblib/topology.h"
-#include "nblib/util/util.hpp"
 #include "nblib/topologyhelpers.h"
+#include "nblib/util/util.hpp"
+
+#include "sequencing.hpp"
 
 namespace nblib
 {
@@ -115,7 +117,7 @@ ListedInteractionData TopologyBuilder::createInteractionData(const ParticleSeque
 {
     ListedInteractionData interactionData;
 
-    // this code is doing the compile time equivalent of
+    // this code is doing the compile-time equivalent of
     // for (int i = 0; i < interactionData.size(); ++i)
     //     create(get<i>(interactionData));
 
@@ -141,7 +143,7 @@ ListedInteractionData TopologyBuilder::createInteractionData(const ParticleSeque
                        [&S2 = expansionArrayStage2](size_t S1Element) { return S2[S1Element]; });
 
         // add data about InteractionType instances
-        interactionDataElement.parameters = std::move(uniqueInteractionInstances);
+        interactionDataElement.parametersA = std::move(uniqueInteractionInstances);
 
         interactionDataElement.indices.resize(expansionArray.size());
         // coordinateIndices contains the particle sequence IDs of all interaction coordinates of type <BondType>
@@ -152,7 +154,7 @@ ListedInteractionData TopologyBuilder::createInteractionData(const ParticleSeque
                        begin(expansionArray),
                        begin(interactionDataElement.indices),
                        [](auto coordinateIndex, auto interactionIndex) {
-                           std::array<int, coordinateIndex.size() + 1> ret{ 0 };
+                           IndexArray<coordinateIndex.size() + 1> ret{ 0 };
                            for (int i = 0; i < int(coordinateIndex.size()); ++i)
                            {
                                ret[i] = coordinateIndex[i];
@@ -162,7 +164,8 @@ ListedInteractionData TopologyBuilder::createInteractionData(const ParticleSeque
                        });
     };
 
-    for_each_tuple(create, interactionData);
+    auto computeIndices = subsetIndices(BasicListedTypes{}, AllListedTypes{});
+    for_each_tuple(create, tieElements(interactionData, computeIndices));
 
     return interactionData;
 }

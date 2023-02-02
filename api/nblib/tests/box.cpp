@@ -1,10 +1,9 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright (c) 2020,2021, by the GROMACS development team, led by
- * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
- * and including many others, as listed in the AUTHORS file in the
- * top-level source directory and at http://www.gromacs.org.
+ * Copyright 2020- The GROMACS Authors
+ * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
+ * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -18,7 +17,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * http://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * https://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -27,10 +26,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at http://www.gromacs.org.
+ * official version at https://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out http://www.gromacs.org.
+ * the research papers on the package. Check out https://www.gromacs.org.
  */
 /*! \internal \file
  * \brief
@@ -41,13 +40,14 @@
  * \author Prashanth Kanduri <kanduri@cscs.ch>
  * \author Sebastian Keller <keller@cscs.ch>
  */
-#include <cmath>
-
 #include "nblib/box.h"
-#include "nblib/exception.h"
+
+#include <cmath>
 
 #include "testutils/refdata.h"
 #include "testutils/testasserts.h"
+
+#include "nblib/exception.h"
 
 using gmx::test::defaultRealTolerance;
 
@@ -83,6 +83,45 @@ TEST(NBlibTest, CubicBoxWorks)
     real              length = 3;
     Box::LegacyMatrix ref    = { { length, 0, 0 }, { 0, length, 0 }, { 0, 0, length } };
     Box               test   = Box(length);
+
+    for (int i = 0; i < dimSize; ++i)
+    {
+        for (int j = 0; j < dimSize; ++j)
+        {
+            EXPECT_REAL_EQ_TOL(ref[i][j], test.legacyMatrix()[i][j], defaultRealTolerance());
+        }
+    }
+}
+
+TEST(NBlibTest, FillMatrixWorks)
+{
+    real length = 3;
+    real other  = drand48();
+
+    std::array<real, 9> boxMatrix = { length, other, 0, 0, length, 0, 0, 0, length };
+
+    Box::LegacyMatrix ref = { { length, other, 0 }, { 0, length, 0 }, { 0, 0, length } };
+    Box::LegacyMatrix test{ { 0 } };
+    fillMatrix(boxMatrix, test);
+
+    for (int i = 0; i < dimSize; ++i)
+    {
+        for (int j = 0; j < dimSize; ++j)
+        {
+            EXPECT_REAL_EQ_TOL(ref[i][j], test[i][j], defaultRealTolerance());
+        }
+    }
+}
+
+TEST(NBlibTest, TriclinicBoxWorks)
+{
+    std::array<real, 9> boxMatrix{ 0 };
+    Box::LegacyMatrix   ref = { { 0 } };
+
+    std::fill(boxMatrix.begin(), boxMatrix.end(), drand48());
+    fillMatrix(boxMatrix, ref);
+
+    Box test = Box(boxMatrix);
 
     for (int i = 0; i < dimSize; ++i)
     {
