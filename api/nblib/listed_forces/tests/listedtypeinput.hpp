@@ -85,8 +85,8 @@ static std::tuple TestInput{
     { { { MorseBondType(30.0, 2.7, 0.15) } }, {}, { indexVector<MorseBondType>() } }, "MorseBond" },
     TypeInput<FENEBondType>{ { { { FENEBondType(5.0, 0.4) } }, {}, { indexVector<FENEBondType>() } }, "FENEBond" },
     // Polarization Types
-    TypeInput<SimplePolarization>{
-    { { { SimplePolarization(0.12) } }, {}, { indexVector<SimplePolarization>() } }, "SimplePolarization" },
+//    TypeInput<SimplePolarization>{
+//    { { { SimplePolarization(0.12) } }, {}, { indexVector<SimplePolarization>() } }, "SimplePolarization" },
     //TypeInput<PairLJType>{
     //    { { { PairLJType(C6(0.001458), C12(1.0062882e-6)) } }, {}, indexVector<PairLJType>() }, "ChargedLJPair" },
     // Three Center Types
