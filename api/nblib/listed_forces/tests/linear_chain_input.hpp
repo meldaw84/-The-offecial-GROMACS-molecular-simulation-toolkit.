@@ -1,9 +1,10 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright 2020- The GROMACS Authors
- * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
- * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
+ * Copyright (c) 2020,2021, by the GROMACS development team, led by
+ * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
+ * and including many others, as listed in the AUTHORS file in the
+ * top-level source directory and at http://www.gromacs.org.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -17,7 +18,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * https://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * http://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -26,10 +27,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at https://www.gromacs.org.
+ * official version at http://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out https://www.gromacs.org.
+ * the research papers on the package. Check out http://www.gromacs.org.
  */
 /*! \internal \file
  * \brief
@@ -44,10 +45,11 @@
 #ifndef NBLIB_LINEAR_CHAIN_DATA_HPP
 #define NBLIB_LINEAR_CHAIN_DATA_HPP
 
-#include "nblib/box.h"
+#include "gromacs/math/vectypes.h"
 
-#include "topologyhelpers.h"
-#include "listed_forces/traits.h"
+#include "nblib/box.h"
+#include "nblib/topologyhelpers.h"
+#include "nblib/listed_forces/traits.h"
 
 namespace nblib
 {
@@ -61,11 +63,11 @@ public:
         HarmonicBondType              bond1{ 376560, real(0.1001 * std::sqrt(3)) };
         HarmonicBondType              bond2{ 313800, real(0.1001 * std::sqrt(3)) };
         std::vector<HarmonicBondType> bonds{ bond1, bond2 };
-        pickType<HarmonicBondType>(interactions).parameters = bonds;
+        pickType<HarmonicBondType>(interactions).parametersA = bonds;
 
         HarmonicAngle              angle(397.5, Degrees(179.9));
         std::vector<HarmonicAngle> angles{ angle };
-        pickType<HarmonicAngle>(interactions).parameters = angles;
+        pickType<HarmonicAngle>(interactions).parametersA = angles;
 
         std::vector<InteractionIndex<HarmonicBondType>> bondIndices;
         for (int i = 0; i < nParticles - 1; ++i)
@@ -89,9 +91,7 @@ public:
             x[i] = real(i) * gmx::RVec{ 0.1, 0.1, 0.1 };
         }
 
-        forces = std::vector<gmx::RVec>(nParticles, gmx::RVec{ 0, 0, 0 });
-
-        box.reset(new Box(0.1 * (nParticles + 1), 0.1 * (nParticles + 1), 0.1 * (nParticles + 1)));
+        box = Box(0.1 * (nParticles + 1), 0.1 * (nParticles + 1), 0.1 * (nParticles + 1));
 
         addOutliers(outlierRatio);
     }
@@ -101,8 +101,8 @@ public:
     void addOutliers(float outlierRatio)
     {
         HarmonicBondType dummyBond{ 1e-6, real(0.1001 * std::sqrt(3)) };
-        pickType<HarmonicBondType>(interactions).parameters.push_back(dummyBond);
-        int bondIndex = pickType<HarmonicBondType>(interactions).parameters.size() - 1;
+        pickType<HarmonicBondType>(interactions).parametersA.push_back(dummyBond);
+        int bondIndex = pickType<HarmonicBondType>(interactions).parametersA.size() - 1;
 
         int nOutliers = nParticles * outlierRatio;
         srand(42);
@@ -121,11 +121,10 @@ public:
     int nParticles;
 
     std::vector<gmx::RVec> x;
-    std::vector<gmx::RVec> forces;
 
     ListedInteractionData interactions;
 
-    std::shared_ptr<Box> box;
+    Box box{0};
 };
 
 } // namespace nblib

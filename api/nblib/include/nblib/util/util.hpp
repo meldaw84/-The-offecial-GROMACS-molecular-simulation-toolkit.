@@ -1,9 +1,10 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright 2020- The GROMACS Authors
- * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
- * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
+ * Copyright (c) 2021, by the GROMACS development team, led by
+ * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
+ * and including many others, as listed in the AUTHORS file in the
+ * top-level source directory and at http://www.gromacs.org.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -17,7 +18,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * https://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * http://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -26,10 +27,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at https://www.gromacs.org.
+ * official version at http://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out https://www.gromacs.org.
+ * the research papers on the package. Check out http://www.gromacs.org.
  */
 /*! \inpublicapi \file
  * \brief
@@ -46,12 +47,48 @@
 #define NBLIB_UTIL_UTIL_HPP
 
 #include <cassert>
+#include <limits>
 
 #include <sstream>
 #include <string>
 #include <tuple>
 #include <type_traits>
-#include <vector>
+
+#include "nblib/util/annotation.hpp"
+#include "nblib/util/tuple.hpp"
+
+namespace util
+{
+
+//! \brief like util::integral_constant, but device-qualified
+template<typename T, T v>
+struct integral_constant
+{
+    static constexpr T              value = v;
+    typedef T                       value_type;
+    typedef integral_constant<T, v> type;
+
+    HOST_DEVICE_FUN
+    constexpr operator value_type() const noexcept { return value; } // NOLINT
+};
+
+template<class... Ts, size_t... Is>
+HOST_DEVICE_FUN constexpr auto discardFirstImpl(const tuple<Ts...>& tuple, std::index_sequence<Is...>)
+{
+    return make_tuple(util::get<Is + 1>(tuple)...);
+}
+
+template<class... Ts>
+HOST_DEVICE_FUN constexpr auto discardFirstElement(const tuple<Ts...>& tuple)
+{
+    constexpr int tupleSize = std::tuple_size<util::tuple<Ts...>>::value;
+    static_assert(tupleSize > 1);
+
+    using Seq = std::make_index_sequence<tupleSize - 1>;
+    return discardFirstImpl(tuple, Seq{});
+}
+
+}  // namespace util
 
 namespace nblib
 {
@@ -82,22 +119,23 @@ template<class T, class Phantom>
 struct StrongType
 {
     //! default ctor
-    StrongType() : value_{} {}
+    StrongType() = default;
     //! construction from the underlying type T, implicit conversions disabled
-    explicit StrongType(T v) : value_(std::move(v)) {}
+    HOST_DEVICE_FUN explicit StrongType(T v) : value_(std::move(v)) {}
 
     //! assignment from T
-    StrongType& operator=(T v)
+    HOST_DEVICE_FUN StrongType& operator=(T v)
     {
         value_ = std::move(v);
         return *this;
     }
 
     //! conversion to T
-    operator T() const { return value_; }
+    HOST_DEVICE_FUN operator T() const { return value_; } // NOLINT
 
     //! access the underlying value
-    T value() const { return value_; }
+    HOST_DEVICE_FUN const T& value() const { return value_; }
+    HOST_DEVICE_FUN T&       value() { return value_; }
 
 private:
     T value_;
@@ -110,45 +148,76 @@ private:
  * parameters is desired, the underlying value attribute should be compared instead
  */
 template<class T, class Phantom>
-[[maybe_unused]] inline bool operator==(const StrongType<T, Phantom>& lhs, const StrongType<T, Phantom>& rhs)
+[[maybe_unused]] HOST_DEVICE_FUN inline bool operator==(const StrongType<T, Phantom>& lhs,
+                                                        const StrongType<T, Phantom>& rhs)
 {
     return lhs.value() == rhs.value();
 }
 
 //! comparison function <
 template<class T, class Phantom>
-inline bool operator<(const StrongType<T, Phantom>& lhs, const StrongType<T, Phantom>& rhs)
+HOST_DEVICE_FUN inline bool operator<(const StrongType<T, Phantom>& lhs, const StrongType<T, Phantom>& rhs)
 {
     return lhs.value() < rhs.value();
 }
 
 //! comparison function >
 template<class T, class Phantom>
-inline bool operator>(const StrongType<T, Phantom>& lhs, const StrongType<T, Phantom>& rhs)
+HOST_DEVICE_FUN inline bool operator>(const StrongType<T, Phantom>& lhs, const StrongType<T, Phantom>& rhs)
 {
     return lhs.value() > rhs.value();
+}
+
+/*! \brief create a switch on \p runtimeIndex with CompileTimeIndices as the possible cases
+ *
+ * \tparam CompileTimeIndices  integer sequence of possible switch case values
+ * \tparam F                   callable object taking a compile time integer, e.g integral_constant<int, N>
+ * \param runtimeIndex         runtime value to call f with
+ * \param f                    callable of type F
+ * \return                     f(integral_constant<int, runtimeIndex>{})
+ *
+ * f is called with the compile time constant value of runtimeIndex.
+ * This function (createSwitch) is equivalent to:
+ *
+ * switch(runtimeIndex)
+ * {
+ *   case 0: f(integral_constant<int, 0>{}); break;
+ *   case 1: f(integral_constant<int, 1>{}); break;
+ *   ...
+ * }
+ */
+template<int... CompileTimeIndices, class F>
+HOST_DEVICE_FUN auto createSwitch(int runtimeIndex, std::integer_sequence<int, CompileTimeIndices...>, F&& f)
+{
+    using ReturnType =
+            std::common_type_t<decltype(f(util::integral_constant<int, CompileTimeIndices>{}))...>;
+
+    ReturnType ret;
+    [[maybe_unused]] std::initializer_list<int> list{ (
+            runtimeIndex == CompileTimeIndices
+            ? (ret = f(util::integral_constant<int, CompileTimeIndices>{})),
+            0
+            : 0)... };
+
+    return ret;
 }
 
 //! \brief Utility to call function with each element in tuple_
 template<class F, class... Ts>
 void for_each_tuple(F&& func, std::tuple<Ts...>& tuple_)
 {
-    std::apply(
-            [f = func](auto&... args) {
-                [[maybe_unused]] auto list = std::initializer_list<int>{ (f(args), 0)... };
-            },
-            tuple_);
+    std::apply([f = func](auto&... args)
+               { [[maybe_unused]] auto list = std::initializer_list<int>{ (f(args), 0)... }; },
+               tuple_);
 }
 
 //! \brief Utility to call function with each element in tuple_ with const guarantee
 template<class F, class... Ts>
 void for_each_tuple(F&& func, const std::tuple<Ts...>& tuple_)
 {
-    std::apply(
-            [f = func](auto&... args) {
-                [[maybe_unused]] auto list = std::initializer_list<int>{ (f(args), 0)... };
-            },
-            tuple_);
+    std::apply([f = func](auto&... args)
+               { [[maybe_unused]] auto list = std::initializer_list<int>{ (f(args), 0)... }; },
+               tuple_);
 }
 
 //! \brief Format strings for use in error messages
@@ -171,12 +240,25 @@ std::string formatString(std::string fmt, Args... args)
         return token;
     };
 
-    [[maybe_unused]]
-    std::initializer_list<int> unused{ 0, (os << next_token(fmt, delimiter) << args, 0)... };
+    [[maybe_unused]] std::initializer_list<int> unused{ 0, (os << next_token(fmt, delimiter) << args, 0)... };
 
     os << next_token(fmt, delimiter);
 
     return os.str();
+}
+
+//! wrapper for std::numeric_limits<T> to avoid calling the host std::epsilon function in device code
+template<class T>
+struct MachineEpsilon
+{
+    static constexpr T value = std::numeric_limits<T>::epsilon();
+};
+
+//! \brief return ceil(dividend/divisor) as integer
+template<class I, std::enable_if_t<std::is_integral_v<I>, int> = 0>
+I iceil(I dividend, I divisor)
+{
+    return (dividend + divisor - 1) / divisor;
 }
 
 } // namespace nblib

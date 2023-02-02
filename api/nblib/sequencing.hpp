@@ -1,9 +1,10 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright 2020- The GROMACS Authors
- * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
- * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
+ * Copyright (c) 2020, by the GROMACS development team, led by
+ * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
+ * and including many others, as listed in the AUTHORS file in the
+ * top-level source directory and at http://www.gromacs.org.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -17,7 +18,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * https://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * http://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -26,10 +27,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at https://www.gromacs.org.
+ * official version at http://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out https://www.gromacs.org.
+ * the research papers on the package. Check out http://www.gromacs.org.
  */
 /*! \internal \file
  * \brief
@@ -53,11 +54,11 @@
 #include <vector>
 
 #include "gromacs/utility/listoflists.h"
-
 #include "nblib/molecules.h"
+
 #include "nblib/particlesequencer.h"
 
-#include "listed_forces/transformations.h"
+#include "nblib/listed_forces/transformations.h"
 
 namespace nblib
 {
@@ -125,7 +126,7 @@ std::tuple<std::vector<size_t>, std::vector<I>> eliminateDuplicateInteractions(c
     std::transform(begin(aggregatedInteractions), end(aggregatedInteractions), begin(uniqueIndices),
                    begin(enumeratedBonds), [](I b, size_t i) { return std::make_tuple(b, i); });
 
-    auto sortKey = [](const auto& t1, const auto& t2) { return std::get<0>(t1) < std::get<0>(t2); };
+    auto sortKey = [](const auto& t1, const auto& t2) { return util::get<0>(t1) < util::get<0>(t2); };
     // sort w.r.t bonds. the result will contain contiguous segments of identical bond instances
     // the associated int indicates the original index of each BondType instance in the input vector
     std::sort(begin(enumeratedBonds), end(enumeratedBonds), sortKey);
@@ -139,14 +140,14 @@ std::tuple<std::vector<size_t>, std::vector<I>> eliminateDuplicateInteractions(c
     //         number of iterations in the outer while loop below
     while (it1 != end(enumeratedBonds))
     {
-        uniquInteractionsInstances.push_back(std::get<0>(*it1));
+        uniquInteractionsInstances.push_back(util::get<0>(*it1));
 
         // loop over all identical BondType instances;
         for (; it1 != it2; ++it1)
         {
             // we note down that the BondType instance at index <interactionIndex>
             // can be found in the uniqueBondInstances container at index <uniqueBondInstances.size()>
-            int interactionIndex            = std::get<1>(*it1);
+            int interactionIndex            = util::get<1>(*it1);
             uniqueIndices[interactionIndex] = uniquInteractionsInstances.size() - 1;
         }
 
@@ -168,7 +169,7 @@ namespace sequence_detail
 template<class Tuple, class F, class... Args, size_t... Is>
 auto stringsToIndices_impl(const Tuple& tuple, [[maybe_unused]] std::index_sequence<Is...> is, F&& f, Args... args)
 {
-    return std::array<int, sizeof...(Is)>{ f(args..., std::get<2 * Is + 1>(tuple),
+    return IndexArray<sizeof...(Is)>{ f(args..., std::get<2 * Is + 1>(tuple),
                                              std::get<2 * Is>(tuple))... };
 }
 

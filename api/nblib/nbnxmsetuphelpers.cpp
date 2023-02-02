@@ -49,6 +49,7 @@
 #include "gromacs/mdlib/rf_util.h"
 #include "gromacs/mdtypes/forcerec.h"
 #include "gromacs/mdtypes/interaction_const.h"
+#include "gromacs/mdtypes/md_enums.h"
 #include "gromacs/mdtypes/simulation_workload.h"
 #include "gromacs/nbnxm/atomdata.h"
 #include "gromacs/nbnxm/gpu_data_mgmt.h"
@@ -208,7 +209,7 @@ gmx::SimulationWorkload createSimulationWorkloadGpu()
 std::shared_ptr<gmx::DeviceStreamManager> createDeviceStreamManager(const DeviceInformation& deviceInfo,
                                                                     const gmx::SimulationWorkload& simulationWorkload)
 {
-    return std::make_shared<gmx::DeviceStreamManager>(deviceInfo, simulationWorkload, false);
+    return std::make_shared<gmx::DeviceStreamManager>(deviceInfo, false, simulationWorkload, false);
 }
 
 real ewaldCoeff(const real ewald_rtol, const real pairlistCutoff)
@@ -307,7 +308,7 @@ std::unique_ptr<nonbonded_verlet_t> createNbnxmCPU(const size_t              num
 
     // Put everything together
     auto nbv = std::make_unique<nonbonded_verlet_t>(
-            std::move(pairlistSets), std::move(pairSearch), std::move(atomData), kernelSetup, nullptr);
+            std::move(pairlistSets), std::move(pairSearch), std::move(atomData), kernelSetup, nullptr, nullptr);
 
     return nbv;
 }
@@ -351,7 +352,7 @@ std::unique_ptr<nonbonded_verlet_t> createNbnxmGPU(const size_t               nu
 
     // Put everything together
     auto nbv = std::make_unique<nonbonded_verlet_t>(
-            std::move(pairlistSets), std::move(pairSearch), std::move(atomData), kernelSetup, nbnxmGpu);
+            std::move(pairlistSets), std::move(pairSearch), std::move(atomData), kernelSetup, nbnxmGpu, nullptr);
 
     // Some paramters must be copied to NbnxmGpu to have a fully constructed nonbonded_verlet_t
     Nbnxm::gpu_init_atomdata(nbv->gpu_nbv, nbv->nbat.get());

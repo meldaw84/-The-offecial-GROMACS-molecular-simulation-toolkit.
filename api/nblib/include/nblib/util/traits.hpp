@@ -1,9 +1,10 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright 2020- The GROMACS Authors
- * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
- * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
+ * Copyright (c) 2020, by the GROMACS development team, led by
+ * Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
+ * and including many others, as listed in the AUTHORS file in the
+ * top-level source directory and at http://www.gromacs.org.
  *
  * GROMACS is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -17,7 +18,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with GROMACS; if not, see
- * https://www.gnu.org/licenses, or write to the Free Software Foundation,
+ * http://www.gnu.org/licenses, or write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * If you want to redistribute modifications to GROMACS, please
@@ -26,10 +27,10 @@
  * consider code for inclusion in the official distribution, but
  * derived work must not be called official GROMACS. Details are found
  * in the README & COPYING files - if they are missing, get the
- * official version at https://www.gromacs.org.
+ * official version at http://www.gromacs.org.
  *
  * To help us fund GROMACS development, we humbly ask that you cite
- * the research papers on the package. Check out https://www.gromacs.org.
+ * the research papers on the package. Check out http://www.gromacs.org.
  */
 /*! \inpublicapi \file
  * \brief
@@ -47,12 +48,11 @@
 
 #include <cassert>
 
-#include <sstream>
-#include <string>
 #include <tuple>
 #include <type_traits>
-#include <vector>
 
+#include "nblib/util/annotation.hpp"
+#include "nblib/util/util.hpp"
 
 namespace nblib
 {
@@ -62,6 +62,50 @@ template<class... Ts>
 struct TypeList
 {
 };
+
+template<class TypeList>
+struct TypeListSize
+{
+};
+
+template<template<class...> class TypeList, class... Ts>
+struct TypeListSize<TypeList<Ts...>> : public util::integral_constant<std::size_t, sizeof...(Ts)>
+{
+};
+
+/*! \brief Element type retrieval: base template
+ *
+ * Same as std::tuple_element, but works for any type of type list
+ */
+template<size_t I, class TL>
+struct TypeListElement
+{
+};
+
+//! \brief Element type retrieval: recursion, strip one element
+template<size_t I, template<class...> class TL, class Head, class... Tail>
+struct TypeListElement<I, TL<Head, Tail...>> : public TypeListElement<I - 1, TL<Tail...>>
+{
+};
+
+//! \brief Element type retrieval: endpoint, Head is the desired type
+template<class Head, template<class...> class TL, class... Tail>
+struct TypeListElement<0, TL<Head, Tail...>>
+{
+    using type = Head;
+};
+
+//! \brief Element type retrieval: out of bounds detection
+template<size_t I, template<class...> class TL>
+struct TypeListElement<I, TL<>>
+{
+    static_assert(I < TypeListSize<TL<>>{}, "TypeListElement access out of range");
+};
+
+//! \brief Element type retrieval: convenience alias
+template<size_t I, class TL>
+using TypeListElement_t = typename TypeListElement<I, TL>::type;
+
 
 namespace detail
 {
@@ -189,21 +233,21 @@ using AccessTypeMemberIfPresent_t = typename AccessTypeMemberIfPresent<T>::type;
  */
 template<int N, typename T, typename Tuple>
 struct MatchTypeOrTypeMember :
-        std::disjunction<std::is_same<T, std::tuple_element_t<N, Tuple>>,
-                std::is_same<T, AccessTypeMemberIfPresent_t<std::tuple_element_t<N, Tuple>>>>
+        std::disjunction<std::is_same<T, TypeListElement_t<N, Tuple>>,
+                std::is_same<T, AccessTypeMemberIfPresent_t<TypeListElement_t<N, Tuple>>>>
 {
 };
 
 //! \brief Recursion to check the next field N+1
 template<int N, class T, class Tuple, template<int, class, class> class Comparison, class Match = void>
-struct MatchField_ : std::integral_constant<size_t, MatchField_<N + 1, T, Tuple, Comparison>{}>
+struct MatchField_ : util::integral_constant<size_t, MatchField_<N + 1, T, Tuple, Comparison>{}>
 {
 };
 
 //! \brief recursion stop when Comparison<N, T, Tuple>::value is true
 template<int N, class T, class Tuple, template<int, class, class> class Comparison>
 struct MatchField_<N, T, Tuple, Comparison, std::enable_if_t<Comparison<N, T, Tuple>{}>> :
-        std::integral_constant<size_t, N>
+        util::integral_constant<size_t, N>
 {
 };
 
@@ -267,7 +311,7 @@ struct FindIndex
  *  and prevent an out of bounds tuple access compiler error.
  */
 template<typename T, template<class...> class TL, class... Ts, template<int, class, class> class Comparison>
-struct FindIndex<T, TL<Ts...>, Comparison> : detail::MatchField_<0, T, std::tuple<Ts..., T>, Comparison>
+struct FindIndex<T, TL<Ts...>, Comparison> : detail::MatchField_<0, T, TL<Ts..., T>, Comparison>
 {
 };
 
@@ -294,14 +338,53 @@ struct Contains
  * \tparam T   type to look for in TL
  * \tparam TL  a variadic type, such as std::tuple or TypeList
  * \tparam Ts  the template parameters of TL
- *
- * Note that this clang-format enforced formatting is unfortunate, it should be:
- * struct Contains<T, TL<Ts...>> : std::bool_constant<FindIndex<T, TL<Ts...>>{} < sizeof...(Ts)>
  */
+// clang-format off
 template<class T, template<class...> class TL, class... Ts>
-        struct Contains<T, TL<Ts...>> : std::bool_constant < FindIndex<T, TL<Ts...>>{}<sizeof...(Ts)>
+struct Contains<T, TL<Ts...>> : util::integral_constant<int, FindIndex<T, TL<Ts...>>{} < sizeof...(Ts)>
 {
 };
+// clang-format on
+
+//! \brief trait to swap out the template parameter of Base with Arg
+template<class Base, class Arg>
+struct SwapArg
+{
+};
+
+//! \brief swap out first template param T with Arg
+template<template<class...> class Base, class T, class... Tail, class Arg>
+struct SwapArg<Base<T, Tail...>, Arg>
+{
+    using type = Base<Arg, Tail...>;
+};
+
+//! \brief swap out T with Arg if Base has a non-type template parameter
+template<template<class, std::size_t> class Base, class T, std::size_t I, class Arg>
+struct SwapArg<Base<T, I>, Arg>
+{
+    using type = Base<Arg, I>;
+};
+
+//! \brief return the index sequence of the subList entries in the baseList
+template<class...Ts1, class...Ts2>
+auto subsetIndices(TypeList<Ts1...> /*subList*/, TypeList<Ts2...> /*baseList*/)
+{
+    return std::index_sequence<FindIndex<Ts1, TypeList<Ts2...>>{}...>{};
+}
+
+//! \brief return a tuple of lvalue references for the specified indices of the argument tuple
+template<class...Ts, size_t...Is>
+auto tieElements(std::tuple<Ts...>& tuple, std::index_sequence<Is...>)
+{
+    return std::tie(std::get<Is>(tuple)...);
+}
+
+template<class...Ts, size_t...Is>
+auto tieElements(const std::tuple<Ts...>& tuple, std::index_sequence<Is...>)
+{
+    return std::tie(std::get<Is>(tuple)...);
+}
 
 } // namespace nblib
 

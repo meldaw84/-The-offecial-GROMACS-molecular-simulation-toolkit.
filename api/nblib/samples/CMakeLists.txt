@@ -35,6 +35,7 @@
 # \author Joe Jordan <ejjordan@kth.se>
 # \author Prashanth Kanduri <kanduri@cscs.ch>
 # \author Sebastian Keller <keller@cscs.ch>
+#
 
 set(argon "argon-forces-integration")
 add_executable(${argon} argon-forces-integration.cpp)
@@ -45,6 +46,37 @@ set(methane "methane-water-integration")
 add_executable(${methane} methane-water-integration.cpp)
 
 target_link_libraries(${methane} PRIVATE nblib)
+
+set(benchmark_cpu "benchmark_cpu")
+add_executable(${benchmark_cpu} benchmark_cpu.cpp)
+
+target_link_libraries(${benchmark_cpu} PRIVATE nblib)
+
+if (GMX_GPU_CUDA)
+    add_executable(benchmark_gpu_host benchmark_gpu_host.cpp)
+    target_link_libraries(benchmark_gpu_host PRIVATE libgromacs)
+    target_link_libraries(benchmark_gpu_host PRIVATE common)
+    target_link_libraries(benchmark_gpu_host PUBLIC legacy_api)
+    target_link_libraries(benchmark_gpu_host PRIVATE legacy_modules)
+    target_link_libraries(benchmark_gpu_host PRIVATE nblib)
+
+    set(benchmark_gpu "benchmark_gpu")
+    add_executable(${benchmark_gpu} benchmark_gpu.cpp)
+    target_link_libraries(${benchmark_gpu} PRIVATE libgromacs)
+    target_link_libraries(${benchmark_gpu} PRIVATE common)
+    target_link_libraries(${benchmark_gpu} PUBLIC legacy_api)
+    target_link_libraries(${benchmark_gpu} PRIVATE legacy_modules)
+    target_link_libraries(${benchmark_gpu} PRIVATE nblib)
+
+    if(${CMAKE_VERSION} VERSION_LESS "3.17.0")
+        find_package(CUDA)
+        target_include_directories(${benchmark_gpu} PRIVATE "${CUDA_INCLUDE_DIRS}")
+    else()
+        find_package(CUDAToolkit)
+        target_link_libraries(${benchmark_gpu} PRIVATE CUDA::cudart)
+        target_link_libraries(benchmark_gpu_host PRIVATE CUDA::cudart)
+    endif()
+endif()
 
 if(BUILD_TESTING)
     add_test(NAME NbLibSamplesTestArgon COMMAND ${argon})
