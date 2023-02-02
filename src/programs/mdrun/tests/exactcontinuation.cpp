@@ -385,7 +385,7 @@ TEST_P(MdrunNoAppendContinuationIsExact, WithinTolerances)
     if (additionalMdpParameters == MdpParameterDatabase::ExpandedEnsemble
         && (isGpuUpdateRequested || isModularSimulatorExplicitlyDisabled))
     {
-        // Exact continuation is buggy in the legacy simulator (#4629),
+        // Exact continuation is disabled in the legacy simulator (#4629),
         // so we skip the test if it would run in the legacy simulator.
         // With the current test system, this only happens if modular simulator
         // is explicitly disabled, or if GPU update was requested (see #4711).
