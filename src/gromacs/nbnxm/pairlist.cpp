@@ -121,14 +121,14 @@ static inline int cjFromCi(int ci)
     constexpr int iClusterSize = c_iClusterSize(layout);
     constexpr int jClusterSize = c_jClusterSize(layout);
 
-    static_assert(jClusterSize == iClusterSize / 2 || jClusterSize == iClusterSize
-                          || jClusterSize == iClusterSize * 2,
+    static_assert(2 * jClusterSize == iClusterSize || jClusterSize == iClusterSize
+                          || jClusterSize == iClusterSize * 2 || jClusterSize == iClusterSize * 16,
                   "Only j-cluster sizes 2, 4 and 8 are currently implemented");
 
     static_assert(jSubClusterIndex == 0 || jSubClusterIndex == 1,
                   "Only sub-cluster indices 0 and 1 are supported");
 
-    if constexpr (jClusterSize == iClusterSize / 2)
+    if constexpr (2 * jClusterSize == iClusterSize)
     {
         if (jSubClusterIndex == 0)
         {
@@ -143,9 +143,14 @@ static inline int cjFromCi(int ci)
     {
         return ci;
     }
-    else
+    else if constexpr (jClusterSize == 2 * iClusterSize)
     {
         return ci >> 1;
+    }
+    else
+    {
+        // Factor 16 = 2^4
+        return ci >> 4;
     }
 }
 
@@ -172,16 +177,29 @@ static inline int xIndexFromCi(int ci)
             /* Coordinates are stored packed in groups of 8 */
             return ci * STRIDE_P8;
         }
-        else if constexpr (iClusterSize == 32)
+        else
         {
-            /* Coordinates are stored packed in groups of 32 */
-            return ci * STRIDE_P32;
+            GMX_ASSERT(false, "Unhandled cluster geometry");
+            return 0;
         }
     }
     else
     {
-        /* Coordinates packed in 8, i-cluster size is half the packing width */
-        return (ci >> 1) * STRIDE_P8 + (ci & 1) * (c_packX8 >> 1);
+        if constexpr (iClusterSize == 4 && jClusterSize == 8)
+        {
+            /* Coordinates packed in 8, i-cluster size is half the packing width */
+            return (ci >> 1) * STRIDE_P8 + (ci & 1) * (c_packX8 >> 1);
+        }
+        else if constexpr (iClusterSize == 2 && jClusterSize == 32)
+        {
+            /* Coordinates packed in 32, i-cluster size is a fourth of the packing width */
+            return (ci >> 4) * STRIDE_P32 + (ci & 15) * (c_packX32 >> 4);
+        }
+        else
+        {
+            GMX_ASSERT(false, "Unhandled cluster geometry");
+            return 0;
+        }
     }
 }
 
@@ -192,8 +210,8 @@ static inline int xIndexFromCj(int cj)
     constexpr int iClusterSize = c_iClusterSize(layout);
     constexpr int jClusterSize = c_jClusterSize(layout);
 
-    static_assert(jClusterSize == iClusterSize / 2 || jClusterSize == iClusterSize
-                          || jClusterSize == iClusterSize * 2,
+    static_assert(2 * jClusterSize == iClusterSize || jClusterSize == iClusterSize
+                          || jClusterSize == iClusterSize * 2 || jClusterSize == iClusterSize * 16,
                   "Only j-cluster sizes 2, 4 and 8 are currently implemented");
 
     if constexpr (iClusterSize == 4 && jClusterSize == 2)
@@ -215,6 +233,11 @@ static inline int xIndexFromCj(int cj)
     {
         /* Coordinates are stored packed in groups of 8 */
         return cj * STRIDE_P8;
+    }
+    else if constexpr (iClusterSize == 2 && jClusterSize == 32)
+    {
+        /* Coordinates are stored packed in groups of 32 */
+        return cj * STRIDE_P32;
     }
     else if constexpr (iClusterSize == 8 && jClusterSize == 8)
     {
@@ -3143,6 +3166,12 @@ static void makeClusterListWrapper(NbnxnPairlistCpu* nbl,
 #if GMX_HAVE_NBNXM_SIMD_2XMM
         case ClusterDistanceKernelType::CpuSimd_2xMM:
             makeClusterListSimd2xnn(
+                    jGrid, nbl, ci, firstCell, lastCell, excludeSubDiagonal, nbat->x().data(), rlist2, rbb2, numDistanceChecks);
+            break;
+#endif
+#if GMX_HAVE_NBNXM_SIMD_2XM
+        case ClusterDistanceKernelType::CpuSimd_2xM:
+            makeClusterListSimd4xn<KernelLayout::r2xM>(
                     jGrid, nbl, ci, firstCell, lastCell, excludeSubDiagonal, nbat->x().data(), rlist2, rbb2, numDistanceChecks);
             break;
 #endif

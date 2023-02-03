@@ -641,6 +641,7 @@ static void calc_bounding_box_xxxx_simd4(int na, const float* x, BoundingBox* bb
 
 
 /*! \brief Combines pairs of consecutive 'i' bounding boxes into 'j' bounding boxes */
+template<int log2Factor>
 static void combine_bounding_box_pairs(const Grid&                      grid,
                                        gmx::ArrayRef<const BoundingBox> bb,
                                        gmx::ArrayRef<BoundingBox>       bbj)
@@ -648,39 +649,47 @@ static void combine_bounding_box_pairs(const Grid&                      grid,
     // TODO: During SIMDv2 transition only some archs use namespace (remove when done)
     using namespace gmx;
 
+    constexpr int factor = (1 << log2Factor);
+
     const int iClusterSize    = grid.geometry().numAtomsICluster;
     const int logIClusterSize = grid.geometry().numAtomsICluster2Log;
 
     GMX_RELEASE_ASSERT(
-            grid.geometry().numAtomsJCluster == 2 * iClusterSize,
-            "Should only combine bounding boxes when two i-clusters make up one j-cluster");
+            grid.geometry().numAtomsJCluster == factor * iClusterSize,
+            "Should only combine bounding boxes when factor i-clusters make up one j-cluster");
 
     for (int i = 0; i < grid.numColumns(); i++)
     {
-        /* Starting bb in a column is expected to be 2-aligned */
-        const int sc2 = grid.firstCellInColumn(i) >> 1;
-        /* For odd numbers skip the last bb here */
-        const int nc2 = (grid.numAtomsInColumn(i) + iClusterSize - 1) >> (logIClusterSize + 1);
-        for (int c2 = sc2; c2 < sc2 + nc2; c2++)
+        /* Starting bb in a column is expected to be aligned on factor */
+        const int ciFirst = grid.firstCellInColumn(i);
+        const int cjFirst = ciFirst >> log2Factor;
+        const int nci = (grid.numAtomsInColumn(i) + iClusterSize - 1) >> logIClusterSize;
+        const int ncj = nci >> log2Factor;
+        for (int cj = cjFirst; cj < cjFirst + ncj; cj++)
         {
+            const int ciStart = factor * cj;
 #if NBNXN_SEARCH_BB_SIMD4
-            Simd4Float min_S, max_S;
-
-            min_S = min(load4(bb[c2 * 2 + 0].lower.ptr()), load4(bb[c2 * 2 + 1].lower.ptr()));
-            max_S = max(load4(bb[c2 * 2 + 0].upper.ptr()), load4(bb[c2 * 2 + 1].upper.ptr()));
-            store4(bbj[c2].lower.ptr(), min_S);
-            store4(bbj[c2].upper.ptr(), max_S);
+            Simd4Float min_S = load4(bb[ciStart].lower.ptr());
+            Simd4Float max_S = load4(bb[ciStart].upper.ptr());
 #else
-            bbj[c2].lower = BoundingBox::Corner::min(bb[c2 * 2 + 0].lower, bb[c2 * 2 + 1].lower);
-            bbj[c2].upper = BoundingBox::Corner::max(bb[c2 * 2 + 0].upper, bb[c2 * 2 + 1].upper);
+            bbj[cj].lower = bb[ciStart].lower;
+            bbj[cj].upper = bb[ciStart].upper;
 #endif
-        }
-        if (((grid.numAtomsInColumn(i) + iClusterSize - 1) >> logIClusterSize) & 1)
-        {
-            /* The bb count in this column is odd: duplicate the last bb */
-            int c2        = sc2 + nc2;
-            bbj[c2].lower = bb[c2 * 2].lower;
-            bbj[c2].upper = bb[c2 * 2].upper;
+
+            for (int ci = ciStart + 1; ci < std::min(ciStart + factor, ciFirst + nci); ci++)
+            {
+#if NBNXN_SEARCH_BB_SIMD4
+                min_S = min(min_S, load4(bb[ci].lower.ptr()));
+                max_S = max(max_S, load4(bb[ci].upper.ptr()));
+#else
+                bbj[cj].lower = BoundingBox::Corner::min(bbj[cj].lower, bb[ci].lower);
+                bbj[cj].upper = BoundingBox::Corner::max(bbj[cj].upper, bb[ci].upper);
+#endif
+            }
+#if NBNXN_SEARCH_BB_SIMD4
+            store4(bbj[cj].lower.ptr(), min_S);
+            store4(bbj[cj].upper.ptr(), max_S);
+#endif
         }
     }
 }
@@ -990,6 +999,17 @@ void Grid::fillCell(GridSetData*                   gridSetData,
                     numAtoms, nbat->x().data() + atom_to_x_index<c_packX8>(atomStart), bb_ptr);
         }
     }
+    else if (nbat->XFormat == nbatX32)
+    {
+        /* Store the bounding boxes as xyz.xyz. */
+        size_t       offset = atomToCluster(atomStart - cellOffset_ * geometry_.numAtomsICluster);
+        BoundingBox* bb_ptr = bb_.data() + offset;
+
+        // No SIMD implementation here yet
+
+        calc_bounding_box_packed<c_packX32>(
+            numAtoms, nbat->x().data() + atom_to_x_index<c_packX32>(atomStart), bb_ptr);
+    }
 #if NBNXN_BBXXXX
     else if (!geometry_.isSimple)
     {
@@ -1030,6 +1050,8 @@ void Grid::fillCell(GridSetData*                   gridSetData,
 #endif
     else
     {
+        GMX_ASSERT(nbat->XFormat == nbatXYZ, "Expect xyz format, when this fail we likely added a new (unhandled) format");
+        
         /* Store the bounding boxes as xyz.xyz. */
         BoundingBox* bb_ptr =
                 bb_.data() + atomToCluster(atomStart - cellOffset_ * geometry_.numAtomsPerCell);
@@ -1415,6 +1437,9 @@ void Grid::setCellIndices(int                            ddZone,
 
     const int numAtomsPerCell = geometry_.numAtomsPerCell;
 
+    // When jClusterSize>iClusterSize this ratio is jClusterSize/iClusterSize, otherwise it is 1
+    const int clusterRatio = (geometry_.numAtomsJCluster > geometry_.numAtomsICluster ? geometry_.numAtomsJCluster / geometry_.numAtomsICluster : 1);
+
     /* Make the cell index as a function of x and y */
     int ncz_max = 0;
     int ncz     = 0;
@@ -1435,10 +1460,10 @@ void Grid::setCellIndices(int                            ddZone,
             cxy_na_i += gridWork[thread].numAtomsPerColumn[i];
         }
         ncz = (cxy_na_i + numAtomsPerCell - 1) / numAtomsPerCell;
-        if (geometry_.numAtomsJCluster > geometry_.numAtomsICluster)
+        if (clusterRatio > 1)
         {
-            /* Make the number of cell a multiple of 2 */
-            ncz = (ncz + 1) & ~1;
+            /* Make the number of cell a multiple of clusterRatio */
+            ncz = (ncz + clusterRatio - 1) & ~( clusterRatio - 1);
         }
         cxy_ind_[i + 1] = cxy_ind_[i] + ncz;
         /* Clear cxy_na_, so we can reuse the array below */
@@ -1534,7 +1559,12 @@ void Grid::setCellIndices(int                            ddZone,
 
     if (geometry_.isSimple && geometry_.numAtomsJCluster > geometry_.numAtomsICluster)
     {
-        combine_bounding_box_pairs(*this, bb_, bbj_);
+        switch (geometry_.numAtomsJCluster / geometry_.numAtomsICluster)
+        {
+        case 2: combine_bounding_box_pairs<1>(*this, bb_, bbj_); break;
+        case 16: combine_bounding_box_pairs<4>(*this, bb_, bbj_); break;
+        default: GMX_RELEASE_ASSERT(false, "Unhandled cluster size ratio");
+        }
     }
 
     if (!geometry_.isSimple)

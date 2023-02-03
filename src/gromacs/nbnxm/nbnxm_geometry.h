@@ -119,14 +119,15 @@ static inline constexpr int c_jClusterSize(const KernelType kernelType)
 static constexpr bool kernelTypeUsesSimplePairlist(const KernelType kernelType)
 {
     return (kernelType == KernelType::Cpu4x4_PlainC || kernelType == KernelType::Cpu4xN_Simd_4xN
-            || kernelType == KernelType::Cpu4xN_Simd_2xNN || kernelType == KernelType::Cpu8xN_Simd_8xN);
+            || kernelType == KernelType::Cpu4xN_Simd_2xNN || kernelType == KernelType::Cpu8xN_Simd_8xN
+            || kernelType == KernelType::Cpu2xN_Simd_2xN);
 }
 
 //! Returns whether a SIMD kernel is in use
 static constexpr bool kernelTypeIsSimd(const KernelType kernelType)
 {
     return (kernelType == KernelType::Cpu4xN_Simd_4xN || kernelType == KernelType::Cpu4xN_Simd_2xNN
-            || kernelType == KernelType::Cpu8xN_Simd_8xN);
+            || kernelType == KernelType::Cpu8xN_Simd_8xN || kernelType == KernelType::Cpu2xN_Simd_2xN);
 }
 
 } // namespace Nbnxm

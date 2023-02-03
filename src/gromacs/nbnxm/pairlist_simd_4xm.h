@@ -51,9 +51,13 @@ static constexpr int c_xStride4xN()
 template<int clusterSize>
 constexpr int log2ClusterSize()
 {
-    static_assert(clusterSize == 4 || clusterSize == 8, "Only 4 and 8 are supported");
+    static_assert(clusterSize == 2 || clusterSize == 4 || clusterSize == 8, "Only 4 and 8 are supported");
 
-    if constexpr (clusterSize == 4)
+    if constexpr (clusterSize == 2)
+    {
+        return 1;
+    }
+    else if constexpr (clusterSize == 4)
     {
         return 2;
     }
@@ -87,6 +91,8 @@ static inline void icell_set_x_simd_4xn(int                   ci,
               SimdReal(x[ia + 1 * c_xStride4xN<kernelLayout>() + i] + shy));
         store(x_ci_simd + (3 * i + 2) * GMX_SIMD_REAL_WIDTH,
               SimdReal(x[ia + 2 * c_xStride4xN<kernelLayout>() + i] + shz));
+#warning "remove"
+        GMX_ASSERT(std::isfinite(x[ia + 2 * c_xStride4xN<kernelLayout>() + i]), "ai");
     }
 }
 
