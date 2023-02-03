@@ -260,10 +260,15 @@ void nbnxmKernelSimd(const NbnxnPairlistCpu*    nbl,
         }
         else
         {
-            sci  = (ci >> 1) * STRIDE;
-            scix = sci * DIM + (ci & 1) * (STRIDE >> 1);
-            sci2 = sci * 2 + (ci & 1) * (STRIDE >> 1);
-            sci += (ci & 1) * (STRIDE >> 1);
+            constexpr int clusterRatio = UNROLLJ / UNROLLI;
+
+            // Offset of this i-cluster in the block of size STRIDE
+            const int offset = (ci & (clusterRatio - 1)) * (STRIDE / clusterRatio);
+
+            sci  = (ci / clusterRatio) * STRIDE;
+            scix = sci * DIM + offset;
+            sci2 = sci * 2 + offset;
+            sci += offset;
         }
 
         /* We have 5 LJ/C combinations, but use only three inner loops,
@@ -490,7 +495,13 @@ void nbnxmKernelSimd(const NbnxnPairlistCpu*    nbl,
         real fShiftX;
         real fShiftY;
         real fShiftZ;
-        if constexpr (GMX_SIMD_J_UNROLL_SIZE == 1)
+        if constexpr (UNROLLI == 2)
+        {
+            fShiftX = reduceIncr2ReturnSum(f + scix, forceIXV[0], forceIXV[1]);
+            fShiftY = reduceIncr2ReturnSum(f + sciy, forceIYV[0], forceIYV[1]);
+            fShiftZ = reduceIncr2ReturnSum(f + sciz, forceIZV[0], forceIZV[1]);
+        }
+        else if constexpr (GMX_SIMD_J_UNROLL_SIZE == 1)
         {
             fShiftX = reduceIncr4ReturnSum(f + scix, forceIXV[0], forceIXV[1], forceIXV[2], forceIXV[3]);
             fShiftY = reduceIncr4ReturnSum(f + sciy, forceIYV[0], forceIYV[1], forceIYV[2], forceIYV[3]);

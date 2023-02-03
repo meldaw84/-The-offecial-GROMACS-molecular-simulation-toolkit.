@@ -62,6 +62,9 @@
     /* j-cluster index */
     const int cj = l_cj.cj(cjind);
 
+    /* Indexing code in the rest of the file currently uses the following assumption */
+    static_assert(UNROLLJ == STRIDE || (2 * UNROLLJ == STRIDE && UNROLLJ == 2));
+
     /* Atom indices (of the first atom in the cluster) */
     const int gmx_unused aj = cj * UNROLLJ;
 
