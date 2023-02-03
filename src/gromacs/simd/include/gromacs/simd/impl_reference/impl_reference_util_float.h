@@ -575,6 +575,46 @@ gatherLoadBySimdIntTranspose(const float* base, SimdFInt32 offset, SimdFloat* v0
  * \param m   Pointer to memory where four floats should be incremented
  * \param v0  SIMD variable whose sum should be added to m[0]
  * \param v1  SIMD variable whose sum should be added to m[1]
+ *
+ * \return Sum of all elements in the four SIMD variables.
+ *
+ * The pointer m must be aligned to the smaller of two elements and the
+ * floating-point SIMD width.
+ *
+ * \note This is a special routine intended for the Gromacs nonbonded kernels.
+ * It is used in the epilogue of the outer loop, where the variables will
+ * contain unrolled forces for one outer-loop-particle each, corresponding to
+ * a single coordinate (i.e, say, four x-coordinate force variables). These
+ * should be summed and added to the force array in memory. Since we always work
+ * with contiguous SIMD-layout , we can use efficient aligned loads/stores.
+ * When calculating the virial, we also need the total sum of all forces for
+ * each coordinate. This is provided as the return value. For routines that
+ * do not need these, this extra code will be optimized away completely if you
+ * just ignore the return value (Checked with gcc-4.9.1 and clang-3.6 for AVX).
+ */
+static inline float gmx_simdcall reduceIncr2ReturnSum(float* m, SimdFloat v0, SimdFloat v1)
+{
+    float sum[2]; // Note that the 2 here corresponds to the 2 m-elements, not any SIMD width
+
+    // Make sure the memory pointer is aligned to the smaller of 2 elements and float SIMD width
+    assert(std::size_t(m) % (std::min(GMX_SIMD_FLOAT_WIDTH, 2) * sizeof(float)) == 0);
+
+    sum[0] = reduce(v0);
+    sum[1] = reduce(v1);
+
+    m[0] += sum[0];
+    m[1] += sum[1];
+
+    return sum[0] + sum[1];
+}
+
+
+/*! \brief Reduce each of four SIMD floats, add those values to four consecutive
+ *         floats in memory, return sum.
+ *
+ * \param m   Pointer to memory where four floats should be incremented
+ * \param v0  SIMD variable whose sum should be added to m[0]
+ * \param v1  SIMD variable whose sum should be added to m[1]
  * \param v2  SIMD variable whose sum should be added to m[2]
  * \param v3  SIMD variable whose sum should be added to m[3]
  *
