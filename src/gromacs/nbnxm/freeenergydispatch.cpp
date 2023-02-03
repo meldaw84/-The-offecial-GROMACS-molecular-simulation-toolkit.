@@ -312,6 +312,10 @@ void dispatchFreeEnergyKernel(gmx::ArrayRef<const std::unique_ptr<t_nblist>>   n
                     FreeEnergyPerturbationCouplingType::Coul,              
                     foreign_term[F_COUL_SR],
                     dvdl_nb[FreeEnergyPerturbationCouplingType::Coul]);
+#warning "fix"
+#if 0
+            printf("terms %5.1f %5.1f\n", foreign_term[F_LJ], foreign_term[F_COUL_SR]);
+#endif
         }
     }
 }

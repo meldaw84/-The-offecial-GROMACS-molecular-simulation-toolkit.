@@ -1981,9 +1981,9 @@ void gmx::LegacySimulator::do_md()
             for (gmx::Index i = 0; i < gmx::ssize(newFepLambdaState); i++)
             {
                 state->lambda[i] = ir->fepvals->all_lambda[i][newFepLambdaState[i]];
-                printf(" %f", state->lambda[i]);
+                //printf(" %f", state->lambda[i]);
             }
-            printf("\n");
+            //printf("\n");
         }
         /* Print the remaining wall clock time for the run */
         if (isMainSimMainRank(ms, MAIN(cr)) && (do_verbose || gmx_got_usr_signal()) && !bPMETunePrinting)

@@ -50,7 +50,7 @@ ForeignLambdaTerms::ForeignLambdaTerms(
     allLambdas_(allLambdas),
     energies_(1 + numLambdas_),
     dhdl_(1 + numLambdas_),
-    foreignEnergyRefs_(1)
+    foreignEnergyRefs_(static_cast<int>(FreeEnergyPerturbationCouplingType::Count))
 {
     if (allLambdas_)
     {
@@ -150,10 +150,10 @@ const ForeignEnergyRefs* ForeignLambdaTerms::getTerms(const t_commrec* cr)
 
         for (auto fepct : gmx::EnumerationWrapper<FreeEnergyPerturbationCouplingType>{})
         {
-            const gmx::Index i = static_cast<int>(fepct);
+            const int i = static_cast<int>(fepct);
 
-            foreignEnergyRefs_.energies[i] = gmx::constArrayRefFromArray(reduceAndReturnBuffer_.data() + (2 * i + 0) * numLambdas_, numLambdas_);
-            foreignEnergyRefs_.dhdl[i]     = gmx::constArrayRefFromArray(reduceAndReturnBuffer_.data() + (2 * i + 1) * numLambdas_, numLambdas_);
+            foreignEnergyRefs_.energies[i] = gmx::constArrayRefFromArray(reduceAndReturnBuffer_.data() + (2 * (1 + i) + 0) * numLambdas_, numLambdas_);
+            foreignEnergyRefs_.dhdl[i]     = gmx::constArrayRefFromArray(reduceAndReturnBuffer_.data() + (2 * (1 + i) + 1) * numLambdas_, numLambdas_);
         }
     }
 #endif
@@ -168,8 +168,8 @@ const ForeignEnergyRefs* ForeignLambdaTerms::getTerms(const t_commrec* cr)
 
         for (int i = 0; i < numLambdas_; i++)
         {
-            reduceAndReturnBuffer_[((1 + c) * 2 + 0) * numComponents + i] = energies_[1 + i][c] - energies_[0][c];
-            reduceAndReturnBuffer_[((1 + c) * 2 + 1) * numComponents + i] = dhdl_[1 + i][c];
+            reduceAndReturnBuffer_[((1 + c) * 2 + 0) * numLambdas_ + i] = energies_[1 + i][c] - energies_[0][c];
+            reduceAndReturnBuffer_[((1 + c) * 2 + 1) * numLambdas_ + i] = dhdl_[1 + i][c];
         }
     }
     if (cr && cr->nnodes > 1)

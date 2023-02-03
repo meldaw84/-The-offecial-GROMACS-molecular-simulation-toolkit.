@@ -80,6 +80,11 @@
 namespace gmx
 {
 
+static FreeEnergyPerturbationCouplingType lambdaComponentFromAwhDim(int awhDim)
+{
+    return awhDim == 0 ? FreeEnergyPerturbationCouplingType::Vdw : FreeEnergyPerturbationCouplingType::Coul;
+}
+    
 void BiasState::getPmf(gmx::ArrayRef<float> pmf) const
 {
     GMX_ASSERT(pmf.size() == points_.size(), "pmf should have the size of the bias grid");
@@ -197,8 +202,7 @@ double biasedLogWeightFromPoint(ArrayRef<const DimParams>  dimParams,
         {
             if (dimParams[d].isFepLambdaDimension())
             {
-#warning "fix this index"
-                const int lambdaIndex = 0;
+                const int lambdaIndex = static_cast<int>(lambdaComponentFromAwhDim(d));
                 /* If this is not a sampling step or if this function is called from
                  * calcConvolvedBias(), when writing energy subblocks, neighborLambdaEnergies will
                  * be empty. No convolution is required along the lambda dimension. */
@@ -206,6 +210,17 @@ double biasedLogWeightFromPoint(ArrayRef<const DimParams>  dimParams,
                 {
                     const int pointLambdaIndex     = grid.point(pointIndex).coordValue[d];
                     const int gridpointLambdaIndex = grid.point(gridpointIndex).coordValue[d];
+#warning "remove"
+#if 0
+                    printf("pi %2d lamda ind %d diff %d - %d %6.1f  %5.2f\n",
+                           pointIndex,
+                           lambdaIndex, pointLambdaIndex, gridpointLambdaIndex,
+                           neighborLambdaEnergies[lambdaIndex][pointLambdaIndex]
+                           - neighborLambdaEnergies[lambdaIndex][gridpointLambdaIndex],
+                        -dimParams[d].fepDimParams().beta
+                                 * (neighborLambdaEnergies[lambdaIndex][pointLambdaIndex]
+                                    - neighborLambdaEnergies[lambdaIndex][gridpointLambdaIndex]));
+#endif
                     logWeight -= dimParams[d].fepDimParams().beta
                                  * (neighborLambdaEnergies[lambdaIndex][pointLambdaIndex]
                                     - neighborLambdaEnergies[lambdaIndex][gridpointLambdaIndex]);
@@ -221,6 +236,8 @@ double biasedLogWeightFromPoint(ArrayRef<const DimParams>  dimParams,
     return logWeight;
 }
 
+#warning "fix"
+#if 0
 /*! \brief
  * Calculates the marginal distribution (marginal probability) for each value along
  * a free energy lambda axis.
@@ -252,6 +269,7 @@ std::vector<double> calculateFELambdaMarginalDistribution(const BiasGrid&       
     }
     return lambdaMarginalDistribution;
 }
+#endif
 
 } // namespace
 
@@ -445,9 +463,7 @@ double BiasState::calcUmbrellaForceAndPotential(ArrayRef<const DimParams> dimPar
     {
         if (dimParams[d].isFepLambdaDimension())
         {
-            /* The force we set here is only used for computing the friction metric */
-#warning "fix this index"
-            const int lambdaIndex = 0;
+            const int lambdaIndex = static_cast<int>(lambdaComponentFromAwhDim(d));
             if (!neighborLambdaDhdl.empty())
             {
                 const int coordpointLambdaIndex = grid.point(point).coordValue[d];
@@ -512,9 +528,24 @@ double BiasState::moveUmbrella(ArrayRef<const DimParams> dimParams,
                                bool                      onlySampleUmbrellaGridpoint)
 {
     /* Generate and set a new coordinate reference value */
-    coordState_.sampleUmbrellaGridpoint(
+    //const awh_dvec& oldPoint = grid.point(coordState_.umbrellaGridpoint()).coordValue;
+
+    //bool validPoint;
+    //do
+    {
+        coordState_.sampleUmbrellaGridpoint(
             grid, coordState_.gridpointIndex(), probWeightNeighbor, step, seed, indexSeed);
 
+        //const awh_dvec& point = grid.point(coordState_.umbrellaGridpoint()).coordValue;
+
+        //validPoint = (point[1] <= point[0] && std::abs(point[0] - point[1]) <= 2 && std::abs(point[1] - oldPoint[1]) <= 3);
+        //validPoint = !(point[1] == 10 && point[0] < 10);
+
+#warning "fix for multiple biases"
+        indexSeed += grid.numDimensions();
+    }
+    //while (!validPoint);
+   
     if (onlySampleUmbrellaGridpoint)
     {
         return 0;
@@ -1257,6 +1288,9 @@ double BiasState::updateProbabilityWeightsAndConvolvedBias(ArrayRef<const DimPar
                                                         coordState_.coordValue(),
                                                         neighborLambdaEnergies,
                                                         coordState_.gridpointIndex());
+#if 0
+                printf("w[%3d] = %f\n", n, (*weight)[n]);
+#endif
             }
             else
             {
@@ -1283,7 +1317,9 @@ double BiasState::updateProbabilityWeightsAndConvolvedBias(ArrayRef<const DimPar
     if (grid.hasLambdaAxis())
     {
         /* If there is only one axis the bias will not be convolved in any dimension. */
-        if (grid.axis().size() == 1)
+#warning "fix"
+        //if (grid.axis().size() == 1)
+        if (grid.axis().size() == 1 || grid.axis().size() == 2)
         {
             weightSum = gmx::exp(points_[coordState_.gridpointIndex()].bias());
         }
@@ -1410,13 +1446,16 @@ void BiasState::sampleCoordAndPmf(const std::vector<DimParams>& dimParams,
      */
 
     const int                gridPointIndex  = coordState_.gridpointIndex();
-    const std::optional<int> lambdaAxisIndex = grid.lambdaAxisIndex();
+    //const std::optional<int> lambdaAxisIndex = grid.lambdaAxisIndex();
+    const bool gridHasLambdaAxis = grid.hasLambdaAxis();
 
     /* Update the PMF of points along a lambda axis with their bias. */
-    if (lambdaAxisIndex)
+//    if (lambdaAxisIndex)
+    if (gridHasLambdaAxis)
     {
         const std::vector<int>& neighbors = grid.point(gridPointIndex).neighbor;
 
+#if 0
         std::vector<double> lambdaMarginalDistribution =
                 calculateFELambdaMarginalDistribution(grid, neighbors, probWeightNeighbor);
 
@@ -1424,10 +1463,13 @@ void BiasState::sampleCoordAndPmf(const std::vector<DimParams>& dimParams,
                                            coordState_.coordValue()[1],
                                            coordState_.coordValue()[2],
                                            coordState_.coordValue()[3] };
+#endif
         for (size_t i = 0; i < neighbors.size(); i++)
         {
             const int neighbor = neighbors[i];
             double    bias;
+#warning "Implement general solution"
+#if 0
             if (pointsAlongLambdaAxis(grid, gridPointIndex, neighbor))
             {
                 const double neighborLambda = grid.point(neighbor).coordValue[lambdaAxisIndex.value()];
@@ -1441,7 +1483,8 @@ void BiasState::sampleCoordAndPmf(const std::vector<DimParams>& dimParams,
                     bias = calcConvolvedBias(dimParams, grid, coordValueAlongLambda);
                 }
 
-                const double probWeight = lambdaMarginalDistribution[neighborLambda];
+                //const double probWeight = lambdaMarginalDistribution[neighborLambda];
+                
                 const double weightedBias = bias - std::log(std::max(probWeight, GMX_DOUBLE_MIN)); // avoid log(0)
 
                 if (neighbor == gridPointIndex && grid.covers(coordState_.coordValue()))
@@ -1453,6 +1496,37 @@ void BiasState::sampleCoordAndPmf(const std::vector<DimParams>& dimParams,
                     points_[neighbor].updatePmfUnvisited(weightedBias);
                 }
             }
+#else
+#warning "fix"
+            if (neighbor == gridPointIndex)
+            {
+                bias = convolvedBias;
+            }
+            else
+            {
+                bias = calcConvolvedBias(dimParams, grid, grid.point(neighbor).coordValue);
+            }
+
+            //const double probWeight = lambdaMarginalDistribution[neighborLambda];
+            const double probWeight = probWeightNeighbor[neighbor];
+            const double weightedBias = bias - std::log(std::max(probWeight, GMX_DOUBLE_MIN)); // avoid log(0)
+#if 0
+            printf("%3.1f %3.1f bias %6.3f pw %6.4f wb %5.2f\n",
+                   grid.point(neighbor).coordValue[0],
+                   grid.point(neighbor).coordValue[1],
+                   bias,
+                   probWeight,
+                   weightedBias);
+#endif
+            if (neighbor == gridPointIndex && grid.covers(coordState_.coordValue()))
+            {
+                points_[neighbor].samplePmf(weightedBias);
+            }
+            else
+            {
+                points_[neighbor].updatePmfUnvisited(weightedBias);
+            }
+#endif
         }
     }
     else

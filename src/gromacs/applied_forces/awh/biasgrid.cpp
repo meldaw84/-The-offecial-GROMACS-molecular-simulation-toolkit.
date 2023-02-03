@@ -581,6 +581,8 @@ bool BiasGrid::covers(const awh_dvec value) const
     return valueIsInGrid(value, axis());
 }
 
+#warning "fix"
+#if 0
 std::optional<int> BiasGrid::lambdaAxisIndex() const
 {
     for (size_t i = 0; i < axis_.size(); i++)
@@ -592,6 +594,7 @@ std::optional<int> BiasGrid::lambdaAxisIndex() const
     }
     return {};
 }
+#endif
 
 int BiasGrid::numFepLambdaStates() const
 {

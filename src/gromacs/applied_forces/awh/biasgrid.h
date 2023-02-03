@@ -258,11 +258,14 @@ public:
         });
     }
 
+#warning "fix"
+#if 0
     /*! \brief
      * Returns the index of a free energy lambda state axis (there can be
      * no more than one) if there is one.
      */
     std::optional<int> lambdaAxisIndex() const;
+#endif
 
     /*! \brief
      * Returns the number of free energy lambda states in the grid (the number

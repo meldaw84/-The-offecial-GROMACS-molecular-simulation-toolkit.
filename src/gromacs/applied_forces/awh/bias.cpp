@@ -144,6 +144,18 @@ gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         
 
     if (params_.convolveForce || moveUmbrella || isSampleCoordStep)
     {
+#warning "remove"
+#if 0
+        for (const auto& refs : foreignEnergyRefs->energies)
+        {
+            for (double val : refs)
+            {
+                printf(" %5.1f", val);
+            }
+            printf("\n");
+        }
+#endif
+        
         if (params_.skipUpdates())
         {
             state_.doSkippedUpdatesInNeighborhood(params_, grid_);
