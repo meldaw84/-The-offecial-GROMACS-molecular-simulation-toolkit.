@@ -67,7 +67,6 @@ from CMake or later during build.
 
 :issue:`4574`
 
-
 "Cannot find a working standard library" error with ROCm Clang
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -88,3 +87,24 @@ on Gen9 Intel integrated GPUs, especially since offloading is unlikely to offer 
 performance advantage on such devices.
 
 :issue:`4686`
+
+Expanded ensemble does not checkpoint correctly
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In the legacy simulator, because of shortcomings in the
+implementation, successful expanded-ensemble MC steps that occured on
+checkpoint steps were not recorded in the checkpoint. If that
+checkpoint was used for a restart, then it would not necessarily
+behave correctly and reproducibly afterwards. So checkpointing of
+expanded-ensemble simulations is disabled for the legacy simulator.
+
+Checkpointing of expanded ensemble in the modular simulator works
+correctly.
+
+To work around the issue, either avoid ``-update gpu`` (so that it
+uses the modular simulator path which does not have
+the bug), or use an older version of |Gromacs|
+(which does do the buggy checkpointing), or refrain from
+restarting from checkpoints in the affected case.
+
+:issue:`4629`
