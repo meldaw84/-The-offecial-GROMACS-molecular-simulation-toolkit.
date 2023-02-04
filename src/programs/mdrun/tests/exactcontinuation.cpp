@@ -380,8 +380,7 @@ TEST_P(MdrunNoAppendContinuationIsExact, WithinTolerances)
         // This combination is not implemented in either legacy or modular simulator
         return;
     }
-    if (additionalMdpParameters == MdpParameterDatabase::ExpandedEnsemble
-        && isModularSimulatorExplicitlyDisabled)
+    if (additionalMdpParameters == MdpParameterDatabase::ExpandedEnsemble && isModularSimulatorExplicitlyDisabled)
     {
         // Checkpointing is disabled in the legacy simulator (#4629),
         // so exact continuation is impossible,
