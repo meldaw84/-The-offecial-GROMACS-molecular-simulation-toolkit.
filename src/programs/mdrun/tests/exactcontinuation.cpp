@@ -381,7 +381,7 @@ TEST_P(MdrunNoAppendContinuationIsExact, WithinTolerances)
         return;
     }
     if (additionalMdpParameters == MdpParameterDatabase::ExpandedEnsemble
-        && (isGpuUpdateRequested || isModularSimulatorExplicitlyDisabled))
+        && isModularSimulatorExplicitlyDisabled)
     {
         // Checkpointing is disabled in the legacy simulator (#4629),
         // so exact continuation is impossible,
