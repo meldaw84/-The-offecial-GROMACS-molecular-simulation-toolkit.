@@ -231,6 +231,14 @@ void FreeEnergyPerturbationData::Element::restoreCheckpointState(std::optional<R
         dd_bcast(cr->dd,
                  ssize(freeEnergyPerturbationData_->lambda_) * int(sizeof(real)),
                  freeEnergyPerturbationData_->lambda_.data());
+        int externalLambdaSetting = externalFepStateSetting_.has_value();
+        dd_bcast(cr->dd, sizeof(int), &externalLambdaSetting);
+        if (!MASTER(cr) && externalLambdaSetting)
+        {
+            // Master rank constructed this while reading the
+            // checkpoint, but other ranks have to do this now.
+            externalFepStateSetting_ = FepStateSetting();
+        }
         if (externalFepStateSetting_.has_value())
         {
             dd_bcast(cr->dd,
