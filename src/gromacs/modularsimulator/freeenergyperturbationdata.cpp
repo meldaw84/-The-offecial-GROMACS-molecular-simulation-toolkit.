@@ -180,7 +180,6 @@ void FreeEnergyPerturbationData::Element::doCheckpointData(CheckpointData<operat
         // We can read the same key as above - we can only write it once, though!
         fileVersion = checkpointVersion(
                 checkpointData, "FreeEnergyPerturbationData version", c_currentVersion);
-        restoredFromCheckpoint_ = true;
     }
 
     if (fileVersion >= CheckpointVersion::AddedExternalLambdaSetting)
@@ -249,6 +248,7 @@ void FreeEnergyPerturbationData::Element::restoreCheckpointState(std::optional<R
                      &externalFepStateSetting_->newFepStateStep);
         }
     }
+    restoredFromCheckpoint_ = true;
 }
 
 const std::string& FreeEnergyPerturbationData::Element::clientID()
