@@ -664,7 +664,7 @@ static void combine_bounding_box_pairs(const Grid&                      grid,
         const int ciFirst = grid.firstCellInColumn(i);
         const int cjFirst = ciFirst >> log2Factor;
         const int nci = (grid.numAtomsInColumn(i) + iClusterSize - 1) >> logIClusterSize;
-        const int ncj = nci >> log2Factor;
+        const int ncj = (nci + factor - 1) >> log2Factor;
         for (int cj = cjFirst; cj < cjFirst + ncj; cj++)
         {
             const int ciStart = factor * cj;
