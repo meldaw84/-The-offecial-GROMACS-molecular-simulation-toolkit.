@@ -82,6 +82,11 @@ void PairlistSet::dispatchPruneKernel(const nbnxn_atomdata_t* nbat, gmx::ArrayRe
                 nbnxmSimdPruneKernel<KernelLayout::r2xMM>(nbl, nbat, shift_vec, rlistInner);
                 break;
 #endif
+#if GMX_HAVE_NBNXM_SIMD_2XM
+            case ClusterDistanceKernelType::CpuSimd_2xM:
+                nbnxmSimdPruneKernel<KernelLayout::r2xM>(nbl, nbat, shift_vec, rlistInner);
+                break;
+#endif
 #if GMX_HAVE_NBNXM_SIMD_8XM
             case ClusterDistanceKernelType::CpuSimd_8xM:
                 nbnxmSimdPruneKernel<KernelLayout::r8xM>(nbl, nbat, shift_vec, rlistInner);

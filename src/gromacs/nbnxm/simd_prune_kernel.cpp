@@ -37,6 +37,7 @@
 #include "simd_prune_kernel.h"
 
 #include "gromacs/nbnxm/atomdata.h"
+#include "gromacs/nbnxm/nbnxm_geometry.h"
 #include "gromacs/nbnxm/nbnxm_simd.h"
 #include "gromacs/nbnxm/pairlist.h"
 #include "gromacs/simd/simd.h"
@@ -112,7 +113,10 @@ void nbnxmSimdPruneKernel(NbnxnPairlistCpu*              nbl,
         }
         else
         {
-            scix = (ci >> 1) * STRIDE * DIM + (ci & 1) * (STRIDE >> 1);
+            constexpr int clusterRatio    = jClusterSize / iClusterSize;
+            constexpr int logClusterRatio = log2<clusterRatio>();
+
+            scix = (ci >> logClusterRatio) * STRIDE * DIM + (ci & (clusterRatio - 1)) * (STRIDE >> logClusterRatio);
         }
 
         /* Load i atom data */
@@ -222,6 +226,13 @@ template void nbnxmSimdPruneKernel<KernelLayout::r2xMM>(NbnxnPairlistCpu*       
 
 #if GMX_HAVE_NBNXM_SIMD_4XM
 template void nbnxmSimdPruneKernel<KernelLayout::r4xM>(NbnxnPairlistCpu*              nbl,
+                                                       const nbnxn_atomdata_t*        nbat,
+                                                       gmx::ArrayRef<const gmx::RVec> shiftvec,
+                                                       real                           rlistInner);
+#endif
+
+#if GMX_HAVE_NBNXM_SIMD_2XM
+template void nbnxmSimdPruneKernel<KernelLayout::r2xM>(NbnxnPairlistCpu*              nbl,
                                                        const nbnxn_atomdata_t*        nbat,
                                                        gmx::ArrayRef<const gmx::RVec> shiftvec,
                                                        real                           rlistInner);

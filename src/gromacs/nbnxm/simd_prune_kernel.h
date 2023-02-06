@@ -77,6 +77,13 @@ extern template void nbnxmSimdPruneKernel<KernelLayout::r4xM>(NbnxnPairlistCpu* 
                                                               real rlistInner);
 #endif
 
+#if GMX_HAVE_NBNXM_SIMD_2XM
+extern template void nbnxmSimdPruneKernel<KernelLayout::r2xM>(NbnxnPairlistCpu*              nbl,
+                                                              const nbnxn_atomdata_t*        nbat,
+                                                              gmx::ArrayRef<const gmx::RVec> shiftvec,
+                                                              real rlistInner);
+#endif
+
 #if GMX_HAVE_NBNXM_SIMD_8XM
 extern template void nbnxmSimdPruneKernel<KernelLayout::r8xM>(NbnxnPairlistCpu*              nbl,
                                                               const nbnxn_atomdata_t*        nbat,
