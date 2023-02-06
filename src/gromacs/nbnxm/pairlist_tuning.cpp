@@ -522,7 +522,8 @@ void setupDynamicPairlistPruning(const gmx::MDLogger&       mdlog,
     /* Currently emulation mode does not support dual pair-lists */
     const bool useGpuList = sc_isGpuPairListType[listParams->pairlistType];
 
-    if (supportsDynamicPairlistGenerationInterval(inputrec) && getenv("GMX_DISABLE_DYNAMICPRUNING") == nullptr)
+#warning "Disabled dynamic pruning until implmented for 2x32"
+    if (supportsDynamicPairlistGenerationInterval(inputrec) && getenv("GMX_DISABLE_DYNAMICPRUNING") == nullptr && !(GMX_SIMD && GMX_SIMD_REAL_WIDTH == 32))
     {
         /* Note that nstlistPrune can have any value independently of nstlist.
          * Actually applying rolling pruning is only useful when
