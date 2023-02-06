@@ -75,6 +75,7 @@ typedef struct
     int dummy[16];
 } gmx_cache_protect_t;
 
+#if 0
 /*! \brief This is the actual cluster-pair list j-entry.
  *
  * cj is the j-cluster.
@@ -90,13 +91,14 @@ struct nbnxn_cj_t
     //! The exclusion (interaction) bits
     unsigned int excl;
 };
+#endif
 
 //! Simple j-cluster list
 class JClusterList
 {
 public:
-    typedef uint32_t IMask;
-    // typedef uint64_t IMask;
+    // typedef uint32_t IMask;
+    typedef uint64_t IMask;
 
     //! Return the j-cluster index for \c index from the pack list
     inline int cj(int index) const { return jCluster_[index]; }

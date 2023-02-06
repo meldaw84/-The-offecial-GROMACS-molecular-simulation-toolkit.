@@ -160,7 +160,7 @@ loadSimdPairInteractionMasks(const JClusterList::IMask iMask, SimdBitMask* filte
 
     std::array<SimdBool, iClusterSize> interactionMasksV;
 
-    constexpr int iGroupSplit = (kernelLayout == KernelLayout::r8xM && GMX_SIMD_REAL_WIDTH == 8 ? 2 : 1);
+    constexpr int iGroupSplit = (iClusterSize * GMX_SIMD_REAL_WIDTH == 64 ? 2 : 1);
     constexpr int iGroupSize = iClusterSize / iGroupSplit;
 
     for (int part = 0; part < iGroupSplit; part++)

@@ -103,8 +103,7 @@ constexpr bool c_useSimdGpuClusterPairDistance = false;
 constexpr bool c_pbcShiftBackward = true;
 
 // The interaction mask with all bits on;
-constexpr JClusterList::IMask c_interactionMaskAll = NBNXN_INTERACTION_MASK_ALL;
-// constexpr JClusterList::IMask c_interactionMaskAll = NBNXN_INTERACTION_MASK64_ALL;
+constexpr JClusterList::IMask c_interactionMaskAll = (sizeof(JClusterList::IMask) == 4 ? NBNXN_INTERACTION_MASK_ALL : NBNXN_INTERACTION_MASK64_ALL);
 
 #if GMX_SIMD
 
@@ -1004,7 +1003,7 @@ std::array<T, jClusterSize / iClusterSize> diagonalMaskJLargerI()
         for (int i = 0; i < iClusterSize; i++)
         {
             //for (int j = maskIndex * iClusterSize + i + 1; j < jClusterSize; j++)
-            for (int j = 0; j < maskIndex * iClusterSize + i; j++)
+            for (int j = maskIndex * iClusterSize + i + 1; j < jClusterSize; j++)
             {
                 mask[maskIndex] |= (T(1) << (i * jClusterSize + j));
             }
@@ -1038,7 +1037,7 @@ gmx_unused static uint32_t get_imask_simd_4x8(gmx_bool rdiag, int ci, int cj)
 {
     static const auto sc_diagonalMask = diagonalMaskJLargerI<uint32_t, 4, 8>();
 
-    const int diff = cj - ci * 2;
+    const int diff = ci - cj * 2;
 
     return (rdiag && (diff == 0 || diff == 1) ? sc_diagonalMask[diff]
             : NBNXN_INTERACTION_MASK_ALL);
@@ -1049,9 +1048,9 @@ gmx_unused static uint64_t get_imask_simd_2x32(gmx_bool rdiag, int ci, int cj)
 {
     static const auto sc_diagonalMask = diagonalMaskJLargerI<uint64_t, 2, 32>();
 
-    const int diff = cj - ci * 16;
+    const int diff = ci - cj * 16;
 
-    return (rdiag && (diff >= 0 || diff < 16) ? sc_diagonalMask[diff]
+    return (rdiag && (diff >= 0 && diff < 16) ? sc_diagonalMask[diff]
             : NBNXN_INTERACTION_MASK64_ALL);
 }
 
@@ -2778,7 +2777,7 @@ static void print_nblist_ci_cj(FILE* fp, const NbnxnPairlistCpu& nbl)
 
         for (int j = ciEntry.cj_ind_start; j < ciEntry.cj_ind_end; j++)
         {
-            fprintf(fp, "  cj %5d  imask %llx\n", nbl.cj.cj(j), uint64_t(nbl.cj.excl(j)));
+            fprintf(fp, "  cj %5d  imask %lx\n", nbl.cj.cj(j), uint64_t(nbl.cj.excl(j)));
         }
     }
 }
