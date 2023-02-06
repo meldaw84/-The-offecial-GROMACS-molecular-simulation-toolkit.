@@ -39,8 +39,7 @@ If an option is not specified at all, a default value is used; in the case of
 optional files, the default might be not to use that file (see below).
 
 All |Gromacs| command options start with a single dash, whether they are
-single- or multiple-letter options.  However, two dashes are also recognized
-(starting from 5.1).
+single- or multiple-letter options.  However, two dashes are also recognized.
 
 In addition to command-specific options, some options are handled by the
 :command:`gmx` wrapper, and can be specified for any command.  See

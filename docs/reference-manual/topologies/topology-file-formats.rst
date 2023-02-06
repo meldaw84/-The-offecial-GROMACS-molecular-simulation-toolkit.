@@ -508,11 +508,10 @@ in use.
    electrostatic 1-4 interactions, default 1
 
 -  :math:`N` is the power for the repulsion term in a 6-\ :math:`N`
-   potential (with nonbonded-type Lennard-Jones only), starting with
-   |Gromacs| version 4.5, :ref:`grompp <gmx mdrun>` also reads and applies
+   potential (with nonbonded-type Lennard-Jones only),
+   :ref:`grompp <gmx mdrun>` also reads and applies
    :math:`N`, for values not equal to 12 tabulated interaction functions
-   are used (in older version you would have to use user tabulated
-   interactions).
+   are used.
 
 **Note** that ``gen-pairs``, ``fudgeLJ``,
 ``fudgeQQ``, and :math:`N` are optional.
@@ -754,7 +753,7 @@ either on the line or in the bonded types, :ref:`grompp <gmx grompp>` uses the A
 parameters and issues a warning. For free energy calculations, all or no
 parameters for topology B (:math:`\lambda = 1`) should be added on the
 same line, after the normal parameters, in the same order as the normal
-parameters. From |Gromacs| 4.6 onward, if :math:`\lambda` is treated as a
+parameters. If :math:`\lambda` is treated as a
 vector, then the ``bonded-lambdas`` component controls all bonded terms that
 are not explicitly labeled as restraints. Restrain terms are controlled
 by the ``restraint-lambdas`` component.

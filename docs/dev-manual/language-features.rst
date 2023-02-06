@@ -115,7 +115,7 @@ a release.
   prefer to write the code such that no assertion is necessary).
 * Prefer ``GMX_ASSERT()`` and ``GMX_RELEASE_ASSERT()`` to naked
   ``assert()`` because the former permit you to add descriptive text.
-* Use gmx::Mutex rather than pthreads, std or raw thread-MPI mutexes.
+* Use ``std::mutex`` rather than pthreads or raw thread-MPI mutexes.
 * Use proper enums for variable whose type can only contain one of a
   limited set of values. C++ is much better than C in catching errors
   in such code. Ideally, all enums should be typed enums, please
@@ -187,7 +187,7 @@ errors, ie. use exceptions.
   basic or nothrow guarantee to make this feasible.
 * Use std (or custom) containers wherever possible.
 * Use smart pointers for memory management. By default, use
-  ``std::unique_ptr`` and ``gmx::unique_cptr`` in assocation with any
+  ``std::unique_ptr`` and ``gmx::unique_cptr`` in association with any
   necessary raw ``new`` or ``snew`` calls. ``std::shared_ptr`` can be
   used wherever responsibility for lifetime must be shared.
   Never use ``malloc``.

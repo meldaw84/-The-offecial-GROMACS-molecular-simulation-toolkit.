@@ -551,7 +551,7 @@ of processors. So, if :ref:`grompp <gmx grompp>` warned you about a large charge
 attention and reconsider its size. :ref:`mdrun <gmx mdrun>` prints a breakdown of how it
 computed this minimum size in the :ref:`log` file, so you can perhaps find a cause there.
 
-If you didn't think you were running a parallel calculation, be aware that from 4.5, |Gromacs|
+If you didn't think you were running a parallel calculation, be aware that |Gromacs|
 uses thread-based parallelism by default. To prevent this, give :ref:`mdrun <gmx mdrun>`
 the ``-ntmpi 1`` command line option. Otherwise, you might be using an MPI-enabled |Gromacs| and
 not be aware of the fact.

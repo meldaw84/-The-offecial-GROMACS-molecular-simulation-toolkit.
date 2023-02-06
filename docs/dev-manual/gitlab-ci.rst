@@ -197,12 +197,12 @@ Default values are available from the ``.variables:default`` definition in
 Many of the mix-in / template jobs provide additional or overriding definitions.
 Other variables may be set when making final job definitions.
 
-Variables may control the behvior of GitLab-CI (those beginning with ``CI_``),
+Variables may control the behavior of GitLab-CI (those beginning with ``CI_``),
 GitLab Runner and supporting infrastructure, or may be used by job definitions,
 or passed along to the environment of executed commands.
 
 *variables* keys beginning with ``KUBERNETES_`` relate to the GitLab Runner
-`Kubernets executor <https://docs.gitlab.com/runner/executors/kubernetes.html#the-kubernetes-executor>`__
+`Kubernetes executor <https://docs.gitlab.com/runner/executors/kubernetes.html#the-kubernetes-executor>`__
 
 Other important variable keys are as follows.
 

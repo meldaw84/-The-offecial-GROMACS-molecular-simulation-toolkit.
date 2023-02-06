@@ -31,7 +31,7 @@ both parameters that are turned on in the respective state.
 
 Once the end states are defined, then the path between the end states
 has to be defined. This path is defined solely in the .mdp file.
-Starting in 4.6, :math:`\lambda` is a vector of components, with
+:math:`\lambda` is a vector of components, with
 Coulombic, van der Waals, bonded, restraint, and mass components all
 able to be adjusted independently. This makes it possible to turn off
 the Coulombic term linearly, and then the van der Waals using soft core,
