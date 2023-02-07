@@ -399,6 +399,19 @@ else()
         message(WARNING "Cannot compile SYCL with per-kernel device-code splitting. Simulations will work, but the first step will be much slower than it needs to be. Try a different compiler.")
     endif()
 
+    # Add flag to force inlining, particularly impactful on NVIDIA
+    # Threshold value chosen to be "infinitely" large
+    set(SYCL_GPU_INLINE_THRESHOLD_CXX_FLAGS "-fgpu-inline-threshold=99999")
+    gmx_check_source_compiles_with_flags(
+        "${SAMPLE_SYCL_SOURCE}"
+        "${SYCL_TOOLCHAIN_CXX_FLAGS} ${SYCL_GPU_INLINE_THRESHOLD_CXX_FLAGS}"
+        "CXX"
+        SYCL_GPU_INLINE_THRESHOLD_CXX_FLAGS_RESULT
+    )
+    if (SYCL_GPU_INLINE_THRESHOLD_CXX_FLAGS_RESULT)
+        set(SYCL_TOOLCHAIN_CXX_FLAGS "${SYCL_TOOLCHAIN_CXX_FLAGS} ${SYCL_GPU_INLINE_THRESHOLD_CXX_FLAGS}")
+    endif()
+
     # Add fast-math flag where available
     gmx_find_flag_for_source(
         SYCL_FAST_MATH_CXX_FLAGS_RESULT
