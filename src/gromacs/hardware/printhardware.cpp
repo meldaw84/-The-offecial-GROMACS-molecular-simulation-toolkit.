@@ -253,7 +253,7 @@ static std::string detected_hardware_string(const gmx_hw_info_t* hwinfo, bool bF
         if (avx512fmaunits > 0)
         {
             s += gmx::formatString(" %d", avx512fmaunits);
-            if (avx512fmaunits == 1)
+            if (avx512fmaunits == 1 && cpuInfo.vendor() != CpuInfo::Vendor::AMD)
             {
                 s += gmx::formatString(" (AVX2 is faster w/o 2 AVX-512 FMA units)");
             }
@@ -413,10 +413,6 @@ void gmx_print_detected_hardware(FILE*                fplog,
             }
         }
     }
-
-    // Do not spam stderr with all our internal information unless
-    // there was something that actually went wrong; general information
-    // belongs in the logfile.
 
     /* Check the compiled SIMD instruction set against that of the node
      * with the lowest SIMD level support (skip if SIMD detection did not work)

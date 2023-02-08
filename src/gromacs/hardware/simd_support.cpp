@@ -125,6 +125,10 @@ SimdType simdSuggested(const CpuInfo& c)
                 break;
             case CpuInfo::Vendor::Amd:
             case CpuInfo::Vendor::Hygon:
+                if (c.feature(CpuInfo::Feature::X86_Avx512F))
+                {
+                    suggested = SimdType::X86_Avx512;
+                }
                 if (c.feature(CpuInfo::Feature::X86_Avx2))
                 {
                     // AMD Zen supports 256-bit AVX2, but Zen1 performs better with 128-bit
