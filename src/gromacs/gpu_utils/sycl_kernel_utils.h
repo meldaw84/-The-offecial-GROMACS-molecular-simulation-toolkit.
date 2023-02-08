@@ -59,7 +59,7 @@ static constexpr unsigned int c_cudaFullWarpMask = 0xffffffff;
 
 #if GMX_SYCL_HIPSYCL && HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP
 HIPSYCL_UNIVERSAL_TARGET
-static inline void atomicAddOptimizedAmd(float * ptr, const float delta)
+static inline void atomicAddOptimizedAmd(float* ptr, const float delta)
 {
 #    if defined(__gfx908__) // Special function for AMD MI100
 #        pragma clang diagnostic push
