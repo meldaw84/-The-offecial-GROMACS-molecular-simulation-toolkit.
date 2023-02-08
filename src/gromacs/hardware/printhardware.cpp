@@ -253,7 +253,7 @@ static std::string detected_hardware_string(const gmx_hw_info_t* hwinfo, bool bF
         if (avx512fmaunits > 0)
         {
             s += gmx::formatString(" %d", avx512fmaunits);
-            if (avx512fmaunits == 1 && cpuInfo.vendor() != CpuInfo::Vendor::AMD)
+            if (avx512fmaunits == 1 && cpuInfo.vendor() != gmx::CpuInfo::Vendor::Amd)
             {
                 s += gmx::formatString(" (AVX2 is faster w/o 2 AVX-512 FMA units)");
             }
