@@ -968,12 +968,12 @@ static void setSelfAndNewtonExclusionsGpu(NbnxnPairlistGpu* nbl,
     }
 }
 
-template<int iClusterSize, int jClusterSize>
-std::array<uint32_t, iClusterSize / jClusterSize> diagonalMaskJSmallerI()
+template<typename T, int iClusterSize, int jClusterSize>
+std::array<T, iClusterSize / jClusterSize> diagonalMaskJSmallerI()
 {
     static_assert(jClusterSize <= iClusterSize);
 
-    std::array<uint32_t, iClusterSize / jClusterSize> mask;
+    std::array<T, iClusterSize / jClusterSize> mask;
 
     for (int maskIndex = 0; maskIndex < iClusterSize / jClusterSize; maskIndex++)
     {
@@ -982,7 +982,7 @@ std::array<uint32_t, iClusterSize / jClusterSize> diagonalMaskJSmallerI()
         {
            for (int j = maskIndex * jClusterSize + i + 1; j < jClusterSize; j++)
            {
-               mask[maskIndex] |= (uint32_t(1) << (i * jClusterSize + j));
+               mask[maskIndex] |= (T(1) << (i * jClusterSize + j));
            } 
         }
     }
@@ -1013,89 +1013,49 @@ std::array<T, jClusterSize / iClusterSize> diagonalMaskJLargerI()
     return mask;
 }
 
-/* Returns a diagonal or off-diagonal interaction mask for plain C lists */
-static uint32_t get_imask_4x4(gmx_bool rdiag, int ci, int cj)
+// Returns a diagonal or off-diagonal interaction mask for cluster pairs with #j == #i
+template<typename T, int iClusterSize, int jClusterSize>
+static std::enable_if_t<(jClusterSize == iClusterSize), T>
+getInteractionMask(const bool removeDiagonal, const int ci, const int cj)
 {
-    static const auto sc_diagonalMask = diagonalMaskJLargerI<uint32_t, 4, 4>();
+    static const std::array<T, 1> sc_diagonalMask = diagonalMaskJLargerI<T, iClusterSize, jClusterSize>();
 
-    return (rdiag && ci == cj ? sc_diagonalMask[0] : NBNXN_INTERACTION_MASK_ALL);
+    return (removeDiagonal && ci == cj ? sc_diagonalMask[0] : NBNXN_INTERACTION_MASK_ALL);
 }
 
-/* Returns a diagonal or off-diagonal interaction mask for 4x2 cluster pairs */
-gmx_unused static uint32_t get_imask_simd_4x2(gmx_bool rdiag, int ci, int cj)
+// Returns a diagonal or off-diagonal interaction mask for cluster pairs with #j < #i
+template<typename T, int iClusterSize, int jClusterSize>
+static std::enable_if_t<(jClusterSize < iClusterSize), T>
+getInteractionMask(const bool removeDiagonal, const int ci, const int cj)
 {
-    static const auto sc_diagonalMask = diagonalMaskJSmallerI<4, 2>();
+    static_assert(iClusterSize * jClusterSize <= sizeof(T) * 8);
 
-    const int diff = cj - ci * 2;
+    constexpr int clusterRatio = iClusterSize / jClusterSize;
 
-    return (rdiag && (diff == 0 || diff == 1) ? sc_diagonalMask[diff]
+    static const std::array<T, clusterRatio> sc_diagonalMask = diagonalMaskJSmallerI<T, iClusterSize, jClusterSize>();
+
+    const int diff = cj - ci * clusterRatio;
+
+    return (removeDiagonal && (diff >= 0 && diff < clusterRatio) ? sc_diagonalMask[diff]
             : NBNXN_INTERACTION_MASK_ALL);
 }
 
-/* Returns a diagonal or off-diagonal interaction mask for 4x8 cluster pairs */
-gmx_unused static uint32_t get_imask_simd_4x8(gmx_bool rdiag, int ci, int cj)
+// Returns a diagonal or off-diagonal interaction mask for cluster pairs with #j > #i
+template<typename T, int iClusterSize, int jClusterSize>
+static std::enable_if_t<(jClusterSize > iClusterSize), T>
+getInteractionMask(const bool removeDiagonal, const int ci, const int cj)
 {
-    static const auto sc_diagonalMask = diagonalMaskJLargerI<uint32_t, 4, 8>();
+    static_assert(iClusterSize * jClusterSize <= sizeof(T) * 8);
 
-    const int diff = ci - cj * 2;
+    constexpr int clusterRatio = jClusterSize / iClusterSize;
 
-    return (rdiag && (diff == 0 || diff == 1) ? sc_diagonalMask[diff]
-            : NBNXN_INTERACTION_MASK_ALL);
-}
+    static const std::array<T, clusterRatio> sc_diagonalMask = diagonalMaskJLargerI<T, iClusterSize, jClusterSize>();
 
-/* Returns a diagonal or off-diagonal interaction mask for 2x32 cluster pairs */
-gmx_unused static uint64_t get_imask_simd_2x32(gmx_bool rdiag, int ci, int cj)
-{
-    static const auto sc_diagonalMask = diagonalMaskJLargerI<uint64_t, 2, 32>();
+    const int diff = ci - cj * clusterRatio;
 
-    const int diff = ci - cj * 16;
-
-    return (rdiag && (diff >= 0 && diff < 16) ? sc_diagonalMask[diff]
+    return (removeDiagonal && (diff >= 0 && diff < clusterRatio) ? sc_diagonalMask[diff]
             : NBNXN_INTERACTION_MASK64_ALL);
 }
-
-/* Returns a diagonal or off-diagonal interaction mask for 8x4 cluster pairs */
-gmx_unused static uint32_t get_imask_simd_8x4(gmx_bool rdiag, int ci, int cj)
-{
-    static const auto sc_diagonalMask = diagonalMaskJSmallerI<8, 4>();
-
-    const int diff = cj - ci * 2;
-
-    return (rdiag && (diff == 0 || diff == 1) ? sc_diagonalMask[diff]
-            : NBNXN_INTERACTION_MASK_ALL);
-}
-
-/* Returns a diagonal or off-diagonal interaction mask for 8x8 cluster pairs */
-gmx_unused static uint64_t get_imask_simd_8x8(gmx_bool rdiag, int ci, int cj)
-{
-    static const auto sc_diagonalMask = diagonalMaskJLargerI<uint64_t, 8, 8>();
-    
-    const int diff = cj - ci * 2;
-
-    return (rdiag && (diff == 0 || diff == 1) ? sc_diagonalMask[diff]
-            : NBNXN_INTERACTION_MASK64_ALL);
-}
-
-#if GMX_SIMD
-#    if GMX_SIMD_REAL_WIDTH == 2
-#        define get_imask_simd_4xn get_imask_simd_4x2
-#    endif
-#    if GMX_SIMD_REAL_WIDTH == 4
-#        define get_imask_simd_4xn get_imask_4x4
-#        define get_imask_simd_8xn get_imask_simd_8x4
-#    endif
-#    if GMX_SIMD_REAL_WIDTH == 8
-#        define get_imask_simd_4xn get_imask_simd_4x8
-#        define get_imask_simd_2xnn get_imask_4x4
-#        define get_imask_simd_8xn get_imask_simd_8x8
-#    endif
-#    if GMX_SIMD_REAL_WIDTH == 16
-#        define get_imask_simd_2xnn get_imask_simd_4x8
-#    endif
-#    if GMX_SIMD_REAL_WIDTH == 32
-#        define get_imask_simd_2xn get_imask_simd_2x32
-#    endif
-#endif
 
 /* Plain C code for checking and adding cluster-pairs to the list.
  *
@@ -1218,7 +1178,7 @@ static void makeClusterListSimple(const Grid&              jGrid,
         {
             /* Store cj and the interaction mask */
             const int          cj   = jGrid.cellOffset() + jcluster;
-            const unsigned int excl = get_imask_4x4(excludeSubDiagonal, icluster, jcluster);
+            const unsigned int excl = getInteractionMask<JClusterList::IMask, 4, 4>(excludeSubDiagonal, icluster, jcluster);
             nbl->cj.push_back(cj, excl);
         }
         /* Increase the closing index in the i list */

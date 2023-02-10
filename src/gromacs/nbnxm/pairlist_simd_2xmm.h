@@ -100,6 +100,9 @@ static inline void makeClusterListSimd2xnn(const Grid&              jGrid,
                                            int* gmx_restrict        numDistanceChecks)
 {
     using namespace gmx;
+
+    constexpr int iClusterSize = c_iClusterSize(KernelLayout::r2xMM);
+
     const real* gmx_restrict        x_ci_simd = nbl->work->iClusterData.xSimd.data();
     const BoundingBox* gmx_restrict bb_ci     = nbl->work->iClusterData.bb.data();
 
@@ -236,8 +239,9 @@ static inline void makeClusterListSimd2xnn(const Grid&              jGrid,
         for (int jcluster = jclusterFirst; jcluster <= jclusterLast; jcluster++)
         {
             /* Store cj and the interaction mask */
-            const int          cj = cjFromCi<KernelLayout::r2xMM, 0>(jGrid.cellOffset()) + jcluster;
-            const unsigned int excl = get_imask_simd_2xnn(excludeSubDiagonal, icluster, jcluster);
+            const int          cj   = cjFromCi<KernelLayout::r2xMM, 0>(jGrid.cellOffset()) + jcluster;
+            const JClusterList::IMask excl =
+                getInteractionMask<JClusterList::IMask, iClusterSize, GMX_SIMD_REAL_WIDTH / 2>(excludeSubDiagonal, icluster, jcluster);
             nbl->cj.push_back(cj, excl);
         }
         /* Increase the closing index in the i list */

@@ -283,25 +283,8 @@ static inline void makeClusterListSimd4xn(const Grid&              jGrid,
         {
             /* Store cj and the interaction mask */
             const int           cj = cjFromCi<kernelLayout, 0>(jGrid.cellOffset()) + jcluster;
-            JClusterList::IMask excl;
-#if GMX_HAVE_NBNXM_SIMD_4XM
-            if constexpr (kernelLayout == KernelLayout::r4xM)
-            {
-                excl = get_imask_simd_4xn(excludeSubDiagonal, icluster, jcluster);
-            }
-#if GMX_HAVE_NBNXM_SIMD_8XM
-            else
-            {
-                excl = get_imask_simd_8xn(excludeSubDiagonal, icluster, jcluster);
-            }
-#endif
-#endif
-#if GMX_HAVE_NBNXM_SIMD_2XM
-            if constexpr (kernelLayout == KernelLayout::r2xM)
-            {
-                excl = get_imask_simd_2xn(excludeSubDiagonal, icluster, jcluster);
-            }
-#endif
+            const JClusterList::IMask excl =
+                getInteractionMask<JClusterList::IMask, iClusterSize, GMX_SIMD_REAL_WIDTH>(excludeSubDiagonal, icluster, jcluster);
 
             nbl->cj.push_back(cj, excl);
         }
