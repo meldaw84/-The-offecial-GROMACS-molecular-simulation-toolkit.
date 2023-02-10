@@ -74,7 +74,7 @@ appropriate value instead of ``xxx`` :
 * ``-DGMX_GPU=CUDA`` to build with NVIDIA CUDA support enabled.
 * ``-DGMX_GPU=OpenCL`` to build with OpenCL_ support enabled.
 * ``-DGMX_GPU=SYCL`` to build with SYCL_ support enabled (using `Intel oneAPI DPC++`_ by default).
-* ``-DGMX_SYCL_HIPSYCL=on`` to build with SYCL_ support using hipSYCL_ (requires ``-DGMX_GPU=SYCL``).
+* ``-DGMX_SYCL_HIPSYCL=on`` to build with SYCL_ support using `Open SYCL`_ (a.k.a hipSYCL), requires ``-DGMX_GPU=SYCL``.
 * ``-DGMX_SIMD=xxx`` to specify the level of `SIMD support`_ of the node on which |Gromacs| will run
 * ``-DGMX_DOUBLE=on`` to build |Gromacs| in double precision (slower, and not normally useful)
 * ``-DCMAKE_PREFIX_PATH=xxx`` to add a non-standard location for CMake to `search for libraries, headers or programs`_
@@ -217,7 +217,7 @@ in both aspects more versatile than the OpenCL_ backend
 However, SYCL_ does not fully replace OpenCL_ yet as a GPU portability backend since
 still lacks extensive testing.
 The current SYCL implementation can be compiled either with `Intel oneAPI DPC++`_
-compiler for Intel GPUs, or with hipSYCL_ compiler and ROCm runtime for
+compiler for Intel GPUs, or with `Open SYCL`_ (hipSYCL) compiler and ROCm runtime for
 AMD GPUs (GFX9, CDNA 1/2, and RDNA1/2/3). Using other devices supported by
 these compilers is possible, but not recommended.
 
@@ -456,7 +456,7 @@ vendor libraries.
 and performance improvements. VkFFT can be used with OpenCL and SYCL backends:
 
 * For SYCL builds, VkFFT provides a portable backend which currently can be used on AMD and
-  NVIDIA GPUs with hipSYCL; it generally outperforms rocFFT hence it is recommended as
+  NVIDIA GPUs with Open SYCL; it generally outperforms rocFFT hence it is recommended as
   default on AMD. Note that VkFFT is not supported with PME decomposition (which requires
   HeFFTe) since HeFFTe does not have a VkFFT backend.
 * For OpenCL builds, VkFFT provides an alternative to ClFFT. It is
@@ -895,17 +895,17 @@ implementations targeting different hardware platforms (similar to OpenCL_).
 |Gromacs| can be used with different SYCL compilers/runtimes and target the following hardware:
 
 * Intel GPUs using `Intel oneAPI DPC++`_ (both OpenCL and LevelZero backends),
-* AMD GPUs with hipSYCL_ (only discrete GPUs),
+* AMD GPUs with `Open SYCL`_ (a.k.a. hipSYCL_; only discrete GPUs),
 
 There is also experimental support for:
 
 * AMD GPUs with `Codeplay oneAPI for AMD GPUs <https://developer.codeplay.com/products/oneapi/amd/home/>`_,
-* NVIDIA GPUs with either hipSYCL_ or `Codeplay oneAPI for NVIDIA GPUs <https://developer.codeplay.com/products/oneapi/nvidia/home/>`_.
+* NVIDIA GPUs with either `Open SYCL`_ or `Codeplay oneAPI for NVIDIA GPUs <https://developer.codeplay.com/products/oneapi/nvidia/home/>`_.
 
 In table form:
 
 ==========  =============  =====================  =========================================================
-GPU vendor  hipSYCL_       `Intel oneAPI DPC++`_  `Codeplay oneAPI <https://developer.codeplay.com/products/oneapi/nvidia/home/>`_
+GPU vendor  `Open SYCL`_   `Intel oneAPI DPC++`_  `Codeplay oneAPI <https://developer.codeplay.com/products/oneapi/nvidia/home/>`_
 ==========  =============  =====================  =========================================================
 Intel       not supported  supported              experimental (MKL installation required)
 AMD         supported      not supported          experimental (no GPU FFT)
@@ -960,11 +960,12 @@ You might also consider using :ref:`double-batched FFT library <dbfft installati
 SYCL GPU acceleration for AMD GPUs
 """"""""""""""""""""""""""""""""""
 
-Using `hipSYCL 0.9.4 <https://github.com/illuhad/hipSYCL/releases/tag/v0.9.4>`_
-and ROCm 5.3-5.4 is recommended. We strongly recommend using the clang compiler bundled
-with ROCm for building both hipSYCL and |Gromacs|. Mainline Clang releases can also work.
+Using `Open SYCL 0.9.4 <https://github.com/OpenSYCL/OpenSYCL/releases/tag/v0.9.4>`_
+(at the time known as hipSYCL 0.9.4) and ROCm 5.3-5.4 is recommended.
+We strongly recommend using the clang compiler bundled
+with ROCm for building both Open SYCL and |Gromacs|. Mainline Clang releases can also work.
 
-The following CMake command can be used **when configuring hipSYCL** to ensure
+The following CMake command can be used **when configuring Open SYCL** to ensure
 that the proper Clang is used (assuming ``ROCM_PATH``
 is set correctly, e.g. to ``/opt/rocm`` in the case of default installation):
 
@@ -974,10 +975,10 @@ is set correctly, e.g. to ``/opt/rocm`` in the case of default installation):
             -DCMAKE_CXX_COMPILER=${ROCM_PATH}/llvm/bin/clang++ \
             -DLLVM_DIR=${ROCM_PATH}/llvm/lib/cmake/llvm/
 
-If ROCm 5.0 or earlier is used, hipSYCL might require
-`additional build flags <https://github.com/illuhad/hipSYCL/blob/v0.9.4/doc/install-rocm.md>`_.
+If ROCm 5.0 or earlier is used, Open SYCL might require
+`additional build flags <https://github.com/OpenSYCL/OpenSYCL/blob/v0.9.4/doc/install-rocm.md>`_.
 
-After compiling and installing hipSYCL, the following settings can be used for
+After compiling and installing Open SYCL, the following settings can be used for
 building |Gromacs| itself (set ``HIPSYCL_TARGETS`` to the target hardware):
 
 ::
@@ -1013,10 +1014,10 @@ SYCL GPU acceleration for NVIDIA GPUs
 SYCL support for NVIDIA GPUs is highly experimental. For production, please use CUDA_
 (`CUDA GPU acceleration`_).
 
-NVIDIA GPUs can be used with either hipSYCL_ or
+NVIDIA GPUs can be used with either `Open SYCL`_ (a.k.a. hipSYCL) or
 `Codeplay oneAPI for NVIDIA GPUs <https://developer.codeplay.com/products/oneapi/nvidia/home/>`_.
 
-For hipSYCL, make sure that hipSYCL itself is compiled with CUDA support,
+For `Open SYCL`_ (hipSYCL), make sure that Open SYCL itself is compiled with CUDA support,
 and supply proper devices via ``HIPSYCL_TARGETS`` (e.g., ``-DHIPSYCL_TARGETS=cuda:sm_75``).
 When compiling for CUDA, we recommend using the mainline Clang, not the ROCm-bundled one.
 
@@ -1041,7 +1042,7 @@ The following flags can be passed to CMake in order to tune |Gromacs|:
       changes the data layout of non-bonded kernels. When compiling with
       `Intel oneAPI DPC++`_, the default value is 4, which is optimal for
       most Intel GPUs except Data Center MAX (Ponte Vecchio), for which 8
-      is better. When compiling with hipSYCL_, the default value is 8,
+      is better. When compiling with `Open SYCL`_, the default value is 8,
       which is the only supported value for AMD and NVIDIA devices.
 
 ``-DGMX_GPU_NB_NUM_CLUSTER_PER_CELL_X``, ``-DGMX_GPU_NB_NUM_CLUSTER_PER_CELL_Y``, ``-DGMX_GPU_NB_NUM_CLUSTER_PER_CELL_Z``
@@ -1143,7 +1144,7 @@ CUDA_ builds will by default be able to run on any NVIDIA GPU
 supported by the CUDA toolkit used since the |Gromacs| build
 system generates code for these at build-time. 
 With SYCL_ multiple target architectures of the same GPU vendor
-can be selected when using hipSYCL_ (i.e. only AMD or only NVIDIA).
+can be selected when using `Open SYCL`_ (i.e. only AMD or only NVIDIA).
 With OpenCL_, due to just-in-time compilation of GPU code for
 the device in use this is not a concern.
 
@@ -1579,7 +1580,7 @@ is currently tested with a range of configuration options on x86 with
 gcc versions including 9 and 12,
 clang versions including 9 and 15,
 CUDA versions 11.0 and 11.7,
-hipSYCL 0.9.4 with ROCm 5.3,
+`Open SYCL`_ (hipSYCL) 0.9.4 with ROCm 5.3,
 and
 a version of oneAPI containing Intel's clang-based compiler.
 For this testing, we use Ubuntu 20.04 operating system.

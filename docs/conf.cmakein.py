@@ -240,7 +240,8 @@ rst_epilog += """
 .. _OpenCL: https://www.khronos.org/opencl/
 .. _SYCL: https://www.khronos.org/sycl/
 .. _Intel oneAPI DPC++: https://www.intel.com/content/www/us/en/developer/tools/oneapi/dpc-compiler.html
-.. _hipSYCL: https://github.com/illuhad/hipSYCL
+.. _Open SYCL: https://github.com/OpenSYCL/OpenSYCL/
+.. _hipSYCL: https://github.com/OpenSYCL/OpenSYCL/
 .. _OpenMPI: http://www.open-mpi.org
 .. _MPICH: http://www.mpich.org
 .. _LAM-MPI: http://www.lam-mpi.org
