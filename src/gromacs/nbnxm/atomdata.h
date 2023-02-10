@@ -80,6 +80,7 @@ enum
     nbatXYZQ,
     nbatX4,
     nbatX8,
+    nbatX16,
     nbatX32
 };
 
@@ -91,12 +92,16 @@ static constexpr int STRIDE_XYZQ = 4;
 static constexpr int c_packX4 = 4;
 //! Size of packs of x, y or z with SIMD 8-grouped packed coordinates/forces
 static constexpr int c_packX8 = 8;
+//! Size of packs of x, y or z with SIMD 16-grouped packed coordinates/forces
+static constexpr int c_packX16 = 16;
 //! Size of packs of x, y or z with SIMD 32-grouped packed coordinates/forces
 static constexpr int c_packX32 = 32;
 //! Stridefor a pack of 4 coordinates/forces
 static constexpr int STRIDE_P4 = DIM * c_packX4;
 //! Stridefor a pack of 8 coordinates/forces
 static constexpr int STRIDE_P8 = DIM * c_packX8;
+//! Stridefor a pack of 16 coordinates/forces
+static constexpr int STRIDE_P16 = DIM * c_packX16;
 //! Stridefor a pack of 32 coordinates/forces
 static constexpr int STRIDE_P32 = DIM * c_packX32;
 

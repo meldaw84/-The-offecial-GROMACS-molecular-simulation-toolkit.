@@ -60,6 +60,7 @@ enum class DiagonalMaskType
     JSizeEqualsISize,        //!< j-cluster size = i-cluster size
     JSizeIsDoubleISize,      //!< j-cluster size = 2 * i-cluster size
     JSizeIsHalfISize,        //!< j-cluster size = i-cluster size / 2
+    JSizeIsEightTimesISize,  //!< j-cluster size = 8 * i-cluster size
     JSizeIsSixteenTimesISize //!< j-cluster size = 16 * i-cluster size
 };
 
@@ -79,6 +80,10 @@ static inline constexpr DiagonalMaskType getDiagonalMaskType()
     {
         return DiagonalMaskType::JSizeIsHalfISize;
     }
+    else if constexpr (jClusterSize == iClusterSize * 8)
+    {
+        return DiagonalMaskType::JSizeIsEightTimesISize;
+    }
     else
     {
         static_assert(jClusterSize == iClusterSize * 16);
@@ -87,16 +92,22 @@ static inline constexpr DiagonalMaskType getDiagonalMaskType()
     }
 }
 
+template<DiagonalMaskType diagonalMaskType>
+static constexpr int numMasks()
+{
+    return diagonalMaskType == DiagonalMaskType::JSizeEqualsISize ? 1 : (diagonalMaskType == DiagonalMaskType::JSizeIsSixteenTimesISize ? 16 : (diagonalMaskType == DiagonalMaskType::JSizeIsEightTimesISize ? 8 : 2));
+}
+
 //! Base Coulomb calculator class, only specializations are used
 template<int, KernelLayout, DiagonalMaskType>
 class DiagonalMasker;
 
 //! Returns the diagonal filter masks
 template<int nR, KernelLayout kernelLayout, DiagonalMaskType diagonalMaskType>
-    inline std::array<std::array<SimdBool, nR>, diagonalMaskType == DiagonalMaskType::JSizeEqualsISize ? 1 : (diagonalMaskType == DiagonalMaskType::JSizeIsSixteenTimesISize ? 16 : 2)>
+    inline std::array<std::array<SimdBool, nR>, numMasks<diagonalMaskType>()>
 generateDiagonalMasks(const nbnxn_atomdata_t::SimdMasks& simdMasks)
 {
-    constexpr int c_numMasks = (diagonalMaskType == DiagonalMaskType::JSizeEqualsISize ? 1 : (diagonalMaskType == DiagonalMaskType::JSizeIsSixteenTimesISize ? 16 : 2));
+    constexpr int c_numMasks = numMasks<diagonalMaskType>();
 
     /* Load j-i for the first i */
     SimdReal diagonalJMinusI = load<SimdReal>(kernelLayout == KernelLayout::r2xMM
@@ -188,6 +199,34 @@ private:
      * j-cluster index * 2 + 1 = i-cluster index
      */
     const std::array<std::array<SimdBool, nR>, 2> diagonalMaskVV_;
+};
+
+//! Specialized masker for JSizeIsEightTimesISize
+template<int nR, KernelLayout kernelLayout>
+class DiagonalMasker<nR, kernelLayout, DiagonalMaskType::JSizeIsEightTimesISize>
+{
+public:
+    inline DiagonalMasker(const nbnxn_atomdata_t::SimdMasks& simdMasks) :
+        diagonalMaskVV_(generateDiagonalMasks<nR, kernelLayout, DiagonalMaskType::JSizeIsEightTimesISize>(simdMasks))
+    {
+    }
+
+    //! Sets (sub-)diagonal entries in \p boolV to false when the cluster pair in on the diagonal
+    inline void maskArray(const int iClusterIndex, const int jClusterIndex, std::array<SimdBool, nR>& boolV) const
+    {
+        const int diff = iClusterIndex - jClusterIndex * 8;
+        if (diff >= 0 && diff < 8)
+        {
+            boolV = genBoolArr<nR>([&](int i) { return boolV[i] && diagonalMaskVV_[diff][i]; });
+        }
+    }
+
+private:
+    /*! The diagonal mask array for:
+     * j-cluster index * 2 = i-cluster index
+     * j-cluster index * 2 + 1 = i-cluster index
+     */
+    const std::array<std::array<SimdBool, nR>, 8> diagonalMaskVV_;
 };
 
 //! Specialized masker for JSizeIsSixteenTimesISize

@@ -104,7 +104,7 @@ static inline constexpr int c_jClusterSize(const KernelLayout kernelLayout)
 #    define GMX_HAVE_NBNXM_SIMD_4XM \
         (GMX_SIMD_REAL_WIDTH == 2 || GMX_SIMD_REAL_WIDTH == 4 || GMX_SIMD_REAL_WIDTH == 8)
 #    define GMX_HAVE_NBNXM_SIMD_2XM \
-        GMX_SIMD_REAL_WIDTH == 32
+        (GMX_SIMD_REAL_WIDTH == 16 || GMX_SIMD_REAL_WIDTH == 32)
 #    define GMX_HAVE_NBNXM_SIMD_8XM \
         (GMX_SIMD_REAL_WIDTH == 2 || GMX_SIMD_REAL_WIDTH == 4 || GMX_SIMD_REAL_WIDTH == 8)
 #else

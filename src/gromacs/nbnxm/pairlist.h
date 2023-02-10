@@ -97,8 +97,8 @@ struct nbnxn_cj_t
 class JClusterList
 {
 public:
-    // typedef uint32_t IMask;
-    typedef uint64_t IMask;
+    typedef uint32_t IMask;
+    // typedef uint64_t IMask;
 
     //! Return the j-cluster index for \c index from the pack list
     inline int cj(int index) const { return jCluster_[index]; }

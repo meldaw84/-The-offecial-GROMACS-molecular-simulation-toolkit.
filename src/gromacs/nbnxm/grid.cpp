@@ -999,6 +999,17 @@ void Grid::fillCell(GridSetData*                   gridSetData,
                     numAtoms, nbat->x().data() + atom_to_x_index<c_packX8>(atomStart), bb_ptr);
         }
     }
+    else if (nbat->XFormat == nbatX16)
+    {
+        /* Store the bounding boxes as xyz.xyz. */
+        size_t       offset = atomToCluster(atomStart - cellOffset_ * geometry_.numAtomsICluster);
+        BoundingBox* bb_ptr = bb_.data() + offset;
+
+        // No SIMD implementation here yet
+
+        calc_bounding_box_packed<c_packX16>(
+            numAtoms, nbat->x().data() + atom_to_x_index<c_packX16>(atomStart), bb_ptr);
+    }
     else if (nbat->XFormat == nbatX32)
     {
         /* Store the bounding boxes as xyz.xyz. */
@@ -1562,6 +1573,7 @@ void Grid::setCellIndices(int                            ddZone,
         switch (geometry_.numAtomsJCluster / geometry_.numAtomsICluster)
         {
         case 2: combine_bounding_box_pairs<1>(*this, bb_, bbj_); break;
+        case 8: combine_bounding_box_pairs<3>(*this, bb_, bbj_); break;
         case 16: combine_bounding_box_pairs<4>(*this, bb_, bbj_); break;
         default: GMX_RELEASE_ASSERT(false, "Unhandled cluster size ratio");
         }

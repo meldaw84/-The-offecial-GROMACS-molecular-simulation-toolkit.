@@ -251,6 +251,39 @@ void copy_rvec_to_nbat_real(const int* a, int na, int na_round, const rvec* x, i
             }
         }
     }
+    else if (nbatFormat == nbatX16)
+    {
+        int i = 0;
+        int j = atom_to_x_index<c_packX16>(a0);
+        int c = a0 & (c_packX16 - 1);
+        for (; i < na; i++)
+        {
+            xnb[j + XX * c_packX16] = x[a[i]][XX];
+            xnb[j + YY * c_packX16] = x[a[i]][YY];
+            xnb[j + ZZ * c_packX16] = x[a[i]][ZZ];
+            j++;
+            c++;
+            if (c == c_packX16)
+            {
+                j += (DIM - 1) * c_packX16;
+                c = 0;
+            }
+        }
+        /* Complete the partially filled last cell with zeros */
+        for (; i < na_round; i++)
+        {
+            xnb[j + XX * c_packX16] = farAway;
+            xnb[j + YY * c_packX16] = farAway;
+            xnb[j + ZZ * c_packX16] = farAway;
+            j++;
+            c++;
+            if (c == c_packX16)
+            {
+                j += (DIM - 1) * c_packX16;
+                c = 0;
+            }
+        }
+    }
     else if (nbatFormat == nbatX32)
     {
         int i = 0;
@@ -652,6 +685,7 @@ nbnxn_atomdata_t::nbnxn_atomdata_t(gmx::PinningPolicy      pinningPolicy,
             {
                 case 4: XFormat = nbatX4; break;
                 case 8: XFormat = nbatX8; break;
+                case 16: XFormat = nbatX16; break;
                 case 32: XFormat = nbatX32; break;
                 default: gmx_incons("Unsupported packing width");
             }
@@ -1190,6 +1224,16 @@ static void nbnxn_atomdata_add_nbat_f_to_f_part(const Nbnxm::GridSet&          g
                 f[a][XX] += fnb[i + XX * c_packX8];
                 f[a][YY] += fnb[i + YY * c_packX8];
                 f[a][ZZ] += fnb[i + ZZ * c_packX8];
+            }
+            break;
+        case nbatX16:
+            for (int a = a0; a < a1; a++)
+            {
+                int i = atom_to_x_index<c_packX16>(cell[a]);
+
+                f[a][XX] += fnb[i + XX * c_packX16];
+                f[a][YY] += fnb[i + YY * c_packX16];
+                f[a][ZZ] += fnb[i + ZZ * c_packX16];
             }
             break;
         case nbatX32:

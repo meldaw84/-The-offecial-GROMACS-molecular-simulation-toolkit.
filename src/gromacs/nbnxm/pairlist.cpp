@@ -121,8 +121,9 @@ static inline int cjFromCi(int ci)
     constexpr int jClusterSize = c_jClusterSize(layout);
 
     static_assert(2 * jClusterSize == iClusterSize || jClusterSize == iClusterSize
-                          || jClusterSize == iClusterSize * 2 || jClusterSize == iClusterSize * 16,
-                  "Only j-cluster sizes 2, 4 and 8 are currently implemented");
+                          || jClusterSize == iClusterSize * 2 || jClusterSize == iClusterSize * 8
+                          || jClusterSize == iClusterSize * 16,
+                  "Cluster size ratio needs to be supported");
 
     static_assert(jSubClusterIndex == 0 || jSubClusterIndex == 1,
                   "Only sub-cluster indices 0 and 1 are supported");
@@ -146,6 +147,10 @@ static inline int cjFromCi(int ci)
     {
         return ci >> 1;
     }
+    else if constexpr (jClusterSize == 8 * iClusterSize)
+    {
+        return ci >> 3;
+    }
     else
     {
         // Factor 16 = 2^4
@@ -161,8 +166,8 @@ static inline int xIndexFromCi(int ci)
     constexpr int jClusterSize = c_jClusterSize(layout);
 
     static_assert(jClusterSize == iClusterSize / 2 || jClusterSize == iClusterSize
-                  || jClusterSize == iClusterSize * 2 || jClusterSize == 32, 
-                  "Only j-cluster sizes 2, 4, 8 and 32 are currently implemented");
+                  || jClusterSize == iClusterSize * 2 || jClusterSize == 16 || jClusterSize == 32, 
+                  "Only j-cluster sizes 2, 4, 8, 16 and 32 are currently implemented");
 
     if constexpr (jClusterSize <= iClusterSize)
     {
@@ -189,9 +194,14 @@ static inline int xIndexFromCi(int ci)
             /* Coordinates packed in 8, i-cluster size is half the packing width */
             return (ci >> 1) * STRIDE_P8 + (ci & 1) * (c_packX8 >> 1);
         }
+        else if constexpr (iClusterSize == 2 && jClusterSize == 16)
+        {
+            /* Coordinates packed in 32, i-cluster size is an eighth of the packing width */
+            return (ci >> 3) * STRIDE_P16 + (ci & 7) * (c_packX16 >> 3);
+        }
         else if constexpr (iClusterSize == 2 && jClusterSize == 32)
         {
-            /* Coordinates packed in 32, i-cluster size is a fourth of the packing width */
+            /* Coordinates packed in 32, i-cluster size is a sixteenth of the packing width */
             return (ci >> 4) * STRIDE_P32 + (ci & 15) * (c_packX32 >> 4);
         }
         else
@@ -210,8 +220,9 @@ static inline int xIndexFromCj(int cj)
     constexpr int jClusterSize = c_jClusterSize(layout);
 
     static_assert(2 * jClusterSize == iClusterSize || jClusterSize == iClusterSize
-                          || jClusterSize == iClusterSize * 2 || jClusterSize == iClusterSize * 16,
-                  "Only j-cluster sizes 2, 4 and 8 are currently implemented");
+                          || jClusterSize == iClusterSize * 2 || jClusterSize == iClusterSize * 8
+                          || jClusterSize == iClusterSize * 16,
+                  "Cluster size ratio needs to be supported");
 
     if constexpr (iClusterSize == 4 && jClusterSize == 2)
     {
@@ -232,6 +243,11 @@ static inline int xIndexFromCj(int cj)
     {
         /* Coordinates are stored packed in groups of 8 */
         return cj * STRIDE_P8;
+    }
+    else if constexpr (iClusterSize == 2 && jClusterSize == 16)
+    {
+        /* Coordinates are stored packed in groups of 16 */
+        return cj * STRIDE_P16;
     }
     else if constexpr (iClusterSize == 2 && jClusterSize == 32)
     {

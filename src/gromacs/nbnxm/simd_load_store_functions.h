@@ -57,9 +57,13 @@ namespace gmx
 template<int n>
 inline constexpr int log2()
 {
-    static_assert(n == 4 || n == 8 || n == 16);
+    static_assert(n == 2 || n == 4 || n == 8 || n == 16);
 
-    if constexpr (n == 4)
+    if constexpr (n == 2)
+    {
+        return 1;
+    }
+    else if constexpr (n == 4)
     {
         return 2;
     }

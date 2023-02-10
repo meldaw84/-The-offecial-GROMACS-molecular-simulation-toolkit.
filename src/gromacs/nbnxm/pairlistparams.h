@@ -155,6 +155,7 @@ enum class PairlistType : int
     Simple4x2,
     Simple4x4,
     Simple4x8,
+    Simple2x16,
     Simple2x32,
     Simple8x4,
     Simple8x8,
@@ -164,15 +165,15 @@ enum class PairlistType : int
 
 //! Gives the i-cluster size for each pairlist type
 static constexpr gmx::EnumerationArray<PairlistType, int> IClusterSizePerListType = {
-    { 4, 4, 4, 2, 8, 8, c_nbnxnGpuClusterSize }
+    { 4, 4, 4, 2, 2, 8, 8, c_nbnxnGpuClusterSize }
 };
 //! Gives the j-cluster size for each pairlist type
 static constexpr gmx::EnumerationArray<PairlistType, int> JClusterSizePerListType = {
-    { 2, 4, 8, 32, 4, 8, c_nbnxnGpuClusterSize }
+    { 2, 4, 8, 16, 32, 4, 8, c_nbnxnGpuClusterSize }
 };
 //! True if given pairlist type is used on GPU, false if on CPU.
 static constexpr gmx::EnumerationArray<PairlistType, bool> sc_isGpuPairListType = {
-    { false, false, false, false, false, false, true }
+    { false, false, false, false, false, false, false, true }
 };
 
 /*! \internal
