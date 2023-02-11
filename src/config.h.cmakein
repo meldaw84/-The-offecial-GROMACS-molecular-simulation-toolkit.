@@ -129,6 +129,9 @@
 /* IBM VSX was selected as SIMD instructions (Power 7 and later) */
 #cmakedefine01 GMX_SIMD_IBM_VSX
 
+/* RISC-V V was selected as SIMD instructions */
+#cmakedefine01 GMX_SIMD_RISCV_V
+
 /* Reference SIMD implementation for testing */
 #cmakedefine01 GMX_SIMD_REFERENCE
 

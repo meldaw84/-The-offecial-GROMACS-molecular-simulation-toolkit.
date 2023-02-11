@@ -278,6 +278,11 @@ elseif(GMX_SIMD_ACTIVE STREQUAL "IBM_VSX")
     set(GMX_SIMD_${GMX_SIMD_ACTIVE} 1)
     set(SIMD_STATUS_MESSAGE "Enabling IBM VSX SIMD instructions using CXX flags: ${SIMD_IBM_VSX_CXX_FLAGS}")
 
+elseif(GMX_SIMD_ACTIVE STREQUAL "RISCV_V")
+
+    set(GMX_SIMD_${GMX_SIMD_ACTIVE} 1)
+    set(SIMD_STATUS_MESSAGE "Enabling RISC-V vector instructions without special flags.")
+
 elseif(GMX_SIMD_ACTIVE STREQUAL "REFERENCE")
 
     # NB: This file handles settings for the SIMD module, so in the interest 

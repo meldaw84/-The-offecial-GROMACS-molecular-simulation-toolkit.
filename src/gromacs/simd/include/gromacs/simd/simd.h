@@ -150,6 +150,8 @@ struct SimdDInt32Tag
 #    include "impl_arm_sve/impl_arm_sve.h"
 #elif GMX_SIMD_IBM_VSX
 #    include "impl_ibm_vsx/impl_ibm_vsx.h"
+#elif GMX_SIMD_RISCV_V
+#    include "impl_riscv_v/impl_riscv_v.h"
 #elif (GMX_SIMD_REFERENCE || defined DOXYGEN)
 #    include "impl_reference/impl_reference.h" // Includes doxygen documentation
 #else
