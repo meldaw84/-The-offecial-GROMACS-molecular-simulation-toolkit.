@@ -96,42 +96,47 @@ void updateCorrelationGridHistory(CorrelationGridHistory* correlationGridHistory
     gmx::index bufferIndex = 0;
     for (const CorrelationTensor& tensor : correlationGrid.tensors())
     {
-        const int numDims    = tensor.blockDataList()[0].coordData().size();
-        const int tensorSize = tensor.blockDataList()[0].correlationIntegral().size();
-
-        /* Loop of the tensor elements, ignore the symmetric data */
-        int d1 = 0;
-        int d2 = 0;
-        for (int k = 0; k < tensorSize; k++)
+        /* BlockData for each correlation element */
+        for (const CorrelationBlockData& blockData : tensor.blockDataList())
         {
-            /* BlockData for each correlation element */
-            for (const CorrelationBlockData& blockData : tensor.blockDataList())
+            const int numDims    = tensor.blockDataList()[0].coordData().size();
+            const int tensorSize = tensor.blockDataList()[0].correlationIntegral().size();
+
+            /* Loop of the tensor elements, ignore the symmetric data */
+            int d1 = 0;
+            int d2 = 0;
+            for (int k = 0; k < tensorSize; k++)
             {
                 const CorrelationBlockData::CoordData& cx = blockData.coordData()[d1];
                 const CorrelationBlockData::CoordData& cy = blockData.coordData()[d2];
 
                 CorrelationBlockDataHistory& bdh = blockDataBuffer[bufferIndex];
 
-                bdh.blockSumWeight                 = blockData.blockSumWeight();
-                bdh.blockSumSquareWeight           = blockData.blockSumSquareWeight();
-                bdh.blockSumWeightX                = cx.blockSumWeightX;
-                bdh.blockSumWeightY                = cy.blockSumWeightX;
-                bdh.sumOverBlocksSquareBlockWeight = blockData.sumOverBlocksSquareBlockWeight();
-                bdh.sumOverBlocksBlockSquareWeight = blockData.sumOverBlocksBlockSquareWeight();
+                bdh.blockSumWeightX                      = cx.blockSumWeightX;
+                bdh.blockSumWeightY                      = cy.blockSumWeightX;
                 bdh.sumOverBlocksBlockWeightBlockWeightX = cx.sumOverBlocksBlockWeightBlockWeightX;
                 bdh.sumOverBlocksBlockWeightBlockWeightY = cy.sumOverBlocksBlockWeightBlockWeightX;
-                bdh.previousBlockIndex                   = blockData.previousBlockIndex();
-                bdh.blockLength                          = blockData.blockLength();
-                bdh.correlationIntegral                  = blockData.correlationIntegral()[k];
+
+                bdh.correlationIntegral = blockData.correlationIntegral()[k];
+
+                if (k == tensorSize - 1)
+                {
+                    bdh.blockSumWeight                 = blockData.blockSumWeight();
+                    bdh.blockSumSquareWeight           = blockData.blockSumSquareWeight();
+                    bdh.sumOverBlocksSquareBlockWeight = blockData.sumOverBlocksSquareBlockWeight();
+                    bdh.sumOverBlocksBlockSquareWeight = blockData.sumOverBlocksBlockSquareWeight();
+                    bdh.previousBlockIndex             = blockData.previousBlockIndex();
+                    bdh.blockLength                    = blockData.blockLength();
+                }
 
                 bufferIndex++;
-            }
 
-            d1++;
-            if (d1 == numDims)
-            {
-                d1 = 0;
-                d2++;
+                d1++;
+                if (d1 == numDims)
+                {
+                    d1 = 0;
+                    d2++;
+                }
             }
         }
     }
@@ -195,7 +200,6 @@ void CorrelationTensor::restoreFromHistory(const std::vector<CorrelationBlockDat
 
             correlationIntegral[k] = blockHistory.correlationIntegral;
 
-            /* Check if we collected all data needed for blockData */
             if (k == tensorSize - 1)
             {
                 blockData.restoreFromHistory(blockHistory, coordData, correlationIntegral);
