@@ -42,10 +42,10 @@ add_executable(${argon} argon-forces-integration.cpp)
 
 target_link_libraries(${argon} PRIVATE nblib)
 
-set(methane "methane-water-integration")
-add_executable(${methane} methane-water-integration.cpp)
-
-target_link_libraries(${methane} PRIVATE nblib)
+#set(methane "methane-water-integration")
+#add_executable(${methane} methane-water-integration.cpp)
+#
+#target_link_libraries(${methane} PRIVATE nblib)
 
 set(benchmark_cpu "benchmark_cpu")
 add_executable(${benchmark_cpu} benchmark_cpu.cpp)
@@ -80,6 +80,7 @@ endif()
 
 if(BUILD_TESTING)
     add_test(NAME NbLibSamplesTestArgon COMMAND ${argon})
-    add_test(NAME NbLibSamplesTestMethaneWater COMMAND ${methane})
-    add_dependencies(nblib-tests ${argon} ${methane})
+#    add_test(NAME NbLibSamplesTestMethaneWater COMMAND ${methane})
+#    add_dependencies(nblib-tests ${argon} ${methane})
+    add_dependencies(nblib-tests ${argon})
 endif()

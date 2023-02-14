@@ -123,22 +123,26 @@ target_sources(nblib
 
 gmx_target_compile_options(nblib)
 
-target_link_libraries(nblib PRIVATE libgromacs)
+#target_link_libraries(nblib PRIVATE libgromacs)
 #target_include_directories(nblib SYSTEM BEFORE PRIVATE ${PROJECT_SOURCE_DIR}/src/external/thread_mpi/include)
 target_include_directories(nblib PUBLIC
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
                            $<INSTALL_INTERFACE:include>)
-target_link_libraries(nblib PRIVATE common)
+#target_link_libraries(nblib PRIVATE common)
 target_link_libraries(nblib PRIVATE
+                      common
                       fileio
                       gmxlib
+                      legacy_modules
+                      libgromacs
                       listed_forces
                       math
-                      mdtypes
                       mdlib
+                      mdtypes
                       pbcutil
                       simd
+                      timing
                       topology
                       utility)
 
@@ -146,7 +150,7 @@ target_link_libraries(nblib PRIVATE
 # TODO(#3288): Explicitly link specific modules for public API dependencies as legacy_api is removed.
 target_link_libraries(nblib PUBLIC legacy_api)
 # TODO: Explicitly link specific modules.
-target_link_libraries(nblib PRIVATE legacy_modules)
+#target_link_libraries(nblib PRIVATE legacy_modules)
 if (GMX_OPENMP)
     target_link_libraries(nblib PUBLIC OpenMP::OpenMP_CXX)
 endif()
