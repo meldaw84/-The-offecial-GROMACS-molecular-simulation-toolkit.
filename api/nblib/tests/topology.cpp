@@ -45,7 +45,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "gromacs/topology/include/gromacs/topology/exclusionblocks.h"
+#include "gromacs/topology/exclusionblocks.h"
 #include "gromacs/utility/listoflists.h"
 
 #include "nblib/exception.h"

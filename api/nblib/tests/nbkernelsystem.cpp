@@ -43,7 +43,7 @@
  */
 #include <gtest/gtest.h>
 
-#include "gromacs/topology/include/gromacs/topology/exclusionblocks.h"
+#include "gromacs/topology/exclusionblocks.h"
 
 #include "nblib/gmxcalculatorcpu.h"
 #include "nblib/integrator.h"
