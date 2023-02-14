@@ -32,8 +32,8 @@
  * the research papers on the package. Check out https://www.gromacs.org.
  */
 
-#define UNROLLI 4
-#define UNROLLJ 4
+#define UNROLLI sc_nbnxmPlainCIClusterSize
+#define UNROLLJ sc_nbnxmPlainCJClusterSize
 
 static_assert(UNROLLI == Nbnxm::c_iClusterSize(Nbnxm::KernelType::Cpu4x4_PlainC),
               "UNROLLI should match the i-cluster size");

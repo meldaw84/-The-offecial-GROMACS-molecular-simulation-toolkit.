@@ -48,7 +48,7 @@
 #include "gromacs/utility/fatalerror.h"
 
 #include "pairlist.h"
-//#include "pairlistparams.h"
+#include "pairlistparams.h"
 
 /*! \brief Returns the base-2 log of n.
  * *
@@ -72,7 +72,7 @@ static inline constexpr int c_iClusterSize(const KernelType kernelType)
 {
     switch (kernelType)
     {
-        case KernelType::Cpu4x4_PlainC:
+        case KernelType::Cpu4x4_PlainC: return sc_nbnxmPlainCIClusterSize;
         case KernelType::Cpu4xN_Simd_4xN:
         case KernelType::Cpu4xN_Simd_2xNN: return 4;
         case KernelType::Cpu2xN_Simd_2xN: return 2;
@@ -93,7 +93,7 @@ static inline constexpr int c_jClusterSize(const KernelType kernelType)
 {
     switch (kernelType)
     {
-        case KernelType::Cpu4x4_PlainC: return 4;
+        case KernelType::Cpu4x4_PlainC: return sc_nbnxmPlainCJClusterSize;
 #if GMX_SIMD
         case KernelType::Cpu4xN_Simd_4xN: return GMX_SIMD_REAL_WIDTH;
         case KernelType::Cpu4xN_Simd_2xNN: return GMX_SIMD_REAL_WIDTH / 2;
@@ -102,6 +102,7 @@ static inline constexpr int c_jClusterSize(const KernelType kernelType)
 #else
         case KernelType::Cpu4xN_Simd_4xN:
         case KernelType::Cpu4xN_Simd_2xNN:
+        case KernelType::Cpu2xN_Simd_2xN:
         case KernelType::Cpu8xN_Simd_8xN: return 0;
 #endif
         case KernelType::Gpu8x8x8: return c_nbnxnGpuClusterSize;

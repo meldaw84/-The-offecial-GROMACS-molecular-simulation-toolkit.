@@ -69,12 +69,18 @@ enum class NbnxnLayout
     Gpu8x8x8   //!< i-cluster size 8, j-cluster size 8 + super-clustering
 };
 
+//! The i-cluster size for the plain-C CPU kernels
+static constexpr int sc_nbnxmPlainCIClusterSize = 4;
+
+//! The j-cluster size for the plain-C CPU kernels
+static constexpr int sc_nbnxmPlainCJClusterSize = 4;
+
 //! The i-cluster size
 static constexpr int c_iClusterSize(const NbnxnLayout nbnxmLayout)
 {
     switch (nbnxmLayout)
     {
-        case NbnxnLayout::NoSimd4x4:
+        case NbnxnLayout::NoSimd4x4: return sc_nbnxmPlainCIClusterSize;
         case NbnxnLayout::Simd4xN:
         case NbnxnLayout::Simd2xNN: return 4;
         case NbnxnLayout::Simd2xN: return 2;
@@ -88,7 +94,7 @@ static constexpr int c_jClusterSize(const NbnxnLayout nbnxmLayout)
 {
     switch (nbnxmLayout)
     {
-        case NbnxnLayout::NoSimd4x4: return 4;
+        case NbnxnLayout::NoSimd4x4: return sc_nbnxmPlainCJClusterSize;
 #if GMX_SIMD
         case NbnxnLayout::Simd4xN: return GMX_SIMD_REAL_WIDTH;
         case NbnxnLayout::Simd2xNN: return GMX_SIMD_REAL_WIDTH / 2;
@@ -97,6 +103,7 @@ static constexpr int c_jClusterSize(const NbnxnLayout nbnxmLayout)
 #else
         case NbnxnLayout::Simd4xN:
         case NbnxnLayout::Simd2xNN:
+        case NbnxnLayout::Simd2xN:
         case NbnxnLayout::Simd8xN: return 0;
 #endif
         case NbnxnLayout::Gpu8x8x8: return 4;
