@@ -108,7 +108,7 @@ static gmx::ListOfLists<int> reduce_listoflists(gmx::ArrayRef<const int>     inv
     gmx::ListOfLists<int> lists;
 
     std::vector<int> exclusionsForAtom;
-    for (gmx::index i = 0; i < src.ssize(); i++)
+    for (gmx::Index i = 0; i < src.ssize(); i++)
     {
         if (bKeep[i])
         {
@@ -349,7 +349,7 @@ void ConvertTpr::initOptions(IOptionsContainer* options, ICommandLineOptionsModu
                                .defaultBasename("topol")
                                .description("Run input file to modify"));
     options->addOption(FileNameOption("n")
-                               .filetype(OptionFileType::Index)
+                               .filetype(OptionFileType::AtomIndex)
                                .inputFile()
                                .store(&inputIndexFileName_)
                                .storeIsSet(&haveReadIndexFile_)
