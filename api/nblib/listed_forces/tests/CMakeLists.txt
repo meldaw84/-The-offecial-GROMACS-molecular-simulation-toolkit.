@@ -75,7 +75,14 @@ unset(exename)
 # separate compile target, makes it easy to choose compiler optimization and flags
 # and avoid dependencies on testing frameworks
 add_executable(listedperformance ../../topologyhelpers.cpp gmxcalculator.cpp performance.cpp)
-target_link_libraries(listedperformance PRIVATE nblib common libgromacs)
+target_link_libraries(listedperformance PRIVATE nblib
+                                                common
+                                                libgromacs
+                                                math
+                                                pbcutil
+                                                timing
+                                                topology
+                                                utility)
 target_include_directories(listedperformance SYSTEM PRIVATE ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/src/external/thread_mpi/include)
 
 if(CMAKE_CUDA_COMPILER AND GMX_GPU_CUDA AND NOT ${CMAKE_VERSION} VERSION_LESS "3.17.0")
