@@ -90,7 +90,15 @@ if(CMAKE_CUDA_COMPILER AND GMX_GPU_CUDA AND NOT ${CMAKE_VERSION} VERSION_LESS "3
     set(exename "nblib-listed-gpu-test")
     add_executable(${exename} listedgpu.cu)
 
-    target_link_libraries(${exename} PRIVATE nblib common libgromacs gtest_main)
+    target_link_libraries(${exename} PRIVATE nblib
+                                             common
+                                             libgromacs
+                                             math
+                                             pbcutil
+                                             timing
+                                             topology
+                                             utility
+                                             gtest_main)
     target_include_directories(${exename} PRIVATE
             ${PROJECT_SOURCE_DIR}
             ${PROJECT_SOURCE_DIR}/api/legacy/include
@@ -106,7 +114,14 @@ if(CMAKE_CUDA_COMPILER AND GMX_GPU_CUDA AND NOT ${CMAKE_VERSION} VERSION_LESS "3
     set(exename gpu-listedperformance)
     add_executable(${exename} ../gpu_interface.cu gpu_performance.cu)
 
-    target_link_libraries(${exename} PRIVATE nblib common libgromacs)
+    target_link_libraries(${exename} PRIVATE nblib
+                                             common
+                                             libgromacs
+                                             math
+                                             pbcutil
+                                             timing
+                                             topology
+                                             utility)
     target_include_directories(${exename} PRIVATE
             ${PROJECT_SOURCE_DIR}
             ${PROJECT_SOURCE_DIR}/api/legacy/include
