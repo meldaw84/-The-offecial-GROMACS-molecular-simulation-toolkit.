@@ -78,7 +78,7 @@ void posres_dx(const rvec      x,
                rvec            dx,
                rvec            rdist,
                rvec            dpdl);
-}
+} // namespace gmx
 
 /*! \brief Helper function that wraps calls to posres */
 void posres_wrapper(t_nrnb*                       nrnb,
