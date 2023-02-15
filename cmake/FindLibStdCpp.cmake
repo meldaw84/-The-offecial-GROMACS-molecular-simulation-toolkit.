@@ -52,6 +52,8 @@ endif()
 
 include(CheckCXXSourceCompiles)
 
+set(CXX17_COMPILES 0 CACHE INTERNAL "Whether C++ compiler is set up to compile C++17")
+
 # Test that required 2017 standard library features work.
 # Note that this check also requires linking to succeed.
 set (SAMPLE_CODE_TO_TEST_CXX17 "
