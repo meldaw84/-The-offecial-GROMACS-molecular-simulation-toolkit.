@@ -44,10 +44,12 @@
 #include <iostream>
 
 #include "gromacs/gpu_utils/cudautils.cuh"
+#include "gromacs/gpu_utils/gputraits.cuh"
 #include "gromacs/hardware/device_information.h"
 #include "gromacs/hardware/device_management.h"
 #include "gromacs/listed_forces/listed_forces_gpu.h"
 #include "gromacs/mdtypes/simulation_workload.h"
+#include "gromacs/nbnxm/gpu_types_common.h"
 #include "gromacs/topology/forcefieldparameters.h"
 
 #include "nblib/listed_forces/gpu_interface.h"
@@ -93,8 +95,8 @@ std::vector<T> compareForces(gmx::ArrayRef<const util::array<T, 3>> probe,
     return relErr;
 }
 
-thrust::host_vector<util::array<real, 4>> toXyzq(gmx::ArrayRef<const gmx::RVec> xyz,
-                                                 gmx::ArrayRef<const real>      q)
+thrust::host_vector<util::array<real, 4>> toXyzqNblib(gmx::ArrayRef<const gmx::RVec> xyz,
+                                                      gmx::ArrayRef<const real>      q)
 {
     thrust::host_vector<util::array<real, 4>> ret(xyz.size());
 
@@ -105,6 +107,19 @@ thrust::host_vector<util::array<real, 4>> toXyzq(gmx::ArrayRef<const gmx::RVec> 
 
     return ret;
 }
+
+thrust::host_vector<Float4> toXyzqGmx(gmx::ArrayRef<const gmx::RVec> xyz, gmx::ArrayRef<const real> q)
+{
+    thrust::host_vector<Float4> ret(xyz.size());
+
+    for (int i = 0; i < xyz.size(); ++i)
+    {
+        ret[i] = Float4{ xyz[i][0], xyz[i][1], xyz[i][2], q[i] };
+    }
+
+    return ret;
+}
+
 
 int main(int argc, char* argv[])
 {
@@ -120,12 +135,15 @@ int main(int argc, char* argv[])
 
     ListedInteractionData interactions = convertToNblibInteractions(*tpr.interactionDefinitions_);
 
-    thrust::host_vector<util::array<real, 4>> xyzq = toXyzq(tpr.coordinates_, tpr.charges_);
-    thrust::host_vector<util::array<real, 3>> forces(xyzq.size(), util::array<real, 3>{ 0.0, 0.0, 0.0 });
+    thrust::host_vector<util::array<real, 4>> xyzqNblib = toXyzqNblib(tpr.coordinates_, tpr.charges_);
+    thrust::host_vector<Float4>               xyzqGmx   = toXyzqGmx(tpr.coordinates_, tpr.charges_);
+    thrust::host_vector<util::array<real, 3>> forces(xyzqNblib.size(),
+                                                     util::array<real, 3>{ 0.0, 0.0, 0.0 });
     thrust::host_vector<util::array<real, 3>> shiftForces(gmx::c_numShiftVectors,
                                                           util::array<real, 3>{ 0.0, 0.0, 0.0 });
 
-    thrust::device_vector<util::array<real, 4>> d_xyzq        = xyzq;
+    thrust::device_vector<util::array<real, 4>> d_xyzqNblib   = xyzqNblib;
+    thrust::device_vector<Float4>               d_xyzqGmx     = xyzqGmx;
     thrust::device_vector<util::array<real, 3>> d_forces      = forces;
     thrust::device_vector<util::array<real, 3>> d_shiftForces = shiftForces;
 
@@ -154,8 +172,8 @@ int main(int argc, char* argv[])
 
     auto wcycle = wallcycle_init(nullptr, 0, nullptr);
 
-    float                   elecScale = 1.0;
-    util::array<real, 4>*   xqDevice  = thrust::raw_pointer_cast(d_xyzq.data());
+    float                   elecScale     = 1.0;
+    util::array<real, 4>*   xqDeviceNblib = thrust::raw_pointer_cast(d_xyzqNblib.data());
     DeviceBuffer<gmx::RVec> forceDevice =
             reinterpret_cast<gmx::RVec*>(thrust::raw_pointer_cast(d_forces.data()));
     DeviceBuffer<gmx::RVec> fshiftDevice =
@@ -174,7 +192,7 @@ int main(int argc, char* argv[])
 
         calculator.setPbc(PbcType::Xyz, box.legacyMatrix(), true);
         calculator.updateInteractionListsAndDeviceBuffers(
-                noReorder, *idef, xqDevice, forceDevice, fshiftDevice);
+                noReorder, *idef, xqDeviceNblib, forceDevice, fshiftDevice);
         auto t0 = std::chrono::high_resolution_clock::now();
         calculator.launchKernel<true, true>();
         cudaDeviceSynchronize();
@@ -205,12 +223,18 @@ int main(int argc, char* argv[])
     ener.grpp.clear();
     thrust::fill(d_forces.begin(), d_forces.end(), util::array<real, 3>{ 0, 0, 0 });
     thrust::fill(d_shiftForces.begin(), d_shiftForces.end(), util::array<real, 3>{ 0, 0, 0 });
+    Float4* xqDeviceGmx = thrust::raw_pointer_cast(d_xyzqGmx.data());
 
     /* compute with gmx implementation *************************************/
     {
-        gmx::ListedForcesGpu gmxCalc(*gmx_ffparams, elecScale, deviceContext, deviceStream, wcycle.get());
+        gmx::ListedForcesGpu gmxCalc(
+                *gmx_ffparams, elecScale, deviceInfo, deviceContext, deviceStream, wcycle.get());
         gmxCalc.setPbc(PbcType::Xyz, box.legacyMatrix(), true);
-        gmxCalc.updateInteractionListsAndDeviceBuffers(noReorder, *idef, xqDevice, forceDevice, fshiftDevice);
+        NBAtomDataGpu nbAtomDataGpu;
+        nbAtomDataGpu.xq     = xqDeviceGmx;
+        nbAtomDataGpu.f      = forceDevice;
+        nbAtomDataGpu.fShift = fshiftDevice;
+        gmxCalc.updateInteractionListsAndDeviceBuffers(noReorder, *idef, &nbAtomDataGpu);
         gmx::StepWorkload stepWork;
         stepWork.computeVirial = true;
         stepWork.computeEnergy = true;

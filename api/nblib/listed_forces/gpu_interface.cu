@@ -113,7 +113,7 @@ void ListedForcesNblibGpuImpl::setPbc(PbcType pbcType, const matrix box, bool ca
 template<bool calcVir, bool calcEner>
 void ListedForcesNblibGpuImpl::launchKernel()
 {
-    wallcycle_start_nocount(wcycle_, WallCycleCounter::LaunchGpu);
+    wallcycle_start_nocount(wcycle_, WallCycleCounter::LaunchGpuPp);
     wallcycle_sub_start(wcycle_, WallCycleSubCounter::LaunchGpuBonded);
 
     constexpr int sharedMemSize          = calcVir ? sizeof(real) * 3 * gmx::c_numShiftVectors : 0;
@@ -150,7 +150,7 @@ void ListedForcesNblibGpuImpl::launchKernel()
     launchGpuKernel(kernelPtr, kernelLaunchConfig_, deviceStream_, nullptr, "computeListedForces", kernelArgs);
 
     wallcycle_sub_stop(wcycle_, WallCycleSubCounter::LaunchGpuBonded);
-    wallcycle_stop(wcycle_, WallCycleCounter::LaunchGpu);
+    wallcycle_stop(wcycle_, WallCycleCounter::LaunchGpuPp);
 }
 
 bool ListedForcesNblibGpuImpl::haveInteractions() const

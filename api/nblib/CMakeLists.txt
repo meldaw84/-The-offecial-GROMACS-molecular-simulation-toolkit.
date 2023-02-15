@@ -98,10 +98,14 @@ if (GMX_GPU_CUDA)
         target_include_directories(integrator PRIVATE ${PROJECT_SOURCE_DIR}/api)
         target_compile_options(integrator PRIVATE -Wno-deprecated-gpu-targets)
 
-        target_link_libraries(integrator PRIVATE CUDA::cudart)
-        target_link_libraries(integrator PRIVATE libgromacs)
-        target_link_libraries(integrator PRIVATE common)
-        target_link_libraries(integrator PRIVATE legacy_modules)
+        target_link_libraries(integrator PRIVATE
+	  CUDA::cudart
+	  libgromacs
+	  common
+	  legacy_api
+	  legacy_modules
+	  utility
+	  )
 endif()
 
 target_sources(nblib
