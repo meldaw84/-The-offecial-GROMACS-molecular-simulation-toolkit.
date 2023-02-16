@@ -96,6 +96,14 @@ PairlistParams::PairlistParams(const Nbnxm::KernelType kernelType,
             default: GMX_RELEASE_ASSERT(false, "Kernel type does not have a pairlist type");
         }
     }
+    else if (Nbnxm::c_iClusterSize(kernelType) == 1)
+    {
+        switch (Nbnxm::c_jClusterSize(kernelType))
+        {
+            case 1: pairlistType = PairlistType::Simple1x1; break;
+            default: GMX_RELEASE_ASSERT(false, "Kernel type does not have a pairlist type");
+        }
+    }
     else
     {
         GMX_RELEASE_ASSERT(false, "Unhandled KernelType");

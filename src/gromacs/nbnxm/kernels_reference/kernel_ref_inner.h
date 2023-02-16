@@ -108,7 +108,9 @@
             const real rinvsq = rinv * rinv;
 
 #ifdef HALF_LJ
-            if (i < UNROLLI / 2)
+            static_assert(UNROLLI == 1 || UNROLLI % 2 == 0);
+
+            if (UNROLLI > 1 && i < UNROLLI / 2)
 #endif
             {
                 const real c6  = nbfp[type_i_off + type[aj] * 2];
@@ -296,7 +298,7 @@
 #ifdef CALC_COULOMB
             /* 2 flops for scalar LJ+Coulomb force if !HALF_LJ || (i < UNROLLI / 2) */
 #    ifdef HALF_LJ
-            const real fscal = (i < UNROLLI / 2) ? frLJ * rinvsq + fcoul : fcoul;
+            const real fscal = (UNROLLI > 1 && i < UNROLLI / 2) ? frLJ * rinvsq + fcoul : fcoul;
 #    else
             const real fscal = frLJ * rinvsq + fcoul;
 #    endif

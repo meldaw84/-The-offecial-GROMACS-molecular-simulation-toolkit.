@@ -70,10 +70,10 @@ enum class NbnxnLayout
 };
 
 //! The i-cluster size for the plain-C CPU kernels
-static constexpr int sc_nbnxmPlainCIClusterSize = 4;
+static constexpr int sc_nbnxmPlainCIClusterSize = 1;
 
 //! The j-cluster size for the plain-C CPU kernels
-static constexpr int sc_nbnxmPlainCJClusterSize = 4;
+static constexpr int sc_nbnxmPlainCJClusterSize = 1;
 
 //! The i-cluster size
 static constexpr int c_iClusterSize(const NbnxnLayout nbnxmLayout)
@@ -159,6 +159,7 @@ static constexpr int c_nbnxnGpuExclSize =
 //! The available pair list types
 enum class PairlistType : int
 {
+    Simple1x1,
     Simple4x2,
     Simple4x4,
     Simple4x8,
@@ -172,15 +173,15 @@ enum class PairlistType : int
 
 //! Gives the i-cluster size for each pairlist type
 static constexpr gmx::EnumerationArray<PairlistType, int> IClusterSizePerListType = {
-    { 4, 4, 4, 2, 2, 8, 8, c_nbnxnGpuClusterSize }
+    { 1, 4, 4, 4, 2, 2, 8, 8, c_nbnxnGpuClusterSize }
 };
 //! Gives the j-cluster size for each pairlist type
 static constexpr gmx::EnumerationArray<PairlistType, int> JClusterSizePerListType = {
-    { 2, 4, 8, 16, 32, 4, 8, c_nbnxnGpuClusterSize }
+    { 1, 2, 4, 8, 16, 32, 4, 8, c_nbnxnGpuClusterSize }
 };
 //! True if given pairlist type is used on GPU, false if on CPU.
 static constexpr gmx::EnumerationArray<PairlistType, bool> sc_isGpuPairListType = {
-    { false, false, false, false, false, false, false, true }
+    { false, false, false, false, false, false, false, false, true }
 };
 
 /*! \internal

@@ -38,6 +38,8 @@
 static_assert(UNROLLI == Nbnxm::c_iClusterSize(Nbnxm::KernelType::Cpu4x4_PlainC),
               "UNROLLI should match the i-cluster size");
 
+static_assert(UNROLLI == UNROLLJ, "Currently the sizes of i- and j-clusters need to be indentical");
+
 /* We could use nbat->xstride and nbat->fstride, but macros might be faster */
 #define X_STRIDE 3
 #define F_STRIDE 3
