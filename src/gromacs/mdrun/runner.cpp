@@ -646,7 +646,7 @@ static bool gpuAccelerationOfNonbondedIsUseful(const MDLogger&   mdlog,
         gpuIsUseful = false;
         warning     = gmx::formatString(
                 "Multiple time stepping is only supported with GPUs when MTS is only applied to %s "
-                "forces.",
+                    "forces.",
                 mtsForceGroupNames[MtsForceGroups::LongrangeNonbonded].c_str());
     }
 
@@ -2095,7 +2095,8 @@ int Mdrunner::mdrunner()
 
         /* Energy terms and groups */
         gmx_enerdata_t enerd(mtop.groups.groups[SimulationAtomGroupType::EnergyOutput].size(),
-                             inputrec->fepvals->n_lambda);
+                             inputrec->fepvals->n_lambda,
+                             &inputrec->fepvals->all_lambda);
 
         // cos acceleration is only supported by md, but older tpr
         // files might still combine it with other integrators
