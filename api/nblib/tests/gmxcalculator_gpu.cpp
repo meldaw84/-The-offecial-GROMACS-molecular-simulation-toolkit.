@@ -47,16 +47,16 @@
 #include "gromacs/hardware/device_management.h"
 #include "gromacs/utility/arrayref.h"
 
+#include "testutils/test_hardware_environment.h"
+
 #include "nblib/gmxcalculatorcpu.h"
+#include "nblib/gmxcalculatorgpu.h"
 #include "nblib/kerneloptions.h"
 #include "nblib/simulationstate.h"
 #include "nblib/tests/testhelpers.h"
 #include "nblib/tests/testsystems.h"
 
 #include "buildinfo.h"
-#    include "nblib/gmxcalculatorgpu.h"
-
-#include "testutils/test_hardware_environment.h"
 
 namespace nblib
 {
@@ -135,7 +135,7 @@ TEST(NBlibTest, ReorderIsInvertible)
         const DeviceInformation& deviceInfo = testDevice->deviceInfo();
 
         const auto filepath =
-            std::filesystem::path{CMAKE_SOURCE_DIR "api/nblib/samples/", "argon5832.tpr"};
+                std::filesystem::path{ CMAKE_SOURCE_DIR "api/nblib/samples/", "argon5832.tpr" };
         nblib::TprReader tpr(filepath);
 
         int numParticles = tpr.coordinates_.size();
@@ -287,7 +287,7 @@ TEST(NBlibTest, Argon5832ForcesCpuVsGpu)
         const DeviceInformation& deviceInfo = testDevice->deviceInfo();
 
         const auto filepath =
-            std::filesystem::path{CMAKE_SOURCE_DIR "api/nblib/samples/", "argon5832.tpr"};
+                std::filesystem::path{ CMAKE_SOURCE_DIR "api/nblib/samples/", "argon5832.tpr" };
         nblib::TprReader tpr(filepath);
 
         std::size_t numParticles = tpr.coordinates_.size();
