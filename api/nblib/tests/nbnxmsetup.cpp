@@ -205,10 +205,14 @@ TEST(NbnxmSetupTest, canCreateKernelSetupGPU)
 TEST(NbnxmSetupTest, CanCreateDeviceStreamManager)
 {
     const auto& testDeviceList = gmx::test::getTestHardwareEnvironment()->getTestDeviceList();
+    if (testDeviceList.empty())
+    {
+        GTEST_SKIP() << "No compatible GPUs to test on.";
+    }
     for (const auto& testDevice : testDeviceList)
     {
+        testDevice->activate();
         const DeviceInformation& deviceInfo = testDevice->deviceInfo();
-        setActiveDevice(deviceInfo);
         gmx::SimulationWorkload simulationWork = createSimulationWorkloadGpu();
         EXPECT_NO_THROW(createDeviceStreamManager(deviceInfo, simulationWork));
     }
@@ -217,10 +221,14 @@ TEST(NbnxmSetupTest, CanCreateDeviceStreamManager)
 TEST(NbnxmSetupTest, CanCreateNbnxmGPU)
 {
     const auto& testDeviceList = gmx::test::getTestHardwareEnvironment()->getTestDeviceList();
+    if (testDeviceList.empty())
+    {
+        GTEST_SKIP() << "No compatible GPUs to test on.";
+    }
     for (const auto& testDevice : testDeviceList)
     {
+        testDevice->activate();
         const DeviceInformation& deviceInfo = testDevice->deviceInfo();
-        setActiveDevice(deviceInfo);
         size_t                  numParticles = 1;
         NBKernelOptions         nbKernelOptions;
         std::vector<real>       nonbondedParameters = { 1, 1 };
