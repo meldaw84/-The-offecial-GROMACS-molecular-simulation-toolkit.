@@ -90,7 +90,7 @@ public:
         stepWork_ = createStepWorkload();
 
         // Set up gmx_enerdata_t (holds energy information)
-        enerd_ = gmx_enerdata_t{ numEnergyGroups, 0 };
+        enerd_ = gmx_enerdata_t{ numEnergyGroups, 0, nullptr };
 
         // Construct pair lists
         std::vector<int> exclusionRanges_(exclusionRanges.begin(), exclusionRanges.end());
