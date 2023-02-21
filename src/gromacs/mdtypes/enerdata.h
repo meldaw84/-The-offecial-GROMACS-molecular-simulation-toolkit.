@@ -83,6 +83,7 @@ public:
     /*! \brief Constructor
      *
      * \param[in] numLambdas  The number of foreign lambda values
+     * \param[in] allLambdas  The list of lambda values for all lambda components, can be nullptr when \p numLambdas==0
      */
     ForeignLambdaTerms(int numLambdas,
                        const gmx::EnumerationArray<FreeEnergyPerturbationCouplingType, std::vector<double>>* allLambdas);
