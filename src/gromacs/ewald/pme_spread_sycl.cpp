@@ -327,7 +327,7 @@ auto pmeSplineAndSpreadKernel(
         }
 
         /* Spreading */
-        if constexpr (spreadCharges)
+        if (spreadCharges && atomIndexGlobal < nAtoms)
         {
             if (!pipeliningParams.usePipeline || (atomIndexGlobal < pipeliningParams.pipelineAtomEnd))
             {
@@ -350,16 +350,19 @@ auto pmeSplineAndSpreadKernel(
                     itemIdx);
             itemIdx.barrier(fence_space::local_space);
             const float atomCharge = sm_coefficients[atomIndexLocal];
-            if (!pipeliningParams.usePipeline || (atomIndexGlobal < pipeliningParams.pipelineAtomEnd))
+            if (atomIndexGlobal < nAtoms)
             {
-                spread_charges<order, wrapX, wrapY, threadsPerAtom, subGroupSize>(
-                        atomCharge,
-                        realGridSize,
-                        realGridSizePadded,
-                        a_realGrid_1.get_pointer(),
-                        sm_gridlineIndices.get_pointer(),
-                        sm_theta.get_pointer(),
-                        itemIdx);
+                if (!pipeliningParams.usePipeline || (atomIndexGlobal < pipeliningParams.pipelineAtomEnd))
+                {
+                    spread_charges<order, wrapX, wrapY, threadsPerAtom, subGroupSize>(
+                            atomCharge,
+                            realGridSize,
+                            realGridSizePadded,
+                            a_realGrid_1.get_pointer(),
+                            sm_gridlineIndices.get_pointer(),
+                            sm_theta.get_pointer(),
+                            itemIdx);
+                }
             }
         }
     };
