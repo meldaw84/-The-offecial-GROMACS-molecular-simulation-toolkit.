@@ -621,6 +621,7 @@ void pme_gpu_clear_grids(const PmeGpu* pmeGpu)
                                pmeGpu->archSpecific->realGridSize[gridIndex],
                                pmeGpu->archSpecific->pmeStream_);
     }
+    pmeGpu->archSpecific->pmeGridsReadyForSpread.markEvent(pmeGpu->archSpecific->pmeStream_);
 }
 
 void pme_gpu_realloc_and_copy_fract_shifts(PmeGpu* pmeGpu)
@@ -1853,12 +1854,7 @@ void pme_gpu_spread(const PmeGpu*                  pmeGpu,
             int numStagesInPipeline = pmeCoordinateReceiverGpu->ppCommNumSenderRanks();
 
             GpuEventSynchronizer* gridsReadyForSpread = &pmeGpu->archSpecific->pmeGridsReadyForSpread;
-            gridsReadyForSpread->markEvent(pmeGpu->archSpecific->pmeStream_);
             gridsReadyForSpread->setConsumptionLimits(numStagesInPipeline, numStagesInPipeline);
-            for (int i = 0; i < numStagesInPipeline; i++)
-            {
-                gridsReadyForSpread->enqueueWaitEvent(*pmeCoordinateReceiverGpu->ppCommStream(i));
-            }
 
             for (int i = 0; i < numStagesInPipeline; i++)
             {
@@ -1868,6 +1864,8 @@ void pme_gpu_spread(const PmeGpu*                  pmeGpu,
                 wallcycle_stop(wcycle, WallCycleCounter::WaitGpuPmePPRecvX);
 
                 wallcycle_start(wcycle, WallCycleCounter::LaunchGpuPme);
+                // Ensure that spread does not start before grid clearing is complete;
+                gridsReadyForSpread->enqueueWaitEvent(*pmeCoordinateReceiverGpu->ppCommStream(i));
 
                 // set kernel configuration options specific to this stage of the pipeline
                 std::tie(kernelParamsPtr->pipelineAtomStart, kernelParamsPtr->pipelineAtomEnd) =
