@@ -116,7 +116,7 @@ public:
     gmx::SimulationWorkload simulationWork_;
 
     //! Energies of different interaction types; currently only needed as an argument for dispatchNonbondedKernel
-    gmx_enerdata_t enerd_{ 1, 0 };
+    gmx_enerdata_t enerd_{ 1, 0, nullptr };
 
     //! Non-bonded flop counter; currently only needed as an argument for dispatchNonbondedKernel
     t_nrnb nrnb_;
