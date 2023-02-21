@@ -72,6 +72,9 @@ composeDhdl(const int lambdaIndex,
 {
     const int numLambdaPoints = gmx::ssize(allLambdas[FreeEnergyPerturbationCouplingType::Fep]);
 
+    const bool isFirstLambdaIndex = (lambdaIndex == 0);
+    const bool isLastLambdaIndex  = (lambdaIndex == numLambdaPoints - 1);
+
     // Loop over all lambda components and conditionally add their dhdl contributions
     double dhdlSum = 0;
     for (auto component : gmx::EnumerationWrapper<FreeEnergyPerturbationCouplingType>())
@@ -82,20 +85,20 @@ composeDhdl(const int lambdaIndex,
         // we add dH/dlambda multiplied by a half for each side.
         // We also change sign when lambda decreases with increasing index.
         double fac = 0;
-        if (lambdaIndex > 0)
+        if (!isFirstLambdaIndex)
         {
             double diff = compLambdas[lambdaIndex] - compLambdas[lambdaIndex - 1];
             if (diff != 0)
             {
-                fac += std::copysign(0.5, diff);
+                fac += std::copysign(isLastLambdaIndex ? 1.0 : 0.5, diff);
             }
         }
-        if (lambdaIndex < numLambdaPoints - 1)
+        if (!isLastLambdaIndex)
         {
             double diff = compLambdas[lambdaIndex + 1] - compLambdas[lambdaIndex];
             if (diff != 0)
             {
-                fac += std::copysign(0.5, diff);
+                fac += std::copysign(isFirstLambdaIndex ? 1.0 : 0.5, diff);
             }
         }
         dhdlSum += fac * dhdl[component];
