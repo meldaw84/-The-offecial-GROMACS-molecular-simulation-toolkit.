@@ -119,6 +119,8 @@ void updateCorrelationGridHistory(CorrelationGridHistory* correlationGridHistory
 
                 bdh.correlationIntegral = blockData.correlationIntegral()[k];
 
+                /* For the last blockDataBuffer element of blockData also update data independent
+                 * of k, d1 and d2. */
                 if (k == tensorSize - 1)
                 {
                     bdh.blockSumWeight                 = blockData.blockSumWeight();
@@ -200,6 +202,8 @@ void CorrelationTensor::restoreFromHistory(const std::vector<CorrelationBlockDat
 
             correlationIntegral[k] = blockHistory.correlationIntegral;
 
+            /* For the last blockDataBuffer element of blockData also restore data independent
+             * of k, d1 and d2. */
             if (k == tensorSize - 1)
             {
                 blockData.restoreFromHistory(blockHistory, coordData, correlationIntegral);

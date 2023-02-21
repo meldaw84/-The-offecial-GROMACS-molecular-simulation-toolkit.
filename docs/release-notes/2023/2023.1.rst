@@ -34,6 +34,15 @@ multiple PP ranks.
 
 :issue:`4629`
 
+Fix AWH friction metric of checkpoints for dimensions > 1.
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+The friction metric checkpoint i/o was wrong for dimensions > 1. This did
+not affect the AWH PMF or sampling, but would result in nonsense if the
+AWH friction tensors were used for calculate diffusion in dimensions > 1.
+
+:issue:`4723`
+
 Fixes for ``gmx`` tools
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -49,6 +58,16 @@ Fix creating index file from another index file
 ``gmx make_ndx`` can again accept an index file alone as input, without associated structure file.
 
 :issue:`4717`
+
+Allow selection of energy term by full name in ``gmx energy``
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+It is now possible to select energy terms by full name. This is specifically helpful for terms starting
+with a number, such as "1/Viscosity" or "2CosZ*Vel-X", which could previously only be selected reliably
+by number.
+
+:issue:`4739`
+
 
 Fixes that affect portability
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
