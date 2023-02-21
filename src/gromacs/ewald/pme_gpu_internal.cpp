@@ -1850,6 +1850,13 @@ void pme_gpu_spread(const PmeGpu*                  pmeGpu,
         {
             int numStagesInPipeline = pmeCoordinateReceiverGpu->ppCommNumSenderRanks();
 
+            GpuEventSynchronizer gridClearingComplete(numStagesInPipeline, numStagesInPipeline);
+            gridClearingComplete.markEvent(pmeGpu->archSpecific->pmeStream_);
+            for (int i = 0; i < numStagesInPipeline; i++)
+            {
+                gridClearingComplete.enqueueWaitEvent(*pmeCoordinateReceiverGpu->ppCommStream(i));
+            }
+
             for (int i = 0; i < numStagesInPipeline; i++)
             {
                 wallcycle_start(wcycle, WallCycleCounter::WaitGpuPmePPRecvX);
