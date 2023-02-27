@@ -82,11 +82,18 @@
  *   - with large inputs NTHREAD_Z=1 is 2-3% faster (on CC>=5.0)
  */
 #define NTHREAD_Z (GMX_NBNXN_PRUNE_KERNEL_J4_CONCURRENCY)
-#define THREADS_PER_BLOCK (c_clSize * c_clSize * NTHREAD_Z)
-// we want 100% occupancy, so max threads/block
+#define THREADS_PER_BLOCK (c_clSize * c_clSize/2 * NTHREAD_Z)
 #define MIN_BLOCKS_PER_MP (GMX_CUDA_MAX_THREADS_PER_MP / THREADS_PER_BLOCK)
 /**@}*/
 
+
+__forceinline__ __device__ float convert_f32_to_tf32(float f32_input){
+    float tf32_output;
+    asm ("{.reg .b32 %mr;\n"
+        "cvt.rna.tf32.f32 %mr, %1;\n"
+        "mov.b32 %0, %mr;}\n" : "=f"(tf32_output) : "f"(f32_input));
+    return tf32_output;
+}
 /*! \brief Nonbonded list pruning kernel.
  *
  *  The \p haveFreshList template parameter defines the two flavors of the kernel; when
@@ -130,8 +137,8 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
     float rlistInner_sq = nbparam.rlistInner_sq;
 
     /* thread/block/warp id-s */
-    unsigned int tidxi = threadIdx.x;
-    unsigned int tidxj = threadIdx.y;
+    unsigned int tidxi = threadIdx.y;
+    unsigned int tidxj = threadIdx.x;
 #    if NTHREAD_Z == 1
     unsigned int tidxz = 0;
 #    else
@@ -179,17 +186,42 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
     // We may need only a subset of threads active for preloading i-atoms
     // depending on the super-cluster and cluster / thread-block size.
     constexpr bool c_loadUsingAllXYThreads = (c_clSize == c_nbnxnGpuNumClusterPerSupercluster);
-    if (tidxz == 0 && (c_loadUsingAllXYThreads || tidxj < c_nbnxnGpuNumClusterPerSupercluster))
+    if (tidxz == 0 && (c_loadUsingAllXYThreads || tidxi < c_nbnxnGpuNumClusterPerSupercluster))
     {
         /* Pre-load i-atom x and q into shared memory */
-        int ci = sci * c_nbnxnGpuNumClusterPerSupercluster + tidxj;
-        int ai = ci * c_clSize + tidxi;
+        int ci = sci * c_nbnxnGpuNumClusterPerSupercluster + tidxi*2;
+        int ai = ci * c_clSize + tidxj;
 
         /* We don't need q, but using float4 in shmem avoids bank conflicts.
            (but it also wastes L2 bandwidth). */
         float4 tmp                    = xq[ai];
         float4 xi                     = tmp + shift_vec[nb_sci.shift];
-        xib[tidxj * c_clSize + tidxi] = xi;
+        float  normi = norm2(make_float3(xi.x, xi.y, xi.z));
+        // use last element in float4 to store norm, as we're reading the full float4 anyway
+        xi.w = normi;
+        // (a-b)^2 = a^2 + b^2 - 2ab -- do the multiplication by -2 here
+        xi.x = -2*xi.x;
+        xi.y = -2*xi.y;
+        xi.z = -2*xi.z;
+        xib[tidxi*2 * c_clSize + tidxj] = xi;
+
+        // as we have 8x4 threads with tidxz==0, have each thread load two values to get up to 64 points
+        int ci2 = sci * c_nbnxnGpuNumClusterPerSupercluster + tidxi*2+1;
+        ai = ci2 * c_clSize + tidxj;
+
+        /* We don't need q, but using float4 in shmem avoids bank conflicts.
+           (but it also wastes L2 bandwidth). */
+        tmp                    = xq[ai];
+        xi                     = tmp + shift_vec[nb_sci.shift];
+        normi = norm2(make_float3(xi.x, xi.y, xi.z));
+        // use last element in float4 to store norm, as we're reading the full float4 anyway
+        xi.w = normi;
+        // (a-b)^2 = a^2 + b^2 - 2ab -- do the multiplication by -2 here
+        xi.x = -2*xi.x;
+        xi.y = -2*xi.y;
+        xi.z = -2*xi.z;
+        xib[(tidxi*2+1) * c_clSize + tidxj] = xi;
+
     }
     __syncthreads();
 
@@ -200,26 +232,36 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
     for (int j4 = cij4_start + tidxz; j4 < cij4_end; j4 += NTHREAD_Z)
     {
         unsigned int imaskFull, imaskCheck, imaskNew;
+        unsigned int imaskFull_firstJs, imaskCheck_firstJs, imaskNew_firstJs;
+        unsigned int imaskFull_secondJs, imaskCheck_secondJs, imaskNew_secondJs;
 
         if (haveFreshList)
         {
             /* Read the mask from the list transferred from the CPU */
-            imaskFull = pl_cj4[j4].imei[widx].imask;
+            imaskFull_firstJs = pl_cj4[j4].imei[0].imask;
+            imaskFull_secondJs = pl_cj4[j4].imei[1].imask;
             /* We attempt to prune all pairs present in the original list */
-            imaskCheck = imaskFull;
-            imaskNew   = 0;
+            imaskCheck_firstJs = imaskFull_firstJs;
+            imaskCheck_secondJs = imaskFull_secondJs;
+            imaskNew_firstJs   = 0;
+            imaskNew_secondJs   = 0;
         }
         else
         {
             /* Read the mask from the "warp-pruned" by rlistOuter mask array */
-            imaskFull = plist.imask[j4 * c_nbnxnGpuClusterpairSplit + widx];
+            // each warp now handles 8 j values, so is responsible for both masks
+            // TODO fix hard code
+            imaskFull_firstJs = plist.imask[j4 * c_nbnxnGpuClusterpairSplit + 0];
+            imaskFull_secondJs = plist.imask[j4 * c_nbnxnGpuClusterpairSplit + 1];
             /* Read the old rolling pruned mask, use as a base for new */
-            imaskNew = pl_cj4[j4].imei[widx].imask;
+            imaskNew_firstJs = pl_cj4[j4].imei[0].imask;
+            imaskNew_secondJs = pl_cj4[j4].imei[1].imask;
             /* We only need to check pairs with different mask */
-            imaskCheck = (imaskNew ^ imaskFull);
+            imaskCheck_firstJs = (imaskNew_firstJs ^ imaskFull_firstJs);
+            imaskCheck_secondJs = (imaskNew_secondJs ^ imaskFull_secondJs);
         }
 
-        if (imaskCheck)
+        if (imaskCheck_firstJs || imaskCheck_secondJs)
         {
             if (c_preloadCj)
             {
@@ -230,11 +272,11 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
                 }
                 __syncwarp(c_fullWarpMask);
             }
-
 #    pragma unroll c_nbnxnGpuJgroupSize
             for (int jm = 0; jm < c_nbnxnGpuJgroupSize; jm++)
             {
-                if (imaskCheck & (superClInteractionMask << (jm * c_nbnxnGpuNumClusterPerSupercluster)))
+                if ((imaskCheck_firstJs & (superClInteractionMask << (jm * c_nbnxnGpuNumClusterPerSupercluster)))
+                ||(imaskCheck_secondJs & (superClInteractionMask << (jm * c_nbnxnGpuNumClusterPerSupercluster))))
                 {
                     unsigned int mask_ji = (1U << (jm * c_nbnxnGpuNumClusterPerSupercluster));
                     int cj = c_preloadCj ? cjs[jm + (tidxj & 4) * c_nbnxnGpuJgroupSize / c_splitClSize]
@@ -244,55 +286,229 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
                     /* load j atom data */
                     float4 tmp = xq[aj];
                     float3 xj  = make_float3(tmp.x, tmp.y, tmp.z);
-
+                    float  normj = tmp.x*tmp.x + tmp.y*tmp.y + tmp.z*tmp.z;
 #    pragma unroll c_nbnxnGpuNumClusterPerSupercluster
-                    for (int i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i++)
+                    for (int i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i+=2)
                     {
-                        if (imaskCheck & mask_ji)
+                        if ((imaskCheck_firstJs & mask_ji)
+                        || (imaskCheck_secondJs & (mask_ji+mask_ji)))
                         {
-                            /* load i-cluster coordinates from shmem */
-                            float4 xi = xib[i * c_clSize + tidxi];
-
-
                             /* distance between i and j atoms */
-                            float3 rv = make_float3(xi.x, xi.y, xi.z) - xj;
-                            float  r2 = norm2(rv);
+// Tensor core implementation
+#if GMX_PTX_ARCH >= 800
+                            int lid = threadIdx.x + threadIdx.y*blockDim.x;
+                            // load i values using entire warp
+                            int a0_index = lid >> 2; 
+                            // first 8 i values
+                            float4 xi1 = xib[i * c_clSize + a0_index];
+                            // second 8 i values
+                            float4 xi2 = xib[(i+1) * c_clSize + a0_index];
+        
+                            float normi1 = xi1.w;
+                            float normi2 = xi2.w;
 
+                            // vars for tf32 m16n8k4 instruction -- https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#warp-level-matrix-fragment-mma-1684
+                            // A stores 16x3 i values
+                            // B stores 8x3 j values
+                            // D stores 16x8 ixj distances
+                            // C stores 16x8 normi + normj values
+                            float af0=0, af1=0;
+                            float bf0=0;
+                            float c0=0, c1=0, c2=0, c3=0;
+                            float d0=0, d1=0, d2=0, d3=0;
+
+                            // choose xi component based on matrix B k value
+                            af0 = xi1.x*((lid&3)==0) + xi1.y*((lid&3)==1) + xi1.z*((lid&3)==2); // lid%4==3 (k=3) is 0
+                            af1 = xi2.x*((lid&3)==0) + xi2.y*((lid&3)==1) + xi2.z*((lid&3)==2); // lid%4==3 (k=3) is 0
+
+                            // choose xj component based on matrix A k value
+                            float shfl_xvar_j = xj.x*(threadIdx.y==0) + xj.y*(threadIdx.y==1) + xj.z*(threadIdx.y==2);
+                            bf0 = __shfl_sync(0xffffffff, shfl_xvar_j, lid>>2 + 8*(lid&3), 32);
+
+                            // we need to add normi + normj to the MMA:
+                            // (a-b)^2 = a^2 + b^2 - 2ab
+                            float normj_c0_contrib = __shfl_sync(0xffffffff, normj, lid*2, 32);
+                            float normj_c1_contrib = __shfl_sync(0xffffffff, normj, lid*2+1, 32);
+                            float normj_c2_contrib = normj_c0_contrib; 
+                            float normj_c3_contrib = normj_c1_contrib;
+
+                            c0 = normj_c0_contrib + normi1;
+                            c1 = normj_c1_contrib + normi1;
+                            c2 = normj_c2_contrib + normi2;
+                            c3 = normj_c3_contrib + normi2;
+
+                            // 3xTF32 needed to reach FP32 accuracy:
+                            // a x b = (a_big + a_small) x (b_big + b_small) = a_big x b_big + a_big x b_small + a_small x b_big
+                            // big = fp32_to_tf32(fp32)
+                            // small = fp32_to_tf32(fp32-big)
+
+                            // uint32_t format required for a, b -- see https://github.com/NVIDIA/cutlass/blob/master/include/cutlass/arch/mma_sm80.h#L179
+                            float af0_big = convert_f32_to_tf32(af0);
+                            uint32_t *a0_big = reinterpret_cast<uint32_t *>(&af0_big);
+                            float af1_big = convert_f32_to_tf32(af1);
+                            uint32_t *a1_big = reinterpret_cast<uint32_t *>(&af1_big);
+                            float bf0_big = convert_f32_to_tf32(bf0);
+                            uint32_t *b0_big = reinterpret_cast<uint32_t *>(&bf0_big);
+
+                            float af0_small = af0 - af0_big;
+                            uint32_t *a0_small = reinterpret_cast<uint32_t *>(&af0_small);
+                            float af1_small = af1 - af1_big;
+                            uint32_t *a1_small = reinterpret_cast<uint32_t *>(&af1_small);
+                            float bf0_small = bf0 - bf0_big;
+                            uint32_t *b0_small = reinterpret_cast<uint32_t *>(&bf0_small);
+
+                            // do MMA x 3
+                            asm volatile(
+                            "mma.sync.aligned.m16n8k4.row.col.f32.tf32.tf32.f32 {%0,%1,%2,%3}, {%4,%5}, {%6}, {%7,%8,%9,%10};\n"
+                            : "=f"(d0), "=f"(d1), "=f"(d2), "=f"(d3)
+                            : 
+                              "r"(*a0_big), "r"(*a1_big), 
+                              "r"(*b0_big), 
+                              "f"(c0), "f"(c1), "f"(c2), "f"(c3)
+                            ); 
+                            asm volatile(
+                            "mma.sync.aligned.m16n8k4.row.col.f32.tf32.tf32.f32 {%0,%1,%2,%3}, {%4,%5}, {%6}, {%7,%8,%9,%10};\n"
+                            : "=f"(d0), "=f"(d1), "=f"(d2), "=f"(d3)
+                            : 
+                              "r"(*a0_big), "r"(*a1_big), 
+                              "r"(*b0_small), 
+                              "f"(d0), "f"(d1), "f"(d2), "f"(d3)
+                            ); 
+                            asm volatile(
+                            "mma.sync.aligned.m16n8k4.row.col.f32.tf32.tf32.f32 {%0,%1,%2,%3}, {%4,%5}, {%6}, {%7,%8,%9,%10};\n"
+                            : "=f"(d0), "=f"(d1), "=f"(d2), "=f"(d3)
+                            : 
+                              "r"(*a0_small), "r"(*a1_small), 
+                              "r"(*b0_big), 
+                              "f"(d0), "f"(d1), "f"(d2), "f"(d3)
+                            ); 
+
+                            int j0To3Mask = 0x33333333;
+                            int j4To7Mask = 0xCCCCCCCC;
+
+                            int anyInOuterRange1_firstJs, anyInOuterRange2_firstJs, 
+                                anyInInnerRange1_firstJs, anyInInnerRange2_firstJs, 
+                                anyInOuterRange1_secondJs, anyInOuterRange2_secondJs, 
+                                anyInInnerRange1_secondJs, anyInInnerRange2_secondJs;
+
+                        // TODO tried masking out unneeded ops here, branching appears to lead to worse performance
+                        // investigate why
+                        //if (imaskCheck_firstJs & mask_ji){
+                             anyInOuterRange1_firstJs = __any_sync(j0To3Mask, d0 < rlistOuter_sq) | 
+                                        __any_sync(j0To3Mask, d1 < rlistOuter_sq);
+                             anyInOuterRange2_firstJs = __any_sync(j0To3Mask, d2 < rlistOuter_sq) | 
+                                        __any_sync(j0To3Mask, d3 < rlistOuter_sq);
+
+                             anyInInnerRange1_firstJs = __any_sync(j0To3Mask, d0 < rlistInner_sq) | 
+                                        __any_sync(j0To3Mask, d1 < rlistInner_sq);
+                             anyInInnerRange2_firstJs = __any_sync(j0To3Mask, d2 < rlistInner_sq) | 
+                                        __any_sync(j0To3Mask, d3 < rlistInner_sq);
+                        //}
+
+                        // TODO tried masking out unneeded ops here, branching appears to lead to worse performance
+                        // investigate why
+                        //if (imaskCheck_secondJs & (mask_ji+mask_ji)){
+                             anyInOuterRange1_secondJs = __any_sync(j4To7Mask, d0 < rlistOuter_sq) | 
+                                        __any_sync(j0To3Mask, d1 < rlistOuter_sq);
+                             anyInOuterRange2_secondJs = __any_sync(j4To7Mask, d2 < rlistOuter_sq) | 
+                                        __any_sync(j4To7Mask, d3 < rlistOuter_sq);
+
+                             anyInInnerRange1_secondJs = __any_sync(j4To7Mask, d0 < rlistInner_sq) | 
+                                        __any_sync(j4To7Mask, d1 < rlistInner_sq);
+                             anyInInnerRange2_secondJs = __any_sync(j4To7Mask, d2 < rlistInner_sq) | 
+                                        __any_sync(j4To7Mask, d3 < rlistInner_sq);
+                        //}
+
+#else
+                            // Version that does not use tensor cores but does pack 16 i, 8 j into one warp
+                            // for comparing data only; not optimised
+                            float4 xi1_front4 = xib[i * c_clSize + tidxi];
+                            float4 xi1_back4 = xib[i * c_clSize + tidxi + c_clSize/2];
+                            float4 xi2_front4 = xib[(i+1) * c_clSize + tidxi];
+                            float4 xi2_back4 = xib[(i+1) * c_clSize + tidxi + c_clSize/2];
+                            float3 rv1_front4 = make_float3(xi1_front4.x/-2, xi1_front4.y/-2, xi1_front4.z/-2) - xj;
+                            float3 rv1_back4 = make_float3(xi1_back4.x/-2, xi1_back4.y/-2, xi1_back4.z/-2) - xj;
+                            float3 rv2_front4 = make_float3(xi2_front4.x/-2, xi2_front4.y/-2, xi2_front4.z/-2) - xj;
+                            float3 rv2_back4 = make_float3(xi2_back4.x/-2, xi2_back4.y/-2, xi2_back4.z/-2) - xj;
+                            float  r21_front4 = norm2(rv1_front4);
+                            float  r21_back4 = norm2(rv1_back4);
+                            float  r22_front4 = norm2(rv2_front4);
+                            float  r22_back4 = norm2(rv2_back4);
+
+                            int j0To3Mask = 0x0F0F0F0F;
+                            int j4To7Mask = 0xF0F0F0F0;
+                            int anyInOuterRange1_firstJs = __any_sync(j0To3Mask, r21_front4 < rlistOuter_sq) | __any_sync(j0To3Mask, r21_back4 < rlistOuter_sq);
+                            int anyInInnerRange1_firstJs = __any_sync(j0To3Mask, r21_front4 < rlistInner_sq) | __any_sync(j0To3Mask, r21_back4 < rlistInner_sq);
+                            int anyInOuterRange2_firstJs = __any_sync(j0To3Mask, r22_front4 < rlistOuter_sq) | __any_sync(j0To3Mask, r22_back4 < rlistOuter_sq);
+                            int anyInInnerRange2_firstJs = __any_sync(j0To3Mask, r22_front4 < rlistInner_sq) | __any_sync(j0To3Mask, r22_back4 < rlistInner_sq);
+                            int anyInOuterRange1_secondJs = __any_sync(j4To7Mask, r21_front4 < rlistOuter_sq) | __any_sync(j4To7Mask, r21_back4 < rlistOuter_sq);
+                            int anyInInnerRange1_secondJs = __any_sync(j4To7Mask, r21_front4 < rlistInner_sq) | __any_sync(j4To7Mask, r21_back4 < rlistInner_sq);
+                            int anyInOuterRange2_secondJs = __any_sync(j4To7Mask, r22_front4 < rlistOuter_sq) | __any_sync(j4To7Mask, r22_back4 < rlistOuter_sq);
+                            int anyInInnerRange2_secondJs = __any_sync(j4To7Mask, r22_front4 < rlistInner_sq) | __any_sync(j4To7Mask, r22_back4 < rlistInner_sq);
+
+#endif
+
+                        // TODO tried masking out unneeded ops here, branching appears to lead to worse performance
+                        // investigate why
+                        //if (imaskCheck_firstJs & mask_ji){
                             /* If _none_ of the atoms pairs are in rlistOuter
                                range, the bit corresponding to the current
                                cluster-pair in imask gets set to 0. */
-                            if (haveFreshList && !__any_sync(c_fullWarpMask, r2 < rlistOuter_sq))
-                            {
-                                imaskFull &= ~mask_ji;
-                            }
+                            if (haveFreshList && !anyInOuterRange1_firstJs) imaskFull_firstJs &= ~mask_ji;
                             /* If any atom pair is within range, set the bit
                                corresponding to the current cluster-pair. */
-                            if (__any_sync(c_fullWarpMask, r2 < rlistInner_sq))
-                            {
-                                imaskNew |= mask_ji;
-                            }
-                        }
+                            if (anyInInnerRange1_firstJs) imaskNew_firstJs |= mask_ji;
+                            /* If _none_ of the atoms pairs are in rlistOuter
+                               range, the bit corresponding to the current
+                               cluster-pair in imask gets set to 0. */
+                            if (haveFreshList && !anyInOuterRange2_firstJs) imaskFull_firstJs &= ~(mask_ji+mask_ji);
+                            /* If any atom pair is within range, set the bit
+                               corresponding to the current cluster-pair. */
+                            if (anyInInnerRange2_firstJs) imaskNew_firstJs |= (mask_ji);
+                        //}
 
-                        /* shift the mask bit by 1 */
-                        mask_ji += mask_ji;
-                    }
-                }
-            }
+                        // TODO tried masking out unneeded ops here, branching appears to lead to worse performance
+                        // investigate why
+                        //if (imaskCheck_secondJs & (mask_ji+mask_ji)){
+                            if (haveFreshList && !anyInOuterRange1_secondJs) imaskFull_secondJs &= ~mask_ji;
+                            /* If any atom pair is within range, set the bit
+                               corresponding to the current cluster-pair. */
+                            if (anyInInnerRange1_secondJs) imaskNew_secondJs |= mask_ji;
+
+                            if (haveFreshList && !anyInOuterRange2_secondJs) imaskFull_secondJs &= ~(mask_ji+mask_ji);
+                            // TODO calculating definitely incorect mask which somehow prevents a mem error and crash 
+                            // later in the program, for profiling the existing code only. This suggests there is 
+                            // still a bug somewhere in this code
+                            // the mask that should be correct is commented out below
+                            if (anyInInnerRange2_secondJs) imaskNew_secondJs |= (mask_ji);
+                            // if (anyInInnerRange2_secondJs) imaskNew_secondJs |= (mask_ji+mask_ji); 
+                        //}
+                        } // END if mask
+
+                        // mask for next i cluster in supercluster
+                        /* shift the mask bit by 2 */
+                        mask_ji = mask_ji >> 2;
+                    } // END LOOP OVER i
+                } // END if mask
+            } // END LOOP OVER jm
 
             if (haveFreshList)
             {
                 /* copy the list pruned to rlistOuter to a separate buffer */
-                plist.imask[j4 * c_nbnxnGpuClusterpairSplit + widx] = imaskFull;
+                plist.imask[j4 * c_nbnxnGpuClusterpairSplit + 0] = imaskFull_firstJs;
+                plist.imask[j4 * c_nbnxnGpuClusterpairSplit + 1] = imaskFull_secondJs;
             }
             /* update the imask with only the pairs up to rlistInner */
-            plist.cj4[j4].imei[widx].imask = imaskNew;
-        }
+            plist.cj4[j4].imei[0].imask = imaskNew_firstJs;
+            plist.cj4[j4].imei[1].imask = imaskNew_secondJs;
+
+        } // END if mask
         if (c_preloadCj)
         {
             // avoid shared memory WAR hazards on sm_cjs between loop iterations
             __syncwarp(c_fullWarpMask);
         }
-    }
+    } // END LOOP OVER j4
 }
 #endif /* FUNCTION_DECLARATION_ONLY */
 
