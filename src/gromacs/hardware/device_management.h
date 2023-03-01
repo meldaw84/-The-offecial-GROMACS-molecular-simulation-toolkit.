@@ -84,10 +84,8 @@ void warnWhenDeviceNotTargeted(const gmx::MDLogger& mdlog, const DeviceInformati
  * environment variable and a valid device driver, ICD, and/or runtime was
  * detected. Does not throw.
  *
- * \param[out] errorMessage  When returning false on a build configured with
- *                           GPU support and non-nullptr was passed,
- *                           the string contains a descriptive message about
- *                           why GPUs cannot be detected.
+ * \returns \c std::true_type{} on success, otherwise \c tl::unexpected<std::string>
+ *          which contains a descriptive message about why GPUs cannot be detected.
  */
 tl::expected<std::true_type, std::string> canPerformDeviceDetection();
 
@@ -110,10 +108,9 @@ bool isDeviceDetectionEnabled();
  * configurations that do not support GPUs, and there will be no
  * descriptive message in that case.
  *
- * \param[out] errorMessage  When returning false on a build configured with
- *                           GPU support and non-nullptr was passed,
- *                           the string contains a descriptive message about
- *                           why GPUs cannot be detected.
+ * \returns \c std::true_type{} on success, otherwise \c tl::unexpected<std::string>
+ *          which contains a descriptive message about why GPUs cannot be detected
+ *          or are not functioning properly.
  *
  * Does not throw.
  */
