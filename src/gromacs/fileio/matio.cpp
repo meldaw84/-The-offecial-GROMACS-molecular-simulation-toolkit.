@@ -868,7 +868,7 @@ static void writeXpmAxis(FILE* out, const char* axis, ArrayRef<const real> label
     fprintf(out, "*/\n");
 }
 
-static void write_xpm_data(FILE* out, int n_x, int n_y, real** mat, real lo, real hi, int nlevels)
+static void write_xpm_data(FILE* out, int n_x, int n_y, const real* const* mat, real lo, real hi, int nlevels)
 {
     int  i, j, c;
     real invlevel;
@@ -1307,9 +1307,9 @@ void write_xpm(FILE*              out,
                const std::string& label_y,
                int                n_x,
                int                n_y,
-               real               axis_x[],
-               real               axis_y[],
-               real*              mat[],
+               const real         axis_x[],
+               const real         axis_y[],
+               const real* const  mat[],
                real               lo,
                real               hi,
                t_rgb              rlo,
@@ -1339,25 +1339,29 @@ void write_xpm(FILE*              out,
 
     write_xpm_header(out, title, legend, label_x, label_y, FALSE);
     write_xpm_map(out, n_x, n_y, nlevels, lo, hi, rlo, rhi);
-    writeXpmAxis(out, "x", ArrayRef<real>(axis_x, axis_x + n_x + ((flags & MAT_SPATIAL_X) != 0U ? 1 : 0)));
-    writeXpmAxis(out, "y", ArrayRef<real>(axis_y, axis_y + n_y + ((flags & MAT_SPATIAL_Y) != 0U ? 1 : 0)));
+    writeXpmAxis(out,
+                 "x",
+                 ArrayRef<const real>(axis_x, axis_x + n_x + ((flags & MAT_SPATIAL_X) != 0U ? 1 : 0)));
+    writeXpmAxis(out,
+                 "y",
+                 ArrayRef<const real>(axis_y, axis_y + n_y + ((flags & MAT_SPATIAL_Y) != 0U ? 1 : 0)));
     write_xpm_data(out, n_x, n_y, mat, lo, hi, *nlevels);
 }
 
-void write_xpm(FILE*                                          out,
-               unsigned int                                   flags,
-               const std::string&                             title,
-               const std::string&                             legend,
-               const std::string&                             label_x,
-               const std::string&                             label_y,
-               gmx::ArrayRef<real>                            axis_x,
-               gmx::ArrayRef<real>                            axis_y,
-               gmx::basic_mdspan<real, gmx::dynamicExtents2D> mat,
-               real                                           lo,
-               real                                           hi,
-               t_rgb                                          rlo,
-               t_rgb                                          rhi,
-               int*                                           nlevels)
+void write_xpm(FILE*                                                out,
+               unsigned int                                         flags,
+               const std::string&                                   title,
+               const std::string&                                   legend,
+               const std::string&                                   label_x,
+               const std::string&                                   label_y,
+               gmx::ArrayRef<const real>                            axis_x,
+               gmx::ArrayRef<const real>                            axis_y,
+               gmx::basic_mdspan<const real, gmx::dynamicExtents2D> mat,
+               real                                                 lo,
+               real                                                 hi,
+               t_rgb                                                rlo,
+               t_rgb                                                rhi,
+               int*                                                 nlevels)
 {
     real** tempMatrix;
     snew(tempMatrix, mat.extent(0));
