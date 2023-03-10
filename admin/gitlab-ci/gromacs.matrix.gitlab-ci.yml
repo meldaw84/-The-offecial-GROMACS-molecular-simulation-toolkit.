@@ -222,3 +222,5 @@ include:
   - local: '/admin/gitlab-ci/gromacs.matrix/gromacs.intel-llvm-nvidia-nightly.gitlab-ci.yml'
   - local: '/admin/gitlab-ci/gromacs.matrix/gromacs-gcc-9-cp2k-8.2-nightly.gitlab-ci.yml'
   - local: '/admin/gitlab-ci/gromacs.matrix/gromacs-gcc-9-cp2k-9.1-nightly.gitlab-ci.yml'
+  - local: '/admin/gitlab-ci/gromacs.matrix/gromacs.macos-clang.gitlab-ci.yml'
+

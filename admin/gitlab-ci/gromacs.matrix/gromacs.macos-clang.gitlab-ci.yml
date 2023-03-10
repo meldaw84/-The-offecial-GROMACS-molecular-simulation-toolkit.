@@ -1,0 +1,108 @@
+# Test goal: newest GCC with OpenCL on macOS
+# Test intents (should change rarely and conservatively):
+#   OS: macOS newest supported
+#   Compiler: AppleClang
+#   GPU: OpenCL
+#   FFT: vkFFT
+#   HW: Apple Silicon GPU
+#   Scope: configure, build, unit tests, regression tests
+# Test implementation choices (free to change as needed):
+#   OS: macOS ??
+#   Build type: RelWithAssert
+#   Compiler: Apple Clang 14 + libomp 16.0.4
+#   MPI: thread_MPI
+#   SIMD: NEON
+#   Parallelism nt/ntomp: 4/2 (unit tests)
+#   Parallelism nt/ntomp: 4/2 (regression tests)
+
+gromacs:macos:bootstrap:
+  extends:
+    - .rules:post-merge-acceptance
+  tags:
+    - k8s-scilifelab-mac
+  stage: pre-build
+  script:
+    - bash -x admin/ci-scripts/gromacs-bootstrap-macos.sh
+  cache:
+    - key:
+        files:
+          - admin/ci-scripts/gromacs-bootstrap-macos.sh
+      paths:
+        - toolchain/
+  artifacts:
+    paths:
+      - toolchain/bin/
+      - toolchain/include/
+      - toolchain/lib/
+      - toolchain/share/
+    expire_in: "1 day"
+
+gromacs:macos:configure:
+  extends:
+    - .gromacs:base:configure
+    - .use-opencl
+    - .rules:post-merge-acceptance
+  tags:
+    - k8s-scilifelab-mac
+  variables:
+    CMAKE: "$CI_PROJECT_DIR/toolchain/bin/cmake"
+    CMAKE_COMPILER_SCRIPT: "-DCMAKE_CXX_COMPILER=c++ -DCMAKE_C_COMPILER=cc -DCCACHE_PROGRAM=$CI_PROJECT_DIR/toolchain/bin/ccache -DGMX_ENABLE_CCACHE=ON"
+    CMAKE_SIMD_OPTIONS: "-DGMX_SIMD=ARM_NEON_ASIMD"
+    CMAKE_EXTRA_OPTIONS: "-DGMX_GPU_FFT_LIBRARY=vkfft -DOpenMP_libomp_LIBRARY=$CI_PROJECT_DIR/toolchain/lib/libomp.dylib"
+  needs:
+    - job: gromacs:macos:bootstrap
+
+gromacs:macos:build:
+  extends:
+    - .variables:default
+    - .gromacs:base:build
+    - .before_script:default
+    - .use-ccache
+    - .rules:merge-and-post-merge-acceptance
+  tags:
+    - k8s-scilifelab-mac
+  variables:
+    CMAKE: "$CI_PROJECT_DIR/toolchain/bin/cmake"
+  needs:
+    - job: gromacs:macos:bootstrap
+    - job: gromacs:macos:configure
+
+gromacs:macos:test:
+  extends:
+    - .gromacs:base:test
+    - .rules:post-merge-acceptance
+  before_script:
+    - export PATH="${PWD}/toolchain/bin:${PATH+:$PATH}"
+    - export DYLD_LIBRARY_PATH="${PWD}/toolchain/lib${DYLD_LIBRARY_PATH+:$DYLD_LIBRARY_PATH}"
+  variables:
+    CMAKE:  "$CI_PROJECT_DIR/toolchain/bin/cmake"
+    # We don't use k8s, but it helps our scripts to know that we need a GPU
+    KUBERNETES_EXTENDED_RESOURCE_NAME: "apple.com/gpu"
+    KUBERNETES_EXTENDED_RESOURCE_LIMIT: 1
+  tags:
+    - k8s-scilifelab-mac
+  needs:
+    - job: gromacs:macos:bootstrap
+    - job: gromacs:macos:build
+
+gromacs:macos:regressiontest:
+  extends:
+    - .gromacs:base:regressiontest
+    - .rules:post-merge-acceptance
+  before_script:
+    - export PATH="${PWD}/toolchain/bin:${PATH+:$PATH}"
+    - export DYLD_LIBRARY_PATH="${PWD}/toolchain/lib${DYLD_LIBRARY_PATH+:$DYLD_LIBRARY_PATH}"
+  variables:
+    CMAKE: "$CI_PROJECT_DIR/toolchain/bin/cmake"
+    KUBERNETES_EXTENDED_RESOURCE_NAME: "apple.com/gpu"
+    KUBERNETES_EXTENDED_RESOURCE_LIMIT: 1
+    REGRESSIONTEST_PME_RANK_NUMBER: 1
+    REGRESSIONTEST_TOTAL_RANK_NUMBER: 4
+    REGRESSIONTEST_OMP_RANK_NUMBER: 2
+  tags:
+    - k8s-scilifelab-mac
+  needs:
+    - job: gromacs:macos:bootstrap
+    - job: gromacs:macos:build
+    - job: regressiontests:prepare
+

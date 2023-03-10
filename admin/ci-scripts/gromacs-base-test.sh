@@ -38,7 +38,7 @@ if grep -qF 'nvidia.com/gpu' <<< "$KUBERNETES_EXTENDED_RESOURCE_NAME"; then
 	fi
     fi
 fi
-if grep -qF 'amd.com/gpu' <<< "$KUBERNETES_EXTENDED_RESOURCE_NAME"; then
+if grep -q '\(amd\|apple\)\.com/gpu' <<< "$KUBERNETES_EXTENDED_RESOURCE_NAME"; then
     clinfo -l || true;
 fi
 if grep -qF 'intel.com/gpu' <<< "$KUBERNETES_EXTENDED_RESOURCE_NAME"; then
