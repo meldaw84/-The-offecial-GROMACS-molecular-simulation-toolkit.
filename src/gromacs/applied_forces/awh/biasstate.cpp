@@ -63,6 +63,7 @@
 #include "gromacs/mdtypes/awh_history.h"
 #include "gromacs/mdtypes/awh_params.h"
 #include "gromacs/mdtypes/commrec.h"
+#include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/simd/simd.h"
 #include "gromacs/simd/simd_math.h"
 #include "gromacs/utility/arrayref.h"
@@ -80,10 +81,12 @@
 namespace gmx
 {
 
+#if 0
 static FreeEnergyPerturbationCouplingType lambdaComponentFromAwhDim(int awhDim)
 {
     return awhDim == 0 ? FreeEnergyPerturbationCouplingType::Vdw : FreeEnergyPerturbationCouplingType::Coul;
 }
+#endif
     
 void BiasState::getPmf(gmx::ArrayRef<float> pmf) const
 {
@@ -202,7 +205,9 @@ double biasedLogWeightFromPoint(ArrayRef<const DimParams>  dimParams,
         {
             if (dimParams[d].isFepLambdaDimension())
             {
+#if 0
                 const int lambdaIndex = static_cast<int>(lambdaComponentFromAwhDim(d));
+#endif
                 /* If this is not a sampling step or if this function is called from
                  * calcConvolvedBias(), when writing energy subblocks, neighborLambdaEnergies will
                  * be empty. No convolution is required along the lambda dimension. */
@@ -221,9 +226,24 @@ double biasedLogWeightFromPoint(ArrayRef<const DimParams>  dimParams,
                                  * (neighborLambdaEnergies[lambdaIndex][pointLambdaIndex]
                                     - neighborLambdaEnergies[lambdaIndex][gridpointLambdaIndex]));
 #endif
-                    logWeight -= dimParams[d].fepDimParams().beta
-                                 * (neighborLambdaEnergies[lambdaIndex][pointLambdaIndex]
-                                    - neighborLambdaEnergies[lambdaIndex][gridpointLambdaIndex]);
+                    double enerDiff;
+                    if (d == 0)
+                    {
+                        enerDiff = 0;
+                        for (auto c : gmx::EnumerationWrapper<FreeEnergyPerturbationCouplingType>{})
+                        {
+                            if (c != FreeEnergyPerturbationCouplingType::Coul)
+                            {
+                                enerDiff += neighborLambdaEnergies[static_cast<int>(c)][pointLambdaIndex] - neighborLambdaEnergies[static_cast<int>(c)][gridpointLambdaIndex];
+                            }
+                        }
+                    }
+                    else
+                    {
+                        enerDiff = neighborLambdaEnergies[static_cast<int>(FreeEnergyPerturbationCouplingType::Coul)][pointLambdaIndex] - neighborLambdaEnergies[static_cast<int>(FreeEnergyPerturbationCouplingType::Coul)][gridpointLambdaIndex];
+                    }
+
+                    logWeight -= dimParams[d].fepDimParams().beta * enerDiff;
                 }
             }
             else
@@ -463,11 +483,31 @@ double BiasState::calcUmbrellaForceAndPotential(ArrayRef<const DimParams> dimPar
     {
         if (dimParams[d].isFepLambdaDimension())
         {
+#if 0
             const int lambdaIndex = static_cast<int>(lambdaComponentFromAwhDim(d));
+#endif
             if (!neighborLambdaDhdl.empty())
             {
                 const int coordpointLambdaIndex = grid.point(point).coordValue[d];
+#if 0
                 force[d]                        = neighborLambdaDhdl[lambdaIndex][coordpointLambdaIndex];
+#else
+                if (d == 0)
+                {
+                    force[d] = 0;
+                    for (auto c : gmx::EnumerationWrapper<FreeEnergyPerturbationCouplingType>{})
+                    {
+                        if (c != FreeEnergyPerturbationCouplingType::Coul)
+                        {
+                            force[d] += neighborLambdaDhdl[static_cast<int>(c)][coordpointLambdaIndex];
+                        }
+                    }
+                }
+                else
+                {
+                    force[d] = neighborLambdaDhdl[static_cast<int>(FreeEnergyPerturbationCouplingType::Coul)][coordpointLambdaIndex];
+                }
+#endif
                 /* The potential should not be affected by the lambda dimension. */
             }
         }

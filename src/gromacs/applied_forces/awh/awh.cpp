@@ -408,6 +408,15 @@ real Awh::applyBiasForcesAndUpdateBias(PbcType                  pbcType,
             }
         }
 
+        // Set all the values of all lambdas except for Coul to Vdw
+        for (auto c : gmx::EnumerationWrapper<FreeEnergyPerturbationCouplingType>{})
+        {
+            if (c != FreeEnergyPerturbationCouplingType::Coul)
+            {
+                fepLambdaState_[static_cast<int>(c)] = fepLambdaState_[static_cast<int>(FreeEnergyPerturbationCouplingType::Vdw)];
+            }
+        }
+
         if (isOutputStep(step))
         {
             /* We might have skipped updates for part of the grid points.
