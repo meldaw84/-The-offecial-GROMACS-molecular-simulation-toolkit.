@@ -408,6 +408,11 @@ real Awh::applyBiasForcesAndUpdateBias(PbcType                  pbcType,
             }
         }
 
+#define PRINT_LAMBDA 0
+#ifdef PRINT_LAMBDA
+        const bool printLambda = biasCts.bias_.params().isSampleCoordStep(step);
+#endif
+
         // Set all the values of all lambdas except for Coul to Vdw
         for (auto c : gmx::EnumerationWrapper<FreeEnergyPerturbationCouplingType>{})
         {
@@ -415,7 +420,15 @@ real Awh::applyBiasForcesAndUpdateBias(PbcType                  pbcType,
             {
                 fepLambdaState_[static_cast<int>(c)] = fepLambdaState_[static_cast<int>(FreeEnergyPerturbationCouplingType::Vdw)];
             }
+#ifdef PRINT_LAMBDA
+            if (printLambda)
+                printf(" %2d", fepLambdaState_[static_cast<int>(c)]);
+#endif
         }
+#ifdef PRINT_LAMBDA
+        if (printLambda)
+            printf("\n");
+#endif
 
         if (isOutputStep(step))
         {

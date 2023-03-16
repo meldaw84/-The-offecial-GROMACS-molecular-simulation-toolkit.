@@ -1292,11 +1292,27 @@ void BiasState::updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParam
     histogramSize_.incrementNumUpdates();
 }
 
+#if 0
+static void printEner(ArrayRef<const ArrayRef<const double>> neighborLambdaEnergies)
+{
+    for (const auto& n : neighborLambdaEnergies)
+    {
+        for (const double e : n)
+        {
+            printf(" %6.1f", e);
+        }
+        printf("\n");
+    }
+}
+#endif
+
 double BiasState::updateProbabilityWeightsAndConvolvedBias(ArrayRef<const DimParams> dimParams,
                                                            const BiasGrid&           grid,
                                                            ArrayRef<const ArrayRef<const double>> neighborLambdaEnergies,
                                                            std::vector<double, AlignedAllocator<double>>* weight) const
 {
+    //printEner(neighborLambdaEnergies);
+
     /* Only neighbors of the current coordinate value will have a non-negligible chance of getting sampled */
     const std::vector<int>& neighbors = grid.point(coordState_.gridpointIndex()).neighbor;
 
