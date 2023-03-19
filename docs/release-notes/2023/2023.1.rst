@@ -34,12 +34,23 @@ multiple PP ranks.
 
 :issue:`4629`
 
-Fix AWH friction metric of checkpoints for dimensions > 1.
+Fix PME pipelining support in SYCL
+""""""""""""""""""""""""""""""""""
+
+When PME pipelining was used, long-range PME electrostatics were producing
+incorrect results in SYCL.
+
+Only runs with >=3 GPUs and with direct GPU communication enabled
+(``GMX_ENABLE_DIRECT_GPU_COMM`` env. var.) are affected.
+
+:issue:`4733`
+
+Fix checkpointing of AWH friction metric for dimensions > 1.
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 The friction metric checkpoint i/o was wrong for dimensions > 1. This did
 not affect the AWH PMF or sampling, but would result in nonsense if the
-AWH friction tensors were used for calculate diffusion in dimensions > 1.
+AWH friction tensors were used to calculate the diffusion in dimensions > 1.
 
 :issue:`4723`
 

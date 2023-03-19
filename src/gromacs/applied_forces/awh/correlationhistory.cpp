@@ -94,14 +94,12 @@ void updateCorrelationGridHistory(CorrelationGridHistory* correlationGridHistory
 
     /* Store the grid in a linear array */
     gmx::index bufferIndex = 0;
+    const int tensorSize = correlationGrid.tensors()[0].blockDataList()[0].correlationIntegral().size();
     for (const CorrelationTensor& tensor : correlationGrid.tensors())
     {
         /* BlockData for each correlation element */
         for (const CorrelationBlockData& blockData : tensor.blockDataList())
         {
-            const int numDims    = tensor.blockDataList()[0].coordData().size();
-            const int tensorSize = tensor.blockDataList()[0].correlationIntegral().size();
-
             /* Loop of the tensor elements, ignore the symmetric data */
             int d1 = 0;
             int d2 = 0;
@@ -133,11 +131,11 @@ void updateCorrelationGridHistory(CorrelationGridHistory* correlationGridHistory
 
                 bufferIndex++;
 
-                d1++;
-                if (d1 == numDims)
+                d2++;
+                if (d2 > d1)
                 {
-                    d1 = 0;
-                    d2++;
+                    d2 = 0;
+                    d1++;
                 }
             }
         }
@@ -211,11 +209,11 @@ void CorrelationTensor::restoreFromHistory(const std::vector<CorrelationBlockDat
 
             (*bufferIndex)++;
 
-            d1++;
-            if (d1 == numDims)
+            d2++;
+            if (d2 > d1)
             {
-                d1 = 0;
-                d2++;
+                d2 = 0;
+                d1++;
             }
         }
     }
