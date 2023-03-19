@@ -40,6 +40,7 @@
 #include "gromacs/mdtypes/awh_correlation_history.h"
 
 #include "testutils/refdata.h"
+#include "testutils/testasserts.h"
 
 namespace gmx
 {
@@ -154,7 +155,7 @@ TEST_P(FrictionMetricTest, FrictionMetric)
         case 1: correlationIntegralSize = 1; break;
         case 2: correlationIntegralSize = 3; break;
         case 3: correlationIntegralSize = 6; break;
-        default: break;
+        default: GMX_THROW(gmx::InternalError("Too high dimensionality."));
     }
     for (auto tensor : tensors)
     {
