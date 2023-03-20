@@ -157,7 +157,7 @@ TEST_P(FrictionMetricTest, FrictionMetric)
         case 3: correlationIntegralSize = 6; break;
         default: GMX_THROW(gmx::InternalError("Too high dimensionality."));
     }
-    for (auto tensor : tensors)
+    for (auto const tensor : tensors)
     {
         for (int correlationIntegralIndex = 0; correlationIntegralIndex < correlationIntegralSize;
              correlationIntegralIndex++)
@@ -177,7 +177,7 @@ TEST_P(FrictionMetricTest, FrictionMetric)
     tensors     = correlationGrid.tensors();
     int counter = 0;
     /* Check that the tensor integrals are the same before and after restoring from history. */
-    for (auto tensor : tensors)
+    for (auto const tensor : tensors)
     {
         for (int correlationIntegralIndex = 0; correlationIntegralIndex < correlationIntegralSize;
              correlationIntegralIndex++)

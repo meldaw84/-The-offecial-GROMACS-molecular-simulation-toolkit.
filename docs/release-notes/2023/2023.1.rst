@@ -46,7 +46,7 @@ Only runs with >=3 GPUs and with direct GPU communication enabled
 :issue:`4733`
 
 Fix checkpointing of AWH friction metric for dimensions > 1.
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 The friction metric checkpoint i/o was wrong for dimensions > 1. This did
 not affect the AWH PMF or sampling, but would result in nonsense if the
