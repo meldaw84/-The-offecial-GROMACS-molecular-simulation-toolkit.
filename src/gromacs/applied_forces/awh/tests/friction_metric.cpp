@@ -1,7 +1,7 @@
 /*
  * This file is part of the GROMACS molecular simulation package.
  *
- * Copyright 2017- The GROMACS Authors
+ * Copyright 2023- The GROMACS Authors
  * and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
  * Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
  *
@@ -188,10 +188,7 @@ TEST_P(FrictionMetricTest, FrictionMetric)
     }
 }
 
-/* Scan initial/final phase, MC/convolved force and update skip (not) allowed
- * Both the convolving and skipping should not affect the bias and PMF.
- * It would be nice if the test would explicitly check for this.
- * Currently this is tested through identical reference data.
+/* Test correlation grids of the dimensions listed in Values.
  */
 INSTANTIATE_TEST_SUITE_P(WithParameters, FrictionMetricTest, ::testing::Values(1, 2, 3));
 
