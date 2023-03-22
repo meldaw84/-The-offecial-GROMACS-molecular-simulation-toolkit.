@@ -78,6 +78,37 @@ function(gmx_manage_vkfft BACKEND_NAME)
         endif()
     elseif(BACKEND_NAME STREQUAL "HIP")
         target_compile_definitions(VkFFT INTERFACE VKFFT_BACKEND=2)
+        if (NOT GMX_SYCL_HIPSYCL)
+            # It should be as easy as
+            #  find_package(hiprtc REQUIRED)
+            #  target_link_libraries(VkFFT INTERFACE hiprtc::hiprtc)
+            # But HIP does not include hiprtc CMake module despite referencing it in their example
+            # https://github.com/ROCm-Developer-Tools/HIP/issues/3131
+            # Using find_package(HIP) pulls in too many dependencies, in particular clang_rt. So, we do it ourselves:
+            if(NOT HIP_ROOT_DIR)
+                # Search in user specified path first
+                find_path(
+                    HIP_ROOT_DIR
+                    NAMES include/hip/hiprtc.h
+                    PATHS
+                    "$ENV{ROCM_PATH}"
+                    "$ENV{ROCM_PATH}/hip"
+                    ENV HIP_PATH
+                    DOC "HIP installed location"
+                    NO_DEFAULT_PATH
+                )
+                if(NOT EXISTS ${HIP_ROOT_DIR})
+                    message(FATAL_ERROR "Set HIP_ROOT_DIR or ROCM_PATH when building VkFFT with SYCL/DPC++")
+                endif()
+                # And push it back to the cache
+                set(HIP_ROOT_DIR ${HIP_ROOT_DIR} CACHE INTERNAL "HIP installed location" FORCE)
+            endif()
+
+            target_include_directories(VkFFT SYSTEM INTERFACE "${HIP_ROOT_DIR}/include")
+            target_link_directories(VkFFT INTERFACE "${HIP_ROOT_DIR}/lib")
+            target_link_libraries(VkFFT INTERFACE hiprtc amdhip64)
+            target_compile_definitions(VkFFT INTERFACE __HIP_PLATFORM_AMD__)
+        endif()
         # hipFree is marked `nodiscard` but VkFFT ignores it
         gmx_target_interface_warning_suppression(VkFFT "-Wno-unused-result" HAS_WARNING_NO_UNUSED_RESULT)
     elseif(BACKEND_NAME STREQUAL "OpenCL")
