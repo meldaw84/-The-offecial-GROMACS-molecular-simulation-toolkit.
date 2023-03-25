@@ -391,6 +391,8 @@ macro (gmx_c_flags)
                 # macOS Ventura deprecated `sprintf` in favor of `snprintf`.
                 # This workaround suppresses the deprecation warnings.
                 GMX_TEST_CXXFLAG(CXXFLAGS_NO_DEPRECATED_DECLARATIONS "-Wno-deprecated-declarations" GMXC_CXXFLAGS)
+                # This warning is only useful for cross-compiling
+                GMX_TEST_CXXFLAG(CXXFLAGS_NO_POISON_SYSTEM_DIRECTORIES "-Wno-poison-system-directories" GMXC_CXXFLAGS)
             endif()
 
             # Functions placed in headers for inlining are not always
