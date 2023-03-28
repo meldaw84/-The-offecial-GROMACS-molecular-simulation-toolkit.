@@ -159,6 +159,7 @@ static const char* enumValuetoString(WallCycleSubCounter enumValue)
         "NS grid non-local",
         "NS search local",
         "NS search non-local",
+        "GPU Bonded list update",
         "Bonded F",
         "Bonded-FEP F",
         "Restraints F",

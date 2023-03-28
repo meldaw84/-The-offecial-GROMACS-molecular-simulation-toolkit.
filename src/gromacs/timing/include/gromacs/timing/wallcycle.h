@@ -129,6 +129,7 @@ enum class WallCycleSubCounter : int
     NBSGridNonLocal,
     NBSSearchLocal,
     NBSSearchNonLocal,
+    GpuBondedListUpdate,
     Listed,
     ListedFep,
     Restraints,

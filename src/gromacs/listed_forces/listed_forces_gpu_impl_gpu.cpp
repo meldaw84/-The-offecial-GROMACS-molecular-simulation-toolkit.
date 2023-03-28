@@ -49,6 +49,7 @@
 #include "gromacs/gpu_utils/device_stream.h"
 #include "gromacs/gpu_utils/devicebuffer.h"
 #include "gromacs/hardware/device_information.h"
+#include "gromacs/mdlib/gmx_omp_nthreads.h"
 #include "gromacs/mdtypes/enerdata.h"
 #include "gromacs/nbnxm/gpu_types_common.h"
 #include "gromacs/timing/wallcycle.h"
@@ -184,7 +185,7 @@ static void convertIlistToNbnxnOrder(const InteractionList& src,
 
     dest->iatoms.resize(src.size());
 
-    // TODO use OpenMP to parallelise this loop
+#pragma omp parallel for num_threads(gmx_omp_nthreads_get(ModuleMultiThread::Bonded)) schedule(static)
     for (int i = 0; i < src.size(); i += 1 + numAtomsPerInteraction)
     {
         dest->iatoms[i] = src.iatoms[i];
@@ -247,7 +248,7 @@ void ListedForcesGpu::Impl::updateInteractionListsAndDeviceBuffers(ArrayRef<cons
                                                                    DeviceBuffer<RVec>   d_fPtr,
                                                                    DeviceBuffer<RVec>   d_fShiftPtr)
 {
-    // TODO wallcycle sub start
+    wallcycle_sub_start(wcycle_, WallCycleSubCounter::GpuBondedListUpdate);
     bool haveGpuInteractions = false;
     int  fTypesCounter       = 0;
 
@@ -330,7 +331,7 @@ void ListedForcesGpu::Impl::updateInteractionListsAndDeviceBuffers(ArrayRef<cons
     GMX_RELEASE_ASSERT(haveGpuInteractions == haveInteractions_,
                        "inconsistent haveInteractions flags encountered.");
 
-    // TODO wallcycle sub stop
+    wallcycle_sub_stop(wcycle_, WallCycleSubCounter::GpuBondedListUpdate);
 }
 
 void ListedForcesGpu::Impl::setPbc(PbcType pbcType, const matrix box, bool canMoleculeSpanPbc)
