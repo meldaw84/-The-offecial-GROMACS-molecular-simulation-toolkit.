@@ -591,9 +591,8 @@ void checkInputConsistencyAwh(const AwhParams& awhParams, WarningHandler* wi)
                 }
                 if (wi && dimParams1[d1].isSymmetric() && awhParams.potential() == AwhPotentialType::Umbrella)
                 {
-                    warning_note(wi,
-                                 "An umbrella potential with a symmetric dimension may not cross "
-                                 "symmetric (and periodic) boundaries as expected.");
+                    wi->addNote("An umbrella potential with a symmetric dimension may not cross "
+                                "symmetric (and periodic) boundaries as expected.");
                 }
 
                 /* d1 is the reference dimension of the reference AWH. d2 is the dim index of the AWH to compare with. */
