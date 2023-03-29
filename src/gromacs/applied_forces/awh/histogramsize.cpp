@@ -103,7 +103,7 @@ double HistogramSize::newHistogramSizeInitialStage(const BiasParams& params,
 
     /* The scale factor. The value is not very critical but should obviously be > 1 (or the exit
        will happen very late) and probably < 5 or so (or there will be no initial stage). */
-    static const double growthFactor = 3;
+    static const double growthFactor = 2;
 
     /* The scale factor is in most cases very close to the histogram growth factor. */
     double scaleFactor =
