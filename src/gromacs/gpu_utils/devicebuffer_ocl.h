@@ -44,6 +44,7 @@
  *  \inlibraryapi
  */
 
+#include "gromacs/gpu_utils/basedefinitions.h"
 #include "gromacs/gpu_utils/device_context.h"
 #include "gromacs/gpu_utils/device_stream.h"
 #include "gromacs/gpu_utils/devicebuffer_datatype.h"
@@ -277,10 +278,7 @@ void clearDeviceBufferAsync(DeviceBuffer<ValueType>* buffer,
                                .c_str());
 }
 
-#if defined(__clang__)
-#    pragma clang diagnostic push
-#    pragma clang diagnostic ignored "-Wunused-template"
-#endif
+CLANG_DIAGNOSTIC_IGNORE("-Wunused-template")
 
 /*! \brief Check the validity of the device buffer.
  *
@@ -354,9 +352,8 @@ void destroyParamLookupTable(DeviceBuffer<ValueType>* deviceBuffer, const Device
 {
     freeDeviceBuffer(deviceBuffer);
 }
-#if defined(__clang__)
-#    pragma clang diagnostic pop
-#endif
+
+CLANG_DIAGNOSTIC_RESET
 
 template<typename ValueType>
 ValueType* asMpiPointer(DeviceBuffer<ValueType>& /*buffer*/)
