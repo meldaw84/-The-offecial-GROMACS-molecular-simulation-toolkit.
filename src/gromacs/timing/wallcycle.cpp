@@ -65,6 +65,17 @@ constexpr bool onlyMainDebugPrints = true;
 //! True if cycle counter nesting depth debugging prints are enabled
 constexpr bool debugPrintDepth = false;
 
+
+#if USE_ITT
+#    ifdef __clang__
+#        pragma clang diagnostic push
+#        pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
+#    endif
+const __itt_domain*  g_ittDomain = __itt_domain_create("GMX");
+__itt_string_handle* g_ittCounterHandles[static_cast<int>(WallCycleCounter::Count)];
+__itt_string_handle* g_ittSubCounterHandles[static_cast<int>(WallCycleSubCounter::Count)];
+#endif
+
 /* PME GPU timing events' names - correspond to the enum in the gpu_timing.h */
 static const char* enumValuetoString(PmeStage enumValue)
 {
@@ -127,8 +138,26 @@ std::unique_ptr<gmx_wallcycle> wallcycle_init(FILE* fplog, int resetstep, const 
         wc->isMainRank  = MAIN(cr);
     }
 
+#if USE_ITT
+    for (auto wcc : gmx::EnumerationWrapper<WallCycleCounter>{})
+    {
+        g_ittCounterHandles[static_cast<int>(wcc)] = __itt_string_handle_create(enumValuetoString(wcc));
+    }
+    for (auto wcsc : gmx::EnumerationWrapper<WallCycleSubCounter>{})
+    {
+        g_ittSubCounterHandles[static_cast<int>(wcsc)] =
+                __itt_string_handle_create(enumValuetoString(wcsc));
+    }
+#endif
+
     return wc;
 }
+
+#if USE_ITT
+#    ifdef __clang__
+#        pragma clang diagnostic pop
+#    endif
+#endif
 
 void debug_start_check(gmx_wallcycle* wc, WallCycleCounter ewc)
 {
