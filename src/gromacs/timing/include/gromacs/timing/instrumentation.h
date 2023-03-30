@@ -1,9 +1,10 @@
+#include "gromacs/utility/basedefinitions.h"
 
 #if GMX_GPU_CUDA
 #    define USE_NVTX 1
 #endif // GMX_GPU_CUDA
 
-#if defined(USE_NVTX) && USE_NVTX
+#if USE_NVTX
 
 #    include "nvToolsExt.h"
 
@@ -51,7 +52,7 @@ static void traceSubRangeEnd()
     nvtxRangePop();
 }
 
-#elif defined(USE_ROCTX) && USE_ROCTX
+#elif USE_ROCTX
 
 #    include "roctracer/roctx.h"
 
@@ -75,6 +76,42 @@ static void traceSubRangeEnd()
     roctxRangePop();
 }
 
+#elif USE_ITT
+
+#    ifdef __clang__
+#        pragma clang diagnostic push
+#        pragma clang diagnostic ignored "-Wold-style-cast"
+#        pragma clang diagnostic ignored "-Wnewline-eof"
+#    endif
+#    include <ittnotify.h>
+#    ifdef __clang__
+#        pragma clang diagnostic pop
+#    endif
+
+// Defined in wallcycle.cpp, initialized in wallcycle_init
+extern const __itt_domain*  g_ittDomain;
+extern __itt_string_handle* g_ittCounterHandles[];
+extern __itt_string_handle* g_ittSubCounterHandles[];
+
+static void traceRangeStart(const char* /*rangeName*/, int rangeId)
+{
+    __itt_task_begin(g_ittDomain, __itt_null, __itt_null, g_ittCounterHandles[rangeId]);
+}
+
+static void traceSubRangeStart(const char* /*rangeName*/, int rangeId)
+{
+    __itt_task_begin(g_ittDomain, __itt_null, __itt_null, g_ittSubCounterHandles[rangeId]);
+}
+
+static void traceRangeEnd()
+{
+    __itt_task_end(g_ittDomain);
+}
+
+static void traceSubRangeEnd()
+{
+    __itt_task_end(g_ittDomain);
+}
 
 #else
 
