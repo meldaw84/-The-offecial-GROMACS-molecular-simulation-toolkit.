@@ -88,11 +88,10 @@ int64_t calcTargetUpdateInterval(const AwhParams& awhParams, const AwhBiasParams
         case AwhTargetType::Boltzmann:
         case AwhTargetType::FrictionOptimized:
             /* Updating the target generally requires updating the whole grid so to keep the cost
-               down we generally update the target less often than the free energy (unless the free
-               energy update step is set to > 100 samples). */
-            numStepsUpdateTarget = std::max(100 % awhParams.numSamplesUpdateFreeEnergy(),
-                                            awhParams.numSamplesUpdateFreeEnergy())
-                                   * awhParams.nstSampleCoord();
+               down we update the target when we update the free energy (unless the free
+               energy update is performed more frequently than every 100 steps). */
+            numStepsUpdateTarget =
+                    std::max(100, awhParams.numSamplesUpdateFreeEnergy() * awhParams.nstSampleCoord());
             break;
         case AwhTargetType::LocalBoltzmann:
             /* The target distribution is set equal to the reference histogram which is updated every free energy update.
