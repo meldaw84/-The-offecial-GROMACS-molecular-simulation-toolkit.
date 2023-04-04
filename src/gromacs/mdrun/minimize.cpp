@@ -210,8 +210,10 @@ static void warn_step(FILE* fp, real ftol, real fmax, gmx_bool bLastStep, gmx_bo
                            : "");
     }
 
-    fputs(wrap_lines(buffer, 78, 0, FALSE), stderr);
-    fputs(wrap_lines(buffer, 78, 0, FALSE), fp);
+    char* buffer_wrapped = wrap_lines(buffer, 78, 0, FALSE);
+    fputs(buffer_wrapped, stderr);
+    fputs(buffer_wrapped, fp);
+    sfree(buffer_wrapped);
 }
 
 //! Print message about convergence of the EM
