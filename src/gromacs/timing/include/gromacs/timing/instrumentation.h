@@ -1,9 +1,5 @@
 #include "gromacs/utility/basedefinitions.h"
 
-#if GMX_GPU_CUDA
-#    define USE_NVTX 1
-#endif // GMX_GPU_CUDA
-
 #if USE_NVTX
 
 #    include "nvToolsExt.h"
