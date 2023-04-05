@@ -241,8 +241,8 @@ TEST_F(EnergyMinimizationTest, NotConvergedSanityCheck)
 
     // Check that the log contains warnings
     const std::string logFileContent = TextReader::readFileToString(runner_.logFileName_);
-    for (const auto expectedWarning : { "Energy minimization reached the maximum number of steps",
-                                        "Steepest Descents did not converge to" })
+    for (const char* expectedWarning : { "Energy minimization reached the maximum number of steps",
+                                         "Steepest Descents did not converge to" })
     {
         EXPECT_NE(logFileContent.find(expectedWarning), std::string::npos);
     }
