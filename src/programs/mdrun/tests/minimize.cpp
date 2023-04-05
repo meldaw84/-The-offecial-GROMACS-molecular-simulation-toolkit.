@@ -56,6 +56,7 @@
 #include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/basenetwork.h"
 #include "gromacs/utility/stringutil.h"
+#include "gromacs/utility/textreader.h"
 
 #include "testutils/mpitest.h"
 #include "testutils/refdata.h"
@@ -107,13 +108,11 @@ TEST_P(EnergyMinimizationTest, WithinTolerances)
     int numRanksAvailable = getNumberOfTestMpiRanks();
     if (!isNumberOfPpRanksSupported(simulationName, numRanksAvailable))
     {
-        fprintf(stdout,
-                "Test system '%s' cannot run with %d ranks.\n"
-                "The supported numbers are: %s\n",
+        GTEST_SKIP() << gmx::formatString(
+                "Test system '%s' cannot run with %d ranks. The supported numbers are: %s",
                 simulationName.c_str(),
                 numRanksAvailable,
                 reportNumbersOfPpRanksSupported(simulationName).c_str());
-        return;
     }
 
     auto mdpFieldValues =
@@ -188,6 +187,66 @@ INSTANTIATE_TEST_SUITE_P(MinimizersWork,
                          EnergyMinimizationTest,
                          ::testing::Combine(::testing::ValuesIn(unconstrainedSystemsToTest_g),
                                             ::testing::ValuesIn(minimizersToTest_g)));
+
+
+TEST_F(EnergyMinimizationTest, NotConvergedSanityCheck)
+{
+    // Run the minimization with impossibly strict convergence criteria
+    const std::string simulationName = "argon12";
+    const std::string minimizer      = "steep";
+
+    int numRanksAvailable = getNumberOfTestMpiRanks();
+    if (!isNumberOfPpRanksSupported(simulationName, numRanksAvailable))
+    {
+        GTEST_SKIP() << gmx::formatString(
+                "Test system '%s' cannot run with %d ranks. The supported numbers are: %s\n",
+                simulationName.c_str(),
+                numRanksAvailable,
+                reportNumbersOfPpRanksSupported(simulationName).c_str());
+    }
+
+    auto mdpFieldValues      = prepareMdpFieldValues(simulationName, minimizer, "no", "no");
+    mdpFieldValues["nsteps"] = "1";
+    mdpFieldValues["emtol"]  = gmx::formatString("%e", std::numeric_limits<real>::epsilon());
+
+    // prepare the .tpr file
+    {
+        CommandLine caller;
+        caller.append("grompp");
+        runner_.useTopGroAndNdxFromDatabase(simulationName);
+        runner_.useStringAsMdpFile(prepareMdpFileContents(mdpFieldValues));
+        EXPECT_EQ(0, runner_.callGrompp(caller));
+    }
+
+    // do mdrun, preparing to check the energies later
+    runner_.edrFileName_ = fileManager_.getTemporaryFilePath("minimize.edr").u8string();
+    runner_.logFileName_ = fileManager_.getTemporaryFilePath("md.log").u8string();
+    {
+        CommandLine mdrunCaller;
+        mdrunCaller.append("mdrun");
+        ASSERT_EQ(0, runner_.callMdrun(mdrunCaller));
+    }
+
+    EnergyTermsToCompare energyTermsToCompare{ {
+            { interaction_function[F_EPOT].longname, potentialEnergyToleranceForSystem_g.at(simulationName) },
+    } };
+
+    // Reuse reference data from MinimizersWork/EnergyMinimizationTest.WithinTolerances/0 (argon12 +
+    // steep) We failed to converge to the requested precision, but we should still do something:
+    TestReferenceData refData("MinimizersWork_EnergyMinimizationTest_WithinTolerances_0.xml");
+    auto              checker = refData.rootChecker()
+                           .checkCompound("Simulation", simulationName)
+                           .checkCompound("Minimizer", minimizer);
+    checkEnergiesAgainstReferenceData(runner_.edrFileName_, energyTermsToCompare, &checker);
+
+    // Check that the log contains warnings
+    const std::string logFileContent = TextReader::readFileToString(runner_.logFileName_);
+    for (const auto expectedWarning : { "Energy minimization reached the maximum number of steps",
+                                        "Steepest Descents did not converge to" })
+    {
+        EXPECT_NE(logFileContent.find(expectedWarning), std::string::npos);
+    }
+}
 
 } // namespace
 } // namespace test
