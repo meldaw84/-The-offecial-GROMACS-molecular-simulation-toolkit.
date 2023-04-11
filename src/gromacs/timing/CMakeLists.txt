@@ -55,6 +55,23 @@ target_link_libraries(timing INTERFACE
                       legacy_api
                       )
 
+if(USE_ITT)
+    find_path (ITTNOTIFY_INCLUDE_DIR
+        NAMES ittnotify.h
+        HINTS ENV VTUNE_PROFILER_DIR
+        PATH_SUFFIXES include
+        REQUIRED
+        )
+    find_library (ITTNOTIFY_LIBRARY
+        NAMES libittnotify.a # We need the static library
+        HINTS ENV VTUNE_PROFILER_DIR
+        PATH_SUFFIXES lib64 lib
+        REQUIRED
+        )
+    target_include_directories(timing INTERFACE "${ITTNOTIFY_INCLUDE_DIR}" SYSTEM)
+    target_link_libraries(timing INTERFACE "${ITTNOTIFY_LIBRARY}")
+endif()
+
 # TODO: when timing is an OBJECT target
 #target_link_libraries(timing PUBLIC legacy_api)
 #target_link_libraries(timing PRIVATE common)
