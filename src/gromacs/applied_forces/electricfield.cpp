@@ -128,7 +128,7 @@ public:
     real a() const { return a_; }
 
 private:
-    //! Coeffient (V / nm)
+    //! Coefficient (V / nm)
     real a_ = 0;
     //! Frequency (1/ps)
     real omega_ = 0;
