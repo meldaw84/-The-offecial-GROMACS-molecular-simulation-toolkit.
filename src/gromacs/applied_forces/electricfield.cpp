@@ -109,7 +109,7 @@ public:
 
     /*! \brief Evaluates this field component at given time.
      *
-     * \param[in] t The time to evualate at
+     * \param[in] t The time to evaluate at
      * \return The electric field
      */
     real evaluate(real t) const
