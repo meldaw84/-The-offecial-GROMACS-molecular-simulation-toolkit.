@@ -87,9 +87,7 @@ GpuAwareMpiStatus checkMpiZEAwareSupport();
  * using GPU-aware MPI.
  * For MPI implementations which don't support this function, it returns NotKnown.
  *
- * Currently, this function is only supported by MPICH, not OpenMPI or IntelMPI.
- *
- * \returns     LevelZero-aware status in MPI implementation */
+ * \returns     GPU-aware status in MPI implementation */
 GpuAwareMpiStatus checkMpiGpuAwareSupport();
 
 } // namespace gmx
