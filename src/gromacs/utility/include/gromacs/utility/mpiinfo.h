@@ -37,6 +37,9 @@
 namespace gmx
 {
 /*! \brief Enum describing GPU-aware support in underlying MPI library.
+ *
+ * Builds not using an MPI library are described with
+ * GpuAwareMpiStatus::NotSupported.
  */
 enum class GpuAwareMpiStatus : int
 {
@@ -48,7 +51,7 @@ enum class GpuAwareMpiStatus : int
 
 
 /*! \brief
- * Wrapper on top of \c MPIX_Query_cuda_support()
+ * Wrapper on top of \c MPIX_Query_cuda_support().
  * For MPI implementations which don't support this function, it returns NotKnown
  * Even when an MPI implementation does support this function, MPI library might not be
  * robust enough to detect CUDA-aware support at runtime correctly e.g. when UCX PML is used
@@ -67,14 +70,27 @@ GpuAwareMpiStatus checkMpiCudaAwareSupport();
 GpuAwareMpiStatus checkMpiHipAwareSupport();
 
 /*! \brief
- * Wrapper on top of \c MPIX_Query_ze_support()
+ * Wrapper on top of \c MPIX_Query_ze_support().
  * For MPI implementations which don't support this function, it returns NotKnown.
+ * Even when an MPI implementation does support this function, the runtime context
+ * might be unsuitable, e.g. Intel MPI uses Level0 but at runtime the user made
+ * devices available only via the SYCL OpenCL backend.
  *
  * Currently, this function is only supported by MPICH, not OpenMPI or IntelMPI.
  *
  * \returns     LevelZero-aware status in MPI implementation */
 GpuAwareMpiStatus checkMpiZEAwareSupport();
 
+/*! \brief
+ * Returns whether the MPI implementation in use supports GPU-aware MPI
+ * for the target GPU hardware and the GROMACS build configuration supports
+ * using GPU-aware MPI.
+ * For MPI implementations which don't support this function, it returns NotKnown.
+ *
+ * Currently, this function is only supported by MPICH, not OpenMPI or IntelMPI.
+ *
+ * \returns     LevelZero-aware status in MPI implementation */
+GpuAwareMpiStatus checkMpiGpuAwareSupport();
 
 } // namespace gmx
 

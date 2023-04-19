@@ -67,6 +67,7 @@
 #include "gromacs/gpu_utils/gpueventsynchronizer.h"
 #include "gromacs/gpu_utils/hostallocator.h"
 #include "gromacs/mdtypes/inputrec.h"
+#include "gromacs/utility/mpiinfo.h"
 
 #include "testutils/mpitest.h"
 #include "testutils/test_hardware_environment.h"
@@ -519,7 +520,22 @@ void checkResults2dHaloWith2PulsesInDim1(const RVec* x, const gmx_domdec_t* dd, 
     }
 }
 
-TEST(HaloExchangeTest, Coordinates1dHaloWith1Pulse)
+/*! \brief Test fixture that enforces the requirement that the GROMACS
+ * build has and supports GPU-aware MPI. */
+class HaloExchangeTest : public ::testing::Test
+{
+public:
+    void SetUp() override
+    {
+        if (auto support = checkMpiGpuAwareSupport();
+            support != GpuAwareMpiStatus::Supported && support != GpuAwareMpiStatus::Forced)
+        {
+            GTEST_SKIP() << "Test skipped because it requires GPU-aware MPI support";
+        }
+    }
+};
+
+TEST_F(HaloExchangeTest, Coordinates1dHaloWith1Pulse)
 {
     GMX_MPI_TEST(RequireRankCount<4>);
 
@@ -574,7 +590,7 @@ TEST(HaloExchangeTest, Coordinates1dHaloWith1Pulse)
     }
 }
 
-TEST(HaloExchangeTest, Coordinates1dHaloWith2Pulses)
+TEST_F(HaloExchangeTest, Coordinates1dHaloWith2Pulses)
 {
     GMX_MPI_TEST(RequireRankCount<4>);
 
@@ -630,7 +646,7 @@ TEST(HaloExchangeTest, Coordinates1dHaloWith2Pulses)
 }
 
 
-TEST(HaloExchangeTest, Coordinates2dHaloWith1PulseInEachDim)
+TEST_F(HaloExchangeTest, Coordinates2dHaloWith1PulseInEachDim)
 {
     GMX_MPI_TEST(RequireRankCount<4>);
 
@@ -685,7 +701,7 @@ TEST(HaloExchangeTest, Coordinates2dHaloWith1PulseInEachDim)
     }
 }
 
-TEST(HaloExchangeTest, Coordinates2dHaloWith2PulsesInDim1)
+TEST_F(HaloExchangeTest, Coordinates2dHaloWith2PulsesInDim1)
 {
     GMX_MPI_TEST(RequireRankCount<4>);
 

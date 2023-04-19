@@ -105,4 +105,19 @@ GpuAwareMpiStatus checkMpiZEAwareSupport()
     return status;
 }
 
+GpuAwareMpiStatus checkMpiGpuAwareSupport()
+{
+    // Note that GROMACS does not yet support GPU-aware MPI when
+    // compiling with Intel compilers targeting non-Intel devices.
+#if GMX_GPU_CUDA || GMX_HIPSYCL_HAVE_CUDA_TARGET
+    return checkMpiCudaAwareSupport();
+#elif GMX_HIPSYCL_HAVE_HIP_TARGET
+    return checkMpiHipAwareSupport();
+#elif GMX_SYCL_DPCPP
+    return checkMpiZEAwareSupport();
+#else
+    return GpuAwareMpiStatus::NotSupported;
+#endif
+}
+
 } // namespace gmx
