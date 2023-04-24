@@ -88,10 +88,10 @@ Using `find_package(Filesystem)` with no component arguments:
 
 .. code-block:: cmake
 
-    find_package(Filesystem REQUIRED)
+#    find_package(Filesystem REQUIRED)
 
-    add_executable(my-program main.cpp)
-    target_link_libraries(my-program PRIVATE std::filesystem)
+#    add_executable(my-program main.cpp)
+#    target_link_libraries(my-program PRIVATE std::filesystem)
 
 
 #]=======================================================================]

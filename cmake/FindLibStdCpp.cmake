@@ -177,7 +177,7 @@ endif()
 # Maybe we just need to link an extra library for std::filesystem, perhaps via
 # the --gcc-toolchain that was just set up.
 find_package(Filesystem)
-if(CXX_FILESYSTEM_HAVE_FS)
+if(CXX_FILESYSTEM_HAVE_FS AND TARGET std::filesystem)
     cmake_push_check_state()
     get_target_property(CMAKE_REQUIRED_LIBRARIES std::filesystem INTERFACE_LINK_LIBRARIES)
     check_cxx_source_compiles("${SAMPLE_CODE_TO_TEST_CXX17}" CXX17_COMPILES_WHEN_LINKING_FS_LIBRARY)
@@ -187,13 +187,16 @@ if(CXX_FILESYSTEM_HAVE_FS)
         # If we reach here, then we know that GROMACS targets need to
         # link the std::filesystem target when such a library was found.
         return()
-    else()
-        set(EXTRA_MESSAGE " even though a library for std::filesystem was found")
     endif()
 endif()
 
+if(CXX_FILESYSTEM_HAVE_FS)
+    set(EXTRA_MESSAGE " even though a header for std::filesystem was found")
+endif()
+
 if (NOT USING_LIBSTDCXX)
-    # Just linking an extra library for std::filesystem didn't help,
+    # Either std::filesystem wasn't found by the CMake module, or just
+    # linking an extra library for std::filesystem didn't help,
     # so let's try to narrow down what fails.
     check_cxx_source_compiles("${SAMPLE_CODE_TO_TEST_CXX17_WITHOUT_STD_FILESYSTEM}" CXX17_COMPILES_WITHOUT_STD_FILESYSTEM)
     if (NOT CXX17_COMPILES_WITHOUT_STD_FILESYSTEM)
