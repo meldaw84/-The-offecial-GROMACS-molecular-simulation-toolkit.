@@ -55,6 +55,42 @@ target_link_libraries(timing INTERFACE
                       legacy_api
                       )
 
+if(USE_NVTX)
+    find_path (NVTX_INCLUDE_DIR
+        NAMES nvToolsExt.h
+        HINTS ENV CUDA_HOME
+        PATH_SUFFIXES include include/nvtx3
+        REQUIRED
+        )
+    find_library (NVTX_LIBRARY
+        NAMES libnvToolsExt.so # We need the static library
+        HINTS ENV CUDA_HOME
+        PATH_SUFFIXES lib64 lib
+        REQUIRED
+        )
+    target_include_directories(timing INTERFACE "${NVTX_INCLUDE_DIR}")
+    target_link_libraries(timing INTERFACE "${NVTX_LIBRARY}")
+    # As of CUDA 11.8, there are a lot of old-style casts in nvToolsExt.h
+    gmx_target_interface_warning_suppression(timing "-Wno-old-style-cast" HAS_WARNING_NO_OLD_STYLE_CAST)
+endif()
+
+if(USE_ROCTX)
+    find_path (ROCTX_INCLUDE_DIR
+        NAMES roctracer/roctx.h
+        HINTS ENV ROCM_PATH ENV ROCM_HOME /opt/rocm
+        PATH_SUFFIXES include
+        REQUIRED
+        )
+    find_library (ROCTX_LIBRARY
+        NAMES libroctx64.so
+        HINTS ENV ROCM_PATH ENV ROCM_HOME /opt/rocm
+        PATH_SUFFIXES roctracer/lib64 roctracer/lib lib64 lib
+        REQUIRED
+        )
+    target_include_directories(timing INTERFACE "${ROCTX_INCLUDE_DIR}")
+    target_link_libraries(timing INTERFACE "${ROCTX_LIBRARY}")
+endif()
+
 if(USE_ITT)
     find_path (ITTNOTIFY_INCLUDE_DIR
         NAMES ittnotify.h
