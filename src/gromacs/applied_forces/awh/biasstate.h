@@ -223,13 +223,15 @@ public:
      * neighboring lambda states (also including the current state). When there are no free
      * energy lambda state dimensions this can be empty.
      * \param[in,out] force      Force vector to set.
+     * \param[in] contributionOverSymmetryBoundaries Whether the point to evaluate is contributing over a symmetry boundary or not.
      * Returns the umbrella potential.
      */
     double calcUmbrellaForceAndPotential(ArrayRef<const DimParams> dimParams,
                                          const BiasGrid&           grid,
                                          int                       point,
                                          ArrayRef<const double>    neighborLambdaDhdl,
-                                         ArrayRef<double>          force) const;
+                                         ArrayRef<double>          force,
+                                         bool                      contributionOverSymmetryBoundaries) const;
 
     /*! \brief
      * Calculates and sets the convolved force acting on the coordinate.

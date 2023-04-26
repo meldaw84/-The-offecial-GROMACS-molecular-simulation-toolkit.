@@ -534,10 +534,20 @@ void checkBiasParams(const AwhBiasParams& awhBiasParams,
                 "currently only a rough guideline."
                 " You should verify its usefulness for your system before production runs!");
     }
+    int numSymmetricDims = 0;
     for (int d = 0; d < awhBiasParams.ndim(); d++)
     {
         std::string prefixdim = prefix + formatString("-dim%d", d + 1);
         checkDimParams(prefixdim, awhBiasParams.dimParams()[d], ir, wi);
+        if (awhBiasParams.dimParams()[d].isSymmetric())
+        {
+            numSymmetricDims += 1;
+        }
+    }
+    if (numSymmetricDims > 1)
+    {
+        wi->addError(gmx::formatString(
+                "%s has %d symmetric dimensions. Only one (1) symmetric dimension is allowed.\n", prefix.c_str(), numSymmetricDims));
     }
 }
 
@@ -595,12 +605,6 @@ void checkInputConsistencyAwh(const AwhParams& awhParams, WarningHandler* wi)
                 if (dimParams1[d1].coordinateProvider() == AwhCoordinateProviderType::FreeEnergyLambda)
                 {
                     continue;
-                }
-                if (wi && dimParams1[d1].isSymmetric() && awhParams.potential() == AwhPotentialType::Umbrella)
-                {
-                    warning_note(wi,
-                                 "An umbrella potential with a symmetric dimension may not cross "
-                                 "symmetric (and periodic) boundaries as expected.");
                 }
 
                 /* d1 is the reference dimension of the reference AWH. d2 is the dim index of the AWH to compare with. */

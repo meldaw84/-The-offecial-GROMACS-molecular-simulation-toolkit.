@@ -174,6 +174,7 @@ struct GridPoint
     awh_dvec         coordValue; /**< Multidimensional coordinate value of this point */
     awh_ivec         index;      /**< Multidimensional point indices */
     std::vector<int> neighbor;   /**< Linear point indices of the neighboring points */
+    std::vector<int> symmetricNeighborIndices; /**< A list of indices in neighbor that are neighbors across either ends of a symmetric grid axis. */
 };
 
 /*! \internal

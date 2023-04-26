@@ -177,12 +177,14 @@ gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         
         GMX_RELEASE_ASSERT(state_.points()[coordState.umbrellaGridpoint()].inTargetRegion(),
                            "AWH bias grid point for the umbrella reference value is outside of the "
                            "target region.");
+        bool contributionOverSymmetryBoundaries = false;
         potential = state_.calcUmbrellaForceAndPotential(
                 dimParams_,
                 grid_,
                 coordState.umbrellaGridpoint(),
                 moveUmbrella ? neighborLambdaDhdl : ArrayRef<const double>{},
-                biasForce_);
+                biasForce_,
+                contributionOverSymmetryBoundaries);
 
         /* Moving the umbrella results in a force correction and
          * a new potential. The umbrella center is sampled as often as
@@ -436,12 +438,15 @@ void Bias::updateForceCorrelationGrid(gmx::ArrayRef<const double> probWeightNeig
     }
 
     const std::vector<int>& neighbor = grid_.point(state_.coordState().gridpointIndex()).neighbor;
+    const std::vector<int>& symmetricNeighborIndices = grid_.point(state_.coordState().gridpointIndex()).symmetricNeighborIndices;
 
     gmx::ArrayRef<double> forceFromNeighbor = tempForce_;
     for (size_t n = 0; n < neighbor.size(); n++)
     {
         double weightNeighbor = probWeightNeighbor[n];
         int    indexNeighbor  = neighbor[n];
+        bool contributionOverSymmetryBoundaries = std::find(symmetricNeighborIndices.begin(), symmetricNeighborIndices.end(), indexNeighbor) != symmetricNeighborIndices.end();
+
 
         /* Add the force data of this neighbor point. Note: the sum of these forces is the convolved force.
 
@@ -449,7 +454,7 @@ void Bias::updateForceCorrelationGrid(gmx::ArrayRef<const double> probWeightNeig
            resulting correlation time integral is directly in units of friction time/length^2 which is really what
            we're interested in. */
         state_.calcUmbrellaForceAndPotential(
-                dimParams_, grid_, indexNeighbor, neighborLambdaDhdl, forceFromNeighbor);
+                dimParams_, grid_, indexNeighbor, neighborLambdaDhdl, forceFromNeighbor, contributionOverSymmetryBoundaries);
 
         /* Note: we might want to give a whole list of data to add instead and have this loop in the data adding function */
         forceCorrelationGrid_->addData(indexNeighbor, weightNeighbor, forceFromNeighbor, t);

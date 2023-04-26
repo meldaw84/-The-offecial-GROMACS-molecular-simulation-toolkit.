@@ -174,6 +174,7 @@ double freeEnergyMinimumValue(gmx::ArrayRef<const PointState> pointState)
  * \param[in] neighborLambdaEnergies The energy of the system in neighboring lambdas states. Can be
  * empty when there are no free energy lambda state dimensions.
  * \param[in] gridpointIndex         The index of the current grid point.
+ * \param[in] contributionOverSymmetryBoundaries Whether the point to evaluate is contributing over a symmetry boundary or not.
  * \returns the log of the biased probability weight.
  */
 double biasedLogWeightFromPoint(ArrayRef<const DimParams>  dimParams,
@@ -183,7 +184,8 @@ double biasedLogWeightFromPoint(ArrayRef<const DimParams>  dimParams,
                                 double                     pointBias,
                                 const awh_dvec             value,
                                 ArrayRef<const double>     neighborLambdaEnergies,
-                                int                        gridpointIndex)
+                                int                        gridpointIndex,
+                                bool                       contributionOverSymmetryBoundaries)
 {
     double logWeight = detail::c_largeNegativeExponent;
 
@@ -211,21 +213,12 @@ double biasedLogWeightFromPoint(ArrayRef<const DimParams>  dimParams,
             }
             else
             {
-                double dev = getDeviationFromPointAlongGridAxis(grid, d, pointIndex, value[d]);
-                double logWeightContrib = -0.5 * dimParams[d].pullDimParams().betak * dev * dev;
-                if (grid.axis(d).isSymmetric())
+                double dev = getDeviationFromPointAlongGridAxis(grid, d, pointIndex, value[d]);;
+                if (contributionOverSymmetryBoundaries)
                 {
-                    double projectionDev =
-                            getDistanceToSymmetryProjectionAlongGridAxis(grid, d, pointIndex);
-                    dev += projectionDev;
-                    double symLogWeightContrib = -0.5 * dimParams[d].pullDimParams().betak * dev * dev;
-                    double weightSum = std::exp(logWeightContrib) + std::exp(symLogWeightContrib);
-                    logWeight += std::log(weightSum);
+                    dev += getDistanceToSymmetryProjectionAlongGridAxis(grid, d, pointIndex);
                 }
-                else
-                {
-                    logWeight += logWeightContrib;
-                }
+                logWeight += -0.5 * dimParams[d].pullDimParams().betak * dev * dev;
             }
         }
     }
@@ -289,12 +282,13 @@ void BiasState::calcConvolvedPmf(ArrayRef<const DimParams> dimParams,
             {
                 /* The negative PMF is a positive bias. */
                 double biasNeighbor = -pmf[neighbor];
+                bool contributionOverSymmetryBoundaries = std::find(point.symmetricNeighborIndices.begin(), point.symmetricNeighborIndices.end(), neighbor) != point.symmetricNeighborIndices.end();
 
                 /* Add the convolved PMF weights for the neighbors of this point.
                 Note that this function only adds point within the target > 0 region.
                 Sum weights, take the logarithm last to get the free energy. */
                 double logWeight = biasedLogWeightFromPoint(
-                        dimParams, points_, grid, neighbor, biasNeighbor, point.coordValue, {}, m);
+                        dimParams, points_, grid, neighbor, biasNeighbor, point.coordValue, {}, m, contributionOverSymmetryBoundaries);
                 freeEnergyWeights += std::exp(logWeight);
             }
         }
@@ -449,7 +443,8 @@ double BiasState::calcUmbrellaForceAndPotential(ArrayRef<const DimParams> dimPar
                                                 const BiasGrid&           grid,
                                                 int                       point,
                                                 ArrayRef<const double>    neighborLambdaDhdl,
-                                                ArrayRef<double>          force) const
+                                                ArrayRef<double>          force,
+                                                bool                      contributionOverSymmetryBoundaries) const
 {
     double potential = 0;
     for (size_t d = 0; d < dimParams.size(); d++)
@@ -468,6 +463,10 @@ double BiasState::calcUmbrellaForceAndPotential(ArrayRef<const DimParams> dimPar
         {
             double deviation =
                     getDeviationFromPointAlongGridAxis(grid, d, point, coordState_.coordValue()[d]);
+            if (contributionOverSymmetryBoundaries)
+            {
+                deviation += getDistanceToSymmetryProjectionAlongGridAxis(grid, d, point);
+            }
             double k = dimParams[d].pullDimParams().k;
 
             /* Force from harmonic potential 0.5*k*dev^2 */
@@ -493,14 +492,16 @@ void BiasState::calcConvolvedForce(ArrayRef<const DimParams> dimParams,
 
     /* Only neighboring points have non-negligible contribution. */
     const std::vector<int>& neighbor          = grid.point(coordState_.gridpointIndex()).neighbor;
+    const std::vector<int>& symmetricNeighborIndices = grid.point(coordState_.gridpointIndex()).symmetricNeighborIndices;
     gmx::ArrayRef<double>   forceFromNeighbor = forceWorkBuffer;
     for (size_t n = 0; n < neighbor.size(); n++)
     {
         double weightNeighbor = probWeightNeighbor[n];
         int    indexNeighbor  = neighbor[n];
+        bool contributionOverSymmetryBoundaries = std::find(symmetricNeighborIndices.begin(), symmetricNeighborIndices.end(), indexNeighbor) != symmetricNeighborIndices.end();
 
         /* Get the umbrella force from this point. The returned potential is ignored here. */
-        calcUmbrellaForceAndPotential(dimParams, grid, indexNeighbor, neighborLambdaDhdl, forceFromNeighbor);
+        calcUmbrellaForceAndPotential(dimParams, grid, indexNeighbor, neighborLambdaDhdl, forceFromNeighbor, contributionOverSymmetryBoundaries);
 
         /* Add the weighted umbrella force to the convolved force. */
         for (size_t d = 0; d < dimParams.size(); d++)
@@ -530,8 +531,9 @@ double BiasState::moveUmbrella(ArrayRef<const DimParams> dimParams,
     }
 
     std::vector<double> newForce(dimParams.size());
+    bool                contributionOverSymmetryBoundaries = false;
     double              newPotential = calcUmbrellaForceAndPotential(
-            dimParams, grid, coordState_.umbrellaGridpoint(), neighborLambdaDhdl, newForce);
+            dimParams, grid, coordState_.umbrellaGridpoint(), neighborLambdaDhdl, newForce, contributionOverSymmetryBoundaries);
 
     /*  A modification of the reference value at time t will lead to a different
         force over t-dt/2 to t and over t to t+dt/2. For high switching rates
@@ -1237,6 +1239,7 @@ double BiasState::updateProbabilityWeightsAndConvolvedBias(ArrayRef<const DimPar
 {
     /* Only neighbors of the current coordinate value will have a non-negligible chance of getting sampled */
     const std::vector<int>& neighbors = grid.point(coordState_.gridpointIndex()).neighbor;
+    const std::vector<int>& symmetricNeighborIndices = grid.point(coordState_.gridpointIndex()).symmetricNeighborIndices;
 
 #if GMX_SIMD_HAVE_DOUBLE
     typedef SimdDouble PackType;
@@ -1258,6 +1261,7 @@ double BiasState::updateProbabilityWeightsAndConvolvedBias(ArrayRef<const DimPar
             if (n < neighbors.size())
             {
                 const int neighbor = neighbors[n];
+                bool contributionOverSymmetryBoundaries = std::find(symmetricNeighborIndices.begin(), symmetricNeighborIndices.end(), neighbor) != symmetricNeighborIndices.end();
                 (*weight)[n]       = biasedLogWeightFromPoint(dimParams,
                                                         points_,
                                                         grid,
@@ -1265,7 +1269,8 @@ double BiasState::updateProbabilityWeightsAndConvolvedBias(ArrayRef<const DimPar
                                                         points_[neighbor].bias(),
                                                         coordState_.coordValue(),
                                                         neighborLambdaEnergies,
-                                                        coordState_.gridpointIndex());
+                                                        coordState_.gridpointIndex(),
+                                                        contributionOverSymmetryBoundaries);
             }
             else
             {
@@ -1327,6 +1332,7 @@ double BiasState::calcConvolvedBias(ArrayRef<const DimParams> dimParams,
 {
     int              point     = grid.nearestIndex(coordValue);
     const GridPoint& gridPoint = grid.point(point);
+    const std::vector<int>& symmetricNeighborIndices = gridPoint.symmetricNeighborIndices;
 
     /* Sum the probability weights from the neighborhood of the given point */
     double weightSum = 0;
@@ -1337,8 +1343,9 @@ double BiasState::calcConvolvedBias(ArrayRef<const DimParams> dimParams,
         {
             continue;
         }
+        bool contributionOverSymmetryBoundaries = std::find(symmetricNeighborIndices.begin(), symmetricNeighborIndices.end(), neighbor) != symmetricNeighborIndices.end();
         double logWeight = biasedLogWeightFromPoint(
-                dimParams, points_, grid, neighbor, points_[neighbor].bias(), coordValue, {}, point);
+                dimParams, points_, grid, neighbor, points_[neighbor].bias(), coordValue, {}, point, contributionOverSymmetryBoundaries);
         weightSum += std::exp(logWeight);
     }
 

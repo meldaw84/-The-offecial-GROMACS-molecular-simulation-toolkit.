@@ -731,6 +731,40 @@ void setNeighborsOfGridPoint(int pointIndex, const BiasGrid& grid, std::vector<i
         }
     }
 }
+/*! \brief
+ * Find and set the neighbors of a grid point that are mirrored across a symmetry axis (or periodic boundary of a symmetric axis).
+ *
+ * Keeps track of which neighbor indices were added due to symmetry.
+ *
+ * \param[in]     grid                 The grid.
+ * \param[in,out] neighborIndexArray   Array containing current neighborIndices and to which points that would be neighbors across a symmetric axis are added.
+ * \param[in,out] symmetricNeighborIndices   Array containing a list of indices in neighborIndexArray that are copies and mirrored across a symmetric axis.
+ *
+ */
+void setSymmetryMirroredNeighbors(const BiasGrid& grid, std::vector<int>* neighborIndexArray, std::vector<int>* symmetricNeighborIndices)
+{
+    const int c_maxNumPointsToSymmetryPointAlongAxis = static_cast<int>(BiasGrid::c_numPointsPerSigma * BiasGrid::c_scopeCutoff);
+
+    for (int neighbor : *neighborIndexArray)
+    {
+        bool alreadyAdded = std::find(symmetricNeighborIndices->begin(), symmetricNeighborIndices->end(), neighbor) != symmetricNeighborIndices->end();
+        if (alreadyAdded)
+        {
+            continue;
+        }
+        for (int d = 0; d < grid.numDimensions(); d++)
+        {
+            if (grid.axis(d).isSymmetric())
+            {
+                if (grid.point(neighbor).index[d] < c_maxNumPointsToSymmetryPointAlongAxis ||
+                    grid.point(neighbor).index[d] >= grid.axis(d).numPoints() - c_maxNumPointsToSymmetryPointAlongAxis)
+                {
+                    symmetricNeighborIndices->push_back(neighbor);
+                }
+            }
+        }
+    }
+}
 
 } // namespace
 
@@ -858,6 +892,7 @@ BiasGrid::BiasGrid(ArrayRef<const DimParams> dimParams, ArrayRef<const AwhDimPar
     /* Define the discretization along each dimension */
     awh_dvec period;
     int64_t  numPoints = 1;
+    int64_t  numSymmetricDims = 0;
     for (int d = 0; d < gmx::ssize(awhDimParams); d++)
     {
         double origin = dimParams[d].scaleUserInputToInternal(awhDimParams[d].origin());
@@ -871,6 +906,10 @@ BiasGrid::BiasGrid(ArrayRef<const DimParams> dimParams, ArrayRef<const AwhDimPar
                     "covering the reaction using Gaussians");
             double pointDensity = std::sqrt(dimParams[d].pullDimParams().betak) * c_numPointsPerSigma;
             axis_.emplace_back(origin, end, period[d], pointDensity, awhDimParams[d].isSymmetric());
+            if (awhDimParams[d].isSymmetric())
+            {
+                numSymmetricDims += 1;
+            }
         }
         else
         {
@@ -878,6 +917,8 @@ BiasGrid::BiasGrid(ArrayRef<const DimParams> dimParams, ArrayRef<const AwhDimPar
         }
         numPoints *= axis_[d].numPoints();
     }
+    GMX_RELEASE_ASSERT(numSymmetricDims <= 1,
+                       "It is currently not possible to use more than one symmetric AWH dimension.");
 
     // Check for unreasonably large grids to avoid sampling and allocation problems
     // 10^7 points are practically impossible to sample and use about 1 GB of data
@@ -907,8 +948,10 @@ BiasGrid::BiasGrid(ArrayRef<const DimParams> dimParams, ArrayRef<const AwhDimPar
     for (size_t m = 0; m < point_.size(); m++)
     {
         std::vector<int>* neighbor = &point_[m].neighbor;
+        std::vector<int>* symmetricNeighborIndices = &point_[m].symmetricNeighborIndices;
 
         setNeighborsOfGridPoint(m, *this, neighbor);
+        setSymmetryMirroredNeighbors(*this, neighbor, symmetricNeighborIndices);
     }
 }
 
