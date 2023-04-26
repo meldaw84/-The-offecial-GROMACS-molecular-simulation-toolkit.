@@ -45,16 +45,11 @@
 #include "gromacs/gpu_utils/device_context.h"
 #include "gromacs/gpu_utils/device_stream.h"
 #include "gromacs/utility/exceptions.h"
+#include "gromacs/utility/template_mp.h"
 
-
-static sycl::property_list makeQueuePropertyList(bool                            inOrder,
-                                                 bool                            enableProfiling,
-                                                 DeviceStreamPriority gmx_unused priority)
-{
-    // If hipSYCL priority extension is present, extract the priority range
-    // and use the lowest or highest priority supported for DeviceStreamPriority::Low and
-    // DeviceStreamPriority::High, respectively.
 #ifdef HIPSYCL_EXT_QUEUE_PRIORITY
+static sycl::property::queue::hipSYCL_priority getHipSyclPriority(DeviceStreamPriority priority)
+{
     // for simplicity we assume 0 to be the default priority (verified for CUDA and HIP)
     int defaultPrioValue = 0;
     int highPrioValue    = 0;
@@ -75,31 +70,25 @@ static sycl::property_list makeQueuePropertyList(bool                           
 
     const int priorityValue = (priority == DeviceStreamPriority::High) ? highPrioValue : defaultPrioValue;
 
-#    define HIPSYCL_PRIORITY_ATTRIBUTE \
-        sycl::property::queue::hipSYCL_priority { priorityValue }
-#else
-#    define HIPSYCL_PRIORITY_ATTRIBUTE
+    return sycl::property::queue::hipSYCL_priority { priorityValue }
+}
 #endif
 
-    if (enableProfiling && inOrder)
-    {
-        return { sycl::property::queue::in_order(),
-                 sycl::property::queue::enable_profiling(),
-                 HIPSYCL_PRIORITY_ATTRIBUTE };
-    }
-    else if (enableProfiling && !inOrder)
-    {
-        return { sycl::property::queue::enable_profiling(), HIPSYCL_PRIORITY_ATTRIBUTE };
-    }
-    else if (!enableProfiling && inOrder)
-    {
-        return { sycl::property::queue::in_order(), HIPSYCL_PRIORITY_ATTRIBUTE };
-    }
-    else
-    {
-        return { HIPSYCL_PRIORITY_ATTRIBUTE };
-    }
-#undef HIPSYCL_PRIORITY_ATTRIBUTE
+static sycl::property_list makeQueuePropertyList(bool                            inOrder,
+                                                 bool                            enableProfiling,
+                                                 DeviceStreamPriority gmx_unused priority)
+{
+    // If hipSYCL priority extension is present, extract the priority range
+    // and use the lowest or highest priority supported for DeviceStreamPriority::Low and
+    // DeviceStreamPriority::High, respectively.
+
+    return gmx::ConditionalSignatureBuilder<>()
+            .addIf(inOrder, sycl::property::queue::in_order())
+            .addIf(enableProfiling, sycl::property::queue::enable_profiling())
+#ifdef HIPSYCL_EXT_QUEUE_PRIORITY
+            .addIf(true, getHipSyclPriority(priority))
+#endif
+            .build<sycl::property_list>();
 }
 
 DeviceStream::DeviceStream(const DeviceContext& deviceContext, DeviceStreamPriority priority, const bool useTiming)

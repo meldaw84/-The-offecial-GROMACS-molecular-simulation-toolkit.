@@ -119,32 +119,6 @@ auto dispatchTemplatedFunction(Function&& f, bool e, Enums... es)
 }
 //! \endcond
 
-template<int CurrentArgIndex, class Object, typename... AllArgs, typename... ResolvedArgs>
-auto constructObjectWithVariadicOptionalInitializerHelper(std::tuple<std::optional<AllArgs>...> allArgs,
-                                                          ResolvedArgs... resolvedArgs)
-{
-    if constexpr (CurrentArgIndex < 0)
-    {
-        return Object{ resolvedArgs... };
-    }
-    else
-    {
-        static_assert(std::tuple_size_v<decltype(allArgs)> > CurrentArgIndex);
-        static_assert(std::tuple_size_v<decltype(allArgs)> >= sizeof...(resolvedArgs));
-        auto currentArg = std::get<CurrentArgIndex>(allArgs);
-        if (currentArg.has_value())
-        {
-            return constructObjectWithVariadicOptionalInitializerHelper<CurrentArgIndex - 1, Object>(
-                    allArgs, currentArg.value(), resolvedArgs...);
-        }
-        else
-        {
-            return constructObjectWithVariadicOptionalInitializerHelper<CurrentArgIndex - 1, Object>(
-                    allArgs, resolvedArgs...);
-        }
-    }
-}
-
 /*! \internal \brief
  * Helper function to create a class with initializer list when some of the arguments are optional.
  *
@@ -158,19 +132,58 @@ class Foo {
 Foo bar(bool haveOne, bool haveTwo) {
     std::optional<int> one = haveOne ? 1 : std::nullopt;
     std::optional<int> two = haveTwo ? 2 : std::nullopt;
-    return constructObjectWithVariadicOptionalInitializer<Foo>(one, two);
+    return conditionalSignatureBuilder<Foo>(one, two);
 }
  * \endcode
  */
-template<typename Object, typename... AllArgs>
-auto constructObjectWithVariadicOptionalInitializer(std::optional<AllArgs>... allArgs)
-{
-    auto          allArgsTuple = std::make_tuple(allArgs...);
-    constexpr int numArgs      = std::tuple_size_v<decltype(allArgsTuple)>;
-    static_assert(numArgs > 0);
-    return constructObjectWithVariadicOptionalInitializerHelper<numArgs - 1, Object>(std::move(allArgsTuple));
-}
 
+template<typename... Args>
+class ConditionalSignatureBuilder
+{
+public:
+    ConditionalSignatureBuilder() = default;
+    ConditionalSignatureBuilder(std::tuple<Args...> args) : args_(std::move(args)) {}
+
+    template<typename NewArg>
+    ConditionalSignatureBuilder<Args..., std::optional<NewArg>> addIf(bool condition, NewArg newArg)
+    {
+        std::optional<NewArg> optionalNewArg = condition ? std::make_optional<NewArg>(newArg) : std::nullopt;
+        return { std::tuple_cat(args_, std::make_tuple(optionalNewArg)) };
+    }
+
+    template<class Object>
+    Object build()
+    {
+        constexpr int numArgs = std::tuple_size_v<decltype(args_)>;
+        return buildHelper<numArgs - 1, Object>();
+    }
+
+private:
+    std::tuple<Args...> args_;
+
+    template<int CurrentArgIndex, class Object, typename... ResolvedArgs>
+    auto buildHelper(ResolvedArgs... resolvedArgs)
+    {
+        if constexpr (CurrentArgIndex < 0)
+        {
+            return Object{ resolvedArgs... };
+        }
+        else
+        {
+            static_assert(std::tuple_size_v<decltype(args_)> > CurrentArgIndex);
+            static_assert(std::tuple_size_v<decltype(args_)> >= sizeof...(resolvedArgs));
+            auto currentArg = std::get<CurrentArgIndex>(args_);
+            if (currentArg.has_value())
+            {
+                return buildHelper<CurrentArgIndex - 1, Object>(currentArg.value(), resolvedArgs...);
+            }
+            else
+            {
+                return buildHelper<CurrentArgIndex - 1, Object>(resolvedArgs...);
+            }
+        }
+    }
+};
 
 } // namespace gmx
 

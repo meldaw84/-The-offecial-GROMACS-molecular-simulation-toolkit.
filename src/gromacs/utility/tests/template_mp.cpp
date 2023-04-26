@@ -33,9 +33,9 @@
  */
 #include "gmxpre.h"
 
-#include <any>
-
 #include "gromacs/utility/template_mp.h"
+
+#include <any>
 
 #include <gtest/gtest.h>
 
@@ -100,59 +100,65 @@ TEST(TemplateMPTest, DispatchTemplatedFunctionEnumBool)
 }
 
 
-TEST(TemplateMPTest, ConstructObjectWithVariadicOptionalInitializerEmptyOne)
+TEST(TemplateMPTest, ConditionalSignatureBuilderEmpty)
 {
-    std::optional<int> p1   = { std::nullopt };
-    std::vector<int> result = constructObjectWithVariadicOptionalInitializer<std::vector<int>>(p1);
+    auto result = ConditionalSignatureBuilder<>().build<std::vector<int>>();
+    static_assert(std::is_same_v<decltype(result), std::vector<int>>);
     EXPECT_EQ(result.size(), 0);
 }
 
-TEST(TemplateMPTest, ConstructObjectWithVariadicOptionalInitializerEmptyTwo)
+TEST(TemplateMPTest, ConditionalSignatureBuilderEmptyOne)
 {
-    std::optional<int> p1 = { std::nullopt };
-    std::vector<int> result = constructObjectWithVariadicOptionalInitializer<std::vector<int>>(p1, p1);
+    auto result = ConditionalSignatureBuilder<>().addIf(false, 1).build<std::vector<int>>();
     EXPECT_EQ(result.size(), 0);
 }
 
-TEST(TemplateMPTest, ConstructObjectWithVariadicOptionalInitializerValidOne)
+TEST(TemplateMPTest, ConditionalSignatureBuilderEmptyTwo)
 {
-    std::optional<int> p1   = 5;
-    std::vector<int> result = constructObjectWithVariadicOptionalInitializer<std::vector<int>>(p1);
+    auto result =
+            ConditionalSignatureBuilder<>().addIf(false, 1).addIf(false, 2).build<std::vector<int>>();
+    EXPECT_EQ(result.size(), 0);
+}
+
+TEST(TemplateMPTest, ConditionalSignatureBuilderValidOne)
+{
+    auto result = ConditionalSignatureBuilder<>().addIf(true, 5).build<std::vector<int>>();
     ASSERT_EQ(result.size(), 1);
     EXPECT_EQ(result[0], 5);
 }
 
-TEST(TemplateMPTest, ConstructObjectWithVariadicOptionalInitializerValidOneEmptyOne)
+TEST(TemplateMPTest, ConditionalSignatureBuilderValidOneEmptyOne)
 {
-    std::optional<int> p1 = 5;
-    std::optional<int> p2 = std::nullopt;
-    std::vector<int> result12 = constructObjectWithVariadicOptionalInitializer<std::vector<int>>(p1, p2);
-    std::vector<int> result21 = constructObjectWithVariadicOptionalInitializer<std::vector<int>>(p2, p1);
+    auto result12 =
+            ConditionalSignatureBuilder<>().addIf(true, 5).addIf(false, 6).build<std::vector<int>>();
+    auto result21 =
+            ConditionalSignatureBuilder<>().addIf(false, 5).addIf(true, 6).build<std::vector<int>>();
     ASSERT_EQ(result12.size(), 1);
     EXPECT_EQ(result12[0], 5);
     ASSERT_EQ(result21.size(), 1);
-    EXPECT_EQ(result21[0], 5);
+    EXPECT_EQ(result21[0], 6);
 }
 
-TEST(TemplateMPTest, ConstructObjectWithVariadicOptionalInitializerThreeValid)
+TEST(TemplateMPTest, ConditionalSignatureBuilderValidThree)
 {
-    std::optional<int>   p1 = 5;
-    std::optional<float> p2 = 5.5;
-    std::optional<char>  p3 = 'A';
-    auto result = constructObjectWithVariadicOptionalInitializer<std::vector<std::any>>(p1, p2, p3);
+    auto result = ConditionalSignatureBuilder<>()
+                          .addIf<int>(true, 5)
+                          .addIf<float>(true, 5.5F)
+                          .addIf<char>(true, 'A')
+                          .build<std::vector<std::any>>();
     ASSERT_EQ(result.size(), 3);
     EXPECT_EQ(std::any_cast<int>(result[0]), 5);
     EXPECT_EQ(std::any_cast<float>(result[1]), 5.5);
     EXPECT_EQ(std::any_cast<char>(result[2]), 'A');
 }
 
-
-TEST(TemplateMPTest, ConstructObjectWithVariadicOptionalInitializerTwoOfThreeValid)
+TEST(TemplateMPTest, ConditionalSignatureBuilderTwoOfThreeValid)
 {
-    std::optional<int>   p1 = 5;
-    std::optional<float> p2 = std::nullopt;
-    std::optional<char>  p3 = 'A';
-    auto result = constructObjectWithVariadicOptionalInitializer<std::vector<std::any>>(p1, p2, p3);
+    auto result = ConditionalSignatureBuilder<>()
+                          .addIf<int>(true, 5)
+                          .addIf<float>(false, 5.5F)
+                          .addIf<char>(true, 'A')
+                          .build<std::vector<std::any>>();
     ASSERT_EQ(result.size(), 2);
     EXPECT_EQ(std::any_cast<int>(result[0]), 5);
     EXPECT_EQ(std::any_cast<char>(result[1]), 'A');
