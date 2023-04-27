@@ -87,7 +87,7 @@ constexpr bool is_resizable_v = is_resizable<T>::value;
  * swapping are designed to yield good performances in both cases, notably
  * foregoing the copy-swap idiom due to the bad performance in swapping std::array.
  *
- * This class avoids throwing exeptions, apart from the ones that might be thrown
+ * This class avoids throwing exceptions, apart from the ones that might be thrown
  * from the containers during resizing an allocation. (bad_malloc from std::vector
  * is a likely candidate)
  *
