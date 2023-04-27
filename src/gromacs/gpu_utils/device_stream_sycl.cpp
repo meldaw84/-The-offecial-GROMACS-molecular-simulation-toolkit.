@@ -82,12 +82,21 @@ static sycl::property_list makeQueuePropertyList(bool                           
     // and use the lowest or highest priority supported for DeviceStreamPriority::Low and
     // DeviceStreamPriority::High, respectively.
 
-    return gmx::ConditionalSignatureBuilder<>()
-            .addIf(inOrder, sycl::property::queue::in_order())
-            .addIf(enableProfiling, sycl::property::queue::enable_profiling())
+
 #ifdef HIPSYCL_EXT_QUEUE_PRIORITY
-            .addIf(true, getHipSyclPriority(priority))
+    auto builder = gmx::ConditionalSignatureBuilder().add(getHipSyclPriority(priority));
+#elif defined(SYCL_EXT_ONEAPI_QUEUE_PRIORITY)
+    namespace prop_queue = sycl::ext::oneapi::property::queue;
+    auto builder =
+            gmx::ConditionalSignatureBuilder()
+                    .addIf(priority == DeviceStreamPriority::High, prop_queue::priority_high())
+                    .addIf(priority == DeviceStreamPriority::Normal, prop_queue::priority_normal());
+#else
+    auto builder = gmx::ConditionalSignatureBuilder();
 #endif
+
+    return builder.addIf(inOrder, sycl::property::queue::in_order())
+            .addIf(enableProfiling, sycl::property::queue::enable_profiling())
             .build<sycl::property_list>();
 }
 
