@@ -169,7 +169,7 @@ public:
 private:
     std::tuple<Args...> args_;
 
-    // Private friendly constructor to
+    // Private friendly constructor to use in add/addIf
     template<typename...>
     friend class ConditionalSignatureBuilder;
     ConditionalSignatureBuilder(std::tuple<Args...> args) : args_(std::move(args)) {}

@@ -73,7 +73,7 @@ namespace compat
  * \endcode
  */
 template<std::size_t N, class F, typename std::enable_if<(N <= 1)>::type* = nullptr>
-static auto mp_with_index(std::size_t i, F&& f)
+auto mp_with_index(std::size_t i, F&& f)
 {
     // Last step of recursion. Must have one active "return" for proper type deduction.
     if (i == N - 1)
@@ -91,7 +91,7 @@ static auto mp_with_index(std::size_t i, F&& f)
 // Doxygen does not like recursive templates.
 //! \cond
 template<std::size_t N, class F, typename std::enable_if<(N > 1)>::type* = nullptr>
-static auto mp_with_index(std::size_t i, F&& f)
+auto mp_with_index(std::size_t i, F&& f)
 {
     if (i == N - 1)
     {
