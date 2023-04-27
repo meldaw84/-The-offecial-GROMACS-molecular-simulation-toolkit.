@@ -181,6 +181,25 @@ BasicMatrix3x3<ElementType> operator+(const BasicMatrix3x3<ElementType>& a,
     return result;
 }
 
+//! Return the product of multiplication of two 3x3 matrices \c a and \c b
+template<typename ElementType>
+BasicMatrix3x3<ElementType> operator*(const BasicMatrix3x3<ElementType>& a,
+                                      const BasicMatrix3x3<ElementType>& b)
+{
+    BasicMatrix3x3<ElementType> result;
+    for (int i = 0; i < DIM; i++)
+    {
+        for (int j = 0; j < DIM; j++)
+        {
+            for (int k = 0; k < DIM; k++)
+            {
+                result(i, j) += a(i, k) * b(k, j);
+            }
+        }
+    }
+    return result;
+}
+
 
 //! Return the product of multiplying the 3x3 matrix \c m by the scalar \c s
 template<typename ElementType>
