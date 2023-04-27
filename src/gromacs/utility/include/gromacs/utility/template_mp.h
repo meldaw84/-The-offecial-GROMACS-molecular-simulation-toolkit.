@@ -130,9 +130,8 @@ class Foo {
 }
 
 Foo bar(bool haveOne, bool haveTwo) {
-    std::optional<int> one = haveOne ? 1 : std::nullopt;
-    std::optional<int> two = haveTwo ? 2 : std::nullopt;
-    return conditionalSignatureBuilder<Foo>(one, two);
+    auto builder = ConditionalSignatureBuilder().addIf(haveOne, 1).addIf(haveTwo, 2);
+    return builder.build<Foo>();
 }
  * \endcode
  */
@@ -141,18 +140,27 @@ template<typename... Args>
 class ConditionalSignatureBuilder
 {
 public:
-    ConditionalSignatureBuilder() = default;
-    ConditionalSignatureBuilder(std::tuple<Args...> args) : args_(std::move(args)) {}
+    ConditionalSignatureBuilder()
+    {
+        // We only want to allow manually creating empty builders
+        static_assert(sizeof...(Args) == 0U);
+    }
 
     template<typename NewArg>
-    ConditionalSignatureBuilder<Args..., std::optional<NewArg>> addIf(bool condition, NewArg newArg)
+    ConditionalSignatureBuilder<Args..., std::optional<NewArg>> addIf(bool condition, NewArg newArg) const
     {
         std::optional<NewArg> optionalNewArg = condition ? std::make_optional<NewArg>(newArg) : std::nullopt;
         return { std::tuple_cat(args_, std::make_tuple(optionalNewArg)) };
     }
 
+    template<typename NewArg>
+    ConditionalSignatureBuilder<Args..., std::optional<NewArg>> add(NewArg newArg) const
+    {
+        return addIf<NewArg>(true, newArg);
+    }
+
     template<class Object>
-    Object build()
+    Object build() const
     {
         constexpr int numArgs = std::tuple_size_v<decltype(args_)>;
         return buildHelper<numArgs - 1, Object>();
@@ -161,8 +169,13 @@ public:
 private:
     std::tuple<Args...> args_;
 
+    // Private friendly constructor to
+    template<typename...>
+    friend class ConditionalSignatureBuilder;
+    ConditionalSignatureBuilder(std::tuple<Args...> args) : args_(std::move(args)) {}
+
     template<int CurrentArgIndex, class Object, typename... ResolvedArgs>
-    auto buildHelper(ResolvedArgs... resolvedArgs)
+    auto buildHelper(ResolvedArgs... resolvedArgs) const
     {
         if constexpr (CurrentArgIndex < 0)
         {
@@ -184,6 +197,10 @@ private:
         }
     }
 };
+
+// CTAD: Allow constructing an empty builder by default
+template<typename... Args>
+ConditionalSignatureBuilder() -> ConditionalSignatureBuilder<>;
 
 } // namespace gmx
 

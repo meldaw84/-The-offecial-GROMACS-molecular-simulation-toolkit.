@@ -102,27 +102,38 @@ TEST(TemplateMPTest, DispatchTemplatedFunctionEnumBool)
 
 TEST(TemplateMPTest, ConditionalSignatureBuilderEmpty)
 {
-    auto result = ConditionalSignatureBuilder<>().build<std::vector<int>>();
+    auto result = ConditionalSignatureBuilder().build<std::vector<int>>();
     static_assert(std::is_same_v<decltype(result), std::vector<int>>);
     EXPECT_EQ(result.size(), 0);
 }
 
 TEST(TemplateMPTest, ConditionalSignatureBuilderEmptyOne)
 {
-    auto result = ConditionalSignatureBuilder<>().addIf(false, 1).build<std::vector<int>>();
+    auto result = ConditionalSignatureBuilder().addIf(false, 1).build<std::vector<int>>();
+    static_assert(std::is_same_v<decltype(result), std::vector<int>>);
     EXPECT_EQ(result.size(), 0);
 }
 
 TEST(TemplateMPTest, ConditionalSignatureBuilderEmptyTwo)
 {
     auto result =
-            ConditionalSignatureBuilder<>().addIf(false, 1).addIf(false, 2).build<std::vector<int>>();
+            ConditionalSignatureBuilder().addIf(false, 1).addIf(false, 2).build<std::vector<int>>();
     EXPECT_EQ(result.size(), 0);
 }
 
+
 TEST(TemplateMPTest, ConditionalSignatureBuilderValidOne)
 {
-    auto result = ConditionalSignatureBuilder<>().addIf(true, 5).build<std::vector<int>>();
+    auto result = ConditionalSignatureBuilder().add(5).build<std::vector<int>>();
+    static_assert(std::is_same_v<decltype(result), std::vector<int>>);
+    ASSERT_EQ(result.size(), 1);
+    EXPECT_EQ(result[0], 5);
+}
+
+TEST(TemplateMPTest, ConditionalSignatureBuilderValidOneConditional)
+{
+    auto result = ConditionalSignatureBuilder().addIf(true, 5).build<std::vector<int>>();
+    static_assert(std::is_same_v<decltype(result), std::vector<int>>);
     ASSERT_EQ(result.size(), 1);
     EXPECT_EQ(result[0], 5);
 }
@@ -130,9 +141,9 @@ TEST(TemplateMPTest, ConditionalSignatureBuilderValidOne)
 TEST(TemplateMPTest, ConditionalSignatureBuilderValidOneEmptyOne)
 {
     auto result12 =
-            ConditionalSignatureBuilder<>().addIf(true, 5).addIf(false, 6).build<std::vector<int>>();
+            ConditionalSignatureBuilder().addIf(true, 5).addIf(false, 6).build<std::vector<int>>();
     auto result21 =
-            ConditionalSignatureBuilder<>().addIf(false, 5).addIf(true, 6).build<std::vector<int>>();
+            ConditionalSignatureBuilder().addIf(false, 5).addIf(true, 6).build<std::vector<int>>();
     ASSERT_EQ(result12.size(), 1);
     EXPECT_EQ(result12[0], 5);
     ASSERT_EQ(result21.size(), 1);
@@ -141,8 +152,8 @@ TEST(TemplateMPTest, ConditionalSignatureBuilderValidOneEmptyOne)
 
 TEST(TemplateMPTest, ConditionalSignatureBuilderValidThree)
 {
-    auto result = ConditionalSignatureBuilder<>()
-                          .addIf<int>(true, 5)
+    auto result = ConditionalSignatureBuilder()
+                          .add<int>(5)
                           .addIf<float>(true, 5.5F)
                           .addIf<char>(true, 'A')
                           .build<std::vector<std::any>>();
