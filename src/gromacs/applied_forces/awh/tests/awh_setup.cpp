@@ -70,7 +70,8 @@ std::vector<char> awhDimParamSerialized(AwhCoordinateProviderType inputCoordinat
                                         double                    inputOrigin,
                                         double                    inputEnd,
                                         double                    inputPeriod,
-                                        double                    inputDiffusion)
+                                        double                    inputDiffusion,
+                                        bool                      inputIsSymmetric)
 {
     AwhCoordinateProviderType eCoordProvider = inputCoordinateProvider;
     int                       coordIndex     = inputCoordIndex;
@@ -81,6 +82,7 @@ std::vector<char> awhDimParamSerialized(AwhCoordinateProviderType inputCoordinat
     double                    end            = inputEnd;
     double                    coordValueInit = inputOrigin;
     double                    coverDiameter  = 0;
+    bool                      isSymmetric    = inputIsSymmetric;
 
     gmx::InMemorySerializer serializer;
     serializer.doEnumAsInt(&eCoordProvider);
@@ -92,6 +94,7 @@ std::vector<char> awhDimParamSerialized(AwhCoordinateProviderType inputCoordinat
     serializer.doDouble(&diffusion);
     serializer.doDouble(&coordValueInit);
     serializer.doDouble(&coverDiameter);
+    serializer.doBool(&isSymmetric);
     return serializer.finishAndGetBuffer();
 }
 
@@ -189,7 +192,7 @@ static std::vector<char> awhParamSerialized(AwhHistogramGrowthType            ea
     return awhParamBuffer;
 }
 
-AwhTestParameters::AwhTestParameters(ISerializer* serializer) : awhParams(serializer) {}
+AwhTestParameters::AwhTestParameters(ISerializer* serializer) : awhParams(serializer, true) {}
 /*! \brief
  * Helper function to set up the C-style AWH parameters for the test.
  *

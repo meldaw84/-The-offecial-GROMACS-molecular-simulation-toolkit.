@@ -598,9 +598,8 @@ void checkInputConsistencyAwh(const AwhParams& awhParams, WarningHandler* wi)
                 }
                 if (wi && dimParams1[d1].isSymmetric() && awhParams.potential() == AwhPotentialType::Umbrella)
                 {
-                    warning_note(wi,
-                                 "An umbrella potential with a symmetric dimension may not cross "
-                                 "symmetric (and periodic) boundaries as expected.");
+                    wi->addWarning("An umbrella potential with a symmetric dimension may not cross "
+                                   "symmetric (and periodic) boundaries as expected.");
                 }
 
                 /* d1 is the reference dimension of the reference AWH. d2 is the dim index of the AWH to compare with. */
@@ -743,7 +742,7 @@ AwhDimParams::AwhDimParams(std::vector<t_inpfile>* inp, const std::string& prefi
     coverDiameter_ = get_ereal(inp, opt, 0, wi);
 }
 
-AwhDimParams::AwhDimParams(ISerializer* serializer, bool bReadSymmetryOption = false)
+AwhDimParams::AwhDimParams(ISerializer* serializer, bool bReadSymmetryOption)
 {
     GMX_RELEASE_ASSERT(serializer->reading(),
                        "Can not use writing serializer for creating datastructure");
@@ -864,7 +863,7 @@ AwhBiasParams::AwhBiasParams(std::vector<t_inpfile>* inp, const std::string& pre
     }
 }
 
-AwhBiasParams::AwhBiasParams(ISerializer* serializer, bool bReadSymmetryOption = false)
+AwhBiasParams::AwhBiasParams(ISerializer* serializer, bool bReadSymmetryOption)
 {
     GMX_RELEASE_ASSERT(serializer->reading(),
                        "Can not use writing serializer to create datastructure");
@@ -967,7 +966,7 @@ AwhParams::AwhParams(std::vector<t_inpfile>* inp, WarningHandler* wi)
     checkInputConsistencyAwh(*this, wi);
 }
 
-AwhParams::AwhParams(ISerializer* serializer, bool bReadSymmetryOption = false)
+AwhParams::AwhParams(ISerializer* serializer, bool bReadSymmetryOption)
 {
     GMX_RELEASE_ASSERT(serializer->reading(),
                        "Can not use writing serializer to read AWH parameters");

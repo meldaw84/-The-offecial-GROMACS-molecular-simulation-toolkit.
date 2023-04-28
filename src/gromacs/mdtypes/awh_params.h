@@ -117,7 +117,7 @@ public:
     //! Constructor from input file.
     AwhDimParams(std::vector<t_inpfile>* inp, const std::string& prefix, WarningHandler* wi, bool bComment);
     //! Constructor to generate from file reading.
-    explicit AwhDimParams(ISerializer* serializer, bool bReadSymmetryOption);
+    explicit AwhDimParams(ISerializer* serializer, bool bReadSymmetryOption = true);
 
     //! Move constructor.
     AwhDimParams(AwhDimParams&&) = default;
@@ -184,7 +184,7 @@ public:
     //! Constructor from input file.
     AwhBiasParams(std::vector<t_inpfile>* inp, const std::string& prefix, WarningHandler* wi, bool bComment);
     //! Constructor to generate from file reading.
-    explicit AwhBiasParams(ISerializer* serializer, bool bReadSymmetryOption);
+    explicit AwhBiasParams(ISerializer* serializer, bool bReadSymmetryOption = true);
 
     //! Move constructor.
     AwhBiasParams(AwhBiasParams&&) = default;
@@ -249,7 +249,7 @@ public:
     //! Constructor from input file.
     AwhParams(std::vector<t_inpfile>* inp, WarningHandler* wi);
     //! Constructor used to generate awh parameter from file reading.
-    explicit AwhParams(ISerializer* serializer, bool bReadSymmetryOption);
+    explicit AwhParams(ISerializer* serializer, bool bReadSymmetryOption = true);
 
     //! Move constructor.
     AwhParams(AwhParams&&) = default;

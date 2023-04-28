@@ -260,28 +260,6 @@ bool pointsHaveDifferentLambda(const BiasGrid& grid, int pointIndex1, int pointI
     return false;
 }
 
-double getDistanceToSymmetryProjectionAlongGridAxis(const BiasGrid& grid, const int dimIndex, const int pointIndex)
-{
-    const double coordValue = grid.point(pointIndex).coordValue[dimIndex];
-    const double dimEndValue = grid.axis(dimIndex).period() / 2; // Will be 0 if the axis is not periodic.
-    const double devToEnd    = dimEndValue - coordValue;
-    const double devToOrigin = coordValue;
-
-    double dev;
-    /* If the axis is not periodic only measure the distance to the symmetry projection across
-     * the origin (0). */
-    if (devToOrigin <= devToEnd || !grid.axis(dimIndex).isPeriodic())
-    {
-        dev = 2 * devToOrigin;
-    }
-    else
-    {
-        dev = 2 * -devToEnd;
-    }
-
-    return dev;
-}
-
 void linearArrayIndexToMultiDim(int indexLinear, int numDimensions, const awh_ivec numPointsDim, awh_ivec indexMulti)
 {
     for (int d = 0; d < numDimensions; d++)

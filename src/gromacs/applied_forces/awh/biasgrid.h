@@ -408,19 +408,6 @@ bool pointsAlongLambdaAxis(const BiasGrid& grid, int pointIndex1, int pointIndex
  */
 bool pointsHaveDifferentLambda(const BiasGrid& grid, int pointIndex1, int pointIndex2);
 
-/*! \brief
- * Get the distance between a coordinate value of a point and its closest projection across a
- * symmetry boundary at the origin (or the periodic boundary at the other end of the interval,
- * if the axis is periodic along the axis).
- *
- * \param[in] grid        The grid.
- * \param[in] dimIndex    Dimensional index in [0, ndim -1].
- * \param[in] pointIndex  Grid point index.
- * \returns the distance the distance from the coordinate point to its projection across its closest
- * symmetry boundary.
- */
-double getDistanceToSymmetryProjectionAlongGridAxis(const BiasGrid& grid, int dimIndex, int pointIndex);
-
 } // namespace gmx
 
 #endif

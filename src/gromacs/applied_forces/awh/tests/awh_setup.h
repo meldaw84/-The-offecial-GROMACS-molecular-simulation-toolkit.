@@ -61,7 +61,8 @@ std::vector<char> awhDimParamSerialized(
         double                    inputEnd                = 1.5,
         double                    inputPeriod             = 0,
         // Correction for removal of GaussianGeometryFactor/2 in histogram size
-        double inputDiffusion = 0.1 / (0.144129616073222 * 2));
+        double inputDiffusion = 0.1 / (0.144129616073222 * 2),
+        bool                      isSymmetric             = false);
 
 /*! \internal \brief
  * Struct that gathers all input for setting up and using a Bias

@@ -75,13 +75,14 @@ TEST(biasGridTest, neighborhood)
     std::vector<AwhDimParams> awhDimParams;
     AwhCoordinateProviderType coordinateProvider = AwhCoordinateProviderType::Pull;
     double                    diffusion          = 0.1;
+    bool                      isSymmetric        = false;
     {
         int    coordIndex = 0;
         double origin     = -5;
         double end        = 5;
         double period     = 10;
         auto   awhDimBuffer =
-                awhDimParamSerialized(coordinateProvider, coordIndex, origin, end, period, diffusion);
+                awhDimParamSerialized(coordinateProvider, coordIndex, origin, end, period, diffusion, isSymmetric);
         gmx::InMemoryDeserializer serializer(awhDimBuffer, false);
         awhDimParams.emplace_back(AwhDimParams(&serializer));
     }
@@ -91,7 +92,7 @@ TEST(biasGridTest, neighborhood)
         double end        = 2;
         double period     = 0;
         auto   awhDimBuffer =
-                awhDimParamSerialized(coordinateProvider, coordIndex, origin, end, period, diffusion);
+                awhDimParamSerialized(coordinateProvider, coordIndex, origin, end, period, diffusion, isSymmetric);
         gmx::InMemoryDeserializer serializer(awhDimBuffer, false);
         awhDimParams.emplace_back(AwhDimParams(&serializer));
     }
