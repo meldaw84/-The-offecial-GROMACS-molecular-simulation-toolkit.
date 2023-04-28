@@ -1770,7 +1770,7 @@ static void do_fep_params(t_inputrec*                ir,
     int         i, j, max_n_lambda, nweights, ncounts;
     t_lambda*   fep    = ir->fepvals.get();
     t_expanded* expand = ir->expandedvals.get();
-    gmx::EnumerationArray<FreeEnergyPerturbationCouplingType,std::vector<real>> count_fep_lambdas;
+    gmx::EnumerationArray<FreeEnergyPerturbationCouplingType, std::vector<real>> count_fep_lambdas;
     bool                                                                         bOneLambda = TRUE;
     gmx::EnumerationArray<FreeEnergyPerturbationCouplingType, int>               nfep;
 
