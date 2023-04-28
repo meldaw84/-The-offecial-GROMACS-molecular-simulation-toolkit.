@@ -462,7 +462,7 @@ vendor libraries.
 and performance improvements. VkFFT can be used with OpenCL and SYCL backends:
 
 * For SYCL builds, VkFFT provides a portable backend which currently can be used on AMD and
-  NVIDIA GPUs with hipSYCL; it generally outperforms rocFFT hence it is recommended as
+  NVIDIA GPUs with hipSYCL and DPC++; it generally outperforms rocFFT hence it is recommended as
   default on AMD. Note that VkFFT is not supported with PME decomposition (which requires
   HeFFTe) since HeFFTe does not have a VkFFT backend.
 * For OpenCL builds, VkFFT provides an alternative to ClFFT. It is
@@ -915,8 +915,8 @@ In table form:
 GPU vendor  hipSYCL_       `Intel oneAPI DPC++`_  `Codeplay oneAPI <https://developer.codeplay.com/products/oneapi/nvidia/home/>`_
 ==========  =============  =====================  =========================================================
 Intel       not supported  supported              experimental (MKL installation required)
-AMD         supported      not supported          experimental (no GPU FFT)
-NVIDIA      experimental   not supported          experimental (no GPU FFT)
+AMD         supported      not supported          experimental
+NVIDIA      experimental   not supported          experimental
 ==========  =============  =====================  =========================================================
 
 Here, "experimental support" means that the combination has
@@ -1008,7 +1008,7 @@ Please note that rocFFT is not officially supported and tends not to work
 on most consumer GPUs.
 
 AMD GPUs can also be used with `Codeplay oneAPI for AMD GPUs <https://developer.codeplay.com/products/oneapi/amd/home/>`_,
-but this is experimental and does not support offloading FFTs to GPU. After installing Intel oneAPI toolkit 2023.0
+but this is experimental. After installing Intel oneAPI toolkit 2023.0
 or newer, a compatible ROCm version, and the Codeplay plugin, set up the environment by running
 ``source /opt/intel/oneapi/setvars.sh --include-intel-llvm`` or loading an appropriate :command:`module load` on
 an HPC system. Then, configure |Gromacs| using the following command (replace ``gfxXYZ`` with the target architecture):
@@ -1016,7 +1016,7 @@ an HPC system. Then, configure |Gromacs| using the following command (replace ``
 ::
 
    cmake .. -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
-            -DGMX_GPU=SYCL -DGMX_GPU_NB_CLUSTER_SIZE=8 -DGMX_GPU_FFT_LIBRARY=none \
+            -DGMX_GPU=SYCL -DGMX_GPU_NB_CLUSTER_SIZE=8 -DGMX_GPU_FFT_LIBRARY=vkfft \
             -DSYCL_CXX_FLAGS_EXTRA='-fsycl-targets=amdgcn-amd-amdhsa;-Xsycl-target-backend;--offload-arch=gfxXYZ'
 
 SYCL GPU acceleration for NVIDIA GPUs
@@ -1040,7 +1040,7 @@ HPC system. Then, configure |Gromacs| using the following command:
 ::
 
    cmake .. -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
-            -DGMX_GPU=SYCL -DGMX_GPU_NB_CLUSTER_SIZE=8 -DGMX_GPU_FFT_LIBRARY=none \
+            -DGMX_GPU=SYCL -DGMX_GPU_NB_CLUSTER_SIZE=8 -DGMX_GPU_FFT_LIBRARY=vkfft \
             -DSYCL_CXX_FLAGS_EXTRA=-fsycl-targets=nvptx64-nvidia-cuda
 
 
