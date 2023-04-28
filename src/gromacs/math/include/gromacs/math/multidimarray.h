@@ -95,7 +95,7 @@ constexpr bool is_resizable_v = is_resizable<T>::value;
  * Holds as many elements as required by a multidimensional view.
  * \tparam TContainer   Data type container for the data to be stored
  *                      as MultiDimArray with random element access and
- *                      value_type, refence and const_reference exposed
+ *                      value_type, reference and const_reference exposed
  * \tparam Extents      An extents class describing the array dimensions
  *                      as used in module_mdspan
  * \tparam LayoutPolicy The data layout as in module_mdspan describes
