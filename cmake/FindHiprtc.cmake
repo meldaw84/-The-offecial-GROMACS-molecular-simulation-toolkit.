@@ -31,7 +31,7 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out https://www.gromacs.org.
 
-# This CMake find package follows conventions, namely it sets Hiprc_FOUND
+# This CMake find package follows conventions, namely it sets Hiprtc_FOUND
 # cache variable upon success, and creates the shared library target
 # Hiprtc::Hiprtc for other targets to depend on.
 
@@ -41,6 +41,7 @@ find_library(Hiprtc_LIBRARY
     PATHS
         "$ENV{HIP_PATH}"
         "$ENV{ROCM_PATH}/hip"
+        /opt/rocm/
     PATH_SUFFIXES
         lib
         lib64
@@ -50,6 +51,7 @@ find_path(Hiprtc_INCLUDE_DIR
     PATHS
         "$ENV{HIP_PATH}"
         "$ENV{ROCM_PATH}/hip"
+        /opt/rocm/
     PATH_SUFFIXES
         include
         ../include
