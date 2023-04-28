@@ -112,7 +112,7 @@ struct gmx_inputrec_strings
             wall_density[STRLEN], deform[STRLEN], QMMM[STRLEN], imd_grp[STRLEN];
     gmx::EnumerationArray<FreeEnergyPerturbationCouplingType, std::string> fep_lambda;
     char                                                                   lambda_weights[STRLEN];
-	char                                                                   histogram_counts[STRLEN];
+    char                                                                   histogram_counts[STRLEN];
     std::vector<std::string>                                               pullGroupNames;
     std::vector<std::string>                                               rotateGroupNames;
     char anneal[STRLEN], anneal_npoints[STRLEN], anneal_time[STRLEN], anneal_temp[STRLEN];
@@ -1914,7 +1914,7 @@ static void do_fep_params(t_inputrec*                ir,
         /* if you don't specify nstexpanded when doing expanded ensemble free energy calcs, it is set to nstdhdl */
     }
 
-	 /* now read in the histogram counts */
+    /* now read in the histogram counts */
     expand->init_histogram_counts = parse_n_real(counts, &ncounts, wi);
     if (ncounts == 0)
     {
@@ -1923,9 +1923,9 @@ static void do_fep_params(t_inputrec*                ir,
     else if (ncounts != fep->n_lambda)
     {
         gmx_fatal(FARGS,
-				  "Number of histogram_counts (%d) is not equal to number of lambda values (%d)",
+			      "Number of histogram_counts (%d) is not equal to number of lambda values (%d)",
                   ncounts,
-				  fep->n_lambda);
+                  fep->n_lambda);
     }
 }
 
@@ -2569,7 +2569,7 @@ void get_ir(const char*     mdparin,
             setStringEntry(&inp, "temperature-lambdas", "");
     fep->lambda_neighbors = get_eint(&inp, "calc-lambda-neighbors", 1, wi);
     setStringEntry(&inp, "init-lambda-weights", inputrecStrings->lambda_weights, nullptr);
-	setStringEntry(&inp, "init-histogram-counts", inputrecStrings->histogram_counts, nullptr);
+    setStringEntry(&inp, "init-histogram-counts", inputrecStrings->histogram_counts, nullptr);
     fep->edHdLPrintEnergy        = getEnum<FreeEnergyPrintEnergy>(&inp, "dhdl-print-energy", wi);
     fep->softcoreFunction        = getEnum<SoftcoreType>(&inp, "sc-function", wi);
     fep->sc_alpha                = get_ereal(&inp, "sc-alpha", 0.0, wi);
@@ -2932,8 +2932,7 @@ void get_ir(const char*     mdparin,
         {
             ir->bExpanded = TRUE;
         }
-		do_fep_params(ir, inputrecStrings->fep_lambda, inputrecStrings->lambda_weights, inputrecStrings->histogram_counts, wi);
-			
+        do_fep_params(ir, inputrecStrings->fep_lambda, inputrecStrings->lambda_weights, inputrecStrings->histogram_counts, wi);
         if (ir->bSimTemp) /* done after fep params */
         {
             do_simtemp_params(ir);

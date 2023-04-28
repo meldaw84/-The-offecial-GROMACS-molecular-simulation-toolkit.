@@ -527,8 +527,8 @@ static void pr_expandedvals(FILE* fp, int indent, const t_expanded* expand, int 
     pr_indent(fp, indent);
     pr_rvec(fp, indent, "init-lambda-weights", expand->init_lambda_weights.data(), n_lambda, TRUE);
     PS("init-weights", EBOOL(expand->bInit_weights));
-	pr_rvec(fp, indent, "init-histogram-counts", expand->init_histogram_counts.data(), n_lambda, TRUE);
-	PS("init-counts", EBOOL(expand->bInit_counts));
+    pr_rvec(fp, indent, "init-histogram-counts", expand->init_histogram_counts.data(), n_lambda, TRUE);
+    PS("init-counts", EBOOL(expand->bInit_counts));
 }
 
 static void pr_fepvals(FILE* fp, int indent, const t_lambda* fep, gmx_bool bMDPformat)
