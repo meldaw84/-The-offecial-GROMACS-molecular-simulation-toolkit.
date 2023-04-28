@@ -82,9 +82,8 @@ function(gmx_manage_vkfft BACKEND_NAME)
             # HIP does not include hiprtc CMake module despite referencing it in their example
             # https://github.com/ROCm-Developer-Tools/HIP/issues/3131
             # Using find_package(HIP) pulls in too many dependencies, in particular clang_rt. So, we do it ourselves:
-            find_package(Hiprtc REQUIRED)
-            target_link_libraries(VkFFT INTERFACE Hiprtc::Hiprtc amdhip64)
-            target_compile_definitions(VkFFT INTERFACE __HIP_PLATFORM_AMD__)
+            find_package(Hip REQUIRED COMPONENTS hiprtc)
+            target_link_libraries(VkFFT INTERFACE Hip::amdhip Hip::hiprtc)
         endif()
         # hipFree is marked `nodiscard` but VkFFT ignores it
         gmx_target_interface_warning_suppression(VkFFT "-Wno-unused-result" HAS_WARNING_NO_UNUSED_RESULT)

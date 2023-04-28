@@ -31,13 +31,16 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out https://www.gromacs.org.
 
-# This CMake find package follows conventions, namely it sets Hiprtc_FOUND
-# cache variable upon success, and creates the shared library target
-# Hiprtc::Hiprtc for other targets to depend on.
+# This CMake find package follows conventions, namely it sets Hip_FOUND
+# cache variable upon success.
+# The package creates the shared library target Hip::amdhip
+# The package supports following components:
+# - hiprtc: create the shared library target Hip::hiprtc
 
 include(FindPackageHandleStandardArgs)
-find_library(Hiprtc_LIBRARY
-    NAMES hiprtc
+
+find_library(Hip_amdhip_LIBRARY
+    NAMES amdhip64
     PATHS
         "$ENV{HIP_PATH}"
         "$ENV{ROCM_PATH}/hip"
@@ -46,26 +49,52 @@ find_library(Hiprtc_LIBRARY
         lib
         lib64
     )
-find_path(Hiprtc_INCLUDE_DIR
-    NAMES hip/hiprtc.h
-    PATHS
-        "$ENV{HIP_PATH}"
-        "$ENV{ROCM_PATH}/hip"
-        /opt/rocm/
-    PATH_SUFFIXES
-        include
-        ../include
-    )
 
-find_package_handle_standard_args(Hiprtc REQUIRED_VARS Hiprtc_LIBRARY Hiprtc_INCLUDE_DIR)
-
-if (Hiprtc_FOUND)
-    mark_as_advanced(Hiprtc_LIBRARY)
-    mark_as_advanced(Hiprtc_INCLUDE_DIR)
+if("hiprtc" IN_LIST Hip_FIND_COMPONENTS)
+    find_library(Hip_hiprtc_LIBRARY
+        NAMES hiprtc
+        PATHS
+            "$ENV{HIP_PATH}"
+            "$ENV{ROCM_PATH}/hip"
+            /opt/rocm/
+        PATH_SUFFIXES
+            lib
+            lib64
+        )
+    find_path(Hip_hiprtc_INCLUDE_DIR
+        NAMES hip/hiprtc.h
+        PATHS
+            "$ENV{HIP_PATH}"
+            "$ENV{ROCM_PATH}/hip"
+            /opt/rocm/
+        PATH_SUFFIXES
+            include
+            ../include
+        )
+    if(Hip_hiprtc_LIBRARY AND Hip_hiprtc_INCLUDE_DIR)
+        set(Hip_hiprtc_FOUND TRUE)
+    endif()
 endif()
 
-if (Hiprtc_FOUND AND NOT TARGET Hiprtc::Hiprtc)
-  add_library(Hiprtc::Hiprtc SHARED IMPORTED)
-  set_property(TARGET Hiprtc::Hiprtc PROPERTY IMPORTED_LOCATION ${Hiprtc_LIBRARY})
-  target_include_directories(Hiprtc::Hiprtc INTERFACE ${Hiprtc_INCLUDE_DIR})
+
+find_package_handle_standard_args(Hip HANDLE_COMPONENTS REQUIRED_VARS Hip_amdhip_LIBRARY)
+
+if (Hip_FOUND)
+    mark_as_advanced(Hip_amdhip_LIBRARY)
+    if(NOT TARGET Hip::amdhip)
+        add_library(Hip::amdhip SHARED IMPORTED)
+        set_property(TARGET Hip::amdhip PROPERTY IMPORTED_LOCATION ${Hip_amdhip_LIBRARY})
+        target_compile_definitions(Hip::amdhip INTERFACE -D__HIP_PLATFORM_AMD__)
+    endif()
+endif()
+
+if(Hip_hiprtc_FOUND)
+    mark_as_advanced(Hip_hiprtc_LIBRARY)
+    mark_as_advanced(Hip_hiprtc_INCLUDE_DIR)
+
+    if(NOT TARGET Hip::hiprtc)
+        add_library(Hip::hiprtc SHARED IMPORTED)
+        set_property(TARGET Hip::hiprtc PROPERTY IMPORTED_LOCATION ${Hip_hiprtc_LIBRARY})
+        target_include_directories(Hip::hiprtc INTERFACE ${Hip_FIND_COMPONENTS})
+    endif()
 endif()
