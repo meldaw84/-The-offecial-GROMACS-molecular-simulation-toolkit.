@@ -1292,7 +1292,7 @@ static void cmp_expandedvals(FILE*             fp,
     int i;
 
     cmp_bool(fp, "inputrec->fepvals->bInit_weights", -1, expand1->bInit_weights, expand2->bInit_weights);
-	cmp_bool(fp, "inputrec->fepvals->bInit_counts", -1, expand1->bInit_counts, expand2->bInit_counts);
+    cmp_bool(fp, "inputrec->fepvals->bInit_counts", -1, expand1->bInit_counts, expand2->bInit_counts);
     cmp_bool(fp, "inputrec->fepvals->bWLoneovert", -1, expand1->bWLoneovert, expand2->bWLoneovert);
 
     for (i = 0; i < n_lambda; i++)
@@ -1306,10 +1306,15 @@ static void cmp_expandedvals(FILE*             fp,
                  abstol);
     }
 
-	for (i = 0; i < n_lambda; i++)
+    for (i = 0; i < n_lambda; i++)
     {
-        cmp_real(fp, "inputrec->expandedvals->init_histogram_counts", -1,
-                 expand1->init_histogram_counts[i], expand2->init_histogram_counts[i], ftol, abstol);
+        cmp_real(fp,
+                 "inputrec->expandedvals->init_histogram_counts",
+                 -1,
+                 expand1->init_histogram_counts[i],
+                 expand2->init_histogram_counts[i],
+                 ftol,
+                 abstol);
     }
     cmpEnum(fp, "inputrec->expandedvals->lambda-stats", expand1->elamstats, expand2->elamstats);
     cmpEnum(fp, "inputrec->expandedvals->lambda-mc-move", expand1->elmcmove, expand2->elmcmove);

@@ -1923,7 +1923,7 @@ static void do_fep_params(t_inputrec*                ir,
     else if (ncounts != fep->n_lambda)
     {
         gmx_fatal(FARGS,
-			      "Number of histogram_counts (%d) is not equal to number of lambda values (%d)",
+                  "Number of histogram_counts (%d) is not equal to number of lambda values (%d)",
                   ncounts,
                   fep->n_lambda);
     }
@@ -2932,7 +2932,11 @@ void get_ir(const char*     mdparin,
         {
             ir->bExpanded = TRUE;
         }
-        do_fep_params(ir, inputrecStrings->fep_lambda, inputrecStrings->lambda_weights, inputrecStrings->histogram_counts, wi);
+        do_fep_params(ir,
+                      inputrecStrings->fep_lambda,
+                      inputrecStrings->lambda_weights,
+                      inputrecStrings->histogram_counts,
+                      wi);
         if (ir->bSimTemp) /* done after fep params */
         {
             do_simtemp_params(ir);
