@@ -186,18 +186,17 @@ template<typename ElementType>
 BasicMatrix3x3<ElementType> operator*(const BasicMatrix3x3<ElementType>& a,
                                       const BasicMatrix3x3<ElementType>& b)
 {
-    BasicMatrix3x3<ElementType> result;
-    for (int i = 0; i < DIM; i++)
-    {
-        for (int j = 0; j < DIM; j++)
-        {
-            for (int k = 0; k < DIM; k++)
-            {
-                result(i, j) += a(i, k) * b(k, j);
-            }
-        }
-    }
-    return result;
+    return {
+        a(0,0) * b(0,0) + a(0,1) * b(1,0) + a(0,2) * b(2,0),
+        a(0,0) * b(0,1) + a(0,1) * b(1,1) + a(0,2) * b(2,1),
+        a(0,0) * b(0,2) + a(0,1) * b(1,2) + a(0,2) * b(2,2),
+        a(1,0) * b(0,0) + a(1,1) * b(1,0) + a(1,2) * b(2,0),
+        a(1,0) * b(0,1) + a(1,1) * b(1,1) + a(1,2) * b(2,1),
+        a(1,0) * b(0,2) + a(1,1) * b(1,2) + a(1,2) * b(2,2),
+        a(2,0) * b(0,0) + a(2,1) * b(1,0) + a(2,2) * b(2,0),
+        a(2,0) * b(0,1) + a(2,1) * b(1,1) + a(2,2) * b(2,1),
+        a(2,0) * b(0,2) + a(2,1) * b(1,2) + a(2,2) * b(2,2)
+    };
 }
 
 
