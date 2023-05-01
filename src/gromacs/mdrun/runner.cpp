@@ -646,7 +646,7 @@ static bool gpuAccelerationOfNonbondedIsUseful(const MDLogger&   mdlog,
         gpuIsUseful = false;
         warning     = gmx::formatString(
                 "Multiple time stepping is only supported with GPUs when MTS is only applied to %s "
-                "forces.",
+                    "forces.",
                 mtsForceGroupNames[MtsForceGroups::LongrangeNonbonded].c_str());
     }
 
@@ -1319,6 +1319,18 @@ int Mdrunner::mdrunner()
         gmx_bcast(sizeof(box), box, cr->mpiDefaultCommunicator);
     }
 
+    if (isSimulationMainRank && inputrec->ignoredGromppErrors > 0)
+    {
+        GMX_LOG(mdlog.warning)
+                .asParagraph()
+                .appendTextFormatted(
+                        "The simulation has been build while ignoring %d warnings during the "
+                        "grompp stage."
+                        "The GROMACS team can not guarantee that things will behave in a "
+                        "physically correct manner!"
+                        "Continue at your own risk",
+                        inputrec->ignoredGromppErrors);
+    }
     if (inputrec->cutoff_scheme != CutoffScheme::Verlet)
     {
         gmx_fatal(FARGS,

@@ -68,8 +68,10 @@ enum class WarningType : int
 class WarningHandler
 {
 public:
-    WarningHandler(bool allowWarnings, int maxNumberWarnings) :
-        allowWarnings_(allowWarnings), maxNumberWarnings_(maxNumberWarnings)
+    WarningHandler(bool allowWarnings, int maxNumberWarnings, bool cartoonPhysicsMode = false) :
+        allowWarnings_(allowWarnings),
+        maxNumberWarnings_(maxNumberWarnings),
+        cartoonPhysicsMode_(cartoonPhysicsMode)
     {
         if (maxNumberWarnings_ < 0)
         {
@@ -93,6 +95,8 @@ public:
     int noteCount() const { return numberOfEntries_[WarningType::Note]; }
 
     int maxWarningCount() const { return maxNumberWarnings_; }
+
+    bool cartoonPhysicsMode() const { return cartoonPhysicsMode_; }
 
     /*! \brief
      * Issue a warning, with the string \p message.
@@ -138,6 +142,8 @@ private:
     int lineNumber_ = -1;
     //! Which file the message is coming from.
     std::filesystem::path fileName_ = "unknown";
+    //! Whether the simulations are totally accurate by ignoring all errors.
+    bool cartoonPhysicsMode_ = false;
 };
 
 /*! \brief Issue an error with warning_error() and prevent further

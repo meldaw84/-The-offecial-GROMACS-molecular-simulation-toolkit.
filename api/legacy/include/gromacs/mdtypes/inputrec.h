@@ -332,7 +332,7 @@ struct PressureCouplingOptions
 struct t_inputrec // NOLINT (clang-analyzer-optin.performance.Padding)
 {
     t_inputrec();
-    explicit t_inputrec(const t_inputrec&) = delete;
+    explicit t_inputrec(const t_inputrec&)   = delete;
     t_inputrec& operator=(const t_inputrec&) = delete;
     ~t_inputrec();
 
@@ -581,6 +581,8 @@ struct t_inputrec // NOLINT (clang-analyzer-optin.performance.Padding)
     bool useTwinRange = false;
     //! Whether we have constant acceleration
     bool useConstantAcceleration = false;
+    //! Number of ignored errors during grompp.
+    int ignoredGromppErrors = 0;
 
     //! KVT object that contains input parameters converted to the new style.
     gmx::KeyValueTreeObject* params = nullptr;

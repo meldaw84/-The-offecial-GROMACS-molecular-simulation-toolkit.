@@ -139,6 +139,7 @@ enum tpxv
     tpxv_RemoveTholeRfac,             /**< Remove unused rfac parameter from thole listed force */
     tpxv_RemoveAtomtypes,             /**< Remove unused atomtypes parameter from mtop */
     tpxv_EnsembleTemperature,         /**< Add ensemble temperature settings */
+    tpxv_AddIgnoredErrorNumber,       /**< Add field to track number of ignored grompp errors */
     tpxv_Count                        /**< the total number of tpxv versions */
 };
 
@@ -1686,6 +1687,16 @@ static void do_inputrec(gmx::ISerializer* serializer, t_inputrec* ir, int file_v
             }
             do_swapcoords_tpx(serializer, ir->swap, file_version);
         }
+    }
+
+    /* Field for number of ignored grompp errors */
+    if (file_version >= tpxv_AddIgnoredErrorNumber)
+    {
+        serializer->doInt(&ir->ignoredGromppErrors);
+    }
+    else
+    {
+        ir->ignoredGromppErrors = 0;
     }
 
     /* QMMM reading - despite defunct we require reading for backwards

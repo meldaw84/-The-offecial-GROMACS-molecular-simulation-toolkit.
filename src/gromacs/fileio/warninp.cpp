@@ -203,7 +203,7 @@ void done_warning(const WarningHandler& wi, int f_errno, const std::filesystem::
     printWarningCount(WarningType::Note, wi.noteCount());
     printWarningCount(WarningType::Warning, wi.warningCount());
 
-    if (wi.warningCount() > wi.maxWarningCount())
+    if (wi.warningCount() > wi.maxWarningCount() && !wi.cartoonPhysicsMode())
     {
         gmx_fatal(f_errno,
                   file.c_str(),
