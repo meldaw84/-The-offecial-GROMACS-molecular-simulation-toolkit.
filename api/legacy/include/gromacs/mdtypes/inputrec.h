@@ -332,7 +332,7 @@ struct PressureCouplingOptions
 struct t_inputrec // NOLINT (clang-analyzer-optin.performance.Padding)
 {
     t_inputrec();
-    explicit t_inputrec(const t_inputrec&)   = delete;
+    explicit t_inputrec(const t_inputrec&) = delete;
     t_inputrec& operator=(const t_inputrec&) = delete;
     ~t_inputrec();
 
