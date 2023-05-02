@@ -1319,7 +1319,7 @@ int Mdrunner::mdrunner()
         gmx_bcast(sizeof(box), box, cr->mpiDefaultCommunicator);
     }
 
-    if (isSimulationMainRank && inputrec->ignoredGromppErrors > 0)
+    if (isSimulationMainRank && inputrec->ignoredGromppWarnings > 0)
     {
         GMX_LOG(mdlog.warning)
                 .asParagraph()
@@ -1329,7 +1329,7 @@ int Mdrunner::mdrunner()
                         "The GROMACS team can not guarantee that things will behave in a "
                         "physically correct manner!"
                         "Continue at your own risk",
-                        inputrec->ignoredGromppErrors);
+                        inputrec->ignoredGromppWarnings);
     }
     if (inputrec->cutoff_scheme != CutoffScheme::Verlet)
     {

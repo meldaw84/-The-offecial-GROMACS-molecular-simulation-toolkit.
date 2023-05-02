@@ -581,8 +581,8 @@ struct t_inputrec // NOLINT (clang-analyzer-optin.performance.Padding)
     bool useTwinRange = false;
     //! Whether we have constant acceleration
     bool useConstantAcceleration = false;
-    //! Number of ignored errors during grompp.
-    int ignoredGromppErrors = 0;
+    //! Number of ignored warnings during grompp.
+    int ignoredGromppWarnings = 0;
 
     //! KVT object that contains input parameters converted to the new style.
     gmx::KeyValueTreeObject* params = nullptr;

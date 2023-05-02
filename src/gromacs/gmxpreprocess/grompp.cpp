@@ -2023,7 +2023,7 @@ int gmx_grompp(int argc, char* argv[])
           etBOOL,
           { &bRenum },
           "Renumber atomtypes and minimize number of atomtypes" },
-        { "-ignore-all-errors",
+        { "-ignore-all-warnings",
           FALSE,
           etBOOL,
           { &ignoreAllWarnings },
@@ -2033,7 +2033,7 @@ int gmx_grompp(int argc, char* argv[])
           etBOOL,
           { &cartoonPhysicsMode },
           "HIDDENWith this, GROMACS will never complain about any errors. Name is indicative of "
-          "how accurate resulting simulations are" }
+          "how accurate resulting simulations are. Same as -ignore-all-warnings" }
     };
 
     /* Parse the command line */
@@ -2700,7 +2700,7 @@ int gmx_grompp(int argc, char* argv[])
     }
 
     done_warning(wi, FARGS);
-    ir->ignoredGromppErrors = wi.warningCount();
+    ir->ignoredGromppWarnings = wi.warningCount();
     write_tpx_state(ftp2fn(efTPR, NFILE, fnm), ir, &state, sys);
 
     /* Output IMD group, if bIMD is TRUE */
