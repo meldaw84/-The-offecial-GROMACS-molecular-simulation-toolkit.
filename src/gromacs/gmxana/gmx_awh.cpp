@@ -409,10 +409,10 @@ AwhReader::AwhReader(const AwhParams&  awhParams,
      */
 
     /* Keep track of the first subblock of this AWH */
-    int        subblockStart = 0;
-    const auto awhBiasParams = awhParams.awhBiasParams();
+    int subblockStart = 0;
     for (int k = 0; k < awhParams.numBias(); k++)
     {
+        const AwhBiasParams& awhBiasParams = awhParams.awhBiasParams(k);
 
         int numSubBlocks = static_cast<int>(block->sub[subblockStart].fval[0]);
 
@@ -420,7 +420,7 @@ AwhReader::AwhReader(const AwhParams&  awhParams,
                 opt2fn("-o", numFileOptions, filenames), "AWH", awhParams.numBias(), k));
 
         awhOutputFile->initializeAwhOutputFile(
-                subblockStart, numSubBlocks, awhBiasParams[k], awhGraphSelection, energyUnit, kT);
+                subblockStart, numSubBlocks, awhBiasParams, awhGraphSelection, energyUnit, kT);
 
         std::unique_ptr<OutputFile> frictionOutputFile;
         if (outputFriction)
@@ -429,7 +429,7 @@ AwhReader::AwhReader(const AwhParams&  awhParams,
                     opt2fn("-fric", numFileOptions, filenames), "Friction tensor", awhParams.numBias(), k);
 
             frictionOutputFile->initializeFrictionOutputFile(
-                    subblockStart, numSubBlocks, awhBiasParams[k], energyUnit, kT);
+                    subblockStart, numSubBlocks, awhBiasParams, energyUnit, kT);
         }
 
         biasOutputSetups_.emplace_back(
