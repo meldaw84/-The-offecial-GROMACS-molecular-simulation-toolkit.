@@ -142,7 +142,7 @@ private:
     int lineNumber_ = -1;
     //! Which file the message is coming from.
     std::filesystem::path fileName_ = "unknown";
-    //! Whether the simulations are totally accurate by ignoring all warnings.
+    //! Whether the simulations are suspect because of ignoring all warnings.
     bool cartoonPhysicsMode_ = false;
 };
 
