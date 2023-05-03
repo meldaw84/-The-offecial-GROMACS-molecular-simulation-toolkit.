@@ -1324,11 +1324,11 @@ int Mdrunner::mdrunner()
         GMX_LOG(mdlog.warning)
                 .asParagraph()
                 .appendTextFormatted(
-                        "The simulation has been build while ignoring %d warnings during the "
-                        "grompp stage."
+                        "The simulation input was built while ignoring %d warnings "
+                        "while running grompp. "
                         "The GROMACS team can not guarantee that things will behave in a "
                         "physically correct manner!"
-                        "Continue at your own risk",
+                        "Continue at your own risk.",
                         inputrec->ignoredGromppWarnings);
     }
     if (inputrec->cutoff_scheme != CutoffScheme::Verlet)
