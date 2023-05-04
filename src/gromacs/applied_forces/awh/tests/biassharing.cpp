@@ -142,8 +142,7 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
                                                     0.5,
                                                     0,
                                                     shareGroup);
-    const auto          awhDimParamsAll = params.awhParams.awhBiasParams();
-    const AwhDimParams& awhDimParams    = awhDimParamsAll[0].dimParams(0);
+    const AwhDimParams& awhDimParams = params.awhParams.awhBiasParams(0).dimParams(0);
 
     BiasSharing biasSharing(params.awhParams, commRecord, MPI_COMM_WORLD);
 
@@ -152,7 +151,7 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
     const int biasIndex = 0;
     Bias      bias(biasIndex,
               params.awhParams,
-              awhDimParamsAll[0],
+              params.awhParams.awhBiasParams(0),
               params.dimParams,
               params.beta,
               mdTimeStep,
