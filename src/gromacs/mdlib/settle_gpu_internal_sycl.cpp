@@ -88,7 +88,7 @@ auto settleKernel(sycl::handler&                                               c
     auto sm_threadVirial = [&]() {
         if constexpr (computeVirial)
         {
-            return sycl_2020::local_accessor<float, 1>(sycl::range<1>(sc_workGroupSize * 6), cgh);
+            return sycl::local_accessor<float, 1>(sycl::range<1>(sc_workGroupSize * 6), cgh);
         }
         else
         {

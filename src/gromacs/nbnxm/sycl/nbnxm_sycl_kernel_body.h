@@ -942,13 +942,13 @@ static auto nbnxmKernel(sycl::handler&                                          
     constexpr bool useShuffleReductionForceJ = gmx::isPowerOfTwo(c_nbnxnGpuNumClusterPerSupercluster);
 
     // Local memory buffer for i x+q pre-loading
-    sycl_2020::local_accessor<Float4, 1> sm_xq(
+    sycl::local_accessor<Float4, 1> sm_xq(
             sycl::range<1>(c_nbnxnGpuNumClusterPerSupercluster * c_clSize), cgh);
 
     auto sm_atomTypeI = [&]() {
         if constexpr (!props.vdwComb)
         {
-            return sycl_2020::local_accessor<int, 1>(
+            return sycl::local_accessor<int, 1>(
                     sycl::range<1>(c_nbnxnGpuNumClusterPerSupercluster * c_clSize), cgh);
         }
         else
@@ -960,7 +960,7 @@ static auto nbnxmKernel(sycl::handler&                                          
     auto sm_ljCombI = [&]() {
         if constexpr (props.vdwComb)
         {
-            return sycl_2020::local_accessor<Float2, 1>(
+            return sycl::local_accessor<Float2, 1>(
                     sycl::range<1>(c_nbnxnGpuNumClusterPerSupercluster * c_clSize), cgh);
         }
         else
@@ -983,7 +983,7 @@ static auto nbnxmKernel(sycl::handler&                                          
     constexpr int  sm_reductionBufferSize       = haveAnyLocalMemoryForceReduction
                                                           ? c_clSize * c_clSize * DIM
                                                           : (needExtraElementForReduction ? 1 : 0);
-    sycl_2020::local_accessor<float, 1> sm_reductionBuffer(sycl::range<1>(sm_reductionBufferSize), cgh);
+    sycl::local_accessor<float, 1> sm_reductionBuffer(sycl::range<1>(sm_reductionBufferSize), cgh);
 
     /* Flag to control the calculation of exclusion forces in the kernel
      * We do that with Ewald (elec/vdw) and RF. Cut-off only has exclusion for energy terms. */

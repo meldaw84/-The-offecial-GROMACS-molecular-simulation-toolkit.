@@ -361,9 +361,9 @@ else()
         message(STATUS "Checking for flags to enable SYCL")
     endif()
     set(SAMPLE_SYCL_SOURCE
-        "#include <CL/sycl.hpp>
+        "#include <sycl/sycl.hpp>
          int main(){
-             sycl::queue q(sycl::default_selector{});
+             sycl::queue q{sycl::gpu_selector_v};
              return 0;
          }")
     set(SYCL_CXX_FLAGS "-fsycl")

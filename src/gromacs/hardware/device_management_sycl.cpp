@@ -339,7 +339,7 @@ static bool isDeviceFunctional(const sycl::device& syclDevice, std::string* erro
                  cgh.parallel_for<DummyKernel>(
                          range, [=](sycl::id<1> threadId) { d_buffer[threadId] = threadId.get(0); });
              }).wait_and_throw();
-        const auto h_Buffer = buffer.get_access<sycl::access_mode::read>();
+        const auto h_Buffer = buffer.get_host_access();
         for (int i = 0; i < numThreads; i++)
         {
             if (h_Buffer[i] != i)
