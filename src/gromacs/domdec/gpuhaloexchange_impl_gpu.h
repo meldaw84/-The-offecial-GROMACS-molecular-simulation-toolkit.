@@ -202,8 +202,6 @@ private:
     int sendBufSizeAlloc_ = -1;
     //! device buffer for receiving packed data
     DeviceBuffer<Float3> d_recvBuf_ = nullptr;
-    //! maximum size of packed buffer
-    int maxPackedBufferSize_ = 0;
     //! number of atoms in \c recvbuf array
     int recvBufSize_ = -1;
     //! number of atoms allocated in \c recvbuf array

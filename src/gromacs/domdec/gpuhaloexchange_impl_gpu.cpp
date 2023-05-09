@@ -104,19 +104,14 @@ void GpuHaloExchange::Impl::reinitHalo(DeviceBuffer<Float3> d_coordinatesBuffer,
         numZoneTemp += numZoneTemp;
     }
 
-    int newSize = ind_->nsend[numZone_ + 1];
+    const int newSize = ind_->nsend[numZone_ + 1];
 
-    // reallocates only if needed
+    // Try to reallocate if needed
     h_indexMap_.resize(newSize);
-    // reallocate on device only if needed
-    if (newSize > maxPackedBufferSize_)
-    {
-        reallocateDeviceBuffer(&d_indexMap_, newSize, &indexMapSize_, &indexMapSizeAlloc_, deviceContext_);
-        reallocateDeviceBuffer(&d_sendBuf_, newSize, &sendBufSize_, &sendBufSizeAlloc_, deviceContext_);
-        reallocateDeviceBuffer(&d_recvBuf_, newSize, &recvBufSize_, &recvBufSizeAlloc_, deviceContext_);
-        maxPackedBufferSize_ = newSize;
-    }
+    reallocateDeviceBuffer(&d_indexMap_, newSize, &indexMapSize_, &indexMapSizeAlloc_, deviceContext_);
+    reallocateDeviceBuffer(&d_sendBuf_, newSize, &sendBufSize_, &sendBufSizeAlloc_, deviceContext_);
 
+    // Swap send and receive sizes with our partner PP rank.
     xSendSize_ = newSize;
 #if GMX_MPI
     MPI_Sendrecv(&xSendSize_,
@@ -132,6 +127,8 @@ void GpuHaloExchange::Impl::reinitHalo(DeviceBuffer<Float3> d_coordinatesBuffer,
                  mpi_comm_mysim_,
                  MPI_STATUS_IGNORE);
 #endif
+    // Try to reallocate the receive buffer now that its size has been received
+    reallocateDeviceBuffer(&d_recvBuf_, xRecvSize_, &recvBufSize_, &recvBufSizeAlloc_, deviceContext_);
     fSendSize_ = xRecvSize_;
     fRecvSize_ = xSendSize_;
 
