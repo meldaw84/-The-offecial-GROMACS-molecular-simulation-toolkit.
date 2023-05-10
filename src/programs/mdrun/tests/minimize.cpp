@@ -56,6 +56,7 @@
 #include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/basenetwork.h"
 #include "gromacs/utility/stringutil.h"
+#include "gromacs/utility/textreader.h"
 
 #include "testutils/mpitest.h"
 #include "testutils/refdata.h"
@@ -161,6 +162,51 @@ TEST_P(EnergyMinimizationTest, WithinTolerances)
                            .checkCompound("Simulation", simulationName)
                            .checkCompound("Minimizer", minimizer);
     checkEnergiesAgainstReferenceData(runner_.edrFileName_, energyTermsToCompare, &checker);
+}
+
+
+TEST_F(EnergyMinimizationTest, FailureReported)
+{
+    const std::string simulationName = "argon12";
+    const std::string minimizer      = "steep";
+
+    // TODO At some point we should also test PME-only ranks.
+    int numRanksAvailable = getNumberOfTestMpiRanks();
+    if (!isNumberOfPpRanksSupported(simulationName, numRanksAvailable))
+    {
+        fprintf(stdout,
+                "Test system '%s' cannot run with %d ranks.\n"
+                "The supported numbers are: %s\n",
+                simulationName.c_str(),
+                numRanksAvailable,
+                reportNumbersOfPpRanksSupported(simulationName).c_str());
+        return;
+    }
+
+    auto mdpFieldValues = prepareMdpFieldValues(simulationName, minimizer, "no", "no");
+    // Request impossibly tight tolerance.
+    mdpFieldValues["nsteps"] = "1";
+    mdpFieldValues["emtol"]  = "0.0000001";
+
+    // prepare the .tpr file
+    {
+        CommandLine caller;
+        caller.append("grompp");
+        runner_.useTopGroAndNdxFromDatabase(simulationName);
+        runner_.useStringAsMdpFile(prepareMdpFileContents(mdpFieldValues));
+        EXPECT_EQ(0, runner_.callGrompp(caller));
+    }
+
+    // do mdrun, save log
+    runner_.logFileName_ = fileManager_.getTemporaryFilePath("minimize.log").u8string();
+    {
+        CommandLine mdrunCaller;
+        mdrunCaller.append("mdrun");
+        ASSERT_EQ(0, runner_.callMdrun(mdrunCaller));
+    }
+
+    auto logFileContents = TextReader::readFileToString(runner_.logFileName_);
+    EXPECT_NE(std::string::npos, logFileContents.find("Steepest Descents did not converge to Fmax"));
 }
 
 //! Containers of systems and integrators to test.
