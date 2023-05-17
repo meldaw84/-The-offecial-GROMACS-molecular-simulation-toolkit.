@@ -1002,9 +1002,9 @@ std::array<T, jClusterSize / iClusterSize> diagonalMaskJLargerI()
 
 /*! \brief Returns a diagonal or off-diagonal interaction mask
  *
- * \param[in] removeDiagonal  Whether to mask out the sub-diagonal interactions
- * \param[in] ci              The i-cluster index
- * \param[in] cj              The j-cluster index
+ * \param[in] maskOutSubDiagonal  Whether to mask out the sub-diagonal interactions
+ * \param[in] ci                  The i-cluster index
+ * \param[in] cj                  The j-cluster index
  */
 template<int iClusterSize, int jClusterSize>
 static uint32_t getImask(const bool maskOutSubDiagonal, const int ci, const int cj)
