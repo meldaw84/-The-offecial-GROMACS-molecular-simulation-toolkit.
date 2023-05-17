@@ -32,10 +32,11 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out https://www.gromacs.org.
 
-# This script is used by the GROMACS developers to build most of the
-# files from which the nbnxn kernels are compiled. It is not called at
-# CMake time, and users should never need to use it. It currently
-# works for NBNxM kernel structure types 2xMM and 4xM. The generated
+# This script is used by the GROMACS developers to generate the .cpp
+# files that instiantiate all the template specializations of the kernel.
+# This script also generates .h files with a list of external template
+# declarations and a table of function points. Thus script is not called
+# at CMake time, and users should never need to use it. The generated
 # files are versions of the *.pre files in this directory, customized
 # for the kernel structure type and/or the detailed kernel type. These
 # are:
@@ -47,6 +48,9 @@
 #   specialization. These functions can take a noticeable time to compile,
 #   and should tend to be in separate files to take advantage of make-time
 #   parallelism.
+#
+# These files are written to two separate directories for the two kernel
+# structures 2xMM and 4xM.
 #
 # Note that while functions for both NBNxM kernel structures are
 # compiled and built into an mdrun executable, because that executable
