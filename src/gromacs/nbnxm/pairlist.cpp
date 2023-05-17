@@ -989,7 +989,6 @@ std::array<T, jClusterSize / iClusterSize> diagonalMaskJLargerI()
         mask[maskIndex] = 0;
         for (int i = 0; i < iClusterSize; i++)
         {
-            // for (int j = maskIndex * iClusterSize + i + 1; j < jClusterSize; j++)
             for (int j = maskIndex * iClusterSize + i + 1; j < jClusterSize; j++)
             {
                 mask[maskIndex] |= (T(1) << (i * jClusterSize + j));
@@ -1014,7 +1013,7 @@ static uint32_t getImask(const bool maskOutSubDiagonal, const int ci, const int 
         // static, so the diagonal mask is only created once
         static const auto sc_diagonalMask = diagonalMaskJLargerI<uint32_t, iClusterSize, jClusterSize>();
         constexpr int ratio               = jClusterSize / iClusterSize;
-        const int     diff                = cj - ci * ratio;
+        const int     diff                = ci - cj * ratio;
 
         return (maskOutSubDiagonal && diff >= 0 && diff < ratio ? sc_diagonalMask[diff]
                                                                 : NBNXN_INTERACTION_MASK_ALL);
