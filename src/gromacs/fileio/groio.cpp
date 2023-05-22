@@ -183,8 +183,9 @@ static gmx_bool get_w_conf(FILE*                        in,
         /* residue number*/
         memcpy(name, line, 5);
         name[5] = '\0';
-        sscanf(name, "%d", &resnr);
+        resnr   = strtol(name, NULL, 10);
         sscanf(line + 5, "%5s", resname);
+
 
         if (!oldResFirst || oldres != resnr || strncmp(resname, oldresname, sizeof(resname)) != 0)
         {
@@ -223,7 +224,10 @@ static gmx_bool get_w_conf(FILE*                        in,
                 ptr++;
             }
             buf[c] = '\0';
-            if (sscanf(buf, "%lf %lf", &x1, &x2) != 1)
+            char *x1end, *x2end;
+            x1 = strtod(buf, &x1end);
+            x2 = strtod(x1end, &x2end);
+            if (x1end == buf || x2end != x1end) // first conversion failed or the second one succeeded
             {
                 gmx_fatal(FARGS,
                           "Something is wrong in the coordinate formatting of file %s. Note that "
@@ -248,7 +252,9 @@ static gmx_bool get_w_conf(FILE*                        in,
                     ptr++;
                 }
                 buf[c] = '\0';
-                if (sscanf(buf, "%lf", &x1) != 1)
+                char* x1end;
+                x1 = strtod(buf, &x1end);
+                if (x1end == buf) // conversion failed
                 {
                     v[i][m] = 0;
                 }
