@@ -367,7 +367,7 @@ public:
     Impl(const MDLogger&        mdlog,
          const t_commrec*       cr,
          const gmx_mtop_t&      mtop,
-         const DDBondedChecking ddBondedChecking,
+         DDBondedChecking       ddBondedChecking,
          const gmx_localtop_t&  localTopology,
          const t_state&         localState,
          bool                   useUpdateGroups);
