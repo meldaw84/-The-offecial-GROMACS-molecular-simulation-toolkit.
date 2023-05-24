@@ -437,7 +437,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
      /wd6240  #(<expr> && <non-zero>)
      /wd6294  #Ill-defined for-loop
      /wd6326  #comparison of constant with other constant
-     /wd28020 #expression involving paramter is not true
+     /wd28020 #expression involving parameter is not true
      # Misc
      /wd6330  #incorrect type to function (warns for char (instead of unsigned) for isspace/isalpha/isdigit/..))
      /wd6993  #OpenMP ignored
