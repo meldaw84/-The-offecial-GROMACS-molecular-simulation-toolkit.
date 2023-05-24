@@ -364,13 +364,13 @@ class LocalTopologyChecker::Impl
 {
 public:
     //! Constructor
-    Impl(const MDLogger&        mdlog,
-         const t_commrec*       cr,
-         const gmx_mtop_t&      mtop,
-         DDBondedChecking       ddBondedChecking,
-         const gmx_localtop_t&  localTopology,
-         const t_state&         localState,
-         bool                   useUpdateGroups);
+    Impl(const MDLogger&       mdlog,
+         const t_commrec*      cr,
+         const gmx_mtop_t&     mtop,
+         DDBondedChecking      ddBondedChecking,
+         const gmx_localtop_t& localTopology,
+         const t_state&        localState,
+         bool                  useUpdateGroups);
     //! Objects used when reporting that interactions are missing
     //! {
     //! Logger
