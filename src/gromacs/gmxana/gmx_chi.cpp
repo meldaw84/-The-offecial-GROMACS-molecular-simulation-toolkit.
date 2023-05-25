@@ -592,7 +592,7 @@ static void histogramming(FILE*                    log,
                     }
                     else if (debug)
                     {
-                        fprintf(debug, "Res. %d has imcomplete occupancy or bfacs > %g\n", dihedral.resnr, bfac_max);
+                        fprintf(debug, "Res. %d has incomplete occupancy or bfacs > %g\n", dihedral.resnr, bfac_max);
                     }
                 }
                 else
