@@ -231,7 +231,7 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
                     .asParagraph()
                     .appendText(
                             "GMX_CUDA_GRAPH environment variable is detected, "
-                            "but the CUDA version in use is below the minumum requirement (11.1). "
+                            "but the CUDA version in use is below the minimum requirement (11.1). "
                             "CUDA Graphs will be disabled.");
         }
     }
