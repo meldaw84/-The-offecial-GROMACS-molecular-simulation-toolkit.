@@ -1400,7 +1400,7 @@ int gmx_chi(int argc, char* argv[])
           etREAL,
           { &bfac_max },
           "Maximum B-factor on any of the atoms that make up a dihedral, for the dihedral angle to "
-          "be considere in the statistics. Applies to database work where a number of X-Ray "
+          "be considered in the statistics. Applies to database work where a number of X-Ray "
           "structures is analyzed. [TT]-bmax[tt] <= 0 means no limit." }
     };
 
