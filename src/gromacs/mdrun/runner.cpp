@@ -388,6 +388,17 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
     devFlags.enableGpuPmeDecomposition =
             forcePmeGpuDecomposition && pmeGpuDecompositionRequested && pmeGpuDecompositionSupported;
 
+    devFlags.manualStreamPriority = getenv("GMX_GPU_MANUAL_STREAM_PRIORITY") != nullptr;
+    if (devFlags.manualStreamPriority)
+    {
+        GMX_LOG(mdlog.warning)
+                .asParagraph()
+                .appendTextFormatted(
+                        "This run uses manual work-arounds that avoid assuming hardware support "
+                        "for stream priority, enabled by the GMX_GPU_MANUAL_STREAM_PRIORITY "
+                        "environment variable.");
+    }
+
     return devFlags;
 }
 

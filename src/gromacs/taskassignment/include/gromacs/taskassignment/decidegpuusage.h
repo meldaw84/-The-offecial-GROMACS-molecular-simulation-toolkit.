@@ -87,6 +87,8 @@ struct DevelopmentFeatureFlags
     bool enableGpuPmeDecomposition = false;
     //! True if CUDA Graphs are enabled
     bool enableCudaGraphs = false;
+    //! True if the schedule should not rely on hardware support for stream priority
+    bool manualStreamPriority = true;
 };
 
 

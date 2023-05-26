@@ -111,7 +111,7 @@ public:
 
     /*! \brief GPU halo exchange of coordinates buffer.
      *
-     * Must be called after local setCoordinates (which records an
+     * Must be called after local convertCoordinates (which records an
      * event when the coordinate data has been copied to the
      * device).
      * \param [in] box               Coordinate box (from which shifts will be constructed)

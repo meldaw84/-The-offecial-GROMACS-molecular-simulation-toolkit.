@@ -1373,6 +1373,28 @@ static int getLocalAtomCount(const gmx_domdec_t* dd, const t_mdatoms& mdatoms, b
     return havePPDomainDecomposition ? dd_numAtomsZones(*dd) : mdatoms.homenr;
 }
 
+/*! \brief Launch the GPU halo exchange and follow-up work
+ *
+ * The following must be called after convertCoordinates for the local
+ * region, which records an event when the coordinate data has been
+ * copied to the device. */
+static GpuEventSynchronizer* launchGpuHaloExchange(const t_commrec& cr,
+                                                   const matrix box,
+                                                   gmx::StatePropagatorDataGpu* stateGpu,
+                                                   GpuEventSynchronizer* localXReadyOnDevice,
+                                                   const DomainLifetimeWorkload& domainWork,
+                                                   gmx::ArrayRefWithPadding<gmx::RVec> x)
+{
+    GpuEventSynchronizer* gpuCoordinateHaloLaunched = communicateGpuHaloCoordinates(cr, box, localXReadyOnDevice);
+
+    // Now the non-local coordinates are valid.
+    if (domainWork.haveCpuNonLocalForceWork)
+    {
+        // non-local part of coordinate buffer must be copied back to host for CPU work
+        stateGpu->copyCoordinatesFromGpu(x.unpaddedArrayRef(), AtomLocality::NonLocal, gpuCoordinateHaloLaunched);
+    }
+    return gpuCoordinateHaloLaunched;
+}
 
 void do_force(FILE*                               fplog,
               const t_commrec*                    cr,
@@ -1435,7 +1457,7 @@ void do_force(FILE*                               fplog,
         pme_gpu_set_device_x(fr->pmedata, stateGpu->getCoordinates());
     }
 
-    auto* localXReadyOnDevice =
+    GpuEventSynchronizer* localXReadyOnDevice =
             (stepWork.haveGpuPmeOnThisRank || simulationWork.useGpuXBufferOps || simulationWork.useGpuUpdate)
                     ? stateGpu->getCoordinatesReadyOnDeviceEvent(AtomLocality::Local, simulationWork, stepWork)
                     : nullptr;
@@ -1709,6 +1731,16 @@ void do_force(FILE*                               fplog,
         }
     }
 
+    // When using HW lacking support for stream priority, ensure the
+    // halo exchange buffer packing kernel precedes the local NB
+    // kernel so that latter does not starve the former. On search
+    // steps, halo exchange is not required at all.
+    GpuEventSynchronizer* gpuCoordinateHaloLaunched = nullptr;
+    if (simulationWork.manualStreamPriority && simulationWork.havePpDomainDecomposition && !stepWork.doNeighborSearch && stepWork.useGpuXHalo)
+    {
+        gpuCoordinateHaloLaunched = launchGpuHaloExchange(*cr, box, stateGpu, localXReadyOnDevice, domainWork, x);
+    }
+
     if (simulationWork.useGpuNonbonded && (stepWork.computeNonbondedForces || domainWork.haveGpuBondedWork))
     {
         ddBalanceRegionHandler.openBeforeForceComputationGpu();
@@ -1777,18 +1809,13 @@ void do_force(FILE*                               fplog,
         }
         else
         {
-            GpuEventSynchronizer* gpuCoordinateHaloLaunched = nullptr;
             if (stepWork.useGpuXHalo)
             {
-                // The following must be called after local setCoordinates (which records an event
-                // when the coordinate data has been copied to the device).
-                gpuCoordinateHaloLaunched = communicateGpuHaloCoordinates(*cr, box, localXReadyOnDevice);
-
-                if (domainWork.haveCpuNonLocalForceWork)
+                // On devices without hardware support for stream
+                // priority, GPU halo exchange is launched earlier.
+                if (!simulationWork.manualStreamPriority)
                 {
-                    // non-local part of coordinate buffer must be copied back to host for CPU work
-                    stateGpu->copyCoordinatesFromGpu(
-                            x.unpaddedArrayRef(), AtomLocality::NonLocal, gpuCoordinateHaloLaunched);
+                    gpuCoordinateHaloLaunched = launchGpuHaloExchange(*cr, box, stateGpu, localXReadyOnDevice, domainWork, x);
                 }
             }
             else
