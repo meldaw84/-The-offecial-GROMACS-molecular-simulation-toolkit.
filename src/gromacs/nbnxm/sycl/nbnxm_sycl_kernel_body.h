@@ -417,32 +417,32 @@ static inline float interpolateCoulombForceR(const sycl::global_ptr<const float>
  * Note: This causes massive amount of spills with the tabulated kernel on gfx803 using ROCm 5.3.
  * We don't disable it only for the tabulated kernel as the analytical is the default anyway.
  */
-static inline void reduceForceJAmdDpp(Float3 f, const int tidxi, const int aidx, sycl::global_ptr<Float3> a_f)
+static inline void reduceForceJAmdDpp(FastFloat3 f, const int tidxi, const int aidx, sycl::global_ptr<Float3> a_f)
 {
     static_assert(c_clSize == 8);
 
-    f[0] += amdDppUpdateShfl<float, /* row_shl:1 */ 0x101>(f[0]);
-    f[1] += amdDppUpdateShfl<float, /* row_shr:1 */ 0x111>(f[1]);
-    f[2] += amdDppUpdateShfl<float, /* row_shl:1 */ 0x101>(f[2]);
+    float f0 = f[0] + amdDppUpdateShfl<float, /* row_shl:1 */ 0x101>(f[0]);
+    float f1 = f[1] + amdDppUpdateShfl<float, /* row_shr:1 */ 0x111>(f[1]);
+    float f2 = f[2] + amdDppUpdateShfl<float, /* row_shl:1 */ 0x101>(f[2]);
 
     if (tidxi & 1)
     {
-        f[0] = f[1];
+        f0 = f1;
     }
 
-    f[0] += amdDppUpdateShfl<float, /* row_shl:2 */ 0x102>(f[0]);
-    f[2] += amdDppUpdateShfl<float, /* row_shr:2 */ 0x112>(f[2]);
+    f0 += amdDppUpdateShfl<float, /* row_shl:2 */ 0x102>(f0);
+    f2 += amdDppUpdateShfl<float, /* row_shr:2 */ 0x112>(f2);
 
     if (tidxi & 2)
     {
-        f[0] = f[2];
+        f0 = f2;
     }
 
-    f[0] += amdDppUpdateShfl<float, /* row_shl:4 */ 0x104>(f[0]);
+    f0 += amdDppUpdateShfl<float, /* row_shl:4 */ 0x104>(f0);
 
     if (tidxi < 3)
     {
-        atomicFetchAdd(a_f[aidx][tidxi], f[0]);
+        atomicFetchAdd(a_f[aidx][tidxi], f0);
     }
 }
 #endif
@@ -537,7 +537,7 @@ static inline float groupReduce(const sycl::nd_item<3> itemIdx,
  * TODO: implement binary reduction flavor for the case where cl_Size is power of two.
  */
 static inline void reduceForceJGeneric(sycl::local_ptr<float>   sm_buf,
-                                       Float3                   f,
+                                       FastFloat3               f,
                                        const sycl::nd_item<3>   itemIdx,
                                        const int                tidxi,
                                        const int                tidxj,
@@ -572,7 +572,7 @@ static inline void reduceForceJGeneric(sycl::local_ptr<float>   sm_buf,
  */
 template<bool useShuffleReduction>
 static inline void reduceForceJ(sycl::local_ptr<float>   sm_buf,
-                                Float3                   f,
+                                FastFloat3               f,
                                 const sycl::nd_item<3>   itemIdx,
                                 const int                tidxi,
                                 const int                tidxj,
@@ -588,7 +588,7 @@ static inline void reduceForceJ(sycl::local_ptr<float>   sm_buf,
 #if defined(__SYCL_DEVICE_ONLY__) && defined(__AMDGCN__)
         reduceForceJAmdDpp(f, tidxi, aidx, a_f);
 #else
-        reduceForceJShuffle(f, itemIdx, tidxi, aidx, a_f);
+        reduceForceJShuffle(Float3(f), itemIdx, tidxi, aidx, a_f);
 #endif
     }
 }
@@ -1234,7 +1234,7 @@ static auto nbnxmKernel(sycl::handler&                                          
                 // load j atom data
                 const Float4 xqj = a_xq[aj];
 
-                const Float3 xj(xqj[0], xqj[1], xqj[2]);
+                const FastFloat3 xj(xqj[0], xqj[1], xqj[2]);
                 const float  qj = xqj[3];
                 int          atomTypeJ; // Only needed if (!props.vdwComb)
                 Float2       ljCombJ;   // Only needed if (props.vdwComb)
@@ -1247,7 +1247,7 @@ static auto nbnxmKernel(sycl::handler&                                          
                     atomTypeJ = a_atomTypes[aj];
                 }
 
-                Float3 fCjBuf(0.0F, 0.0F, 0.0F);
+                FastFloat3 fCjBuf(0.0F, 0.0F, 0.0F);
 
 #pragma unroll c_nbnxnGpuNumClusterPerSupercluster
                 for (int i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i++)
@@ -1258,11 +1258,11 @@ static auto nbnxmKernel(sycl::handler&                                          
                         const int ci = sci * c_nbnxnGpuNumClusterPerSupercluster + i;
                         // all threads load an atom from i cluster ci into shmem!
                         const Float4 xqi = sm_xq[i * c_clSize + tidxi];
-                        const Float3 xi(xqi[0], xqi[1], xqi[2]);
+                        const FastFloat3 xi(xqi[0], xqi[1], xqi[2]);
 
                         // distance between i and j atoms
-                        const Float3 rv = xi - xj;
-                        float        r2 = norm2(rv);
+                        const FastFloat3 rv = xi - xj;
+                        float            r2 = rv.norm2();
 
                         if constexpr (doPruneNBL)
                         {
@@ -1447,12 +1447,12 @@ static auto nbnxmKernel(sycl::handler&                                          
                                 }
                             }
 
-                            const Float3 forceIJ = rv * fInvR;
+                            const FastFloat3 forceIJ = rv * fInvR;
 
                             /* accumulate j forces in registers */
                             fCjBuf -= forceIJ;
                             /* accumulate i forces in registers */
-                            fCiBuf[i] += FastFloat3(forceIJ);
+                            fCiBuf[i] += forceIJ;
                         } // (r2 < rCoulombSq) && notExcluded
                     }     // (imask & maskJI)
                     /* shift the mask bit by 1 */
