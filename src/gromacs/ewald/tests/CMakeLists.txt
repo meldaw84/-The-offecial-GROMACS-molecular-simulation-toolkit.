@@ -63,3 +63,14 @@ target_link_libraries(
         topology
         utility
 )
+gmx_add_mpi_unit_test(EwaldMpiTests ewald-mpi-test 4
+    HARDWARE_DETECTION
+    CPP_SOURCE_FILES
+        pme_pipeline_spline_spread_test.cpp
+        )
+target_link_libraries(
+    ewald-mpi-test PRIVATE
+        ewald
+        fft
+        testutils
+)

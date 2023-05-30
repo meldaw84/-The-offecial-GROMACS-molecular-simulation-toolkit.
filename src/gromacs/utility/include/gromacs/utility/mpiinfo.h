@@ -75,6 +75,13 @@ GpuAwareMpiStatus checkMpiHipAwareSupport();
  * \returns     LevelZero-aware status in MPI implementation */
 GpuAwareMpiStatus checkMpiZEAwareSupport();
 
+/*! \brief Helper function for code that does not care about the
+ * distinction between a library that declares it has support and
+ * being forced to assume that a library has support. */
+static bool isWorking(const GpuAwareMpiStatus status)
+{
+    return (status == GpuAwareMpiStatus::Supported || status == GpuAwareMpiStatus::Forced);
+}
 
 } // namespace gmx
 

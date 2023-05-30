@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="referencedata.xsl"?>
+<ReferenceData>
+  <NonZeroGridValues Name="RealSpaceGrid">
+    <Real Name="Cell 00 00 08">-0.0092592333</Real>
+    <Real Name="Cell 00 00 09">-0.037037041</Real>
+    <Real Name="Cell 00 00 10">-0.0092592863</Real>
+    <Real Name="Cell 00 00 11">-8.0311281e-21</Real>
+    <Real Name="Cell 00 01 08">-0.037036933</Real>
+    <Real Name="Cell 00 01 09">-0.14814816</Real>
+    <Real Name="Cell 00 01 10">-0.037037145</Real>
+    <Real Name="Cell 00 01 11">-3.2124512e-20</Real>
+    <Real Name="Cell 00 02 08">-0.0092592333</Real>
+    <Real Name="Cell 00 02 09">-0.037037041</Real>
+    <Real Name="Cell 00 02 10">-0.0092592863</Real>
+    <Real Name="Cell 00 02 11">-8.0311281e-21</Real>
+    <Real Name="Cell 01 00 08">-0.037036933</Real>
+    <Real Name="Cell 01 00 09">-0.14814816</Real>
+    <Real Name="Cell 01 00 10">-0.037037145</Real>
+    <Real Name="Cell 01 00 11">-3.2124512e-20</Real>
+    <Real Name="Cell 01 01 08">-0.14814773</Real>
+    <Real Name="Cell 01 01 09">-0.59259266</Real>
+    <Real Name="Cell 01 01 10">-0.14814858</Real>
+    <Real Name="Cell 01 01 11">-1.2849805e-19</Real>
+    <Real Name="Cell 01 02 08">-0.037036933</Real>
+    <Real Name="Cell 01 02 09">-0.14814816</Real>
+    <Real Name="Cell 01 02 10">-0.037037145</Real>
+    <Real Name="Cell 01 02 11">-3.2124512e-20</Real>
+    <Real Name="Cell 02 00 08">-0.0092592333</Real>
+    <Real Name="Cell 02 00 09">-0.037037041</Real>
+    <Real Name="Cell 02 00 10">-0.0092592863</Real>
+    <Real Name="Cell 02 00 11">-8.0311281e-21</Real>
+    <Real Name="Cell 02 01 08">-0.037036933</Real>
+    <Real Name="Cell 02 01 09">-0.14814816</Real>
+    <Real Name="Cell 02 01 10">-0.037037145</Real>
+    <Real Name="Cell 02 01 11">-3.2124512e-20</Real>
+    <Real Name="Cell 02 02 08">-0.0092592333</Real>
+    <Real Name="Cell 02 02 09">-0.037037041</Real>
+    <Real Name="Cell 02 02 10">-0.0092592863</Real>
+    <Real Name="Cell 02 02 11">-8.0311281e-21</Real>
+  </NonZeroGridValues>
+</ReferenceData>

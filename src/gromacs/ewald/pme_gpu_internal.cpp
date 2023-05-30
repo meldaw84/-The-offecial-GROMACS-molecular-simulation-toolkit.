@@ -1864,6 +1864,10 @@ void pme_gpu_spread(const PmeGpu*                  pmeGpu,
                 wallcycle_start(wcycle, WallCycleCounter::WaitGpuPmePPRecvX);
                 int senderRank = manageSyncWithPpCoordinateSenderGpu(
                         pmeGpu, pmeCoordinateReceiverGpu, kernelParamsPtr->usePipeline != 0, i);
+                if (senderRank < 0)
+                {
+                    continue;
+                }
                 wallcycle_stop(wcycle, WallCycleCounter::WaitGpuPmePPRecvX);
 
                 wallcycle_start(wcycle, WallCycleCounter::LaunchGpuPme);
