@@ -97,6 +97,8 @@ struct FastFloat3
 
     FastFloat3(Native_float2_ xy, float z) : xy_{ xy }, z_{ z } {}
 
+    FastFloat3(Float3 r) : xy_{ r[0], r[1] }, z_{ r[2] } {}
+
     explicit operator Float3() const { return Float3{ xy_.x, xy_.y, z_ }; }
 
     FastFloat3& operator=(const FastFloat3& x)
@@ -1079,7 +1081,7 @@ static auto nbnxmKernel(sycl::handler& cgh,
         const unsigned imeiIdx = tidx / prunedClusterPairSize;
 
 #if defined(__SYCL_DEVICE_ONLY__) && defined(__AMDGCN__)
-        Float3 fCiBuf_[c_nbnxnGpuNumClusterPerSupercluster]; // i force buffer
+        FastFloat3 fCiBuf_[c_nbnxnGpuNumClusterPerSupercluster]; // i force buffer
         for (int i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i++)
         {
             fCiBuf_[i] = { 0.0F, 0.0F, 0.0F };
@@ -1443,9 +1445,13 @@ static auto nbnxmKernel(sycl::handler& cgh,
                             /* accumulate j forces in registers */
                             fCjBuf -= forceIJ;
                             /* accumulate i forces in registers */
+#if defined(__SYCL_DEVICE_ONLY__) && defined(__AMDGCN__) && defined(__gfx90a__)
+                            fCiBuf[i] += FastFloat3(forceIJ);
+#else
                             fCiBufX(i) += forceIJ[0];
                             fCiBufY(i) += forceIJ[1];
                             fCiBufZ(i) += forceIJ[2];
+#endif
                         } // (r2 < rCoulombSq) && notExcluded
                     }     // (imask & maskJI)
                     /* shift the mask bit by 1 */
