@@ -96,6 +96,8 @@ struct FastFloat3
     FastFloat3(float x, float y, float z) : xy_{ x, y }, z_{ z } {}
 
     FastFloat3(Native_float2_ xy, float z) : xy_{ xy }, z_{ z } {}
+    
+    FastFloat3(Float3 r) : xy_{ r[0], r[1] }, z_{ r[2] } {}
 
     explicit operator Float3() const { return Float3{ xy_.x, xy_.y, z_ }; }
 
@@ -597,7 +599,7 @@ static inline void reduceForceJ(sycl::local_ptr<float>   sm_buf,
  * used could be avoided on >=8-wide architectures.
  */
 static inline void reduceForceIAndFShiftGeneric(sycl::local_ptr<float> sm_buf,
-                                                const Float3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster],
+                                                const FastFloat3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster],
                                                 const bool               calcFShift,
                                                 const sycl::nd_item<3>   itemIdx,
                                                 const int                tidxi,
@@ -698,7 +700,7 @@ static inline void reduceForceIAndFShiftGeneric(sycl::local_ptr<float> sm_buf,
  * approach, but we have two times less atomicFetchAdd's.
  */
 template<int numShuffleReductionSteps>
-static inline void reduceForceIAndFShiftShuffles(const Float3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster],
+static inline void reduceForceIAndFShiftShuffles(const FastFloat3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster],
                                                  const bool               calcFShift,
                                                  const sycl::nd_item<3>   itemIdx,
                                                  const int                tidxi,
@@ -841,7 +843,7 @@ static inline void reduceForceIAndFShiftShuffles(const Float3 fCiBuf[c_nbnxnGpuN
  * by using local memory reduction after shuffles, but that's a TODO.
  */
 template<>
-inline void reduceForceIAndFShiftShuffles<1>(const Float3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster],
+inline void reduceForceIAndFShiftShuffles<1>(const FastFloat3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster],
                                              const bool               calcFShift,
                                              const sycl::nd_item<3>   itemIdx,
                                              const int                tidxi,
@@ -913,7 +915,7 @@ inline void reduceForceIAndFShiftShuffles<1>(const Float3 fCiBuf[c_nbnxnGpuNumCl
  */
 template<bool useShuffleReduction, int subGroupSize>
 static inline void reduceForceIAndFShift(sycl::local_ptr<float> sm_buf,
-                                         const Float3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster],
+                                         const FastFloat3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster],
                                          const bool  calcFShift,
                                          const sycl::nd_item<3>   itemIdx,
                                          const int                tidxi,
@@ -1097,12 +1099,10 @@ static auto nbnxmKernel(sycl::handler&                                          
         // and in cases where prunedClusterPairSize != subGroupSize we can't use it anyway
         const unsigned imeiIdx = tidx / prunedClusterPairSize;
 
-        Float3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster]; // i force buffer
+        FastFloat3 fCiBuf[c_nbnxnGpuNumClusterPerSupercluster]; // i force buffer
         for (int i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i++)
         {
-            fCiBuf[i][0] = 0.0F;
-            fCiBuf[i][1] = 0.0F;
-            fCiBuf[i][2] = 0.0F;
+            fCiBuf[i] = {0.0F, 0.0F, 0.0F};
         }
 
         const nbnxn_sci_t nbSci          = a_plistSci[bidx];
@@ -1452,7 +1452,7 @@ static auto nbnxmKernel(sycl::handler&                                          
                             /* accumulate j forces in registers */
                             fCjBuf -= forceIJ;
                             /* accumulate i forces in registers */
-                            fCiBuf[i] += forceIJ;
+                            fCiBuf[i] += FastFloat3(forceIJ);
                         } // (r2 < rCoulombSq) && notExcluded
                     }     // (imask & maskJI)
                     /* shift the mask bit by 1 */
