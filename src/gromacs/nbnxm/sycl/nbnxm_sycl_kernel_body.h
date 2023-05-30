@@ -53,6 +53,102 @@
 template<bool doPruneNBL, bool doCalcEnergies, enum Nbnxm::ElecType elecType, enum Nbnxm::VdwType vdwType, int subGroupSize>
 class NbnxmKernel;
 
+struct FastFloat3
+{
+    typedef float __attribute__((ext_vector_type(2))) Native_float2_;
+
+    struct __attribute__((packed))
+    {
+        Native_float2_ xy_;
+        float          z_;
+    };
+
+    template<typename Index>
+    float operator[](Index i) const
+    {
+        switch (i)
+        {
+            case 0: return xy_.x;
+            case 1: return xy_.y;
+            default: return z_;
+        }
+    }
+    /*
+        template<typename Index>
+        float& operator[](Index i)
+        {
+            switch (i)
+            {
+                case 0: return xy_.x;
+                case 1: return xy_.y;
+                default: return z_;
+            }
+        }
+    */
+
+    float          x() const { return xy_.x; }
+    float          y() const { return xy_.y; }
+    Native_float2_ xy() const { return xy_; }
+    float          z() const { return z_; }
+
+    FastFloat3() = default;
+
+    FastFloat3(float x, float y, float z) : xy_{ x, y }, z_{ z } {}
+
+    FastFloat3(Native_float2_ xy, float z) : xy_{ xy }, z_{ z } {}
+
+    explicit operator Float3() const { return Float3{ xy_.x, xy_.y, z_ }; }
+
+    FastFloat3& operator=(const FastFloat3& x)
+    {
+        xy_ = x.xy_;
+        z_  = x.z_;
+        return *this;
+    }
+
+    //! Allow inplace addition for FastFloat3
+    FastFloat3& operator+=(const FastFloat3& right) { return *this = *this + right; }
+    //! Allow inplace subtraction for FastFloat3
+    FastFloat3& operator-=(const FastFloat3& right) { return *this = *this - right; }
+    //! Allow vector addition
+    FastFloat3 operator+(const FastFloat3& right) const
+    {
+        return { xy_ + right.xy(), z_ + right.z() };
+    }
+    //! Allow vector subtraction
+    FastFloat3 operator-(const FastFloat3& right) const
+    {
+        return { xy_ - right.xy(), z_ - right.z() };
+    }
+    //! Scale vector by a scalar
+    FastFloat3& operator*=(const float& right)
+    {
+        xy_ *= right;
+        z_ *= right;
+        return *this;
+    }
+
+    //! Length^2 of vector
+    float norm2() const { return dot(*this); }
+
+    //! Return dot product
+    float dot(const FastFloat3& right) const
+    {
+        return x() * right.x() + y() * right.y() + z() * right.z();
+    }
+};
+static_assert(sizeof(FastFloat3) == 12);
+
+static FastFloat3 operator*(const FastFloat3& v, const float& s)
+{
+    return { v.xy() * s, v.z() * s };
+}
+static FastFloat3 operator*(const float& s, const FastFloat3& v)
+{
+    return { v.xy() * s, v.z() * s };
+}
+
+
 namespace Nbnxm
 {
 
