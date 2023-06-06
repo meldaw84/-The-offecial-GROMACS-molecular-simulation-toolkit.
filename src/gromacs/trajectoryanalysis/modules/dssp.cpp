@@ -999,7 +999,7 @@ std::string SecondaryStructures::performPatternSearch(const t_trxframe& fr,
     frameVector_         = topologyVector_;
     piHelicesPreference_ = transferredPiHelicesPreference;
     polyProStretch_      = transferredPolyProStretch;
-    hbDef_             = transferredHbDef;
+    hbDef_               = transferredHbDef;
     secondaryStructuresStatusVector_.resize(0);
     secondaryStructuresStatusVector_.resize(frameVector_.size());
     secondaryStructuresStringLine_.resize(0);
