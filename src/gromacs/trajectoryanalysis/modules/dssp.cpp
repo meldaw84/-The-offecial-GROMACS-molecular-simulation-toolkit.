@@ -304,7 +304,7 @@ enum class HBondDefinition : std::size_t
     Count
 };
 
-//! String values corresponding to hydrogen bond definitnion modes.
+//! String values corresponding to hydrogen bond definition modes.
 const gmx::EnumerationArray<HBondDefinition, const char*> c_HBondDefinition = { { "energy",
                                                                                   "geometry" } };
 
@@ -1464,7 +1464,7 @@ void SecondaryStructures::calculateHBondGeometry(ResInfo*          donor,
             }
             pbc_dx(pbc, vectorH, fr.x[donor->getIndex(BackboneAtomTypes::AtomN)], vectorNH.as_vec());
             degree = gmx_angle(vectorNO, vectorNH) * gmx::c_rad2Deg;
-            if (degree < c_angleMaxDegree_)
+            if (degree <= c_angleMaxDegree_)
             {
                 if (donor->acceptor_[0] == nullptr)
                 {
