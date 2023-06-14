@@ -13,7 +13,7 @@ we will avoid using some of them in |Gromacs| code. The basic principle is to ke
 as simple as possible.
 
 * MSVC supports only a subset of C99 and work-arounds are required in those cases.
-* We should be able to use virtually all C++17 features; see "GPU considerations"
+* We should be able to use virtually all C++17 features; see "GPU API considerations"
   below for exceptions.
 
 C++ Standard Library
