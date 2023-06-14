@@ -205,20 +205,20 @@ errors, ie. use exceptions.
   safe, whether they might throw an exception (even indirectly), and
   if so, which exception(s) they might throw.
 
-GPU considerations
-^^^^^^^^^^^^^^^^^^
+GPU API considerations
+^^^^^^^^^^^^^^^^^^^^^^
 
-* OpenCL kernels compile as C (specifically, C99) code.
-* Some combinations of CUDA and GCC do not handle the C++17 properly.
+* Write OpenCL as C (specifically, C99) code. Using C++ in OpenCL kernels
+  is not well-supported.
+* Keep in mind that some combinations of CUDA and GCC do not handle the C++17 properly.
   This causes minor issues like the need to use ``std::is_same::value``
   (supported in C++14) instead of ``std::is_same_v`` (added on C++17)
   in the glue code. This is caught by our CI.
-* SYCL code is written according to SYCL2020 standard. The vendor-specific
-  extensions and backend-specific code can be used when needed for
-  performance, but a reasonable fallback must be provided for all other
-  supported targets.
-* SYCL uses USM and in-order queues for memory management. This allows
-  for more logical similarity with other backends. Additionally, buffers
+* Use SYCL 2020 standard. The vendor-specific extensions and backend-specific
+  code can be used when needed for performance, but a reasonable fallback
+  must be provided for all other supported targets.
+* Use USM and in-order queues in SYCL code instead of ``sycl::buffer``.
+  This make the code more uniform across all GPU backends. Besides, buffers
   are more challenging for the compilers to optimize in kernels, leading
   to worse performance (as of 2022).
 
