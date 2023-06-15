@@ -53,6 +53,10 @@ gromacs:macos:configure:
     CMAKE_EXTRA_OPTIONS: "-DGMX_GPU_FFT_LIBRARY=vkfft -DCMAKE_EXE_LINKER_FLAGS=-L$CI_PROJECT_DIR/toolchain/lib"
   needs:
     - job: gromacs:macos:bootstrap
+  artifacts:
+    when: always
+    paths:
+      - build/
 
 gromacs:macos:build:
   extends:
@@ -68,6 +72,11 @@ gromacs:macos:build:
   needs:
     - job: gromacs:macos:bootstrap
     - job: gromacs:macos:configure
+  artifacts:
+    when: always
+    paths:
+      - build/
+      - install/
 
 gromacs:macos:test:
   extends:
