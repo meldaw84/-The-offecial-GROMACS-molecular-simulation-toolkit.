@@ -18,8 +18,9 @@
 gromacs:macos:bootstrap:
   extends:
     - .rules:post-merge-acceptance
+  image: macos-12-xcode-14
   tags:
-    - k8s-scilifelab-mac
+    - saas-macos-medium-m1
   stage: pre-build
   script:
     - bash -x admin/ci-scripts/gromacs-bootstrap-macos.sh
@@ -42,8 +43,9 @@ gromacs:macos:configure:
     - .gromacs:base:configure
     - .use-opencl
     - .rules:post-merge-acceptance
+  image: macos-12-xcode-14
   tags:
-    - k8s-scilifelab-mac
+    - saas-macos-medium-m1
   variables:
     CMAKE: "$CI_PROJECT_DIR/toolchain/bin/cmake"
     CMAKE_COMPILER_SCRIPT: "-DCMAKE_CXX_COMPILER=c++ -DCMAKE_C_COMPILER=cc -DCCACHE_PROGRAM=$CI_PROJECT_DIR/toolchain/bin/ccache -DGMX_ENABLE_CCACHE=ON"
@@ -60,7 +62,7 @@ gromacs:macos:build:
     - .use-ccache
     - .rules:merge-and-post-merge-acceptance
   tags:
-    - k8s-scilifelab-mac
+    - saas-macos-medium-m1
   variables:
     CMAKE: "$CI_PROJECT_DIR/toolchain/bin/cmake"
   needs:
@@ -71,13 +73,14 @@ gromacs:macos:test:
   extends:
     - .gromacs:base:test
     - .rules:post-merge-acceptance
+  image: macos-12-xcode-14
   variables:
     CMAKE:  "$CI_PROJECT_DIR/toolchain/bin/cmake"
     # We don't use k8s, but it helps our scripts to know that we need a GPU
     KUBERNETES_EXTENDED_RESOURCE_NAME: "apple.com/gpu"
     KUBERNETES_EXTENDED_RESOURCE_LIMIT: 1
   tags:
-    - k8s-scilifelab-mac
+    - saas-macos-medium-m1
   needs:
     - job: gromacs:macos:bootstrap
     - job: gromacs:macos:build
@@ -86,7 +89,7 @@ gromacs:macos:regressiontest:
   extends:
     - .gromacs:base:regressiontest
     - .rules:post-merge-acceptance
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-22.04-gcc-12-rocm-5.4.1
+  image: macos-12-xcode-14
   variables:
     CMAKE: "$CI_PROJECT_DIR/toolchain/bin/cmake"
     KUBERNETES_EXTENDED_RESOURCE_NAME: "apple.com/gpu"
@@ -95,7 +98,7 @@ gromacs:macos:regressiontest:
     REGRESSIONTEST_TOTAL_RANK_NUMBER: 4
     REGRESSIONTEST_OMP_RANK_NUMBER: 2
   tags:
-    - k8s-scilifelab-mac
+    - saas-macos-medium-m1
   needs:
     - job: gromacs:macos:build
     - job: regressiontests:prepare
