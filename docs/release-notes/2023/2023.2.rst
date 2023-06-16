@@ -39,7 +39,7 @@ unless the -dd option was specified.
 
 :issue:`4627`
 
-       Allow bonded pair interactions to be missing
+Allow bonded pair interactions to be missing
 """"""""""""""""""""""""""""""""""""""""""""
 
 With -noddcheck, mdrun did not allow bonded pair interactions to be missing.
