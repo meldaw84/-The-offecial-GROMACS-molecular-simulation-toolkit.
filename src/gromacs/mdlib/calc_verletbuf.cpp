@@ -47,6 +47,7 @@
 #include "gromacs/math/vec.h"
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/md_enums.h"
+#include "gromacs/mdtypes/multipletimestepping.h"
 #include "gromacs/nbnxm/nbnxm.h"
 #include "gromacs/nbnxm/nbnxm_geometry.h"
 #include "gromacs/nbnxm/nbnxm_simd.h"
@@ -106,6 +107,7 @@ struct VerletbufAtomtype
 // Struct for derivatives of a non-bonded interaction potential
 struct pot_derivatives_t
 {
+    real pot; // V at the cutoff
     real md1; // -V' at the cutoff
     real d2;  //  V'' at the cutoff
     real md3; // -V''' at the cutoff
@@ -637,12 +639,13 @@ static real energyDriftAtomPair(bool                     isConstrained_i,
     real s    = std::sqrt(s2);
     real rsh2 = rsh * rsh;
 
+    real pot0 = sc_fac * der->pot * (s * c_exp - rsh * c_erfc);
     real pot1 = sc_fac * der->md1 / 2 * ((rsh2 + s2) * c_erfc - rsh * s * c_exp);
     real pot2 = sc_fac * der->d2 / 6 * (s * (rsh2 + 2 * s2) * c_exp - rsh * (rsh2 + 3 * s2) * c_erfc);
     real pot3 = sc_fac * der->md3 / 24
                 * ((rsh2 * rsh2 + 6 * rsh2 * s2 + 3 * s2 * s2) * c_erfc - rsh * s * (rsh2 + 5 * s2) * c_exp);
 
-    return pot1 + pot2 + pot3;
+    return pot0 + pot1 + pot2 + pot3;
 }
 
 // Computes and returns an estimate of the energy drift for the whole system
@@ -685,10 +688,11 @@ static real energyDrift(gmx::ArrayRef<const VerletbufAtomtype> att,
             /* Add up the up to four independent variances */
             real s2 = s2i_2d + s2i_3d + s2j_2d + s2j_3d;
 
-            // Set -V', V'' and -V''' at the cut-off for LJ */
+            // Set V, -V', V'' and -V''' at the cut-off for LJ
             real              c6  = ffp->iparams[prop_i->type * ffp->atnr + prop_j->type].lj.c6;
             real              c12 = ffp->iparams[prop_i->type * ffp->atnr + prop_j->type].lj.c12;
             pot_derivatives_t lj;
+            lj.pot = c6 * ljDisp.pot + c12 * ljRep.pot;
             lj.md1 = c6 * ljDisp.md1 + c12 * ljRep.md1;
             lj.d2  = c6 * ljDisp.d2 + c12 * ljRep.d2;
             lj.md3 = c6 * ljDisp.md3 + c12 * ljRep.md3;
@@ -698,6 +702,7 @@ static real energyDrift(gmx::ArrayRef<const VerletbufAtomtype> att,
 
             // Set -V' and V'' at the cut-off for Coulomb
             pot_derivatives_t elec_qq;
+            elec_qq.pot = elec.pot * prop_i->q * prop_j->q;
             elec_qq.md1 = elec.md1 * prop_i->q * prop_j->q;
             elec_qq.d2  = elec.d2 * prop_i->q * prop_j->q;
             elec_qq.md3 = 0;
@@ -807,8 +812,8 @@ static real md3_force_switch(real p, real rswitch, real rc)
 static std::pair<pot_derivatives_t, pot_derivatives_t> getVdwDerivatives(const t_inputrec& ir,
                                                                          const real        repPow)
 {
-    pot_derivatives_t ljDisp = { 0, 0, 0 };
-    pot_derivatives_t ljRep  = { 0, 0, 0 };
+    pot_derivatives_t ljDisp = { 0, 0, 0, 0 };
+    pot_derivatives_t ljRep  = { 0, 0, 0, 0 };
 
     if (ir.vdwtype == VanDerWaalsType::Cut)
     {
@@ -871,7 +876,7 @@ static pot_derivatives_t getElecDerivatives(const t_inputrec& ir)
 {
     const real elfac = gmx::c_one4PiEps0 / ir.epsilon_r;
 
-    pot_derivatives_t elec = { 0, 0, 0 };
+    pot_derivatives_t elec = { 0, 0, 0, 0 };
 
     if (ir.coulombtype == CoulombInteractionType::Cut || usingRF(ir.coulombtype))
     {
@@ -1215,6 +1220,176 @@ real calcVerletBufferSize(const gmx_mtop_t&         mtop,
     return std::max(ir.rvdw, ir.rcoulomb) + ib1 * resolution;
 }
 
+//! Returns the derivatives of the force given the derivatives of the potential
+static pot_derivatives_t getForceDerivatives(const pot_derivatives_t& potDerivatives)
+{
+    pot_derivatives_t forceDerivatives;
+
+    forceDerivatives.pot = potDerivatives.md1;
+    forceDerivatives.md1 = potDerivatives.d2;
+    forceDerivatives.d2  = potDerivatives.md3;
+    forceDerivatives.md3 = 0;
+
+    return forceDerivatives;
+}
+
+real verletBufferPressureError(const gmx_mtop_t&         mtop,
+                               const real                effectiveAtomDensity,
+                               const t_inputrec&         ir,
+                               const int                 nstlist,
+                               const bool                listIsDynamicallyPruned,
+                               const real                rlist,
+                               const VerletbufListSetup& listSetup)
+{
+    if (!EI_DYNAMICS(ir.eI))
+    {
+        gmx_incons(
+                "Can only determine the Verlet buffer size for integrators that perform dynamics");
+    }
+
+    real ensembleTemperature;
+    if (haveConstantEnsembleTemperature(ir))
+    {
+        ensembleTemperature = ir.ensembleTemperature;
+    }
+    else
+    {
+        /* We use the maximum temperature with multiple T-coupl groups.
+         * We could use a per particle temperature, but since particles
+         * interact, this might underestimate the buffer size.
+         */
+        ensembleTemperature = maxReferenceTemperature(ir);
+    }
+
+    if (ensembleTemperature <= 0)
+    {
+        return 0;
+    }
+
+    /* Worst case assumption: HCP packing of particles gives largest distance */
+    const real particle_distance = std::cbrt(std::sqrt(2) / effectiveAtomDensity);
+
+    /* TODO: Obtain masses through (future) integrator functionality
+     *       to avoid scattering the code with (or forgetting) checks.
+     */
+    const bool setMassesToOne = (ir.eI == IntegrationAlgorithm::BD && ir.bd_fric > 0);
+    const auto att =
+            getVerletBufferAtomtypes(mtop, setMassesToOne, ir.efep != FreeEnergyPerturbationType::No);
+    GMX_ASSERT(!att.empty(), "We expect at least one type");
+
+    // Get the derivatives of the Lennard-Jones potential
+    pot_derivatives_t ljDisp;
+    pot_derivatives_t ljRep;
+    std::tie(ljDisp, ljRep) = getVdwDerivatives(ir, mtop.ffparams.reppow);
+
+    // Take and store the derivatives of the Lennard-Jones force
+    const pot_derivatives_t ljDispForce = getForceDerivatives(ljDisp);
+    const pot_derivatives_t ljRepForce  = getForceDerivatives(ljRep);
+
+    // The electrostatic contribution is ignored, unless an env.var. is set.
+    // This is because the electrostatic force errors have a cancellation
+    // of errors due to (local) charge neutrality. The net error in the
+    // pressure is about two orders of magnitude smaller than what a sum
+    // of unsigned force errors would give. In practice the electrostatic
+    // error is nearly always negligible, so we can ignore it here.
+    pot_derivatives_t elec = { 0, 0, 0, 0 };
+
+    if (getenv("GMX_ADD_COULOMB_PRESSURE_ERROR") != nullptr)
+    {
+        if (ir.rcoulomb != ir.rvdw)
+        {
+            GMX_THROW(gmx::InvalidInputError(
+                    "Can only take Coulomb interactions into account for the NBNxM pressure error "
+                    "calculation when rcoulomb=rvdw"));
+        }
+
+        elec = getElecDerivatives(ir);
+    }
+
+    const pot_derivatives_t elecForce = getForceDerivatives(elec);
+
+    // The list life time, counted in "non-bonded" time steps
+    const int listLifetime = nstlist / gmx::nonbondedMtsFactor(ir) - 1;
+
+    if (listLifetime == 0)
+    {
+        return 0;
+    }
+
+    // Compute the average error over listLifetime "non-bonded" steps using integration
+    const int stepInterval   = 5;
+    real      forceErrorSum  = 0;
+    int       prevStep       = 0;
+    real      prevForceError = 0;
+
+    for (int step = 0; step < listLifetime + stepInterval; step += stepInterval)
+    {
+        step = std::min(step, listLifetime);
+
+        // With dynamic pruning, distances are computed from the coordinates of one step before
+        const int listAge = step + (listIsDynamicallyPruned ? 1 : 0);
+
+        /* Determine the variance of the atomic displacement
+         * over list_lifetime steps: kT_fac
+         * For inertial dynamics (not Brownian dynamics) the mass factor
+         * is not included in kT_fac, it is added later.
+         */
+        const real kT_fac = displacementVariance(
+                ir, ensembleTemperature, listAge * gmx::nonbondedMtsFactor(ir) * ir.delta_t);
+
+        const real forceError = energyDrift(att,
+                                            &mtop.ffparams,
+                                            kT_fac,
+                                            ljDispForce,
+                                            ljRepForce,
+                                            elecForce,
+                                            ir.rvdw,
+                                            ir.rcoulomb,
+                                            rlist,
+                                            mtop.natoms,
+                                            effectiveAtomDensity);
+
+        // We sum over discrete time steps, so the endpoints should count full
+        if (step == 0 || step == listLifetime)
+        {
+            forceErrorSum += 0.5 * forceError;
+        }
+        // Integrate using the trapezoidal rule
+        if (step > 0)
+        {
+            forceErrorSum += (step - prevStep) * 0.5 * (prevForceError + forceError);
+        }
+
+        if (step == listLifetime && debug)
+        {
+            fprintf(debug,
+                    "Verlet buffer LJ max pressure error relative to average: factor %.2f\n",
+                    forceError * (1 + listLifetime) / forceErrorSum);
+        }
+
+        prevStep       = step;
+        prevForceError = forceError;
+    }
+    // Divide by the length of the integral
+    const real averageForceError = forceErrorSum / (1 + listLifetime);
+
+    // Convert the force to a stress by using the VdW cutoff distance as an (over)approximation
+    real stressError = averageForceError * ir.rvdw;
+
+    /* Correct for the fact that we are using a Ni x Nj particle pair list
+     * and not a 1 x 1 particle pair list. This reduces the drift.
+     */
+    /* We don't have a formula for 8 (yet), use 4 which is conservative */
+    const real nb_clust_frac_pairs_not_in_list_at_cutoff =
+            surface_frac(std::min(listSetup.cluster_size_i, 4), particle_distance, ir.rlist)
+            * surface_frac(std::min(listSetup.cluster_size_j, 4), particle_distance, ir.rlist);
+    stressError *= nb_clust_frac_pairs_not_in_list_at_cutoff;
+
+    // Divide by the effective volume of the system, convert to bar
+    return stressError * (effectiveAtomDensity / mtop.natoms) * gmx::c_presfac;
+}
+
+
 /* Returns the pairlist buffer size for use as a minimum buffer size
  *
  * Note that this is a rather crude estimate. It is ok for a buffer
@@ -1237,7 +1412,7 @@ static real chanceOfAtomCrossingCell(gmx::ArrayRef<const VerletbufAtomtype> atom
      * derivative = -1/cellSize. Using this in the energyDriftAtomPair
      * function will return the chance of crossing the next boundary.
      */
-    const pot_derivatives_t boundaryInteraction = { 1 / cellSize, 0, 0 };
+    const pot_derivatives_t boundaryInteraction = { 0, 1 / cellSize, 0, 0 };
 
     real chance = 0;
     for (const VerletbufAtomtype& att : atomtypes)
@@ -1329,7 +1504,7 @@ static real chanceOfUpdateGroupCrossingCell(const gmx_moltype_t&          moltyp
     GMX_ASSERT(updateGrouping.fullRange().end() == atoms.nr,
                "The update groups should match the molecule type");
 
-    const pot_derivatives_t boundaryInteraction = { 1 / cellSize, 0, 0 };
+    const pot_derivatives_t boundaryInteraction = { 0, 1 / cellSize, 0, 0 };
 
     const auto atomConstraintProps = getAtomConstraintProps(moltype, ffparams);
 
