@@ -213,6 +213,8 @@ option(GMX_MIMIC "Enable MiMiC QM/MM interface (CPMD is required)" OFF)
 
 option(GMX_CP2K "Enable CP2K QM/MM interface (CP2K 8.1 or later is required)" OFF)
 
+option(GMX_COLVARS "Enable Colvars interface" OFF)
+
 # We need to enable Fortran, because CP2K will be linked
 if(GMX_CP2K)
     enable_language(Fortran)
@@ -645,6 +647,8 @@ include(gmxManageTNG)
 include(gmxManageLmfit)
 
 include(gmxManageMuparser)
+
+include(gmxManageColvars)
 
 ##################################################
 # Process SIMD instruction settings

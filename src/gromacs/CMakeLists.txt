@@ -146,6 +146,12 @@ if (WIN32)
 endif()
 list(APPEND libgromacs_object_library_dependencies thread_mpi)
 
+if (GMX_COLVARS)
+    gmx_manage_colvars()
+    list(APPEND libgromacs_object_library_dependencies colvars)
+endif()
+
+
 # This code is here instead of utility/CMakeLists.txt, because CMake
 # custom commands and source file properties can only be set in the directory
 # that contains the target that uses them.
@@ -209,6 +215,8 @@ endif()
 if(GMX_GPU_FFT_ROCFFT)
     target_link_libraries(libgromacs PRIVATE roc::rocfft)
 endif()
+
+gmx_include_colvars_headers()
 
 target_link_libraries(libgromacs PRIVATE $<BUILD_INTERFACE:common>)
 # As long as the libgromacs target has source files that reference headers from
