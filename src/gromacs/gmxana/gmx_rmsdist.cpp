@@ -1003,5 +1003,10 @@ int gmx_rmsdist(int argc, char* argv[])
 
     do_view(oenv, ftp2fn(efXVG, NFILE, fnm), nullptr);
 
+    fprintf(stderr,
+            "\ngmx rmsdist is deprecated.\n"
+            "See https://gitlab.com/gromacs/gromacs/-/issues/4792 if\n"
+            "you are interested in preserving it!\n");
+
     return 0;
 }

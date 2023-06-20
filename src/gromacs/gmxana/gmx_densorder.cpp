@@ -884,5 +884,10 @@ int gmx_densorder(int argc, char* argv[])
         sfree(surf2);
     }
 
+    fprintf(stderr,
+            "\ngmx densorder is deprecated.\n"
+            "See https://gitlab.com/gromacs/gromacs/-/issues/4792 if\n"
+            "you are interested in preserving it!\n");
+
     return 0;
 }

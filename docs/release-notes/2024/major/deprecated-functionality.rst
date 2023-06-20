@@ -27,9 +27,17 @@ Some legacy analysis tools will be removed
 The following tools seem to be unused and |Gromacs| lacks dedicated
 resources to maintain them. They will be removed in a future version.
 
+- ``gmx bundle``
+- ``gmx densorder``
+- ``gmx disre``
 - ``gmx filter``
+- ``gmx helixorient``
 - ``gmx nmens``
 - ``gmx nmtraj``
+- ``gmx principal``
+- ``gmx rmsdist``
 - ``gmx rotmat``
+- ``gmx spol``
+- ``gmx wheel``
 
 :issue:`4792`

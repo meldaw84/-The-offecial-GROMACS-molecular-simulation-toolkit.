@@ -177,5 +177,10 @@ int gmx_principal(int argc, char* argv[])
     xvgrclose(axis3);
     xvgrclose(fmoi);
 
+    fprintf(stderr,
+            "\ngmx principal is deprecated.\n"
+            "See https://gitlab.com/gromacs/gromacs/-/issues/4792 if\n"
+            "you are interested in preserving it!\n");
+
     return 0;
 }

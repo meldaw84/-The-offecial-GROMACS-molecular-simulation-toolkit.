@@ -379,5 +379,10 @@ int gmx_spol(int argc, char* argv[])
 
     do_view(oenv, opt2fn("-o", NFILE, fnm), nullptr);
 
+    fprintf(stderr,
+            "\ngmx spol is deprecated.\n"
+            "See https://gitlab.com/gromacs/gromacs/-/issues/4792 if\n"
+            "you are interested in preserving it!\n");
+
     return 0;
 }

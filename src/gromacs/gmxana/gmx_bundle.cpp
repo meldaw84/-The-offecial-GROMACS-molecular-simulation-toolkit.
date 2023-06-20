@@ -448,5 +448,10 @@ int gmx_bundle(int argc, char* argv[])
         xvgrclose(fkinkl);
     }
 
+    fprintf(stderr,
+            "\ngmx bundle is deprecated.\n"
+            "See https://gitlab.com/gromacs/gromacs/-/issues/4792 if\n"
+            "you are interested in preserving it!\n");
+
     return 0;
 }

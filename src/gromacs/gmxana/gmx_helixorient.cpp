@@ -494,5 +494,10 @@ int gmx_helixorient(int argc, char* argv[])
 
     close_trx(status);
 
+    fprintf(stderr,
+            "\ngmx helixorient is deprecated.\n"
+            "See https://gitlab.com/gromacs/gromacs/-/issues/4792 if\n"
+            "you are interested in preserving it!\n");
+
     return 0;
 }

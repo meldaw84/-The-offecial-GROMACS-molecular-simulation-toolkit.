@@ -280,5 +280,10 @@ int gmx_wheel(int argc, char* argv[])
         wheel2(ftp2fn(efEPS, NFILE, fnm), nres, resnm, rot0, title);
     }
 
+    fprintf(stderr,
+            "\ngmx wheel is deprecated.\n"
+            "See https://gitlab.com/gromacs/gromacs/-/issues/4792 if\n"
+            "you are interested in preserving it!\n");
+
     return 0;
 }

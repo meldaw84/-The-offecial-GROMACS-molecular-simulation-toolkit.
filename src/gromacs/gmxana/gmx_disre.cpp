@@ -987,5 +987,10 @@ int gmx_disre(int argc, char* argv[])
 
     gmx_ffclose(fplog);
 
+    fprintf(stderr,
+            "\ngmx disre is deprecated.\n"
+            "See https://gitlab.com/gromacs/gromacs/-/issues/4792 if\n"
+            "you are interested in preserving it!\n");
+
     return 0;
 }
