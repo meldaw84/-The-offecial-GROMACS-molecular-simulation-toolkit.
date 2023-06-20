@@ -21,3 +21,15 @@ Given the community interest, the decision was made to keep ``gmx chi``.
 Functionality deprecated in |Gromacs| 2024
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Some legacy analysis tools will be removed
+""""""""""""""""""""""""""""""""""""""""""
+
+The following tools seem to be unused and |Gromacs| lacks dedicated
+resources to maintain them. They will be removed in a future version.
+
+- ``gmx filter``
+- ``gmx nmens``
+- ``gmx nmtraj``
+- ``gmx rotmat``
+
+:issue:`4792`

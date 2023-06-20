@@ -369,5 +369,10 @@ int gmx_filter(int argc, char* argv[])
     }
     close_trx(in);
 
+    fprintf(stderr,
+            "\ngmx filter is deprecated.\n"
+            "See https://gitlab.com/gromacs/gromacs/-/issues/4792 if\n"
+            "you are interested in preserving it!\n");
+
     return 0;
 }

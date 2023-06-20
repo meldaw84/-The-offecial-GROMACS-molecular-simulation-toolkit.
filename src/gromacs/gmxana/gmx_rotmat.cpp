@@ -323,5 +323,10 @@ int gmx_rotmat(int argc, char* argv[])
 
     do_view(oenv, ftp2fn(efXVG, NFILE, fnm), "-nxy");
 
+    fprintf(stderr,
+            "\ngmx rotmat is deprecated.\n"
+            "See https://gitlab.com/gromacs/gromacs/-/issues/4792 if\n"
+            "you are interested in preserving it!\n");
+
     return 0;
 }

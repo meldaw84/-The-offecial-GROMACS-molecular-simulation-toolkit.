@@ -262,5 +262,10 @@ int gmx_nmens(int argc, char* argv[])
     fprintf(stderr, "\n");
     close_trx(out);
 
+    fprintf(stderr,
+            "\ngmx nmens is deprecated.\n"
+            "See https://gitlab.com/gromacs/gromacs/-/issues/4792 if\n"
+            "you are interested in preserving it!\n");
+
     return 0;
 }
