@@ -22,7 +22,7 @@ fi
 # Path to the compute-sanitizer binary
 COMPUTE_SANITIZER_BIN="$(which compute-sanitizer)"
 # Common flags: non-zero exit code on error; require that CUDA is actually used in the tests; trace child processes.
-COMPUTE_SANITIZER_FLAGS='--error-exitcode=1 --target-processes=all'
+COMPUTE_SANITIZER_FLAGS='--error-exitcode=1 --target-processes=all --leak-check=full'
 # Compute Sanitizer slows things down, so we only run a selected subset of tests
 TEST_LABELS='QuickGpuTest'
 # Flag to mark that any
