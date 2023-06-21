@@ -620,11 +620,17 @@ public:
         std::vector<RVec> forces(system_.coordinates.size(), { 0.0_real, 0.0_real, 0.0_real });
         nbv_->atomdata_add_nbat_f_to_f(AtomLocality::All, forces);
 
+        // The reference data for double is generated with 44 accuracy bits,
+        // so we should not compare with more than that accuracy
+        const int  simdAccuracyBits = (GMX_DOUBLE ? std::min(GMX_SIMD_ACCURACY_BITS_DOUBLE, 44)
+                                                  : std::min(GMX_SIMD_ACCURACY_BITS_SINGLE, 22));
+        const real simdRealEps      = std::pow(0.5_real, simdAccuracyBits);
+
         TestReferenceData    refData(makeRefDataFileName());
         TestReferenceChecker forceChecker(refData.rootChecker());
         const real           forceMagnitude = 1000;
         const real           ulpTolerance   = 50;
-        real                 tolerance      = forceMagnitude * GMX_REAL_EPS * ulpTolerance;
+        real                 tolerance      = forceMagnitude * simdRealEps * ulpTolerance;
         if (usingPmeOrEwald(ic.eeltype))
         {
             real ewaldRelError;
@@ -646,7 +652,7 @@ public:
         if (ic.vdwtype == VanDerWaalsType::Pme)
         {
             const real ulpToleranceExp = 400;
-            tolerance = std::max(tolerance, forceMagnitude * GMX_REAL_EPS * ulpToleranceExp);
+            tolerance = std::max(tolerance, forceMagnitude * simdRealEps * ulpToleranceExp);
         }
         forceChecker.setDefaultTolerance(absoluteTolerance(tolerance));
         forceChecker.checkSequence(forces.begin(), forces.end(), "Forces");
