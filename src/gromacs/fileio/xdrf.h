@@ -39,7 +39,8 @@
 #include "gromacs/utility/basedefinitions.h"
 #include "gromacs/utility/real.h"
 
-#ifdef __PGI /*Portland group compiler*/
+//#ifdef __PGI /*Portland group compiler*/
+#if 0
 #    define int64_t long long
 #endif
 

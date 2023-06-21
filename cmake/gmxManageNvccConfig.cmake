@@ -238,7 +238,7 @@ endif()
 # FindCUDA.cmake is unaware of the mechanism used by cmake to embed
 # the compiler flag for the required C++ standard in the generated
 # build files, so we have to pass it ourselves
-list(APPEND GMX_CUDA_NVCC_FLAGS "${CMAKE_CXX17_STANDARD_COMPILE_OPTION}")
+#list(APPEND GMX_CUDA_NVCC_FLAGS "${CMAKE_CXX17_STANDARD_COMPILE_OPTION}")
 
 # assemble the CUDA flags
 list(APPEND GMX_CUDA_NVCC_FLAGS "${GMX_CUDA_NVCC_GENCODE_FLAGS}")
