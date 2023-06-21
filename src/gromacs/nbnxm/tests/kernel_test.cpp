@@ -101,9 +101,7 @@ namespace
 #    error "We should only generate reference data with double precision"
 #endif
 
-/*! \internal \brief
- * The options for the kernel
- */
+//! The options for the kernel
 struct KernelOptions
 {
     //! Whether to use a GPU, currently GPUs are not supported
@@ -135,7 +133,8 @@ struct TestSystem
 {
     /*! \brief Constructor
      *
-     * Generates test of a cubic boxes of 216 water molecules.
+     * Generates test system of a cubic box of 216 water molecules.
+     * It has parts with uncharged molecules, normal SPC/E and part with full LJ.
      */
     TestSystem(LJCombinationRule ljCombinationRule);
 
@@ -201,7 +200,6 @@ std::pair<real, real> combineLJParams(const real              sigma0,
     return { c6, c12 };
 }
 
-//! Generates a test system of water with part uncharged and part full LJ
 TestSystem::TestSystem(const LJCombinationRule ljCombinationRule)
 {
     numAtomTypes = 3;
@@ -268,8 +266,8 @@ TestSystem::TestSystem(const LJCombinationRule ljCombinationRule)
 }
 
 //! Sets up and returns a Nbnxm object for the given benchmark options and system
-static std::unique_ptr<nonbonded_verlet_t> setupNbnxmForBenchInstance(const KernelOptions& options,
-                                                                      const TestSystem&    system)
+std::unique_ptr<nonbonded_verlet_t> setupNbnxmForBenchInstance(const KernelOptions& options,
+                                                               const TestSystem&    system)
 {
     real minBoxSize = norm(system.box[XX]);
     for (int dim = YY; dim < DIM; dim++)
@@ -361,7 +359,7 @@ public:
 };
 
 //! Returns the coulomb interaction type given the Coulomb kernel type
-static CoulombInteractionType coulombInteractionType(CoulombKernelType coulombKernelType)
+CoulombInteractionType coulombInteractionType(CoulombKernelType coulombKernelType)
 {
     switch (coulombKernelType)
     {
@@ -377,8 +375,7 @@ static CoulombInteractionType coulombInteractionType(CoulombKernelType coulombKe
 }
 
 //! Return an interaction constants struct with members used in the benchmark set appropriately
-static interaction_const_t setupInteractionConst(const KernelOptions& options)
-
+interaction_const_t setupInteractionConst(const KernelOptions& options)
 {
     t_inputrec ir;
 
@@ -618,7 +615,7 @@ public:
         std::vector<real> vVdw(1);
         std::vector<real> vCoulomb(1);
         nbv_->dispatchNonbondedKernel(
-                InteractionLocality::Local, ic, stepWork, true, shiftVecs, vVdw, vCoulomb, nullptr);
+                InteractionLocality::Local, ic, stepWork, enbvClearFYes, shiftVecs, vVdw, vCoulomb, nullptr);
 
         std::vector<RVec> forces(system_.coordinates.size(), { 0.0_real, 0.0_real, 0.0_real });
         nbv_->atomdata_add_nbat_f_to_f(AtomLocality::All, forces);
@@ -666,7 +663,7 @@ public:
         stepWork.computeEnergy = false;
 
         nbv_->dispatchNonbondedKernel(
-                InteractionLocality::Local, ic, stepWork, true, shiftVecs, vVdw, vCoulomb, nullptr);
+                InteractionLocality::Local, ic, stepWork, enbvClearFYes, shiftVecs, vVdw, vCoulomb, nullptr);
 
         std::vector<RVec> forcesOnly(system_.coordinates.size(), { 0.0_real, 0.0_real, 0.0_real });
         nbv_->atomdata_add_nbat_f_to_f(AtomLocality::All, forcesOnly);
