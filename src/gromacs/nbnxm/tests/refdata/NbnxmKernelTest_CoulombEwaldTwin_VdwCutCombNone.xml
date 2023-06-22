@@ -3246,4 +3246,28 @@
   </Sequence>
   <Real Name="VdW energy">-155.76414105578857</Real>
   <Real Name="Coulomb energy">0</Real>
+  <Sequence Name="VdW group pair energy">
+    <Int Name="Length">9</Int>
+    <Real>-18.526139325244152</Real>
+    <Real>-27.54477970768583</Real>
+    <Real>-34.648754340063178</Real>
+    <Real>0</Real>
+    <Real>-16.46992890023029</Real>
+    <Real>-34.622866748497145</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>-23.951672034067993</Real>
+  </Sequence>
+  <Sequence Name="Coulomb group pair energy">
+    <Int Name="Length">9</Int>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+    <Real>0</Real>
+  </Sequence>
 </ReferenceData>
