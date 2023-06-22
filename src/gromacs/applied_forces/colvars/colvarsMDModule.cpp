@@ -105,10 +105,10 @@ public:
         notifier->preProcessingNotifier_.subscribe(writeInternalParametersFunction);
 
         // Access of the topology during pre-processing
-        const auto gettTopologyFunction = [this](gmx_mtop_t* mtop) {
-            colvarsOptions_.getTopology(mtop);
+        const auto processTopologyFunction = [this](gmx_mtop_t* mtop) {
+            colvarsOptions_.processTopology(mtop);
         };
-        notifier->preProcessingNotifier_.subscribe(gettTopologyFunction);
+        notifier->preProcessingNotifier_.subscribe(processTopologyFunction);
 
         // Set Logger during pre-processing
         const auto setLoggerFunction = [this](const MDLogger& logger) {
@@ -123,10 +123,10 @@ public:
         notifier->preProcessingNotifier_.subscribe(processCoordinatesFunction);
 
         //  Notification for the temperature
-        const auto getTemperatureFunction = [this](const EnsembleTemperature& temp) {
-            colvarsOptions_.getTemperature(temp);
+        const auto processTemperatureFunction = [this](const EnsembleTemperature& temp) {
+            colvarsOptions_.processTemperature(temp);
         };
-        notifier->preProcessingNotifier_.subscribe(getTemperatureFunction);
+        notifier->preProcessingNotifier_.subscribe(processTemperatureFunction);
     }
 
 
@@ -211,7 +211,7 @@ public:
 
         // Handle the atoms redistributed signal
         const auto handleAtomsRedistributedSignal =
-                [this](const MDModulesAtomsRedistributedSignal atomsRedistributedSignal) {
+                [this](const MDModulesAtomsRedistributedSignal& atomsRedistributedSignal) {
                     colvarsForceProvider_->processAtomsRedistributedSignal(atomsRedistributedSignal);
                 };
         notifier->simulationSetupNotifier_.subscribe(handleAtomsRedistributedSignal);

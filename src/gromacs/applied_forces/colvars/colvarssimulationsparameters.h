@@ -97,7 +97,7 @@ public:
     //! Set the simulation time step
     void setSimulationTimeStep(double timeStep);
     //! Return the simulation time step
-    double simulationTimeStep();
+    double simulationTimeStep() const;
 
     //! Set the communicator
     void setComm(const t_commrec& cr);

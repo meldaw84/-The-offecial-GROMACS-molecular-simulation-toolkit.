@@ -61,7 +61,7 @@ public:
     /*! \brief Construct ColvarsPreProcessor from its parameters
      *
 
-     * \param[in] fileinput Content of the colvars input file.
+     * \param[in] colvarsConfigString Content of the colvars input file.
      * \param[in] atoms Atoms topology
      * \param[in] pbcType Periodic boundary conditions
      * \param[in] logger GROMACS logger instance
@@ -82,7 +82,7 @@ public:
     std::vector<RVec> getColvarsCoords();
 
     //! Save all input files of colvars into the KVT
-    bool inputStreamsToKVT(KeyValueTreeObjectBuilder treeBuilder, std::string tag);
+    bool inputStreamsToKVT(KeyValueTreeObjectBuilder treeBuilder, const std::string& tag);
 
 private:
     //! Atoms coordinates of the whole system

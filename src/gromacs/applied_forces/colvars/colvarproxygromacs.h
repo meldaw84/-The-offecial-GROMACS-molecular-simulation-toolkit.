@@ -43,7 +43,6 @@
 #define GMX_APPLIED_FORCES_COLVARPROXYGROMACS_H
 
 #include "external/colvars/colvaratoms.h"
-#include "external/colvars/colvarmodule.h"
 #include "external/colvars/colvarproxy.h"
 
 #include "gromacs/pbcutil/pbc.h"
@@ -97,6 +96,7 @@ public:
      * \param[in] pbcType Periodic boundary conditions
      * \param[in] logger GROMACS logger instance
      * \param[in] doParsing Wether the input file should be parsed.
+     * \param[in] input_strings Input files stored as string in the KVT
      * \param[in] ensTemp the constant ensemble temperature
      */
     ColvarProxyGromacs(const std::string&                        colvarsConfigString,
@@ -106,7 +106,7 @@ public:
                        bool                                      doParsing,
                        const std::map<std::string, std::string>& input_strings,
                        real                                      ensTemp);
-    ~ColvarProxyGromacs();
+    ~ColvarProxyGromacs() override;
 
     /// Update colvars topology of one atom mass and charge from the GROMACS topology
     void update_atom_properties(int index);
@@ -120,10 +120,10 @@ public:
     /// Print a message to the main log
     void log(std::string const& message) override;
     /// Print a message to the main log and let the rest of the program handle the error
-    void error(std::string const& message);
+    void error(std::string const& message) override;
     /// Print a message to the main log and exit with error code
     /// possible suppression
-    void fatal_error(std::string const& message);
+    [[noreturn]] void fatal_error(std::string const& message);
     /// Request to set the units used internally by Colvars
     int set_unit_system(std::string const& units_in, bool colvars_defined) override;
 

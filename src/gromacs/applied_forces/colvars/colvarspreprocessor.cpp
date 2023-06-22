@@ -77,7 +77,7 @@ std::vector<RVec> ColvarsPreProcessor::getColvarsCoords()
     return colvarsCoords;
 }
 
-bool ColvarsPreProcessor::inputStreamsToKVT(KeyValueTreeObjectBuilder treeBuilder, std::string tag)
+bool ColvarsPreProcessor::inputStreamsToKVT(KeyValueTreeObjectBuilder treeBuilder, const std::string& tag)
 {
 
     // Save full copy of the content of the input streams (aka input files) into the KVT.

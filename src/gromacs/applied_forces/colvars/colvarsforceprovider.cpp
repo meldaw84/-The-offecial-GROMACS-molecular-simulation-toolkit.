@@ -132,7 +132,7 @@ ColvarsForceProvider::ColvarsForceProvider(const std::string&       colvarsConfi
                                            const std::vector<RVec>& colvarsCoords,
                                            const std::string&       outputPrefix,
                                            const std::map<std::string, std::string>& KVTInputs,
-                                           ColvarsForceProviderState                 state,
+                                           const ColvarsForceProviderState&          state,
                                            real                                      ensTemp) :
     ColvarProxyGromacs(colvarsConfigString, atoms, pbcType, logger, MAIN(cr), KVTInputs, ensTemp),
     stateToCheckpoint_(state)
@@ -180,7 +180,9 @@ ColvarsForceProvider::ColvarsForceProvider(const std::string&       colvarsConfi
         }
     }
 
-    colvars_atoms = std::make_unique<LocalAtomSet>(localAtomSetManager->add(atoms_ids));
+    // Cast int into Index of the indices for the localAtomSetManager->add() function
+    std::vector<Index> index_atoms(atoms_ids.begin(), atoms_ids.end());
+    colvars_atoms = std::make_unique<LocalAtomSet>(localAtomSetManager->add(index_atoms));
 
 
     snew(x_colvars_unwrapped, n_colvars_atoms);
@@ -384,10 +386,9 @@ void ColvarsForceProvider::calculateForces(const ForceProviderInput& forceProvid
 
     // Re-set the flag for proper update
     gmx_bNS = false;
-
 }
 
-void ColvarsForceProvider::add_virial_term(matrix vir, rvec const f, gmx::RVec const x)
+void ColvarsForceProvider::add_virial_term(matrix vir, const rvec& f, const gmx::RVec& x)
 {
     for (int j = 0; j < DIM; j++)
     {
@@ -412,7 +413,7 @@ void ColvarsForceProvider::writeCheckpointData(MDModulesWriteCheckpointData chec
     stateToCheckpoint_.writeState(checkpointWriting.builder_, moduleName);
 }
 
-void ColvarsForceProvider::processAtomsRedistributedSignal(const MDModulesAtomsRedistributedSignal signal)
+void ColvarsForceProvider::processAtomsRedistributedSignal(const MDModulesAtomsRedistributedSignal& /*signal*/)
 {
     // So far, just update the Neighbor Search boolean for the communicate_group_positions() in calculateForces()
     gmx_bNS = true;

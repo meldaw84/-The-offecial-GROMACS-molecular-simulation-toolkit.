@@ -63,6 +63,10 @@ struct CoordinatesAndBoxPreprocessed;
 struct MdRunInputFilename;
 
 
+//! Tag with name of the Colvars MDModule
+static const std::string c_colvarsModuleName = "colvars";
+
+
 /*! \internal
  * \brief Input data storage for colvars
  */
@@ -92,7 +96,7 @@ public:
     /*! \brief Store the topology of the system.
      * \param[in,out] mtop topology object
      */
-    void getTopology(gmx_mtop_t* mtop);
+    void processTopology(gmx_mtop_t* mtop);
 
     /*! \brief Process coordinates, PbcType and Box in order to validate the colvars input.
      * \param[in] coord structure with coordinates and box dimensions
@@ -111,7 +115,7 @@ public:
     /*! \brief Store the ensemble temperature of the system if available.
      * \param[in] temp temperature object
      */
-    void getTemperature(const EnsembleTemperature& temp);
+    void processTemperature(const EnsembleTemperature& temp);
 
     //! Report if this colvars module is active
     bool isActive() const;
@@ -143,8 +147,20 @@ private:
      * \note Changing this strings will break .tpr backwards compability
      */
     //! \{
-    const std::string c_activeTag_               = "active";
-    const std::string colvarsFileNameTag_        = "filename";
+    const std::string c_activeTag_          = "active";
+    const std::string c_colvarsFileNameTag_ = "filename";
+    //! \}
+
+
+    /*! \brief This tags for parameters which will be generated during grompp
+     * and stored into *.tpr file via KVT
+     */
+    //! \{
+    const std::string c_inputStreamsTag_   = "inputStreams";
+    const std::string c_configStringTag_   = "configString";
+    const std::string c_startingCoordsTag_ = "startingCoords";
+    const std::string c_ensTempTag_        = "ensTemp";
+
     //! \}
 
     //! Colvars input filename, default colvars.dat
@@ -152,7 +168,7 @@ private:
 
 
     //! Content of the colvars input file
-    std::string colvarsConfigString = "";
+    std::string colvarsConfigString;
     //! Topology of the system
     t_atoms gmx_atoms;
     //! Coordinates

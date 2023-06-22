@@ -84,7 +84,7 @@ ColvarProxyGromacs::ColvarProxyGromacs(const std::string& colvarsConfigString,
 
         // Retrieve input files stored as string in the KVT
         // Add them to the map of colvars input data.
-        for (auto& [input_name, content] : input_strings)
+        for (const auto& [input_name, content] : input_strings)
         {
             input_streams_[input_name] = new std::istringstream(content);
         }
@@ -102,13 +102,15 @@ ColvarProxyGromacs::ColvarProxyGromacs(const std::string& colvarsConfigString,
             cvm::log("Initializing the colvars proxy object.\n");
         }
 
+        int error_code = colvarproxy::setup();
+        error_code |= colvars->read_config_string(colvarsConfigString);
+        error_code |= colvars->update_engine_parameters();
+        error_code |= colvars->setup_input();
 
-        add_config("config", colvarsConfigString);
-
-        colvarproxy::parse_module_config();
-        colvars->update_engine_parameters();
-        colvars->setup_input();
-
+        if (error_code != COLVARS_OK)
+        {
+            error("Error when initializing Colvars module.");
+        }
 
         // Citation Reporter
         cvm::log(std::string("\n") + colvars->feature_report(0) + std::string("\n"));
@@ -171,8 +173,9 @@ int ColvarProxyGromacs::check_atom_id(int atom_number)
     int const aid = (atom_number - 1);
 
     if (cvm::debug())
+    {
         log("Adding atom " + cvm::to_str(atom_number) + " for collective variables calculation.\n");
-
+    }
     if ((aid < 0) || (aid >= gmx_atoms.nr))
     {
         cvm::error("Error: invalid atom number specified, " + cvm::to_str(atom_number) + "\n",
@@ -228,10 +231,10 @@ void ColvarProxyGromacs::update_atom_properties(int index)
 
 ColvarProxyGromacs::~ColvarProxyGromacs()
 {
-    if (colvars != NULL)
+    if (colvars != nullptr)
     {
         delete colvars;
-        colvars = NULL;
+        colvars = nullptr;
     }
 }
 

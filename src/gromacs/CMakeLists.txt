@@ -146,10 +146,10 @@ if (WIN32)
 endif()
 list(APPEND libgromacs_object_library_dependencies thread_mpi)
 
-if (GMX_COLVARS)
-    gmx_manage_colvars()
-    list(APPEND libgromacs_object_library_dependencies colvars)
-endif()
+
+gmx_manage_colvars()
+list(APPEND libgromacs_object_library_dependencies colvars)
+
 
 
 # This code is here instead of utility/CMakeLists.txt, because CMake

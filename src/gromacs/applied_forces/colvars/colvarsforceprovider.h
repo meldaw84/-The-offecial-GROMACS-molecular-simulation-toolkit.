@@ -43,9 +43,6 @@
 #define GMX_APPLIED_FORCES_COLVARSFORCEPROVIDER_H
 
 
-#include "external/colvars/colvaratoms.h"
-#include "external/colvars/colvarmodule.h"
-
 #include "gromacs/domdec/localatomset.h"
 #include "gromacs/mdrunutility/mdmodulesnotifiers.h"
 #include "gromacs/mdtypes/iforceprovider.h"
@@ -87,7 +84,7 @@ struct ColvarsForceProviderState
 
     /*! \brief Content of the colvars state file.
      */
-    std::string colvarStateFile_ = "";
+    std::string colvarStateFile_;
 
     /*! \brief String naming variable holding the content of the colvars state file.
      * \note Changing this name will break backwards compability for checkpoint file writing.
@@ -162,10 +159,10 @@ public:
                          const std::vector<RVec>&                  colvarsCoords,
                          const std::string&                        outputPrefix,
                          const std::map<std::string, std::string>& KVTInputs,
-                         ColvarsForceProviderState                 state,
+                         const ColvarsForceProviderState&          state,
                          real                                      ensTemp);
 
-    ~ColvarsForceProvider();
+    ~ColvarsForceProvider() override;
 
     /*! \brief Calculate colvars forces
      * \param[in] forceProviderInput input for force provider
@@ -175,7 +172,7 @@ public:
                          ForceProviderOutput*      forceProviderOutput) override;
 
     // Compute virial tensor for position r and force f, and add to matrix vir
-    void add_virial_term(matrix vir, rvec const f, gmx::RVec const r);
+    void add_virial_term(matrix vir, const rvec& f, const gmx::RVec& x);
 
     /*! \brief Write internal colvars data to checkpoint file.
      * \param[in] checkpointWriting enables writing to the Key-Value-Tree
@@ -191,7 +188,7 @@ public:
     /*! \brief Process atomsRedistributedSignal notification during mdrun.
      * \param[in] atomsRedistributedSignal signal recieved
      */
-    void processAtomsRedistributedSignal(const MDModulesAtomsRedistributedSignal atomsRedistributedSignal);
+    void processAtomsRedistributedSignal(const MDModulesAtomsRedistributedSignal& atomsRedistributedSignal);
 
 
     //! From colvarproxy
