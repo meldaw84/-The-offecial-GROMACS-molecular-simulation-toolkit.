@@ -83,7 +83,7 @@
 #include "testutils/testasserts.h"
 #include "testutils/testinit.h"
 
-#include "spc216_coords.h"
+#include "spc72_coords.h"
 
 namespace gmx
 {
@@ -133,7 +133,7 @@ struct TestSystem
 {
     /*! \brief Constructor
      *
-     * Generates test system of a cubic box of 216 water molecules.
+     * Generates test system of a cubic box partially filled with 72 water molecules.
      * It has parts with uncharged molecules, normal SPC/E and part with full LJ.
      */
     TestSystem(LJCombinationRule ljCombinationRule);
@@ -215,8 +215,8 @@ TestSystem::TestSystem(const LJCombinationRule ljCombinationRule)
     nonbondedParameters[6] = nonbondedParameters[2];
     nonbondedParameters[7] = nonbondedParameters[3];
 
-    coordinates = spc216Coordinates;
-    copy_mat(spc216Box, box);
+    coordinates = spc72Coordinates;
+    copy_mat(spc72Box, box);
     put_atoms_in_box(PbcType::Xyz, box, coordinates);
 
     int numAtoms = coordinates.size();
