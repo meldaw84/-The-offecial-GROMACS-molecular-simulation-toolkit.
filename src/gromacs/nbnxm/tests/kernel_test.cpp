@@ -621,8 +621,9 @@ public:
         nbv_->nbat->out[0].Vvdw.resize(1);
         nbv_->nbat->out[0].Vc.resize(1);
 
-        std::vector<real> vVdw(1);
-        std::vector<real> vCoulomb(1);
+        // The reduction still acts on all groups pairs
+        std::vector<real> vVdw(square(c_numEnergyGroups));
+        std::vector<real> vCoulomb(square(c_numEnergyGroups));
         nbv_->dispatchNonbondedKernel(
                 InteractionLocality::Local, ic, stepWork, enbvClearFYes, shiftVecs, vVdw, vCoulomb, nullptr);
 
@@ -695,8 +696,8 @@ public:
         }
 
         // Now call the energy group pair kernel
-        nbv_->nbat->out[0].Vvdw.resize(c_numEnergyGroups);
-        nbv_->nbat->out[0].Vc.resize(c_numEnergyGroups);
+        nbv_->nbat->out[0].Vvdw.resize(square(c_numEnergyGroups));
+        nbv_->nbat->out[0].Vc.resize(square(c_numEnergyGroups));
         stepWork.computeEnergy = true;
 
         std::vector<real> vVdwGrps(gmx::square(c_numEnergyGroups));
