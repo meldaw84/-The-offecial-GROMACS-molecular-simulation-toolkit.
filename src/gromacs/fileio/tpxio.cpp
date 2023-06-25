@@ -449,7 +449,8 @@ static void do_expandedvals(gmx::ISerializer* serializer, t_expanded* expand, t_
 	{
         if (n_lambda > 0)
         {
-			expand->bInit_counts = False
+            expand->bInit_counts = FALSE;
+            expand->init_histogram_counts.clear();
 		}
 	}
 }
