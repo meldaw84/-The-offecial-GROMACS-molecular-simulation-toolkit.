@@ -250,6 +250,7 @@ restraint-lambdas        =
 temperature-lambdas      = 
 calc-lambda-neighbors    = 1
 init-lambda-weights      = 
+init-histogram-counts    = 
 dhdl-print-energy        = no
 sc-function              = beutler
 sc-alpha                 = 0

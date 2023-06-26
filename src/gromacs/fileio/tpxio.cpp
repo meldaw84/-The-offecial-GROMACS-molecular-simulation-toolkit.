@@ -445,14 +445,14 @@ static void do_expandedvals(gmx::ISerializer* serializer, t_expanded* expand, t_
             serializer->doBool(&expand->bInit_counts);
         }
     }
-	else
-	{
+    else
+    {
         if (n_lambda > 0)
         {
             expand->bInit_counts = FALSE;
             expand->init_histogram_counts.clear();
-		}
-	}
+        }
+    }
 }
 
 static void do_simtempvals(gmx::ISerializer* serializer, t_simtemp* simtemp, int n_lambda, int file_version)
