@@ -140,7 +140,7 @@ enum tpxv
     tpxv_RemoveAtomtypes,             /**< Remove unused atomtypes parameter from mtop */
     tpxv_EnsembleTemperature,         /**< Add ensemble temperature settings */
     tpxv_AwhGrowthFactor,             /**< Add AWH growth factor */
-	tpxv_InputHistogramCounts,        /**< can input histogram counts > */
+    tpxv_InputHistogramCounts,        /**< can input histogram counts > */
     tpxv_Count                        /**< the total number of tpxv versions */
 };
 
