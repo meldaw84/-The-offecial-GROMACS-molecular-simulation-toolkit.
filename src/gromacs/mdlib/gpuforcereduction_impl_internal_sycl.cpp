@@ -45,10 +45,13 @@
 
 #include <utility>
 
+#include "gromacs/gpu_utils/device_stream_manager.h"
 #include "gromacs/gpu_utils/devicebuffer.h"
 #include "gromacs/gpu_utils/gmxsycl.h"
 #include "gromacs/gpu_utils/gpu_utils.h"
 #include "gromacs/gpu_utils/gpueventsynchronizer.h"
+#include "gromacs/gpu_utils/hostallocator.h"
+#include "gromacs/mdlib/gpuforcereduction.h"
 #include "gromacs/utility/template_mp.h"
 
 #include "gpuforcereduction_impl_internal.h"
@@ -129,6 +132,51 @@ void launchForceReductionKernel(int                  numAtoms,
             },
             addRvecForce,
             accumulate);
+}
+
+// TODO implementations for other GPU SDKs
+void eagerGpuForceReductionJit(const DeviceStreamManager& deviceStreamManager)
+{
+    // Prepare to run tiny kernels of each flavour of packing and
+    // unpacking.
+
+    const DeviceContext& context = deviceStreamManager.context();
+    DeviceStream         stream(context, DeviceStreamPriority::Normal, false);
+    const int            size = 1;
+
+    HostVector<int>   h_cell = { 0 };
+    DeviceBuffer<int> d_cell;
+    allocateDeviceBuffer(&d_cell, 1, context);
+    copyToDeviceBuffer(&d_cell, h_cell.data(), 0, size, stream, GpuApiCallBehavior::Sync, nullptr);
+
+    HostVector<Float3>   h_force = { { 1, 2, 3 } };
+    DeviceBuffer<Float3> d_force;
+    allocateDeviceBuffer(&d_force, 1, context);
+    copyToDeviceBuffer(&d_force, h_force.data(), 0, size, stream, GpuApiCallBehavior::Sync, nullptr);
+
+    HostVector<Float3>   h_forceToAdd = { { 4, 5, 6 } };
+    DeviceBuffer<Float3> d_forceToAdd;
+    allocateDeviceBuffer(&d_forceToAdd, 1, context);
+    copyToDeviceBuffer(
+            &d_forceToAdd, h_forceToAdd.data(), 0, size, stream, GpuApiCallBehavior::Sync, nullptr);
+
+    HostVector<Float3>   h_forceTotal = { { 0, 0, 0 } };
+    DeviceBuffer<Float3> d_forceTotal;
+    allocateDeviceBuffer(&d_forceTotal, 1, context);
+    copyToDeviceBuffer(
+            &d_forceTotal, h_forceTotal.data(), 0, size, stream, GpuApiCallBehavior::Sync, nullptr);
+
+    Float3 shift{ 2, 2, 2 };
+    // Run all flavours of force-reduction kernels.
+    launchForceReductionKernel(size, 0, false, false, d_force, d_forceToAdd, d_forceTotal, d_cell, stream);
+    launchForceReductionKernel(size, 0, false, true, d_force, d_forceToAdd, d_forceTotal, d_cell, stream);
+    launchForceReductionKernel(size, 0, true, false, d_force, d_forceToAdd, d_forceTotal, d_cell, stream);
+    launchForceReductionKernel(size, 0, true, true, d_force, d_forceToAdd, d_forceTotal, d_cell, stream);
+
+    freeDeviceBuffer(&d_forceTotal);
+    freeDeviceBuffer(&d_forceToAdd);
+    freeDeviceBuffer(&d_force);
+    freeDeviceBuffer(&d_cell);
 }
 
 } // namespace gmx

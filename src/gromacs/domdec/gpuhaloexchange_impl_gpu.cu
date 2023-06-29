@@ -180,4 +180,9 @@ void GpuHaloExchange::Impl::launchUnpackFKernel(bool accumulateForces)
     }
 }
 
+void eagerGpuHaloExchangeJit(const DeviceStreamManager&)
+{
+    // No known need for this in CUDA
+}
+
 } // namespace gmx

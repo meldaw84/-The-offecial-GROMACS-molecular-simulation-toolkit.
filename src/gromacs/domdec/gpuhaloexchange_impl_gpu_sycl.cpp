@@ -43,6 +43,7 @@
  */
 #include "gmxpre.h"
 
+#include "gromacs/gpu_utils/device_stream_manager.h"
 #include "gromacs/gpu_utils/devicebuffer_sycl.h"
 #include "gromacs/gpu_utils/gmxsycl.h"
 #include "gromacs/gpu_utils/gputraits_sycl.h"
@@ -206,6 +207,44 @@ void GpuHaloExchange::Impl::launchUnpackFKernel(bool accumulateForces)
                                              size);
         }
     }
+}
+
+void eagerGpuHaloExchangeJit(const DeviceStreamManager& deviceStreamManager)
+{
+    // Prepare to run tiny kernels of each flavour of packing and
+    // unpacking.
+
+    const DeviceContext& context = deviceStreamManager.context();
+    DeviceStream         stream(context, DeviceStreamPriority::Normal, false);
+    const int            size = 1;
+
+    HostVector<int>   h_map = { 0 };
+    DeviceBuffer<int> d_map;
+    allocateDeviceBuffer(&d_map, 1, context);
+    copyToDeviceBuffer(&d_map, h_map.data(), 0, size, stream, GpuApiCallBehavior::Sync, nullptr);
+
+    HostVector<Float3>   h_input = { { 1, 2, 3 } };
+    DeviceBuffer<Float3> d_input;
+    allocateDeviceBuffer(&d_input, 1, context);
+    copyToDeviceBuffer(&d_input, h_input.data(), 0, size, stream, GpuApiCallBehavior::Sync, nullptr);
+
+    HostVector<Float3>   h_output = { { 0, 0, 0 } };
+    DeviceBuffer<Float3> d_output;
+    allocateDeviceBuffer(&d_output, 1, context);
+    copyToDeviceBuffer(&d_output, h_output.data(), 0, size, stream, GpuApiCallBehavior::Sync, nullptr);
+
+    Float3 shift{ 2, 2, 2 };
+    // Run all the flavours of pack kernel
+    launchPackSendBufKernel<false>(stream, size, d_input, d_output, d_map, size, shift);
+    launchPackSendBufKernel<true>(stream, size, d_input, d_output, d_map, size, shift);
+
+    // Run all the flavours of unpack kernel
+    launchUnpackRecvBufKernel<false>(stream, size, d_input, d_output, d_map, size);
+    launchUnpackRecvBufKernel<true>(stream, size, d_input, d_output, d_map, size);
+
+    freeDeviceBuffer(&d_output);
+    freeDeviceBuffer(&d_input);
+    freeDeviceBuffer(&d_map);
 }
 
 } // namespace gmx

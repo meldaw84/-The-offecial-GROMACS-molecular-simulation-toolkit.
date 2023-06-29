@@ -54,6 +54,7 @@ struct gmx_domdec_t;
 struct gmx_wallcycle;
 class DeviceContext;
 class DeviceStream;
+class DeviceStreamManager;
 class GpuEventSynchronizer;
 
 namespace gmx
@@ -136,6 +137,17 @@ private:
     class Impl;
     std::unique_ptr<Impl> impl_;
 };
+
+/*! \brief Force JIT of GPU halo-exchange kernels
+ *
+ * There are several flavours of kernels that can be run, and with
+ * SYCL each needs a separate JIT compilation at the point it is first
+ * called. That first point can come at an inconvenient time during
+ * DLB, PME tuning, or benchmarking and distort the run-time
+ * measurements. To avoid this, we run a small kernel of each possible
+ * kind during setup, so that no kernels need JIT compilation later.
+ */
+void eagerGpuHaloExchangeJit(const DeviceStreamManager& deviceStreamManager);
 
 } // namespace gmx
 

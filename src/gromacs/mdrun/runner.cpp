@@ -1704,6 +1704,15 @@ int Mdrunner::mdrunner()
     {
         setupGpuDevicePeerAccess(gpuTaskAssignments.deviceIdsAssigned(), mdlog);
     }
+    if (GMX_GPU_SYCL && thisRankHasDuty(cr, DUTY_PP) && runScheduleWork.simulationWork.havePpDomainDecomposition
+        && runScheduleWork.simulationWork.useGpuHaloExchange)
+    {
+        eagerGpuHaloExchangeJit(*deviceStreamManager);
+    }
+    if (GMX_GPU_SYCL && thisRankHasDuty(cr, DUTY_PP) && runScheduleWork.simulationWork.useGpuFBufferOps)
+    {
+        eagerGpuForceReductionJit(*deviceStreamManager);
+    }
 
     if (mdrunOptions.timingOptions.resetStep > -1)
     {
