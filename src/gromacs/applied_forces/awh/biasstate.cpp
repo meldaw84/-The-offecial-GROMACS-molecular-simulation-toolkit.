@@ -326,8 +326,30 @@ std::string gridPointValueString(const BiasGrid& grid, int point)
 
 } // namespace
 
+double BiasState::averageNeighborPositiveCorrelationTensorVolume(const size_t pointIndex,
+                                                                 const BiasGrid& grid)
+{
+    const GridPoint& gridPoint = grid.point(pointIndex);
+    double tensorVolumeSum = 0;
+    int elementCount = 0;
+    for (int neighbor : gridPoint.neighbor)
+    {
+        std::vector<double>neighborCorrelationIntegral = getSharedPointCorrelationIntegral(neighbor);
+        double neighborCorrelationTensorVolume         = getSqrtDeterminant(neighborCorrelationIntegral);
+        if (neighborCorrelationTensorVolume > 0)
+        {
+            tensorVolumeSum += neighborCorrelationTensorVolume;
+            ++elementCount;
+        }
+    }
+    if (elementCount > 0)
+    {
+        return(tensorVolumeSum/elementCount);
+    }
+    return 0.0;
+}
 
-void BiasState::updateTargetDistribution(const BiasParams& params, const CorrelationGrid& forceCorrelation)
+void BiasState::updateTargetDistribution(const BiasParams& params, const CorrelationGrid& forceCorrelation, const BiasGrid& grid)
 {
     double freeEnergyCutoff = 0;
     if (params.eTarget == AwhTargetType::Cutoff)
@@ -348,6 +370,13 @@ void BiasState::updateTargetDistribution(const BiasParams& params, const Correla
         {
             std::vector<double> correlationIntegral = getSharedPointCorrelationIntegral(pointIndex);
             correlationTensorVolume                 = getSqrtDeterminant(correlationIntegral);
+
+            /* If there is no correlation tensor volume from this element use the average of valid
+             * volumes from neighbors */
+            if (correlationTensorVolume <= 0)
+            {
+                correlationTensorVolume = averageNeighborPositiveCorrelationTensorVolume(pointIndex, grid);
+            }
         }
         sumTarget += ps.updateTargetWeight(params, freeEnergyCutoff, correlationTensorVolume);
     }
@@ -1210,7 +1239,7 @@ void BiasState::updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParam
     if (needToUpdateTargetDistribution)
     {
         /* The target distribution is always updated for all points at once. */
-        updateTargetDistribution(params, forceCorrelation);
+        updateTargetDistribution(params, forceCorrelation, grid);
     }
 
     /* Update the bias. The bias is updated separately and last since it simply a function of
@@ -1928,7 +1957,7 @@ void BiasState::initGridPointState(const AwhBiasParams&      awhBiasParams,
                        "AWH reference weight histogram not initialized properly with local "
                        "Boltzmann target distribution.");
 
-    updateTargetDistribution(params, forceCorrelation);
+    updateTargetDistribution(params, forceCorrelation, grid);
 
     for (PointState& pointState : points_)
     {
