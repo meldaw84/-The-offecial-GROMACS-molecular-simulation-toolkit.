@@ -141,7 +141,8 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
                                                     false,
                                                     0.5,
                                                     0,
-                                                    shareGroup);
+                                                    shareGroup,
+                                                    AwhTargetType::FrictionOptimized);
     const AwhDimParams& awhDimParams = params.awhParams.awhBiasParams()[0].dimParams()[0];
 
     BiasSharing biasSharing(params.awhParams, commRecord, MPI_COMM_WORLD);
@@ -190,7 +191,7 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
         rankWeightSumIteration.push_back(bias.state().points()[pointIndex].weightSumIteration());
         rankLocalFriction.push_back(
                 forceCorrelation.tensors()[pointIndex].getVolumeElement(forceCorrelation.dtSample));
-        std::vector correlationIntegral = bias.state().getSharedPointCorrelationIntegral(pointIndex);
+        std::vector<double> correlationIntegral = bias.state().getSharedPointCorrelationIntegral(pointIndex);
         /* The volume element has units of (sqrt(time)*(units of data))^(ndim of data) */
         rankSharedFriction.push_back(getSqrtDeterminant(correlationIntegral));
         rankTargetDistribution.push_back(bias.state().points()[pointIndex].target());
@@ -267,7 +268,9 @@ TEST(BiasSharingTest, SharingWorks)
 
 TEST(BiasSharingTest, SharingFrictionOptimizationWorks)
 {
-    /* Use nSteps % updateStep > 0 in order to test weightSumIteration, which is the accumulated weightSum since last sharing. */
+    /* Use nSteps % updateStep > 0 in order to test weightSumIteration, which is the accumulated weightSum since last sharing.
+     * After 302 steps, one of the two biases (two of the four ranks) will have left the initial stage and started updating the
+     * target distribution. */
     int nSteps = 302;
     int result = tMPI_Init_fn(FALSE,
                               c_numRanks,
