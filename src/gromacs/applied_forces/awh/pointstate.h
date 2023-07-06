@@ -439,9 +439,13 @@ public:
                 {
                     target_ = correlationTensorVolume;
                 }
+                /* Keep the target unchanged, compensate for the multiplication below. This does not guarantee
+                 * that the relative target of this point will remain constant. However, it avoids setting the
+                 * target distribution to 0 and in later updates, when there is a valid correlation tensor volume,
+                 * the target distribution will be set correctly. */
                 else
                 {
-                    target_ /= targetConstantWeight_; /* Keep it unchanged, compensate for the multiplication below. */
+                    target_ /= targetConstantWeight_;
                 }
                 break;
             default: GMX_RELEASE_ASSERT(false, "Unhandled enum");
