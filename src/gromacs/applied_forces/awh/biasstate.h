@@ -367,13 +367,13 @@ private:
                                   const BiasGrid&        grid);
 
     /*! \brief Returns the average of nonzero (valid) correlation tensor volumes in neighboring points.
-    *
-    * \param[in] pointIndex The index of the point of interest.
-    * \param[in] grid       The bias grid.
-    * \returns the average of valid tensor volumes from neighboring points or 0.0 if there are no valid volumes.
-    */
-    double averageNeighborPositiveCorrelationTensorVolume(const size_t pointIndex,
-                                                          const BiasGrid& grid);
+     *
+     * \param[in] pointIndex The index of the point of interest.
+     * \param[in] grid       The bias grid.
+     * \returns the average of valid tensor volumes from neighboring points or 0.0 if there are no valid volumes.
+     */
+    double averageNeighborPositiveCorrelationTensorVolume(const size_t pointIndex, const BiasGrid& grid);
+
 public:
     /*! \brief
      * Update the reaction coordinate value.

@@ -326,16 +326,16 @@ std::string gridPointValueString(const BiasGrid& grid, int point)
 
 } // namespace
 
-double BiasState::averageNeighborPositiveCorrelationTensorVolume(const size_t pointIndex,
+double BiasState::averageNeighborPositiveCorrelationTensorVolume(const size_t    pointIndex,
                                                                  const BiasGrid& grid)
 {
-    const GridPoint& gridPoint = grid.point(pointIndex);
-    double tensorVolumeSum = 0;
-    int elementCount = 0;
+    const GridPoint& gridPoint       = grid.point(pointIndex);
+    double           tensorVolumeSum = 0;
+    int              elementCount    = 0;
     for (int neighbor : gridPoint.neighbor)
     {
-        std::vector<double>neighborCorrelationIntegral = getSharedPointCorrelationIntegral(neighbor);
-        double neighborCorrelationTensorVolume         = getSqrtDeterminant(neighborCorrelationIntegral);
+        std::vector<double> neighborCorrelationIntegral = getSharedPointCorrelationIntegral(neighbor);
+        double neighborCorrelationTensorVolume = getSqrtDeterminant(neighborCorrelationIntegral);
         if (neighborCorrelationTensorVolume > 0)
         {
             tensorVolumeSum += neighborCorrelationTensorVolume;
@@ -344,12 +344,14 @@ double BiasState::averageNeighborPositiveCorrelationTensorVolume(const size_t po
     }
     if (elementCount > 0)
     {
-        return(tensorVolumeSum/elementCount);
+        return (tensorVolumeSum / elementCount);
     }
     return 0.0;
 }
 
-void BiasState::updateTargetDistribution(const BiasParams& params, const CorrelationGrid& forceCorrelation, const BiasGrid& grid)
+void BiasState::updateTargetDistribution(const BiasParams&      params,
+                                         const CorrelationGrid& forceCorrelation,
+                                         const BiasGrid&        grid)
 {
     double freeEnergyCutoff = 0;
     if (params.eTarget == AwhTargetType::Cutoff)
