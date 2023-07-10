@@ -63,4 +63,14 @@ if(GMX_INSTALL_LEGACY_API)
             DESTINATION include/gromacs)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/gromacs/libgromacs_export.h
             DESTINATION include/gromacs)
+
+    # If using the legacy API and linking with a version of the C++
+    # std::filesystem that requires linking an extra library
+    # (e.g. some clang-based compiler supported by the version of
+    # libstdc++ that comes with gcc major version 8 needs to also link
+    # -lstdc++fs), propagate that into the linking requirements of
+    # libgromacs.
+    if(CXX_FILESYSTEM_HAVE_FS)
+        target_link_libraries(legacy_api PUBLIC std::filesystem)
+    endif()
 endif()

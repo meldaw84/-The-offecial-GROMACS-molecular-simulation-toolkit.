@@ -401,8 +401,12 @@ target_link_libraries(libgromacs PRIVATE
 if (GMX_OPENMP)
     target_link_libraries(libgromacs PUBLIC OpenMP::OpenMP_CXX)
 endif()
+# If the system libstdc++ comes from e.g gcc8, then an extra library
+# may be needed to link libgromacs. Note that the legacy API uses
+# std::filesystem in its interface, and in that case a PUBLIC
+# dependency on std::filesystem is also exposed.
 if(CXX_FILESYSTEM_HAVE_FS)
-    target_link_libraries(libgromacs PUBLIC std::filesystem)
+    target_link_libraries(libgromacs PRIVATE std::filesystem)
 endif()
 set_target_properties(libgromacs PROPERTIES
                       OUTPUT_NAME "gromacs${GMX_LIBS_SUFFIX}"
