@@ -69,7 +69,9 @@ if(GMX_INSTALL_LEGACY_API)
     # (e.g. some clang-based compiler supported by the version of
     # libstdc++ that comes with gcc major version 8 needs to also link
     # -lstdc++fs), propagate that into the linking requirements of
-    # libgromacs.
+    # libgromacs by defining a `std::filesystem` CMake target in your project,
+    # such as through the `FindFilesystem.cmake` script from
+    # https://github.com/vector-of-bool/CMakeCM commit fbaa051c1a4
     if(CXX_FILESYSTEM_HAVE_FS)
         target_link_libraries(legacy_api PUBLIC std::filesystem)
     endif()
