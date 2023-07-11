@@ -48,7 +48,7 @@ gromacs:macos:configure:
     CMAKE: "$CI_PROJECT_DIR/toolchain/bin/cmake"
     CMAKE_COMPILER_SCRIPT: "-DCMAKE_CXX_COMPILER=c++ -DCMAKE_C_COMPILER=cc -DCCACHE_PROGRAM=$CI_PROJECT_DIR/toolchain/bin/ccache -DGMX_ENABLE_CCACHE=ON"
     CMAKE_SIMD_OPTIONS: "-DGMX_SIMD=ARM_NEON_ASIMD"
-    CMAKE_EXTRA_OPTIONS: "-DGMX_GPU_FFT_LIBRARY=vkfft -DOpenMP_libomp_LIBRARY=$CI_PROJECT_DIR/toolchain/lib/libomp.dylib"
+    CMAKE_EXTRA_OPTIONS: "-DGMX_GPU_FFT_LIBRARY=vkfft -DOpenMP_libomp_LIBRARY=$CI_PROJECT_DIR/toolchain/lib/libomp.a"
   needs:
     - job: gromacs:macos:bootstrap
 
@@ -72,8 +72,7 @@ gromacs:macos:test:
     - .gromacs:base:test
     - .rules:post-merge-acceptance
   before_script:
-    - export PATH="${PWD}/toolchain/bin:${PATH+:$PATH}"
-    - export DYLD_LIBRARY_PATH="${PWD}/toolchain/lib${DYLD_LIBRARY_PATH+:$DYLD_LIBRARY_PATH}"
+    - export PATH="${CI_PROJECT_DIR}/toolchain/bin:${PATH+:$PATH}"
   variables:
     CMAKE:  "$CI_PROJECT_DIR/toolchain/bin/cmake"
     # We don't use k8s, but it helps our scripts to know that we need a GPU
@@ -90,8 +89,7 @@ gromacs:macos:regressiontest:
     - .gromacs:base:regressiontest
     - .rules:post-merge-acceptance
   before_script:
-    - export PATH="${PWD}/toolchain/bin:${PATH+:$PATH}"
-    - export DYLD_LIBRARY_PATH="${PWD}/toolchain/lib${DYLD_LIBRARY_PATH+:$DYLD_LIBRARY_PATH}"
+    - export PATH="${CI_PROJECT_DIR}/toolchain/bin:${PATH+:$PATH}"
   variables:
     CMAKE: "$CI_PROJECT_DIR/toolchain/bin/cmake"
     KUBERNETES_EXTENDED_RESOURCE_NAME: "apple.com/gpu"
