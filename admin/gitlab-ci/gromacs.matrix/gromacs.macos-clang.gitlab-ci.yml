@@ -58,7 +58,7 @@ gromacs:macos:build:
     - .gromacs:base:build
     - .before_script:default
     - .use-ccache
-    - .rules:merge-and-post-merge-acceptance
+    - .rules:post-merge-acceptance
   tags:
     - k8s-scilifelab-mac
   variables:
