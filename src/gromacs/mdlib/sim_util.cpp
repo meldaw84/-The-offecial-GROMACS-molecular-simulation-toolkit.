@@ -1374,6 +1374,37 @@ static int getLocalAtomCount(const gmx_domdec_t* dd, const t_mdatoms& mdatoms, b
 }
 
 
+static void applyPbc(gmx::ArrayRef<gmx::RVec>       xLocal,
+                     t_nrnb*                        nrnb,
+                     gmx::ArrayRef<gmx::RVec>       shiftVec,
+                     const PbcType                  pbcType,
+                     const matrix                   box,
+                     const gmx::MDModulesNotifiers& mdModulesNotifiers,
+                     const StepWorkload&            stepWork,
+                     const bool                     haveDDAtomOrdering)
+{
+    // Compute shift vectors every step, because of pressure coupling or box deformation!
+    if (stepWork.haveDynamicBox && stepWork.stateChanged)
+    {
+        calc_shifts(box, shiftVec);
+    }
+
+    const bool fillGrid = (stepWork.doNeighborSearch && stepWork.stateChanged);
+    const bool calcCGCM = (fillGrid && !haveDDAtomOrdering);
+    if (calcCGCM)
+    {
+        put_atoms_in_box_omp(pbcType, box, xLocal, gmx_omp_nthreads_get(ModuleMultiThread::Default));
+        inc_nrnb(nrnb, eNR_SHIFTX, xLocal.size());
+    }
+
+    if (stepWork.doNeighborSearch && !haveDDAtomOrdering)
+    {
+        // Atoms might have changed periodic image, signal MDModules
+        gmx::MDModulesAtomsRedistributedSignal mdModulesAtomsRedistributedSignal(box, xLocal);
+        mdModulesNotifiers.simulationSetupNotifier_.notify(mdModulesAtomsRedistributedSignal);
+    }
+}
+
 void do_force(FILE*                               fplog,
               const t_commrec*                    cr,
               const gmx_multisim_t*               ms,
@@ -1464,32 +1495,8 @@ void do_force(FILE*                               fplog,
 
     if (fr->pbcType != PbcType::No)
     {
-        /* Compute shift vectors every step,
-         * because of pressure coupling or box deformation!
-         */
-        if (stepWork.haveDynamicBox && stepWork.stateChanged)
-        {
-            calc_shifts(box, fr->shift_vec);
-        }
-
-        const bool fillGrid = (stepWork.doNeighborSearch && stepWork.stateChanged);
-        const bool calcCGCM = (fillGrid && !haveDDAtomOrdering(*cr));
-        if (calcCGCM)
-        {
-            put_atoms_in_box_omp(fr->pbcType,
-                                 box,
-                                 x.unpaddedArrayRef().subArray(0, mdatoms->homenr),
-                                 gmx_omp_nthreads_get(ModuleMultiThread::Default));
-            inc_nrnb(nrnb, eNR_SHIFTX, mdatoms->homenr);
-        }
-
-        if (stepWork.doNeighborSearch && !haveDDAtomOrdering(*cr))
-        {
-            // Atoms might have changed periodic image, signal MDModules
-            gmx::MDModulesAtomsRedistributedSignal mdModulesAtomsRedistributedSignal(
-                    box, x.unpaddedArrayRef().subArray(0, mdatoms->homenr));
-            mdModulesNotifiers.simulationSetupNotifier_.notify(mdModulesAtomsRedistributedSignal);
-        }
+        auto xLocal = x.unpaddedArrayRef().subArray(0, mdatoms->homenr);
+        applyPbc(xLocal, nrnb, fr->shift_vec, fr->pbcType, box, mdModulesNotifiers, stepWork, haveDDAtomOrdering(*cr));
     }
 
     nbnxn_atomdata_copy_shiftvec(stepWork.haveDynamicBox, fr->shift_vec, nbv->nbat.get());
