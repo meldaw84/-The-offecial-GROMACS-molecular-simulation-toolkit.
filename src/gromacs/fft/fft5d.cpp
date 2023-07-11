@@ -1059,7 +1059,7 @@ static void print_localdata(const t_complex* lin, const char* txt, int s, fft5d_
     int  xs[3], xl[3], xc[3], NG[3];
     int  ll = (plan->flags & FFT5D_REALCOMPLEX) ? 1 : 2;
     compute_offsets(plan, xs, xl, xc, NG, s);
-    fprintf(debug, txt, coor[0], coor[1]);
+    fprintf(debug, txt, coor[0], coor[1], s);
     /*printf("xs: %d %d %d, xl: %d %d %d\n",xs[0],xs[1],xs[2],xl[0],xl[1],xl[2]);*/
     for (z = 0; z < xl[2]; z++)
     {
@@ -1131,7 +1131,7 @@ void fft5d_execute(fft5d_plan plan, int thread, fft5d_time times)
     /*lin: x,y,z*/
     if ((plan->flags & FFT5D_DEBUG) && thread == 0)
     {
-        print_localdata(lin, "%d %d: copy in lin\n", s, plan);
+        print_localdata(lin, "%d %d: copy in lin %d\n", s, plan);
     }
 
     for (s = 0; s < 2; s++) /*loop over first two FFT steps (corner rotations)*/
@@ -1370,7 +1370,6 @@ void fft5d_execute(fft5d_plan plan, int thread, fft5d_time times)
         }
         /* ---------- END JOIN ------------ */
 
-        /*if (debug) print_localdata(lin, "%d %d: transposed x-z\n", N1, M0, K, ZYX, coor);*/
     } /* for(s=0;s<2;s++) */
 #ifdef NOGMX
     if (times != NULL && thread == 0)
