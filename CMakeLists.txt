@@ -614,6 +614,15 @@ if(GMX_EXTERNAL_TINYXML2)
     endif()
 endif()
 
+option(GMX_EXTERNAL_FMT "Use an external {fmt} library instead of the bundled one" OFF)
+mark_as_advanced(GMX_EXTERNAL_FMT)
+if (GMX_EXTERNAL_FMT)
+    find_package(fmt REQUIRED)
+else()
+    add_subdirectory(${PROJECT_SOURCE_DIR}/src/external/fmt)
+    include_directories(${PROJECT_SOURCE_DIR}/src/external/fmt/include)
+endif()
+
 option(GMX_EXTRAE "Add support for tracing using EXTRAE" OFF)
 mark_as_advanced(GMX_EXTRAE)
 

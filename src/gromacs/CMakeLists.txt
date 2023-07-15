@@ -202,6 +202,11 @@ else()
     add_library(libgromacs ${LIBGROMACS_SOURCES})
 endif()
 
+# The {fmt} library provides the same outstanding text formatting as C++20,
+# with the same interface. Once we require C++20 we can remove this and just replace
+# the namespace fmt with std in the formatting calls.
+target_link_libraries(libgromacs PRIVATE fmt::fmt)
+
 if (TARGET Heffte::Heffte)
     target_link_libraries(libgromacs PRIVATE Heffte::Heffte)
 endif()
