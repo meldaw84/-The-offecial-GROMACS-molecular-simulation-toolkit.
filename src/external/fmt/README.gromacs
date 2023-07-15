@@ -1,0 +1,5 @@
+Note that we have commented out the line that adds a
+debug postfix to the fmt library, so we avoid handling
+this complexity for installed versions of Gromacs:
+
+#set(FMT_DEBUG_POSTFIX d CACHE STRING "Debug library postfix.")
