@@ -532,7 +532,7 @@ void gmx::LegacySimulator::do_md()
      * Coulomb. It is not supported with only LJ PME.
      * Disable PME tuning with GPU PME decomposition */
     bPMETune = (mdrunOptions_.tunePme && usingPme(fr_->ic->eeltype) && !mdrunOptions_.reproducible
-                && ir->cutoff_scheme != CutoffScheme::Group && !simulationWork.useGpuPmeDecomposition);
+                && ir->cutoff_scheme != CutoffScheme::Group);
 
     pme_load_balancing_t* pme_loadbal = nullptr;
     if (bPMETune)

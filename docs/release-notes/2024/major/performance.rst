@@ -18,3 +18,9 @@ quality of implementation of e.g. the GPU-aware MPI library, as well
 as the layout and number of the GPUs participating in the 3D-FFT.
 Users can now find and use the best settings for their case. See
 the HeFFTe documentation for more details.
+
+PME tuning is now enabled when using PME decomposition on GPUs
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+Auto-tuning of PME is now permitted when decomposing PME work across
+multiple GPUs.
