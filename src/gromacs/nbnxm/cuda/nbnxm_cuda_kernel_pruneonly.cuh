@@ -82,9 +82,9 @@
  *   - with large inputs NTHREAD_Z=1 is 2-3% faster (on CC>=5.0)
  */
 #define NTHREAD_Z (GMX_NBNXN_PRUNE_KERNEL_JPACKED_CONCURRENCY)
-#define THREADS_PER_BLOCK (c_clSize * c_clSize * NTHREAD_Z)
+#define THREADS_PER_BLOCK (c_clSize * c_clSize)
 // we want 100% occupancy, so max threads/block
-#define MIN_BLOCKS_PER_MP (GMX_CUDA_MAX_THREADS_PER_MP / THREADS_PER_BLOCK)
+#define MIN_BLOCKS_PER_MP 8
 /**@}*/
 
 /*! \brief Nonbonded list pruning kernel.
@@ -101,41 +101,41 @@
  *
  *   Each thread calculates an i-j atom distance..
  */
-template<bool haveFreshList>
-__launch_bounds__(THREADS_PER_BLOCK, MIN_BLOCKS_PER_MP) __global__
-        void nbnxn_kernel_prune_cuda(NBAtomDataGpu atdat, NBParamGpu nbparam, Nbnxm::gpu_plist plist, int numParts)
+template<bool haveFreshList, int threadsZ>
+__launch_bounds__(THREADS_PER_BLOCK * threadsZ, MIN_BLOCKS_PER_MP) __global__
+        void nbnxn_kernel_prune_cuda(NBAtomDataGpu atdat, NBParamGpu nbparam, Nbnxm::gpu_plist plist, int numParts, int part)
 #ifdef FUNCTION_DECLARATION_ONLY
                 ; /* Only do function declaration, omit the function body. */
 
 // Add extern declarations so each translation unit understands that
 // there will be a definition provided.
-extern template __global__ void
-nbnxn_kernel_prune_cuda<true>(const NBAtomDataGpu, const NBParamGpu, const Nbnxm::gpu_plist, int);
-extern template __global__ void
-nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnxm::gpu_plist, int);
+extern template __launch_bounds__(THREADS_PER_BLOCK * (NTHREAD_Z / 2), MIN_BLOCKS_PER_MP) __global__ void
+nbnxn_kernel_prune_cuda<true, NTHREAD_Z / 2>(const NBAtomDataGpu, const NBParamGpu, const Nbnxm::gpu_plist, int, int);
+extern template __launch_bounds__(THREADS_PER_BLOCK * NTHREAD_Z, MIN_BLOCKS_PER_MP) __global__ void
+nbnxn_kernel_prune_cuda<false, NTHREAD_Z>(const NBAtomDataGpu, const NBParamGpu, const Nbnxm::gpu_plist, int, int);
 #else
 {
 
     // Get part for this kernel from global memory. Each block has its own copy to allow asynchronous incrementation.
-    int part = plist.d_rollingPruningPart[blockIdx.x];
-    __syncthreads();
+    
+    // __syncthreads();
 
     // Single thread per block increments the block's copy of the part index
-    if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0)
-    {
-        plist.d_rollingPruningPart[blockIdx.x] = (part + 1) % numParts;
-    }
+    // if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0)
+    // {
+    //     plist.d_rollingPruningPart[blockIdx.x] = (part + 1) % numParts;
+    // }
 
     // Kernel has been launched with max number of blocks across all passes (plist.nsci/numParts),
     // but the last pass will require 1 less block, so extra block should return early.
-    size_t numSciInPart = (plist.nsci - part) / numParts;
-    if (blockIdx.x >= numSciInPart)
-    {
-        return;
-    }
+    // size_t numSciInPart = (plist.nsci - part) / numParts;
+    // if (blockIdx.x >= numSciInPart)
+    // {
+    //     return;
+    // }
 
     /* convenience variables */
-    const nbnxn_sci_t* pl_sci      = plist.sci;
+    const nbnxn_sci_t* pl_sci      = haveFreshList ? plist.sci : plist.sci_sorted;
     nbnxn_cj_packed_t* pl_cjPacked = plist.cjPacked;
     const float4*      xq          = atdat.xq;
     const float3*      shift_vec   = asFloat3(atdat.shiftVec);
@@ -146,11 +146,16 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
     /* thread/block/warp id-s */
     unsigned int tidxi = threadIdx.x;
     unsigned int tidxj = threadIdx.y;
-#    if NTHREAD_Z == 1
-    unsigned int tidxz = 0;
-#    else
-    unsigned int tidxz = threadIdx.z;
-#    endif
+    unsigned int tidxz;
+    if constexpr (threadsZ == 1)
+    {
+        tidxz = 0;
+    }
+    else
+    {
+        tidxz = threadIdx.z;
+    }
+    unsigned int tidx = tidxi + c_clSize * tidxj;
     unsigned int bidx  = blockIdx.x;
     unsigned int widx  = (threadIdx.y * c_clSize) / warp_size; /* warp index */
 
@@ -179,7 +184,7 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
     {
         /* the cjs buffer's use expects a base pointer offset for pairs of warps in the j-concurrent execution */
         cjs += tidxz * c_nbnxnGpuClusterpairSplit * c_nbnxnGpuJgroupSize;
-        sm_nextSlotPtr += (NTHREAD_Z * c_nbnxnGpuClusterpairSplit * c_nbnxnGpuJgroupSize * sizeof(*cjs));
+        sm_nextSlotPtr += (threadsZ * c_nbnxnGpuClusterpairSplit * c_nbnxnGpuJgroupSize * sizeof(*cjs));
     }
     /*********************************************************************/
 
@@ -207,11 +212,12 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
     }
     __syncthreads();
 
+    int count = 0;
     /* loop over the j clusters = seen by any of the atoms in the current super-cluster;
      * The loop stride NTHREAD_Z ensures that consecutive warps-pairs are assigned
      * consecutive jPacked's entries.
      */
-    for (int jPacked = cijPackedBegin + tidxz; jPacked < cijPackedEnd; jPacked += NTHREAD_Z)
+    for (int jPacked = cijPackedBegin + tidxz; jPacked < cijPackedEnd; jPacked += threadsZ)
     {
         unsigned int imaskFull, imaskCheck, imaskNew;
 
@@ -298,6 +304,7 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
             {
                 /* copy the list pruned to rlistOuter to a separate buffer */
                 plist.imask[jPacked * c_nbnxnGpuClusterpairSplit + widx] = imaskFull;
+                count += __popc(imaskNew);
             }
             /* update the imask with only the pairs up to rlistInner */
             plist.cjPacked[jPacked].imei[widx].imask = imaskNew;
@@ -306,6 +313,31 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
         {
             // avoid shared memory WAR hazards on sm_cjs between loop iterations
             __syncwarp(c_fullWarpMask);
+        }
+    }
+    if (haveFreshList && (tidx == 63))
+    {
+        if (threadsZ > 1)
+        {
+            __syncthreads();
+            char* sm_reuse = sm_dynamicShmem;
+            int* count_sm =reinterpret_cast<int*>(sm_reuse);
+
+            count_sm[tidxz] = count;
+            __syncthreads();
+
+            for( unsigned int index_z = 1; index_z < threadsZ; index_z++ )
+                count += count_sm[index_z];
+            __syncthreads();
+        }
+
+        if(tidxz == 0)
+        {
+            int index = max(c_sciHistogramSize - (int)count - 1, 0);
+            int* pl_sci_histogram = plist.sci_histogram;
+            atomicAdd(pl_sci_histogram + index, 1);
+            int* pl_sci_count  =  plist.sci_count;
+            pl_sci_count[bidx * numParts + part] = index;
         }
     }
 }
