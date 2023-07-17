@@ -43,7 +43,8 @@
  *  \ingroup module_nbnxm
  */
 #include "gmxpre.h"
-
+#include <thrust/scan.h>
+#include <thrust/execution_policy.h>
 #include "config.h"
 
 #if GMX_GPU_CUDA
@@ -220,15 +221,30 @@ static inline void init_plist(gpu_plist* pl)
 {
     /* initialize to nullptr pointers to data that is not allocated here and will
        need reallocation in nbnxn_gpu_init_pairlist */
-    pl->sci      = nullptr;
-    pl->cjPacked = nullptr;
-    pl->imask    = nullptr;
-    pl->excl     = nullptr;
+    pl->sci            = nullptr;
+    // pl->scan_temporary = nullptr;
+    pl->sci_histogram  = nullptr;
+    pl->sci_offset     = nullptr;
+    pl->sci_count      = nullptr;
+    pl->sci_sorted     = nullptr;
+    pl->cjPacked       = nullptr;
+    pl->imask          = nullptr;
+    pl->excl           = nullptr;
 
     /* size -1 indicates that the respective array hasn't been initialized yet */
     pl->na_c                   = -1;
     pl->nsci                   = -1;
     pl->sci_nalloc             = -1;
+    pl->nscan_temporary        = -1;
+    // pl->scan_temporary_nalloc  = -1;
+    pl->nsci_histogram         = -1;
+    pl->sci_histogram_nalloc   = -1;
+    pl->nsci_offset            = -1;
+    pl->sci_offset_nalloc      = -1;
+    pl->nsci_counted           = -1;
+    pl->sci_counted_nalloc     = -1;
+    pl->nsci_sorted            = -1;
+    pl->sci_sorted_nalloc      = -1;
     pl->ncjPacked              = -1;
     pl->cjPacked_nalloc        = -1;
     pl->nimask                 = -1;
@@ -582,11 +598,49 @@ void gpu_init_pairlist(NbnxmGpu* nb, const NbnxnPairlistGpu* h_plist, const Inte
                        GpuApiCallBehavior::Async,
                        bDoTime ? iTimers.pl_h2d.fetchNextEvent() : nullptr);
 
-    reallocateDeviceBuffer(&d_plist->cjPacked,
-                           h_plist->cjPacked.size(),
-                           &d_plist->ncjPacked,
-                           &d_plist->cjPacked_nalloc,
-                           deviceContext);
+    reallocateDeviceBuffer(
+           &d_plist->sci_sorted, h_plist->sci.size(), &d_plist->nsci_sorted, &d_plist->sci_sorted_nalloc, deviceContext);
+
+    copyToDeviceBuffer(&d_plist->sci_sorted,
+                       h_plist->sci.data(),
+                       0,
+                       h_plist->sci.size(),
+                       deviceStream,
+                       GpuApiCallBehavior::Async,
+                       bDoTime ? iTimers.pl_h2d.fetchNextEvent() : nullptr);
+
+    reallocateDeviceBuffer(
+           &d_plist->sci_count, h_plist->sci.size(), &d_plist->nsci_counted, &d_plist->sci_counted_nalloc, deviceContext);
+
+    reallocateDeviceBuffer(
+                &d_plist->sci_histogram, c_sciHistogramSize + 1, &d_plist->nsci_histogram, &d_plist->sci_histogram_nalloc, deviceContext);
+
+    reallocateDeviceBuffer(
+                &d_plist->sci_offset, c_sciHistogramSize, &d_plist->nsci_offset, &d_plist->sci_offset_nalloc, deviceContext);
+
+    size_t scan_temporary_size = 0;
+
+    //    size_t scan_temporary_size = 0;
+       thrust::exclusive_scan(thrust::device, d_plist->sci_histogram, d_plist->sci_histogram + c_sciHistogramSize, d_plist->sci_offset, 0, thrust::plus<int>());
+        // rocprim::exclusive_scan(
+        //     nullptr,
+        //     scan_temporary_size,
+        //     *reinterpret_cast<int**>(&d_plist->sci_histogram),
+        //     *reinterpret_cast<int**>(&d_plist->sci_offset),
+        //     0,
+        //     c_sciHistogramSize,
+        //     rocprim::plus<int>(),
+        //     deviceStream.stream()
+        // );
+
+        // reallocateDeviceBuffer(
+        //        &d_plist->scan_temporary, (int)scan_temporary_size, &d_plist->nscan_temporary, &d_plist->scan_temporary_nalloc, deviceContext);
+    //  reallocateDeviceBuffer(
+    //         &d_plist->scan_temporary, (int)scan_temporary_size, &d_plist->nscan_temporary, &d_plist->scan_temporary_nalloc, deviceContext);
+
+
+    reallocateDeviceBuffer(
+            &d_plist->cjPacked, h_plist->cjPacked.size(), &d_plist->ncjPacked, &d_plist->cjPacked_nalloc, deviceContext);
     copyToDeviceBuffer(&d_plist->cjPacked,
                        h_plist->cjPacked.list_.data(),
                        0,
@@ -610,15 +664,6 @@ void gpu_init_pairlist(NbnxmGpu* nb, const NbnxnPairlistGpu* h_plist, const Inte
                        deviceStream,
                        GpuApiCallBehavior::Async,
                        bDoTime ? iTimers.pl_h2d.fetchNextEvent() : nullptr);
-
-    // Part index is managed on device, through a buffer containing a separate copy of the index
-    // per block, to allow asynchronous incrementation on the GPU without CPU involvement.
-    reallocateDeviceBuffer(&d_plist->d_rollingPruningPart,
-                           d_plist->nsci,
-                           &d_plist->d_rollingPruningPart_size,
-                           &d_plist->d_rollingPruningPart_size_alloc,
-                           *nb->deviceContext_);
-    clearDeviceBufferAsync(&d_plist->d_rollingPruningPart, 0, d_plist->nsci, deviceStream);
 
     if (bDoTime)
     {
