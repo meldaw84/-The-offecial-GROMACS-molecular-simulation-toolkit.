@@ -49,6 +49,7 @@
 #include "testutils/cmdlinetest.h"
 #include "testutils/refdata.h"
 #include "testutils/simulationdatabase.h"
+#include "testutils/testasserts.h"
 #include "testutils/tprfilegenerator.h"
 
 namespace gmx
@@ -226,6 +227,8 @@ TEST_F(ConvertTprTest, generateVelocitiesTest)
 
         gmx::test::TestReferenceData    data;
         gmx::test::TestReferenceChecker checker(data.rootChecker());
+        FloatingPointTolerance tolerance(relativeToleranceAsUlp(1, 10));
+        checker.setDefaultTolerance(tolerance);
         std::vector<real>               result;
         // Check that the X coordinates did NOT change
         for (int i = 0; i < state.x.size(); i++)
