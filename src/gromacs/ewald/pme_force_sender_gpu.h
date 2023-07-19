@@ -43,6 +43,8 @@
 
 #include <memory>
 
+#include <cuda/atomic>
+
 #include "gromacs/gpu_utils/devicebuffer_datatype.h"
 #include "gromacs/math/vectypes.h"
 #include "gromacs/utility/gmxmpi.h"
@@ -108,6 +110,16 @@ public:
      * \param[in] request  MPI request to track asynchronous MPI call status
      */
     void sendFToPpGpuAwareMpi(DeviceBuffer<RVec> sendbuf, int offset, int numBytes, int ppRank, MPI_Request* request);
+
+
+    DeviceBuffer<RVec*>  getPmeRemoteGpuForcePtrs();
+    DeviceBuffer<int>    getPaddedPpRanks();
+    DeviceBuffer<int>    getPaddedAtomIndices();
+    DeviceBuffer<int>    getPaddedAtomOffsets();
+    DeviceBuffer<RVec*>  getPmeRemoteGpuForceReferencePtrs();
+    DeviceBuffer<size_t> getAtomsPerPpProc();
+    cuda::atomic<int>**  getPmeToPpReadyAtomicFlagPtrs();
+    int                  getNPaddedAtoms();
 
 private:
     class Impl;

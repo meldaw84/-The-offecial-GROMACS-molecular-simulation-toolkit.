@@ -46,8 +46,11 @@
 
 #include <memory>
 
+#include <cuda/atomic>
+
 #include "gromacs/gpu_utils/devicebuffer_datatype.h"
 #include "gromacs/math/vectypes.h"
+#include "gromacs/mdtypes/locality.h"
 #include "gromacs/timing/wallcycle.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/fixedcapacityvector.h"
@@ -96,6 +99,7 @@ public:
      * \param [in] forcePtr  Pointer to force to be reduced
      */
     void registerRvecForce(DeviceBuffer<RVec> forcePtr);
+    void registerPmeToPpReadyAtomicFlag(cuda::atomic<int>* flagPtr);
 
     /*! \brief Add a dependency for this force reduction
      *
@@ -117,6 +121,7 @@ public:
                 ArrayRef<const int>   cell,
                 int                   atomStart,
                 bool                  accumulate,
+                AtomLocality          atomLocality,
                 GpuEventSynchronizer* completionMarker = nullptr);
 
     /*! \brief Execute the force reduction */

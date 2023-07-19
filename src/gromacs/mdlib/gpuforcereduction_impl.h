@@ -42,13 +42,15 @@
 #ifndef GMX_MDLIB_GPUFORCEREDUCTION_IMPL_H
 #define GMX_MDLIB_GPUFORCEREDUCTION_IMPL_H
 
+#include <cuda/atomic>
+
 #include "gromacs/gpu_utils/device_stream.h"
 #include "gromacs/gpu_utils/devicebuffer_datatype.h"
 #include "gromacs/gpu_utils/gputraits.h"
 #include "gromacs/math/vectypes.h"
+#include "gromacs/mdtypes/locality.h"
 
 #include "gpuforcereduction.h"
-
 namespace gmx
 {
 
@@ -90,6 +92,7 @@ public:
      * \param [in] forcePtr  Pointer to force to be reduced
      */
     void registerRvecForce(DeviceBuffer<Float3> forcePtr);
+    void registerPmeToPpReadyAtomicFlag(cuda::atomic<int>* flagPtr);
 
     /*! \brief Add a dependency for this force reduction
      *
@@ -111,6 +114,7 @@ public:
                 ArrayRef<const int>   cell,
                 int                   atomStart,
                 bool                  accumulate,
+                AtomLocality          atomLocality,
                 GpuEventSynchronizer* completionMarker = nullptr);
 
     /*! \brief Execute the force reduction */
@@ -123,6 +127,9 @@ private:
     int atomStart_ = 0;
     //! number of atoms
     int numAtoms_ = 0;
+    //! atom locality
+    // TODO what value to initialise this to?
+    AtomLocality atomLocality_;
     //! whether reduction is accumulated into base force buffer
     bool accumulate_ = true;
     //! cell information for any nbat-format forces
@@ -140,7 +147,8 @@ private:
     //! event to be marked when reduction launch has been completed
     GpuEventSynchronizer* completionMarker_ = nullptr;
     //! The wallclock counter
-    gmx_wallcycle* wcycle_ = nullptr;
+    gmx_wallcycle*     wcycle_ = nullptr;
+    cuda::atomic<int>* pmeToPpReadyAtomicFlag_;
 };
 
 } // namespace gmx

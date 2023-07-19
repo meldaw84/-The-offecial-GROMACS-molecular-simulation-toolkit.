@@ -1272,12 +1272,14 @@ static void setupLocalGpuForceReduction(const gmx::MdrunScheduleWorkload* runSch
                               nbv->getGridIndices(),
                               atomStart,
                               accumulate,
+                              AtomLocality::Local,
                               stateGpu->fReducedOnDevice(AtomLocality::Local));
 
     // register forces and add dependencies
     gpuForceReduction->registerNbnxmForce(Nbnxm::gpu_get_f(nbv->gpu_nbv));
 
     DeviceBuffer<gmx::RVec> pmeForcePtr;
+    cuda::atomic<int>*      pmeToPpReadyAtomicFlagPtr;
     GpuEventSynchronizer*   pmeSynchronizer     = nullptr;
     bool                    havePmeContribution = false;
 
@@ -1292,7 +1294,8 @@ static void setupLocalGpuForceReduction(const gmx::MdrunScheduleWorkload* runSch
     }
     else if (runScheduleWork->simulationWork.useGpuPmePpCommunication)
     {
-        pmeForcePtr = pmePpCommGpu->getGpuForceStagingPtr();
+        pmeForcePtr               = pmePpCommGpu->getGpuForceStagingPtr();
+        pmeToPpReadyAtomicFlagPtr = pmePpCommGpu->getPmeToPpReadyAtomicFlagPtr();
         if (pmeForcePtr)
         {
             if (GMX_THREAD_MPI)
@@ -1306,6 +1309,7 @@ static void setupLocalGpuForceReduction(const gmx::MdrunScheduleWorkload* runSch
     if (havePmeContribution)
     {
         gpuForceReduction->registerRvecForce(pmeForcePtr);
+        gpuForceReduction->registerPmeToPpReadyAtomicFlag(pmeToPpReadyAtomicFlagPtr);
         if (!runScheduleWork->simulationWork.useGpuPmePpCommunication || GMX_THREAD_MPI)
         {
             GMX_ASSERT(pmeSynchronizer != nullptr, "PME force ready cuda event should not be NULL");
@@ -1349,6 +1353,7 @@ static void setupNonLocalGpuForceReduction(const gmx::MdrunScheduleWorkload* run
                               nbv->getGridIndices(),
                               atomStart,
                               accumulate,
+                              AtomLocality::NonLocal,
                               stateGpu->fReducedOnDevice(AtomLocality::NonLocal));
 
     // register forces and add dependencies

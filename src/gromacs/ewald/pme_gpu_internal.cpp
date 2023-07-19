@@ -252,6 +252,7 @@ void pme_gpu_realloc_forces(PmeGpu* pmeGpu)
                            &pmeGpu->archSpecific->forcesSize,
                            &pmeGpu->archSpecific->forcesSizeAlloc,
                            pmeGpu->archSpecific->deviceContext_);
+
     pmeGpu->staging.h_forces.reserveWithPadding(pmeGpu->nAtomsAlloc);
     pmeGpu->staging.h_forces.resizeWithPadding(pmeGpu->kernelParams->atoms.nAtoms);
 }
@@ -2322,13 +2323,15 @@ void pme_gpu_gather(PmeGpu*               pmeGpu,
 
     const int atomsPerBlock = blockSize / threadsPerAtom;
 
+
     GMX_ASSERT(!(c_pmeAtomDataBlockSize % atomsPerBlock),
                "inconsistent atom data padding vs. gathering block size");
 
     // launch gather only if nAtoms > 0
     if (kernelParamsPtr->atoms.nAtoms > 0)
     {
-        const int blockCount = pmeGpu->nAtomsAlloc / atomsPerBlock;
+        // const int blockCount = pmeGpu->nAtomsAlloc / atomsPerBlock;
+        const int blockCount = pmeGpu->nPaddedAtoms / atomsPerBlock;
         auto      dimGrid    = pmeGpuCreateGrid(pmeGpu, blockCount);
 
         KernelLaunchConfig config;
@@ -2337,6 +2340,9 @@ void pme_gpu_gather(PmeGpu*               pmeGpu,
         config.blockSize[2] = atomsPerBlock;
         config.gridSize[0]  = dimGrid.first;
         config.gridSize[1]  = dimGrid.second;
+        // printf("pme_gpu_internal: nPaddedAtoms %d nAtomsAlloc %d\n", pmeGpu->nPaddedAtoms, pmeGpu->nAtomsAlloc);
+        // one for counting whether one block is responsible for two procs, one for tracking number of blocks involved per proc
+        config.sharedMemorySize = pmeGpu->nPpRanks * sizeof(int) * 2;
 
         // TODO test different cache configs
 

@@ -44,6 +44,8 @@
 #include <memory>
 #include <vector>
 
+#include <cuda/atomic>
+
 #include "gromacs/gpu_utils/devicebuffer_datatype.h"
 #include "gromacs/gpu_utils/hostallocator.h"
 #include "gromacs/math/vectypes.h"
@@ -112,6 +114,7 @@ public:
      * Return pointer to buffer used for staging PME force on GPU
      */
     DeviceBuffer<gmx::RVec> getGpuForceStagingPtr();
+    cuda::atomic<int>*      getPmeToPpReadyAtomicFlagPtr();
 
     /*! \brief
      * Return pointer to event recorded when forces are ready

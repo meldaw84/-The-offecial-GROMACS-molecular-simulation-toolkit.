@@ -353,6 +353,20 @@ __launch_bounds__(c_solveMaxThreadsPerBlock) CLANG_DISABLE_OPTIMIZATION_ATTRIBUT
             }
         }
     }
+
+    // reset pme-pp comms flag for use in pme_gather kernel
+    if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0 && blockIdx.x == 0
+        && blockIdx.y == 0 && blockIdx.z == 0)
+    {
+        if (kernelParams.pmeToPpReadyAtomicFlagPtrs_)
+        {
+            const int numPpRanks = kernelParams.grid.d_atomsPerPpProc[0]; // first elem is array size
+            for (int p = 0; p < numPpRanks; p++)
+            {
+                kernelParams.pmeToPpReadyAtomicFlagPtrs_[p]->store(0);
+            }
+        }
+    }
 }
 
 //! Kernel instantiations

@@ -40,8 +40,11 @@
  * \ingroup module_mdlib
  */
 
+#include <cuda/atomic>
+
 #include "gromacs/gpu_utils/devicebuffer_datatype.h"
 #include "gromacs/gpu_utils/gputraits.h"
+#include "gromacs/mdtypes/locality.h"
 
 class DeviceStream;
 
@@ -81,6 +84,8 @@ void launchForceReductionKernel(int                  numAtoms,
                                 DeviceBuffer<Float3> d_rvecForceToAdd,
                                 DeviceBuffer<Float3> d_baseForce,
                                 DeviceBuffer<int>    d_cell,
+                                cuda::atomic<int>*   d_pmeToPpReadyAtomicFlag,
+                                AtomLocality         atomLocality,
                                 const DeviceStream&  deviceStream);
 
 } // namespace gmx

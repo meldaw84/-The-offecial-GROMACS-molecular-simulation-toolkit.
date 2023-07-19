@@ -48,6 +48,7 @@
 #include "gromacs/gpu_utils/devicebuffer.h"
 #include "gromacs/gpu_utils/gpueventsynchronizer.h"
 #include "gromacs/mdlib/gpuforcereduction_impl_internal.h"
+#include "gromacs/mdtypes/locality.h"
 #include "gromacs/utility/gmxassert.h"
 
 namespace gmx
@@ -70,6 +71,7 @@ void GpuForceReduction::Impl::reinit(DeviceBuffer<Float3>  baseForcePtr,
                                      ArrayRef<const int>   cell,
                                      const int             atomStart,
                                      const bool            accumulate,
+                                     AtomLocality          atomLocality,
                                      GpuEventSynchronizer* completionMarker)
 {
     GMX_ASSERT(baseForcePtr, "Input base force for reduction has no data");
@@ -79,6 +81,7 @@ void GpuForceReduction::Impl::reinit(DeviceBuffer<Float3>  baseForcePtr,
     accumulate_       = accumulate;
     completionMarker_ = completionMarker;
     cellInfo_.cell    = cell.data();
+    atomLocality_     = atomLocality;
 
     wallcycle_start_nocount(wcycle_, WallCycleCounter::LaunchGpuPp);
     reallocateDeviceBuffer(
@@ -91,6 +94,12 @@ void GpuForceReduction::Impl::reinit(DeviceBuffer<Float3>  baseForcePtr,
                        GpuApiCallBehavior::Async,
                        nullptr);
     wallcycle_stop(wcycle_, WallCycleCounter::LaunchGpuPp);
+
+    // TODO hack to get early steps where registration of this pointer in sim_util doesn't occur to work without segfault
+    cudaMalloc(&pmeToPpReadyAtomicFlag_, 1 * sizeof(cuda::atomic<int>));
+    cuda::atomic<int> h_pmeToPpReadyAtomicFlag;
+    h_pmeToPpReadyAtomicFlag.store(0);
+    cudaMemcpy(pmeToPpReadyAtomicFlag_, &h_pmeToPpReadyAtomicFlag, sizeof(cuda::atomic<int>), cudaMemcpyHostToDevice);
 
     dependencyList_.clear();
 };
@@ -105,6 +114,12 @@ void GpuForceReduction::Impl::registerRvecForce(DeviceBuffer<RVec> forcePtr)
 {
     GMX_ASSERT(forcePtr, "Input force for reduction has no data");
     rvecForceToAdd_ = forcePtr;
+};
+
+void GpuForceReduction::Impl::registerPmeToPpReadyAtomicFlag(cuda::atomic<int>* flagPtr)
+{
+    GMX_ASSERT(flagPtr, "Pme to Pp coordination flag not initialised");
+    pmeToPpReadyAtomicFlag_ = flagPtr;
 };
 
 void GpuForceReduction::Impl::addDependency(GpuEventSynchronizer* dependency)
@@ -138,6 +153,8 @@ void GpuForceReduction::Impl::execute()
                                    rvecForceToAdd_,
                                    baseForce_,
                                    cellInfo_.d_cell,
+                                   pmeToPpReadyAtomicFlag_,
+                                   atomLocality_,
                                    deviceStream_);
     }
     else
@@ -181,6 +198,11 @@ void GpuForceReduction::registerRvecForce(DeviceBuffer<RVec> forcePtr)
     impl_->registerRvecForce(forcePtr);
 }
 
+void GpuForceReduction::registerPmeToPpReadyAtomicFlag(cuda::atomic<int>* flagPtr)
+{
+    impl_->registerPmeToPpReadyAtomicFlag(flagPtr);
+}
+
 void GpuForceReduction::addDependency(GpuEventSynchronizer* dependency)
 {
     impl_->addDependency(dependency);
@@ -191,9 +213,10 @@ void GpuForceReduction::reinit(DeviceBuffer<RVec>    baseForcePtr,
                                ArrayRef<const int>   cell,
                                const int             atomStart,
                                const bool            accumulate,
+                               AtomLocality          atomLocality,
                                GpuEventSynchronizer* completionMarker)
 {
-    impl_->reinit(baseForcePtr, numAtoms, cell, atomStart, accumulate, completionMarker);
+    impl_->reinit(baseForcePtr, numAtoms, cell, atomStart, accumulate, atomLocality, completionMarker);
 }
 void GpuForceReduction::execute()
 {

@@ -155,6 +155,12 @@ struct PmeGpuGridParams
     /*! \brief Gridline indices lookup table
      * (modulo lookup table as in pme->nnx/nny/nnz, laid out sequentially (XXX....XYYY......YZZZ.....Z)) */
     HIDE_FROM_OPENCL_COMPILER(DeviceBuffer<int>) d_gridlineIndicesTable;
+
+    HIDE_FROM_OPENCL_COMPILER(DeviceBuffer<gmx::RVec*>) d_pmeRemoteGpuForcePtrs;
+    HIDE_FROM_OPENCL_COMPILER(DeviceBuffer<size_t>) d_atomsPerPpProc;
+    HIDE_FROM_OPENCL_COMPILER(DeviceBuffer<int>) d_paddedPpRanks;
+    HIDE_FROM_OPENCL_COMPILER(DeviceBuffer<int>) d_paddedAtomIndices;
+    HIDE_FROM_OPENCL_COMPILER(DeviceBuffer<int>) d_paddedAtomOffsets;
 };
 
 /*! \internal \brief

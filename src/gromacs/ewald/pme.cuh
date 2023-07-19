@@ -42,12 +42,13 @@
 #ifndef GMX_EWALD_PME_CUH
 #define GMX_EWALD_PME_CUH
 
+#include <cuda/atomic>
+
 #include "gromacs/math/vectypes.h" // for DIM
 
 #include "pme_gpu_constants.h"
 #include "pme_gpu_internal.h" // for GridOrdering
 #include "pme_gpu_types.h"
-
 /*! \brief \internal
  * An alias for PME parameters in CUDA.
  * \todo Remove if we decide to unify CUDA and OpenCL
@@ -55,6 +56,12 @@
 struct PmeGpuCudaKernelParams : PmeGpuKernelParamsBase
 {
     // Place CUDA-specific stuff here
+
+    // for each pp rank, an integer counting the number of blocks that will be involved in
+    // generating and sending force data to that rank for reduction
+    volatile int* blocksSentDataToPpRankCounter_;
+    // for each pp rank, a pointer to the pme to pp synchronisation flag for that rank
+    cuda::atomic<int>** pmeToPpReadyAtomicFlagPtrs_;
 };
 
 #endif

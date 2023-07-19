@@ -375,23 +375,21 @@ __launch_bounds__(c_gatherMaxThreadsPerBlock, c_gatherMinBlocksPerMP) __global__
     assert(blockSize == blockDim.x * blockDim.y * blockDim.z);
 
     /* These are the atom indices - for the shared and global memory */
-    const int atomIndexLocal  = threadIdx.z;
-    const int atomIndexOffset = blockIndex * atomsPerBlock;
+    const int atomIndexLocal           = threadIdx.z;
+    const int atomIndexOffset_unpadded = blockIndex * atomsPerBlock;
+    // Push atom indices forward after a block at the end of a pp rank was padded
+    const int atomIndexOffset = kernelParams.grid.d_paddedAtomOffsets[atomIndexOffset_unpadded];
+    const int tid = (threadIdx.z * (blockDim.x * blockDim.y)) + blockDim.x * threadIdx.y + threadIdx.x;
     const int atomIndexGlobal = atomIndexOffset + atomIndexLocal;
 
-    /* Early return for fully empty blocks at the end
-     * (should only happen for billions of input atoms)
-     */
-    if (atomIndexOffset >= kernelParams.atoms.nAtoms)
-    {
-        return;
-    }
     // 4 warps per block, 8 atoms per warp *3 *4
     const int        splineParamsSize    = atomsPerBlock * DIM * order;
     const int        gridlineIndicesSize = atomsPerBlock * DIM;
     __shared__ int   sm_gridlineIndices[gridlineIndicesSize];
     __shared__ float sm_theta[splineParamsSize];
     __shared__ float sm_dtheta[splineParamsSize];
+
+    extern __shared__ int sm_maxNBlocksPerPpRank[];
 
     /* Spline Z coordinates */
     const int ithz = threadIdx.x;
@@ -409,7 +407,10 @@ __launch_bounds__(c_gatherMaxThreadsPerBlock, c_gatherMinBlocksPerMP) __global__
     {
         /* Read splines */
         const int localGridlineIndicesIndex = threadLocalId;
-        const int globalGridlineIndicesIndex = blockIndex * gridlineIndicesSize + localGridlineIndicesIndex;
+        const int globalGridlineIndicesIndex_unpadded =
+                blockIndex * gridlineIndicesSize + localGridlineIndicesIndex;
+        // blockIndex*gridlineIndicesSize is the same as atomIndexOffset. correct for padding
+        const int globalGridlineIndicesIndex = atomIndexOffset * DIM + localGridlineIndicesIndex;
         if (localGridlineIndicesIndex < gridlineIndicesSize)
         {
             sm_gridlineIndices[localGridlineIndicesIndex] = gm_gridlineIndices[globalGridlineIndicesIndex];
@@ -426,7 +427,8 @@ __launch_bounds__(c_gatherMaxThreadsPerBlock, c_gatherMinBlocksPerMP) __global__
             int localSplineParamsIndex =
                     threadLocalId
                     + i * threadLocalIdMax; /* i will always be zero for order*order threads per atom */
-            int globalSplineParamsIndex = blockIndex * splineParamsSize + localSplineParamsIndex;
+            int globalSplineParamsIndex_unpadded = blockIndex * splineParamsSize + localSplineParamsIndex;
+            int globalSplineParamsIndex = atomIndexOffset * DIM * order + localSplineParamsIndex;
             if (localSplineParamsIndex < splineParamsSize)
             {
                 sm_theta[localSplineParamsIndex]  = gm_theta[globalSplineParamsIndex];
@@ -542,15 +544,30 @@ __launch_bounds__(c_gatherMaxThreadsPerBlock, c_gatherMinBlocksPerMP) __global__
 #pragma unroll
         for (int i = 0; i < numIter; i++)
         {
-            int   outputIndexLocal       = i * iterThreads + threadLocalId;
-            int   outputIndexGlobal      = blockIndex * blockForcesSize + outputIndexLocal;
-            float outputForceComponent   = (reinterpret_cast<float*>(sm_forces)[outputIndexLocal]);
-            gm_forces[outputIndexGlobal] = outputForceComponent;
+            int   outputIndexLocal     = i * iterThreads + threadLocalId;
+            int   outputIndexGlobal    = blockIndex * blockForcesSize + outputIndexLocal;
+            float outputForceComponent = (reinterpret_cast<float*>(sm_forces)[outputIndexLocal]);
+            int   outputIndexInPpRank  = -1;
+
+            float* pp_rank_forces;
+            int    ppRank = 0;
+
+            // TODO ppRank is constant across threads and i loop, only check this once and potentially with one thread
+            ppRank = kernelParams.grid.d_paddedPpRanks[outputIndexGlobal];
+            if (ppRank != -1)
+            {
+                outputIndexInPpRank = kernelParams.grid.d_paddedAtomIndices[outputIndexGlobal];
+                pp_rank_forces =
+                        reinterpret_cast<float*>(kernelParams.grid.d_pmeRemoteGpuForcePtrs[ppRank]);
+                pp_rank_forces[outputIndexInPpRank] = outputForceComponent;
+            }
         }
     }
 
     if (numGrids == 2)
     {
+        // AMB TODO add sm initiated comms for second grid
+
         /* We must sync here since the same shared memory is used as above. */
         __syncthreads();
         fx                    = 0.0F;
@@ -609,7 +626,62 @@ __launch_bounds__(c_gatherMaxThreadsPerBlock, c_gatherMinBlocksPerMP) __global__
             }
         }
     }
-}
+
+    // TODO moving this down seems to help long scoreboard stalls, but will this cause segfaults? can it be moved any higher?
+    /* Early return for fully empty blocks at the end
+     * (should only happen for billions of input atoms)
+     */
+    if (atomIndexOffset >= kernelParams.atoms.nAtoms)
+    {
+        return;
+    }
+
+    // to ensure that copy to remote DRAM has completed before we reach this section
+    __threadfence();
+    // to ensure all warps have finished writing to remote DRAM
+    __syncthreads();
+    if (threadIdx.x == 0 && threadIdx.y == 0 && threadIdx.z == 0)
+    {
+        // TODO calculate this once per block
+        int outputIndexThread0 = blockIndex * blockForcesSize;
+        int ppRank             = kernelParams.grid.d_paddedPpRanks[outputIndexThread0];
+        if (ppRank != -1)
+        {
+            atomicAdd((int*)&(kernelParams.blocksSentDataToPpRankCounter_[ppRank]), 1);
+        }
+        // My block has completed calculating and communicating data for pp rank. Increment counter
+        if (blockIndex == 0)
+        {
+            const int numPpRanks = kernelParams.grid.d_atomsPerPpProc[0]; // first elem is array size
+            int       numPpRanksToComplete = numPpRanks;
+
+            // populate sm_maxNBlocksPerPpRank
+            for (int p = 0; p < numPpRanks; p++)
+            {
+                int numAtoms  = kernelParams.grid.d_atomsPerPpProc[p + 1];
+                int numBlocks = ceilf(numAtoms / (float)atomsPerBlock);
+                // TODO better if this was registers not shared mem, but nPpRanks not known at compile time
+                sm_maxNBlocksPerPpRank[p] = numBlocks;
+            }
+            while (numPpRanksToComplete)
+            {
+                for (int p = 0; p < numPpRanks; p++)
+                {
+                    // Wait for all blocks to finish calculating and communicating data for pp rank p
+                    if (kernelParams.blocksSentDataToPpRankCounter_[p] == sm_maxNBlocksPerPpRank[p])
+                    {
+                        kernelParams.pmeToPpReadyAtomicFlagPtrs_[p]->store(1);
+                        numPpRanksToComplete--;
+                        // RESET partial ptr
+                        // TODO once multiple blocks can set this, will need this to be an atomic op
+                        kernelParams.blocksSentDataToPpRankCounter_[p] = 0;
+                    }
+                }
+            } // end while wait for pme gather blocks to complete
+        }     // end block id = 0
+    }         // end tid = 0
+
+} // end kernel
 
 //! Kernel instantiations
 // clang-format off

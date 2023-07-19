@@ -45,6 +45,8 @@
 #include <atomic>
 #include <new>
 
+#include <cuda/atomic>
+
 #include "gromacs/ewald/pme_force_sender_gpu.h"
 #include "gromacs/gpu_utils/devicebuffer_datatype.h"
 #include "gromacs/gpu_utils/gputraits.h"
@@ -85,7 +87,8 @@ struct PpForceCommManager
     //! CPU force buffer pointer for remote PP rank
     Float3* pmeRemoteCpuForcePtr;
     //! GPU force buffer pointers for remote PP rank
-    Float3* pmeRemoteGpuForcePtr;
+    Float3*            pmeRemoteGpuForcePtr;
+    cuda::atomic<int>* pmeToPpReadyAtomicFlagPtr;
 };
 
 class PmeForceSenderGpu::Impl
@@ -129,6 +132,15 @@ public:
      */
     void sendFToPpGpuAwareMpi(DeviceBuffer<RVec> sendbuf, int offset, int numBytes, int ppRank, MPI_Request* request);
 
+    DeviceBuffer<RVec*>  getPmeRemoteGpuForcePtrs();
+    DeviceBuffer<int>    getPaddedPpRanks();
+    DeviceBuffer<int>    getPaddedAtomIndices();
+    DeviceBuffer<int>    getPaddedAtomOffsets();
+    DeviceBuffer<RVec*>  getPmeRemoteGpuForceReferencePtrs();
+    DeviceBuffer<size_t> getAtomsPerPpProc();
+    cuda::atomic<int>**  getPmeToPpReadyAtomicFlagPtrs();
+    int                  getNPaddedAtoms();
+
 private:
     //! Event indicating when PME forces are ready on the GPU in order for PP stream to sync with the PME stream
     GpuEventSynchronizer* pmeForcesReady_;
@@ -147,6 +159,17 @@ private:
     bool stageThreadMpiGpuCpuComm_ = false;
     //! Communication manager objects corresponding to multiple receiving PP ranks
     std::vector<PpForceCommManager> ppCommManagers_;
+
+    // TODO these vars should have _ at end
+    DeviceBuffer<RVec*> d_pmeRemoteGpuForcePtrs;
+    DeviceBuffer<RVec*> d_pmeRemoteGpuForceReferencePtrs;
+    DeviceBuffer<int>   d_paddedPpRanks;
+    DeviceBuffer<int>   d_paddedAtomIndices;
+    DeviceBuffer<int>   d_paddedAtomOffsets;
+    // TODO find somewhere better for this
+    int                  nPaddedAtoms;
+    cuda::atomic<int>**  d_pmeToPpReadyAtomicFlagPtrs_;
+    DeviceBuffer<size_t> d_atomsPerPpProc;
 };
 
 } // namespace gmx

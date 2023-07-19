@@ -44,6 +44,8 @@
 
 #include <atomic>
 
+#include <cuda/atomic>
+
 #include "gromacs/ewald/pme_pp_comm_gpu.h"
 #include "gromacs/gpu_utils/gpueventsynchronizer.h"
 #include "gromacs/gpu_utils/gputraits.h"
@@ -113,6 +115,7 @@ public:
      * Return pointer to buffer used for staging PME force on GPU
      */
     DeviceBuffer<Float3> getGpuForceStagingPtr();
+    cuda::atomic<int>*   getPmeToPpReadyAtomicFlagPtr();
 
     /*! \brief
      * Return pointer to event recorded when forces are ready
@@ -173,6 +176,7 @@ private:
     gmx::HostVector<gmx::RVec>* pmeCpuForceBuffer_;
     //! Buffer for staging PME force on GPU
     DeviceBuffer<gmx::RVec> d_pmeForces_;
+    cuda::atomic<int>*      d_pmeToPpReadyAtomicFlag_;
     //! number of atoms in PME force staging array
     int d_pmeForcesSize_ = -1;
     //! number of atoms allocated in recvbuf array
