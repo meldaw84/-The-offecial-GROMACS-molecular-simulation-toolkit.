@@ -305,10 +305,10 @@ if (GMX_GPU)
         GMX_GPU_FFT_LIBRARY
         "GPU FFT library"
         "${GMX_GPU_FFT_LIBRARY_DEFAULT}"
-        cuFFT clFFT VkFFT MKL rocFFT dbFFT none)
+        cuFFT clFFT VkFFT MKL rocFFT BBFFT none)
     # The validity of chosen option is later verified by the selected backend
 
-    foreach (_gpu_fft_library cuFFT clFFT VkFFT MKL rocFFT dbFFT)
+    foreach (_gpu_fft_library cuFFT clFFT VkFFT MKL rocFFT BBFFT)
         string(TOUPPER "${_gpu_fft_library}" _gpu_fft_library_upper)
         if (GMX_GPU_FFT_LIBRARY STREQUAL ${_gpu_fft_library_upper})
             if (NOT GMX_GPU_FFT_QUIET_AFTER_FIRST_RUN)
@@ -604,13 +604,10 @@ option(GMX_EXTERNAL_TINYXML2 "Use external TinyXML-2 instead of compiling the ve
 mark_as_advanced(GMX_EXTERNAL_TINYXML2)
 if(GMX_EXTERNAL_TINYXML2)
     # Find an external TinyXML-2 library.
-    find_package(TinyXML2 3.0.0)
+    find_package(TinyXML2 6.0.0)
     set(HAVE_TINYXML2 ${TinyXML2_FOUND})
     if(NOT HAVE_TINYXML2)
         message(FATAL_ERROR "External TinyXML-2 could not be found, please adjust your search paths")
-    endif()
-    if (TinyXML2_FOUND AND TinyXML2_VERSION VERSION_GREATER "6")
-        message(FATAL_ERROR "External TinyXML-2 is later than the highest supported version 6. Please adjust your search paths to include a supported version")
     endif()
 endif()
 
