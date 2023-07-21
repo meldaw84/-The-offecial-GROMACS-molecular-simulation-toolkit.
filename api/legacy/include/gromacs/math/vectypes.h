@@ -96,8 +96,8 @@ public:
     static_assert(!std::is_pointer<std::remove_cv_t<ValueType>>::value,
                   "BasicVector value type must not be a pointer.");
 
-    //! Constructs default (uninitialized) vector.
-    BasicVector() {}
+    //! Constructs default (initialized to zero) vector.
+    BasicVector() : x_{ 0, 0, 0 } {}
     //! Constructs a vector from given values.
     BasicVector(ValueType x, ValueType y, ValueType z) : x_{ x, y, z } {}
     /*! \brief
