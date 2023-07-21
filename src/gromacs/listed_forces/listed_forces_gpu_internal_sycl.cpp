@@ -498,12 +498,11 @@ static float dih_angle_gpu_sincos(const T                   xi,
                                   sycl::private_ptr<Float3> n,
                                   sycl::private_ptr<int>    t1,
                                   sycl::private_ptr<int>    t2,
-                                  sycl::private_ptr<int>    t3,
                                   sycl::private_ptr<float>  cosval)
 {
     *t1 = pbcDxAiucSycl<returnShift>(pbcAiuc, xi, xj, *r_ij);
     *t2 = pbcDxAiucSycl<returnShift>(pbcAiuc, xk, xj, *r_kj);
-    *t3 = pbcDxAiucSycl<returnShift>(pbcAiuc, xk, xl, *r_kl);
+    pbcDxAiucSycl<returnShift>(pbcAiuc, xk, xl, *r_kl);
 
     *m = r_ij->cross(*r_kj);
     *n = r_kj->cross(*r_kl);
@@ -673,11 +672,10 @@ static void rbdihs_gpu(const int                                  i,
         Float3 n;
         int    t1;
         int    t2;
-        int    t3;
         float  cos_phi;
 
         const float sin_phi = dih_angle_gpu_sincos<calcVir>(
-                gm_xq[ai], gm_xq[aj], gm_xq[ak], gm_xq[al], pbcAiuc, &r_ij, &r_kj, &r_kl, &m, &n, &t1, &t2, &t3, &cos_phi);
+                gm_xq[ai], gm_xq[aj], gm_xq[ak], gm_xq[al], pbcAiuc, &r_ij, &r_kj, &r_kl, &m, &n, &t1, &t2, &cos_phi);
         cos_phi *= -1;
 
         float parm[NR_RBDIHS];
