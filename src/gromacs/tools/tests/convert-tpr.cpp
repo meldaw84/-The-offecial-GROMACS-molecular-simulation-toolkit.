@@ -227,7 +227,8 @@ TEST_F(ConvertTprTest, generateVelocitiesTest)
 
         gmx::test::TestReferenceData    data;
         gmx::test::TestReferenceChecker checker(data.rootChecker());
-        FloatingPointTolerance          tolerance(GMX_DOUBLE ? relativeToleranceAsUlp(1, 10) : defaultRealTolerance());
+        FloatingPointTolerance          tolerance(GMX_DOUBLE ? relativeToleranceAsUlp(1, 10)
+                                                             : defaultRealTolerance());
         checker.setDefaultTolerance(tolerance);
         std::vector<real> result;
         // Check that the X coordinates did NOT change
