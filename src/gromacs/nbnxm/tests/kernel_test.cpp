@@ -343,14 +343,21 @@ std::unique_ptr<nonbonded_verlet_t> setupNbnxmForBenchInstance(const KernelOptio
     return nbv;
 }
 
-/*! \brief Convenience typedef of the test input parameters
- *
- * Parameters:
- * - the kernel type and cluster pair layout
- * - the Coulomb kernel type
- * - the VdW interaction type
- */
-typedef std::tuple<Nbnxm::KernelType, CoulombKernelType, int> KernelInputParameters;
+//! Convenience typedef of the test input parameters
+struct KernelInputParameters
+{
+    using TupleT = std::tuple<Nbnxm::KernelType, CoulombKernelType, int>;
+    //! The kernel type and cluster pair layout
+    Nbnxm::KernelType kernelType;
+    //! The Coulomb kernel type
+    CoulombKernelType coulombKernelType;
+    //! The VdW interaction type
+    int vdwKernelType;
+    KernelInputParameters(TupleT t) :
+        kernelType(std::get<0>(t)), coulombKernelType(std::get<1>(t)), vdwKernelType(std::get<2>(t))
+    {
+    }
+};
 
 //! Class that sets up and holds a set of N atoms and a full NxM pairlist
 class NbnxmKernelTest : public ::testing::TestWithParam<KernelInputParameters>
@@ -444,7 +451,7 @@ const std::array<const char*, vdwktNR> vdwKernelTypeName = { "CutCombGeom", "Cut
 std::string nameOfTest(const testing::TestParamInfo<KernelInputParameters>& info)
 {
     // We give tabulated Ewald the same name as Ewald to use the same reference data
-    CoulombKernelType coulombKernelType = std::get<1>(info.param);
+    CoulombKernelType coulombKernelType = info.param.coulombKernelType;
     switch (coulombKernelType)
     {
         case CoulombKernelType::Table: coulombKernelType = CoulombKernelType::Ewald; break;
@@ -453,7 +460,7 @@ std::string nameOfTest(const testing::TestParamInfo<KernelInputParameters>& info
     }
     std::string testName = formatString("Coulomb%s_Vdw%s",
                                         coulombKernelTypeName[coulombKernelType],
-                                        vdwKernelTypeName[std::get<2>(info.param)]);
+                                        vdwKernelTypeName[info.param.vdwKernelType]);
 
     // Note that the returned names must be unique and may use only
     // alphanumeric ASCII characters. It's not supposed to contain
@@ -484,9 +491,9 @@ std::string fullNameOfTest(const testing::TestParamInfo<KernelInputParameters>& 
     return formatString(
             "type_%s_Tab%s_"
             "%s",
-            lookup_kernel_name(std::get<0>(info.param)),
-            std::get<1>(info.param) == CoulombKernelType::Table
-                            || std::get<1>(info.param) == CoulombKernelType::TableTwin
+            lookup_kernel_name(info.param.kernelType),
+            info.param.coulombKernelType == CoulombKernelType::Table
+                            || info.param.coulombKernelType == CoulombKernelType::TableTwin
                     ? "Yes"
                     : "No",
             testName.c_str());
@@ -548,7 +555,7 @@ class NbnxmKernelTestBody : public NbnxmKernelTest
 public:
     //! Constructor
     explicit NbnxmKernelTestBody(const KernelInputParameters& parameters) :
-        NbnxmKernelTest(std::get<2>(parameters) == vdwktLJCUT_COMBGEOM
+        NbnxmKernelTest(parameters.vdwKernelType == vdwktLJCUT_COMBGEOM
                                 ? LJCombinationRule::Geometric
                                 : LJCombinationRule::LorentzBerthelot),
         parameters_(parameters)
@@ -561,16 +568,16 @@ public:
     //! The test
     void TestBody() override
     {
-        options_.kernelSetup.kernelType = std::get<0>(parameters_);
+        options_.kernelSetup.kernelType = parameters_.kernelType;
 
         // Coulomb settings
-        options_.kernelSetup.ewaldExclusionType = isTabulated(std::get<1>(parameters_))
+        options_.kernelSetup.ewaldExclusionType = isTabulated(parameters_.coulombKernelType)
                                                           ? Nbnxm::EwaldExclusionType::Table
                                                           : Nbnxm::EwaldExclusionType::Analytical;
-        options_.coulombType                    = std::get<1>(parameters_);
+        options_.coulombType                    = parameters_.coulombKernelType;
 
         // Van der Waals settings
-        switch (std::get<2>(parameters_))
+        switch (parameters_.vdwKernelType)
         {
             case vdwktLJCUT_COMBGEOM:
                 options_.ljCombinationRule = LJCombinationRule::Geometric;
@@ -580,7 +587,7 @@ public:
                 break;
             default: options_.ljCombinationRule = LJCombinationRule::None; break;
         }
-        switch (std::get<2>(parameters_))
+        switch (parameters_.vdwKernelType)
         {
             case vdwktLJFORCESWITCH:
                 options_.vdwModifier = InteractionModifiers::ForceSwitch;
@@ -588,7 +595,7 @@ public:
             case vdwktLJPOTSWITCH: options_.vdwModifier = InteractionModifiers::PotSwitch; break;
             default: options_.vdwModifier = InteractionModifiers::PotShift; break;
         }
-        options_.useLJPme = (std::get<2>(parameters_) == vdwktLJEWALDCOMBGEOM);
+        options_.useLJPme = (parameters_.vdwKernelType == vdwktLJEWALDCOMBGEOM);
 
         if (options_.kernelSetup.kernelType == Nbnxm::KernelType::Cpu4x4_PlainC
             && (options_.coulombType == CoulombKernelType::Ewald
@@ -598,7 +605,7 @@ public:
             return;
         }
 
-        if (std::get<2>(parameters_) == vdwktLJCUT_COMBGEOM || std::get<2>(parameters_) == vdwktLJCUT_COMBLB)
+        if (parameters_.vdwKernelType == vdwktLJCUT_COMBGEOM || parameters_.vdwKernelType == vdwktLJCUT_COMBLB)
         {
             // There are no combination rule versions of the plain-C kernel
             return;
@@ -759,22 +766,23 @@ const auto testKernelTypes = ::testing::Values(Nbnxm::KernelType::Cpu4x4_PlainC
 void registerTestsDynamically()
 {
     // Form the Cartesian product of all test values we might check
-    const auto testCombinations = ::testing::Combine(testKernelTypes,
-                                                     ::testing::Values(CoulombKernelType::ReactionField,
-                                                                       CoulombKernelType::Ewald,
-                                                                       CoulombKernelType::EwaldTwin
+    const auto testCombinations = testing::ConvertGenerator<KernelInputParameters::TupleT>(
+            ::testing::Combine(testKernelTypes,
+                               ::testing::Values(CoulombKernelType::ReactionField,
+                                                 CoulombKernelType::Ewald,
+                                                 CoulombKernelType::EwaldTwin
 #if !GENERATE_REFERENCE_DATA
-                                                                       ,
-                                                                       CoulombKernelType::Table,
-                                                                       CoulombKernelType::TableTwin
+                                                 ,
+                                                 CoulombKernelType::Table,
+                                                 CoulombKernelType::TableTwin
 #endif
-                                                                       ),
-                                                     ::testing::Values(vdwktLJCUT_COMBGEOM,
-                                                                       vdwktLJCUT_COMBLB,
-                                                                       vdwktLJCUT_COMBNONE,
-                                                                       vdwktLJFORCESWITCH,
-                                                                       vdwktLJPOTSWITCH,
-                                                                       vdwktLJEWALDCOMBGEOM));
+                                                 ),
+                               ::testing::Values(vdwktLJCUT_COMBGEOM,
+                                                 vdwktLJCUT_COMBLB,
+                                                 vdwktLJCUT_COMBNONE,
+                                                 vdwktLJFORCESWITCH,
+                                                 vdwktLJPOTSWITCH,
+                                                 vdwktLJEWALDCOMBGEOM)));
 
     registerTests<NbnxmKernelTest, NbnxmKernelTestBody, decltype(testCombinations)>(
             "NbnxmKernelTest", nameOfTest, fullNameOfTest, testCombinations);
