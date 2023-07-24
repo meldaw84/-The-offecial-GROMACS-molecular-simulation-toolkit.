@@ -254,7 +254,7 @@ void MdGpuGraph::Impl::startRecord(GpuEventSynchronizer* xReadyOnDeviceEvent)
     // Re-mark xReadyOnDeviceEvent to allow full isolation within graph capture
     xReadyOnDeviceEvent->markEvent(deviceStreamManager_.stream(gmx::DeviceStreamType::UpdateAndConstraints));
     graphState_ = GraphState::Recording;
-};
+}
 
 
 void MdGpuGraph::Impl::endRecord()
@@ -324,7 +324,7 @@ void MdGpuGraph::Impl::endRecord()
     }
     wallcycle_sub_stop(wcycle_, WallCycleSubCounter::MdGpuGraphCapture);
     wallcycle_stop(wcycle_, WallCycleCounter::MdGpuGraph);
-};
+}
 
 void MdGpuGraph::Impl::createExecutableGraph(bool forceGraphReinstantiation)
 {
@@ -387,7 +387,7 @@ void MdGpuGraph::Impl::createExecutableGraph(bool forceGraphReinstantiation)
     }
     wallcycle_sub_stop(wcycle_, WallCycleSubCounter::MdGpuGraphInstantiateOrUpdate);
     wallcycle_stop(wcycle_, WallCycleCounter::MdGpuGraph);
-};
+}
 
 void MdGpuGraph::Impl::launchGraphMdStep(GpuEventSynchronizer* xUpdatedOnDeviceEvent)
 {
@@ -465,7 +465,7 @@ void MdGpuGraph::Impl::launchGraphMdStep(GpuEventSynchronizer* xUpdatedOnDeviceE
 
     wallcycle_sub_stop(wcycle_, WallCycleSubCounter::MdGpuGraphLaunch);
     wallcycle_stop(wcycle_, WallCycleCounter::MdGpuGraph);
-};
+}
 
 void MdGpuGraph::Impl::setAlternateStepPpTaskCompletionEvent(GpuEventSynchronizer* event)
 {
