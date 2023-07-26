@@ -66,6 +66,21 @@
  * function to optimize performance for different properties on pair list
  * entries.
  *
+ * Many, but not all, combinations of the Cartesian product of the different
+ * possible values of all template parameters are instantiated for this kernel.
+ * In particular, \p vdwCutoffCheck is only enabled with Ewald type electrostatics
+ * and only certain combinations of \p ljCombinationRule and \p vdwModifier are used.
+ * 
+ * Which kernel layouts are instantiated depends on the extent of SIMD support of
+ * the architecture and on which layouts are assumed to produce the best peformance.
+ * Currently we have two kernel layouts:
+ * - 4xM: this stores one j-cluster of width M im a SIMD register of width M and
+ *        uses 4 registers for each i-atom variable, one for each i-atom.
+ * - 2xMM: this stores two j-clusters of width M in a SIMD register of width 2*M and
+ *         uses 2 registers for each i-atom variable, one for two i-atoms.
+ * Most of the logic concerning the kernel layouts is not directly present in this
+ * function, but is hidden in functions that are called through template specialization.
+ *
  * \author Berk Hess <hess@kth.se>
  * \ingroup module_nbnxm
  */
