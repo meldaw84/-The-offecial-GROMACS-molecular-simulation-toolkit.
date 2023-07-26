@@ -97,6 +97,7 @@ static constexpr bool sc_calculateShiftForces = true;
  * \tparam coulombType     The type of Coulomb interaction
  * \tparam vdwCutoffCheck  Whether a separate check for the VdW cutoff is needed
  * \tparam ljCombinationRule  The combination rule for the LJ parameters
+ * \tparam vdwModifier     The modifier for the LJ interactions
  * \tparam ljEwald         The type of LJ Ewald treatment, can be none
  * \tparam energyOutput    Which types of output are requested
  * \param[in] nbl          The cluster pair list
