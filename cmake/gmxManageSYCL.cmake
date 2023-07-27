@@ -371,6 +371,13 @@ else()
         endif()
     endif()
 
+    set(CMAKE_REQUIRED_FLAGS "${SYCL_TOOLCHAIN_CXX_FLAGS}")
+    check_cxx_symbol_exists(SYCL_EXT_ONEAPI_GRAPH "CL/sycl.hpp" HAVE_SYCL_EXT_ONEAPI_GRAPH)
+    unset(CMAKE_REQUIRED_FLAGS)
+    if(HAVE_SYCL_EXT_ONEAPI_GRAPH)
+        set(GMX_HAVE_GPU_GRAPH_SUPPORT ON)
+    endif()
+
     if(GMX_GPU_FFT_VKFFT)
         include(gmxManageVkFft)
         if ("${SYCL_CXX_FLAGS_EXTRA}" MATCHES "fsycl-targets=.*nvptx64")

@@ -159,7 +159,8 @@ void reportGpuUsage(const MDLogger&                   mdlog,
         if (simulationWork.useMdGpuGraph)
         {
             output += gmx::formatString(
-                    "CUDA Graphs will be used, provided there are no CPU force computations.\n");
+                    "%s Graphs will be used, provided there are no CPU force computations.\n",
+                    (GMX_GPU_CUDA ? "CUDA" : (GMX_GPU_SYCL ? "SYCL" : "")));
         }
     }
 

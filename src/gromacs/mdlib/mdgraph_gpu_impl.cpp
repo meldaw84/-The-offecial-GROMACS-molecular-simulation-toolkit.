@@ -54,7 +54,7 @@
 #include "gromacs/utility/classhelpers.h"
 #include "gromacs/utility/gmxmpi.h"
 
-#if !GMX_GPU_CUDA
+#if !GMX_HAVE_GPU_GRAPH_SUPPORT
 
 namespace gmx
 {

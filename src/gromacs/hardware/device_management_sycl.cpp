@@ -555,6 +555,15 @@ std::vector<std::unique_ptr<DeviceInformation>> findDevices()
                 deviceInfos[i]->hardwareVersionPatch = std::get<2>(*hwVersion);
             }
         }
+
+#if GMX_HAVE_GPU_GRAPH_SUPPORT
+        using graph_support       = sycl::ext::oneapi::experimental::info::device::graph_support;
+        using graph_support_level = sycl::ext::oneapi::experimental::info::graph_support_level;
+        deviceInfos[i]->supportsSyclGraph =
+                (syclDevice.get_info<graph_support>() != graph_support_level::unsupported);
+#else
+        deviceInfos[i]->supportsSyclGraph = false;
+#endif
     }
 #if GMX_SYCL_DPCPP
     // Now, filter by the backend if we did not disable compatibility check
