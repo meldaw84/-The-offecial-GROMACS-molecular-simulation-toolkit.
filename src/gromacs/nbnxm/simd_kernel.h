@@ -70,7 +70,7 @@
  * possible values of all template parameters are instantiated for this kernel.
  * In particular, \p vdwCutoffCheck is only enabled with Ewald type electrostatics
  * and only certain combinations of \p ljCombinationRule and \p vdwModifier are used.
- * 
+ *
  * Which kernel layouts are instantiated depends on the extent of SIMD support of
  * the architecture and on which layouts are assumed to produce the best peformance.
  * Currently we have two kernel layouts:
