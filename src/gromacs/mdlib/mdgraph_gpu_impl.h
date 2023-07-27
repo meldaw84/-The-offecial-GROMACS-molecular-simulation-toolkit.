@@ -66,7 +66,7 @@ public:
     /*! \brief Create MD graph object
      * \param [in] deviceStreamManager  Device stream manager object
      * \param [in] simulationWork       Simulation workload structure
-     * \param [in] mpiComm             MPI communicator for PP domain decomposition
+     * \param [in] mpiComm              MPI communicator for PP domain decomposition
      * \param [in] evenOrOddStep        Whether this graph corresponds to even or odd step
      * \param [in] wcycle               Wall cycle timer object
      */
@@ -132,6 +132,19 @@ n device
      */
     GpuEventSynchronizer* getPpTaskCompletionEvent();
 
+#if GMX_GPU_CUDA
+    using Graph         = cudaGraph_t;
+    using GraphInstance = cudaGraphExec_t;
+#elif GMX_GPU_SYCL && defined(SYCL_EXT_ONEAPI_GRAPH) && SYCL_EXT_ONEAPI_GRAPH
+    using Graph =
+            std::unique_ptr<sycl::ext::oneapi::experimental::command_graph<sycl::ext::oneapi::experimental::graph_state::modifiable>>;
+    using GraphInstance =
+            std::unique_ptr<sycl::ext::oneapi::experimental::command_graph<sycl::ext::oneapi::experimental::graph_state::executable>>;
+#else
+    using Graph         = void;
+    using GraphInstance = void;
+#endif
+
 private:
     /*! \brief Collective operation to enqueue events from all PP ranks to a stream on PP rank 0
      * \param [in] event   Event to enqueue, valid on all PP ranks
@@ -147,9 +160,9 @@ private:
     void enqueueRank0EventToAllPpStreams(GpuEventSynchronizer* event, const DeviceStream& stream);
 
     //! Captured graph object
-    cudaGraph_t graph_;
+    Graph graph_;
     //! Instantiated graph object
-    cudaGraphExec_t instance_;
+    GraphInstance instance_;
     //! Whether graph has already been created
     bool graphCreated_ = false;
     //! Whether graph is capturing in this step

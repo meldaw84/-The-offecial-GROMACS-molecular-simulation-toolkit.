@@ -42,12 +42,15 @@ list(REMOVE_ITEM MDLIB_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/leapfrog_gpu_internal_sycl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/lincs_gpu.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/lincs_gpu_internal_sycl.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/mdgraph_gpu_impl.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/mdgraph_gpu_impl_sycl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/settle_gpu.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/settle_gpu_internal_sycl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/update_constrain_gpu_impl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/update_constrain_gpu_internal_sycl.cpp)
 
 set(MDLIB_SOURCES ${MDLIB_SOURCES} PARENT_SCOPE)
+
 if(GMX_GPU_CUDA)
     gmx_add_libgromacs_sources(
        gpuforcereduction_impl.cpp
@@ -79,6 +82,7 @@ if(GMX_GPU_SYCL)
         leapfrog_gpu_internal_sycl.cpp
         lincs_gpu.cpp
         lincs_gpu_internal_sycl.cpp
+        mdgraph_gpu_impl_sycl.cpp
         settle_gpu.cpp
         settle_gpu_internal_sycl.cpp
         update_constrain_gpu_impl.cpp
@@ -92,10 +96,17 @@ if(GMX_GPU_SYCL)
         leapfrog_gpu_internal_sycl.cpp
         lincs_gpu.cpp
         lincs_gpu_internal_sycl.cpp
+        mdgraph_gpu_impl_sycl.cpp
         settle_gpu.cpp
         settle_gpu_internal_sycl.cpp
         update_constrain_gpu_impl.cpp
         update_constrain_gpu_internal_sycl.cpp
+    )
+endif()
+
+if (NOT GMX_GPU_CUDA AND NOT GMX_GPU_SYCL)
+    gmx_add_libgromacs_sources(
+        mdgraph_gpu_impl.cpp
     )
 endif()
 

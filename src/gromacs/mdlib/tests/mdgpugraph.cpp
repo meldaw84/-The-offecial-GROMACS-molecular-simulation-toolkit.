@@ -92,6 +92,12 @@ TEST(MdGraphTest, MdGpuGraphExecutesActivities)
     }
     for (const auto& testDevice : testDeviceList)
     {
+#    if GMX_GPU_SYCL
+        if (!testDevice->deviceInfo().supportsSyclGraph)
+        {
+            continue;
+        }
+#    endif
         testDevice->activate();
         const auto& deviceContext = testDevice->deviceContext();
 
@@ -216,6 +222,12 @@ TEST(MdGraphTest, MdGpuGraphCaptureAndUsageConsistency)
     }
     for (const auto& testDevice : testDeviceList)
     {
+#    if GMX_GPU_SYCL
+        if (!testDevice->deviceInfo().supportsSyclGraph)
+        {
+            continue;
+        }
+#    endif
         testDevice->activate();
         const auto& deviceContext = testDevice->deviceContext();
 
