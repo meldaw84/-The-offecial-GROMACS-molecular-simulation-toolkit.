@@ -49,11 +49,9 @@
 #include "gromacs/utility/logger.h"
 #include "gromacs/utility/smalloc.h"
 
-constexpr int c_tableResolution = GMX_DOUBLE ? 24 : 12;
-
 static void low_mspeed(real tempi, const gmx_mtop_t& mtop, rvec v[], gmx::ThreeFry2x64<>* rng, const gmx::MDLogger& logger)
 {
-    gmx::TabulatedNormalDistribution<real, c_tableResolution> normalDist;
+    gmx::TabulatedNormalDistribution<real, 24> normalDist;
 
     real ekin = 0.0;
     int  nrdf = 0;
