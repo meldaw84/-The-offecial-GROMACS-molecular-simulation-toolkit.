@@ -109,7 +109,7 @@ void MaxwellTest::initMtop(int numWaters)
 void MaxwellTest::runTest(real temp, int seed)
 {
     MDLogger logger;
-    maxwell_speed(temp, seed, &mtop_, as_rvec_array(v.data()), logger);
+    maxwell_speed(temp, seed, mtop_, as_rvec_array(v.data()), logger);
     TestReferenceChecker compound(checker_.checkCompound("Velocities", nullptr));
     const auto           tolerance = relativeToleranceAsPrecisionDependentUlp(1.0, 40, 20);
     compound.setDefaultTolerance(tolerance);

@@ -57,7 +57,7 @@ class MDLogger;
  * \param[out] v    Velocities
  * \param[in] logger Handle to logging interface.
  */
-void maxwell_speed(real tempi, int seed, gmx_mtop_t* mtop, rvec v[], const gmx::MDLogger& logger);
+void maxwell_speed(real tempi, int seed, const gmx_mtop_t& mtop, rvec v[], const gmx::MDLogger& logger);
 
 /*! \brief
  * Remove the center of mass motion in a set of coordinates.

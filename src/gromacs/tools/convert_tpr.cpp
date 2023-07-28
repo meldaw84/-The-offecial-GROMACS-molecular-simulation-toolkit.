@@ -436,7 +436,7 @@ int ConvertTpr::run()
             printf("Using random seed %d for generating velocities", velocitySeed_);
         }
         // Since there is no log in convert-tpr, we generate-and-print the seed here
-        maxwell_speed(velocityTemperature_, velocitySeed_, &mtop, state.v.rvec_array(), MDLogger());
+        maxwell_speed(velocityTemperature_, velocitySeed_, mtop, state.v.rvec_array(), MDLogger());
         // Remove c-o-m after maxwell-boltzmann generation so we stay consistent with grompp
         atoms = gmx_mtop_global_atoms(mtop);
         std::vector<real> mass;

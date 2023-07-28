@@ -779,7 +779,7 @@ static void new_status(const char*                           topfile,
         }
         GMX_RELEASE_ASSERT((state->flags | enumValueToBitMask(StateEntry::V)) != 0,
                            "Generate velocities only makes sense when they are used");
-        maxwell_speed(opts->tempi, opts->seed, sys, state->v.rvec_array(), logger);
+        maxwell_speed(opts->tempi, opts->seed, *sys, state->v.rvec_array(), logger);
 
         stop_cm(logger, state->natoms, mass.data(), state->x.rvec_array(), state->v.rvec_array());
     }

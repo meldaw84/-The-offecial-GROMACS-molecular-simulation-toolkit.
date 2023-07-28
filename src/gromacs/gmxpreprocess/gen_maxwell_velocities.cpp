@@ -49,23 +49,23 @@
 #include "gromacs/utility/logger.h"
 #include "gromacs/utility/smalloc.h"
 
-static void low_mspeed(real tempi, gmx_mtop_t* mtop, rvec v[], gmx::ThreeFry2x64<>* rng, const gmx::MDLogger& logger)
-{
-    int                                    nrdf;
-    real                                   ekin, temp;
-    gmx::TabulatedNormalDistribution<real> normalDist;
+constexpr int c_tableResolution = GMX_DOUBLE ? 24 : 12;
 
-    ekin = 0.0;
-    nrdf = 0;
-    for (const AtomProxy atomP : AtomRange(*mtop))
+static void low_mspeed(real tempi, const gmx_mtop_t& mtop, rvec v[], gmx::ThreeFry2x64<>* rng, const gmx::MDLogger& logger)
+{
+    gmx::TabulatedNormalDistribution<real, c_tableResolution> normalDist;
+
+    real ekin = 0.0;
+    int  nrdf = 0;
+    for (const AtomProxy atomP : AtomRange(mtop))
     {
         const t_atom& local = atomP.atom();
         int           i     = atomP.globalAtomNumber();
-        real          mass  = local.m;
-        if (mass > 0)
+        const real    mass  = local.m;
+        if (mass > 0.)
         {
             rng->restart(i, 0);
-            real sd = std::sqrt(gmx::c_boltz * tempi / mass);
+            const real sd = std::sqrt(gmx::c_boltz * tempi / mass);
             for (int m = 0; (m < DIM); m++)
             {
                 v[i][m] = sd * normalDist(*rng);
@@ -74,11 +74,11 @@ static void low_mspeed(real tempi, gmx_mtop_t* mtop, rvec v[], gmx::ThreeFry2x64
             nrdf += DIM;
         }
     }
-    temp = (2.0 * ekin) / (nrdf * gmx::c_boltz);
-    if (temp > 0)
+    const real temp = (2.0 * ekin) / (nrdf * gmx::c_boltz);
+    if (temp > 0.)
     {
-        real scal = std::sqrt(tempi / temp);
-        for (int i = 0; (i < mtop->natoms); i++)
+        const real scal = std::sqrt(tempi / temp);
+        for (int i = 0; (i < mtop.natoms); i++)
         {
             for (int m = 0; (m < DIM); m++)
             {
@@ -99,7 +99,7 @@ static void low_mspeed(real tempi, gmx_mtop_t* mtop, rvec v[], gmx::ThreeFry2x64
     }
 }
 
-void maxwell_speed(real tempi, int seed, gmx_mtop_t* mtop, rvec v[], const gmx::MDLogger& logger)
+void maxwell_speed(real tempi, int seed, const gmx_mtop_t& mtop, rvec v[], const gmx::MDLogger& logger)
 {
 
     if (seed == -1)
@@ -117,19 +117,17 @@ void maxwell_speed(real tempi, int seed, gmx_mtop_t* mtop, rvec v[], const gmx::
 static real calc_cm(int natoms, const real mass[], rvec x[], rvec v[], rvec xcm, rvec vcm, rvec acm, matrix L)
 {
     rvec dx, a0;
-    real tm, m0;
-    int  i, m;
 
     clear_rvec(xcm);
     clear_rvec(vcm);
     clear_rvec(acm);
-    tm = 0.0;
-    for (i = 0; (i < natoms); i++)
+    real tm = 0.0;
+    for (int i = 0; (i < natoms); i++)
     {
-        m0 = mass[i];
+        const real m0 = mass[i];
         tm += m0;
         cprod(x[i], v[i], a0);
-        for (m = 0; (m < DIM); m++)
+        for (int m = 0; (m < DIM); m++)
         {
             xcm[m] += m0 * x[i][m]; /* c.o.m. position */
             vcm[m] += m0 * v[i][m]; /* c.o.m. velocity */
@@ -137,7 +135,7 @@ static real calc_cm(int natoms, const real mass[], rvec x[], rvec v[], rvec xcm,
         }
     }
     cprod(xcm, vcm, a0);
-    for (m = 0; (m < DIM); m++)
+    for (int m = 0; (m < DIM); m++)
     {
         xcm[m] /= tm;
         vcm[m] /= tm;
@@ -145,10 +143,10 @@ static real calc_cm(int natoms, const real mass[], rvec x[], rvec v[], rvec xcm,
     }
 
     clear_mat(L);
-    for (i = 0; (i < natoms); i++)
+    for (int i = 0; (i < natoms); i++)
     {
-        m0 = mass[i];
-        for (m = 0; (m < DIM); m++)
+        const real m0 = mass[i];
+        for (int m = 0; (m < DIM); m++)
         {
             dx[m] = x[i][m] - xcm[m];
         }
@@ -167,17 +165,16 @@ void stop_cm(const gmx::MDLogger gmx_unused& logger, int natoms, real mass[], rv
 {
     rvec   xcm, vcm, acm;
     tensor L;
-    int    i, m;
 
 #ifdef DEBUG
     GMX_LOG(logger.info).asParagraph().appendTextFormatted("stopping center of mass motion...");
 #endif
-    (void)calc_cm(natoms, mass, x, v, xcm, vcm, acm, L);
+    calc_cm(natoms, mass, x, v, xcm, vcm, acm, L);
 
     /* Subtract center of mass velocity */
-    for (i = 0; (i < natoms); i++)
+    for (int i = 0; (i < natoms); i++)
     {
-        for (m = 0; (m < DIM); m++)
+        for (int m = 0; (m < DIM); m++)
         {
             v[i][m] -= vcm[m];
         }
