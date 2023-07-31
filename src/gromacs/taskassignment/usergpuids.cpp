@@ -115,24 +115,8 @@ std::vector<int> parseUserGpuIdString(const std::string& gpuIdString)
     // An optional comma is used to separate GPU IDs assigned to the
     // same type of task, which will be useful for any nodes that have
     // more than ten GPUs.
-
-    auto digits = parseGpuDeviceIdentifierList(gpuIdString);
-
-    // Check and enforce that no duplicate IDs are allowed
-    for (size_t i = 0; i != digits.size(); ++i)
-    {
-        for (size_t j = i + 1; j != digits.size(); ++j)
-        {
-            if (digits[i] == digits[j])
-            {
-                GMX_THROW(
-                        InvalidInputError(formatString("The string of available GPU device IDs "
-                                                       "'%s' may not contain duplicate device IDs",
-                                                       gpuIdString.c_str())));
-            }
-        }
-    }
-    return digits;
+    return parseGpuDeviceIdentifierList(gpuIdString);
+    ;
 }
 
 std::vector<int> makeListOfAvailableDevices(gmx::ArrayRef<const std::unique_ptr<DeviceInformation>> deviceInfoList,
