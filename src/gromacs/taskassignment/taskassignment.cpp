@@ -302,7 +302,6 @@ GpuTaskAssignments GpuTaskAssignmentsBuilder::build(const gmx::ArrayRef<const in
         // runtime, and subject to environment modification such as
         // with CUDA_VISIBLE_DEVICES) that will be used for the
         // GPU-suitable tasks on all of the ranks of that node.
-        std::vector<int> generatedGpuIds;
         if (userGpuTaskAssignment.empty())
         {
             ArrayRef<const int> compatibleGpusToUse = availableDevices;
@@ -317,28 +316,7 @@ GpuTaskAssignments GpuTaskAssignmentsBuilder::build(const gmx::ArrayRef<const in
             // IDs, even if we have more than one kind of GPU task, we
             // do a simple round-robin assignment. That's not ideal,
             // but we don't have any way to do a better job reliably.
-            generatedGpuIds = makeGpuIds(compatibleGpusToUse, numGpuTasksOnThisNode);
-
-            if ((numGpuTasksOnThisNode > availableDevices.size())
-                && (numGpuTasksOnThisNode % availableDevices.size() != 0))
-            {
-                // TODO Decorating the message with hostname should be
-                // the job of an error-reporting module.
-                char host[STRLEN];
-                gmx_gethostname(host, STRLEN);
-
-                GMX_THROW(InconsistentInputError(formatString(
-                        "There were %zu GPU tasks found on node %s, but %zu GPUs were "
-                        "available. If the GPUs are equivalent, then it is usually best "
-                        "to have a number of tasks that is a multiple of the number of GPUs. "
-                        "You should reconsider your GPU task assignment, "
-                        "number of ranks, or your use of the -nb, -pme, and -npme options, "
-                        "perhaps after measuring the performance you can get.",
-                        numGpuTasksOnThisNode,
-                        host,
-                        availableDevices.size())));
-            }
-            deviceIdAssignment = generatedGpuIds;
+            deviceIdAssignment = makeGpuIds(compatibleGpusToUse, numGpuTasksOnThisNode);
         }
         else
         {
