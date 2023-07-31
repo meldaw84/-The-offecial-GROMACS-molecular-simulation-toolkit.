@@ -116,7 +116,6 @@ std::vector<int> parseUserGpuIdString(const std::string& gpuIdString)
     // same type of task, which will be useful for any nodes that have
     // more than ten GPUs.
     return parseGpuDeviceIdentifierList(gpuIdString);
-    ;
 }
 
 std::vector<int> makeListOfAvailableDevices(gmx::ArrayRef<const std::unique_ptr<DeviceInformation>> deviceInfoList,

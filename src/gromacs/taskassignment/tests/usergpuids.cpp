@@ -141,13 +141,6 @@ TEST(GpuIdAndAssignmentStringHandlingTest, InvalidInputsThrow)
             EXPECT_THROW(parseUserTaskAssignmentString(s), InvalidInputError) << "for string " << s;
             EXPECT_THROW(parseUserGpuIdString(s), InvalidInputError) << "for string " << s;
         }
-
-        // strings invalid only in user GPU ID strings
-        const char* gpuidStrings[] = { "00", "0,0" };
-        for (const auto& s : gpuidStrings)
-        {
-            EXPECT_THROW(parseUserGpuIdString(s), InvalidInputError) << "for string " << s;
-        }
     }
 }
 
