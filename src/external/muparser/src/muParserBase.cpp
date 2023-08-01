@@ -1876,9 +1876,8 @@ namespace mu
 		int ct = 0;
 #endif
 		omp_set_num_threads(nMaxThreads);
-		int maxT = (nBulkSize/nMaxThreads) > 1 ? (nBulkSize/nMaxThreads) : 1;
-//#pragma omp parallel for schedule(static, std::max(nBulkSize/nMaxThreads, 1)) private(nThreadID)
-#pragma omp parallel for schedule(static, maxT) private(nThreadID)
+		int numThreads = std::max(nBulkSize/nMaxThreads, 1);
+#pragma omp parallel for schedule(static, numThreads) private(nThreadID)
 		for (i = 0; i < nBulkSize; ++i)
 		{
 			nThreadID = omp_get_thread_num();
