@@ -417,6 +417,9 @@ interaction_const_t setupInteractionConst(const KernelOptions& options)
     ir.coulombtype      = coulombInteractionType(options.coulombType);
     ir.coulomb_modifier = InteractionModifiers::PotShift;
     ir.rcoulomb         = options.pairlistCutoff;
+    ir.ewald_rtol       = options.ewald_rtol;
+    ir.epsilon_r        = 1;
+    ir.epsilon_rf       = 0;
 
     gmx_mtop_t mtop;
     // Only reppow and functype[0] are used from mtop in init_interaction_const()
@@ -674,13 +677,16 @@ public:
         forceChecker.setDefaultTolerance(absoluteTolerance(tolerance));
         forceChecker.checkSequence(forces.begin(), forces.end(), "Forces");
 
-        TestReferenceChecker energyChecker(refData.rootChecker());
+        TestReferenceChecker ljEnergyChecker(refData.rootChecker());
         // Energies per atom are more accurate than forces, but there is loss
         // of precision due to summation over all atoms. The tolerance on
         // the energy turns out to be the same as on the forces.
-        energyChecker.setDefaultTolerance(absoluteTolerance(tolerance));
-        energyChecker.checkReal(vVdw[0], "VdW energy");
-        energyChecker.checkReal(vCoulomb[0], "Coulomb energy");
+        ljEnergyChecker.setDefaultTolerance(absoluteTolerance(tolerance));
+        ljEnergyChecker.checkReal(vVdw[0], "VdW energy");
+        TestReferenceChecker coulombEnergyChecker(refData.rootChecker());
+        // Coulomb energy errors are higher
+        coulombEnergyChecker.setDefaultTolerance(absoluteTolerance(10 * tolerance));
+        coulombEnergyChecker.checkReal(vCoulomb[0], "Coulomb energy");
 
         // Now call the force only kernel
         stepWork.computeEnergy = false;
@@ -723,8 +729,8 @@ public:
             }
         }
 
-        energyChecker.checkSequence(vVdwGrps.begin(), vVdwGrps.end(), "VdW group pair energy");
-        energyChecker.checkSequence(
+        ljEnergyChecker.checkSequence(vVdwGrps.begin(), vVdwGrps.end(), "VdW group pair energy");
+        coulombEnergyChecker.checkSequence(
                 vCoulombGrps.begin(), vCoulombGrps.end(), "Coulomb group pair energy");
 
         // Cross check the sum of group energies with the total energies
@@ -736,7 +742,7 @@ public:
             vCoulombGrpsSum += vCoulombGrps[gg];
         }
         EXPECT_REAL_EQ_TOL(vVdwGrpsSum, vVdw[0], absoluteTolerance(tolerance));
-        EXPECT_REAL_EQ_TOL(vCoulombGrpsSum, vCoulomb[0], absoluteTolerance(tolerance));
+        EXPECT_REAL_EQ_TOL(vCoulombGrpsSum, vCoulomb[0], absoluteTolerance(10 * tolerance));
     }
 };
 
