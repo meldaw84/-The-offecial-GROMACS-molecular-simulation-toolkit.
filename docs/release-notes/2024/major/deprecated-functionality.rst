@@ -10,6 +10,24 @@ Deprecated functionality
 Changes anticipated to |Gromacs| 2024 functionality
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+The analysis tool ``gmx chi`` no longer deprecated
+""""""""""""""""""""""""""""""""""""""""""""""""""
+
+Given the community interest, the decision was made to keep ``gmx chi``.
+
+:issue:`4108`
+
+
 Functionality deprecated in |Gromacs| 2024
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The Xeon Phi support will be removed
+""""""""""""""""""""""""""""""""""""
+
+Intel Xeon Phi series of accelerators has been discontinued in 2020,
+and most supercomputers using it are now retired. The support for
+Xeon Phi is deprecated in |Gromacs| 2024 and will be removed in the
+next release.
+
+:issue:`4740`
 

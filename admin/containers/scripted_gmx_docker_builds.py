@@ -508,7 +508,8 @@ def get_oneapi_plugins(args):
             raise RuntimeError(
                 "Need CODEPLAY_API_TOKEN env. variable to install oneAPI plugins"
             )
-        url = f"https://developer.codeplay.com/api/v1/products/download?product=oneapi&filters[]=linux&variant={variant}&aat={token}"
+        backend_version = {"nvidia": args.cuda, "amd": args.rocm}[variant]
+        url = f"https://developer.codeplay.com/api/v1/products/download?product=oneapi&variant={variant}&filters[]=linux&filters[]={backend_version}&aat={token}"
         outfile = f"/tmp/oneapi_plugin_{variant}.sh"
         blocks.append(
             hpccm.primitives.shell(
@@ -1187,11 +1188,13 @@ def build_stages(args) -> typing.Iterable["hpccm.Stage"]:
         os_packages += ["libboost-fiber-dev"]
     building_blocks["extra_packages"] = []
     if args.intel_compute_runtime:
+        repo = {
+            "22.04": "deb [arch=amd64] https://repositories.intel.com/graphics/ubuntu jammy arc",
+            "20.04": "deb [arch=amd64] https://repositories.intel.com/graphics/ubuntu focal main",
+        }
         building_blocks["extra_packages"] += hpccm.building_blocks.packages(
             apt_keys=["https://repositories.intel.com/graphics/intel-graphics.key"],
-            apt_repositories=[
-                f"deb [arch=amd64] https://repositories.intel.com/graphics/ubuntu focal main"
-            ],
+            apt_repositories=[repo[args.ubuntu]],
         )
         os_packages += _intel_compute_runtime_extra_packages
 

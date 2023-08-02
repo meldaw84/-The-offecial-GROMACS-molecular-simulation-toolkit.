@@ -43,17 +43,21 @@
 #ifndef GMX_MDRUNUTILITY_MDMODULESNOTIFIERS_H
 #define GMX_MDRUNUTILITY_MDMODULESNOTIFIERS_H
 
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "gromacs/math/arrayrefwithpadding.h"
+#include "gromacs/math/matrix.h"
 #include "gromacs/math/vectypes.h"
 #include "gromacs/mdrunutility/mdmodulesnotifier.h"
+
 
 struct t_commrec;
 struct gmx_mtop_t;
 class WarningHandler;
 enum class PbcType : int;
+struct t_inputrec;
 
 namespace gmx
 {
@@ -67,6 +71,27 @@ class SeparatePmeRanksPermitted;
 struct MDModulesCheckpointReadingDataOnMain;
 struct MDModulesCheckpointReadingBroadcast;
 struct MDModulesWriteCheckpointData;
+
+/*! \libinternal \brief Notification that atoms may have been redistributed
+ *
+ * This notification is emitted at the end of the DD (re)partioning
+ * or without DD right after atoms have put into the box.
+ * The local atom sets are updated for the new atom order when this signal is emitted.
+ * The coordinates of atoms can be shifted by periodic vectors
+ * before the signal was emitted.
+ */
+struct MDModulesAtomsRedistributedSignal
+{
+    MDModulesAtomsRedistributedSignal(const matrix box, gmx::ArrayRef<const RVec> x) :
+        box_(createMatrix3x3FromLegacyMatrix(box)), x_(x)
+    {
+    }
+
+    //! The simulation unit cell
+    const Matrix3x3 box_;
+    //! List of local atom coordinates after partitioning
+    gmx::ArrayRef<const RVec> x_;
+};
 
 /*! \libinternal \brief Check if module outputs energy to a specific field.
  *
@@ -102,19 +127,13 @@ class EnergyCalculationFrequencyErrors
 {
 public:
     //! Construct by setting the energy calculation frequency
-    EnergyCalculationFrequencyErrors(int64_t energyCalculationIntervalInSteps) :
-        energyCalculationIntervalInSteps_(energyCalculationIntervalInSteps)
-    {
-    }
+    EnergyCalculationFrequencyErrors(int64_t energyCalculationIntervalInSteps);
     //! Return the number of steps of an energy calculation interval
-    std::int64_t energyCalculationIntervalInSteps() const
-    {
-        return energyCalculationIntervalInSteps_;
-    }
+    std::int64_t energyCalculationIntervalInSteps() const;
     //! Collect error messages
-    void addError(const std::string& errorMessage) { errorMessages_.push_back(errorMessage); }
+    void addError(const std::string& errorMessage);
     //! Return error messages
-    const std::vector<std::string>& errorMessages() const { return errorMessages_; }
+    const std::vector<std::string>& errorMessages() const;
 
 private:
     //! The frequency of energy calculations
@@ -157,6 +176,19 @@ struct QMInputFileName
     bool hasQMInputFileName_ = false;
     //! The name of the QM Input file (.inp)
     std::string qmInputFileName_;
+};
+
+/*! \libinternal \brief Provides the constant ensemble temperature
+ */
+struct EnsembleTemperature
+{
+    /*! \libinternal
+     * \brief Check whether the constant ensemble temperature is available.
+     * Then, store the value as optional.
+     */
+    explicit EnsembleTemperature(const t_inputrec& ir);
+    //! The constant ensemble temperature
+    std::optional<real> constantEnsembleTemperature_;
 };
 
 /*! \libinternal
@@ -269,6 +301,7 @@ struct MDModulesNotifiers
      *                              Enables writing of module internal data to .tpr files.
      * \tparam QMInputFileName      Allows the QMMM module to know if the user has provided
      *                              an external QM input file
+     * \tparam EnsembleTemperature  Provides modules with the constant ensemble temperature.
      */
     BuildMDModulesNotifier<const CoordinatesAndBoxPreprocessed&,
                            const MDLogger&,
@@ -277,7 +310,8 @@ struct MDModulesNotifiers
                            gmx_mtop_t*,
                            const IndexGroupsAndNames&,
                            KeyValueTreeObjectBuilder,
-                           const QMInputFileName&>::type preProcessingNotifier_;
+                           const QMInputFileName&,
+                           const EnsembleTemperature&>::type preProcessingNotifier_;
 
     /*! \brief Handles subscribing and calling checkpointing callback functions.
      *
@@ -325,6 +359,7 @@ struct MDModulesNotifiers
                            LocalAtomSetManager*,
                            const MDLogger&,
                            const gmx_mtop_t&,
+                           const MDModulesAtomsRedistributedSignal,
                            MDModulesEnergyOutputToDensityFittingRequestChecker*,
                            MDModulesEnergyOutputToQMMMRequestChecker*,
                            SeparatePmeRanksPermitted*,

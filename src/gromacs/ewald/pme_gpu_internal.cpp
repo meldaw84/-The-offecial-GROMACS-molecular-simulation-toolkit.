@@ -777,9 +777,9 @@ static void pme_gpu_init_internal(PmeGpu* pmeGpu, const DeviceContext& deviceCon
     pmeGpu->archSpecific.reset(new PmeGpuSpecific(deviceContext, deviceStream));
     pmeGpu->kernelParams.reset(new PmeGpuKernelParams());
 
-    // Use in-place FFT with cuFFTMp or DBFFT.
+    // Use in-place FFT with cuFFTMp or BBFFT.
     pmeGpu->archSpecific->performOutOfPlaceFFT =
-            !((pmeGpu->settings.useDecomposition && GMX_USE_cuFFTMp) || GMX_GPU_FFT_DBFFT);
+            !((pmeGpu->settings.useDecomposition && GMX_USE_cuFFTMp) || GMX_GPU_FFT_BBFFT);
 
     /* This should give better performance, according to the cuFFT documentation.
      * The performance seems to be the same though.
@@ -885,9 +885,9 @@ static gmx::FftBackend getFftBackend(const PmeGpu* pmeGpu)
                         "PME decomposition on oneAPI-compatible GPUs"));
             }
         }
-        else if (GMX_GPU_FFT_DBFFT)
+        else if (GMX_GPU_FFT_BBFFT)
         {
-            return gmx::FftBackend::SyclDbfft;
+            return gmx::FftBackend::SyclBbfft;
         }
         else if (GMX_GPU_FFT_ROCFFT)
         {
@@ -1442,8 +1442,11 @@ void pme_gpu_reinit_atoms(PmeGpu* pmeGpu, const int nAtoms, const real* chargesA
         /* FIXME: This should be avoided by making a separate templated version of the
          * relevant kernel(s) (probably only pme_gather_kernel). That would require a
          * reduction of the current number of templated parameters of that kernel. */
-        pme_gpu_realloc_and_copy_input_coefficients(
-                pmeGpu, reinterpret_cast<const float*>(chargesA), gridIndex);
+        if (pmeGpu->common->ngrids > 1)
+        {
+            pme_gpu_realloc_and_copy_input_coefficients(
+                    pmeGpu, reinterpret_cast<const float*>(chargesA), gridIndex);
+        }
     }
 #endif
 
@@ -1741,6 +1744,7 @@ void pme_gpu_spread(const PmeGpu*                  pmeGpu,
                     const real                     lambda,
                     const bool                     useGpuDirectComm,
                     gmx::PmeCoordinateReceiverGpu* pmeCoordinateReceiverGpu,
+                    const bool                     useMdGpuGraph,
                     gmx_wallcycle*                 wcycle)
 {
     GMX_ASSERT(
@@ -1853,8 +1857,14 @@ void pme_gpu_spread(const PmeGpu*                  pmeGpu,
             const int numStagesInPipeline = pmeCoordinateReceiverGpu->ppCommNumSenderRanks();
 
             GpuEventSynchronizer* gridsReadyForSpread = &pmeGpu->archSpecific->pmeGridsReadyForSpread;
-            gridsReadyForSpread->markEvent(pmeGpu->archSpecific->pmeStream_);
-            gridsReadyForSpread->setConsumptionLimits(numStagesInPipeline, numStagesInPipeline);
+            // Sync on grid zeroing is required except when GPU graphs are in use,
+            // In which case the sync is already present through the zeroing being
+            // explicitly included in the graph
+            if (!useMdGpuGraph)
+            {
+                gridsReadyForSpread->markEvent(pmeGpu->archSpecific->pmeStream_);
+                gridsReadyForSpread->setConsumptionLimits(numStagesInPipeline, numStagesInPipeline);
+            }
 
             for (int i = 0; i < numStagesInPipeline; i++)
             {
@@ -1866,8 +1876,10 @@ void pme_gpu_spread(const PmeGpu*                  pmeGpu,
                 wallcycle_start(wcycle, WallCycleCounter::LaunchGpuPme);
 
                 DeviceStream* launchStream = pmeCoordinateReceiverGpu->ppCommStream(senderRank);
-                gridsReadyForSpread->enqueueWaitEvent(*launchStream);
-
+                if (!useMdGpuGraph)
+                {
+                    gridsReadyForSpread->enqueueWaitEvent(*launchStream);
+                }
                 // set kernel configuration options specific to this stage of the pipeline
                 std::tie(kernelParamsPtr->pipelineAtomStart, kernelParamsPtr->pipelineAtomEnd) =
                         pmeCoordinateReceiverGpu->ppCommAtomRange(senderRank);
