@@ -19,7 +19,7 @@ gromacs:hipsycl-rocm:configure:
     - .rules:merge-and-post-merge-acceptance
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-22.04-llvm-15-cuda-11.7.1-hipsycl-0.9.4-rocm-5.3.3
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
     CMAKE_SIMD_OPTIONS: "-DGMX_SIMD=AVX2_256"
     CMAKE_BUILD_TYPE_OPTIONS: "-DCMAKE_BUILD_TYPE=RelWithAssert"
     CMAKE_GPU_OPTIONS: "-DGMX_GPU=SYCL -DGMX_SYCL_HIPSYCL=ON -DHIPSYCL_TARGETS=hip:gfx906,gfx1034 -DGMX_GPU_FFT_LIBRARY=vkFFT"
@@ -36,7 +36,7 @@ gromacs:hipsycl-rocm:build:
     - .rules:merge-and-post-merge-acceptance
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-22.04-llvm-15-cuda-11.7.1-hipsycl-0.9.4-rocm-5.3.3
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
   tags:
     - k8s-scilifelab
   needs:
@@ -49,7 +49,7 @@ gromacs:hipsycl-rocm:test:
     - .rules:post-merge-acceptance
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-22.04-llvm-15-cuda-11.7.1-hipsycl-0.9.4-rocm-5.3.3
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
     KUBERNETES_EXTENDED_RESOURCE_NAME: "amd.com/gpu"
     KUBERNETES_EXTENDED_RESOURCE_LIMIT: 1
     GMX_TEST_LABELS: "QuickGpuTest|SlowGpuTest"
@@ -65,7 +65,7 @@ gromacs:hipsycl-rocm:regressiontest:
     - .rules:post-merge-acceptance
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-22.04-llvm-15-cuda-11.7.1-hipsycl-0.9.4-rocm-5.3.3
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
     REGRESSIONTEST_TOTAL_RANK_NUMBER: 1
     REGRESSIONTEST_OMP_RANK_NUMBER: 2
     KUBERNETES_EXTENDED_RESOURCE_NAME: "amd.com/gpu"
@@ -86,7 +86,7 @@ gromacs:hipsycl-rocm-nightly:configure:
     - .rules:nightly-not-for-release
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-22.04-llvm-15-cuda-11.7.1-hipsycl-0.9.4-rocm-5.3.3
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
     CMAKE_SIMD_OPTIONS: "-DGMX_SIMD=AVX2_256"
     CMAKE_BUILD_TYPE_OPTIONS: "-DCMAKE_BUILD_TYPE=RelWithAssert"
     CMAKE_GPU_OPTIONS: "-DGMX_GPU=SYCL -DGMX_SYCL_HIPSYCL=ON -DHIPSYCL_TARGETS='hip:gfx906'"
@@ -103,7 +103,7 @@ gromacs:hipsycl-rocm-nightly:build:
     - .rules:nightly-not-for-release
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-22.04-llvm-15-cuda-11.7.1-hipsycl-0.9.4-rocm-5.3.3
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
   tags:
     - k8s-scilifelab
   needs:
@@ -117,7 +117,7 @@ gromacs:hipsycl-rocm-nightly:test:
     - .rules:nightly-not-for-release
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-22.04-llvm-15-cuda-11.7.1-hipsycl-0.9.4-rocm-5.3.3
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
     # The following two variables are not used by k8s, since this job runs on a separate host
     # But it's easier to set them up and use the existing scripts for job preparation that rely on them
     KUBERNETES_EXTENDED_RESOURCE_NAME: "amd.com/gpu"
@@ -140,7 +140,7 @@ gromacs:hipsycl-nvidia-mpi:configure:
     - .rules:weekly-not-for-release
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-22.04-llvm-15-cuda-11.7.1-hipsycl-0.9.4-rocm-5.3.3
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
     CMAKE_SIMD_OPTIONS: "-DGMX_SIMD=AVX2_256"
     CMAKE_BUILD_TYPE_OPTIONS: "-DCMAKE_BUILD_TYPE=RelWithAssert"
     CMAKE_GPU_OPTIONS: "-DGMX_GPU=SYCL -DGMX_SYCL_HIPSYCL=ON -DHIPSYCL_TARGETS='cuda:sm_50,sm_52,sm_60,sm_61,sm_70,sm_75' -DGMX_GPU_FFT_LIBRARY=VkFFT"
@@ -157,7 +157,7 @@ gromacs:hipsycl-nvidia-mpi:build:
     - .rules:weekly-not-for-release
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-22.04-llvm-15-cuda-11.7.1-hipsycl-0.9.4-rocm-5.3.3
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
   tags:
     - k8s-scilifelab
   needs:
@@ -169,7 +169,7 @@ gromacs:hipsycl-nvidia-mpi:test-gpucommupd-MPI:
     - .rules:weekly-not-for-release
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-22.04-llvm-15-cuda-11.7.1-hipsycl-0.9.4-rocm-5.3.3
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
     KUBERNETES_EXTENDED_RESOURCE_NAME: "nvidia.com/gpu"
     KUBERNETES_EXTENDED_RESOURCE_LIMIT: 2
     GMX_ENABLE_DIRECT_GPU_COMM: 1
@@ -188,7 +188,7 @@ gromacs:hipsycl-nvidia-mpi:regressiontest-gpucommupd-MPI:
     - .rules:weekly-not-for-release
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-22.04-llvm-15-cuda-11.7.1-hipsycl-0.9.4-rocm-5.3.3
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
     KUBERNETES_EXTENDED_RESOURCE_NAME: "nvidia.com/gpu"
     KUBERNETES_EXTENDED_RESOURCE_LIMIT: 2
     REGRESSIONTEST_PME_RANK_NUMBER: 0

@@ -21,7 +21,7 @@ gromacs:oneapi-2023.0.0-amd-nightly:configure:
    - .rules:nightly-not-for-release
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2023.0.0-intel-compute-runtime-rocm-4.5.2:latest
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
     CMAKE_BUILD_TYPE_OPTIONS: "-DCMAKE_BUILD_TYPE=RelWithAssert"
     CMAKE_EXTRA_OPTIONS: "-DSYCL_CXX_FLAGS_EXTRA=-fsycl-targets=amdgcn-amd-amdhsa;-Xsycl-target-backend=amdgcn-amd-amdhsa;--offload-arch=gfx1034 -DGMX_GPU_NB_CLUSTER_SIZE=8 -DGMX_GPU_FFT_LIBRARY=None"
     COMPILER_MAJOR_VERSION: 2023
@@ -35,7 +35,7 @@ gromacs:oneapi-2023.0.0-amd-nightly:build:
     - .rules:nightly-not-for-release
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2023.0.0-intel-compute-runtime-rocm-4.5.2:latest
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
   needs:
     - job: gromacs:oneapi-2023.0.0-amd-nightly:configure
 
@@ -46,7 +46,7 @@ gromacs:oneapi-2023.0.0-amd-nightly:test:
     - .rules:nightly-not-for-release
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2023.0.0-intel-compute-runtime-rocm-4.5.2:latest
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
     SYCL_DEVICE_FILTER: "ext_oneapi_hip:gpu"
     KUBERNETES_EXTENDED_RESOURCE_NAME: "amd.com/gpu"
     KUBERNETES_EXTENDED_RESOURCE_LIMIT: 1
@@ -61,7 +61,7 @@ gromacs:oneapi-2023.0.0-amd-nightly:regressiontest:
     - .rules:nightly-not-for-release
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2023.0.0-intel-compute-runtime-rocm-4.5.2:latest
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
     SYCL_DEVICE_FILTER: "ext_oneapi_hip:gpu"
     # Default not working, see #2980
     REGRESSIONTEST_TOTAL_RANK_NUMBER: 2

@@ -21,7 +21,7 @@ gromacs:oneapi-2022.2.0-opencl:configure:
    - .rules:merge-requests
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2022.2.0-intel-compute-runtime
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
     COMPILER_MAJOR_VERSION: 2021
 
 gromacs:oneapi-2022.2.0-opencl:build:
@@ -33,7 +33,7 @@ gromacs:oneapi-2022.2.0-opencl:build:
     - .rules:merge-requests
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2022.2.0-intel-compute-runtime
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
   needs:
     - job: gromacs:oneapi-2022.2.0-opencl:configure
 
@@ -44,7 +44,7 @@ gromacs:oneapi-2022.2.0-opencl:test:
     - .rules:merge-requests
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2022.2.0-intel-compute-runtime
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
     GMX_FORCE_UPDATE_DEFAULT_CPU: 1
   needs:
     - job: gromacs:oneapi-2022.2.0-opencl:build
@@ -56,7 +56,7 @@ gromacs:oneapi-2022.2.0-opencl:regressiontest:
     - .rules:merge-requests
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2022.2.0-intel-compute-runtime
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
   needs:
     - job: gromacs:oneapi-2022.2.0-opencl:build
     - job: regressiontests:prepare

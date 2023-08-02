@@ -24,7 +24,7 @@ gromacs:oneapi-2022.2.0-sycl-nightly:configure:
    - .rules:nightly-not-for-release
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2022.2.0-intel-compute-runtime:latest
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
     CMAKE_BUILD_TYPE_OPTIONS: "-DCMAKE_BUILD_TYPE=RelWithAssert"
     COMPILER_MAJOR_VERSION: 2021
 
@@ -37,7 +37,7 @@ gromacs:oneapi-2022.2.0-sycl-nightly:build:
     - .rules:nightly-not-for-release
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2022.2.0-intel-compute-runtime:latest
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
   needs:
     - job: gromacs:oneapi-2022.2.0-sycl-nightly:configure
 
@@ -50,7 +50,7 @@ gromacs:oneapi-2022.2.0-sycl-nightly:test-opencl:
     - intel-gpu-dg1
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2022.2.0-intel-compute-runtime:latest
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
     SYCL_DEVICE_FILTER: "opencl:gpu"
     # The following two variables are not used by k8s, since this job runs on a separate host
     # But it's easier to set them up and use the existing scripts for job preparation that rely on them
@@ -69,7 +69,7 @@ gromacs:oneapi-2022.2.0-sycl-nightly:test-opencl-upd:
     - intel-gpu-dg1
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2022.2.0-intel-compute-runtime:latest
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
     SYCL_DEVICE_FILTER: "opencl:gpu"
     # The following two variables are not used by k8s, since this job runs on a separate host
     # But it's easier to set them up and use the existing scripts for job preparation that rely on them
@@ -88,7 +88,7 @@ gromacs:oneapi-2022.2.0-sycl-nightly:regressiontest-opencl:
     - intel-gpu-dg1
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2022.2.0-intel-compute-runtime:latest
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
     SYCL_DEVICE_FILTER: "opencl:gpu"
     # Default not working, see #2980
     REGRESSIONTEST_TOTAL_RANK_NUMBER: 2
@@ -110,7 +110,7 @@ gromacs:oneapi-2022.2.0-sycl-nightly:regressiontest-opencl-singlerank-upd:
     - intel-gpu-dg1
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2022.2.0-intel-compute-runtime:latest
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
     SYCL_DEVICE_FILTER: "opencl:gpu"
     # Default not working, see #2980
     REGRESSIONTEST_TOTAL_RANK_NUMBER: 1
@@ -133,7 +133,7 @@ gromacs:oneapi-2022.2.0-sycl-nightly:regressiontest-opencl-upd:
     - intel-gpu-dg1
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2022.2.0-intel-compute-runtime:latest
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
     SYCL_DEVICE_FILTER: "opencl:gpu"
     # Default not working, see #2980
     REGRESSIONTEST_TOTAL_RANK_NUMBER: 2
@@ -155,7 +155,7 @@ gromacs:oneapi-2022.2.0-sycl-nightly:regressiontest-opencl-singlerank:
     - intel-gpu-dg1
   image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-oneapi-2022.2.0-intel-compute-runtime:latest
   variables:
-    CMAKE: /usr/local/cmake-3.18.4/bin/cmake
+    CMAKE: /usr/local/cmake-3.20.1/bin/cmake
     SYCL_DEVICE_FILTER: "opencl:gpu"
     # Default not working, see #2980
     REGRESSIONTEST_TOTAL_RANK_NUMBER: 1
