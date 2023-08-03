@@ -514,10 +514,10 @@ static float dih_angle_gpu_sincos(const T                   xi,
 
     float mLenSq = m->norm2();
     float nLenSq = n->norm2();
-    float mn     = sycl::sqrt(mLenSq * nLenSq);
+    float mnInv  = sycl::rsqrt(mLenSq * nLenSq);
 
-    *cosval      = s / mn;
-    float sinval = wlen / mn;
+    *cosval      = s * mnInv;
+    float sinval = wlen * mnInv;
 
     float ipr  = r_ij->dot(*n);
     float sign = (ipr < 0.0F) ? -1.0F : 1.0F;
