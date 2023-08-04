@@ -345,17 +345,35 @@ void MdGpuGraph::Impl::createExecutableGraph(bool forceGraphReinstantiation)
     if (ppRank_ == 0)
     {
         // Update existing graph (which is cheaper than re-instantiation) if possible.
-        // With current CUDA, only single-threaded update is possible.
-        // Multi-threaded update support will be available in a future CUDA release.
-        if (graphInstanceAllocated_ && !havePPDomainDecomposition_ && !haveSeparatePmeRank_
-            && !forceGraphReinstantiation)
+        bool tryUpdate = graphInstanceAllocated_ && !forceGraphReinstantiation;
+        // Avoid update for graphs involving inter-GPU transfers if running on old driver
+        // since, due to a performance bug, the updated graph implements these as GPU-initiated
+        // and they are delayed by the NB kernel
+        int         driverVersion = -1;
+        cudaError_t stat          = cudaDriverGetVersion(&driverVersion);
+        CU_RET_ERR(stat, "cudaDriverGetVersion in MD graph definition finalization failed.");
+        if ((havePPDomainDecomposition_ || haveSeparatePmeRank_) && (driverVersion < 12010))
         {
-            cudaGraphNode_t           hErrorNode_out;
-            cudaGraphExecUpdateResult updateResult_out;
-            cudaError_t stat = cudaGraphExecUpdate(instance_, graph_, &hErrorNode_out, &updateResult_out);
+            tryUpdate = false;
+        }
+        bool updateSuccessful = tryUpdate;
+        if (tryUpdate)
+        {
+            cudaGraphExecUpdateResultInfo updateResultInfo_out;
+            cudaError_t stat = cudaGraphExecUpdate(instance_, graph_, &updateResultInfo_out);
+            if (stat && (havePPDomainDecomposition_ || haveSeparatePmeRank_)
+                && (updateResultInfo_out.result == cudaGraphExecUpdateErrorTopologyChanged))
+            {
+                // This unnsuccessful update is due to multithreaded graph capture resulting in a
+                // different ordering, which in a minority of cases CUDA wrongly interprets as being
+                // a different graph topology. Reset the error and re-instantiate in this case.
+                stat = cudaSuccess;
+                cudaGetLastError();
+                updateSuccessful = false;
+            }
             CU_RET_ERR(stat, "cudaGraphExecUpdate in MD graph definition finalization failed.");
         }
-        else
+        if (!updateSuccessful)
         {
             if (graphInstanceAllocated_)
             {
