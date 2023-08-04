@@ -160,12 +160,15 @@ private:
     //! Communication manager objects corresponding to multiple receiving PP ranks
     std::vector<PpForceCommManager> ppCommManagers_;
 
+    int prevForceEls = 0, prevMaxForceEls = 0; 
+    int prevPaddedAtoms = 0, prevMaxPaddedAtoms = 0; 
+
     // TODO these vars should have _ at end
     DeviceBuffer<RVec*> d_pmeRemoteGpuForcePtrs;
     DeviceBuffer<RVec*> d_pmeRemoteGpuForceReferencePtrs;
-    DeviceBuffer<int>   d_paddedPpRanks;
-    DeviceBuffer<int>   d_paddedAtomIndices;
-    DeviceBuffer<int>   d_paddedAtomOffsets;
+    DeviceBuffer<int>   d_paddedPpRanks=nullptr;
+    DeviceBuffer<int>   d_paddedAtomIndices=nullptr;
+    DeviceBuffer<int>   d_paddedAtomOffsets=nullptr;
     // TODO find somewhere better for this
     int                  nPaddedAtoms;
     cuda::atomic<int>**  d_pmeToPpReadyAtomicFlagPtrs_;

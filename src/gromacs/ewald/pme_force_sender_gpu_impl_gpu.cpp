@@ -191,10 +191,10 @@ void PmeForceSenderGpu::Impl::setForceSendBuffer(DeviceBuffer<Float3> d_f)
     std::vector<int>::iterator rank_it_start, rank_it_end_unpadded;
     std::vector<int>::iterator indices_it_start, indices_it_end_unpadded;
     std::vector<int>::iterator offsets_it_start, offsets_it_end_unpadded;
-    // TODO this needs to be a reallocate
-    allocateDeviceBuffer(&d_paddedPpRanks, maxForceEls * sizeof(int), deviceContext_);
-    allocateDeviceBuffer(&d_paddedAtomIndices, maxForceEls * sizeof(int), deviceContext_);
-    allocateDeviceBuffer(&d_paddedAtomOffsets, maxPaddedAtoms * sizeof(int), deviceContext_);
+    int tmp1=prevForceEls, tmp2=prevMaxForceEls;
+    reallocateDeviceBuffer(&d_paddedPpRanks, maxForceEls, &prevForceEls, &prevMaxForceEls, deviceContext_);
+    reallocateDeviceBuffer(&d_paddedAtomIndices, maxForceEls, &tmp1, &tmp2, deviceContext_);
+    reallocateDeviceBuffer(&d_paddedAtomOffsets, maxPaddedAtoms, &prevPaddedAtoms, &prevMaxPaddedAtoms, deviceContext_);
     i = 0;
     for (const auto& receiver : ppRanks_)
     {
@@ -225,7 +225,6 @@ void PmeForceSenderGpu::Impl::setForceSendBuffer(DeviceBuffer<Float3> d_f)
                paddedAtomOffsets.data(),
                paddedAtomOffsets.size() * sizeof(int),
                cudaMemcpyHostToDevice);
-
 #else
     GMX_UNUSED_VALUE(d_f);
 #endif
