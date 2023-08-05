@@ -89,7 +89,7 @@ class RangePartitioning;
 class VirtualSitesHandler;
 template<typename>
 class ArrayRef;
-template<typename, size_t>
+template<typename, std::size_t>
 class FixedCapacityVector;
 } // namespace gmx
 

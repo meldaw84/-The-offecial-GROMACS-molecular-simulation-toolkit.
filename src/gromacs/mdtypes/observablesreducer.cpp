@@ -244,8 +244,8 @@ ObservablesReducer ObservablesReducerBuilder::build()
 
     // Now let the subscribers know how to require reduction in
     // future, and which memory they should use for input and output.
-    size_t start                         = 0;
-    int    indexToCallbackAfterReduction = 0;
+    std::size_t start                         = 0;
+    int         indexToCallbackAfterReduction = 0;
     for (const Impl::Subscription& subscription : impl_->subscriptions_)
     {
         // Construct the callback that will hereafter be owned by the

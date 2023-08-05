@@ -96,11 +96,11 @@ static double u_corr(double nu, double T)
     }
 }
 
-static size_t get_nharm_mt(const gmx_moltype_t* mt)
+static std::size_t get_nharm_mt(const gmx_moltype_t* mt)
 {
-    static int harm_func[] = { F_BONDS };
-    int        i, ft;
-    size_t     nh = 0;
+    static int  harm_func[] = { F_BONDS };
+    int         i, ft;
+    std::size_t nh = 0;
 
     for (i = 0; (i < asize(harm_func)); i++)
     {
@@ -139,14 +139,14 @@ static void nma_full_hessian(real*                    hess,
     {
         for (int i = 0; (i < atom_index.ssize()); i++)
         {
-            size_t ai = atom_index[i];
-            for (size_t j = 0; (j < DIM); j++)
+            std::size_t ai = atom_index[i];
+            for (std::size_t j = 0; (j < DIM); j++)
             {
                 for (int k = 0; (k < atom_index.ssize()); k++)
                 {
-                    size_t ak = atom_index[k];
-                    mass_fac  = gmx::invsqrt(top->atoms.atom[ai].m * top->atoms.atom[ak].m);
-                    for (size_t l = 0; (l < DIM); l++)
+                    std::size_t ak = atom_index[k];
+                    mass_fac       = gmx::invsqrt(top->atoms.atom[ai].m * top->atoms.atom[ak].m);
+                    for (std::size_t l = 0; (l < DIM); l++)
                     {
                         hess[(i * DIM + j) * ndim + k * DIM + l] *= mass_fac;
                     }
@@ -169,9 +169,9 @@ static void nma_full_hessian(real*                    hess,
         {
             for (gmx::Index j = 0; j < atom_index.ssize(); j++)
             {
-                size_t aj = atom_index[j];
-                mass_fac  = gmx::invsqrt(top->atoms.atom[aj].m);
-                for (size_t k = 0; (k < DIM); k++)
+                std::size_t aj = atom_index[j];
+                mass_fac       = gmx::invsqrt(top->atoms.atom[aj].m);
+                for (std::size_t k = 0; (k < DIM); k++)
                 {
                     eigenvectors[i * ndim + j * DIM + k] *= mass_fac;
                 }
@@ -189,11 +189,11 @@ static void nma_sparse_hessian(gmx_sparsematrix_t*      sparse_hessian,
                                real*                    eigenvalues,
                                real*                    eigenvectors)
 {
-    int    i, k;
-    int    row, col;
-    real   mass_fac;
-    int    katom;
-    size_t ndim;
+    int         i, k;
+    int         row, col;
+    real        mass_fac;
+    int         katom;
+    std::size_t ndim;
 
     ndim = DIM * atom_index.size();
 
@@ -207,16 +207,16 @@ static void nma_sparse_hessian(gmx_sparsematrix_t*      sparse_hessian,
     {
         for (int iatom = 0; (iatom < atom_index.ssize()); iatom++)
         {
-            size_t ai = atom_index[iatom];
-            for (size_t j = 0; (j < DIM); j++)
+            std::size_t ai = atom_index[iatom];
+            for (std::size_t j = 0; (j < DIM); j++)
             {
                 row = DIM * iatom + j;
                 for (k = 0; k < sparse_hessian->ndata[row]; k++)
                 {
-                    col       = sparse_hessian->data[row][k].col;
-                    katom     = col / 3;
-                    size_t ak = atom_index[katom];
-                    mass_fac  = gmx::invsqrt(top->atoms.atom[ai].m * top->atoms.atom[ak].m);
+                    col            = sparse_hessian->data[row][k].col;
+                    katom          = col / 3;
+                    std::size_t ak = atom_index[katom];
+                    mass_fac       = gmx::invsqrt(top->atoms.atom[ai].m * top->atoms.atom[ak].m);
                     sparse_hessian->data[row][k].value *= mass_fac;
                 }
             }
@@ -234,8 +234,8 @@ static void nma_sparse_hessian(gmx_sparsematrix_t*      sparse_hessian,
         {
             for (gmx::Index j = 0; j < atom_index.ssize(); j++)
             {
-                size_t aj = atom_index[j];
-                mass_fac  = gmx::invsqrt(top->atoms.atom[aj].m);
+                std::size_t aj = atom_index[j];
+                mass_fac       = gmx::invsqrt(top->atoms.atom[aj].m);
                 for (k = 0; (k < DIM); k++)
                 {
                     eigenvectors[i * ndim + j * DIM + k] *= mass_fac;
@@ -258,7 +258,7 @@ static real* allocateEigenvectors(int nrow, int first, int last, bool ignoreBegi
     {
         numVector = last - first + 1;
     }
-    size_t vectorsSize = static_cast<size_t>(nrow) * static_cast<size_t>(numVector);
+    std::size_t vectorsSize = static_cast<std::size_t>(nrow) * static_cast<std::size_t>(numVector);
     /* We can't have more than INT_MAX elements.
      * Relaxing this restriction probably requires changing lots of loop
      * variable types in the linear algebra code.
@@ -383,9 +383,9 @@ static void analyzeThermochemistry(FILE*                    fp,
         pr_rvecs(debug, 0, "trans", trans, DIM);
         fprintf(debug, "linear molecule = %s\n", linear ? "true" : "no");
     }
-    size_t nFreq = index.size() * DIM;
-    auto   eFreq = gmx::arrayRefFromArray(eigfreq, nFreq);
-    double Svib  = calcQuasiHarmonicEntropy(eFreq, T, linear, scale_factor);
+    std::size_t nFreq = index.size() * DIM;
+    auto        eFreq = gmx::arrayRefFromArray(eigfreq, nFreq);
+    double      Svib  = calcQuasiHarmonicEntropy(eFreq, T, linear, scale_factor);
 
     double Srot = calcRotationalEntropy(T, top.atoms.nr, linear, theta, sigma_r);
     fprintf(fp, "Translational entropy %g J/mol K\n", Strans);
@@ -579,7 +579,7 @@ int gmx_nmeig(int argc, char* argv[])
         fprintf(stderr,
                 "Will try to allocate memory and convert to full matrix representation...\n");
 
-        size_t hessianSize = static_cast<size_t>(nrow) * static_cast<size_t>(ncol);
+        std::size_t hessianSize = static_cast<std::size_t>(nrow) * static_cast<std::size_t>(ncol);
         /* Allowing  Hessians larger than INT_MAX probably only makes sense
          * with (OpenMP) parallel diagonalization routines, since with a single
          * thread it will takes months.

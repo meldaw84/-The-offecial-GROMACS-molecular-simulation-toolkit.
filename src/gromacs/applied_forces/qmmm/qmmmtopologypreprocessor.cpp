@@ -129,14 +129,14 @@ void QMMMTopologyPreprocessor::splitQMblocks(gmx_mtop_t* mtop)
      * or we could modify existing moltype if there is only one molecule of that type
      */
     std::vector<int> numMoleculesOfType(mtop->moltype.size());
-    for (size_t molBlockIndex = 0; molBlockIndex < mtop->molblock.size(); molBlockIndex++)
+    for (std::size_t molBlockIndex = 0; molBlockIndex < mtop->molblock.size(); molBlockIndex++)
     {
         numMoleculesOfType[mtop->molblock[molBlockIndex].type] += mtop->molblock[molBlockIndex].nmol;
     }
 
     // Loop over all blocks in topology
     // molBlockIndex - current index of block in mtop
-    for (size_t molBlockIndex = 0; molBlockIndex < mtop->molblock.size(); molBlockIndex++)
+    for (std::size_t molBlockIndex = 0; molBlockIndex < mtop->molblock.size(); molBlockIndex++)
     {
         // Initialize block as non-QM first
         bQMBlock_.push_back(false);
@@ -210,12 +210,12 @@ void QMMMTopologyPreprocessor::splitQMblocks(gmx_mtop_t* mtop)
                 {
                     // Here comes a huge piece of "not so good" code, because of deleted operator= from gmx_moltype_t
                     std::vector<gmx_moltype_t> temp(mtop->moltype.size());
-                    for (size_t i = 0; i < mtop->moltype.size(); ++i)
+                    for (std::size_t i = 0; i < mtop->moltype.size(); ++i)
                     {
                         copy_moltype(&mtop->moltype[i], &temp[i]);
                     }
                     mtop->moltype.resize(temp.size() + 1);
-                    for (size_t i = 0; i < temp.size(); ++i)
+                    for (std::size_t i = 0; i < temp.size(); ++i)
                     {
                         copy_moltype(&temp[i], &mtop->moltype[i]);
                     }
@@ -298,7 +298,7 @@ void QMMMTopologyPreprocessor::modifyQMMMTwoCenterInteractions(gmx_mtop_t* mtop)
 {
     // Loop over all blocks in topology
     // molBlockIndex - index of current block in mtop
-    for (size_t molBlockIndex = 0; molBlockIndex < mtop->molblock.size(); molBlockIndex++)
+    for (std::size_t molBlockIndex = 0; molBlockIndex < mtop->molblock.size(); molBlockIndex++)
     {
         // check if current block contains QM atoms
         if (bQMBlock_[molBlockIndex])
@@ -376,7 +376,7 @@ void QMMMTopologyPreprocessor::buildQMMMLink(gmx_mtop_t* mtop)
 {
     // Loop over all blocks in topology
     // molBlockIndex - index of current block in mtop
-    for (size_t molBlockIndex = 0; molBlockIndex < mtop->molblock.size(); molBlockIndex++)
+    for (std::size_t molBlockIndex = 0; molBlockIndex < mtop->molblock.size(); molBlockIndex++)
     {
         // check if current block contains QM atoms
         if (bQMBlock_[molBlockIndex])
@@ -435,7 +435,7 @@ void QMMMTopologyPreprocessor::modifyQMMMThreeCenterInteractions(gmx_mtop_t* mto
 {
     // Loop over all blocks in topology
     // molBlockIndex - index of current block in mtop
-    for (size_t molBlockIndex = 0; molBlockIndex < mtop->molblock.size(); molBlockIndex++)
+    for (std::size_t molBlockIndex = 0; molBlockIndex < mtop->molblock.size(); molBlockIndex++)
     {
         // check if current block contains QM atoms
         if (bQMBlock_[molBlockIndex])
@@ -531,7 +531,7 @@ void QMMMTopologyPreprocessor::modifyQMMMFourCenterInteractions(gmx_mtop_t* mtop
 {
     // Loop over all blocks in topology
     // molBlockIndex - index of current block in mtop
-    for (size_t molBlockIndex = 0; molBlockIndex < mtop->molblock.size(); molBlockIndex++)
+    for (std::size_t molBlockIndex = 0; molBlockIndex < mtop->molblock.size(); molBlockIndex++)
     {
         // check if current block contains QM atoms
         if (bQMBlock_[molBlockIndex])
@@ -598,7 +598,7 @@ void QMMMTopologyPreprocessor::modifyQMMMVirtualSites(gmx_mtop_t* mtop)
 {
     // Loop over all blocks in topology
     // molBlockIndex - index of current block in mtop
-    for (size_t molBlockIndex = 0; molBlockIndex < mtop->molblock.size(); molBlockIndex++)
+    for (std::size_t molBlockIndex = 0; molBlockIndex < mtop->molblock.size(); molBlockIndex++)
     {
         // check if current block contains QM atoms
         if (bQMBlock_[molBlockIndex])

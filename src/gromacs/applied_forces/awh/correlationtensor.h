@@ -134,7 +134,7 @@ public:
         blockSumWeight_ += weight;
         blockSumSquareWeight_ += weight * weight;
 
-        for (size_t d = 0; d < coordData_.size(); d++)
+        for (std::size_t d = 0; d < coordData_.size(); d++)
         {
             coordData_[d].blockSumWeightX += weight * data[d];
         }
@@ -242,7 +242,7 @@ public:
      * \param[in,out] bufferIndex      The index in \p blockDataBuffer to start reading, is increased with the number of blocks read.
      */
     void restoreFromHistory(const std::vector<CorrelationBlockDataHistory>& blockDataBuffer,
-                            size_t*                                         bufferIndex);
+                            std::size_t*                                    bufferIndex);
 
 private:
     /*! \brief Updates the block length by doubling.

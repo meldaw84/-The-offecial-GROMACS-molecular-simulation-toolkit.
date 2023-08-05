@@ -190,41 +190,43 @@ struct PlanSetupData
     //! Format of the input array (real or hermitian)
     rocfft_array_type arrayType;
     //! Strides through the input array for the three dimensions
-    std::array<size_t, DIM> strides;
+    std::array<std::size_t, DIM> strides;
     //! Total size of the input array (including padding)
-    size_t totalSize;
+    std::size_t totalSize;
 };
 
 //! Compute the stride through the real 1D array
-std::array<size_t, DIM> makeRealStrides(ivec realGridSizePadded)
+std::array<std::size_t, DIM> makeRealStrides(ivec realGridSizePadded)
 {
-    return { 1, size_t(realGridSizePadded[ZZ]), size_t(realGridSizePadded[ZZ] * realGridSizePadded[YY]) };
+    return { 1,
+             std::size_t(realGridSizePadded[ZZ]),
+             std::size_t(realGridSizePadded[ZZ] * realGridSizePadded[YY]) };
 };
 
 //! Compute the stride through the complex 1D array
-std::array<size_t, DIM> makeComplexStrides(ivec complexGridSizePadded)
+std::array<std::size_t, DIM> makeComplexStrides(ivec complexGridSizePadded)
 {
     return { 1,
-             size_t(complexGridSizePadded[ZZ]),
-             size_t(complexGridSizePadded[ZZ] * complexGridSizePadded[YY]) };
+             std::size_t(complexGridSizePadded[ZZ]),
+             std::size_t(complexGridSizePadded[ZZ] * complexGridSizePadded[YY]) };
 }
 
 //! Compute total grid size
-size_t computeTotalSize(ivec gridSize)
+std::size_t computeTotalSize(ivec gridSize)
 {
-    return size_t(gridSize[XX] * gridSize[YY] * gridSize[ZZ]);
+    return std::size_t(gridSize[XX] * gridSize[YY] * gridSize[ZZ]);
 }
 
 /*! \brief Prepare plans for the forward and reverse transformation.
  *
  * Because these require device-side allocations, some of them must be
  * done in a SYCL queue. */
-RocfftPlan makePlan(const std::string&     descriptiveString,
-                    rocfft_transform_type  transformType,
-                    const PlanSetupData&   inputPlanSetupData,
-                    const PlanSetupData&   outputPlanSetupData,
-                    ArrayRef<const size_t> rocfftRealGridSize,
-                    const DeviceStream&    pmeStream)
+RocfftPlan makePlan(const std::string&          descriptiveString,
+                    rocfft_transform_type       transformType,
+                    const PlanSetupData&        inputPlanSetupData,
+                    const PlanSetupData&        outputPlanSetupData,
+                    ArrayRef<const std::size_t> rocfftRealGridSize,
+                    const DeviceStream&         pmeStream)
 {
     rocfft_plan_description description = nullptr;
     rocfft_status           result;
@@ -250,7 +252,7 @@ RocfftPlan makePlan(const std::string&     descriptiveString,
 
     // First set up device buffers to receive the rocfft status values
     rocfft_plan                    plan                   = nullptr;
-    size_t                         requiredWorkBufferSize = 0;
+    std::size_t                    requiredWorkBufferSize = 0;
     void*                          workBuffer             = nullptr;
     sycl::buffer<rocfft_status, 1> resultBuffer(3);
 
@@ -265,7 +267,7 @@ RocfftPlan makePlan(const std::string&     descriptiveString,
                 sycl::make_async_writeback_view(&plan, sycl::range(1), queue);
         sycl::buffer<void*, 1> workBufferView =
                 sycl::make_async_writeback_view(&workBuffer, sycl::range(1), queue);
-        sycl::buffer<size_t, 1> requiredWorkBufferSizeView =
+        sycl::buffer<std::size_t, 1> requiredWorkBufferSizeView =
                 sycl::make_async_writeback_view(&requiredWorkBufferSize, sycl::range(1), queue);
         queue.submit([&](sycl::handler& cgh) {
             // Make the necessary accessors
@@ -390,9 +392,9 @@ Gpu3dFft::ImplSyclRocfft::Impl::Impl(bool allocateRealGrid,
                                 makeComplexStrides(complexGridSizePadded),
                                 computeTotalSize(complexGridSizePadded) },
                  // Note that rocFFT requires that we reverse the dimension order when planning
-                 std::vector<size_t>{ size_t(realGridSize[ZZ]),
-                                      size_t(realGridSize[YY]),
-                                      size_t(realGridSize[XX]) },
+                 std::vector<std::size_t>{ std::size_t(realGridSize[ZZ]),
+                                           std::size_t(realGridSize[YY]),
+                                           std::size_t(realGridSize[XX]) },
                  pmeStream),
         // For rocFFT, the complex-to-real setup is the logical
         // converse of the real-to-complex. The PlanSetupData objects
@@ -409,9 +411,9 @@ Gpu3dFft::ImplSyclRocfft::Impl::Impl(bool allocateRealGrid,
                                 makeRealStrides(realGridSizePadded),
                                 computeTotalSize(realGridSizePadded) },
                  // Note that rocFFT requires that we reverse the dimension order when planning
-                 std::vector<size_t>{ size_t(realGridSize[ZZ]),
-                                      size_t(realGridSize[YY]),
-                                      size_t(realGridSize[XX]) },
+                 std::vector<std::size_t>{ std::size_t(realGridSize[ZZ]),
+                                           std::size_t(realGridSize[YY]),
+                                           std::size_t(realGridSize[XX]) },
                  pmeStream),
     },
     realGrid_(*realGrid->buffer_.get()),

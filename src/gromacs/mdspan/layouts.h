@@ -137,7 +137,10 @@ public:
          * \param[in] sum The accumulated offset over all dimensions
          * \returns The offset.
          */
-        static constexpr index_type offset(const size_t /*r*/, const ptrdiff_t sum) { return sum; }
+        static constexpr index_type offset(const std::size_t /*r*/, const ptrdiff_t sum)
+        {
+            return sum;
+        }
 
         /* \brief Statically calculate offset from index and extent.
          * For a multidimensional index (i0,i1,..,in), in a right memory
@@ -154,7 +157,7 @@ public:
          */
         template<class... Indices>
         inline constexpr index_type
-        offset(const size_t r, ptrdiff_t sum, const index_type i, Indices... indices) const noexcept
+        offset(const std::size_t r, ptrdiff_t sum, const index_type i, Indices... indices) const noexcept
         {
             return offset(r + 1, sum * m_extents.extent(r) + i, indices...);
         }
@@ -168,7 +171,7 @@ public:
         constexpr index_type required_span_size() const noexcept
         {
             index_type size = 1;
-            for (size_t r = 0; r < m_extents.rank(); r++)
+            for (std::size_t r = 0; r < m_extents.rank(); r++)
             {
                 size *= m_extents.extent(r);
             }
@@ -205,10 +208,10 @@ public:
          * \param[in] R rank of the stride to be queried.
          * \returns the stride along dimension r.
          */
-        constexpr index_type stride(const size_t R) const noexcept
+        constexpr index_type stride(const std::size_t R) const noexcept
         {
             ptrdiff_t stride = 1;
-            for (size_t r = m_extents.rank() - 1; r > R; r--)
+            for (std::size_t r = m_extents.rank() - 1; r > R; r--)
             {
                 stride *= m_extents.extent(r);
             }

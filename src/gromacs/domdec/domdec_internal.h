@@ -341,7 +341,7 @@ class DDBuffer
 {
 private:
     /*! \brief Returns a buffer of size \p numElements, the elements are undefined */
-    gmx::ArrayRef<T> resize(size_t numElements)
+    gmx::ArrayRef<T> resize(std::size_t numElements)
     {
         GMX_ASSERT(isInUse_, "Should only operate on acquired buffers");
 
@@ -354,7 +354,7 @@ private:
     }
 
     /*! \brief Acquire the buffer for use with size set to \p numElements, the elements are undefined */
-    gmx::ArrayRef<T> acquire(size_t numElements)
+    gmx::ArrayRef<T> acquire(std::size_t numElements)
     {
         GMX_RELEASE_ASSERT(!isInUse_, "Should only request free buffers");
         isInUse_ = true;
@@ -386,7 +386,7 @@ public:
      *       create other DDBufferAccess objects until the one created
      *       here is destroyed.
      */
-    DDBufferAccess(DDBuffer<T>& ddBuffer, size_t numElements) : ddBuffer_(ddBuffer)
+    DDBufferAccess(DDBuffer<T>& ddBuffer, std::size_t numElements) : ddBuffer_(ddBuffer)
     {
         buffer = ddBuffer_.acquire(numElements);
     }
@@ -397,7 +397,7 @@ public:
      *
      * \note The buffer arrayref is updated after this call.
      */
-    void resize(size_t numElements) { buffer = ddBuffer_.resize(numElements); }
+    void resize(std::size_t numElements) { buffer = ddBuffer_.resize(numElements); }
 
 private:
     DDBuffer<T>& ddBuffer_; /**< Reference to the storage class */

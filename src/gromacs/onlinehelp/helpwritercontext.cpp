@@ -133,7 +133,7 @@ std::string repall(const std::string& s, int nsr, const t_sandr sa[])
 /*! \brief
  * Replaces all entries from a list of replacements.
  */
-template<size_t nsr>
+template<std::size_t nsr>
 std::string repall(const std::string& s, const t_sandr (&sa)[nsr])
 {
     return repall(s, nsr, sa);
@@ -219,7 +219,7 @@ std::string removeExtraNewlinesRst(const std::string& text)
     int         newlineCount = 2;
     std::string result;
     result.reserve(text.length());
-    for (size_t i = 0; i < text.length(); ++i)
+    for (std::size_t i = 0; i < text.length(); ++i)
     {
         if (text[i] == '\n')
         {
@@ -235,7 +235,7 @@ std::string removeExtraNewlinesRst(const std::string& text)
         }
         result.push_back(text[i]);
     }
-    size_t last = result.find_last_not_of('\n');
+    std::size_t last = result.find_last_not_of('\n');
     if (last != std::string::npos)
     {
         result.resize(last + 1);

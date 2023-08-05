@@ -607,8 +607,8 @@ PmeGatherKernel<order, wrapX, wrapY, numGrids, readGlobal, threadsPerAtom, subGr
 
 template<int order, bool wrapX, bool wrapY, int numGrids, bool readGlobal, ThreadsPerAtom threadsPerAtom, int subGroupSize>
 void PmeGatherKernel<order, wrapX, wrapY, numGrids, readGlobal, threadsPerAtom, subGroupSize>::setArg(
-        size_t argIndex,
-        void*  arg)
+        std::size_t argIndex,
+        void*       arg)
 {
     if (argIndex == 0)
     {

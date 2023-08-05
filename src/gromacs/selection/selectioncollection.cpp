@@ -217,7 +217,7 @@ int runParserLoop(yyscan_t scanner, _gmx_sel_yypstate* parserState, bool bIntera
 void printCurrentStatus(TextWriter*              writer,
                         gmx_ana_selcollection_t* sc,
                         gmx_ana_indexgrps_t*     grps,
-                        size_t                   firstSelection,
+                        std::size_t              firstSelection,
                         int                      maxCount,
                         const std::string&       context,
                         bool                     bFirst)
@@ -251,7 +251,7 @@ void printCurrentStatus(TextWriter*              writer,
         {
             writer->writeString(formatString("     %s\n", sc->varstrs[i]));
         }
-        for (size_t i = firstSelection; i < sc->sel.size(); ++i)
+        for (std::size_t i = firstSelection; i < sc->sel.size(); ++i)
         {
             writer->writeString(formatString(
                     " %2d. %s\n", static_cast<int>(i - firstSelection + 1), sc->sel[i]->selectionText()));
@@ -330,7 +330,7 @@ SelectionList runParser(yyscan_t           scanner,
     gmx_ana_selcollection_t* sc   = _gmx_sel_lexer_selcollection(scanner);
     gmx_ana_indexgrps_t*     grps = _gmx_sel_lexer_indexgrps(scanner);
 
-    size_t oldCount = sc->sel.size();
+    std::size_t oldCount = sc->sel.size();
     {
         std::shared_ptr<_gmx_sel_yypstate> parserState(_gmx_sel_yypstate_new(), &_gmx_sel_yypstate_delete);
         if (bInteractive)
@@ -537,7 +537,7 @@ SelectionCollection::SelectionCollection(const SelectionCollection& rhs) :
                                                : rhs.impl_->spost_.c_str());
     setDebugLevel(static_cast<int>(rhs.impl_->debugLevel_));
 
-    for (size_t i = 0; i < rhs.impl_->sc_.sel.size(); i++)
+    for (std::size_t i = 0; i < rhs.impl_->sc_.sel.size(); i++)
     {
         const auto& selectionOption = rhs.impl_->sc_.sel[i];
         parseFromString(selectionOption->selectionText());
@@ -688,7 +688,7 @@ void SelectionCollection::setIndexGroups(gmx_ana_indexgrps_t* grps)
     {
         GMX_THROW(InconsistentInputError(errors));
     }
-    for (size_t i = 0; i < impl_->sc_.sel.size(); ++i)
+    for (std::size_t i = 0; i < impl_->sc_.sel.size(); ++i)
     {
         impl_->sc_.sel[i]->refreshName();
     }
@@ -954,7 +954,7 @@ void SelectionCollection::printXvgrInfo(FILE* out) const
     {
         std::fprintf(out, "#   %s\n", sc.varstrs[i]);
     }
-    for (size_t i = 0; i < sc.sel.size(); ++i)
+    for (std::size_t i = 0; i < sc.sel.size(); ++i)
     {
         std::fprintf(out, "#   %s\n", sc.sel[i]->selectionText());
     }

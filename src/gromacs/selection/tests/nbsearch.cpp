@@ -126,7 +126,7 @@ public:
         if (testPos_.empty())
         {
             testPos_.reserve(testPositions_.size());
-            for (size_t i = 0; i < testPositions_.size(); ++i)
+            for (std::size_t i = 0; i < testPositions_.size(); ++i)
             {
                 testPos_.emplace_back(testPositions_[i].x_);
             }
@@ -510,7 +510,7 @@ void NeighborhoodSearchTest::testPairSearchFull(gmx::AnalysisNeighborhoodSearch*
     // initially contain all the test positions.
     if (testIndices.empty())
     {
-        for (size_t i = 0; i < data.testPositions_.size(); ++i)
+        for (std::size_t i = 0; i < data.testPositions_.size(); ++i)
         {
             refPairs[i] = data.testPositions_[i].refPairs;
         }

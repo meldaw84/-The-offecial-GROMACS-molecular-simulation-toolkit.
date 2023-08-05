@@ -78,7 +78,7 @@ std::vector<InteractionIndex<Interaction>> indexVector()
 //! \brief Sets up the calculation fixtures for both Nblib and GMX and compares the resultant forces
 void compareNblibAndGmxListedImplementations(const ListedInteractionData&  interactionData,
                                              const std::vector<gmx::RVec>& coordinates,
-                                             size_t                        numParticles,
+                                             std::size_t                   numParticles,
                                              int                           numThreads,
                                              const Box&                    box,
                                              real                          tolerance);

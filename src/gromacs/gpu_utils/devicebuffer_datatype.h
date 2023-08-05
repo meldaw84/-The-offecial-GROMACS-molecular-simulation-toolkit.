@@ -114,7 +114,7 @@ struct DeviceBuffer
     DeviceBuffer& operator=(DeviceBuffer<ValueType>&& src) noexcept;
 
     //! Helper function to get the size in bytes of a single element
-    static constexpr size_t elementSize() { return sizeof(ValueType); }
+    static constexpr std::size_t elementSize() { return sizeof(ValueType); }
 
     //! Both explicit and implicit casts to void* are used in MPI+CUDA code, this stub is necessary for compilation.
     operator void*() const { throw; }

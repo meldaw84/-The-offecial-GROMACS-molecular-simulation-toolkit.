@@ -94,12 +94,12 @@ void printFatalErrorMessageLine(FILE* fp, const char* text, int indent)
 {
     gmx::TextLineWrapper wrapper;
     wrapper.settings().setLineLength(78 - indent);
-    size_t lineStart = 0;
-    size_t length    = std::strlen(text);
+    std::size_t lineStart = 0;
+    std::size_t length    = std::strlen(text);
     while (lineStart < length)
     {
-        size_t nextLineStart = wrapper.findNextLine(text, lineStart);
-        int    lineLength    = static_cast<int>(nextLineStart - lineStart);
+        std::size_t nextLineStart = wrapper.findNextLine(text, lineStart);
+        int         lineLength    = static_cast<int>(nextLineStart - lineStart);
         while (lineLength > 0 && std::isspace(text[lineStart + lineLength - 1]))
         {
             --lineLength;

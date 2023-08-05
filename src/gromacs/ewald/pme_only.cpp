@@ -795,7 +795,7 @@ int gmx_pmeonly(struct gmx_pme_t**              pmeFromRunnerPtr,
         }
         else
         {
-            GMX_ASSERT(pme_pp->x.size() == static_cast<size_t>(natoms),
+            GMX_ASSERT(pme_pp->x.size() == static_cast<std::size_t>(natoms),
                        "The coordinate buffer should have size natoms");
 
             gmx_pme_do(pme,
@@ -846,7 +846,7 @@ int gmx_pmeonly(struct gmx_pme_t**              pmeFromRunnerPtr,
     } /***** end of quasi-loop, we stop with the break above */
     while (TRUE);
 
-    for (size_t i = 0; i < pmedata.size(); i++)
+    for (std::size_t i = 0; i < pmedata.size(); i++)
     {
         bool destroySharedData = (i == pmedata.size() - 1);
         gmx_pme_destroy(pmedata[i], destroySharedData);

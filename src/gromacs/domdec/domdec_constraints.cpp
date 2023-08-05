@@ -350,9 +350,9 @@ static void atoms_to_constraints(gmx_domdec_t*                         dd,
         }
     }
 
-    GMX_ASSERT(dc->con_gl.size() == static_cast<size_t>(dc->ncon),
+    GMX_ASSERT(dc->con_gl.size() == static_cast<std::size_t>(dc->ncon),
                "con_gl size should match the number of constraints");
-    GMX_ASSERT(dc->con_nlocat.size() == static_cast<size_t>(dc->ncon),
+    GMX_ASSERT(dc->con_nlocat.size() == static_cast<std::size_t>(dc->ncon),
                "con_nlocat size should match the number of constraints");
 
     if (debug)
@@ -546,7 +546,7 @@ void init_domdec_constraints(gmx_domdec_t* dd, const gmx_mtop_t& mtop)
     dc->molb_ncon_mol.resize(mtop.molblock.size());
 
     int ncon = 0;
-    for (size_t mb = 0; mb < mtop.molblock.size(); mb++)
+    for (std::size_t mb = 0; mb < mtop.molblock.size(); mb++)
     {
         const gmx_molblock_t* molb = &mtop.molblock[mb];
         dc->molb_con_offset[mb]    = ncon;

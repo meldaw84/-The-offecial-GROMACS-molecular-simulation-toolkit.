@@ -63,7 +63,7 @@
  * \param[in]     deviceContext        The buffer's device context-to-be.
  */
 template<typename ValueType>
-void allocateDeviceBuffer(DeviceBuffer<ValueType>* buffer, size_t numValues, const DeviceContext& deviceContext)
+void allocateDeviceBuffer(DeviceBuffer<ValueType>* buffer, std::size_t numValues, const DeviceContext& deviceContext)
 {
     GMX_ASSERT(buffer, "needs a buffer pointer");
     void*  hostPtr = nullptr;
@@ -120,8 +120,8 @@ void freeDeviceBuffer(DeviceBuffer* buffer)
 template<typename ValueType>
 void copyToDeviceBuffer(DeviceBuffer<ValueType>* buffer,
                         const ValueType*         hostBuffer,
-                        size_t                   startingOffset,
-                        size_t                   numValues,
+                        std::size_t              startingOffset,
+                        std::size_t              numValues,
                         const DeviceStream&      deviceStream,
                         GpuApiCallBehavior       transferKind,
                         CommandEvent*            timingEvent)
@@ -132,9 +132,9 @@ void copyToDeviceBuffer(DeviceBuffer<ValueType>* buffer,
     }
     GMX_ASSERT(buffer, "needs a buffer pointer");
     GMX_ASSERT(hostBuffer, "needs a host buffer pointer");
-    cl_int       clError;
-    const size_t offset = startingOffset * sizeof(ValueType);
-    const size_t bytes  = numValues * sizeof(ValueType);
+    cl_int            clError;
+    const std::size_t offset = startingOffset * sizeof(ValueType);
+    const std::size_t bytes  = numValues * sizeof(ValueType);
     switch (transferKind)
     {
         case GpuApiCallBehavior::Async:
@@ -183,8 +183,8 @@ void copyToDeviceBuffer(DeviceBuffer<ValueType>* buffer,
 template<typename ValueType>
 void copyFromDeviceBuffer(ValueType*               hostBuffer,
                           DeviceBuffer<ValueType>* buffer,
-                          size_t                   startingOffset,
-                          size_t                   numValues,
+                          std::size_t              startingOffset,
+                          std::size_t              numValues,
                           const DeviceStream&      deviceStream,
                           GpuApiCallBehavior       transferKind,
                           CommandEvent*            timingEvent)
@@ -195,9 +195,9 @@ void copyFromDeviceBuffer(ValueType*               hostBuffer,
     }
     GMX_ASSERT(buffer, "needs a buffer pointer");
     GMX_ASSERT(hostBuffer, "needs a host buffer pointer");
-    cl_int       clError;
-    const size_t offset = startingOffset * sizeof(ValueType);
-    const size_t bytes  = numValues * sizeof(ValueType);
+    cl_int            clError;
+    const std::size_t offset = startingOffset * sizeof(ValueType);
+    const std::size_t bytes  = numValues * sizeof(ValueType);
     switch (transferKind)
     {
         case GpuApiCallBehavior::Async:
@@ -234,7 +234,7 @@ void copyFromDeviceBuffer(ValueType*               hostBuffer,
 template<typename ValueType>
 void copyBetweenDeviceBuffers(DeviceBuffer<ValueType>* /* destinationDeviceBuffer */,
                               DeviceBuffer<ValueType>* /* sourceDeviceBuffer */,
-                              size_t /* numValues */,
+                              std::size_t /* numValues */,
                               const DeviceStream& /* deviceStream */,
                               GpuApiCallBehavior /* transferKind */,
                               CommandEvent* /*timingEvent*/)
@@ -254,8 +254,8 @@ void copyBetweenDeviceBuffers(DeviceBuffer<ValueType>* /* destinationDeviceBuffe
  */
 template<typename ValueType>
 void clearDeviceBufferAsync(DeviceBuffer<ValueType>* buffer,
-                            size_t                   startingOffset,
-                            size_t                   numValues,
+                            std::size_t              startingOffset,
+                            std::size_t              numValues,
                             const DeviceStream&      deviceStream)
 {
     if (numValues == 0)
@@ -263,12 +263,12 @@ void clearDeviceBufferAsync(DeviceBuffer<ValueType>* buffer,
         return;
     }
     GMX_ASSERT(buffer, "needs a buffer pointer");
-    const size_t    offset        = startingOffset * sizeof(ValueType);
-    const size_t    bytes         = numValues * sizeof(ValueType);
-    const int       pattern       = 0;
-    const cl_uint   numWaitEvents = 0;
-    const cl_event* waitEvents    = nullptr;
-    cl_int          clError       = clEnqueueFillBuffer(
+    const std::size_t offset        = startingOffset * sizeof(ValueType);
+    const std::size_t bytes         = numValues * sizeof(ValueType);
+    const int         pattern       = 0;
+    const cl_uint     numWaitEvents = 0;
+    const cl_event*   waitEvents    = nullptr;
+    cl_int            clError       = clEnqueueFillBuffer(
             deviceStream.stream(), *buffer, &pattern, sizeof(pattern), offset, bytes, numWaitEvents, waitEvents, nullptr);
     GMX_RELEASE_ASSERT(clError == CL_SUCCESS,
                        gmx::formatString("Couldn't clear the device buffer (OpenCL error %d: %s)",
@@ -294,8 +294,8 @@ void clearDeviceBufferAsync(DeviceBuffer<ValueType>* buffer,
 template<typename T>
 static bool checkDeviceBuffer(DeviceBuffer<T> buffer, int requiredSize)
 {
-    const size_t requiredSizeBytes = requiredSize * sizeof(T);
-    size_t       sizeBytes;
+    const std::size_t requiredSizeBytes = requiredSize * sizeof(T);
+    std::size_t       sizeBytes;
     cl_int retval = clGetMemObjectInfo(buffer, CL_MEM_SIZE, sizeof(sizeBytes), &sizeBytes, nullptr);
     GMX_ASSERT(retval == CL_SUCCESS,
                gmx::formatString("clGetMemObjectInfo failed with error code #%d", retval).c_str());
@@ -328,8 +328,8 @@ void initParamLookupTable(DeviceBuffer<ValueType>* deviceBuffer,
                           const DeviceContext& deviceContext)
 {
     GMX_ASSERT(hostBuffer, "Host buffer pointer can not be null");
-    const size_t bytes = numValues * sizeof(ValueType);
-    cl_int       clError;
+    const std::size_t bytes = numValues * sizeof(ValueType);
+    cl_int            clError;
     *deviceBuffer = clCreateBuffer(deviceContext.context(),
                                    CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY | CL_MEM_COPY_HOST_PTR,
                                    bytes,

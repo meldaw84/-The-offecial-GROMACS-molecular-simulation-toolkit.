@@ -78,7 +78,7 @@ int SimdBaseTest::s_nPoints = 10000;
     std::vector<real>         absDiff(tst.size());
     std::vector<std::int64_t> ulpDiff(tst.size());
     bool                      allOk;
-    size_t                    i;
+    std::size_t               i;
 
     union
     {

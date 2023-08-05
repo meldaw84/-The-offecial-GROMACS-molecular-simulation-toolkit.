@@ -185,7 +185,7 @@ static gmx_unused bool checkDeviceBuffer(const DeviceBuffer<T>& buffer, int gmx_
  * \param[in]     deviceContext        The buffer's device context-to-be.
  */
 template<typename ValueType>
-void allocateDeviceBuffer(DeviceBuffer<ValueType>* buffer, size_t numValues, const DeviceContext& deviceContext)
+void allocateDeviceBuffer(DeviceBuffer<ValueType>* buffer, std::size_t numValues, const DeviceContext& deviceContext)
 {
     ValueType* ptr = sycl::malloc_device<ValueType>(
             numValues, deviceContext.deviceInfo().syclDevice, deviceContext.context());
@@ -229,8 +229,8 @@ void freeDeviceBuffer(DeviceBuffer<ValueType>* buffer)
 template<typename ValueType>
 void copyToDeviceBuffer(DeviceBuffer<ValueType>* buffer,
                         const ValueType*         hostBuffer,
-                        size_t                   startingOffset,
-                        size_t                   numValues,
+                        std::size_t              startingOffset,
+                        std::size_t              numValues,
                         const DeviceStream&      deviceStream,
                         GpuApiCallBehavior       transferKind,
                         CommandEvent* gmx_unused timingEvent)
@@ -252,8 +252,8 @@ void copyToDeviceBuffer(DeviceBuffer<ValueType>* buffer,
                    "Trying to launch async copy from unpinned host buffer");
     }
 
-    ValueType*   dstPtr = buffer->buffer_->ptr_ + startingOffset;
-    const size_t size   = numValues * sizeof(ValueType);
+    ValueType*        dstPtr = buffer->buffer_->ptr_ + startingOffset;
+    const std::size_t size   = numValues * sizeof(ValueType);
     if (transferKind == GpuApiCallBehavior::Sync)
     {
         deviceStream.stream()
@@ -287,8 +287,8 @@ void copyToDeviceBuffer(DeviceBuffer<ValueType>* buffer,
 template<typename ValueType>
 void copyFromDeviceBuffer(ValueType*               hostBuffer,
                           DeviceBuffer<ValueType>* buffer,
-                          size_t                   startingOffset,
-                          size_t                   numValues,
+                          std::size_t              startingOffset,
+                          std::size_t              numValues,
                           const DeviceStream&      deviceStream,
                           GpuApiCallBehavior       transferKind,
                           CommandEvent* gmx_unused timingEvent)
@@ -310,8 +310,8 @@ void copyFromDeviceBuffer(ValueType*               hostBuffer,
                    "Trying to launch async copy to unpinned host buffer");
     }
 
-    const ValueType* srcPtr = buffer->buffer_->ptr_ + startingOffset;
-    const size_t     size   = numValues * sizeof(ValueType);
+    const ValueType*  srcPtr = buffer->buffer_->ptr_ + startingOffset;
+    const std::size_t size   = numValues * sizeof(ValueType);
     if (transferKind == GpuApiCallBehavior::Sync)
     {
         deviceStream.stream()
@@ -334,7 +334,7 @@ void copyFromDeviceBuffer(ValueType*               hostBuffer,
 template<typename ValueType>
 void copyBetweenDeviceBuffers(DeviceBuffer<ValueType>* destinationDeviceBuffer,
                               DeviceBuffer<ValueType>* sourceDeviceBuffer,
-                              size_t                   numValues,
+                              std::size_t              numValues,
                               const DeviceStream&      deviceStream,
                               GpuApiCallBehavior       transferKind,
                               CommandEvent* gmx_unused timingEvent)
@@ -346,9 +346,9 @@ void copyBetweenDeviceBuffers(DeviceBuffer<ValueType>* destinationDeviceBuffer,
     GMX_ASSERT(destinationDeviceBuffer, "needs a destination buffer pointer");
     GMX_ASSERT(sourceDeviceBuffer, "needs a source buffer pointer");
 
-    const ValueType* srcPtr = sourceDeviceBuffer->buffer_->ptr_;
-    ValueType*       dstPtr = destinationDeviceBuffer->buffer_->ptr_;
-    const size_t     size   = numValues * sizeof(ValueType);
+    const ValueType*  srcPtr = sourceDeviceBuffer->buffer_->ptr_;
+    ValueType*        dstPtr = destinationDeviceBuffer->buffer_->ptr_;
+    const std::size_t size   = numValues * sizeof(ValueType);
     if (transferKind == GpuApiCallBehavior::Sync)
     {
         deviceStream.stream().submit([&](sycl::handler& cgh) { cgh.memcpy(dstPtr, srcPtr, size); }).wait_and_throw();
@@ -372,8 +372,8 @@ void copyBetweenDeviceBuffers(DeviceBuffer<ValueType>* destinationDeviceBuffer,
  */
 template<typename ValueType>
 void clearDeviceBufferAsync(DeviceBuffer<ValueType>* buffer,
-                            size_t                   startingOffset,
-                            size_t                   numValues,
+                            std::size_t              startingOffset,
+                            std::size_t              numValues,
                             const DeviceStream&      deviceStream)
 {
     if (numValues == 0)

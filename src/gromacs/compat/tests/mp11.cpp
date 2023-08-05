@@ -91,18 +91,18 @@ TEST(TemplateMPTest, MpWithIndexIntBad)
 
 TEST(TemplateMPTest, MpWithIndexBool)
 {
-    bool not_true = mp_with_index<2>(size_t(true), [](auto i) { return testNot<i>(); });
+    bool not_true = mp_with_index<2>(std::size_t(true), [](auto i) { return testNot<i>(); });
     EXPECT_FALSE(not_true);
-    bool not_false = mp_with_index<2>(size_t(false), [](auto i) { return testNot<i>(); });
+    bool not_false = mp_with_index<2>(std::size_t(false), [](auto i) { return testNot<i>(); });
     EXPECT_TRUE(not_false);
 }
 
 TEST(TemplateMPTest, MpWithIndexEnum)
 {
     int five           = 5;
-    int two1plus2plus5 = mp_with_index<static_cast<size_t>(Options::Count)>(
-            static_cast<size_t>(Options::Op2), [=](auto i) {
-                return testEnumTwoIPlusJPlusK<Options::Op1, static_cast<Options>(size_t(i))>(five);
+    int two1plus2plus5 = mp_with_index<static_cast<std::size_t>(Options::Count)>(
+            static_cast<std::size_t>(Options::Op2), [=](auto i) {
+                return testEnumTwoIPlusJPlusK<Options::Op1, static_cast<Options>(std::size_t(i))>(five);
             });
     EXPECT_EQ(two1plus2plus5, 9);
 }

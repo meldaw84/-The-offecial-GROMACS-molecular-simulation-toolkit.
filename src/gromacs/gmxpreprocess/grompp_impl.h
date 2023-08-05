@@ -147,7 +147,7 @@ struct InteractionsOfType
     std::vector<int> cmapAtomTypes;
 
     //! Number of parameters.
-    size_t size() const { return interactionTypes.size(); }
+    std::size_t size() const { return interactionTypes.size(); }
     //! Elements in cmap grid data.
     int ncmap() const { return cmap.size(); }
     //! Number of elements in cmapAtomTypes.

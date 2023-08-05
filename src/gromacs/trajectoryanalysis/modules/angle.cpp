@@ -524,7 +524,7 @@ void Angle::checkSelections(const SelectionList& sel1, const SelectionList& sel2
 {
     AnglePositionIterator iter1(sel1, natoms1_);
     AnglePositionIterator iter2(sel2, natoms2_);
-    for (size_t g = 0; g < angleCount_.size(); ++g, iter1.nextGroup(), iter2.nextGroup())
+    for (std::size_t g = 0; g < angleCount_.size(); ++g, iter1.nextGroup(), iter2.nextGroup())
     {
         if (iter1.isDynamic() || (iter2.hasValue() && iter2.isDynamic()))
         {
@@ -576,7 +576,7 @@ void Angle::initAnalysis(const TrajectoryAnalysisSettings& settings, const Topol
 
     // checkSelections() ensures that both selection lists have the same size.
     angles_.setDataSetCount(angleCount_.size());
-    for (size_t i = 0; i < angleCount_.size(); ++i)
+    for (std::size_t i = 0; i < angleCount_.size(); ++i)
     {
         angles_.setColumnCount(i, angleCount_[i]);
     }
@@ -586,7 +586,7 @@ void Angle::initAnalysis(const TrajectoryAnalysisSettings& settings, const Topol
     if (g2type_ == Group2Type::TimeZero)
     {
         vt0_.resize(sel1_.size());
-        for (size_t g = 0; g < sel1_.size(); ++g)
+        for (std::size_t g = 0; g < sel1_.size(); ++g)
         {
             vt0_[g].resize(sel1_[g].posCount() / natoms1_);
         }
@@ -601,7 +601,7 @@ void Angle::initAnalysis(const TrajectoryAnalysisSettings& settings, const Topol
         plotm->setYLabel("Angle (degrees)");
         // TODO: Consider adding information about the second selection,
         // and/or a subtitle describing what kind of angle this is.
-        for (size_t g = 0; g < sel1_.size(); ++g)
+        for (std::size_t g = 0; g < sel1_.size(); ++g)
         {
             plotm->appendLegend(sel1_[g].name());
         }
@@ -628,7 +628,7 @@ void Angle::initAnalysis(const TrajectoryAnalysisSettings& settings, const Topol
         plotm->setYLabel("Probability");
         // TODO: Consider adding information about the second selection,
         // and/or a subtitle describing what kind of angle this is.
-        for (size_t g = 0; g < sel1_.size(); ++g)
+        for (std::size_t g = 0; g < sel1_.size(); ++g)
         {
             plotm->appendLegend(sel1_[g].name());
         }
@@ -690,7 +690,7 @@ void Angle::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* pbc, TrajectoryA
 
     AnglePositionIterator iter1(sel1, natoms1_);
     AnglePositionIterator iter2(sel2, natoms2_);
-    for (size_t g = 0; g < angleCount_.size(); ++g, iter1.nextGroup(), iter2.nextGroup())
+    for (std::size_t g = 0; g < angleCount_.size(); ++g, iter1.nextGroup(), iter2.nextGroup())
     {
         rvec v1, v2;
         rvec c1, c2;

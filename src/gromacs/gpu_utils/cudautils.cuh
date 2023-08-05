@@ -208,10 +208,10 @@ static inline bool haveStreamTasksCompleted(const DeviceStream& deviceStream)
  * \tparam        KernelPtr       Kernel function handle type
  * \param[in]     argIndex        Index of the current argument
  */
-template<size_t totalArgsCount, typename KernelPtr>
+template<std::size_t totalArgsCount, typename KernelPtr>
 void prepareGpuKernelArgument(KernelPtr /*kernel*/,
                               std::array<void*, totalArgsCount>* /* kernelArgsPtr */,
-                              size_t gmx_used_in_debug argIndex)
+                              std::size_t gmx_used_in_debug argIndex)
 {
     GMX_ASSERT(argIndex == totalArgsCount, "Tail expansion");
 }
@@ -231,10 +231,10 @@ void prepareGpuKernelArgument(KernelPtr /*kernel*/,
  * \param[in]     argPtr          Pointer to the current argument
  * \param[in]     otherArgsPtrs   Pack of pointers to arguments remaining to process after the current one
  */
-template<typename CurrentArg, typename... RemainingArgs, size_t totalArgsCount, typename KernelPtr>
+template<typename CurrentArg, typename... RemainingArgs, std::size_t totalArgsCount, typename KernelPtr>
 void prepareGpuKernelArgument(KernelPtr                          kernel,
                               std::array<void*, totalArgsCount>* kernelArgsPtr,
-                              size_t                             argIndex,
+                              std::size_t                        argIndex,
                               const CurrentArg*                  argPtr,
                               const RemainingArgs*... otherArgsPtrs)
 {

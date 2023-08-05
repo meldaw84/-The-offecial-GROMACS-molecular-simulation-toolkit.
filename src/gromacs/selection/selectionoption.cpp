@@ -92,7 +92,7 @@ std::vector<Any> SelectionOptionStorage::normalizeValues(const std::vector<Any>&
 
 void SelectionOptionStorage::addSelections(const SelectionList& selections, bool bFullValue)
 {
-    if (bFullValue && selections.size() < static_cast<size_t>(minValueCount()))
+    if (bFullValue && selections.size() < static_cast<std::size_t>(minValueCount()))
     {
         GMX_THROW(InvalidInputError("Too few selections provided"));
     }
@@ -133,7 +133,7 @@ void SelectionOptionStorage::processSetValues(ValueList* values)
     {
         manager_.requestOptionDelayedParsing(this);
     }
-    else if (values->size() < static_cast<size_t>(minValueCount()))
+    else if (values->size() < static_cast<std::size_t>(minValueCount()))
     {
         GMX_THROW(InvalidInputError("Too few (valid) values provided"));
     }

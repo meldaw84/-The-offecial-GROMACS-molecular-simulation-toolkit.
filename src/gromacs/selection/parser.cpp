@@ -321,11 +321,11 @@ typedef short int          yytype_int16;
 #ifndef YYSIZE_T
 #    ifdef __SIZE_TYPE__
 #        define YYSIZE_T __SIZE_TYPE__
-#    elif defined size_t
-#        define YYSIZE_T size_t
+#    elif defined std::size_t
+#        define YYSIZE_T std::size_t
 #    elif !defined YYSIZE_T
 #        include <cstddef> /* INFRINGES ON USER NAME SPACE */
-#        define YYSIZE_T size_t
+#        define YYSIZE_T std::size_t
 #    else
 #        define YYSIZE_T unsigned int
 #    endif

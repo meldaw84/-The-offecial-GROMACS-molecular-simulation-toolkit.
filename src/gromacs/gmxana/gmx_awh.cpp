@@ -245,7 +245,7 @@ constexpr int maxAwhGraphs = 6;
 /*! \brief Constructs a legend for a standard awh output file */
 std::vector<std::string> makeLegend(const AwhBiasParams& awhBiasParams,
                                     OutputFileType       outputFileType,
-                                    size_t               numLegend)
+                                    std::size_t          numLegend)
 {
     const std::array<std::string, maxAwhGraphs> legendBase = { { "PMF",
                                                                  "Coord bias",
@@ -266,7 +266,7 @@ std::vector<std::string> makeLegend(const AwhBiasParams& awhBiasParams,
         case OutputFileType::Awh:
         {
             /* Add as many legends as possible from the "base" legend list */
-            size_t legendBaseIndex = 0;
+            std::size_t legendBaseIndex = 0;
             while (legend.size() < numLegend && legendBaseIndex < legendBase.size())
             {
                 legend.push_back(legendBase[legendBaseIndex]);

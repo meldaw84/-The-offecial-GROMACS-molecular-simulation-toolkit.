@@ -326,7 +326,7 @@ public:
      *
      * The strings are copied once the option is created.
      */
-    template<size_t count>
+    template<std::size_t count>
     MyClass& enumValue(const char* const (&values)[count])
     {
         GMX_ASSERT(enumValues_ == nullptr, "Multiple sets of enumerated values specified");
@@ -428,7 +428,7 @@ public:
             storeVector_->clear();
         }
     }
-    void reserve(size_t count) override
+    void reserve(std::size_t count) override
     {
         intStore_.reserve(intStore_.size() + count);
         if (storeVector_ != nullptr)
@@ -438,7 +438,7 @@ public:
     }
     void append(const int& value) override
     {
-        const size_t count = intStore_.size();
+        const std::size_t count = intStore_.size();
         intStore_.push_back(value);
         if (store_ != nullptr)
         {
@@ -630,7 +630,7 @@ public:
      *
      * The strings are copied once the option is created.
      */
-    template<size_t count>
+    template<std::size_t count>
     LegacyEnumOption& enumValue(const char* const (&values)[count])
     {
         GMX_ASSERT(enumValues_ == nullptr, "Multiple sets of enumerated values specified");

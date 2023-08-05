@@ -185,7 +185,7 @@ void QMMMForceProvider::initCP2KForceEnvironment(const t_commrec& cr)
 void QMMMForceProvider::calculateForces(const ForceProviderInput& fInput, ForceProviderOutput* fOutput)
 {
     // Total number of atoms in the system
-    size_t numAtoms = qmAtoms_.numAtomsGlobal() + mmAtoms_.numAtomsGlobal();
+    std::size_t numAtoms = qmAtoms_.numAtomsGlobal() + mmAtoms_.numAtomsGlobal();
 
     // Save box
     copy_mat(fInput.box_, box_);
@@ -216,14 +216,14 @@ void QMMMForceProvider::calculateForces(const ForceProviderInput& fInput, ForceP
     std::vector<RVec> x(numAtoms, RVec({ 0.0, 0.0, 0.0 }));
 
     // Fill cordinates of local QM atoms and add translation
-    for (size_t i = 0; i < qmAtoms_.numAtomsLocal(); i++)
+    for (std::size_t i = 0; i < qmAtoms_.numAtomsLocal(); i++)
     {
         x[qmAtoms_.globalIndex()[qmAtoms_.collectiveIndex()[i]]] =
                 fInput.x_[qmAtoms_.localIndex()[i]] + parameters_.qmTrans_;
     }
 
     // Fill cordinates of local MM atoms and add translation
-    for (size_t i = 0; i < mmAtoms_.numAtomsLocal(); i++)
+    for (std::size_t i = 0; i < mmAtoms_.numAtomsLocal(); i++)
     {
         x[mmAtoms_.globalIndex()[mmAtoms_.collectiveIndex()[i]]] =
                 fInput.x_[mmAtoms_.localIndex()[i]] + parameters_.qmTrans_;
@@ -244,7 +244,7 @@ void QMMMForceProvider::calculateForces(const ForceProviderInput& fInput, ForceP
      */
     // x_d - coordinates casted to linear dobule vector for CP2K with parameters_.qmTrans_ added
     std::vector<double> x_d(3 * numAtoms, 0.0);
-    for (size_t i = 0; i < numAtoms; i++)
+    for (std::size_t i = 0; i < numAtoms; i++)
     {
         x_d[3 * i]     = static_cast<double>((x[i][XX]) / c_bohr2Nm);
         x_d[3 * i + 1] = static_cast<double>((x[i][YY]) / c_bohr2Nm);
@@ -253,7 +253,7 @@ void QMMMForceProvider::calculateForces(const ForceProviderInput& fInput, ForceP
 
     // box_d - box_ casted to linear dobule vector for CP2K
     std::vector<double> box_d(9);
-    for (size_t i = 0; i < DIM; i++)
+    for (std::size_t i = 0; i < DIM; i++)
     {
         box_d[3 * i]     = static_cast<double>(box_[0][i] / c_bohr2Nm);
         box_d[3 * i + 1] = static_cast<double>(box_[1][i] / c_bohr2Nm);
@@ -285,7 +285,7 @@ void QMMMForceProvider::calculateForces(const ForceProviderInput& fInput, ForceP
     cp2k_get_forces(force_env_, cp2kForce.data(), 3 * numAtoms);
 
     // Fill forces on QM atoms first
-    for (size_t i = 0; i < qmAtoms_.numAtomsLocal(); i++)
+    for (std::size_t i = 0; i < qmAtoms_.numAtomsLocal(); i++)
     {
         fOutput->forceWithVirial_.force_[qmAtoms_.localIndex()[i]][XX] +=
                 static_cast<real>(cp2kForce[3 * qmAtoms_.globalIndex()[qmAtoms_.collectiveIndex()[i]]])
@@ -301,7 +301,7 @@ void QMMMForceProvider::calculateForces(const ForceProviderInput& fInput, ForceP
     }
 
     // Filll forces on MM atoms then
-    for (size_t i = 0; i < mmAtoms_.numAtomsLocal(); i++)
+    for (std::size_t i = 0; i < mmAtoms_.numAtomsLocal(); i++)
     {
         fOutput->forceWithVirial_.force_[mmAtoms_.localIndex()[i]][XX] +=
                 static_cast<real>(cp2kForce[3 * mmAtoms_.globalIndex()[mmAtoms_.collectiveIndex()[i]]])

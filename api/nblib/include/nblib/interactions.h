@@ -68,8 +68,8 @@ private:
     InteractionMap interactionMap_;
 
 public:
-    void   setInteractions(const ParticleTypeName&, const ParticleTypeName&, const C6, const C12);
-    size_t count(const NamePairTuple&);
+    void setInteractions(const ParticleTypeName&, const ParticleTypeName&, const C6, const C12);
+    std::size_t count(const NamePairTuple&);
 
     [[nodiscard]] C6  getC6(const ParticleTypeName&, const ParticleTypeName&) const;
     [[nodiscard]] C12 getC12(const ParticleTypeName&, const ParticleTypeName&) const;

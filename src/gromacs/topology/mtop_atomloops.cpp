@@ -130,7 +130,7 @@ int AtomProxy::atomNumberInMol() const
 struct gmx_mtop_atomloop_block
 {
     const gmx_mtop_t* mtop;
-    size_t            mblock;
+    std::size_t       mblock;
     const t_atoms*    atoms;
     int               at_local;
 };
@@ -181,7 +181,7 @@ gmx_bool gmx_mtop_atomloop_block_next(gmx_mtop_atomloop_block_t aloop, const t_a
     return TRUE;
 }
 
-IListIterator::IListIterator(const gmx_mtop_t& mtop, size_t molblock) :
+IListIterator::IListIterator(const gmx_mtop_t& mtop, std::size_t molblock) :
     mtop_(&mtop), mblock_(molblock)
 {
 }

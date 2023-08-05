@@ -122,8 +122,8 @@ TEST(NbnxmSetupTest, canCreateKernelSetupPlain)
 
 TEST(NbnxmSetupTest, canCreateParticleInfoAllVdv)
 {
-    size_t  numParticles = 2;
-    int64_t mask         = 0;
+    std::size_t numParticles = 2;
+    int64_t     mask         = 0;
     mask |= gmx::sc_atomInfo_HasVdw;
     mask |= gmx::sc_atomInfo_HasCharge;
     std::vector<int64_t> refParticles  = { mask, mask };
@@ -185,7 +185,7 @@ TEST(NbnxmSetupTest, cannotCreateKernelSetupCPU4XM)
 
 TEST(NbnxmSetupTest, CanCreateNbnxmCPU)
 {
-    size_t          numParticles = 1;
+    std::size_t     numParticles = 1;
     NBKernelOptions nbKernelOptions;
     nbKernelOptions.nbnxmSimd             = SimdKernels::SimdNo;
     int               numEnergyGroups     = 1;
@@ -221,7 +221,7 @@ TEST(NbnxmSetupTest, CanCreateNbnxmGPU)
     {
         testDevice->activate();
         const DeviceInformation& deviceInfo   = testDevice->deviceInfo();
-        size_t                   numParticles = 1;
+        std::size_t              numParticles = 1;
         NBKernelOptions          nbKernelOptions;
         std::vector<real>        nonbondedParameters = { 1, 1 };
         gmx::SimulationWorkload  simulationWork      = createSimulationWorkloadGpu();

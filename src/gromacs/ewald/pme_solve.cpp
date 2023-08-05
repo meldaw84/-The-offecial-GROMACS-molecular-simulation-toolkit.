@@ -87,7 +87,7 @@ constexpr int c_simdWidth = 4;
 
 /* Returns the smallest number >= \p that is a multiple of \p factor, \p factor must be a power of 2 */
 template<unsigned int factor>
-static size_t roundUpToMultipleOfFactor(size_t number)
+static std::size_t roundUpToMultipleOfFactor(std::size_t number)
 {
     static_assert(gmx::isPowerOfTwo(factor));
 
@@ -127,7 +127,7 @@ static void realloc_work(struct pme_solve_work_t* work, int nkx)
         /* Init all allocated elements of denom to 1 to avoid 1/0 exceptions
          * of simd padded elements.
          */
-        for (size_t i = 0; i < roundUpToMultipleOfFactor<c_simdWidth>(work->nalloc); i++)
+        for (std::size_t i = 0; i < roundUpToMultipleOfFactor<c_simdWidth>(work->nalloc); i++)
         {
             work->denom[i] = 1;
         }
@@ -230,7 +230,7 @@ inline static void calc_exponentials_q(int /*unused*/,
          */
         GMX_ASSERT(d_aligned.size() == r_aligned.size(), "d and r must have same size");
         GMX_ASSERT(d_aligned.size() == e_aligned.size(), "d and e must have same size");
-        for (size_t kx = 0; kx != d_aligned.size(); ++kx)
+        for (std::size_t kx = 0; kx != d_aligned.size(); ++kx)
         {
             tmp_d1        = d_aligned[kx];
             tmp_r         = r_aligned[kx];
@@ -276,7 +276,7 @@ inline static void calc_exponentials_lj(int /*unused*/,
 
     GMX_ASSERT(d_aligned.size() == r_aligned.size(), "d and r must have same size");
     GMX_ASSERT(d_aligned.size() == factor_aligned.size(), "d and factor must have same size");
-    for (size_t kx = 0; kx != d_aligned.size(); ++kx)
+    for (std::size_t kx = 0; kx != d_aligned.size(); ++kx)
     {
         /* We only need to calculate from start. But since start is 0 or 1
          * and we want to use aligned loads/stores, we always start from 0.

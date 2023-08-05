@@ -207,9 +207,9 @@ private:
      * assignmentForAllRanksOnThisNode_. */
     Index indexOfThisRank_ = -1;
     //! Number of GPU tasks on this node.
-    size_t numGpuTasksOnThisNode_ = 0;
+    std::size_t numGpuTasksOnThisNode_ = 0;
     //! Number of ranks on this physical node.
-    size_t numRanksOnThisNode_ = 0;
+    std::size_t numRanksOnThisNode_ = 0;
 
     //! Vector of device IDs assigned to this node
     std::vector<int> deviceIdsAssigned_;
@@ -241,7 +241,7 @@ public:
      * \param[in]  numAvailableDevicesOnThisNode The number of compatible devices on this node
      *                                           that the user permitted us to use.
      * */
-    void logPerformanceHints(const MDLogger& mdlog, size_t numAvailableDevicesOnThisNode);
+    void logPerformanceHints(const MDLogger& mdlog, std::size_t numAvailableDevicesOnThisNode);
     /*! \brief Return handle to the initialized GPU to use in this rank.
      *
      * \param[out] deviceId Index of the assigned device.

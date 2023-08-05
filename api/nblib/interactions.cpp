@@ -71,7 +71,7 @@ void NonBondedInteractionMap::setInteractions(const ParticleTypeName& first,
     interactionMap_[interactionKey] = std::make_tuple(c6_combo, c12_combo);
 }
 
-size_t NonBondedInteractionMap::count(const NonBondedInteractionMap::NamePairTuple& namePairTuple)
+std::size_t NonBondedInteractionMap::count(const NonBondedInteractionMap::NamePairTuple& namePairTuple)
 {
     return interactionMap_.count(namePairTuple);
 }

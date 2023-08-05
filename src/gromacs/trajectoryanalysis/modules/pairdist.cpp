@@ -274,7 +274,7 @@ void PairDistance::initAnalysis(const TrajectoryAnalysisSettings& settings, cons
 
     maxGroupCount_ = 0;
     distances_.setDataSetCount(sel_.size());
-    for (size_t i = 0; i < sel_.size(); ++i)
+    for (std::size_t i = 0; i < sel_.size(); ++i)
     {
         const int selGroupCount = initSelectionGroups(&sel_[i], top.mtop(), selGroupType_);
         const int columnCount   = refGroupCount_ * selGroupCount;
@@ -299,7 +299,7 @@ void PairDistance::initAnalysis(const TrajectoryAnalysisSettings& settings, cons
         // selection.
         plotm->setXAxisIsTime();
         plotm->setYLabel("Distance (nm)");
-        for (size_t g = 0; g < sel_.size(); ++g)
+        for (std::size_t g = 0; g < sel_.size(); ++g)
         {
             plotm->appendLegend(sel_[g].name());
         }
@@ -432,7 +432,7 @@ void PairDistance::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* pbc, Traj
 
     AnalysisNeighborhoodSearch nbsearch = nb_.initSearch(pbc, refSel);
     dh.startFrame(frnr, fr.time);
-    for (size_t g = 0; g < sel.size(); ++g)
+    for (std::size_t g = 0; g < sel.size(); ++g)
     {
         const int columnCount = distances_.columnCount(g);
         std::fill(distArray.begin(), distArray.begin() + columnCount, initialDist2_);

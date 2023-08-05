@@ -273,7 +273,7 @@ gmx_opencl_inline int preloadCjPackedSubgroup(const __global int* gm_cj)
 #    endif // USE_SUBGROUP_PRELOAD
 
 #    if USE_SUBGROUP_PRELOAD
-typedef size_t CjType;
+typedef std::size_t CjType;
 #    else
 typedef __local int* CjType;
 #    endif

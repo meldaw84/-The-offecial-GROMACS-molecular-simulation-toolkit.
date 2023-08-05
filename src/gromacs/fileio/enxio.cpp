@@ -1268,11 +1268,11 @@ static real ener_tensor_diag(int          n,
                              t_energy     e1[],
                              t_energy     e2[])
 {
-    int    d1, d2;
-    int    j;
-    real   prod1, prod2;
-    int    nfound;
-    size_t len;
+    int         d1, d2;
+    int         j;
+    real        prod1, prod2;
+    int         nfound;
+    std::size_t len;
 
     d1 = tensi[i] / DIM;
     d2 = tensi[i] - d1 * DIM;

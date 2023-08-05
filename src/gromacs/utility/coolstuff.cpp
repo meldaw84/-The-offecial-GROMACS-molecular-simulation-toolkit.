@@ -77,8 +77,8 @@ bool beCool()
 template<typename T>
 const T& getPseudoRandomElement(gmx::ArrayRef<const T> arrayRef)
 {
-    std::mt19937_64                       generator(std::time(nullptr));
-    std::uniform_int_distribution<size_t> distribution(0, arrayRef.size() - 1);
+    std::mt19937_64                            generator(std::time(nullptr));
+    std::uniform_int_distribution<std::size_t> distribution(0, arrayRef.size() - 1);
     return arrayRef[distribution(generator)];
 }
 

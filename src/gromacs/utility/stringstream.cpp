@@ -80,7 +80,7 @@ bool StringInputStream::readLine(std::string* line)
     }
     else
     {
-        size_t newpos = input_.find('\n', pos_);
+        std::size_t newpos = input_.find('\n', pos_);
         if (newpos == std::string::npos)
         {
             newpos = input_.size();

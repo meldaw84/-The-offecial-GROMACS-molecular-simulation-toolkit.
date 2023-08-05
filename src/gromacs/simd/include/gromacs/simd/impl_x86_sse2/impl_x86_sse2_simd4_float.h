@@ -73,13 +73,13 @@ public:
 
 static inline Simd4Float gmx_simdcall load4(const float* m)
 {
-    assert(size_t(m) % 16 == 0);
+    assert(std::size_t(m) % 16 == 0);
     return { _mm_load_ps(m) };
 }
 
 static inline void gmx_simdcall store4(float* m, Simd4Float a)
 {
-    assert(size_t(m) % 16 == 0);
+    assert(std::size_t(m) % 16 == 0);
     _mm_store_ps(m, a.simdInternal_);
 }
 

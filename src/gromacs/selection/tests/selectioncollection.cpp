@@ -207,7 +207,7 @@ private:
 
     gmx::test::TestReferenceData    data_;
     gmx::test::TestReferenceChecker checker_;
-    size_t                          count_;
+    std::size_t                     count_;
     int                             framenr_;
     TestFlags                       flags_;
 };
@@ -264,7 +264,7 @@ void SelectionCollectionDataTest::runParser(const gmx::ArrayRef<const char* cons
     using gmx::test::TestReferenceChecker;
 
     TestReferenceChecker compound(checker_.checkCompound("ParsedSelections", "Parsed"));
-    size_t               varcount = 0;
+    std::size_t          varcount = 0;
     count_                        = 0;
     for (gmx::Index i = 0; i < selections.ssize(); ++i)
     {
@@ -310,7 +310,7 @@ void SelectionCollectionDataTest::checkCompiled()
     const TestFlags mask = ~TestFlags(efTestPositionCoordinates);
 
     TestReferenceChecker compound(checker_.checkCompound("CompiledSelections", "Compiled"));
-    for (size_t i = 0; i < count_; ++i)
+    for (std::size_t i = 0; i < count_; ++i)
     {
         SCOPED_TRACE(std::string("Checking selection \"") + sel_[i].selectionText() + "\"");
         std::string          id = gmx::formatString("Selection%d", static_cast<int>(i + 1));
@@ -335,7 +335,7 @@ void SelectionCollectionDataTest::runEvaluate()
     ASSERT_NO_THROW_GMX(sc_.evaluate(topManager_.frame(), nullptr));
     std::string          frame = gmx::formatString("Frame%d", framenr_);
     TestReferenceChecker compound(checker_.checkCompound("EvaluatedSelections", frame.c_str()));
-    for (size_t i = 0; i < count_; ++i)
+    for (std::size_t i = 0; i < count_; ++i)
     {
         SCOPED_TRACE(std::string("Checking selection \"") + sel_[i].selectionText() + "\"");
         std::string          id = gmx::formatString("Selection%d", static_cast<int>(i + 1));

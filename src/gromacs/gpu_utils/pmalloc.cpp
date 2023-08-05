@@ -52,7 +52,7 @@
  * \param[in,out]    h_ptr   Pointer where to store the address of the newly allocated buffer.
  * \param[in]        nbytes  Size in bytes of the buffer to be allocated.
  */
-void pmalloc(void** h_ptr, size_t nbytes, const DeviceContext* /*context*/)
+void pmalloc(void** h_ptr, std::size_t nbytes, const DeviceContext* /*context*/)
 {
     /* Need a temporary type whose size is 1 byte, so that the
      * implementation of snew_aligned can cope without issuing

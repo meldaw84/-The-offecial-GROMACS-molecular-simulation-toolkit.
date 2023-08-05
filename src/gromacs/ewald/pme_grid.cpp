@@ -77,7 +77,7 @@ void gmx_sum_qgrid_dd(gmx_pme_t* pme, real* grid, const int direction)
     /* Start with minor-rank communication. This is a bit of a pain since it is not contiguous */
     overlap = &pme->overlap[1];
 
-    for (size_t ipulse = 0; ipulse < overlap->comm_data.size(); ipulse++)
+    for (std::size_t ipulse = 0; ipulse < overlap->comm_data.size(); ipulse++)
     {
         /* Since we have already (un)wrapped the overlap in the z-dimension,
          * we only have to communicate 0 to nkz (not pmegrid_nz).
@@ -188,7 +188,7 @@ void gmx_sum_qgrid_dd(gmx_pme_t* pme, real* grid, const int direction)
      */
     overlap = &pme->overlap[0];
 
-    for (size_t ipulse = 0; ipulse < overlap->comm_data.size(); ipulse++)
+    for (std::size_t ipulse = 0; ipulse < overlap->comm_data.size(); ipulse++)
     {
         if (direction == GMX_SUM_GRID_FORWARD)
         {

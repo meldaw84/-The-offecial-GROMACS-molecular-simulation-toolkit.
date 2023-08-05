@@ -335,7 +335,7 @@ public:
         // Reduce the values across "ranks"
         for (auto& rankData : rankData_)
         {
-            for (size_t i = 0; i != reducedValues.size(); ++i)
+            for (std::size_t i = 0; i != reducedValues.size(); ++i)
             {
                 reducedValues[i] += rankData.observablesReducer.value().communicationBuffer(
                         reductionRequiredExternally)[i];
@@ -470,8 +470,8 @@ TEST_P(ObservablesReducerIntegrationTest, CanBuildAndUseWithoutAllNeedingReducti
     }
 
     // Only one subscriber does work leading to reduction
-    size_t subscriberNeedingReduction = 0;
-    Step   step                       = 0;
+    std::size_t subscriberNeedingReduction = 0;
+    Step        step                       = 0;
     for (auto& rankData : rankData_)
     {
         auto& subscriber = rankData.subscribers[subscriberNeedingReduction];
@@ -490,7 +490,7 @@ TEST_P(ObservablesReducerIntegrationTest, CanBuildAndUseWithoutAllNeedingReducti
     // Check that other subscribers didn't reduce anything
     for (auto& rankData : rankData_)
     {
-        for (size_t r = 0; r != rankData.subscribers.size(); ++r)
+        for (std::size_t r = 0; r != rankData.subscribers.size(); ++r)
         {
             if (r == subscriberNeedingReduction)
             {
@@ -534,8 +534,8 @@ TEST_P(ObservablesReducerIntegrationTest, CanBuildAndUseWhenASubscriberUsesEvent
     }
 
     // Only one subscriber does work leading to reduction
-    size_t subscriberUsingEventually = 1;
-    Step   step                      = 1;
+    std::size_t subscriberUsingEventually = 1;
+    Step        step                      = 1;
     for (auto& rankData : rankData_)
     {
         auto& subscriber = rankData.subscribers[subscriberUsingEventually];
@@ -558,7 +558,7 @@ TEST_P(ObservablesReducerIntegrationTest, CanBuildAndUseWhenASubscriberUsesEvent
 
     for (auto& rankData : rankData_)
     {
-        for (size_t i = 0; i != rankData.subscribers.size(); ++i)
+        for (std::size_t i = 0; i != rankData.subscribers.size(); ++i)
         {
             if (i == subscriberUsingEventually)
             {
@@ -613,7 +613,7 @@ TEST_P(ObservablesReducerIntegrationTest, CanBuildAndUseWhenAllSubscribersUseEve
     // All subscribers do work leading to reduction eventually
     for (auto& rankData : rankData_)
     {
-        for (size_t i = 0; i != rankData.subscribers.size(); ++i)
+        for (std::size_t i = 0; i != rankData.subscribers.size(); ++i)
         {
             rankData.subscribers[i].doSimulationWork(step, ReductionRequirement::Eventually);
         }

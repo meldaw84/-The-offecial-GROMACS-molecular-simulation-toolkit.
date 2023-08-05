@@ -269,7 +269,7 @@ static void analyse_other(gmx::ArrayRef<std::string> restype,
                 if (gmx_ask_yesno(bASK))
                 {
                     std::vector<const char*> attp;
-                    for (size_t k = 0; (k < aid.size()); k++)
+                    for (std::size_t k = 0; (k < aid.size()); k++)
                     {
                         const char* aname = *atoms->atomname[aid[k]];
                         auto found = std::find_if(attp.begin(), attp.end(), [aname](const char* entry) {
@@ -286,7 +286,7 @@ static void analyse_other(gmx::ArrayRef<std::string> restype,
                         for (int l = 0; (l < natp); l++)
                         {
                             std::vector<int> aaid;
-                            for (size_t k = 0; (k < aid.size()); k++)
+                            for (std::size_t k = 0; (k < aid.size()); k++)
                             {
                                 const char* aname = *atoms->atomname[aid[k]];
                                 if (strcmp(aname, attp[l]) == 0)

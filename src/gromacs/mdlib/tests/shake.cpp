@@ -145,8 +145,8 @@ public:
     }
 
     //! Run the test
-    static void runTest(size_t gmx_unused        numAtoms,
-                        size_t                   numConstraints,
+    static void runTest(std::size_t gmx_unused   numAtoms,
+                        std::size_t              numConstraints,
                         const std::vector<int>&  iatom,
                         const std::vector<real>& constrainedDistances,
                         const std::vector<real>& inverseMasses,
@@ -157,9 +157,9 @@ public:
         assert(numConstraints == constrainedDistances.size());
         assert(numAtoms == inverseMasses.size());
         assert(numAtoms == positions.size());
-        for (size_t i = 0; i != numConstraints; ++i)
+        for (std::size_t i = 0; i != numConstraints; ++i)
         {
-            for (size_t j = 1; j < 3; j++)
+            for (std::size_t j = 1; j < 3; j++)
             {
                 // Check that the topology refers to atoms that have masses and positions
                 assert(iatom[i * constraintStride + j] >= 0);
@@ -171,14 +171,14 @@ public:
         std::vector<real> constrainedDistancesSquared;
 
         real coordMax = 0;
-        for (size_t i = 0; i != numConstraints; ++i)
+        for (std::size_t i = 0; i != numConstraints; ++i)
         {
             constrainedDistancesSquared.push_back(constrainedDistances[i] * constrainedDistances[i]);
             distanceSquaredTolerances.push_back(
                     0.5 / (constrainedDistancesSquared.back() * ShakeTest::tolerance_));
             lagrangianValues.push_back(0.0);
 
-            for (size_t j = 1; j < constraintStride; j++)
+            for (std::size_t j = 1; j < constraintStride; j++)
             {
                 for (int d = 0; d < DIM; d++)
                 {
@@ -217,7 +217,7 @@ public:
         EXPECT_LT(numIterations, ShakeTest::maxNumIterations_);
         // TODO wrap this in a Google Mock matcher if there's
         // other tests like it some time?
-        for (size_t i = 0; i != numConstraints; ++i)
+        for (std::size_t i = 0; i != numConstraints; ++i)
         {
             // We need to allow for the requested tolerance plus rounding
             // errors due to the absolute size of the coordinate values

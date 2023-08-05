@@ -78,8 +78,8 @@ UpdateGroupsCog::UpdateGroupsCog(const gmx_mtop_t&                           mto
 void UpdateGroupsCog::addCogs(gmx::ArrayRef<const int>       globalAtomIndices,
                               gmx::ArrayRef<const gmx::RVec> coordinates)
 {
-    const int    localAtomBegin = cogIndices_.size();
-    const size_t cogBegin       = cogs_.size();
+    const int         localAtomBegin = cogIndices_.size();
+    const std::size_t cogBegin       = cogs_.size();
 
     GMX_RELEASE_ASSERT(globalAtomIndices.ssize() >= localAtomBegin,
                        "addCogs should only be called to add COGs to the list that is already "
@@ -101,7 +101,7 @@ void UpdateGroupsCog::addCogs(gmx::ArrayRef<const int>       globalAtomIndices,
 
         if (const int* cogIndexPtr = globalToLocalMap_.find(globalUpdateGroupIndex))
         {
-            GMX_ASSERT(static_cast<size_t>(*cogIndexPtr) >= cogBegin,
+            GMX_ASSERT(static_cast<std::size_t>(*cogIndexPtr) >= cogBegin,
                        "Added atoms should not be part of previously present groups");
 
             cogIndices_.push_back(*cogIndexPtr);
@@ -121,7 +121,7 @@ void UpdateGroupsCog::addCogs(gmx::ArrayRef<const int>       globalAtomIndices,
     }
 
     /* Divide sum of coordinates for each COG by the number of atoms */
-    for (size_t i = cogBegin; i < cogs_.size(); i++)
+    for (std::size_t i = cogBegin; i < cogs_.size(); i++)
     {
         const int numAtoms = numAtomsPerCog_[i];
         if (numAtoms > 1)

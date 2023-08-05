@@ -120,7 +120,7 @@ static void adjustAtomInformation(t_atoms* atoms, t_atoms* selectionAtoms, const
 
 void OutputSelector::processFrame(const int /*framenumber*/, t_trxframe* input)
 {
-    size_t natoms = sel_.atomCount();
+    std::size_t natoms = sel_.atomCount();
 
     input->natoms = natoms;
 
@@ -138,7 +138,7 @@ void OutputSelector::processFrame(const int /*framenumber*/, t_trxframe* input)
         localIndex_.resize(natoms);
     }
 
-    for (size_t i = 0; i < natoms; i++)
+    for (std::size_t i = 0; i < natoms; i++)
     {
         int pos = sel_.position(i).refId();
 

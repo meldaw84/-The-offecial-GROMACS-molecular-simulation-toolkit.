@@ -371,7 +371,7 @@ void BiasWriter::prepareBiasOutput(const Bias& bias)
         {
             continue;
         }
-        for (size_t m = 0; m < bias.state().points().size(); m++)
+        for (std::size_t m = 0; m < bias.state().points().size(); m++)
         {
             transferPointDataToWriter(outputType, m, bias, pmf);
         }
@@ -388,7 +388,7 @@ int BiasWriter::writeToEnergySubblocks(const Bias& bias, t_enxsubblock* sub)
 {
     prepareBiasOutput(bias);
 
-    for (size_t b = 0; b < block_.size(); b++)
+    for (std::size_t b = 0; b < block_.size(); b++)
     {
         sub[b].type = XdrDataType::Float;
         sub[b].nr   = block_[b].data().size();

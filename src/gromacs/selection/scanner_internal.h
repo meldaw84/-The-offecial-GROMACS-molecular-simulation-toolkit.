@@ -139,7 +139,7 @@ int _gmx_sel_lexer_process_pending(YYSTYPE* /*yylval*/, YYLTYPE*, gmx_sel_lexer_
 int _gmx_sel_lexer_process_identifier(YYSTYPE* /*yylval*/,
                                       YYLTYPE*,
                                       char* /*yytext*/,
-                                      size_t /*yyleng*/,
+                                      std::size_t /*yyleng*/,
                                       gmx_sel_lexer_t* state);
 /** Internal function to add a token to the pretty-printed selection text. */
 void _gmx_sel_lexer_add_token(YYLTYPE*, const char* str, int len, gmx_sel_lexer_t* state);

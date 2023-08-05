@@ -159,12 +159,12 @@ TEST(TabulatedNormalDistributionTableTest, HasValidProperties)
 
     EXPECT_EQ(table.size() % 2, 0) << "Table must have even number of entries";
 
-    size_t halfSize     = table.size() / 2;
-    double sumOfSquares = 0.0;
+    std::size_t halfSize     = table.size() / 2;
+    double      sumOfSquares = 0.0;
     // accept errors of a few ULP since the exact value of the summation
     // below will depend on whether the compiler issues FMA instructions
     const auto elementTolerance = gmx::test::ulpTolerance(10);
-    for (size_t i = 0, iFromEnd = table.size() - 1; i < halfSize; ++i, --iFromEnd)
+    for (std::size_t i = 0, iFromEnd = table.size() - 1; i < halfSize; ++i, --iFromEnd)
     {
         EXPECT_REAL_EQ_TOL(table.at(i), -table.at(iFromEnd), elementTolerance)
                 << "Table is not an odd-valued function for entries " << i << " and " << iFromEnd;

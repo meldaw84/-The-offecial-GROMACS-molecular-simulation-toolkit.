@@ -343,8 +343,8 @@ PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, num
 
 template<int order, bool computeSplines, bool spreadCharges, bool wrapX, bool wrapY, int numGrids, bool writeGlobal, ThreadsPerAtom threadsPerAtom, int subGroupSize>
 void PmeSplineAndSpreadKernel<order, computeSplines, spreadCharges, wrapX, wrapY, numGrids, writeGlobal, threadsPerAtom, subGroupSize>::setArg(
-        size_t argIndex,
-        void*  arg)
+        std::size_t argIndex,
+        void*       arg)
 {
     if (argIndex == 0)
     {

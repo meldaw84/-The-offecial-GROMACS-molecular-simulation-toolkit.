@@ -2022,7 +2022,7 @@ static void do_wall_params(t_inputrec* ir, char* wall_atomtype, char* wall_densi
     if (ir->nwall > 0)
     {
         auto wallAtomTypes = gmx::splitString(wall_atomtype);
-        if (wallAtomTypes.size() != size_t(ir->nwall))
+        if (wallAtomTypes.size() != std::size_t(ir->nwall))
         {
             gmx_fatal(FARGS,
                       "Expected %d elements for wall_atomtype, found %zu",
@@ -2038,7 +2038,7 @@ static void do_wall_params(t_inputrec* ir, char* wall_atomtype, char* wall_densi
         if (ir->wall_type == WallType::NineThree || ir->wall_type == WallType::TenFour)
         {
             auto wallDensity = gmx::splitString(wall_density);
-            if (wallDensity.size() != size_t(ir->nwall))
+            if (wallDensity.size() != std::size_t(ir->nwall))
             {
                 gmx_fatal(FARGS,
                           "Expected %d elements for wall-density, found %zu",
@@ -3550,7 +3550,7 @@ static bool do_egp_flag(t_inputrec* ir, SimulationGroups* groups, const char* op
     }
     nr   = groups->groups[SimulationAtomGroupType::EnergyOutput].size();
     bSet = FALSE;
-    for (size_t i = 0; i < names.size() / 2; i++)
+    for (std::size_t i = 0; i < names.size() / 2; i++)
     {
         // TODO this needs to be replaced by a solution using std::find_if
         j = 0;
@@ -3918,7 +3918,7 @@ void do_index(const char*                    mdparin,
 
     if (useReferenceTemperature)
     {
-        if (size_t(nr) != temperatureCouplingReferenceValues.size())
+        if (std::size_t(nr) != temperatureCouplingReferenceValues.size())
         {
             gmx_fatal(FARGS, "Not enough ref-t and tau-t values!");
         }
@@ -4093,7 +4093,7 @@ void do_index(const char*                    mdparin,
                               simulatedAnnealingGroupNames.size());
                 }
                 convertInts(wi, simulatedAnnealingPoints, "annealing points", ir->opts.anneal_npoints);
-                size_t numSimulatedAnnealingFields = 0;
+                std::size_t numSimulatedAnnealingFields = 0;
                 for (i = 0; i < nr; i++)
                 {
                     if (ir->opts.anneal_npoints[i] == 1)
@@ -4293,7 +4293,7 @@ void do_index(const char*                    mdparin,
     nr             = groups->groups[SimulationAtomGroupType::Freeze].size();
     ir->opts.ngfrz = nr;
     snew(ir->opts.nFreeze, nr);
-    for (i = k = 0; (size_t(i) < freezeGroupNames.size()); i++)
+    for (i = k = 0; (std::size_t(i) < freezeGroupNames.size()); i++)
     {
         for (j = 0; (j < DIM); j++, k++)
         {

@@ -68,7 +68,7 @@ public:
             *storeCount_ = count_;
         }
     }
-    void reserve(size_t /*count*/) override {}
+    void reserve(std::size_t /*count*/) override {}
     void append(const T& value) override
     {
         store_[count_] = value;
@@ -94,7 +94,7 @@ public:
     int         valueCount() override { return static_cast<int>(store_->size()); }
     ArrayRef<T> values() override { return *store_; }
     void        clear() override { store_->clear(); }
-    void        reserve(size_t count) override { store_->reserve(store_->size() + count); }
+    void        reserve(std::size_t count) override { store_->reserve(store_->size() + count); }
     void        append(const T& value) override { store_->push_back(value); }
 
 private:
@@ -118,7 +118,7 @@ public:
         boolStore_.clear();
         store_->clear();
     }
-    void reserve(size_t count) override
+    void reserve(std::size_t count) override
     {
         boolStore_.reserve(boolStore_.size() + count);
         store_->reserve(store_->size() + count);
@@ -157,7 +157,7 @@ public:
     int         valueCount() override { return store_.valueCount(); }
     ArrayRef<T> values() override { return store_.values(); }
     void        clear() override { store_.clear(); }
-    void        reserve(size_t count) override { store_.reserve(count); }
+    void        reserve(std::size_t count) override { store_.reserve(count); }
     void        append(const T& value) override { store_.append(value); }
 
 private:

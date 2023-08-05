@@ -128,7 +128,7 @@ void upstring(char* str)
     {
         return;
     }
-    for (size_t i = 0; i < strlen(str); i++)
+    for (std::size_t i = 0; i < strlen(str); i++)
     {
         str[i] = toupper(str[i]);
     }

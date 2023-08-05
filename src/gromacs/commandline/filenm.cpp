@@ -245,9 +245,9 @@ namespace
 
 /*! \brief Return the first position within \c filename of the ".partNNNN"
  * interior sequence produced by mdrun -noappend, or npos if not found. */
-size_t findSuffixFromNoAppendPosition(const std::string_view filename)
+std::size_t findSuffixFromNoAppendPosition(const std::string_view filename)
 {
-    size_t partPosition = filename.find(".part");
+    std::size_t partPosition = filename.find(".part");
     if ((partPosition != decltype(filename)::npos) && (filename.length() - partPosition >= 10)
         && (std::isdigit(filename[partPosition + 5])) && (std::isdigit(filename[partPosition + 6]))
         && (std::isdigit(filename[partPosition + 7])) && (std::isdigit(filename[partPosition + 8]))
@@ -282,7 +282,7 @@ int add_suffix_to_output_names(t_filenm* fnm, int nfile, const char* suffix)
                 // add the requested suffix, we need to check for
                 // files matching mdrun's pattern for adding part
                 // numbers. Then we can remove that if needed.
-                for (size_t partPosition;
+                for (std::size_t partPosition;
                      (partPosition = findSuffixFromNoAppendPosition(filename)) != std::string::npos;)
                 {
                     // Remove the ".partNNNN" that we have found,

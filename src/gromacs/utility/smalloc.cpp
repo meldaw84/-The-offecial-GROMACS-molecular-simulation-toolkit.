@@ -56,7 +56,7 @@ static bool g_bOverAllocDD = false;
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static std::mutex g_overAllocMutex;
 
-void* save_malloc(const char* name, const char* file, int line, size_t size)
+void* save_malloc(const char* name, const char* file, int line, std::size_t size)
 {
     void* p = nullptr;
 
@@ -84,7 +84,7 @@ void* save_malloc(const char* name, const char* file, int line, size_t size)
     return p;
 }
 
-void* save_calloc(const char* name, const char* file, int line, size_t nelem, size_t elsize)
+void* save_calloc(const char* name, const char* file, int line, std::size_t nelem, std::size_t elsize)
 {
     void* p = nullptr;
 
@@ -109,7 +109,7 @@ void* save_calloc(const char* name, const char* file, int line, size_t nelem, si
 #if GMX_BROKEN_CALLOC
         /* emulate calloc(3) with malloc/memset on machines with
            a broken calloc, e.g. in -lgmalloc on cray xt3. */
-        if ((p = malloc((size_t)nelem * (size_t)elsize)) == NULL)
+        if ((p = malloc((std::size_t)nelem * (std::size_t)elsize)) == NULL)
         {
             gmx_fatal(errno,
                       __FILE__,
@@ -122,7 +122,7 @@ void* save_calloc(const char* name, const char* file, int line, size_t nelem, si
                       file,
                       line);
         }
-        memset(p, 0, (size_t)(nelem * elsize));
+        memset(p, 0, (std::size_t)(nelem * elsize));
 #else
         if ((p = calloc(nelem, elsize)) == nullptr)
         {
@@ -142,10 +142,10 @@ void* save_calloc(const char* name, const char* file, int line, size_t nelem, si
     return p;
 }
 
-void* save_realloc(const char* name, const char* file, int line, void* ptr, size_t nelem, size_t elsize)
+void* save_realloc(const char* name, const char* file, int line, void* ptr, std::size_t nelem, std::size_t elsize)
 {
-    void*  p    = nullptr;
-    size_t size = nelem * elsize;
+    void*       p    = nullptr;
+    std::size_t size = nelem * elsize;
 
     if (size == 0)
     {
@@ -204,7 +204,12 @@ void save_free(const char gmx_unused* name, const char gmx_unused* file, int gmx
  * on systems that lack posix_memalign() and memalign() when
  * freeing memory that needed to be adjusted to achieve
  * the necessary alignment. */
-void* save_malloc_aligned(const char* name, const char* file, int line, size_t nelem, size_t elsize, size_t alignment)
+void* save_malloc_aligned(const char* name,
+                          const char* file,
+                          int         line,
+                          std::size_t nelem,
+                          std::size_t elsize,
+                          std::size_t alignment)
 {
     void* p = nullptr;
 
@@ -219,7 +224,7 @@ void* save_malloc_aligned(const char* name, const char* file, int line, size_t n
                   line);
     }
 
-    size_t alignmentSize = gmx::AlignedAllocationPolicy::alignment();
+    std::size_t alignmentSize = gmx::AlignedAllocationPolicy::alignment();
     if (alignment > alignmentSize)
     {
         gmx_fatal(errno,
@@ -271,12 +276,17 @@ void* save_malloc_aligned(const char* name, const char* file, int line, size_t n
     return p;
 }
 
-void* save_calloc_aligned(const char* name, const char* file, int line, size_t nelem, size_t elsize, size_t alignment)
+void* save_calloc_aligned(const char* name,
+                          const char* file,
+                          int         line,
+                          std::size_t nelem,
+                          std::size_t elsize,
+                          std::size_t alignment)
 {
     void* aligned = save_malloc_aligned(name, file, line, nelem, elsize, alignment);
     if (aligned != nullptr)
     {
-        memset(aligned, 0, static_cast<size_t>(nelem * elsize));
+        memset(aligned, 0, static_cast<std::size_t>(nelem * elsize));
     }
     return aligned;
 }

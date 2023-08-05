@@ -94,15 +94,16 @@ Gpu3dFft::ImplOcl::ImplOcl(bool allocateRealGrid,
     commandStreams_.push_back(pmeStream.stream());
 
     // clFFT expects row-major, so dimensions/strides are reversed (ZYX instead of XYZ)
-    std::array<size_t, DIM> realGridDimensions = { size_t(realGridSize[ZZ]),
-                                                   size_t(realGridSize[YY]),
-                                                   size_t(realGridSize[XX]) };
-    std::array<size_t, DIM> realGridStrides    = {
-        1, size_t(realGridSizePadded[ZZ]), size_t(realGridSizePadded[YY] * realGridSizePadded[ZZ])
+    std::array<std::size_t, DIM> realGridDimensions = { std::size_t(realGridSize[ZZ]),
+                                                        std::size_t(realGridSize[YY]),
+                                                        std::size_t(realGridSize[XX]) };
+    std::array<std::size_t, DIM> realGridStrides    = {
+        1, std::size_t(realGridSizePadded[ZZ]), std::size_t(realGridSizePadded[YY] * realGridSizePadded[ZZ])
     };
-    std::array<size_t, DIM> complexGridStrides = {
-        1, size_t(complexGridSizePadded[ZZ]), size_t(complexGridSizePadded[YY] * complexGridSizePadded[ZZ])
-    };
+    std::array<std::size_t, DIM> complexGridStrides = { 1,
+                                                        std::size_t(complexGridSizePadded[ZZ]),
+                                                        std::size_t(complexGridSizePadded[YY]
+                                                                    * complexGridSizePadded[ZZ]) };
 
     constexpr clfftDim dims = CLFFT_3D;
     handleClfftError(clfftCreateDefaultPlan(&planR2C_, clContext, dims, realGridDimensions.data()),

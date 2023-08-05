@@ -73,7 +73,7 @@ namespace
 const char c_unknown[] = "unknown";
 } // namespace
 
-int gmx_gethostname(char* buf, size_t len)
+int gmx_gethostname(char* buf, std::size_t len)
 {
     GMX_RELEASE_ASSERT(len >= 8, "Input buffer is too short");
 #if GMX_NATIVE_WINDOWS
@@ -111,7 +111,7 @@ int gmx_getuid()
 #endif
 }
 
-int gmx_getusername(char* buf, size_t len)
+int gmx_getusername(char* buf, std::size_t len)
 {
     GMX_RELEASE_ASSERT(len >= 8, "Input buffer is too short");
     // TODO: nice_header() used getpwuid() instead; consider using getpwuid_r()

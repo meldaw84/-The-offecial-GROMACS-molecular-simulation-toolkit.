@@ -66,7 +66,7 @@ namespace ocl
  *
  * \throws InternalError if an OpenCL error was encountered
  */
-size_t getDeviceWarpSize(cl_context context, cl_device_id deviceId);
+std::size_t getDeviceWarpSize(cl_context context, cl_device_id deviceId);
 
 
 /*! \brief Get the kernel-specific warp size
@@ -77,7 +77,7 @@ size_t getDeviceWarpSize(cl_context context, cl_device_id deviceId);
  *
  * \throws InternalError if an OpenCL error was encountered
  */
-size_t getKernelWarpSize(cl_kernel kernel, cl_device_id deviceId);
+std::size_t getKernelWarpSize(cl_kernel kernel, cl_device_id deviceId);
 
 /*! \brief Compile the specified kernel for the context and device.
  *

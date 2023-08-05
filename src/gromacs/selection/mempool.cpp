@@ -62,7 +62,7 @@ typedef struct gmx_sel_mempool_block_t
     //! Pointer to the start of the block (as returned to the user).
     void* ptr;
     //! Size of the block, including padding required to align next block.
-    size_t size;
+    std::size_t size;
 } gmx_sel_mempool_block_t;
 
 /*! \internal \brief
@@ -71,9 +71,9 @@ typedef struct gmx_sel_mempool_block_t
 struct gmx_sel_mempool_t
 {
     //! Number of bytes currently allocated from the pool.
-    size_t currsize;
+    std::size_t currsize;
     //! Number of bytes free in the pool, or 0 if \a buffer is NULL.
-    size_t freesize;
+    std::size_t freesize;
     //! Memory area allocated for the pool, or NULL if not yet reserved.
     char* buffer;
     //! Pointer to the first free byte (aligned at ::ALIGN_STEP) in \a buffer.
@@ -88,7 +88,7 @@ struct gmx_sel_mempool_t
      * Maximum number of bytes that have been reserved from the pool
      * simultaneously.
      */
-    size_t maxsize;
+    std::size_t maxsize;
 };
 
 gmx_sel_mempool_t* _gmx_sel_mempool_create()
@@ -123,10 +123,10 @@ void _gmx_sel_mempool_destroy(gmx_sel_mempool_t* mp)
     sfree(mp);
 }
 
-void* _gmx_sel_mempool_alloc(gmx_sel_mempool_t* mp, size_t size)
+void* _gmx_sel_mempool_alloc(gmx_sel_mempool_t* mp, std::size_t size)
 {
-    void*  ptr = nullptr;
-    size_t size_walign;
+    void*       ptr = nullptr;
+    std::size_t size_walign;
 
     size_walign = ((size + ALIGN_STEP - 1) / ALIGN_STEP) * ALIGN_STEP;
     if (mp->buffer)
@@ -190,7 +190,7 @@ void _gmx_sel_mempool_free(gmx_sel_mempool_t* mp, void* ptr)
     }
 }
 
-void _gmx_sel_mempool_reserve(gmx_sel_mempool_t* mp, size_t size)
+void _gmx_sel_mempool_reserve(gmx_sel_mempool_t* mp, std::size_t size)
 {
     GMX_RELEASE_ASSERT(mp->nblocks == 0,
                        "Cannot reserve memory pool when there is something allocated");

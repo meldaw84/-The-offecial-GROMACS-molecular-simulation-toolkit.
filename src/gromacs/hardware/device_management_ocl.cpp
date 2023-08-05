@@ -88,9 +88,9 @@ namespace gmx
 static bool runningOnCompatibleOSForAmd()
 {
 #ifdef __APPLE__
-    int    mib[2];
-    char   kernelVersion[256];
-    size_t len = sizeof(kernelVersion);
+    int         mib[2];
+    char        kernelVersion[256];
+    std::size_t len = sizeof(kernelVersion);
 
     mib[0] = CTL_KERN;
     mib[1] = KERN_OSRELEASE;
@@ -195,9 +195,9 @@ static int fillSupportedSubGroupSizes(const cl_device_id devId,
         {
             // Try to query the device:
 #ifdef CL_DEVICE_SUB_GROUP_SIZES_INTEL
-            std::vector<size_t> subGroupSizesTemp(resultCapacity);
-            size_t              numSubGroupSizes;
-            cl_int              status = clGetDeviceInfo(devId,
+            std::vector<std::size_t> subGroupSizesTemp(resultCapacity);
+            std::size_t              numSubGroupSizes;
+            cl_int                   status = clGetDeviceInfo(devId,
                                             CL_DEVICE_SUB_GROUP_SIZES_INTEL,
                                             subGroupSizesTemp.size(),
                                             subGroupSizesTemp.data(),
@@ -386,7 +386,7 @@ static bool isDeviceFunctional(const DeviceInformation& deviceInfo, std::string*
 
     clSetKernelArg(kernel, 0, sizeof(void*), nullptr);
 
-    const size_t localWorkSize = 1, globalWorkSize = 1;
+    const std::size_t localWorkSize = 1, globalWorkSize = 1;
     if ((status = clEnqueueNDRangeKernel(
                  commandQueue, kernel, 1, nullptr, &globalWorkSize, &localWorkSize, 0, nullptr, nullptr))
         != CL_SUCCESS)
@@ -409,7 +409,7 @@ static bool isDeviceFunctional(const DeviceInformation& deviceInfo, std::string*
  * \returns  A DeviceStatus to indicate if the GPU device is supported and if it was able to run
  *           basic functionality checks.
  */
-static DeviceStatus checkGpu(size_t deviceId, const DeviceInformation& deviceInfo)
+static DeviceStatus checkGpu(std::size_t deviceId, const DeviceInformation& deviceInfo)
 {
 
     DeviceStatus supportStatus = isDeviceFunctional(deviceInfo);
@@ -604,13 +604,13 @@ std::vector<std::unique_ptr<DeviceInformation>> findDevices()
 
                     clGetDeviceInfo(ocl_device_ids[j],
                                     CL_DEVICE_MAX_WORK_ITEM_SIZES,
-                                    3 * sizeof(size_t),
+                                    3 * sizeof(std::size_t),
                                     &deviceInfoList[device_index]->maxWorkItemSizes,
                                     nullptr);
 
                     clGetDeviceInfo(ocl_device_ids[j],
                                     CL_DEVICE_MAX_WORK_GROUP_SIZE,
-                                    sizeof(size_t),
+                                    sizeof(std::size_t),
                                     &deviceInfoList[device_index]->maxWorkGroupSize,
                                     nullptr);
 

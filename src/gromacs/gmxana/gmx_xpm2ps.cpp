@@ -351,12 +351,12 @@ static gmx_bool box_do_all_x_min_ticks(t_psrec* psr)
 
 static void draw_boxes(t_psdata* ps, real x0, real y0, real w, gmx::ArrayRef<t_matrix> mat, t_psrec* psr)
 {
-    char   buf[128];
-    real   xxx;
-    char **xtick, **ytick;
-    real   xx, yy, dy, xx00, yy00, offset_x, offset_y;
-    int    x, ntx, nty;
-    size_t strlength;
+    char        buf[128];
+    real        xxx;
+    char **     xtick, **ytick;
+    real        xx, yy, dy, xx00, yy00, offset_x, offset_y;
+    int         x, ntx, nty;
+    std::size_t strlength;
 
     /* Only necessary when there will be no y-labels */
     strlength = 0;
@@ -631,7 +631,7 @@ static std::vector<t_mapping> add_maps(gmx::ArrayRef<t_mapping> map1, gmx::Array
             ".>/?";
     std::vector<t_mapping> map(map1.size() + map2.size());
 
-    size_t nsymbols = std::strlen(mapper);
+    std::size_t nsymbols = std::strlen(mapper);
     if (map.size() > nsymbols * nsymbols)
     {
         gmx_fatal(FARGS, "Not enough symbols to merge the two colormaps\n");

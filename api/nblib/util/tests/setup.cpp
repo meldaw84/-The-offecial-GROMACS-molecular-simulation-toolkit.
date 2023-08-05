@@ -93,9 +93,9 @@ TEST(NBlibTest, checkNumericValuesHasInf)
 
 TEST(NBlibTest, GeneratedVelocitiesAreCorrect)
 {
-    constexpr size_t  N = 10;
-    std::vector<real> masses(N, 1.0);
-    std::vector<Vec3> velocities;
+    constexpr std::size_t N = 10;
+    std::vector<real>     masses(N, 1.0);
+    std::vector<Vec3>     velocities;
     velocities = generateVelocity(300.0, 1, masses);
 
     RefDataChecker velocitiesTest;

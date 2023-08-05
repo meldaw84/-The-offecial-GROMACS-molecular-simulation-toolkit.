@@ -716,7 +716,7 @@ void mde_delta_h_coll_update_energyhistory(const t_mde_delta_h_coll* dhc, energy
     delta_h_history_t* const deltaH = enerhist->deltaHForeignLambdas.get();
 
     GMX_RELEASE_ASSERT(
-            deltaH->dh.size() == static_cast<size_t>(dhc->ndh),
+            deltaH->dh.size() == static_cast<std::size_t>(dhc->ndh),
             "energy history number of delta_h histograms should match inputrec's number");
 
     for (int i = 0; i < dhc->ndh; i++)
@@ -738,7 +738,7 @@ void mde_delta_h_coll_restore_energyhistory(t_mde_delta_h_coll* dhc, const delta
     GMX_RELEASE_ASSERT(dhc, "Should have delta_h histograms");
     GMX_RELEASE_ASSERT(deltaH, "Should have delta_h histograms in energy history");
     GMX_RELEASE_ASSERT(
-            deltaH->dh.size() == static_cast<size_t>(dhc->ndh),
+            deltaH->dh.size() == static_cast<std::size_t>(dhc->ndh),
             "energy history number of delta_h histograms should match inputrec's number");
 
     for (gmx::Index i = 0; i < gmx::ssize(deltaH->dh); i++)

@@ -168,7 +168,7 @@ TEST(NBlibTest, UpdateChangesForces)
     forceCalculator->compute(simState.coordinates(), simState.box(), forces);
 
     // check if forces change without update
-    for (size_t i = 0; i < forces_1.size(); i++)
+    for (std::size_t i = 0; i < forces_1.size(); i++)
     {
         for (int j = 0; j < dimSize; j++)
         {
@@ -189,7 +189,7 @@ TEST(NBlibTest, UpdateChangesForces)
     std::copy(forces.begin(), forces.end(), begin(forces_2));
 
     // check if forces change after update
-    for (size_t i = 0; i < forces_1.size(); i++)
+    for (std::size_t i = 0; i < forces_1.size(); i++)
     {
         for (int j = 0; j < dimSize; j++)
         {

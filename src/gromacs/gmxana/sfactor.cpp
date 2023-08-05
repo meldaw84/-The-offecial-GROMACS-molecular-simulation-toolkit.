@@ -408,7 +408,7 @@ extern int return_atom_type(const char* name, gmx_structurefactors_t* gsf)
         nrc = 0;
         for (i = 0; i < cnt; i++)
         {
-            if (std::strlen(gsft->atomnm[tndx[i]]) > static_cast<size_t>(nrc))
+            if (std::strlen(gsft->atomnm[tndx[i]]) > static_cast<std::size_t>(nrc))
             {
                 nrc  = std::strlen(gsft->atomnm[tndx[i]]);
                 fndx = tndx[i];

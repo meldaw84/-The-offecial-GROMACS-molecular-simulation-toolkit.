@@ -70,11 +70,11 @@ using Float4 = float4;
 struct KernelLaunchConfig
 {
     //! Block counts
-    size_t gridSize[3] = { 1, 1, 1 };
+    std::size_t gridSize[3] = { 1, 1, 1 };
     //! Per-block thread counts
-    size_t blockSize[3] = { 1, 1, 1 };
+    std::size_t blockSize[3] = { 1, 1, 1 };
     //! Shared memory size in bytes
-    size_t sharedMemorySize = 0;
+    std::size_t sharedMemorySize = 0;
 };
 
 //! Sets whether device code can use arrays that are embedded in structs.

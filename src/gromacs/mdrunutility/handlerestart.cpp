@@ -118,7 +118,7 @@ gmx_bool exist_output_file(const std::filesystem::path& fnm_cp, int nfile, const
                                                    ArrayRef<const gmx_file_position_t> outputfiles,
                                                    int                                 nfile,
                                                    const t_filenm                      fnm[],
-                                                   size_t numFilesMissing)
+                                                   std::size_t numFilesMissing)
 {
     StringOutputStream stream;
     TextWriter         writer(&stream);
@@ -306,7 +306,7 @@ StartingBehaviorHandler chooseStartingBehavior(const AppendingBehavior appending
     {
         // See whether appending can be done.
 
-        size_t numFilesMissing = std::count_if(
+        std::size_t numFilesMissing = std::count_if(
                 std::begin(outputFiles), std::end(outputFiles), [nfile, fnm](const auto& outputFile) {
                     return !exist_output_file(outputFile.filename, nfile, fnm);
                 });

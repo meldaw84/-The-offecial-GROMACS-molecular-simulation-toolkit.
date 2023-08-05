@@ -270,9 +270,9 @@ void QMMMOptions::setQMMMGroupIndices(const IndexGroupsAndNames& indexGroupsAndN
     parameters_.mmIndices_.reserve(systemIndices.size());
 
     // Position in qmindicies_
-    size_t j = 0;
+    std::size_t j = 0;
     // Now loop over sindices_ and write to mmindices_ only the atoms which does not belong to qmindices_
-    for (size_t i = 0; i < systemIndices.size(); i++)
+    for (std::size_t i = 0; i < systemIndices.size(); i++)
     {
         if (systemIndices[i] != parameters_.qmIndices_[j])
         {
@@ -755,7 +755,7 @@ void QMMMOptions::readInternalParametersFromKvt(const KeyValueTreeObject& tree)
                    [](const KeyValueTreeValue& val) { return val.cast<std::int64_t>(); });
 
     parameters_.link_.resize(qmLink.size());
-    for (size_t i = 0; i < qmLink.size(); i++)
+    for (std::size_t i = 0; i < qmLink.size(); i++)
     {
         parameters_.link_[i].qm = qmLink[i];
         parameters_.link_[i].mm = mmLink[i];

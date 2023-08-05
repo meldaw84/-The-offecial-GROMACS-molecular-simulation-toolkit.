@@ -59,7 +59,7 @@ public:
     ~PreprocessingBondAtomType();
 
     //! Get number of defined bond atom types.
-    size_t size() const;
+    std::size_t size() const;
 
     /*! \brief
      * Get name of atom from internal bond atom type number.

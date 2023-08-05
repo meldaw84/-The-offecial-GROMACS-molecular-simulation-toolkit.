@@ -117,7 +117,7 @@ bool TextReader::readLine(std::string* linePtr)
     const char whiteSpaceChars[] = " \t\r\n";
     if (impl_->trimLeadingWhiteSpace_)
     {
-        const size_t endPos = line.find_first_not_of(whiteSpaceChars);
+        const std::size_t endPos = line.find_first_not_of(whiteSpaceChars);
         if (endPos == std::string::npos)
         {
             line.resize(0);
@@ -137,7 +137,7 @@ bool TextReader::readLine(std::string* linePtr)
     }
     if (impl_->trimTrailingWhiteSpace_)
     {
-        const size_t endPos = line.find_last_not_of(whiteSpaceChars);
+        const std::size_t endPos = line.find_last_not_of(whiteSpaceChars);
         if (endPos == std::string::npos)
         {
             line.resize(0);

@@ -69,7 +69,7 @@ class GpuRegionTimerImpl
      */
     std::array<cl_event, 10> events_ = { { nullptr } };
     //! Index of the active event
-    size_t currentEvent_ = 0;
+    std::size_t currentEvent_ = 0;
 
 public:
     GpuRegionTimerImpl()  = default;
@@ -89,7 +89,7 @@ public:
     inline double getLastRangeTime()
     {
         double milliseconds = 0.0;
-        for (size_t i = 0; i < currentEvent_; i++)
+        for (std::size_t i = 0; i < currentEvent_; i++)
         {
             if (events_[i]) // This conditional is ugly, but is required to make some tests (e.g. empty domain) pass
             {
@@ -119,7 +119,7 @@ public:
     /*! \brief Resets the internal state, releasing the used cl_events. */
     inline void reset()
     {
-        for (size_t i = 0; i < currentEvent_; i++)
+        for (std::size_t i = 0; i < currentEvent_; i++)
         {
             if (events_[i]) // This conditional is ugly, but is required to make some tests (e.g. empty domain) pass
             {

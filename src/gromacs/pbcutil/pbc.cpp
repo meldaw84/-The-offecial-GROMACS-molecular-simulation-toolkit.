@@ -1485,9 +1485,9 @@ void put_atoms_in_box_omp(PbcType pbcType, const matrix box, gmx::ArrayRef<gmx::
     {
         try
         {
-            size_t natoms = x.size();
-            size_t offset = (natoms * t) / nth;
-            size_t len    = (natoms * (t + 1)) / nth - offset;
+            std::size_t natoms = x.size();
+            std::size_t offset = (natoms * t) / nth;
+            std::size_t len    = (natoms * (t + 1)) / nth - offset;
             put_atoms_in_box(pbcType, box, x.subArray(offset, len));
         }
         GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR

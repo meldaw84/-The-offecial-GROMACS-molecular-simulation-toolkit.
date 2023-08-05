@@ -116,9 +116,9 @@ private:
     const std::string& text_; //NOLINT(google-runtime-member-string-references)
 
     //! Start of the current paragraph.
-    size_t begin_;
+    std::size_t begin_;
     //! End of the current paragraph (C++-style iterator).
-    size_t end_;
+    std::size_t end_;
     //! Type of the current paragraph.
     ParagraphType type_;
     //! Number of newlines to print before the current paragraph.
@@ -129,7 +129,7 @@ private:
     int indent_;
 
     //! Start of the next paragrah.
-    size_t nextBegin_;
+    std::size_t nextBegin_;
     //! Number of newlines to print after the current paragraph.
     int nextBreakSize_;
     /*! \brief

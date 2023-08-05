@@ -149,7 +149,7 @@ void MPIEventForward::OnTestEnd(const ::testing::TestInfo& test_info)
         std::stringstream failingRanks;
         bool              allPassed = true;
 
-        for (size_t i = 0; i != bDidRankPass.size(); ++i)
+        for (std::size_t i = 0; i != bDidRankPass.size(); ++i)
         {
             if (!bDidRankPass[i])
             {

@@ -195,7 +195,7 @@ void rename_atoms(const std::filesystem::path&           xlfile,
             if (isdigit(atombuf[0]))
             {
                 c = atombuf[0];
-                for (i = 0; (static_cast<size_t>(i) < strlen(atombuf) - 1); i++)
+                for (i = 0; (static_cast<std::size_t>(i) < strlen(atombuf) - 1); i++)
                 {
                     atombuf[i] = atombuf[i + 1];
                 }

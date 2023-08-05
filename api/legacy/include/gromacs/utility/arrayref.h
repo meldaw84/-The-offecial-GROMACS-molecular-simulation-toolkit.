@@ -135,7 +135,7 @@ public:
     //! Type of values stored in the reference.
     typedef T value_type;
     //! Type for representing size of the reference.
-    typedef size_t size_type;
+    typedef std::size_t size_type;
     //! Type for representing difference between two indices.
     typedef ptrdiff_t difference_type;
     //! Const reference to an element.
@@ -226,7 +226,7 @@ public:
      * This constructor is not explicit to allow directly passing
      * a C array to a function that takes an ArrayRef parameter.
      */
-    template<size_t count>
+    template<std::size_t count>
     ArrayRef(value_type (&array)[count]) : begin_(array), end_(array + count)
     {
     }
@@ -306,7 +306,7 @@ private:
  */
 //! \related ArrayRef
 template<typename T>
-ArrayRef<T> arrayRefFromArray(T* begin, size_t size)
+ArrayRef<T> arrayRefFromArray(T* begin, std::size_t size)
 {
     return (begin != nullptr) ? ArrayRef<T>(begin, begin + size) : ArrayRef<T>{};
 }
@@ -314,7 +314,7 @@ ArrayRef<T> arrayRefFromArray(T* begin, size_t size)
 //! \copydoc arrayRefFromArray
 //! \related ArrayRef
 template<typename T>
-ArrayRef<const T> constArrayRefFromArray(const T* begin, size_t size)
+ArrayRef<const T> constArrayRefFromArray(const T* begin, std::size_t size)
 {
     return (begin != nullptr) ? ArrayRef<const T>(begin, begin + size) : ArrayRef<const T>{};
 }

@@ -320,7 +320,7 @@ struct InteractionListHandle
 static inline std::vector<InteractionListHandle> extractILists(const InteractionLists& ilists, int flags)
 {
     std::vector<InteractionListHandle> handles;
-    for (size_t ftype = 0; ftype < ilists.size(); ftype++)
+    for (std::size_t ftype = 0; ftype < ilists.size(); ftype++)
     {
         if ((interaction_function[ftype].flags & flags) && !ilists[ftype].empty())
         {

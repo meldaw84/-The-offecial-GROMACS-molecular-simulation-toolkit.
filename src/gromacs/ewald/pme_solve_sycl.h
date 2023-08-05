@@ -78,7 +78,7 @@ class PmeSolveKernel : public ISyclKernelFunctor
 public:
     PmeSolveKernel();
     //! Sets the kernel arguments
-    void setArg(size_t argIndex, void* arg) override;
+    void setArg(std::size_t argIndex, void* arg) override;
     //! Launches the kernel with given \c config and \c deviceStream
     void launch(const KernelLaunchConfig& config, const DeviceStream& deviceStream) override;
 

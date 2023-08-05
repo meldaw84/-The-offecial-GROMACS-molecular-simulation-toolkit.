@@ -196,7 +196,7 @@ public:
         useRegExp_ = (matchType == gmx::eStringMatchType_RegularExpression);
         if (matchType == gmx::eStringMatchType_Auto)
         {
-            for (size_t j = 0; j < std::strlen(str); ++j)
+            for (std::size_t j = 0; j < std::strlen(str); ++j)
             {
                 if (std::ispunct(str[j]) && str[j] != '?' && str[j] != '*')
                 {
@@ -650,7 +650,7 @@ static void evaluate_keyword_str(const gmx::SelMethodEvalContext& /*context*/,
     out->u.g->isize = 0;
     for (int i = 0; i < g->isize; ++i)
     {
-        for (size_t j = 0; j < d->matches.size(); ++j)
+        for (std::size_t j = 0; j < d->matches.size(); ++j)
         {
             if (d->matches[j].match(d->matchType, d->v[i]))
             {

@@ -178,9 +178,9 @@ void AnalysisDataLifetimeModule::frameFinished(const AnalysisDataFrameHeader& /*
 void AnalysisDataLifetimeModule::dataFinished()
 {
     // Need to process the elements present in the last frame explicitly.
-    for (size_t i = 0; i < impl_->currentLifetimes_.size(); ++i)
+    for (std::size_t i = 0; i < impl_->currentLifetimes_.size(); ++i)
     {
-        for (size_t j = 0; j < impl_->currentLifetimes_[i].size(); ++j)
+        for (std::size_t j = 0; j < impl_->currentLifetimes_[i].size(); ++j)
         {
             impl_->addLifetime(i, impl_->currentLifetimes_[i][j]);
         }
@@ -219,7 +219,7 @@ void AnalysisDataLifetimeModule::dataFinished()
     // Determine output dimensionality to cover all the histograms.
     setColumnCount(impl_->lifetimeHistograms_.size());
     std::vector<Impl::LifetimeHistogram>::const_iterator histogram;
-    size_t                                               maxLifetime = 1;
+    std::size_t                                          maxLifetime = 1;
     for (histogram = impl_->lifetimeHistograms_.begin(); histogram != impl_->lifetimeHistograms_.end();
          ++histogram)
     {

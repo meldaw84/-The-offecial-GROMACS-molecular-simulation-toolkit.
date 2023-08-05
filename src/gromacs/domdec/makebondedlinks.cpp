@@ -98,7 +98,7 @@ static gmx::ListOfLists<int> genBondedLinks(const gmx_mtop_t&                   
 
     int indexOfFirstAtomInMolecule = 0;
     int numLinkedAtoms             = 0;
-    for (size_t mb = 0; mb < mtop.molblock.size(); mb++)
+    for (std::size_t mb = 0; mb < mtop.molblock.size(); mb++)
     {
         const gmx_molblock_t& molb = mtop.molblock[mb];
         if (molb.nmol == 0)
@@ -173,7 +173,7 @@ static gmx::ListOfLists<int> genBondedLinks(const gmx_mtop_t&                   
 
             indexOfFirstAtomInMolecule += molt.atoms.nr;
 
-            GMX_ASSERT(link.size() == size_t(indexOfFirstAtomInMolecule),
+            GMX_ASSERT(link.size() == std::size_t(indexOfFirstAtomInMolecule),
                        "We should have one link entry for each atom");
         }
         int nlink_mol = link.listRangesView()[indexOfFirstAtomInMolecule]

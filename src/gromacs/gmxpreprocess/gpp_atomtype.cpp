@@ -80,7 +80,7 @@ class PreprocessingAtomTypes::Impl
 {
 public:
     //! The number for currently loaded entries.
-    size_t size() const { return types.size(); }
+    std::size_t size() const { return types.size(); }
     //! The actual atom type data.
     std::vector<AtomTypeData> types;
     //! Map from \c types[i].name to \c i for quick look-up in \ref atomTypeFromName. Ref #3974.
@@ -108,7 +108,7 @@ std::optional<int> PreprocessingAtomTypes::atomTypeFromName(const std::string& s
     }
 }
 
-size_t PreprocessingAtomTypes::size() const
+std::size_t PreprocessingAtomTypes::size() const
 {
     return impl_->size();
 }

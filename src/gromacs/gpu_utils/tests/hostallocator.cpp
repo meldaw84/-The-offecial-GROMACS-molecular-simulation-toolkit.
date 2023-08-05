@@ -87,7 +87,7 @@ public:
  * \tparam       T      The base type of the container
  * */
 template<typename T>
-ArrayRef<char> charArrayRefFromArray(T* data, size_t size)
+ArrayRef<char> charArrayRefFromArray(T* data, std::size_t size)
 {
     // Make a type like T, but without its possible const qualifier.
     using NonConstT = std::remove_const_t<T>;

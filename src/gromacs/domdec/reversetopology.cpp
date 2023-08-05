@@ -341,7 +341,7 @@ gmx_reverse_top_t::Impl::Impl(const gmx_mtop_t&        mtop,
     bInterAtomicInteractions = mtop.bIntermolecularInteractions;
     ril_mt.resize(mtop.moltype.size());
     ril_mt_tot_size = 0;
-    for (size_t mt = 0; mt < mtop.moltype.size(); mt++)
+    for (std::size_t mt = 0; mt < mtop.moltype.size(); mt++)
     {
         const gmx_moltype_t& molt = mtop.moltype[mt];
         if (molt.atoms.nr > 1)
@@ -379,7 +379,7 @@ gmx_reverse_top_t::Impl::Impl(const gmx_mtop_t&        mtop,
 
     /* Make a molblock index for fast searching */
     int i = 0;
-    for (size_t mb = 0; mb < mtop.molblock.size(); mb++)
+    for (std::size_t mb = 0; mb < mtop.molblock.size(); mb++)
     {
         const gmx_molblock_t& molb           = mtop.molblock[mb];
         const int             numAtomsPerMol = mtop.moltype[molb.type].atoms.nr;

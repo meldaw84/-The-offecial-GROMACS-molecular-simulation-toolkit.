@@ -81,9 +81,9 @@ void gmx_mtxio_write(const std::filesystem::path& filename,
                      real*                        full_matrix,
                      gmx_sparsematrix_t*          sparse_matrix)
 {
-    t_fileio* fio;
-    int       i, j, prec;
-    size_t    sz;
+    t_fileio*   fio;
+    int         i, j, prec;
+    std::size_t sz;
 
     if (full_matrix != nullptr && sparse_matrix != nullptr)
     {
@@ -153,10 +153,10 @@ void gmx_mtxio_read(const std::filesystem::path& filename,
                     real**                       full_matrix,
                     gmx_sparsematrix_t**         sparse_matrix)
 {
-    t_fileio* fio;
-    int       i, j, prec;
-    char      gmxver[256];
-    size_t    sz;
+    t_fileio*   fio;
+    int         i, j, prec;
+    char        gmxver[256];
+    std::size_t sz;
 
     fio = gmx_fio_open(filename, "r");
 

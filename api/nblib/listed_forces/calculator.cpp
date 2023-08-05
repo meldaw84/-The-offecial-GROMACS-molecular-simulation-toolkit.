@@ -59,7 +59,7 @@ namespace nblib
 ListedForceCalculator::~ListedForceCalculator() = default;
 
 ListedForceCalculator::ListedForceCalculator(const ListedInteractionData& interactions,
-                                             size_t                       bufferSize,
+                                             std::size_t                  bufferSize,
                                              int                          nthr,
                                              const Box&                   box) :
     numThreads(nthr),

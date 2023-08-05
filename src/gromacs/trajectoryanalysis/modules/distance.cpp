@@ -204,7 +204,7 @@ void Distance::initOptions(IOptionsContainer* options, TrajectoryAnalysisSetting
  */
 void checkSelections(const SelectionList& sel)
 {
-    for (size_t g = 0; g < sel.size(); ++g)
+    for (std::size_t g = 0; g < sel.size(); ++g)
     {
         if (sel[g].posCount() % 2 != 0)
         {
@@ -239,7 +239,7 @@ void Distance::initAnalysis(const TrajectoryAnalysisSettings& settings, const To
 
     distances_.setDataSetCount(sel_.size());
     xyz_.setDataSetCount(sel_.size());
-    for (size_t i = 0; i < sel_.size(); ++i)
+    for (std::size_t i = 0; i < sel_.size(); ++i)
     {
         const int distCount = sel_[i].posCount() / 2;
         distances_.setColumnCount(i, distCount);
@@ -256,7 +256,7 @@ void Distance::initAnalysis(const TrajectoryAnalysisSettings& settings, const To
         plotm->setTitle("Average distance");
         plotm->setXAxisIsTime();
         plotm->setYLabel("Distance (nm)");
-        for (size_t g = 0; g < sel_.size(); ++g)
+        for (std::size_t g = 0; g < sel_.size(); ++g)
         {
             plotm->appendLegend(sel_[g].name());
         }
@@ -292,7 +292,7 @@ void Distance::initAnalysis(const TrajectoryAnalysisSettings& settings, const To
         plotm->setTitle("Distance histogram");
         plotm->setXLabel("Distance (nm)");
         plotm->setYLabel("Probability");
-        for (size_t g = 0; g < sel_.size(); ++g)
+        for (std::size_t g = 0; g < sel_.size(); ++g)
         {
             plotm->appendLegend(sel_[g].name());
         }
@@ -307,7 +307,7 @@ void Distance::initAnalysis(const TrajectoryAnalysisSettings& settings, const To
         plotm->setTitle("Statistics for individual distances");
         plotm->setXLabel("Distance index");
         plotm->setYLabel("Average/standard deviation (nm)");
-        for (size_t g = 0; g < sel_.size(); ++g)
+        for (std::size_t g = 0; g < sel_.size(); ++g)
         {
             plotm->appendLegend(std::string(sel_[g].name()) + " avg");
             plotm->appendLegend(std::string(sel_[g].name()) + " std.dev.");
@@ -328,7 +328,7 @@ void Distance::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* pbc, Trajecto
 
     distHandle.startFrame(frnr, fr.time);
     xyzHandle.startFrame(frnr, fr.time);
-    for (size_t g = 0; g < sel.size(); ++g)
+    for (std::size_t g = 0; g < sel.size(); ++g)
     {
         distHandle.selectDataSet(g);
         xyzHandle.selectDataSet(g);

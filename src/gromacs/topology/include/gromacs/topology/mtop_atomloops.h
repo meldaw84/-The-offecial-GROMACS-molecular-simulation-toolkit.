@@ -108,7 +108,7 @@ private:
     //! Global topology.
     const gmx_mtop_t* mtop_;
     //! Current molecule block.
-    size_t mblock_;
+    std::size_t mblock_;
     //! The atoms of the current molecule.
     const t_atoms* atoms_;
     //! The current molecule.
@@ -166,7 +166,7 @@ class IListIterator :
 
 public:
     //! Construct from topology.
-    explicit IListIterator(const gmx_mtop_t& mtop, size_t mblock = 0);
+    explicit IListIterator(const gmx_mtop_t& mtop, std::size_t mblock = 0);
 
     //! Prefix increment.
     IListIterator& operator++();
@@ -182,7 +182,7 @@ private:
     //! Global topology.
     const gmx_mtop_t* mtop_;
     //! Index of molecule block corresponding to the current location.
-    size_t mblock_;
+    std::size_t mblock_;
 
     friend class IListProxy;
 };

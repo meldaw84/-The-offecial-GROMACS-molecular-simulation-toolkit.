@@ -858,13 +858,13 @@ static void do_constraint(struct pull_t* pull,
     /* copy the current unconstrained positions for use in iterations. We
        iterate until rinew[i] and rjnew[j] obey the constraints. Then
        rinew - pull.x_unc[i] is the correction dr to group i */
-    for (size_t g = 0; g < pull->group.size(); g++)
+    for (std::size_t g = 0; g < pull->group.size(); g++)
     {
         copy_dvec(pull->group[g].xp, rnew[g]);
     }
 
     /* Determine the constraint directions from the old positions */
-    for (size_t c = 0; c < pull->coord.size(); c++)
+    for (std::size_t c = 0; c < pull->coord.size(); c++)
     {
         pull_coord_work_t* pcrd;
 
@@ -926,7 +926,7 @@ static void do_constraint(struct pull_t* pull,
         bConverged_all = TRUE;
 
         /* loop over all constraints */
-        for (size_t c = 0; c < pull->coord.size(); c++)
+        for (std::size_t c = 0; c < pull->coord.size(); c++)
         {
             pull_coord_work_t* pcrd;
             pull_group_work_t *pgrp0, *pgrp1;
@@ -1137,7 +1137,7 @@ static void do_constraint(struct pull_t* pull,
     }
 
     /* update atoms in the groups */
-    for (size_t g = 0; g < pull->group.size(); g++)
+    for (std::size_t g = 0; g < pull->group.size(); g++)
     {
         const pull_group_work_t* pgrp;
         dvec                     dr;
@@ -1178,7 +1178,7 @@ static void do_constraint(struct pull_t* pull,
     }
 
     /* calculate the constraint forces, used for output and virial only */
-    for (size_t c = 0; c < pull->coord.size(); c++)
+    for (std::size_t c = 0; c < pull->coord.size(); c++)
     {
         pull_coord_work_t* pcrd;
 
@@ -1739,7 +1739,7 @@ void dd_make_local_pull_groups(const t_commrec* cr, struct pull_t* pull)
         if (!group.globalWeights.empty())
         {
             group.localWeights.resize(group.atomSet_.numAtomsLocal());
-            for (size_t i = 0; i < group.atomSet_.numAtomsLocal(); ++i)
+            for (std::size_t i = 0; i < group.atomSet_.numAtomsLocal(); ++i)
             {
                 group.localWeights[i] = group.globalWeights[group.atomSet_.collectiveIndex()[i]];
             }
@@ -2248,7 +2248,7 @@ struct pull_t* init_pull(FILE*                     fplog,
         }
         bCos = FALSE;
         // Don't include the reference group 0 in loop
-        for (size_t g = 1; g < pull->group.size(); g++)
+        for (std::size_t g = 1; g < pull->group.size(); g++)
         {
             if (pull->group[g].params_.ind.size() > 1 && pull->group[g].params_.pbcatom < 0)
             {
@@ -2265,7 +2265,7 @@ struct pull_t* init_pull(FILE*                     fplog,
 
     pull->bRefAt = FALSE;
     pull->cosdim = -1;
-    for (size_t g = 0; g < pull->group.size(); g++)
+    for (std::size_t g = 0; g < pull->group.size(); g++)
     {
         pull_group_work_t* pgrp;
 

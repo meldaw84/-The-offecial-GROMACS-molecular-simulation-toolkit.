@@ -85,7 +85,7 @@ std::vector<char> readCharBufferFromFile(const std::filesystem::path& filename)
     gmx_fseek(gmx_fio_getfp(mrcFile), 0, SEEK_SET);
     // Read whole file into buffer the size of the file
     std::vector<char> fileContentBuffer(fileSize);
-    size_t            readSize = fread(
+    std::size_t       readSize = fread(
             fileContentBuffer.data(), sizeof(char), fileContentBuffer.size(), gmx_fio_getfp(mrcFile));
     gmx_fio_close(mrcFile);
 

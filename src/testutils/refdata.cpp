@@ -1093,7 +1093,7 @@ void TestReferenceChecker::checkKeyValueTreeValue(const KeyValueTreeValue& value
 }
 
 
-TestReferenceChecker TestReferenceChecker::checkSequenceCompound(const char* id, size_t length)
+TestReferenceChecker TestReferenceChecker::checkSequenceCompound(const char* id, std::size_t length)
 {
     TestReferenceChecker compound(checkCompound(Impl::cSequenceType, id));
     compound.checkInteger(static_cast<int>(length), Impl::cSequenceLengthName);

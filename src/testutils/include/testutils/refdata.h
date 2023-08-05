@@ -563,7 +563,7 @@ public:
      * checkSequence().
      */
     template<typename T>
-    void checkSequenceArray(size_t length, const T* values, const char* id)
+    void checkSequenceArray(std::size_t length, const T* values, const char* id)
     {
         checkSequence(values, values + length, id);
     }
@@ -591,7 +591,7 @@ public:
      * This method can be used to check custom sequences where
      * checkSequence() is not appropriate.
      */
-    TestReferenceChecker checkSequenceCompound(const char* id, size_t length);
+    TestReferenceChecker checkSequenceCompound(const char* id, std::size_t length);
 
 private:
     class Impl;

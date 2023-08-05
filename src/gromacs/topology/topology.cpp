@@ -157,7 +157,7 @@ void gmx_mtop_t::buildMolblockIndices()
     int residueIndex       = 0;
     int residueNumberStart = maxResNumberNotRenumbered_ + 1;
     int moleculeIndexStart = 0;
-    for (size_t mb = 0; mb < molblock.size(); mb++)
+    for (std::size_t mb = 0; mb < molblock.size(); mb++)
     {
         const gmx_molblock_t& molb         = molblock[mb];
         MoleculeBlockIndices& indices      = moleculeBlockIndices[mb];
@@ -374,7 +374,7 @@ void pr_mtop(FILE* fp, int indent, const char* title, const gmx_mtop_t* mtop, gm
         fprintf(fp, "name=\"%s\"\n", *(mtop->name));
         pr_int(fp, indent, "#atoms", mtop->natoms);
         pr_int(fp, indent, "#molblock", mtop->molblock.size());
-        for (size_t mb = 0; mb < mtop->molblock.size(); mb++)
+        for (std::size_t mb = 0; mb < mtop->molblock.size(); mb++)
         {
             pr_molblock(fp, indent, "molblock", &mtop->molblock[mb], mb, mtop->moltype);
         }
@@ -394,7 +394,7 @@ void pr_mtop(FILE* fp, int indent, const char* title, const gmx_mtop_t* mtop, gm
             }
         }
         pr_ffparams(fp, indent, "ffparams", &(mtop->ffparams), bShowNumbers);
-        for (size_t mt = 0; mt < mtop->moltype.size(); mt++)
+        for (std::size_t mt = 0; mt < mtop->moltype.size(); mt++)
         {
             pr_moltype(fp, indent, "moltype", &mtop->moltype[mt], mt, &mtop->ffparams, bShowNumbers, bShowParameters);
         }
@@ -482,7 +482,7 @@ static void cmp_cmap(FILE* fp, const gmx_cmap_t* cmap1, const gmx_cmap_t* cmap2,
     cmp_int(fp, "cmap grid_spacing", -1, cmap1->grid_spacing, cmap2->grid_spacing);
     if (cmap1->cmapdata.size() == cmap2->cmapdata.size() && cmap1->grid_spacing == cmap2->grid_spacing)
     {
-        for (size_t g = 0; g < cmap1->cmapdata.size(); g++)
+        for (std::size_t g = 0; g < cmap1->cmapdata.size(); g++)
         {
             fprintf(fp, "comparing cmap %zu\n", g);
 

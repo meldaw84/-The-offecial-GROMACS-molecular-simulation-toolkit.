@@ -138,8 +138,8 @@ typedef struct samples_t
     hist_t* hist; /* a histogram */
 
     /* allocation data: (not NULL for data 'owned' by this struct) */
-    double* du_alloc;  /* allocated delta u arrays  */
-    size_t  ndu_alloc; /* pre-allocated sizes */
+    double*     du_alloc;  /* allocated delta u arrays  */
+    std::size_t ndu_alloc; /* pre-allocated sizes */
 
     int64_t     ntot;     /* total number of samples */
     const char* filename; /* the file name this sample comes from */
@@ -230,7 +230,7 @@ static void lambda_components_init(lambda_components_t* lc)
 }
 
 /* Add a component to a lambda_components structure */
-static void lambda_components_add(lambda_components_t* lc, const char* name, size_t name_length)
+static void lambda_components_add(lambda_components_t* lc, const char* name, std::size_t name_length)
 {
     while (lc->N + 1 > lc->Nalloc)
     {
@@ -250,9 +250,9 @@ static void lambda_components_add(lambda_components_t* lc, const char* name, siz
 /* check whether a component with index 'index' matches the given name, or
    is also NULL. Returns TRUE if this is the case.
    the string name does not need to end */
-static gmx_bool lambda_components_check(const lambda_components_t* lc, int index, const char* name, size_t name_length)
+static gmx_bool lambda_components_check(const lambda_components_t* lc, int index, const char* name, std::size_t name_length)
 {
-    size_t len;
+    std::size_t len;
     if (!lc || index >= lc->N)
     {
         return FALSE;
@@ -284,7 +284,7 @@ static gmx_bool lambda_components_check(const lambda_components_t* lc, int index
 }
 
 /* Find the index of a given lambda component name, or -1 if not found */
-static int lambda_components_find(const lambda_components_t* lc, const char* name, size_t name_length)
+static int lambda_components_find(const lambda_components_t* lc, const char* name, std::size_t name_length)
 {
     int i;
 
@@ -2867,8 +2867,8 @@ static void read_edr_rawdh_block(samples_t**   smp,
     /* make room for the data */
     if (gmx::Index(s->ndu_alloc) < s->ndu + blk->sub[2].nr)
     {
-        s->ndu_alloc += (s->ndu_alloc < static_cast<size_t>(blk->sub[2].nr)) ? blk->sub[2].nr * 2
-                                                                             : s->ndu_alloc;
+        s->ndu_alloc += (s->ndu_alloc < static_cast<std::size_t>(blk->sub[2].nr)) ? blk->sub[2].nr * 2
+                                                                                  : s->ndu_alloc;
         srenew(s->du_alloc, s->ndu_alloc);
         s->du = s->du_alloc;
     }

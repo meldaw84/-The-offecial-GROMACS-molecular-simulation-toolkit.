@@ -126,7 +126,7 @@ public:
      * In the long term, we would prefer to also allow client code to preregister interest in a
      * position at a given time, or issue "futures".
      */
-    RVec centerOfMass(const t_commrec& cr, size_t nx, ArrayRef<const RVec> x, double gmx_unused t)
+    RVec centerOfMass(const t_commrec& cr, std::size_t nx, ArrayRef<const RVec> x, double gmx_unused t)
     {
         // Center of mass to return for the site. Currently the only form of site
         // implemented is as a global atomic coordinate.

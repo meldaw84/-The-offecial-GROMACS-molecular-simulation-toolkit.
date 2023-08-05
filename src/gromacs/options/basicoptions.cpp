@@ -77,7 +77,7 @@ namespace
  * \ingroup module_options
  */
 template<typename ValueType>
-void expandVector(size_t length, std::vector<ValueType>* values)
+void expandVector(std::size_t length, std::vector<ValueType>* values)
 {
     if (length > 0 && !values->empty() && values->size() != length)
     {

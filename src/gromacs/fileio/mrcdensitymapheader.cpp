@@ -71,7 +71,7 @@ bool anyLargerThanValue(const Container& values, typename Container::value_type 
 
 } // namespace
 
-size_t numberOfExpectedDataItems(const MrcDensityMapHeader& header)
+std::size_t numberOfExpectedDataItems(const MrcDensityMapHeader& header)
 {
     if (anySmallerZero(header.numColumnRowSection_))
     {

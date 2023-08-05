@@ -76,7 +76,7 @@ void compareVectors(const TestSeq&                    forces,
                     [[maybe_unused]] const SeqFloat&  refForcesFloat,
                     [[maybe_unused]] const SeqDouble& refForcesDouble)
 {
-    for (size_t i = 0; i < forces.size(); ++i)
+    for (std::size_t i = 0; i < forces.size(); ++i)
     {
         for (int m = 0; m < dimSize; ++m)
         {
@@ -183,7 +183,7 @@ TEST_F(ListedExampleData, CanReduceEnergies)
 void compareArray(const ListedForceCalculator::EnergyType& energies,
                   const ListedForceCalculator::EnergyType& refEnergies)
 {
-    for (size_t i = 0; i < energies.size(); ++i)
+    for (std::size_t i = 0; i < energies.size(); ++i)
     {
         EXPECT_REAL_EQ_TOL(energies[i],
                            refEnergies[i],

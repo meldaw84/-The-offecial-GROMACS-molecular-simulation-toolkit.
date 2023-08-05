@@ -78,7 +78,7 @@ void check_screw_box(const matrix box);
 static inline int ddGetAtomInfo(gmx::ArrayRef<const gmx::AtomInfoWithinMoleculeBlock> atomInfoForEachMoleculeBlock,
                                 int                                                   a)
 {
-    size_t index = 0;
+    std::size_t index = 0;
     while (a >= atomInfoForEachMoleculeBlock[index].indexOfLastAtomInMoleculeBlock)
     {
         index++;

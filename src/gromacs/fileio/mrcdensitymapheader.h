@@ -166,7 +166,7 @@ struct MrcDensityMapHeader
  * \throws InternalError if the number of data items cannot be determined
  * \returns the number of voxels
  */
-size_t numberOfExpectedDataItems(const MrcDensityMapHeader& header);
+std::size_t numberOfExpectedDataItems(const MrcDensityMapHeader& header);
 
 /*! \brief Extract the transformation into lattice coordinates.
  * \note Transformation into lattice coordinates is not treated uniformly

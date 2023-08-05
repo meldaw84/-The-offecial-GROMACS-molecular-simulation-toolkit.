@@ -103,10 +103,10 @@ struct SystemDescription
     }
 
     //! number of particles
-    size_t numParticles_{ 0 };
+    std::size_t numParticles_{ 0 };
 
     //! number of particle types
-    size_t numParticleTypes_{ 0 };
+    std::size_t numParticleTypes_{ 0 };
 
     //! particle type id of all particles
     std::vector<int> particleTypeIdOfAllParticles_;

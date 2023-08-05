@@ -63,7 +63,7 @@ namespace
 //! Utility function to compare 2 std::vectors of gmx::RVec used to compare cartesians
 void compareValues(const std::vector<Vec3>& ref, const std::vector<Vec3>& test)
 {
-    for (size_t i = 0; i < ref.size(); i++)
+    for (std::size_t i = 0; i < ref.size(); i++)
     {
         for (int j = 0; j < dimSize; j++)
         {

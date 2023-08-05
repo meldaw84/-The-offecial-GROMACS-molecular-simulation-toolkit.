@@ -49,7 +49,7 @@ class DeviceContext;
 ///@cond INTERNAL
 
 /*! \brief Allocates nbytes of page-locked memory. */
-void pmalloc(void** h_ptr, size_t nbytes, const DeviceContext* deviceContext = nullptr);
+void pmalloc(void** h_ptr, std::size_t nbytes, const DeviceContext* deviceContext = nullptr);
 
 /*! \brief Frees page locked memory allocated with pmalloc. */
 void pfree(void* h_ptr, const DeviceContext* deviceContext = nullptr);

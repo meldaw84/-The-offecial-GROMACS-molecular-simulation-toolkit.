@@ -139,10 +139,10 @@ Nbnxm::KernelSetup createKernelSetupGPU(const bool useTabulatedEwaldCorr)
     return kernelSetup;
 }
 
-std::vector<int64_t> createParticleInfoAllVdw(const size_t numParticles)
+std::vector<int64_t> createParticleInfoAllVdw(const std::size_t numParticles)
 {
     std::vector<int64_t> particleInfoAllVdw(numParticles);
-    for (size_t particleI = 0; particleI < numParticles; particleI++)
+    for (std::size_t particleI = 0; particleI < numParticles; particleI++)
     {
         particleInfoAllVdw[particleI] |= gmx::sc_atomInfo_HasVdw;
         particleInfoAllVdw[particleI] |= gmx::sc_atomInfo_HasCharge;
@@ -276,7 +276,7 @@ interaction_const_t createInteractionConst(const NBKernelOptions& options)
     return interactionConst;
 }
 
-std::unique_ptr<nonbonded_verlet_t> createNbnxmCPU(const size_t              numParticleTypes,
+std::unique_ptr<nonbonded_verlet_t> createNbnxmCPU(const std::size_t         numParticleTypes,
                                                    const NBKernelOptions&    options,
                                                    int                       numEnergyGroups,
                                                    gmx::ArrayRef<const real> nonbondedParameters)
@@ -312,7 +312,7 @@ std::unique_ptr<nonbonded_verlet_t> createNbnxmCPU(const size_t              num
     return nbv;
 }
 
-std::unique_ptr<nonbonded_verlet_t> createNbnxmGPU(const size_t               numParticleTypes,
+std::unique_ptr<nonbonded_verlet_t> createNbnxmGPU(const std::size_t          numParticleTypes,
                                                    const NBKernelOptions&     options,
                                                    const std::vector<real>&   nonbondedParameters,
                                                    const interaction_const_t& interactionConst,

@@ -161,8 +161,8 @@ std::string stripSourcePrefix(const char* path)
 std::vector<std::filesystem::path> splitPathEnvironment(const std::string& pathEnv)
 {
     std::vector<std::filesystem::path> result;
-    size_t                             prevPos   = 0;
-    size_t                             separator = 0;
+    std::size_t                        prevPos   = 0;
+    std::size_t                        separator = 0;
     do
     {
         separator = pathEnv.find(cPathSeparator, prevPos);

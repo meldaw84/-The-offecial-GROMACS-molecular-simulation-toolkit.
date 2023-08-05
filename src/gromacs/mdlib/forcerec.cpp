@@ -222,7 +222,7 @@ makeAtomInfoForEachMoleculeBlock(const gmx_mtop_t& mtop, const t_forcerec* fr)
 
     std::vector<gmx::AtomInfoWithinMoleculeBlock> atomInfoForEachMoleculeBlock;
     int                                           indexOfFirstAtomInMoleculeBlock = 0;
-    for (size_t mb = 0; mb < mtop.molblock.size(); mb++)
+    for (std::size_t mb = 0; mb < mtop.molblock.size(); mb++)
     {
         const gmx_molblock_t& molb = mtop.molblock[mb];
         const gmx_moltype_t&  molt = mtop.moltype[molb.type];

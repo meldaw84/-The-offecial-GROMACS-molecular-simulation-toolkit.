@@ -56,11 +56,11 @@
 typedef struct cufftBox3d_t
 {
     //! Lower indices in each of 3 dimensions for 3D box
-    size_t lower[3];
+    std::size_t lower[3];
     //! Upper indices in each of 3 dimensions for 3D box
-    size_t upper[3];
+    std::size_t upper[3];
     //! Strides in each of 3 dimensions for 3D box
-    size_t strides[3];
+    std::size_t strides[3];
 } cufftBox3d;
 
 /*! \brief
@@ -130,8 +130,8 @@ Gpu3dFft::ImplCuFftMp::ImplCuFftMp(bool                allocateRealGrid,
                        "CuFftMp backend is expected to be used only with more than 1 rank");
 
     // calculate grid offsets
-    std::vector<size_t> gridOffsetsInX(numDomainsX + 1);
-    std::vector<size_t> gridOffsetsInY(numDomainsY + 1);
+    std::vector<std::size_t> gridOffsetsInX(numDomainsX + 1);
+    std::vector<std::size_t> gridOffsetsInY(numDomainsY + 1);
 
     gridOffsetsInX[0] = 0;
     for (unsigned int i = 0; i < gridSizesInXForEachRank.size(); ++i)
@@ -157,27 +157,27 @@ Gpu3dFft::ImplCuFftMp::ImplCuFftMp(bool                allocateRealGrid,
     int procX = rank / numDomainsY;
 
     // output dimension padded along z
-    const size_t complexZDim = nz / 2 + 1;
-    const size_t nzPadded    = complexZDim * 2;
+    const std::size_t complexZDim = nz / 2 + 1;
+    const std::size_t nzPadded    = complexZDim * 2;
 
     // local real grid boxes - pencil in X & Y, along Z
     cufftBox3d const realBox = { { gridOffsetsInX[procX], gridOffsetsInY[procY], 0 },
-                                 { gridOffsetsInX[procX + 1], gridOffsetsInY[procY + 1], (size_t)nz },
+                                 { gridOffsetsInX[procX + 1], gridOffsetsInY[procY + 1], (std::size_t)nz },
                                  { gridSizesInYForEachRank[procY] * nzPadded, nzPadded, 1 } };
 
-    const size_t nx = gridOffsetsInX[numDomainsX];
-    const size_t ny = gridOffsetsInY[numDomainsY];
+    const std::size_t nx = gridOffsetsInX[numDomainsX];
+    const std::size_t ny = gridOffsetsInY[numDomainsY];
 
-    cufftBox3d complexBox;
-    size_t     gridSizesInY_transformed = ny;
-    size_t     gridSizesInZ_transformed = complexZDim;
+    cufftBox3d  complexBox;
+    std::size_t gridSizesInY_transformed = ny;
+    std::size_t gridSizesInZ_transformed = complexZDim;
 
     // if possible, keep complex data in slab decomposition along Z
     // this allows cuFFTMp to have single communication phase
-    if (numDomainsY > 1 && complexZDim >= (size_t)nProcs)
+    if (numDomainsY > 1 && complexZDim >= (std::size_t)nProcs)
     {
         // define shape of local complex grid boxes
-        std::vector<size_t> gridOffsetsInZ_transformed(nProcs + 1);
+        std::vector<std::size_t> gridOffsetsInZ_transformed(nProcs + 1);
 
         for (int i = 0; i < nProcs; i++)
         {
@@ -196,8 +196,8 @@ Gpu3dFft::ImplCuFftMp::ImplCuFftMp(bool                allocateRealGrid,
     else
     {
         // define shape of local complex grid boxes
-        std::vector<size_t> gridOffsetsInY_transformed(numDomainsX + 1);
-        std::vector<size_t> gridOffsetsInZ_transformed(numDomainsY + 1);
+        std::vector<std::size_t> gridOffsetsInY_transformed(numDomainsX + 1);
+        std::vector<std::size_t> gridOffsetsInZ_transformed(numDomainsY + 1);
 
         for (int i = 0; i < numDomainsX; i++)
         {
@@ -246,7 +246,7 @@ Gpu3dFft::ImplCuFftMp::ImplCuFftMp(bool                allocateRealGrid,
                      "cufftSetStream C2R plan failure");
 
     // Make the plan
-    size_t workspace;
+    std::size_t workspace;
     handleCufftError(cufftMakePlan3d(planR2C_, nx, ny, nz, CUFFT_R2C, &workspace),
                      "cufftMakePlan3d R2C plan failure");
     handleCufftError(cufftMakePlan3d(planC2R_, nx, ny, nz, CUFFT_C2R, &workspace),

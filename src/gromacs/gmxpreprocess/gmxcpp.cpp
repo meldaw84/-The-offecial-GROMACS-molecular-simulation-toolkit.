@@ -435,7 +435,7 @@ static int process_directive(gmx_cpp_t* handlep, const std::string& dname, const
         {
             return eCPP_INVALID_INCLUDE_DELIMITER;
         }
-        for (size_t i1 = 0; i1 < dval.size(); i1++)
+        for (std::size_t i1 = 0; i1 < dval.size(); i1++)
         {
             if ((dval[i1] == '"') || (dval[i1] == '<') || (dval[i1] == '>'))
             {
@@ -508,7 +508,7 @@ static int process_directive(gmx_cpp_t* handlep, const std::string& dname, const
             return eCPP_SYNTAX;
         }
         std::vector<t_define>& defines = *handle->defines;
-        for (size_t i = 0; i < defines.size(); i++)
+        for (std::size_t i = 0; i < defines.size(); i++)
         {
             if (defines[i].name == dval)
             {
@@ -638,7 +638,7 @@ int cpp_read_line(gmx_cpp_t* handlep, int n, char buf[])
                     ptr = ptr2 + define.name.size();
                 }
                 name += ptr;
-                GMX_RELEASE_ASSERT(name.size() < static_cast<size_t>(n),
+                GMX_RELEASE_ASSERT(name.size() < static_cast<std::size_t>(n),
                                    "The line should fit in buf");
                 strcpy(buf, name.c_str());
             }

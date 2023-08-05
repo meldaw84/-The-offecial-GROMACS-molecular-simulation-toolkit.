@@ -438,7 +438,7 @@ void Bias::updateForceCorrelationGrid(gmx::ArrayRef<const double> probWeightNeig
     const std::vector<int>& neighbor = grid_.point(state_.coordState().gridpointIndex()).neighbor;
 
     gmx::ArrayRef<double> forceFromNeighbor = tempForce_;
-    for (size_t n = 0; n < neighbor.size(); n++)
+    for (std::size_t n = 0; n < neighbor.size(); n++)
     {
         double weightNeighbor = probWeightNeighbor[n];
         int    indexNeighbor  = neighbor[n];

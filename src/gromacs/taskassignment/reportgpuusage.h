@@ -78,8 +78,8 @@ class SimulationWorkload;
  * \throws     std::bad_alloc if out of memory */
 void reportGpuUsage(const MDLogger&                   mdlog,
                     ArrayRef<const GpuTaskAssignment> gpuTaskAssignmentOnRanksOfThisNode,
-                    size_t                            numGpuTasksOnThisNode,
-                    size_t                            numPpRanks,
+                    std::size_t                       numGpuTasksOnThisNode,
+                    std::size_t                       numPpRanks,
                     bool                              printHostName,
                     PmeRunMode                        pmeRunMode,
                     const SimulationWorkload&         simulationWork);

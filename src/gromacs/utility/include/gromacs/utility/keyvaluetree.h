@@ -131,7 +131,7 @@ public:
     //! Whether the path is empty (pointing to the root object).
     bool empty() const { return path_.empty(); }
     //! Returns the number of elements (=nesting level) in the path.
-    size_t size() const { return path_.size(); }
+    std::size_t size() const { return path_.size(); }
     //! Returns the i'th path element.
     const std::string& operator[](int i) const { return path_[i]; }
     //! Returns all the path elements.

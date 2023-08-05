@@ -102,7 +102,7 @@ class SimdIterator :
 public:
     explicit SimdIterator(DataPointer p = 0) : p_(p)
     {
-        GMX_ASSERT((reinterpret_cast<size_t>(p) / sizeof(*p)) % simdWidth == 0,
+        GMX_ASSERT((reinterpret_cast<std::size_t>(p) / sizeof(*p)) % simdWidth == 0,
                    "Trying to create aligned iterator for non aligned address.");
     }
     SimdIterator& operator+=(typename Base::difference_type d)
@@ -137,7 +137,7 @@ class SimdArrayRef
 {
 public:
     //! Type for representing size of the container.
-    using size_type = size_t;
+    using size_type = std::size_t;
     //! Type for representing difference between two container indices.
     using difference_type = std::ptrdiff_t;
     //! Type of values stored in the container.

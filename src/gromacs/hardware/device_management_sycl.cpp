@@ -173,10 +173,10 @@ static std::optional<std::tuple<int, int, int>> getHardwareVersionIntel(const sy
     // For Intel, we have to parse and match PCI Express device ID
     const std::string deviceName = device.get_info<sycl::info::device::name>();
     // Find " [0xABCD]" and extract 0xABCD:
-    const size_t prefixStart = deviceName.find(" [0x");
-    const size_t pciIdStart  = prefixStart + 2;
-    const size_t pciIdEnd    = pciIdStart + 6;
-    const size_t suffix      = pciIdEnd; // Should be ']'
+    const std::size_t prefixStart = deviceName.find(" [0x");
+    const std::size_t pciIdStart  = prefixStart + 2;
+    const std::size_t pciIdEnd    = pciIdStart + 6;
+    const std::size_t suffix      = pciIdEnd; // Should be ']'
     if (prefixStart == std::string::npos || deviceName.length() < suffix + 1 || deviceName[suffix] != ']')
     {
         return std::nullopt;
@@ -382,7 +382,7 @@ static bool isDeviceFunctional(const sycl::device& syclDevice, std::string* erro
  * \param[in] deviceInfo       The device info pointer.
  * \returns                    The status of device.
  */
-static DeviceStatus checkDevice(size_t deviceId, const DeviceInformation& deviceInfo)
+static DeviceStatus checkDevice(std::size_t deviceId, const DeviceInformation& deviceInfo)
 {
 
     DeviceStatus supportStatus = isDeviceCompatible(
@@ -499,7 +499,7 @@ std::vector<std::unique_ptr<DeviceInformation>> findDevices()
     {
         deviceInfos.emplace_back(std::make_unique<DeviceInformation>());
 
-        size_t i = deviceInfos.size() - 1;
+        std::size_t i = deviceInfos.size() - 1;
 
         deviceInfos[i]->id         = i;
         deviceInfos[i]->syclDevice = syclDevice;

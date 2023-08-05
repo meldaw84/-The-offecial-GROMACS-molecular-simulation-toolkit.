@@ -114,7 +114,7 @@ public:
     }
     void translatePoints(real x, real y, real z)
     {
-        for (size_t i = 0; i < x_.size(); ++i)
+        for (std::size_t i = 0; i < x_.size(); ++i)
         {
             x_[i][XX] += x;
             x_[i][YY] += y;

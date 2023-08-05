@@ -131,14 +131,14 @@ public:
      *
      * Does not throw.
      */
-    size_t endStorageLocation() const;
+    std::size_t endStorageLocation() const;
 
     /*! \brief
      * Extends \a frames_ to a new size.
      *
      * \throws std::bad_alloc if out of memory.
      */
-    void extendBuffer(size_t newSize);
+    void extendBuffer(std::size_t newSize);
     /*! \brief
      * Remove oldest frame from the storage to make space for a new one.
      *
@@ -241,7 +241,7 @@ public:
      */
     FrameList frames_;
     //! Location of oldest frame in \a frames_.
-    size_t firstFrameLocation_;
+    std::size_t firstFrameLocation_;
     //! Index of the first frame that is not fully notified.
     int firstUnnotifiedIndex_;
     /*! \brief
@@ -419,7 +419,7 @@ int AnalysisDataStorageImpl::computeStorageLocation(int index) const
 }
 
 
-size_t AnalysisDataStorageImpl::endStorageLocation() const
+std::size_t AnalysisDataStorageImpl::endStorageLocation() const
 {
     if (storeAll())
     {
@@ -433,7 +433,7 @@ size_t AnalysisDataStorageImpl::endStorageLocation() const
 }
 
 
-void AnalysisDataStorageImpl::extendBuffer(size_t newSize)
+void AnalysisDataStorageImpl::extendBuffer(std::size_t newSize)
 {
     frames_.reserve(newSize);
     while (frames_.size() < newSize)
@@ -452,8 +452,8 @@ void AnalysisDataStorageImpl::extendBuffer(size_t newSize)
 void AnalysisDataStorageImpl::rotateBuffer()
 {
     GMX_ASSERT(!storeAll(), "No need to rotate internal buffer if everything is stored");
-    size_t prevFirst = firstFrameLocation_;
-    size_t nextFirst = prevFirst + 1;
+    std::size_t prevFirst = firstFrameLocation_;
+    std::size_t nextFirst = prevFirst + 1;
     if (nextFirst == frames_.size())
     {
         nextFirst = 0;
@@ -692,9 +692,9 @@ void AnalysisDataStorageFrame::finishPointSet()
                        "Should not be called for non-multipoint data");
     if (bPointSetInProgress_)
     {
-        size_t begin       = currentOffset_;
-        size_t end         = begin + columnCount_;
-        int    firstColumn = 0;
+        std::size_t begin       = currentOffset_;
+        std::size_t end         = begin + columnCount_;
+        int         firstColumn = 0;
         while (begin != end && !values_[begin].isSet())
         {
             ++begin;
@@ -809,7 +809,7 @@ AnalysisDataStorageFrame& AnalysisDataStorage::startFrame(const AnalysisDataFram
     internal::AnalysisDataStorageFrameData* storedFrame = nullptr;
     if (impl_->storeAll())
     {
-        size_t size = header.index() + 1;
+        std::size_t size = header.index() + 1;
         if (impl_->frames_.size() < size)
         {
             impl_->extendBuffer(size);

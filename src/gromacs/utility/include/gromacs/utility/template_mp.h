@@ -96,9 +96,9 @@ auto dispatchTemplatedFunction(Function&& f, Enum e, Enums... es)
 {
     return dispatchTemplatedFunction(
             [&](auto... es_) {
-                return compat::mp_with_index<size_t(Enum::Count)>(size_t(e), [&](auto e_) {
+                return compat::mp_with_index<std::size_t(Enum::Count)>(std::size_t(e), [&](auto e_) {
                     return std::forward<Function>(f)(
-                            std::integral_constant<Enum, static_cast<Enum>(size_t(e_))>(), es_...);
+                            std::integral_constant<Enum, static_cast<Enum>(std::size_t(e_))>(), es_...);
                 });
             },
             es...);
@@ -109,7 +109,7 @@ auto dispatchTemplatedFunction(Function&& f, bool e, Enums... es)
 {
     return dispatchTemplatedFunction(
             [&](auto... es_) {
-                return compat::mp_with_index<2>(size_t(e), [&](auto e_) {
+                return compat::mp_with_index<2>(std::size_t(e), [&](auto e_) {
                     return std::forward<Function>(f)(std::bool_constant<static_cast<bool>(e_)>(), es_...);
                 });
             },

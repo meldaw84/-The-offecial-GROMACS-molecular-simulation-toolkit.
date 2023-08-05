@@ -73,7 +73,7 @@
  *
  * This should generally be called through smalloc(), not directly.
  */
-void* save_malloc(const char* name, const char* file, int line, size_t size);
+void* save_malloc(const char* name, const char* file, int line, std::size_t size);
 /*! \brief
  * \Gromacs wrapper for calloc().
  *
@@ -86,7 +86,7 @@ void* save_malloc(const char* name, const char* file, int line, size_t size);
  *
  * This should generally be called through snew(), not directly.
  */
-void* save_calloc(const char* name, const char* file, int line, size_t nelem, size_t elsize);
+void* save_calloc(const char* name, const char* file, int line, std::size_t nelem, std::size_t elsize);
 /*! \brief
  * \Gromacs wrapper for realloc().
  *
@@ -104,7 +104,7 @@ void* save_calloc(const char* name, const char* file, int line, size_t nelem, si
  *
  * Note that the allocated memory is not initialized to zero.
  */
-void* save_realloc(const char* name, const char* file, int line, void* ptr, size_t nelem, size_t elsize);
+void* save_realloc(const char* name, const char* file, int line, void* ptr, std::size_t nelem, std::size_t elsize);
 /*! \brief
  * \Gromacs wrapper for free().
  *
@@ -135,7 +135,12 @@ void save_free(const char* name, const char* file, int line, void* ptr);
  *
  * The returned pointer should only be freed with a call to save_free_aligned().
  */
-void* save_malloc_aligned(const char* name, const char* file, int line, size_t nelem, size_t elsize, size_t alignment);
+void* save_malloc_aligned(const char* name,
+                          const char* file,
+                          int         line,
+                          std::size_t nelem,
+                          std::size_t elsize,
+                          std::size_t alignment);
 /*! \brief
  * \Gromacs wrapper for allocating zero-initialized aligned memory.
  *
@@ -152,7 +157,12 @@ void* save_malloc_aligned(const char* name, const char* file, int line, size_t n
  *
  * The returned pointer should only be freed with a call to save_free_aligned().
  */
-void* save_calloc_aligned(const char* name, const char* file, int line, size_t nelem, size_t elsize, size_t alignment);
+void* save_calloc_aligned(const char* name,
+                          const char* file,
+                          int         line,
+                          std::size_t nelem,
+                          std::size_t elsize,
+                          std::size_t alignment);
 /*! \brief
  * \Gromacs wrapper for freeing aligned memory.
  *
@@ -195,7 +205,7 @@ void save_free_aligned(const char* name, const char* file, int line, void* ptr);
 /*! \{ */
 /** C++ helper for snew(). */
 template<typename T>
-static inline void gmx_snew_impl(const char* name, const char* file, int line, T*& ptr, size_t nelem)
+static inline void gmx_snew_impl(const char* name, const char* file, int line, T*& ptr, std::size_t nelem)
 {
     // TODO: Use std::is_pod_v when CUDA 11 is a requirement.
     static_assert(std::is_pod<T>::value, "snew() called on C++ type");
@@ -204,7 +214,7 @@ static inline void gmx_snew_impl(const char* name, const char* file, int line, T
 }
 /** C++ helper for srenew(). */
 template<typename T>
-static inline void gmx_srenew_impl(const char* name, const char* file, int line, T*& ptr, size_t nelem)
+static inline void gmx_srenew_impl(const char* name, const char* file, int line, T*& ptr, std::size_t nelem)
 {
     // TODO: Use std::is_pod_v when CUDA 11 is a requirement.
     static_assert(std::is_pod<T>::value, "srenew() called on C++ type");
@@ -213,7 +223,7 @@ static inline void gmx_srenew_impl(const char* name, const char* file, int line,
 }
 /** C++ helper for smalloc(). */
 template<typename T>
-static inline void gmx_smalloc_impl(const char* name, const char* file, int line, T*& ptr, size_t size)
+static inline void gmx_smalloc_impl(const char* name, const char* file, int line, T*& ptr, std::size_t size)
 {
     // TODO: Use std::is_pod_v when CUDA 11 is a requirement.
     static_assert(std::is_pod<T>::value, "smalloc() called on C++ type");
@@ -222,7 +232,7 @@ static inline void gmx_smalloc_impl(const char* name, const char* file, int line
 /** C++ helper for snew_aligned(). */
 template<typename T>
 static inline void
-gmx_snew_aligned_impl(const char* name, const char* file, int line, T*& ptr, size_t nelem, size_t alignment)
+gmx_snew_aligned_impl(const char* name, const char* file, int line, T*& ptr, std::size_t nelem, std::size_t alignment)
 {
     // TODO: Use std::is_pod_v when CUDA 11 is a requirement.
     static_assert(std::is_pod<T>::value, "snew_aligned() called on C++ type");

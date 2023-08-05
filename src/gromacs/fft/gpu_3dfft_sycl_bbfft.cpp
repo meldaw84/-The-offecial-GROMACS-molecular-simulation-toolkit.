@@ -100,24 +100,25 @@ Gpu3dFft::ImplSyclBbfft::ImplSyclBbfft(bool allocateRealGrid,
                                          * complexGridSizePadded[ZZ] * 2),
                "Complex grid buffer is too small for the declared padded size");
 
-    std::array<size_t, bbfft::max_tensor_dim> shape   = { 1,
-                                                        static_cast<size_t>(realGridSize[ZZ]),
-                                                        static_cast<size_t>(realGridSize[YY]),
-                                                        static_cast<size_t>(realGridSize[XX]),
-                                                        1 };
-    std::array<size_t, bbfft::max_tensor_dim> rstride = {
+    std::array<std::size_t, bbfft::max_tensor_dim> shape   = { 1,
+                                                             static_cast<std::size_t>(realGridSize[ZZ]),
+                                                             static_cast<std::size_t>(realGridSize[YY]),
+                                                             static_cast<std::size_t>(realGridSize[XX]),
+                                                             1 };
+    std::array<std::size_t, bbfft::max_tensor_dim> rstride = {
         1,
         1,
-        static_cast<size_t>(realGridSizePadded[ZZ]),
-        static_cast<size_t>(realGridSizePadded[ZZ] * realGridSizePadded[YY]),
-        static_cast<size_t>(realGridSizePadded[ZZ] * realGridSizePadded[YY] * realGridSizePadded[XX])
+        static_cast<std::size_t>(realGridSizePadded[ZZ]),
+        static_cast<std::size_t>(realGridSizePadded[ZZ] * realGridSizePadded[YY]),
+        static_cast<std::size_t>(realGridSizePadded[ZZ] * realGridSizePadded[YY] * realGridSizePadded[XX])
     };
-    std::array<size_t, bbfft::max_tensor_dim> cstride = {
+    std::array<std::size_t, bbfft::max_tensor_dim> cstride = {
         1,
         1,
-        static_cast<size_t>(complexGridSizePadded[ZZ]),
-        static_cast<size_t>(complexGridSizePadded[ZZ] * complexGridSizePadded[YY]),
-        static_cast<size_t>(complexGridSizePadded[ZZ] * complexGridSizePadded[YY] * complexGridSizePadded[XX])
+        static_cast<std::size_t>(complexGridSizePadded[ZZ]),
+        static_cast<std::size_t>(complexGridSizePadded[ZZ] * complexGridSizePadded[YY]),
+        static_cast<std::size_t>(complexGridSizePadded[ZZ] * complexGridSizePadded[YY]
+                                 * complexGridSizePadded[XX])
     };
 
     try

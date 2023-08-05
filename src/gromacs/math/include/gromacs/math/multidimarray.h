@@ -65,11 +65,11 @@ struct is_resizable : std::false_type
 };
 
 template<typename T>
-struct is_resizable<T, void_t<decltype(std::declval<T>().resize(size_t(0)))>> : std::true_type
+struct is_resizable<T, void_t<decltype(std::declval<T>().resize(std::size_t(0)))>> : std::true_type
 {
 };
 
-//! Type has a resize member function callable with size_t argument
+//! Type has a resize member function callable with std::size_t argument
 template<typename T>
 // NOLINTNEXTLINE misc-definitions-in-headers
 constexpr bool is_resizable_v = is_resizable<T>::value;

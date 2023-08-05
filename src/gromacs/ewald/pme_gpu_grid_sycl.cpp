@@ -89,8 +89,8 @@ public:
      * \tparam    subGroupSize               Size of the sub-group.
      */
     template<int subGroupSize>
-    static auto kernel(size_t      myGridX,
-                       size_t      myGridY,
+    static auto kernel(std::size_t myGridX,
+                       std::size_t myGridY,
                        sycl::uint3 pmeSize,
                        const float* __restrict__ gm_realGrid,
                        float* __restrict__ gm_transferGridUp,
@@ -101,16 +101,19 @@ public:
                        float* __restrict__ gm_transferGridDownLeft,
                        float* __restrict__ gm_transferGridUpRight,
                        float* __restrict__ gm_transferGridDownRight,
-                       const size_t overlapSizeUp,
-                       const size_t overlapSizeDown,
-                       const size_t overlapSizeLeft,
-                       const size_t overlapSizeRight)
+                       const std::size_t overlapSizeUp,
+                       const std::size_t overlapSizeDown,
+                       const std::size_t overlapSizeLeft,
+                       const std::size_t overlapSizeRight)
     {
         return [=](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(subGroupSize)]]
         {
-            size_t iz = item_ct1.get_local_id(2) + item_ct1.get_group(2) * item_ct1.get_local_range(2);
-            size_t iy = item_ct1.get_local_id(1) + item_ct1.get_group(1) * item_ct1.get_local_range(1);
-            size_t ix = item_ct1.get_local_id(0) + item_ct1.get_group(0) * item_ct1.get_local_range(0);
+            std::size_t iz =
+                    item_ct1.get_local_id(2) + item_ct1.get_group(2) * item_ct1.get_local_range(2);
+            std::size_t iy =
+                    item_ct1.get_local_id(1) + item_ct1.get_group(1) * item_ct1.get_local_range(1);
+            std::size_t ix =
+                    item_ct1.get_local_id(0) + item_ct1.get_group(0) * item_ct1.get_local_range(0);
 
             // we might get iz greather than pmeSize.z when pmeSize.z is not multiple of
             // threadsAlongZDim(see below), same for iy when it's not multiple of threadsAlongYDim
@@ -122,77 +125,79 @@ public:
             // up
             if (ix < overlapSizeUp)
             {
-                size_t pmeIndex = (ix + pmeSize.x() - overlapSizeUp) * pmeSize.y() * pmeSize.z()
-                                  + iy * pmeSize.z() + iz;
-                size_t packedIndex             = ix * myGridY * pmeSize.z() + iy * pmeSize.z() + iz;
+                std::size_t pmeIndex = (ix + pmeSize.x() - overlapSizeUp) * pmeSize.y() * pmeSize.z()
+                                       + iy * pmeSize.z() + iz;
+                std::size_t packedIndex        = ix * myGridY * pmeSize.z() + iy * pmeSize.z() + iz;
                 gm_transferGridUp[packedIndex] = gm_realGrid[pmeIndex];
             }
 
             // down
             if (ix >= myGridX - overlapSizeDown)
             {
-                size_t pmeIndex =
+                std::size_t pmeIndex =
                         (ix + overlapSizeDown) * pmeSize.y() * pmeSize.z() + iy * pmeSize.z() + iz;
-                size_t packedIndex = (ix - (myGridX - overlapSizeDown)) * myGridY * pmeSize.z()
-                                     + iy * pmeSize.z() + iz;
+                std::size_t packedIndex = (ix - (myGridX - overlapSizeDown)) * myGridY * pmeSize.z()
+                                          + iy * pmeSize.z() + iz;
                 gm_transferGridDown[packedIndex] = gm_realGrid[pmeIndex];
             }
 
             // left
             if (iy < overlapSizeLeft)
             {
-                size_t pmeIndex = ix * pmeSize.y() * pmeSize.z()
-                                  + (iy + pmeSize.y() - overlapSizeLeft) * pmeSize.z() + iz;
-                size_t packedIndex = ix * overlapSizeLeft * pmeSize.z() + iy * pmeSize.z() + iz;
+                std::size_t pmeIndex = ix * pmeSize.y() * pmeSize.z()
+                                       + (iy + pmeSize.y() - overlapSizeLeft) * pmeSize.z() + iz;
+                std::size_t packedIndex = ix * overlapSizeLeft * pmeSize.z() + iy * pmeSize.z() + iz;
                 gm_transferGridLeft[packedIndex] = gm_realGrid[pmeIndex];
             }
 
             // right
             if (iy >= myGridY - overlapSizeRight)
             {
-                size_t pmeIndex =
+                std::size_t pmeIndex =
                         ix * pmeSize.y() * pmeSize.z() + (iy + overlapSizeRight) * pmeSize.z() + iz;
-                size_t packedIndex = ix * overlapSizeRight * pmeSize.z()
-                                     + (iy - (myGridY - overlapSizeRight)) * pmeSize.z() + iz;
+                std::size_t packedIndex = ix * overlapSizeRight * pmeSize.z()
+                                          + (iy - (myGridY - overlapSizeRight)) * pmeSize.z() + iz;
                 gm_transferGridRight[packedIndex] = gm_realGrid[pmeIndex];
             }
 
             // up left
             if (ix < overlapSizeUp && iy < overlapSizeLeft)
             {
-                size_t pmeIndex = (ix + pmeSize.x() - overlapSizeUp) * pmeSize.y() * pmeSize.z()
-                                  + (iy + pmeSize.y() - overlapSizeLeft) * pmeSize.z() + iz;
-                size_t packedIndex = ix * overlapSizeLeft * pmeSize.z() + iy * pmeSize.z() + iz;
+                std::size_t pmeIndex = (ix + pmeSize.x() - overlapSizeUp) * pmeSize.y() * pmeSize.z()
+                                       + (iy + pmeSize.y() - overlapSizeLeft) * pmeSize.z() + iz;
+                std::size_t packedIndex = ix * overlapSizeLeft * pmeSize.z() + iy * pmeSize.z() + iz;
                 gm_transferGridUpLeft[packedIndex] = gm_realGrid[pmeIndex];
             }
 
             // down left
             if (ix >= myGridX - overlapSizeDown && iy < overlapSizeLeft)
             {
-                size_t pmeIndex = (ix + overlapSizeDown) * pmeSize.y() * pmeSize.z()
-                                  + (iy + pmeSize.y() - overlapSizeLeft) * pmeSize.z() + iz;
-                size_t packedIndex = (ix - (myGridX - overlapSizeDown)) * overlapSizeLeft * pmeSize.z()
-                                     + iy * pmeSize.z() + iz;
+                std::size_t pmeIndex = (ix + overlapSizeDown) * pmeSize.y() * pmeSize.z()
+                                       + (iy + pmeSize.y() - overlapSizeLeft) * pmeSize.z() + iz;
+                std::size_t packedIndex =
+                        (ix - (myGridX - overlapSizeDown)) * overlapSizeLeft * pmeSize.z()
+                        + iy * pmeSize.z() + iz;
                 gm_transferGridDownLeft[packedIndex] = gm_realGrid[pmeIndex];
             }
 
             // up right
             if (ix < overlapSizeUp && iy >= myGridY - overlapSizeRight)
             {
-                size_t pmeIndex = (ix + pmeSize.x() - overlapSizeUp) * pmeSize.y() * pmeSize.z()
-                                  + (iy + overlapSizeRight) * pmeSize.z() + iz;
-                size_t packedIndex = ix * overlapSizeRight * pmeSize.z()
-                                     + (iy - (myGridY - overlapSizeRight)) * pmeSize.z() + iz;
+                std::size_t pmeIndex = (ix + pmeSize.x() - overlapSizeUp) * pmeSize.y() * pmeSize.z()
+                                       + (iy + overlapSizeRight) * pmeSize.z() + iz;
+                std::size_t packedIndex = ix * overlapSizeRight * pmeSize.z()
+                                          + (iy - (myGridY - overlapSizeRight)) * pmeSize.z() + iz;
                 gm_transferGridUpRight[packedIndex] = gm_realGrid[pmeIndex];
             }
 
             // down right
             if (ix >= myGridX - overlapSizeDown && iy >= myGridY - overlapSizeRight)
             {
-                size_t pmeIndex = (ix + overlapSizeDown) * pmeSize.y() * pmeSize.z()
-                                  + (iy + overlapSizeRight) * pmeSize.z() + iz;
-                size_t packedIndex = (ix - (myGridX - overlapSizeDown)) * overlapSizeRight * pmeSize.z()
-                                     + (iy - (myGridY - overlapSizeRight)) * pmeSize.z() + iz;
+                std::size_t pmeIndex = (ix + overlapSizeDown) * pmeSize.y() * pmeSize.z()
+                                       + (iy + overlapSizeRight) * pmeSize.z() + iz;
+                std::size_t packedIndex =
+                        (ix - (myGridX - overlapSizeDown)) * overlapSizeRight * pmeSize.z()
+                        + (iy - (myGridY - overlapSizeRight)) * pmeSize.z() + iz;
                 gm_transferGridDownRight[packedIndex] = gm_realGrid[pmeIndex];
             }
         };
@@ -222,8 +227,8 @@ public:
      * \tparam    subGroupSize               Size of the sub-group.
      */
     template<int subGroupSize>
-    static auto kernel(size_t      myGridX,
-                       size_t      myGridY,
+    static auto kernel(std::size_t myGridX,
+                       std::size_t myGridY,
                        sycl::uint3 pmeSize,
                        float* __restrict__ gm_realGrid,
                        const float* __restrict__ gm_transferGridUp,
@@ -234,16 +239,19 @@ public:
                        const float* __restrict__ gm_transferGridDownLeft,
                        const float* __restrict__ gm_transferGridUpRight,
                        const float* __restrict__ gm_transferGridDownRight,
-                       size_t overlapSizeUp,
-                       size_t overlapSizeDown,
-                       size_t overlapSizeLeft,
-                       size_t overlapSizeRight)
+                       std::size_t overlapSizeUp,
+                       std::size_t overlapSizeDown,
+                       std::size_t overlapSizeLeft,
+                       std::size_t overlapSizeRight)
     {
         return [=](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(subGroupSize)]]
         {
-            size_t iz = item_ct1.get_local_id(2) + item_ct1.get_group(2) * item_ct1.get_local_range(2);
-            size_t iy = item_ct1.get_local_id(1) + item_ct1.get_group(1) * item_ct1.get_local_range(1);
-            size_t ix = item_ct1.get_local_id(0) + item_ct1.get_group(0) * item_ct1.get_local_range(0);
+            std::size_t iz =
+                    item_ct1.get_local_id(2) + item_ct1.get_group(2) * item_ct1.get_local_range(2);
+            std::size_t iy =
+                    item_ct1.get_local_id(1) + item_ct1.get_group(1) * item_ct1.get_local_range(1);
+            std::size_t ix =
+                    item_ct1.get_local_id(0) + item_ct1.get_group(0) * item_ct1.get_local_range(0);
 
             // we might get iz greather than pmeSize.z when pmeSize.z is not multiple of
             // threadsAlongZDim(see below), same for iy when it's not multiple of threadsAlongYDim
@@ -255,77 +263,79 @@ public:
             // up
             if (ix < overlapSizeUp)
             {
-                size_t pmeIndex = (ix + pmeSize.x() - overlapSizeUp) * pmeSize.y() * pmeSize.z()
-                                  + iy * pmeSize.z() + iz;
-                size_t packedIndex    = ix * myGridY * pmeSize.z() + iy * pmeSize.z() + iz;
-                gm_realGrid[pmeIndex] = gm_transferGridUp[packedIndex];
+                std::size_t pmeIndex = (ix + pmeSize.x() - overlapSizeUp) * pmeSize.y() * pmeSize.z()
+                                       + iy * pmeSize.z() + iz;
+                std::size_t packedIndex = ix * myGridY * pmeSize.z() + iy * pmeSize.z() + iz;
+                gm_realGrid[pmeIndex]   = gm_transferGridUp[packedIndex];
             }
 
             // down
             if (ix >= myGridX - overlapSizeDown)
             {
-                size_t pmeIndex =
+                std::size_t pmeIndex =
                         (ix + overlapSizeDown) * pmeSize.y() * pmeSize.z() + iy * pmeSize.z() + iz;
-                size_t packedIndex = (ix - (myGridX - overlapSizeDown)) * myGridY * pmeSize.z()
-                                     + iy * pmeSize.z() + iz;
+                std::size_t packedIndex = (ix - (myGridX - overlapSizeDown)) * myGridY * pmeSize.z()
+                                          + iy * pmeSize.z() + iz;
                 gm_realGrid[pmeIndex] = gm_transferGridDown[packedIndex];
             }
 
             // left
             if (iy < overlapSizeLeft)
             {
-                size_t pmeIndex = ix * pmeSize.y() * pmeSize.z()
-                                  + (iy + pmeSize.y() - overlapSizeLeft) * pmeSize.z() + iz;
-                size_t packedIndex    = ix * overlapSizeLeft * pmeSize.z() + iy * pmeSize.z() + iz;
-                gm_realGrid[pmeIndex] = gm_transferGridLeft[packedIndex];
+                std::size_t pmeIndex = ix * pmeSize.y() * pmeSize.z()
+                                       + (iy + pmeSize.y() - overlapSizeLeft) * pmeSize.z() + iz;
+                std::size_t packedIndex = ix * overlapSizeLeft * pmeSize.z() + iy * pmeSize.z() + iz;
+                gm_realGrid[pmeIndex]   = gm_transferGridLeft[packedIndex];
             }
 
             // right
             if (iy >= myGridY - overlapSizeRight)
             {
-                size_t pmeIndex =
+                std::size_t pmeIndex =
                         ix * pmeSize.y() * pmeSize.z() + (iy + overlapSizeRight) * pmeSize.z() + iz;
-                size_t packedIndex = ix * overlapSizeRight * pmeSize.z()
-                                     + (iy - (myGridY - overlapSizeRight)) * pmeSize.z() + iz;
+                std::size_t packedIndex = ix * overlapSizeRight * pmeSize.z()
+                                          + (iy - (myGridY - overlapSizeRight)) * pmeSize.z() + iz;
                 gm_realGrid[pmeIndex] = gm_transferGridRight[packedIndex];
             }
 
             // up left
             if (ix < overlapSizeUp && iy < overlapSizeLeft)
             {
-                size_t pmeIndex = (ix + pmeSize.x() - overlapSizeUp) * pmeSize.y() * pmeSize.z()
-                                  + (iy + pmeSize.y() - overlapSizeLeft) * pmeSize.z() + iz;
-                size_t packedIndex    = ix * overlapSizeLeft * pmeSize.z() + iy * pmeSize.z() + iz;
-                gm_realGrid[pmeIndex] = gm_transferGridUpLeft[packedIndex];
+                std::size_t pmeIndex = (ix + pmeSize.x() - overlapSizeUp) * pmeSize.y() * pmeSize.z()
+                                       + (iy + pmeSize.y() - overlapSizeLeft) * pmeSize.z() + iz;
+                std::size_t packedIndex = ix * overlapSizeLeft * pmeSize.z() + iy * pmeSize.z() + iz;
+                gm_realGrid[pmeIndex]   = gm_transferGridUpLeft[packedIndex];
             }
 
             // down left
             if (ix >= myGridX - overlapSizeDown && iy < overlapSizeLeft)
             {
-                size_t pmeIndex = (ix + overlapSizeDown) * pmeSize.y() * pmeSize.z()
-                                  + (iy + pmeSize.y() - overlapSizeLeft) * pmeSize.z() + iz;
-                size_t packedIndex = (ix - (myGridX - overlapSizeDown)) * overlapSizeLeft * pmeSize.z()
-                                     + iy * pmeSize.z() + iz;
+                std::size_t pmeIndex = (ix + overlapSizeDown) * pmeSize.y() * pmeSize.z()
+                                       + (iy + pmeSize.y() - overlapSizeLeft) * pmeSize.z() + iz;
+                std::size_t packedIndex =
+                        (ix - (myGridX - overlapSizeDown)) * overlapSizeLeft * pmeSize.z()
+                        + iy * pmeSize.z() + iz;
                 gm_realGrid[pmeIndex] = gm_transferGridDownLeft[packedIndex];
             }
 
             // up right
             if (ix < overlapSizeUp && iy >= myGridY - overlapSizeRight)
             {
-                size_t pmeIndex = (ix + pmeSize.x() - overlapSizeUp) * pmeSize.y() * pmeSize.z()
-                                  + (iy + overlapSizeRight) * pmeSize.z() + iz;
-                size_t packedIndex = ix * overlapSizeRight * pmeSize.z()
-                                     + (iy - (myGridY - overlapSizeRight)) * pmeSize.z() + iz;
+                std::size_t pmeIndex = (ix + pmeSize.x() - overlapSizeUp) * pmeSize.y() * pmeSize.z()
+                                       + (iy + overlapSizeRight) * pmeSize.z() + iz;
+                std::size_t packedIndex = ix * overlapSizeRight * pmeSize.z()
+                                          + (iy - (myGridY - overlapSizeRight)) * pmeSize.z() + iz;
                 gm_realGrid[pmeIndex] = gm_transferGridUpRight[packedIndex];
             }
 
             // down right
             if (ix >= myGridX - overlapSizeDown && iy >= myGridY - overlapSizeRight)
             {
-                size_t pmeIndex = (ix + overlapSizeDown) * pmeSize.y() * pmeSize.z()
-                                  + (iy + overlapSizeRight) * pmeSize.z() + iz;
-                size_t packedIndex = (ix - (myGridX - overlapSizeDown)) * overlapSizeRight * pmeSize.z()
-                                     + (iy - (myGridY - overlapSizeRight)) * pmeSize.z() + iz;
+                std::size_t pmeIndex = (ix + overlapSizeDown) * pmeSize.y() * pmeSize.z()
+                                       + (iy + overlapSizeRight) * pmeSize.z() + iz;
+                std::size_t packedIndex =
+                        (ix - (myGridX - overlapSizeDown)) * overlapSizeRight * pmeSize.z()
+                        + (iy - (myGridY - overlapSizeRight)) * pmeSize.z() + iz;
                 gm_realGrid[pmeIndex] = gm_transferGridDownRight[packedIndex];
             }
         };
@@ -355,8 +365,8 @@ public:
      * \tparam    subGroupSize               Size of the sub-group.
      */
     template<int subGroupSize>
-    static auto kernel(size_t      myGridX,
-                       size_t      myGridY,
+    static auto kernel(std::size_t myGridX,
+                       std::size_t myGridY,
                        sycl::uint3 pmeSize,
                        float* __restrict__ gm_realGrid,
                        const float* __restrict__ gm_transferGridUp,
@@ -367,16 +377,19 @@ public:
                        const float* __restrict__ gm_transferGridDownLeft,
                        const float* __restrict__ gm_transferGridUpRight,
                        const float* __restrict__ gm_transferGridDownRight,
-                       size_t overlapSizeX,
-                       size_t overlapSizeY,
-                       size_t overlapUp,
-                       size_t overlapLeft)
+                       std::size_t overlapSizeX,
+                       std::size_t overlapSizeY,
+                       std::size_t overlapUp,
+                       std::size_t overlapLeft)
     {
         return [=](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(subGroupSize)]]
         {
-            size_t iz = item_ct1.get_local_id(2) + item_ct1.get_group(2) * item_ct1.get_local_range(2);
-            size_t iy = item_ct1.get_local_id(1) + item_ct1.get_group(1) * item_ct1.get_local_range(1);
-            size_t ix = item_ct1.get_local_id(0) + item_ct1.get_group(0) * item_ct1.get_local_range(0);
+            std::size_t iz =
+                    item_ct1.get_local_id(2) + item_ct1.get_group(2) * item_ct1.get_local_range(2);
+            std::size_t iy =
+                    item_ct1.get_local_id(1) + item_ct1.get_group(1) * item_ct1.get_local_range(1);
+            std::size_t ix =
+                    item_ct1.get_local_id(0) + item_ct1.get_group(0) * item_ct1.get_local_range(0);
 
             // we might get iz greather than pmeSize.z when pmeSize.z is not multiple of
             // threadsAlongZDim(see below), same for iy when it's not multiple of threadsAlongYDim
@@ -385,60 +398,60 @@ public:
                 return;
             }
 
-            size_t pmeIndex = ix * pmeSize.y() * pmeSize.z() + iy * pmeSize.z() + iz;
+            std::size_t pmeIndex = ix * pmeSize.y() * pmeSize.z() + iy * pmeSize.z() + iz;
 
             float val = gm_realGrid[pmeIndex];
 
             // up rank
             if (ix < overlapSizeX)
             {
-                size_t packedIndex = ix * myGridY * pmeSize.z() + iy * pmeSize.z() + iz;
+                std::size_t packedIndex = ix * myGridY * pmeSize.z() + iy * pmeSize.z() + iz;
                 val += gm_transferGridUp[packedIndex];
             }
 
             // down rank
             if (ix >= myGridX - overlapSizeX && overlapUp > 0)
             {
-                size_t packedIndex = (ix - (myGridX - overlapSizeX)) * myGridY * pmeSize.z()
-                                     + iy * pmeSize.z() + iz;
+                std::size_t packedIndex = (ix - (myGridX - overlapSizeX)) * myGridY * pmeSize.z()
+                                          + iy * pmeSize.z() + iz;
                 val += gm_transferGridDown[packedIndex];
             }
 
             // left rank
             if (iy < overlapSizeY)
             {
-                size_t packedIndex = ix * overlapSizeY * pmeSize.z() + iy * pmeSize.z() + iz;
+                std::size_t packedIndex = ix * overlapSizeY * pmeSize.z() + iy * pmeSize.z() + iz;
                 val += gm_transferGridLeft[packedIndex];
             }
 
             // right rank
             if (iy >= myGridY - overlapSizeY && overlapLeft > 0)
             {
-                size_t packedIndex = ix * overlapSizeY * pmeSize.z()
-                                     + (iy - (myGridY - overlapSizeY)) * pmeSize.z() + iz;
+                std::size_t packedIndex = ix * overlapSizeY * pmeSize.z()
+                                          + (iy - (myGridY - overlapSizeY)) * pmeSize.z() + iz;
                 val += gm_transferGridRight[packedIndex];
             }
 
             // up left rank
             if (ix < overlapSizeX && iy < overlapSizeY)
             {
-                size_t packedIndex = ix * overlapSizeY * pmeSize.z() + iy * pmeSize.z() + iz;
+                std::size_t packedIndex = ix * overlapSizeY * pmeSize.z() + iy * pmeSize.z() + iz;
                 val += gm_transferGridUpLeft[packedIndex];
             }
 
             // up right rank
             if (ix < overlapSizeX && iy >= myGridY - overlapSizeY && overlapLeft > 0)
             {
-                size_t packedIndex = ix * overlapSizeY * pmeSize.z()
-                                     + (iy - (myGridY - overlapSizeY)) * pmeSize.z() + iz;
+                std::size_t packedIndex = ix * overlapSizeY * pmeSize.z()
+                                          + (iy - (myGridY - overlapSizeY)) * pmeSize.z() + iz;
                 val += gm_transferGridUpRight[packedIndex];
             }
 
             // down left rank
             if (ix >= myGridX - overlapSizeX && overlapUp > 0 && iy < overlapSizeY)
             {
-                size_t packedIndex = (ix - (myGridX - overlapSizeX)) * overlapSizeY * pmeSize.z()
-                                     + iy * pmeSize.z() + iz;
+                std::size_t packedIndex = (ix - (myGridX - overlapSizeX)) * overlapSizeY * pmeSize.z()
+                                          + iy * pmeSize.z() + iz;
                 val += gm_transferGridDownLeft[packedIndex];
             }
 
@@ -446,8 +459,8 @@ public:
             if (ix >= myGridX - overlapSizeX && overlapUp > 0 && iy >= myGridY - overlapSizeY
                 && overlapLeft > 0)
             {
-                size_t packedIndex = (ix - (myGridX - overlapSizeX)) * overlapSizeY * pmeSize.z()
-                                     + (iy - (myGridY - overlapSizeY)) * pmeSize.z() + iz;
+                std::size_t packedIndex = (ix - (myGridX - overlapSizeX)) * overlapSizeY * pmeSize.z()
+                                          + (iy - (myGridY - overlapSizeY)) * pmeSize.z() + iz;
                 val += gm_transferGridDownRight[packedIndex];
             }
 
@@ -479,8 +492,8 @@ public:
      * \tparam    subGroupSize               Size of the sub-group.
      */
     template<int subGroupSize>
-    static auto kernel(size_t      myGridX,
-                       size_t      myGridY,
+    static auto kernel(std::size_t myGridX,
+                       std::size_t myGridY,
                        sycl::uint3 pmeSize,
                        const float* __restrict__ gm_realGrid,
                        float* __restrict__ gm_transferGridUp,
@@ -491,16 +504,19 @@ public:
                        float* __restrict__ gm_transferGridDownLeft,
                        float* __restrict__ gm_transferGridUpRight,
                        float* __restrict__ gm_transferGridDownRight,
-                       size_t overlapSizeX,
-                       size_t overlapSizeY,
-                       size_t overlapUp,
-                       size_t overlapLeft)
+                       std::size_t overlapSizeX,
+                       std::size_t overlapSizeY,
+                       std::size_t overlapUp,
+                       std::size_t overlapLeft)
     {
         return [=](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(subGroupSize)]]
         {
-            size_t iz = item_ct1.get_local_id(2) + item_ct1.get_group(2) * item_ct1.get_local_range(2);
-            size_t iy = item_ct1.get_local_id(1) + item_ct1.get_group(1) * item_ct1.get_local_range(1);
-            size_t ix = item_ct1.get_local_id(0) + item_ct1.get_group(0) * item_ct1.get_local_range(0);
+            std::size_t iz =
+                    item_ct1.get_local_id(2) + item_ct1.get_group(2) * item_ct1.get_local_range(2);
+            std::size_t iy =
+                    item_ct1.get_local_id(1) + item_ct1.get_group(1) * item_ct1.get_local_range(1);
+            std::size_t ix =
+                    item_ct1.get_local_id(0) + item_ct1.get_group(0) * item_ct1.get_local_range(0);
 
             // we might get iz greater than pmeSize.z when pmeSize.z is not multiple of
             // threadsAlongZDim(see below), same for iy when it's not multiple of threadsAlongYDim
@@ -509,60 +525,60 @@ public:
                 return;
             }
 
-            size_t pmeIndex = ix * pmeSize.y() * pmeSize.z() + iy * pmeSize.z() + iz;
+            std::size_t pmeIndex = ix * pmeSize.y() * pmeSize.z() + iy * pmeSize.z() + iz;
 
             float val = gm_realGrid[pmeIndex];
 
             // up rank
             if (ix < overlapSizeX)
             {
-                size_t packedIndex             = ix * myGridY * pmeSize.z() + iy * pmeSize.z() + iz;
+                std::size_t packedIndex        = ix * myGridY * pmeSize.z() + iy * pmeSize.z() + iz;
                 gm_transferGridUp[packedIndex] = val;
             }
 
             // down rank
             if (ix >= myGridX - overlapSizeX && overlapUp > 0)
             {
-                size_t packedIndex = (ix - (myGridX - overlapSizeX)) * myGridY * pmeSize.z()
-                                     + iy * pmeSize.z() + iz;
+                std::size_t packedIndex = (ix - (myGridX - overlapSizeX)) * myGridY * pmeSize.z()
+                                          + iy * pmeSize.z() + iz;
                 gm_transferGridDown[packedIndex] = val;
             }
 
             // left rank
             if (iy < overlapSizeY)
             {
-                size_t packedIndex = ix * overlapSizeY * pmeSize.z() + iy * pmeSize.z() + iz;
+                std::size_t packedIndex = ix * overlapSizeY * pmeSize.z() + iy * pmeSize.z() + iz;
                 gm_transferGridLeft[packedIndex] = val;
             }
 
             // right rank
             if (iy >= myGridY - overlapSizeY && overlapLeft > 0)
             {
-                size_t packedIndex = ix * overlapSizeY * pmeSize.z()
-                                     + (iy - (myGridY - overlapSizeY)) * pmeSize.z() + iz;
+                std::size_t packedIndex = ix * overlapSizeY * pmeSize.z()
+                                          + (iy - (myGridY - overlapSizeY)) * pmeSize.z() + iz;
                 gm_transferGridRight[packedIndex] = val;
             }
 
             // up left rank
             if (ix < overlapSizeX && iy < overlapSizeY)
             {
-                size_t packedIndex = ix * overlapSizeY * pmeSize.z() + iy * pmeSize.z() + iz;
+                std::size_t packedIndex = ix * overlapSizeY * pmeSize.z() + iy * pmeSize.z() + iz;
                 gm_transferGridUpLeft[packedIndex] = val;
             }
 
             // down left rank
             if (ix >= myGridX - overlapSizeX && overlapUp > 0 && iy < overlapSizeY)
             {
-                size_t packedIndex = (ix - (myGridX - overlapSizeX)) * overlapSizeY * pmeSize.z()
-                                     + iy * pmeSize.z() + iz;
+                std::size_t packedIndex = (ix - (myGridX - overlapSizeX)) * overlapSizeY * pmeSize.z()
+                                          + iy * pmeSize.z() + iz;
                 gm_transferGridDownLeft[packedIndex] = val;
             }
 
             // up right rank
             if (ix < overlapSizeX && iy >= myGridY - overlapSizeY && overlapLeft > 0)
             {
-                size_t packedIndex = ix * overlapSizeY * pmeSize.z()
-                                     + (iy - (myGridY - overlapSizeY)) * pmeSize.z() + iz;
+                std::size_t packedIndex = ix * overlapSizeY * pmeSize.z()
+                                          + (iy - (myGridY - overlapSizeY)) * pmeSize.z() + iz;
                 gm_transferGridUpRight[packedIndex] = val;
             }
 
@@ -570,8 +586,8 @@ public:
             if (ix >= myGridX - overlapSizeX && overlapUp > 0 && iy >= myGridY - overlapSizeY
                 && overlapLeft > 0)
             {
-                size_t packedIndex = (ix - (myGridX - overlapSizeX)) * overlapSizeY * pmeSize.z()
-                                     + (iy - (myGridY - overlapSizeY)) * pmeSize.z() + iz;
+                std::size_t packedIndex = (ix - (myGridX - overlapSizeX)) * overlapSizeY * pmeSize.z()
+                                          + (iy - (myGridY - overlapSizeY)) * pmeSize.z() + iz;
                 gm_transferGridDownRight[packedIndex] = val;
             }
         };
@@ -589,8 +605,11 @@ public:
  * \param[in] args             Parameter pack to pass to the kernel
  */
 template<typename Kernel, int subGroupSize, class... Args>
-static void
-submit(const DeviceStream& deviceStream, size_t myGridX, size_t myGridY, sycl::uint3 pmeSize, Args&&... args)
+static void submit(const DeviceStream& deviceStream,
+                   std::size_t         myGridX,
+                   std::size_t         myGridY,
+                   sycl::uint3         pmeSize,
+                   Args&&... args)
 {
     // Having threadsAlongZDim the same as the sub-group size is good
     // for coalescing. Current value is taken from the CUDA version.
@@ -647,25 +666,25 @@ void pmeGpuGridHaloExchange(const PmeGpu* pmeGpu, gmx_wallcycle* wcycle)
                                     kernelParamsPtr->grid.realGridSizePadded[YY],
                                     kernelParamsPtr->grid.realGridSizePadded[ZZ] };
 
-    size_t overlapX = pmeGpu->haloExchange->haloSizeX[gmx::DirectionX::Center];
-    size_t overlapY = pmeGpu->haloExchange->haloSizeY[gmx::DirectionY::Center];
+    std::size_t overlapX = pmeGpu->haloExchange->haloSizeX[gmx::DirectionX::Center];
+    std::size_t overlapY = pmeGpu->haloExchange->haloSizeY[gmx::DirectionY::Center];
 
-    size_t overlapDown = pmeGpu->haloExchange->haloSizeX[gmx::DirectionX::Down];
-    size_t overlapUp   = pmeGpu->haloExchange->haloSizeX[gmx::DirectionX::Up];
+    std::size_t overlapDown = pmeGpu->haloExchange->haloSizeX[gmx::DirectionX::Down];
+    std::size_t overlapUp   = pmeGpu->haloExchange->haloSizeX[gmx::DirectionX::Up];
 
-    size_t overlapRight = pmeGpu->haloExchange->haloSizeY[gmx::DirectionY::Right];
-    size_t overlapLeft  = pmeGpu->haloExchange->haloSizeY[gmx::DirectionY::Left];
+    std::size_t overlapRight = pmeGpu->haloExchange->haloSizeY[gmx::DirectionY::Right];
+    std::size_t overlapLeft  = pmeGpu->haloExchange->haloSizeY[gmx::DirectionY::Left];
 
-    size_t myGridX = pmeGpu->haloExchange->gridSizeX;
-    size_t myGridY = pmeGpu->haloExchange->gridSizeY;
+    std::size_t myGridX = pmeGpu->haloExchange->gridSizeX;
+    std::size_t myGridY = pmeGpu->haloExchange->gridSizeY;
 
-    size_t sizeX = pmeGpu->common->nnodesX;
-    size_t down  = pmeGpu->haloExchange->ranksX[gmx::DirectionX::Down];
-    size_t up    = pmeGpu->haloExchange->ranksX[gmx::DirectionX::Up];
+    std::size_t sizeX = pmeGpu->common->nnodesX;
+    std::size_t down  = pmeGpu->haloExchange->ranksX[gmx::DirectionX::Down];
+    std::size_t up    = pmeGpu->haloExchange->ranksX[gmx::DirectionX::Up];
 
-    size_t sizeY = pmeGpu->common->nnodesY;
-    size_t right = pmeGpu->haloExchange->ranksY[gmx::DirectionY::Right];
-    size_t left  = pmeGpu->haloExchange->ranksY[gmx::DirectionY::Left];
+    std::size_t sizeY = pmeGpu->common->nnodesY;
+    std::size_t right = pmeGpu->haloExchange->ranksY[gmx::DirectionY::Right];
+    std::size_t left  = pmeGpu->haloExchange->ranksY[gmx::DirectionY::Left];
 
     for (int gridIndex = 0; gridIndex < pmeGpu->common->ngrids; gridIndex++)
     {
@@ -924,25 +943,25 @@ void pmeGpuGridHaloExchangeReverse(const PmeGpu* pmeGpu, gmx_wallcycle* wcycle)
                                     kernelParamsPtr->grid.realGridSizePadded[YY],
                                     kernelParamsPtr->grid.realGridSizePadded[ZZ] };
 
-    size_t overlapX = pmeGpu->haloExchange->haloSizeX[gmx::DirectionX::Center];
-    size_t overlapY = pmeGpu->haloExchange->haloSizeY[gmx::DirectionY::Center];
+    std::size_t overlapX = pmeGpu->haloExchange->haloSizeX[gmx::DirectionX::Center];
+    std::size_t overlapY = pmeGpu->haloExchange->haloSizeY[gmx::DirectionY::Center];
 
-    size_t overlapDown = pmeGpu->haloExchange->haloSizeX[gmx::DirectionX::Down];
-    size_t overlapUp   = pmeGpu->haloExchange->haloSizeX[gmx::DirectionX::Up];
+    std::size_t overlapDown = pmeGpu->haloExchange->haloSizeX[gmx::DirectionX::Down];
+    std::size_t overlapUp   = pmeGpu->haloExchange->haloSizeX[gmx::DirectionX::Up];
 
-    size_t overlapRight = pmeGpu->haloExchange->haloSizeY[gmx::DirectionY::Right];
-    size_t overlapLeft  = pmeGpu->haloExchange->haloSizeY[gmx::DirectionY::Left];
+    std::size_t overlapRight = pmeGpu->haloExchange->haloSizeY[gmx::DirectionY::Right];
+    std::size_t overlapLeft  = pmeGpu->haloExchange->haloSizeY[gmx::DirectionY::Left];
 
-    size_t myGridX = pmeGpu->haloExchange->gridSizeX;
-    size_t myGridY = pmeGpu->haloExchange->gridSizeY;
+    std::size_t myGridX = pmeGpu->haloExchange->gridSizeX;
+    std::size_t myGridY = pmeGpu->haloExchange->gridSizeY;
 
-    size_t sizeX = pmeGpu->common->nnodesX;
-    size_t down  = pmeGpu->haloExchange->ranksX[gmx::DirectionX::Down];
-    size_t up    = pmeGpu->haloExchange->ranksX[gmx::DirectionX::Up];
+    std::size_t sizeX = pmeGpu->common->nnodesX;
+    std::size_t down  = pmeGpu->haloExchange->ranksX[gmx::DirectionX::Down];
+    std::size_t up    = pmeGpu->haloExchange->ranksX[gmx::DirectionX::Up];
 
-    size_t sizeY = pmeGpu->common->nnodesY;
-    size_t right = pmeGpu->haloExchange->ranksY[gmx::DirectionY::Right];
-    size_t left  = pmeGpu->haloExchange->ranksY[gmx::DirectionY::Left];
+    std::size_t sizeY = pmeGpu->common->nnodesY;
+    std::size_t right = pmeGpu->haloExchange->ranksY[gmx::DirectionY::Right];
+    std::size_t left  = pmeGpu->haloExchange->ranksY[gmx::DirectionY::Left];
 
     for (int gridIndex = 0; gridIndex < pmeGpu->common->ngrids; gridIndex++)
     {
@@ -1232,17 +1251,20 @@ public:
     {
         return [=](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(subGroupSize)]]
         {
-            size_t iz = item_ct1.get_local_id(2) + item_ct1.get_group(2) * item_ct1.get_local_range(2);
-            size_t iy = item_ct1.get_local_id(1) + item_ct1.get_group(1) * item_ct1.get_local_range(1);
-            size_t ix = item_ct1.get_local_id(0) + item_ct1.get_group(0) * item_ct1.get_local_range(0);
+            std::size_t iz =
+                    item_ct1.get_local_id(2) + item_ct1.get_group(2) * item_ct1.get_local_range(2);
+            std::size_t iy =
+                    item_ct1.get_local_id(1) + item_ct1.get_group(1) * item_ct1.get_local_range(1);
+            std::size_t ix =
+                    item_ct1.get_local_id(0) + item_ct1.get_group(0) * item_ct1.get_local_range(0);
 
             if (ix >= fftNData.x() || iy >= fftNData.y() || iz >= fftNData.z())
             {
                 return;
             }
 
-            size_t fftidx   = ix * fftSize.y() * fftSize.z() + iy * fftSize.z() + iz;
-            size_t pmeIndex = ix * pmeSize.y() * pmeSize.z() + iy * pmeSize.z() + iz;
+            std::size_t fftidx   = ix * fftSize.y() * fftSize.z() + iy * fftSize.z() + iz;
+            std::size_t pmeIndex = ix * pmeSize.y() * pmeSize.z() + iy * pmeSize.z() + iz;
 
             if constexpr (pmeToFft)
             {

@@ -205,7 +205,11 @@ int _gmx_sel_lexer_process_pending(YYSTYPE* yylval, YYLTYPE* yylloc, gmx_sel_lex
     return 0;
 }
 
-int _gmx_sel_lexer_process_identifier(YYSTYPE* yylval, YYLTYPE* yylloc, char* yytext, size_t yyleng, gmx_sel_lexer_t* state)
+int _gmx_sel_lexer_process_identifier(YYSTYPE*         yylval,
+                                      YYLTYPE*         yylloc,
+                                      char*            yytext,
+                                      std::size_t      yyleng,
+                                      gmx_sel_lexer_t* state)
 {
     /* Check if the identifier matches with a parameter name */
     if (state->msp >= 0)

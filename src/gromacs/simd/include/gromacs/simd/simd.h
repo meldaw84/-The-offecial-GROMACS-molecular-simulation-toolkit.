@@ -244,14 +244,14 @@ struct SimdDInt32Tag
 namespace gmx
 {
 
-template<class T, size_t N>
+template<class T, std::size_t N>
 struct AlignedArray;
 
 #if GMX_SIMD_HAVE_FLOAT
 /*! \libinternal \brief Identical to std::array with GMX_SIMD_FLOAT_WIDTH alignment.
  *  Should not be deleted through base pointer (destructor is non-virtual).
  */
-template<size_t N>
+template<std::size_t N>
 struct alignas(GMX_SIMD_FLOAT_WIDTH * sizeof(float)) AlignedArray<float, N> :
     public std::array<float, N>
 {
@@ -262,7 +262,7 @@ struct alignas(GMX_SIMD_FLOAT_WIDTH * sizeof(float)) AlignedArray<float, N> :
 /*! \libinternal \brief  Identical to std::array with GMX_SIMD_DOUBLE_WIDTH alignment.
  *  Should not be deleted through base pointer (destructor is non-virtual).
  */
-template<size_t N>
+template<std::size_t N>
 struct alignas(GMX_SIMD_DOUBLE_WIDTH * sizeof(double)) AlignedArray<double, N> :
     public std::array<double, N>
 {
@@ -519,7 +519,7 @@ load(const std::enable_if_t<std::is_arithmetic_v<T>, T> *m)
     return *m;
 }
 
-template<typename T, size_t N>
+template<typename T, std::size_t N>
 static inline T gmx_simdcall load(const AlignedArray<internal::SimdTraitsT<T>, N>& m)
 {
     return simdLoad(m.data(), typename internal::SimdTraits<T>::tag());
@@ -543,7 +543,7 @@ static inline T loadU(const std::enable_if_t<std::is_arithmetic_v<T>, T>* m)
     return *m;
 }
 
-template<typename T, size_t N>
+template<typename T, std::size_t N>
 static inline T gmx_simdcall loadU(const AlignedArray<internal::SimdTraitsT<T>, N>& m)
 {
     return simdLoadU(m.data(), typename internal::SimdTraits<T>::tag());

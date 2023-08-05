@@ -108,8 +108,8 @@ gatherLoadBySimdIntTranspose(const double* base, SimdDInt32 offset, SimdDouble* 
     {
         offset = fastMultiply<align>(offset);
     }
-    constexpr size_t scale = sizeof(double);
-    v->simdInternal_       = _mm512_i32gather_pd(offset.simdInternal_, base, scale);
+    constexpr std::size_t scale = sizeof(double);
+    v->simdInternal_            = _mm512_i32gather_pd(offset.simdInternal_, base, scale);
     gatherLoadBySimdIntTranspose<1>(base + 1, offset, Fargs...);
 }
 
@@ -148,7 +148,7 @@ static inline void gmx_simdcall transposeScatterStoreU(double*            base,
         simdoffset = fastMultiply<align>(simdoffset);
         ;
     }
-    constexpr size_t scale = sizeof(double);
+    constexpr std::size_t scale = sizeof(double);
     _mm512_i32scatter_pd(base, simdoffset.simdInternal_, v0.simdInternal_, scale);
     _mm512_i32scatter_pd(&(base[1]), simdoffset.simdInternal_, v1.simdInternal_, scale);
     _mm512_i32scatter_pd(&(base[2]), simdoffset.simdInternal_, v2.simdInternal_, scale);
@@ -407,7 +407,7 @@ static inline void gmx_simdcall gatherLoadTransposeHsimd(const double*      base
 
     idx = _mm256_inserti128_si256(_mm256_castsi128_si256(idx0), idx1, 1);
 
-    constexpr size_t scale = sizeof(double);
+    constexpr std::size_t scale = sizeof(double);
     tmp1 = _mm512_i32gather_pd(idx, base0, scale); // TODO: Might be faster to use invidual loads
     tmp2 = _mm512_i32gather_pd(idx, base1, scale);
 

@@ -146,7 +146,7 @@ auto makeSolveKernel(sycl::handler& cgh,
         const int gridLineIndex     = threadLocalId / gridLineSize;
         const int gridLineCellIndex = threadLocalId - gridLineSize * gridLineIndex;
         const int gridLinesPerBlock =
-                sycl::max(itemIdx.get_local_range(2) / size_t(gridLineSize), size_t(1));
+                sycl::max(itemIdx.get_local_range(2) / std::size_t(gridLineSize), std::size_t(1));
         const int activeWarps = (itemIdx.get_local_range(2) / subGroupSize);
         const int indexMinor = itemIdx.get_group(2) * itemIdx.get_local_range(2) + gridLineCellIndex;
         const int indexMiddle = itemIdx.get_group(1) * gridLinesPerBlock + gridLineIndex;
@@ -386,7 +386,7 @@ PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, subGroupSize>::P
 }
 
 template<GridOrdering gridOrdering, bool computeEnergyAndVirial, int gridIndex, int subGroupSize>
-void PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, subGroupSize>::setArg(size_t argIndex,
+void PmeSolveKernel<gridOrdering, computeEnergyAndVirial, gridIndex, subGroupSize>::setArg(std::size_t argIndex,
                                                                                            void* arg)
 {
     if (argIndex == 0)

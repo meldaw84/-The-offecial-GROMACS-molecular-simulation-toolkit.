@@ -151,9 +151,9 @@ static void add_xr(t_xrama* xr, const int ff[5], const t_atoms* atoms)
 
 static void get_dih(t_xrama* xr, const t_atoms* atoms)
 {
-    int    found, ff[NPP];
-    int    i;
-    size_t j;
+    int         found, ff[NPP];
+    int         i;
+    std::size_t j;
 
     for (i = 0; (i < atoms->nr);)
     {

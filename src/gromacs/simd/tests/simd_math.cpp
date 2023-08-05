@@ -308,7 +308,7 @@ std::vector<real> SimdMathTest::generateTestPoints(Range inputRange, std::size_t
     // specific testing values to a separate routine
     std::vector<real> testPoints = generateTestPoints(compareSettings.range, s_nPoints);
 
-    size_t pointIndex = 0;
+    std::size_t pointIndex = 0;
 
     for (int iter = 0; iter < niter; iter++)
     {

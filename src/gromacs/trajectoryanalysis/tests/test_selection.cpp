@@ -79,7 +79,7 @@ SelectionTester::~SelectionTester() {}
 void SelectionTester::printSelections()
 {
     fprintf(stderr, "\nSelections:\n");
-    for (size_t g = 0; g < selections_.size(); ++g)
+    for (std::size_t g = 0; g < selections_.size(); ++g)
     {
         selections_[g].printDebugInfo(stderr, nmaxind_);
     }
@@ -110,7 +110,7 @@ void SelectionTester::analyzeFrame(int /*frnr*/,
                                    TrajectoryAnalysisModuleData* /*pdata*/)
 {
     fprintf(stderr, "\n");
-    for (size_t g = 0; g < selections_.size(); ++g)
+    for (std::size_t g = 0; g < selections_.size(); ++g)
     {
         const Selection& sel = selections_[g];
 

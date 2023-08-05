@@ -104,7 +104,7 @@ public:
      * Note that test cases must call this->runTests(), because
      * that's how the derived-class templates that implement
      * type-parameterized tests actually work. */
-    void runReadOnlyTests(PointerType a, size_t aSize, ArrayRefType& arrayRef)
+    void runReadOnlyTests(PointerType a, std::size_t aSize, ArrayRefType& arrayRef)
     {
         ASSERT_EQ(aSize, arrayRef.size());
         ASSERT_FALSE(arrayRef.empty());
@@ -113,7 +113,7 @@ public:
         GMX_EXPECT_SIMD_EQ(load<ValueType>(a + (aSize - 1) * width), arrayRef.back());
 
         auto it = arrayRef.begin();
-        for (size_t i = 0; i != aSize; ++i, ++it)
+        for (std::size_t i = 0; i != aSize; ++i, ++it)
         {
             GMX_EXPECT_SIMD_EQ(load<ValueType>(a + i * width), arrayRef[i]);
             GMX_EXPECT_SIMD_EQ(load<ValueType>(a + i * width), *it);

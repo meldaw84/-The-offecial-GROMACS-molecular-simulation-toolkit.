@@ -79,7 +79,7 @@ void RestraintForceProvider::calculateForces(const ForceProviderInput& forceProv
     const auto& cr = forceProviderInput.cr_;
     const auto& t  = forceProviderInput.t_;
     // Cooperatively get Cartesian coordinates for center of mass of each site
-    RVec r1 = sites_[0].centerOfMass(cr, static_cast<size_t>(homenr), x, t);
+    RVec r1 = sites_[0].centerOfMass(cr, static_cast<std::size_t>(homenr), x, t);
     // r2 is to be constructed as
     // r2 = (site[N] - site[N-1]) + (site_{N-1} - site_{N-2}) + ... + (site_2 - site_1) + site_1
     // where the minimum image convention is applied to each path but not to the overall sum.
@@ -93,10 +93,10 @@ void RestraintForceProvider::calculateForces(const ForceProviderInput& forceProv
     // Build r2 by following a path of difference vectors that are each presumed to be less than
     // a half-box apart, in case we are battling periodic boundary conditions along the lines of
     // a big molecule in a small box.
-    for (size_t i = 0; i < sites_.size() - 1; ++i)
+    for (std::size_t i = 0; i < sites_.size() - 1; ++i)
     {
-        RVec a = sites_[i].centerOfMass(cr, static_cast<size_t>(homenr), x, t);
-        RVec b = sites_[i + 1].centerOfMass(cr, static_cast<size_t>(homenr), x, t);
+        RVec a = sites_[i].centerOfMass(cr, static_cast<std::size_t>(homenr), x, t);
+        RVec b = sites_[i + 1].centerOfMass(cr, static_cast<std::size_t>(homenr), x, t);
         // dr = minimum_image_vector(b - a)
         pbc_dx(&pbc, b, a, dr);
         r2[0] += dr[0];
@@ -132,7 +132,7 @@ void RestraintForceProvider::calculateForces(const ForceProviderInput& forceProv
     const auto& force = forceProviderOutput->forceWithVirial_.force_;
     if ((cr.dd == nullptr) || (aLocal = cr.dd->ga2la->findHome(site1)))
     {
-        force[static_cast<size_t>(*aLocal)] += result.force;
+        force[static_cast<std::size_t>(*aLocal)] += result.force;
     }
 
     // Note: Currently calculateForces is called once per restraint and each restraint
@@ -144,7 +144,7 @@ void RestraintForceProvider::calculateForces(const ForceProviderInput& forceProv
     const int* bLocal = &site2;
     if ((cr.dd == nullptr) || (bLocal = cr.dd->ga2la->findHome(site2)))
     {
-        force[static_cast<size_t>(*bLocal)] -= result.force;
+        force[static_cast<std::size_t>(*bLocal)] -= result.force;
     }
 }
 

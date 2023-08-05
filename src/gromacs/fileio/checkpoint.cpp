@@ -1882,11 +1882,11 @@ static int doCptPullHist(XDR* xd, gmx_bool bRead, int fflags, PullHistory* pullH
     }
     if (pullHist->numValuesInXSum > 0 || pullHist->numValuesInFSum > 0)
     {
-        for (size_t i = 0; i < pullHist->pullCoordinateSums.size() && ret == 0; i++)
+        for (std::size_t i = 0; i < pullHist->pullCoordinateSums.size() && ret == 0; i++)
         {
             ret = doCptPullCoordHist(xd, &(pullHist->pullCoordinateSums[i]), list);
         }
-        for (size_t i = 0; i < pullHist->pullGroupSums.size() && ret == 0; i++)
+        for (std::size_t i = 0; i < pullHist->pullGroupSums.size() && ret == 0; i++)
         {
             ret = doCptPullGroupHist(xd, &(pullHist->pullGroupSums[i]), list);
         }

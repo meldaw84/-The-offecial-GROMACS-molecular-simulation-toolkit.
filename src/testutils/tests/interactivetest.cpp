@@ -127,7 +127,7 @@ private:
     TestReferenceData        data_;
     InteractiveTestHelper    helper_;
     std::vector<const char*> inputLines_;
-    size_t                   nextInputLine_;
+    std::size_t              nextInputLine_;
     std::vector<Event>       events_;
 };
 

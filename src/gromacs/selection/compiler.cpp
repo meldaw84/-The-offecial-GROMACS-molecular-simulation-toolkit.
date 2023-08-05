@@ -2589,7 +2589,7 @@ void compileSelection(SelectionCollection* coll)
     gmx_sel_evaluate_t          evaldata;
     SelectionTreeElementPointer item;
     e_poscalc_t                 post;
-    size_t                      i;
+    std::size_t                 i;
     int                         flags;
     bool bDebug = (coll->impl_->debugLevel_ == SelectionCollection::Impl::DebugLevel::Compiled
                    || coll->impl_->debugLevel_ == SelectionCollection::Impl::DebugLevel::Full);

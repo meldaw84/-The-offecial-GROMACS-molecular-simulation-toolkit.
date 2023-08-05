@@ -443,7 +443,7 @@ int setup_specat_communication(gmx_domdec_t*             dd,
         for (int dir = ndir - 1; dir >= 0; dir--)
         {
             /* To avoid cost of clearing by resize(), we only increase size */
-            if (static_cast<size_t>(nat_tot_specat) > spac->sendAtom.size())
+            if (static_cast<std::size_t>(nat_tot_specat) > spac->sendAtom.size())
             {
                 /* Note: resize initializes new elements to false, which is actually needed here */
                 spac->sendAtom.resize(nat_tot_specat);

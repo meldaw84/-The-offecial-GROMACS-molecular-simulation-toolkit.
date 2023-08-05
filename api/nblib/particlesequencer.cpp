@@ -85,12 +85,12 @@ void ParticleSequencer::build(const std::vector<std::tuple<Molecule, int>>& mole
     int currentID = 0;
     for (const auto& molNumberTuple : moleculesList)
     {
-        const Molecule& molecule = std::get<0>(molNumberTuple);
-        const size_t    numMols  = std::get<1>(molNumberTuple);
+        const Molecule&   molecule = std::get<0>(molNumberTuple);
+        const std::size_t numMols  = std::get<1>(molNumberTuple);
 
         auto& moleculeMap = data_[molecule.name()];
 
-        for (size_t i = 0; i < numMols; ++i)
+        for (std::size_t i = 0; i < numMols; ++i)
         {
             auto& moleculeNrMap = moleculeMap[i];
             for (int j = 0; j < molecule.numParticlesInMolecule(); ++j)

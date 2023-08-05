@@ -1315,7 +1315,7 @@ void constructVirtualSitesGlobal(const gmx_mtop_t& mtop, gmx::ArrayRef<gmx::RVec
     GMX_ASSERT(!mtop.moleculeBlockIndices.empty(),
                "molblock indices are needed in constructVsitesGlobal");
 
-    for (size_t mb = 0; mb < mtop.molblock.size(); mb++)
+    for (std::size_t mb = 0; mb < mtop.molblock.size(); mb++)
     {
         const gmx_molblock_t& molb = mtop.molblock[mb];
         const gmx_moltype_t&  molt = mtop.moltype[molb.type];
@@ -2999,7 +2999,7 @@ void ThreadingInfo::setVirtualSites(ArrayRef<const InteractionList> ilists,
             tData.useInterdependentTask = (vsite_atom_range <= c_maxNumLocalAtomsForInterdependentTask);
             if (tData.useInterdependentTask)
             {
-                size_t              natoms_use_in_vsites = vsite_atom_range;
+                std::size_t         natoms_use_in_vsites = vsite_atom_range;
                 InterdependentTask& idTask               = tData.idTask;
                 /* To avoid resizing and re-clearing every nstlist steps,
                  * we never down size the force buffer.

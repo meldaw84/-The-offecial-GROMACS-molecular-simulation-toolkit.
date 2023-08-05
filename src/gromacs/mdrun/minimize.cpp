@@ -3150,7 +3150,7 @@ void LegacySimulator::do_nm()
     rvec                mu_tot = { 0 };
     rvec*               dfdx;
     gmx_bool            bSparse; /* use sparse matrix storage format */
-    size_t              sz;
+    std::size_t         sz;
     gmx_sparsematrix_t* sparse_matrix = nullptr;
     real*               full_matrix   = nullptr;
 
@@ -3344,8 +3344,8 @@ void LegacySimulator::do_nm()
     auto state_work_f = state_work.f.view().force();
     for (Index aid = cr_->nodeid; aid < ssize(atom_index); aid += nnodes)
     {
-        size_t atom = atom_index[aid];
-        for (size_t d = 0; d < DIM; d++)
+        std::size_t atom = atom_index[aid];
+        for (std::size_t d = 0; d < DIM; d++)
         {
             int64_t step        = 0;
             int     force_flags = GMX_FORCE_STATECHANGED | GMX_FORCE_ALLFORCES;
@@ -3422,9 +3422,9 @@ void LegacySimulator::do_nm()
             /* x is restored to original */
             state_work_x[atom][d] = x_min;
 
-            for (size_t j = 0; j < atom_index.size(); j++)
+            for (std::size_t j = 0; j < atom_index.size(); j++)
             {
-                for (size_t k = 0; (k < DIM); k++)
+                for (std::size_t k = 0; (k < DIM); k++)
                 {
                     dfdx[j][k] = -(state_work_f[atom_index[j]][k] - fneg[j][k]) / (2 * der_range);
                 }
@@ -3452,9 +3452,9 @@ void LegacySimulator::do_nm()
 
                     row = (aid + node) * DIM + d;
 
-                    for (size_t j = 0; j < atom_index.size(); j++)
+                    for (std::size_t j = 0; j < atom_index.size(); j++)
                     {
-                        for (size_t k = 0; k < DIM; k++)
+                        for (std::size_t k = 0; k < DIM; k++)
                         {
                             col = j * DIM + k;
 

@@ -125,8 +125,8 @@ static int compareToDatabase(const std::string& search, const std::string& datab
     {
         return NOTFOUND;
     }
-    size_t matches = 0;
-    for (size_t i = 0; i < database.length(); i++)
+    std::size_t matches = 0;
+    for (std::size_t i = 0; i < database.length(); i++)
     {
         if (search[i] == database[i])
         {
@@ -165,7 +165,7 @@ static int findPropertyIndex(AtomProperty*         ap,
     bool bProtWild = residueName == "AAA";
     int  malen     = NOTFOUND;
     int  mrlen     = NOTFOUND;
-    for (size_t i = 0; (i < ap->entry.size()); i++)
+    for (std::size_t i = 0; (i < ap->entry.size()); i++)
     {
         int rlen = compareToDatabase(residueName, ap->entry[i].residueName);
         if (rlen == NOTFOUND)

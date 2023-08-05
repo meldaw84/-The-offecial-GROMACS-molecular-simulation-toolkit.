@@ -56,7 +56,7 @@ public:
 
     std::vector<std::string> contexts_;
     std::string              text_;
-    size_t                   prevContext_;
+    std::size_t              prevContext_;
 };
 
 MessageStringCollector::MessageStringCollector() : impl_(new Impl) {}
@@ -87,10 +87,10 @@ void MessageStringCollector::append(const std::string& message)
     impl_->prevContext_ = impl_->contexts_.size();
 
     // TODO: Put this into a more generic helper, could be useful elsewhere
-    size_t pos = 0;
+    std::size_t pos = 0;
     while (pos < message.size())
     {
-        size_t nextpos = message.find_first_of('\n', pos);
+        std::size_t nextpos = message.find_first_of('\n', pos);
         impl_->text_.append(indent, ' ');
         impl_->text_.append(message.substr(pos, nextpos - pos));
         impl_->text_.append("\n");

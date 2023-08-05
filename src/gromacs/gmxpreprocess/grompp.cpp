@@ -2150,7 +2150,7 @@ int gmx_grompp(int argc, char* argv[])
 
     nvsite = 0;
     /* set parameters for virtual site construction (not for vsiten) */
-    for (size_t mt = 0; mt < sys.moltype.size(); mt++)
+    for (std::size_t mt = 0; mt < sys.moltype.size(); mt++)
     {
         nvsite += set_vsites(bVerbose, &sys.moltype[mt].atoms, &atypes, mi[mt].interactions, logger);
     }
@@ -2158,7 +2158,7 @@ int gmx_grompp(int argc, char* argv[])
     /* note: constraints are ALWAYS removed */
     if (nvsite)
     {
-        for (size_t mt = 0; mt < sys.moltype.size(); mt++)
+        for (std::size_t mt = 0; mt < sys.moltype.size(); mt++)
         {
             clean_vsite_bondeds(mi[mt].interactions, sys.moltype[mt].atoms.nr, bRmVSBds, logger);
         }

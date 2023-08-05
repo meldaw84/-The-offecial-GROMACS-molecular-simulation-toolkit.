@@ -57,7 +57,7 @@ namespace nblib
 
 void compareNblibAndGmxListedImplementations(const ListedInteractionData&  interactionData,
                                              const std::vector<gmx::RVec>& coordinates,
-                                             size_t                        numParticles,
+                                             std::size_t                   numParticles,
                                              int                           numThreads,
                                              const Box&                    box,
                                              real                          tolerance)

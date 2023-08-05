@@ -122,7 +122,7 @@ int64_t calcCheckCoveringInterval(const AwhParams&          awhParams,
     /* Each sample will have a width of sigma. To cover the axis a
        minimum number of samples of width sigma is required. */
     int minNumSamplesCover = 0;
-    for (size_t d = 0; d < gridAxis.size(); d++)
+    for (std::size_t d = 0; d < gridAxis.size(); d++)
     {
         int numSamplesCover;
         if (dimParams[d].isPullDimension())
@@ -183,7 +183,7 @@ double getInitialHistogramSizeEstimate(const AwhBiasParams&     awhBiasParams,
     double              maxCrossingTime = 0.;
     std::vector<double> x;
     const auto          awhDimParams = awhBiasParams.dimParams();
-    for (size_t d = 0; d < gridAxis.size(); d++)
+    for (std::size_t d = 0; d < gridAxis.size(); d++)
     {
         GMX_RELEASE_ASSERT(awhDimParams[d].diffusion() > 0, "We need positive diffusion");
         // With diffusion it takes on average T = L^2/2D time to cross length L

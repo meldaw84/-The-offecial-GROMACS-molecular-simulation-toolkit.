@@ -2412,7 +2412,7 @@ static void crosscheck_edi_file_vs_checkpoint(const gmx_edsam& ed, edsamhistory_
                   "from without a checkpoint.\n");
     }
 
-    for (size_t edinum = 0; edinum < ed.edpar.size(); ++edinum)
+    for (std::size_t edinum = 0; edinum < ed.edpar.size(); ++edinum)
     {
         /* Check number of atoms in the reference and average structures */
         if (EDstate->nref[edinum] != ed.edpar[edinum].sref.nr)

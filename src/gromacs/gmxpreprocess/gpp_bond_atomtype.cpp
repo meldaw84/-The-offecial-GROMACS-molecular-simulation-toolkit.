@@ -96,7 +96,7 @@ int PreprocessingBondAtomType::addBondAtomType(const std::string& name)
     }
 }
 
-size_t PreprocessingBondAtomType::size() const
+std::size_t PreprocessingBondAtomType::size() const
 {
     return impl_->typeNames.size();
 }

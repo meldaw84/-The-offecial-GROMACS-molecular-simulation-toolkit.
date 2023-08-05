@@ -145,7 +145,7 @@ transposeScatterStoreU(float* base, const std::int32_t offset[], SimdFloat v0, S
     {
         simdoffset = fastMultiply<align>(simdoffset);
     }
-    constexpr size_t scale = (align > 2) ? sizeof(float) : sizeof(float) * align;
+    constexpr std::size_t scale = (align > 2) ? sizeof(float) : sizeof(float) * align;
 
     _mm512_i32scatter_ps(base, simdoffset.simdInternal_, v0.simdInternal_, scale);
     _mm512_i32scatter_ps(&(base[1]), simdoffset.simdInternal_, v1.simdInternal_, scale);

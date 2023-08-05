@@ -543,7 +543,7 @@ static void histogramming(FILE*                    log,
 
     snew(Jc, dlist.size());
     snew(Jcsig, dlist.size());
-    for (size_t i = 0; i < dlist.size(); i++)
+    for (std::size_t i = 0; i < dlist.size(); i++)
     {
         snew(Jc[i], NJC);
         snew(Jcsig[i], NJC);
@@ -837,7 +837,7 @@ static void histogramming(FILE*                    log,
     {
         sfree(ss_str);
     }
-    for (size_t i = 0; i < dlist.size(); i++)
+    for (std::size_t i = 0; i < dlist.size(); i++)
     {
         sfree(Jc[i]);
         sfree(Jcsig[i]);
@@ -1666,7 +1666,7 @@ int gmx_chi(int argc, char* argv[])
     if (bChiProduct && bChi)
     {
         snew(chi_lookup, dlist.size());
-        for (size_t i = 0; i < dlist.size(); i++)
+        for (std::size_t i = 0; i < dlist.size(); i++)
         {
             snew(chi_lookup[i], maxchi);
         }
@@ -1686,7 +1686,7 @@ int gmx_chi(int argc, char* argv[])
                              opt2fn("-cp", NFILE, fnm),
                              oenv);
 
-        for (size_t i = 0; i < dlist.size(); i++)
+        for (std::size_t i = 0; i < dlist.size(); i++)
         {
             sfree(chi_lookup[i]);
         }

@@ -121,12 +121,12 @@ TEST(ListedShims, GmxToNblibConversion)
     ListedInteractionData convertedData = convertToNblibInteractions(*idef);
 
     // compare some bond parameter data
-    size_t numHarmonicBondsOrig = pickType<HarmonicBondType>(interactions).parameters.size();
-    size_t numHarmonicBondsConv = pickType<HarmonicBondType>(convertedData).parameters.size();
+    std::size_t numHarmonicBondsOrig = pickType<HarmonicBondType>(interactions).parameters.size();
+    std::size_t numHarmonicBondsConv = pickType<HarmonicBondType>(convertedData).parameters.size();
     EXPECT_EQ(numHarmonicBondsOrig, numHarmonicBondsConv);
 
-    size_t numHarmonicAnglesOrig = pickType<HarmonicAngle>(interactions).parameters.size();
-    size_t numHarmonicAnglesConv = pickType<HarmonicAngle>(convertedData).parameters.size();
+    std::size_t numHarmonicAnglesOrig = pickType<HarmonicAngle>(interactions).parameters.size();
+    std::size_t numHarmonicAnglesConv = pickType<HarmonicAngle>(convertedData).parameters.size();
     EXPECT_EQ(numHarmonicAnglesOrig, numHarmonicAnglesConv);
 
     HarmonicAngle harmonicAngleOrig0 = pickType<HarmonicAngle>(interactions).parameters[0];
@@ -197,7 +197,7 @@ ListedInteractionData combineTestInput(std::tuple<Ts...> testInput)
     // transfer all elements of testInput into the returned ListedInteractionData
     // use a lambda + for_each_tuple
     auto copyParamsOneType = [&interactionData](const auto& typeInput) {
-        for (size_t i = 0; i < typeInput.interactionData.parameters.size(); i++)
+        for (std::size_t i = 0; i < typeInput.interactionData.parameters.size(); i++)
         {
             auto interactionParams = typeInput.interactionData.parameters[i];
             using InteractionType  = decltype(interactionParams);

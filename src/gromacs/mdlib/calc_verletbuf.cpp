@@ -173,7 +173,7 @@ static void addAtomtype(std::vector<VerletbufAtomtype>* att, const atom_nonbonde
         return;
     }
 
-    size_t i = 0;
+    std::size_t i = 0;
     while (i < att->size() && !atom_nonbonded_kinetic_prop_equal(prop, (*att)[i].prop))
     {
         i++;
@@ -213,7 +213,7 @@ static void get_vsite_masses(const gmx_moltype_t&  moltype,
     /* Check for virtual sites, determine mass from constructing atoms */
     for (const auto& ilist : extractILists(moltype.ilist, IF_VSITE))
     {
-        for (size_t i = 0; i < ilist.iatoms.size(); i += ilistStride(ilist))
+        for (std::size_t i = 0; i < ilist.iatoms.size(); i += ilistStride(ilist))
         {
             const t_iparams& ip = ffparams.iparams[ilist.iatoms[i]];
             const int        a1 = ilist.iatoms[i + 1];
@@ -444,7 +444,7 @@ static std::vector<VerletbufAtomtype> getVerletBufferAtomtypes(const gmx_mtop_t&
 
     if (gmx_debug_at)
     {
-        for (size_t a = 0; a < att.size(); a++)
+        for (std::size_t a = 0; a < att.size(); a++)
         {
             fprintf(debug,
                     "type %zu: m %5.2f t %d q %6.3f con %s con_m %5.3f con_l %5.3f n %d\n",
@@ -1283,7 +1283,7 @@ static std::vector<AtomConstraintProps> getAtomConstraintProps(const gmx_moltype
             continue;
         }
 
-        for (size_t i = 0; i < ilist.iatoms.size(); i += ilistStride(ilist))
+        for (std::size_t i = 0; i < ilist.iatoms.size(); i += ilistStride(ilist))
         {
             int  type   = ilist.iatoms[i];
             int  a1     = ilist.iatoms[i + 1];

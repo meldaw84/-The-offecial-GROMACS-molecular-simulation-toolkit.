@@ -289,7 +289,7 @@ public:
      *
      * \param[in] gridPointIndex  The index of the grid point.
      */
-    inline const awh_dvec& getGridCoordValue(size_t gridPointIndex) const
+    inline const awh_dvec& getGridCoordValue(std::size_t gridPointIndex) const
     {
         GMX_ASSERT(gridPointIndex < grid_.numPoints(),
                    "gridPointIndex should be in the range of the grid");

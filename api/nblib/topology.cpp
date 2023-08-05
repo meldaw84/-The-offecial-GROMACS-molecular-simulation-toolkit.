@@ -69,11 +69,11 @@ ExclusionLists<int> TopologyBuilder::createExclusionsLists() const
     std::vector<gmx::ExclusionBlock> exclusionBlockGlobal;
     exclusionBlockGlobal.reserve(numParticles_);
 
-    size_t particleNumberOffset = 0;
+    std::size_t particleNumberOffset = 0;
     for (const auto& molNumberTuple : moleculesList)
     {
         const Molecule& molecule   = std::get<0>(molNumberTuple);
-        size_t          numMols    = std::get<1>(molNumberTuple);
+        std::size_t     numMols    = std::get<1>(molNumberTuple);
         const auto&     exclusions = molecule.getExclusions();
 
         // Note this is a programming error as all particles should exclude at least themselves and empty topologies are not allowed.
@@ -84,7 +84,7 @@ ExclusionLists<int> TopologyBuilder::createExclusionsLists() const
         std::vector<gmx::ExclusionBlock> exclusionBlockPerMolecule = toGmxExclusionBlock(exclusions);
 
         // duplicate the exclusionBlockPerMolecule for the number of Molecules of (numMols)
-        for (size_t i = 0; i < numMols; ++i)
+        for (std::size_t i = 0; i < numMols; ++i)
         {
             auto offsetExclusions = offsetGmxBlock(exclusionBlockPerMolecule, particleNumberOffset);
 
@@ -140,7 +140,7 @@ ListedInteractionData TopologyBuilder::createInteractionData(const ParticleSeque
         std::transform(begin(expansionArrayStage1),
                        end(expansionArrayStage1),
                        begin(expansionArray),
-                       [&S2 = expansionArrayStage2](size_t S1Element) { return S2[S1Element]; });
+                       [&S2 = expansionArrayStage2](std::size_t S1Element) { return S2[S1Element]; });
 
         // add data about InteractionType instances
         interactionDataElement.parameters = std::move(uniqueInteractionInstances);
@@ -180,10 +180,10 @@ std::vector<T> TopologyBuilder::extractParticleTypeQuantity(Extractor&& extracto
 
     for (auto& molNumberTuple : moleculesList)
     {
-        Molecule& molecule = std::get<0>(molNumberTuple);
-        size_t    numMols  = std::get<1>(molNumberTuple);
+        Molecule&   molecule = std::get<0>(molNumberTuple);
+        std::size_t numMols  = std::get<1>(molNumberTuple);
 
-        for (size_t i = 0; i < numMols; ++i)
+        for (std::size_t i = 0; i < numMols; ++i)
         {
             for (auto& particleData : molecule.particleData())
             {

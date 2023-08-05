@@ -195,7 +195,7 @@ struct MdSpanTest : public ::testing::Test
     void check_extents(E... e)
     {
         std::array<ptrdiff_t, extents_type::rank()> a{ { e... } };
-        for (size_t r = 0; r < extents_type::rank(); r++)
+        for (std::size_t r = 0; r < extents_type::rank(); r++)
         {
             EXPECT_EQ(my_mdspan_mapping.extent(r), a[r]);
             EXPECT_EQ(my_mdspan_map_acc.extent(r), a[r]);
@@ -207,7 +207,7 @@ struct MdSpanTest : public ::testing::Test
     void check_strides(E... e)
     {
         std::array<ptrdiff_t, extents_type::rank()> a{ { e... } };
-        for (size_t r = 0; r < extents_type::rank(); r++)
+        for (std::size_t r = 0; r < extents_type::rank(); r++)
         {
             EXPECT_EQ(my_mdspan_mapping.stride(r), a[r]);
             EXPECT_EQ(my_mdspan_map_acc.stride(r), a[r]);

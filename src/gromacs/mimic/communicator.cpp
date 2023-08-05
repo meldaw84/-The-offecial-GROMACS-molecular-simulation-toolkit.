@@ -71,8 +71,8 @@ void MimicCommunicator::sendInitData(gmx_mtop_t* mtop, ArrayRef<const RVec> coor
     std::vector<double>     bondLengths;
     std::unordered_set<int> existingTypes;
 
-    atomTypes.reserve(static_cast<size_t>(mtop->natoms));
-    charges.reserve(static_cast<size_t>(mtop->natoms));
+    atomTypes.reserve(static_cast<std::size_t>(mtop->natoms));
+    charges.reserve(static_cast<std::size_t>(mtop->natoms));
 
     int offset = 0;
     for (const gmx_molblock_t& molblock : mtop->molblock)

@@ -554,11 +554,11 @@ static void read_anisou(char line[], int natom, t_atoms* atoms)
 
 void get_pdb_atomnumber(const t_atoms* atoms, AtomProperties* aps)
 {
-    int    i, atomnumber, len;
-    size_t k;
-    char   anm[6], anm_copy[6];
-    char   nc = '\0';
-    real   eval;
+    int         i, atomnumber, len;
+    std::size_t k;
+    char        anm[6], anm_copy[6];
+    char        nc = '\0';
+    real        eval;
 
     if (!atoms->pdbinfo)
     {
@@ -603,7 +603,7 @@ void get_pdb_atomnumber(const t_atoms* atoms, AtomProperties* aps)
                 atomNumberSet = true;
             }
         }
-        static constexpr size_t sc_maxElementNameLength = 3;
+        static constexpr std::size_t sc_maxElementNameLength = 3;
         static_assert(sizeof(atoms->atom[i].elem) >= sc_maxElementNameLength + 1);
         std::string element;
         if (atomNumberSet)

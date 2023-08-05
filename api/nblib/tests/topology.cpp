@@ -204,7 +204,7 @@ TEST(NBlibTest, TopologyCanAggregateBonds)
     std::transform(begin(bondsExpansion),
                    end(bondsExpansion),
                    std::back_inserter(bondsTest),
-                   [&bonds](size_t i) { return bonds[i]; });
+                   [&bonds](std::size_t i) { return bonds[i]; });
 
     std::vector<HarmonicBondType> waterBonds =
             pickType<HarmonicBondType>(water.interactionData()).interactionTypes_;
@@ -457,10 +457,10 @@ TEST(NBlibTest, toGmxExclusionBlockWorks)
     std::vector<gmx::ExclusionBlock> probe = toGmxExclusionBlock(testInput);
 
     ASSERT_EQ(reference.size(), probe.size());
-    for (size_t i = 0; i < reference.size(); ++i)
+    for (std::size_t i = 0; i < reference.size(); ++i)
     {
         ASSERT_EQ(reference[i].atomNumber.size(), probe[i].atomNumber.size());
-        for (size_t j = 0; j < reference[i].atomNumber.size(); ++j)
+        for (std::size_t j = 0; j < reference[i].atomNumber.size(); ++j)
         {
             EXPECT_EQ(reference[i].atomNumber[j], probe[i].atomNumber[j]);
         }

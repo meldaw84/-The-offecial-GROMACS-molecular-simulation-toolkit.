@@ -160,7 +160,7 @@ void StatePropagatorDataGpu::Impl::reinit(int numAtomsLocal, int numAtomsAll)
 
     reallocateDeviceBuffer(&d_x_, numAtomsPadded, &d_xSize_, &d_xCapacity_, deviceContext_);
 
-    const size_t paddingAllocationSize = numAtomsPadded - numAtomsAll_;
+    const std::size_t paddingAllocationSize = numAtomsPadded - numAtomsAll_;
     if (paddingAllocationSize > 0)
     {
         // The PME stream is used here because the padding region of d_x_ is only in the PME task.

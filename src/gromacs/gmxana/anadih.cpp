@@ -423,7 +423,7 @@ void mk_chi_lookup(int** lookup, int maxchi, gmx::ArrayRef<const t_dlist> dlist)
     /* NONCHI points to chi1, therefore we have to start counting there. */
     for (int Dih = NONCHI; (Dih < NONCHI + maxchi); Dih++)
     {
-        for (size_t i = 0; i < dlist.size(); i++)
+        for (std::size_t i = 0; i < dlist.size(); i++)
         {
             int Chi = Dih - NONCHI;
             if (((Dih < edOmega)) || ((Dih == edOmega) && (has_dihedral(edOmega, dlist[i])))

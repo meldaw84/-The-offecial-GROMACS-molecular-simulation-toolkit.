@@ -75,7 +75,7 @@ TEST(MrcSerializer, DefaultHeaderHasRightSerialSize)
     serializeMrcDensityMapHeader(&serializer, inputHeader);
     const auto serializedHeader = serializer.finishAndGetBuffer();
 
-    constexpr size_t c_defaultMrcHeaderSize = 1024;
+    constexpr std::size_t c_defaultMrcHeaderSize = 1024;
     EXPECT_EQ(c_defaultMrcHeaderSize, serializedHeader.size());
 }
 

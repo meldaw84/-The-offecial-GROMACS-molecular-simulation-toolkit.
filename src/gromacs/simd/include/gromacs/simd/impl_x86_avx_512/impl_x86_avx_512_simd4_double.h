@@ -73,13 +73,13 @@ public:
 
 static inline Simd4Double gmx_simdcall load4(const double* m)
 {
-    assert(size_t(m) % 32 == 0);
+    assert(std::size_t(m) % 32 == 0);
     return { _mm256_load_pd(m) };
 }
 
 static inline void gmx_simdcall store4(double* m, Simd4Double a)
 {
-    assert(size_t(m) % 32 == 0);
+    assert(std::size_t(m) % 32 == 0);
     _mm256_store_pd(m, a.simdInternal_);
 }
 

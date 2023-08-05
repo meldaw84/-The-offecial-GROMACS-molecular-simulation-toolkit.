@@ -143,7 +143,7 @@ TEST(EnumerationHelpersTest, EnumerationArrayCountIsSafe)
 
     // Ensures that the assertions in EnumerationArray::operator[]
     // would fire if an out-range value (including Count) was used.
-    EXPECT_LE(fooStrings.size(), size_t(Foo::Count));
+    EXPECT_LE(fooStrings.size(), std::size_t(Foo::Count));
 #ifndef NDEBUG
     // Tests (where possible) that those assertions do fire in a build
     // with debug behavior.

@@ -84,7 +84,7 @@ bool QMMMInputGenerator::isQMAtom(Index globalAtomIndex) const
 void QMMMInputGenerator::computeQMBox(real scale, real minNorm)
 {
     // Init atom numbers
-    size_t nQm = parameters_.qmIndices_.size();
+    std::size_t nQm = parameters_.qmIndices_.size();
 
     // If there is only one QM atom, then just copy the box_
     if (nQm < 2)
@@ -109,9 +109,9 @@ void QMMMInputGenerator::computeQMBox(real scale, real minNorm)
     real maxDist = 0.0;
 
     // Search for the maxDist - maximum distance within QM system
-    for (size_t i = 0; i < nQm - 1; i++)
+    for (std::size_t i = 0; i < nQm - 1; i++)
     {
-        for (size_t j = i + 1; j < nQm; j++)
+        for (std::size_t j = i + 1; j < nQm; j++)
         {
             pbc_dx(&pbc, x_[parameters_.qmIndices_[i]], x_[parameters_.qmIndices_[j]], dx);
             maxDist = dx.norm() > maxDist ? dx.norm() : maxDist;
@@ -137,7 +137,7 @@ void QMMMInputGenerator::computeQMBox(real scale, real minNorm)
      * First compute center of QM system by averaging PBC-aware distance vectors
      * with respect to the first QM atom.
      */
-    for (size_t i = 1; i < nQm; i++)
+    for (std::size_t i = 1; i < nQm; i++)
     {
         // compute pbc-aware distance vector between QM atom 0 and QM atom i
         pbc_dx(&pbc, x_[parameters_.qmIndices_[i]], x_[parameters_.qmIndices_[0]], dx);
@@ -230,11 +230,11 @@ std::string QMMMInputGenerator::generateQMMMSection() const
     std::string res;
 
     // Init some numbers
-    const size_t nQm = parameters_.qmIndices_.size();
+    const std::size_t nQm = parameters_.qmIndices_.size();
 
     // Count the numbers of individual QM atoms per type
     std::vector<int> num_atoms(periodic_system.size(), 0);
-    for (size_t i = 0; i < nQm; i++)
+    for (std::size_t i = 0; i < nQm; i++)
     {
         num_atoms[parameters_.atomNumbers_[parameters_.qmIndices_[i]]]++;
     }
@@ -270,14 +270,14 @@ std::string QMMMInputGenerator::generateQMMMSection() const
 
     // Print indicies of QM atoms
     // Loop over counter of QM atom types
-    for (size_t i = 0; i < num_atoms.size(); i++)
+    for (std::size_t i = 0; i < num_atoms.size(); i++)
     {
         if (num_atoms[i] > 0)
         {
             res += formatString("    &QM_KIND %3s\n", periodic_system[i].c_str());
             res += "      MM_INDEX";
             // Loop over all QM atoms indexes
-            for (size_t j = 0; j < nQm; j++)
+            for (std::size_t j = 0; j < nQm; j++)
             {
                 if (parameters_.atomNumbers_[parameters_.qmIndices_[j]] == static_cast<Index>(i))
                 {
@@ -292,7 +292,7 @@ std::string QMMMInputGenerator::generateQMMMSection() const
 
     // Print &LINK groups
     // Loop over parameters_.link_
-    for (size_t i = 0; i < parameters_.link_.size(); i++)
+    for (std::size_t i = 0; i < parameters_.link_.size(); i++)
     {
         res += "    &LINK\n";
         res += formatString("      QM_INDEX %d\n", static_cast<int>(parameters_.link_[i].qm) + 1);
@@ -328,13 +328,13 @@ std::string QMMMInputGenerator::generateSubsysSection() const
     std::string res;
 
     // Init some numbers
-    size_t nQm = parameters_.qmIndices_.size();
-    size_t nMm = parameters_.mmIndices_.size();
-    size_t nAt = nQm + nMm;
+    std::size_t nQm = parameters_.qmIndices_.size();
+    std::size_t nMm = parameters_.mmIndices_.size();
+    std::size_t nAt = nQm + nMm;
 
     // Count the numbers of individual QM atoms per type
     std::vector<int> num_atoms(periodic_system.size(), 0);
-    for (size_t i = 0; i < nQm; i++)
+    for (std::size_t i = 0; i < nQm; i++)
     {
         num_atoms[parameters_.atomNumbers_[parameters_.qmIndices_[i]]]++;
     }
@@ -367,7 +367,7 @@ std::string QMMMInputGenerator::generateSubsysSection() const
 
     // Now we will print basises for all types of QM atoms
     // Loop over counter of QM atom types
-    for (size_t i = 0; i < num_atoms.size(); i++)
+    for (std::size_t i = 0; i < num_atoms.size(); i++)
     {
         if (num_atoms[i] > 0)
         {
@@ -426,7 +426,7 @@ std::string QMMMInputGenerator::generateCP2KPdb() const
     /* Generate *.pdb formatted lines
      * and append to std::string pdb
      */
-    for (size_t i = 0; i < x_.size(); i++)
+    for (std::size_t i = 0; i < x_.size(); i++)
     {
         pdb += "ATOM  ";
 

@@ -477,7 +477,7 @@ TEST_P(ParameterizedFFTTest3D, RunsOnDevices)
 
         int size = complexGridSizePadded[0] * complexGridSizePadded[1] * complexGridSizePadded[2];
         int sizeInReals = size * 2;
-        GMX_RELEASE_ASSERT(sizeof(inputdata) / sizeof(inputdata[0]) >= size_t(sizeInReals),
+        GMX_RELEASE_ASSERT(sizeof(inputdata) / sizeof(inputdata[0]) >= std::size_t(sizeInReals),
                            "Size of inputdata is too small");
 
         // Set up the complex grid. Complex numbers take twice the

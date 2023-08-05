@@ -142,7 +142,7 @@ static void setPbcAtomCoords(const pull_group_work_t& pgrp, ArrayRef<const RVec>
 static void pull_set_pbcatoms(const t_commrec* cr, struct pull_t* pull, ArrayRef<const RVec> x, ArrayRef<RVec> x_pbc)
 {
     int numPbcAtoms = 0;
-    for (size_t g = 0; g < pull->group.size(); g++)
+    for (std::size_t g = 0; g < pull->group.size(); g++)
     {
         const pull_group_work_t& group = pull->group[g];
         if (group.needToCalcCom && (group.epgrppbc == epgrppbcREFAT || group.epgrppbc == epgrppbcPREVSTEPCOM))
@@ -550,7 +550,7 @@ void pull_calc_coms(const t_commrec*     cr,
         twopi_box = 2.0 * M_PI / pbc.box[pull->cosdim][pull->cosdim];
     }
 
-    for (size_t g = 0; g < pull->group.size(); g++)
+    for (std::size_t g = 0; g < pull->group.size(); g++)
     {
         pull_group_work_t* pgrp = &pull->group[g];
 
@@ -702,7 +702,7 @@ void pull_calc_coms(const t_commrec*     cr,
                   pull->group.size() * c_comBufferStride * DIM,
                   static_cast<double*>(comm->comBuffer[0]));
 
-    for (size_t g = 0; g < pull->group.size(); g++)
+    for (std::size_t g = 0; g < pull->group.size(); g++)
     {
         pull_group_work_t* pgrp;
 
@@ -770,7 +770,7 @@ void pull_calc_coms(const t_commrec*     cr,
                 /* Set the weights for the local atoms */
                 csw *= pgrp->invtm;
                 snw *= pgrp->invtm;
-                for (size_t i = 0; i < pgrp->atomSet_.numAtomsLocal(); i++)
+                for (std::size_t i = 0; i < pgrp->atomSet_.numAtomsLocal(); i++)
                 {
                     int ii                = pgrp->atomSet_.localIndex()[i];
                     pgrp->localWeights[i] = csw * std::cos(twopi_box * x[ii][pull->cosdim])
@@ -910,7 +910,7 @@ int pullCheckPbcWithinGroups(const pull_t& pull, ArrayRef<const RVec> x, const t
     }
 
     /* Check PBC for every group that uses a PBC reference atom treatment */
-    for (size_t g = 0; g < pull.group.size(); g++)
+    for (std::size_t g = 0; g < pull.group.size(); g++)
     {
         const pull_group_work_t& group = pull.group[g];
         if ((group.epgrppbc == epgrppbcREFAT || group.epgrppbc == epgrppbcPREVSTEPCOM)
@@ -965,7 +965,7 @@ bool pullCheckPbcWithinGroup(const pull_t& pull, ArrayRef<const RVec> x, const t
 
 void setPrevStepPullComFromState(struct pull_t* pull, const t_state* state)
 {
-    for (size_t g = 0; g < pull->group.size(); g++)
+    for (std::size_t g = 0; g < pull->group.size(); g++)
     {
         for (int j = 0; j < DIM; j++)
         {
@@ -1056,7 +1056,7 @@ void allocStatePrevStepPullCom(t_state* state, const pull_t* pull)
         state->pull_com_prev_step.clear();
         return;
     }
-    size_t ngroup = pull->group.size();
+    std::size_t ngroup = pull->group.size();
     if (state->pull_com_prev_step.size() / DIM != ngroup)
     {
         state->pull_com_prev_step.resize(ngroup * DIM, NAN);
@@ -1070,7 +1070,7 @@ void initPullComFromPrevStep(const t_commrec*     cr,
                              ArrayRef<const RVec> x)
 {
     pull_comm_t* comm   = &pull->comm;
-    size_t       ngroup = pull->group.size();
+    std::size_t  ngroup = pull->group.size();
 
     if (!comm->bParticipate)
     {
@@ -1084,7 +1084,7 @@ void initPullComFromPrevStep(const t_commrec*     cr,
 
     pull_set_pbcatoms(cr, pull, x, comm->pbcAtomBuffer);
 
-    for (size_t g = 0; g < ngroup; g++)
+    for (std::size_t g = 0; g < ngroup; g++)
     {
         pull_group_work_t* pgrp;
 
@@ -1148,7 +1148,7 @@ void initPullComFromPrevStep(const t_commrec*     cr,
 
     pullAllReduce(cr, comm, ngroup * c_comBufferStride * DIM, static_cast<double*>(comm->comBuffer[0]));
 
-    for (size_t g = 0; g < ngroup; g++)
+    for (std::size_t g = 0; g < ngroup; g++)
     {
         pull_group_work_t* pgrp;
 

@@ -140,7 +140,7 @@ void pme_gpu_synchronize(const PmeGpu* pmeGpu)
 
 void pme_gpu_alloc_energy_virial(PmeGpu* pmeGpu)
 {
-    const size_t energyAndVirialSize = c_virialAndEnergyCount * sizeof(float);
+    const std::size_t energyAndVirialSize = c_virialAndEnergyCount * sizeof(float);
 
     GMX_ASSERT(
             pmeGpu->common->ngrids == 1 || pmeGpu->common->ngrids == 2,
@@ -238,7 +238,7 @@ void pme_gpu_free_bspline_values(const PmeGpu* pmeGpu)
 
 void pme_gpu_realloc_forces(PmeGpu* pmeGpu)
 {
-    const size_t newForcesSize = pmeGpu->nAtomsAlloc;
+    const std::size_t newForcesSize = pmeGpu->nAtomsAlloc;
     GMX_ASSERT(newForcesSize > 0, "Bad number of atoms in PME GPU");
     reallocateDeviceBuffer(&pmeGpu->kernelParams->atoms.d_forces,
                            newForcesSize,
@@ -282,7 +282,7 @@ void pme_gpu_realloc_and_copy_input_coefficients(const PmeGpu* pmeGpu,
                                                  const float*  h_coefficients,
                                                  const int     gridIndex)
 {
-    const size_t newCoefficientsSize = pmeGpu->nAtomsAlloc;
+    const std::size_t newCoefficientsSize = pmeGpu->nAtomsAlloc;
     reallocateDeviceBuffer(&pmeGpu->kernelParams->atoms.d_coefficients[gridIndex],
                            newCoefficientsSize,
                            &pmeGpu->archSpecific->coefficientsSize[gridIndex],
@@ -300,8 +300,8 @@ void pme_gpu_realloc_and_copy_input_coefficients(const PmeGpu* pmeGpu,
                            pmeGpu->settings.transferKind,
                            nullptr);
 
-        const size_t paddingIndex = pmeGpu->kernelParams->atoms.nAtoms;
-        const size_t paddingCount = pmeGpu->nAtomsAlloc - paddingIndex;
+        const std::size_t paddingIndex = pmeGpu->kernelParams->atoms.nAtoms;
+        const std::size_t paddingCount = pmeGpu->nAtomsAlloc - paddingIndex;
         if (paddingCount > 0)
         {
             clearDeviceBufferAsync(&pmeGpu->kernelParams->atoms.d_coefficients[gridIndex],
@@ -361,7 +361,7 @@ void pme_gpu_free_spline_data(const PmeGpu* pmeGpu)
 
 void pme_gpu_realloc_grid_indices(PmeGpu* pmeGpu)
 {
-    const size_t newIndicesSize = DIM * pmeGpu->nAtomsAlloc;
+    const std::size_t newIndicesSize = DIM * pmeGpu->nAtomsAlloc;
     GMX_ASSERT(newIndicesSize > 0, "Bad number of atoms in PME GPU");
     reallocateDeviceBuffer(&pmeGpu->kernelParams->atoms.d_gridlineIndices,
                            newIndicesSize,
@@ -717,8 +717,8 @@ void pme_gpu_copy_output_spread_atom_data(const PmeGpu* pmeGpu)
 
 void pme_gpu_copy_input_gather_atom_data(const PmeGpu* pmeGpu)
 {
-    const size_t splineDataSize  = pmeGpu->archSpecific->splineDataSize;
-    auto*        kernelParamsPtr = pmeGpu->kernelParams.get();
+    const std::size_t splineDataSize  = pmeGpu->archSpecific->splineDataSize;
+    auto*             kernelParamsPtr = pmeGpu->kernelParams.get();
 
     // TODO: could clear only the padding and not the whole thing, but this is a test-exclusive code anyway
     clearDeviceBufferAsync(&kernelParamsPtr->atoms.d_gridlineIndices,
@@ -1748,7 +1748,7 @@ void pme_gpu_spread(const PmeGpu*                  pmeGpu,
                "PME spline/spread kernel has invalid input (nothing to do)");
     auto* kernelParamsPtr = pmeGpu->kernelParams.get();
 
-    const size_t blockSize = pmeGpu->programHandle_->impl_->spreadWorkGroupSize;
+    const std::size_t blockSize = pmeGpu->programHandle_->impl_->spreadWorkGroupSize;
 
     const int order = pmeGpu->common->pme_order;
     GMX_ASSERT(order == c_pmeGpuOrder, "Only PME order 4 is implemented");
@@ -2320,9 +2320,9 @@ void pme_gpu_gather(PmeGpu*               pmeGpu,
     wallcycle_start(wcycle, WallCycleCounter::LaunchGpuPme);
 
     /* Set if we have unit tests */
-    const bool   readGlobal = pmeGpu->settings.copyAllOutputs;
-    const size_t blockSize  = pmeGpu->programHandle_->impl_->gatherWorkGroupSize;
-    const int    order      = pmeGpu->common->pme_order;
+    const bool        readGlobal = pmeGpu->settings.copyAllOutputs;
+    const std::size_t blockSize  = pmeGpu->programHandle_->impl_->gatherWorkGroupSize;
+    const int         order      = pmeGpu->common->pme_order;
     GMX_ASSERT(order == c_pmeGpuOrder, "Only PME order 4 is implemented");
     const int threadsPerAtom =
             (pmeGpu->settings.threadsPerAtom == ThreadsPerAtom::Order ? order : order * order);

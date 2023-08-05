@@ -50,7 +50,7 @@
  *  This memory should always be freed using pfree (or with the page-locked
  *  free functions provied by the CUDA library).
  */
-void pmalloc(void** h_ptr, size_t nbytes, const DeviceContext* /*context*/)
+void pmalloc(void** h_ptr, std::size_t nbytes, const DeviceContext* /*context*/)
 {
     cudaError_t stat;
     char        strbuf[STRLEN];

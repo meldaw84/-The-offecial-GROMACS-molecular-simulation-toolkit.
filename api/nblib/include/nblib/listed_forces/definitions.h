@@ -111,7 +111,7 @@ struct NCenter<Interaction, std::enable_if_t<Contains<Interaction, SupportedFive
 {
 };
 
-template<size_t N>
+template<std::size_t N>
 using IndexArray = std::array<int, N>;
 
 /*! \brief encodes the number of integers needed to represent N-center interactions

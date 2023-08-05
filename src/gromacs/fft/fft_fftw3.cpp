@@ -536,7 +536,7 @@ int gmx_fft_init_2d_real(gmx_fft_t* pfft, int nx, int ny, gmx_fft_flag flags)
 
 int gmx_fft_1d(gmx_fft_t fft, enum gmx_fft_direction dir, void* in_data, void* out_data)
 {
-    bool aligned   = (((size_t(in_data) | size_t(out_data)) & 0xf) == 0);
+    bool aligned   = (((std::size_t(in_data) | std::size_t(out_data)) & 0xf) == 0);
     bool inplace   = (in_data == out_data);
     bool isforward = (dir == GMX_FFT_FORWARD);
 
@@ -563,7 +563,7 @@ int gmx_fft_many_1d(gmx_fft_t fft, enum gmx_fft_direction dir, void* in_data, vo
 
 int gmx_fft_1d_real(gmx_fft_t fft, enum gmx_fft_direction dir, void* in_data, void* out_data)
 {
-    bool aligned   = (((size_t(in_data) | size_t(out_data)) & 0xf) == 0);
+    bool aligned   = (((std::size_t(in_data) | std::size_t(out_data)) & 0xf) == 0);
     bool inplace   = (in_data == out_data);
     bool isforward = (dir == GMX_FFT_REAL_TO_COMPLEX);
 
@@ -600,7 +600,7 @@ int gmx_fft_many_1d_real(gmx_fft_t fft, enum gmx_fft_direction dir, void* in_dat
 
 int gmx_fft_2d_real(gmx_fft_t fft, enum gmx_fft_direction dir, void* in_data, void* out_data)
 {
-    bool aligned   = (((size_t(in_data) | size_t(out_data)) & 0xf) == 0);
+    bool aligned   = (((std::size_t(in_data) | std::size_t(out_data)) & 0xf) == 0);
     bool inplace   = (in_data == out_data);
     bool isforward = (dir == GMX_FFT_REAL_TO_COMPLEX);
 

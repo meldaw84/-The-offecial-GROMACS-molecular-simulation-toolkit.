@@ -182,7 +182,7 @@ void Trajectory::initAnalysis(const TrajectoryAnalysisSettings& settings, const 
     if (!fnX_.empty())
     {
         xdata_.setDataSetCount(sel_.size());
-        for (size_t g = 0; g < sel_.size(); ++g)
+        for (std::size_t g = 0; g < sel_.size(); ++g)
         {
             xdata_.setColumnCount(g, 3 * sel_[g].posCount());
         }
@@ -197,7 +197,7 @@ void Trajectory::initAnalysis(const TrajectoryAnalysisSettings& settings, const 
     if (!fnV_.empty())
     {
         vdata_.setDataSetCount(sel_.size());
-        for (size_t g = 0; g < sel_.size(); ++g)
+        for (std::size_t g = 0; g < sel_.size(); ++g)
         {
             sel_[g].setEvaluateVelocities(true);
             vdata_.setColumnCount(g, 3 * sel_[g].posCount());
@@ -213,7 +213,7 @@ void Trajectory::initAnalysis(const TrajectoryAnalysisSettings& settings, const 
     if (!fnF_.empty())
     {
         fdata_.setDataSetCount(sel_.size());
-        for (size_t g = 0; g < sel_.size(); ++g)
+        for (std::size_t g = 0; g < sel_.size(); ++g)
         {
             sel_[g].setEvaluateForces(true);
             fdata_.setColumnCount(g, 3 * sel_[g].posCount());
@@ -236,7 +236,7 @@ void analyzeFrameImpl(int frnr, const t_trxframe& fr, AnalysisDataHandle* dh, co
     if (dh->isValid())
     {
         dh->startFrame(frnr, fr.time);
-        for (size_t g = 0; g < sel.size(); ++g)
+        for (std::size_t g = 0; g < sel.size(); ++g)
         {
             dh->selectDataSet(g);
             for (int i = 0; i < sel[g].posCount(); ++i)

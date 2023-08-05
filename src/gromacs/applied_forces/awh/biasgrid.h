@@ -207,13 +207,13 @@ public:
      *
      * \returns the number of points in the grid.
      */
-    size_t numPoints() const { return point_.size(); }
+    std::size_t numPoints() const { return point_.size(); }
 
     /*! \brief Returns a reference to a point on the grid.
      *
      * \returns a constant reference to a point on the grid.
      */
-    const GridPoint& point(size_t pointIndex) const { return point_[pointIndex]; }
+    const GridPoint& point(std::size_t pointIndex) const { return point_[pointIndex]; }
 
     /*! \brief Returns the dimensionality of the grid.
      *

@@ -245,7 +245,7 @@ public:
         Matrix3x3                box         = c_inputBoxes.at(boxName);
         const CoordinatesVector& coordinates = c_testSystems.at(testSystemName).coordinates;
         const ChargesVector&     charges     = c_testSystems.at(testSystemName).charges;
-        const size_t             atomCount   = coordinates.size();
+        const std::size_t        atomCount   = coordinates.size();
 
         /* Storing the input where it's needed */
         t_inputrec inputRec;

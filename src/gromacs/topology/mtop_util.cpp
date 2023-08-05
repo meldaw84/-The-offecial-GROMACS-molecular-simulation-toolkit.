@@ -190,34 +190,34 @@ static void atomcat(t_atoms* dest, const t_atoms* src, int copies, int maxres_re
     {
         memcpy(reinterpret_cast<char*>(&(dest->resinfo[l])),
                reinterpret_cast<char*>(&(src->resinfo[0])),
-               static_cast<size_t>(src->nres * sizeof(src->resinfo[0])));
+               static_cast<std::size_t>(src->nres * sizeof(src->resinfo[0])));
     }
 
     for (l = destnr, j = 0; (j < copies); j++, l += srcnr)
     {
         memcpy(reinterpret_cast<char*>(&(dest->atom[l])),
                reinterpret_cast<char*>(&(src->atom[0])),
-               static_cast<size_t>(srcnr * sizeof(src->atom[0])));
+               static_cast<std::size_t>(srcnr * sizeof(src->atom[0])));
         memcpy(reinterpret_cast<char*>(&(dest->atomname[l])),
                reinterpret_cast<char*>(&(src->atomname[0])),
-               static_cast<size_t>(srcnr * sizeof(src->atomname[0])));
+               static_cast<std::size_t>(srcnr * sizeof(src->atomname[0])));
         if (dest->haveType)
         {
             memcpy(reinterpret_cast<char*>(&(dest->atomtype[l])),
                    reinterpret_cast<char*>(&(src->atomtype[0])),
-                   static_cast<size_t>(srcnr * sizeof(src->atomtype[0])));
+                   static_cast<std::size_t>(srcnr * sizeof(src->atomtype[0])));
             if (dest->haveBState)
             {
                 memcpy(reinterpret_cast<char*>(&(dest->atomtypeB[l])),
                        reinterpret_cast<char*>(&(src->atomtypeB[0])),
-                       static_cast<size_t>(srcnr * sizeof(src->atomtypeB[0])));
+                       static_cast<std::size_t>(srcnr * sizeof(src->atomtypeB[0])));
             }
         }
         if (dest->havePdbInfo)
         {
             memcpy(reinterpret_cast<char*>(&(dest->pdbinfo[l])),
                    reinterpret_cast<char*>(&(src->pdbinfo[0])),
-                   static_cast<size_t>(srcnr * sizeof(src->pdbinfo[0])));
+                   static_cast<std::size_t>(srcnr * sizeof(src->pdbinfo[0])));
         }
     }
 
@@ -274,7 +274,7 @@ static void ilistcat(int ftype, InteractionList* dest, const InteractionList& sr
 {
     const int nral = NRAL(ftype);
 
-    size_t destIndex = dest->iatoms.size();
+    std::size_t destIndex = dest->iatoms.size();
     dest->iatoms.resize(dest->iatoms.size() + copies * src.size());
 
     for (int c = 0; c < copies; c++)
@@ -540,12 +540,12 @@ static void addMimicExclusions(gmx::ListOfLists<int>* excls, const gmx::ArrayRef
 {
     t_blocka inter_excl{};
     init_blocka(&inter_excl);
-    size_t n_q = ids.size();
+    std::size_t n_q = ids.size();
 
     inter_excl.nr  = excls->ssize();
     inter_excl.nra = n_q * n_q;
 
-    size_t total_nra = n_q * n_q;
+    std::size_t total_nra = n_q * n_q;
 
     snew(inter_excl.index, excls->ssize() + 1);
     snew(inter_excl.a, total_nra);
@@ -569,10 +569,10 @@ static void addMimicExclusions(gmx::ListOfLists<int>* excls, const gmx::ArrayRef
             {
                 continue;
             }
-            size_t index             = n_q * i;
+            std::size_t index        = n_q * i;
             inter_excl.index[ids[i]] = index;
             prev_index               = index + n_q;
-            for (size_t j = 0; j < n_q; ++j)
+            for (std::size_t j = 0; j < n_q; ++j)
             {
                 inter_excl.a[n_q * i + j] = ids[j];
             }
@@ -594,7 +594,7 @@ static void sortFreeEnergyInteractionsAtEnd(const gmx_mtop_t& mtop, InteractionD
     std::vector<int64_t> atomInfo(mtop.natoms, 0);
 
 
-    for (size_t mb = 0; mb < mtop.molblock.size(); mb++)
+    for (std::size_t mb = 0; mb < mtop.molblock.size(); mb++)
     {
         const gmx_molblock_t& molb = mtop.molblock[mb];
         const gmx_moltype_t&  molt = mtop.moltype[molb.type];

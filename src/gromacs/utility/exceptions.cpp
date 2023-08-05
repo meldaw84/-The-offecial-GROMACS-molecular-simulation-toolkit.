@@ -140,7 +140,7 @@ typedef ExceptionInfo<struct ExceptionInfoMessage_, ErrorMessage> ExceptionInfoM
 
 ErrorMessage::ErrorMessage(const std::string& text) : text_(text)
 {
-    size_t length = text_.find_last_not_of(" \n");
+    std::size_t length = text_.find_last_not_of(" \n");
     if (length == std::string::npos)
     {
         length = text_.length() - 1;

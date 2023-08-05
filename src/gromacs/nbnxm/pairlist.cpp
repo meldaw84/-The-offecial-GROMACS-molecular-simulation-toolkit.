@@ -894,7 +894,7 @@ static nbnxn_excl_t& get_exclusion_mask(NbnxnPairlistGpu* nbl, int cjPacked, int
     if (nbl->cjPacked.list_[cjPacked].imei[warp].excl_ind == 0)
     {
         /* No exclusions set, make a new list entry */
-        const size_t oldSize = nbl->excl.size();
+        const std::size_t oldSize = nbl->excl.size();
         GMX_ASSERT(oldSize >= 1, "We should always have entry [0]");
         /* Add entry with default values: no exclusions */
         nbl->excl.resize(oldSize + 1);
@@ -2733,7 +2733,7 @@ static void combine_nblists(gmx::ArrayRef<const NbnxnPairlistGpu> nbls, NbnxnPai
 
             const NbnxnPairlistGpu& nbli = nbls[n];
 
-            for (size_t i = 0; i < nbli.sci.size(); i++)
+            for (std::size_t i = 0; i < nbli.sci.size(); i++)
             {
                 nblc->sci[sci_offset + i] = nbli.sci[i];
                 nblc->sci[sci_offset + i].cjPackedBegin += cjPacked_offset;
@@ -2749,7 +2749,7 @@ static void combine_nblists(gmx::ArrayRef<const NbnxnPairlistGpu> nbls, NbnxnPai
                 }
             }
 
-            for (size_t jPacked = 0; jPacked < nbli.excl.size(); jPacked++)
+            for (std::size_t jPacked = 0; jPacked < nbli.excl.size(); jPacked++)
             {
                 nblc->excl[excl_offset + jPacked] = nbli.excl[jPacked];
             }
@@ -3651,7 +3651,7 @@ static void reduce_buffer_flags(gmx::ArrayRef<PairsearchWork> searchWork,
     {
         gmx::ArrayRef<gmx_bitmask_t> flags(searchWork[s].buffer_flags);
 
-        for (size_t b = 0; b < dest.size(); b++)
+        for (std::size_t b = 0; b < dest.size(); b++)
         {
             gmx_bitmask_t& flag = dest[b];
             bitmask_union(&flag, flags[b]);

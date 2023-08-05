@@ -207,9 +207,9 @@ static void divide_bondeds_over_threads(bonded_threading_t*           bt,
 
     gmx::ArrayRef<const t_iparams> iparams = idef.iparams;
 
-    bt->haveBondeds      = false;
-    int    numType       = 0;
-    size_t fTypeGpuIndex = 0;
+    bt->haveBondeds           = false;
+    int         numType       = 0;
+    std::size_t fTypeGpuIndex = 0;
     for (int fType = 0; fType < F_NRE; fType++)
     {
         if (!ftype_is_bonded_potential(fType))

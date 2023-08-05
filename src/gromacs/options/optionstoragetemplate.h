@@ -521,7 +521,7 @@ void OptionStorageTemplate<T>::processSet()
         clearFlag(efOption_HasDefaultValue);
     }
     if (!hasFlag(efOption_DontCheckMinimumCount)
-        && setValues_.size() < static_cast<size_t>(minValueCount()))
+        && setValues_.size() < static_cast<std::size_t>(minValueCount()))
     {
         GMX_THROW(InvalidInputError("Too few (valid) values"));
     }
@@ -532,7 +532,7 @@ void OptionStorageTemplate<T>::processSet()
 template<typename T>
 void OptionStorageTemplate<T>::addValue(const T& value)
 {
-    if (maxValueCount() >= 0 && setValues_.size() >= static_cast<size_t>(maxValueCount()))
+    if (maxValueCount() >= 0 && setValues_.size() >= static_cast<std::size_t>(maxValueCount()))
     {
         GMX_THROW(InvalidInputError("Too many values"));
     }

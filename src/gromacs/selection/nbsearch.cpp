@@ -536,7 +536,7 @@ bool AnalysisNeighborhoodSearchImpl::initGridCells(const matrix box, bool bSingl
     // Never decrease the size of the cell vector to avoid reallocating
     // memory for the nested vectors.  The actual size of the vector is not
     // used outside this function.
-    if (cells_.size() < static_cast<size_t>(totalCellCount))
+    if (cells_.size() < static_cast<std::size_t>(totalCellCount))
     {
         cells_.resize(totalCellCount);
     }

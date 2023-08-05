@@ -66,7 +66,7 @@ static std::vector<Vec3> low_mspeed(real tempi, std::vector<real> const& masses,
     boltz = BOLTZ * tempi;
     ekin  = 0.0;
     nrdf  = 0;
-    for (size_t i = 0; i < masses.size(); i++)
+    for (std::size_t i = 0; i < masses.size(); i++)
     {
         real mass = masses[i];
         if (mass > 0)

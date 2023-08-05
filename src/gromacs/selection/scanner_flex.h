@@ -153,7 +153,7 @@ typedef struct yy_buffer_state* YY_BUFFER_STATE;
 
 #ifndef YY_TYPEDEF_YY_SIZE_T
 #    define YY_TYPEDEF_YY_SIZE_T
-typedef size_t yy_size_t;
+typedef std::size_t yy_size_t;
 #endif
 
 #ifndef YY_STRUCT_YY_BUFFER_STATE

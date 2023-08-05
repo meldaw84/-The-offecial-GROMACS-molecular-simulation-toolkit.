@@ -94,7 +94,7 @@ Nbnxm::KernelSetup createKernelSetupCPU(const SimdKernels nbnxmSimd, const bool 
 Nbnxm::KernelSetup createKernelSetupGPU(const bool useTabulatedEwaldCorr);
 
 //! Create Particle info array to mark those that undergo VdV interaction
-std::vector<int64_t> createParticleInfoAllVdw(size_t numParticles);
+std::vector<int64_t> createParticleInfoAllVdw(std::size_t numParticles);
 
 //! Create the non-bonded parameter vector in GROMACS format
 std::vector<real> createNonBondedParameters(const std::vector<ParticleType>& particleTypes,
@@ -117,13 +117,13 @@ real ewaldCoeff(real ewald_rtol, real pairlistCutoff);
 interaction_const_t createInteractionConst(const NBKernelOptions& options);
 
 //! Create nonbonded_verlet_t object
-std::unique_ptr<nonbonded_verlet_t> createNbnxmCPU(size_t                    numParticleTypes,
+std::unique_ptr<nonbonded_verlet_t> createNbnxmCPU(std::size_t               numParticleTypes,
                                                    const NBKernelOptions&    options,
                                                    int                       numEnergyGroups,
                                                    gmx::ArrayRef<const real> nonbondedParameters);
 
 //! Create nonbonded_verlet_gpu object
-std::unique_ptr<nonbonded_verlet_t> createNbnxmGPU(size_t                     numParticleTypes,
+std::unique_ptr<nonbonded_verlet_t> createNbnxmGPU(std::size_t                numParticleTypes,
                                                    const NBKernelOptions&     options,
                                                    const std::vector<real>&   nonbondedParameters,
                                                    const interaction_const_t& interactionConst,

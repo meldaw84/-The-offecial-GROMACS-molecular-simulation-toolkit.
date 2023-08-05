@@ -75,7 +75,7 @@ public:
     using EnergyType = std::array<real, std::tuple_size<ListedInteractionData>::value>;
 
     ListedForceCalculator(const ListedInteractionData& interactions,
-                          size_t                       bufferSize,
+                          std::size_t                  bufferSize,
                           int                          numThreads,
                           const Box&                   box);
 

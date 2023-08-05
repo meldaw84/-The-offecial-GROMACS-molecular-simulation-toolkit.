@@ -232,7 +232,7 @@ void AtomsRemover::removeMarkedElements(std::vector<RVec>* container) const
     GMX_RELEASE_ASSERT(container->size() == removed_.size(),
                        "Mismatching contained passed for removing values");
     int j = 0;
-    for (size_t i = 0; i < removed_.size(); ++i)
+    for (std::size_t i = 0; i < removed_.size(); ++i)
     {
         if (!removed_[i])
         {
@@ -248,7 +248,7 @@ void AtomsRemover::removeMarkedElements(std::vector<real>* container) const
     GMX_RELEASE_ASSERT(container->size() == removed_.size(),
                        "Mismatching contained passed for removing values");
     int j = 0;
-    for (size_t i = 0; i < removed_.size(); ++i)
+    for (std::size_t i = 0; i < removed_.size(); ++i)
     {
         if (!removed_[i])
         {

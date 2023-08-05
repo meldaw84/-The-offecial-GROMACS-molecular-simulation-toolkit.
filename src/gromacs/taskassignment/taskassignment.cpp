@@ -151,11 +151,11 @@ bool isAnyGpuSharedBetweenRanks(ArrayRef<const GpuTaskAssignment> gpuTaskAssignm
     //
     // TODO Should this functionality also consider whether tasks on
     // the same rank are sharing a device?
-    for (size_t i = 0; i < gpuTaskAssignments.size(); ++i)
+    for (std::size_t i = 0; i < gpuTaskAssignments.size(); ++i)
     {
         for (const auto& taskOnRankI : gpuTaskAssignments[i])
         {
-            for (size_t j = i + 1; j < gpuTaskAssignments.size(); ++j)
+            for (std::size_t j = i + 1; j < gpuTaskAssignments.size(); ++j)
             {
                 for (const auto& taskOnRankJ : gpuTaskAssignments[j])
                 {
@@ -172,7 +172,7 @@ bool isAnyGpuSharedBetweenRanks(ArrayRef<const GpuTaskAssignment> gpuTaskAssignm
 
 } // namespace
 
-void GpuTaskAssignments::logPerformanceHints(const MDLogger& mdlog, size_t numAvailableDevicesOnThisNode)
+void GpuTaskAssignments::logPerformanceHints(const MDLogger& mdlog, std::size_t numAvailableDevicesOnThisNode)
 {
     if (numAvailableDevicesOnThisNode > numGpuTasksOnThisNode_)
     {
@@ -200,9 +200,9 @@ namespace
 {
 
 //! Counts all the GPU tasks on this node.
-size_t countGpuTasksOnThisNode(const GpuTasksOnRanks& gpuTasksOnRanksOfThisNode)
+std::size_t countGpuTasksOnThisNode(const GpuTasksOnRanks& gpuTasksOnRanksOfThisNode)
 {
-    size_t numGpuTasksOnThisNode = 0;
+    std::size_t numGpuTasksOnThisNode = 0;
     for (const auto& gpuTasksOnRank : gpuTasksOnRanksOfThisNode)
     {
         numGpuTasksOnThisNode += gpuTasksOnRank.size();
@@ -266,7 +266,7 @@ GpuTaskAssignments GpuTaskAssignmentsBuilder::build(const gmx::ArrayRef<const in
                                                     bool       rankHasPpTask,
                                                     bool       rankHasPmeTask)
 {
-    size_t               numRanksOnThisNode = physicalNodeComm.size_;
+    std::size_t          numRanksOnThisNode = physicalNodeComm.size_;
     std::vector<GpuTask> gpuTasksOnThisRank = findGpuTasksOnThisRank(!availableDevices.empty(),
                                                                      nonbondedTarget,
                                                                      pmeTarget,
@@ -279,7 +279,7 @@ GpuTaskAssignments GpuTaskAssignmentsBuilder::build(const gmx::ArrayRef<const in
     /* Communicate among ranks on this node to find each task that can
      * be executed on a GPU, on each rank. */
     auto gpuTasksOnRanksOfThisNode = findAllGpuTasksOnThisNode(gpuTasksOnThisRank, physicalNodeComm);
-    size_t numGpuTasksOnThisNode   = countGpuTasksOnThisNode(gpuTasksOnRanksOfThisNode);
+    std::size_t numGpuTasksOnThisNode = countGpuTasksOnThisNode(gpuTasksOnRanksOfThisNode);
 
     std::exception_ptr             exceptionPtr;
     std::vector<GpuTaskAssignment> taskAssignmentOnRanksOfThisNode;

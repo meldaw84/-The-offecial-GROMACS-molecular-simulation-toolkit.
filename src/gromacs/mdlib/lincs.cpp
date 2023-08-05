@@ -1533,7 +1533,7 @@ Lincs* init_lincs(FILE*                            fplog,
     li->nOrder = nProjOrder;
 
     li->max_connect = 0;
-    for (size_t mt = 0; mt < mtop.moltype.size(); mt++)
+    for (std::size_t mt = 0; mt < mtop.moltype.size(); mt++)
     {
         const auto& at2con = atomToConstraintsPerMolType[mt];
         for (int a = 0; a < mtop.moltype[mt].atoms.nr; a++)

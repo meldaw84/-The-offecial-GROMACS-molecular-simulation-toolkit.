@@ -65,13 +65,13 @@ namespace
 bool readLineImpl(FILE* fp, std::string* line)
 {
     line->clear();
-    const size_t bufsize = 256;
-    std::string  result;
-    char         buf[bufsize];
+    const std::size_t bufsize = 256;
+    std::string       result;
+    char              buf[bufsize];
     buf[0] = '\0';
     while (std::fgets(buf, bufsize, fp) != nullptr)
     {
-        const size_t length = std::strlen(buf);
+        const std::size_t length = std::strlen(buf);
         result.append(buf, length);
         if (length < bufsize - 1 || buf[length - 1] == '\n')
         {

@@ -248,7 +248,7 @@ static void rotate_state_atom(t_state* state, int a)
  *
  * Note: numAtomsOld should either be 0 or match the current buffer size.
  */
-static int* getMovedBuffer(gmx_domdec_comm_t* comm, size_t numAtomsOld, size_t numAtomsNew)
+static int* getMovedBuffer(gmx_domdec_comm_t* comm, std::size_t numAtomsOld, std::size_t numAtomsNew)
 {
     std::vector<int>& movedBuffer = comm->movedBuffer;
 
@@ -726,7 +726,7 @@ void dd_redistribute_cg(FILE*         fplog,
     /* Make sure the communication buffers are large enough */
     for (int mc = 0; mc < dd->ndim * 2; mc++)
     {
-        size_t nvr = nat[mc] * (1 + nvec);
+        std::size_t nvr = nat[mc] * (1 + nvec);
         if (nvr > comm->cgcm_state[mc].size())
         {
             comm->cgcm_state[mc].resize(nvr);
@@ -942,7 +942,7 @@ void dd_redistribute_cg(FILE*         fplog,
                 {
                     comm->cggl_flag[mc].resize((nat[mc] + 1) * DD_CGIBS);
                 }
-                size_t nvr = nat[mc] * (1 + nvec);
+                std::size_t nvr = nat[mc] * (1 + nvec);
                 if (nvr + 1 + nvec > comm->cgcm_state[mc].size())
                 {
                     comm->cgcm_state[mc].resize(nvr + 1 + nvec);

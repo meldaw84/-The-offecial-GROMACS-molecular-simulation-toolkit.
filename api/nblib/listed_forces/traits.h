@@ -138,7 +138,7 @@ public:
 
     KernelEnergy& operator+=(const KernelEnergy& other)
     {
-        for (size_t i = 0; i < energies_.size(); ++i)
+        for (std::size_t i = 0; i < energies_.size(); ++i)
         {
             energies_[i] += other.energies_[i];
         }

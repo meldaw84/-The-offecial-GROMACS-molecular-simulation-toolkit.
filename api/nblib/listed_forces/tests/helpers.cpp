@@ -128,15 +128,15 @@ TEST(NBlibTest, ListedForceBuffer)
     refMainBuffer[10] = internal1;
     refMainBuffer[14] = internal2;
 
-    for (size_t i = 0; i < mainBuffer.size(); ++i)
+    for (std::size_t i = 0; i < mainBuffer.size(); ++i)
     {
-        for (size_t m = 0; m < dimSize; ++m)
+        for (std::size_t m = 0; m < dimSize; ++m)
         {
             EXPECT_REAL_EQ_TOL(refMainBuffer[i][m], mainBuffer[i][m], gmx::test::defaultRealTolerance());
         }
     }
 
-    for (size_t m = 0; m < dimSize; ++m)
+    for (std::size_t m = 0; m < dimSize; ++m)
     {
         EXPECT_REAL_EQ_TOL(outlier[m], forceBuffer[5][m], gmx::test::defaultRealTolerance());
         EXPECT_REAL_EQ_TOL(vzero[m], forceBuffer[4][m], gmx::test::defaultRealTolerance());

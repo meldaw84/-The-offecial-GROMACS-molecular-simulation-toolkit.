@@ -76,7 +76,7 @@ public:
                                 const RVec                    acceleration,
                                 const FloatingPointTolerance& tolerance)
     {
-        const size_t c_groupSize = 3;
+        const std::size_t c_groupSize = 3;
 
         const std::vector<RVec> zeroVelocities(c_groupSize, RVec{ 0, 0, 0 });
 

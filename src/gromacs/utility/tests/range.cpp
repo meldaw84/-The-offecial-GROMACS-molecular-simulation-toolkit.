@@ -83,7 +83,7 @@ TEST(Range, BeginEnd)
 
 TEST(Range, IsInRangeWorks)
 {
-    const Range<size_t> range(5, 8);
+    const Range<std::size_t> range(5, 8);
 
     EXPECT_EQ(range.isInRange(4), false);
     EXPECT_EQ(range.isInRange(5), true);

@@ -227,7 +227,7 @@ bool gmx_ana_indexgrps_find(gmx_ana_index_t* dest, std::string* destName, gmx_an
 
     destName->clear();
     snew(names, src->g.size());
-    for (size_t i = 0; i < src->g.size(); ++i)
+    for (std::size_t i = 0; i < src->g.size(); ++i)
     {
         names[i] = src->names[i].c_str();
     }

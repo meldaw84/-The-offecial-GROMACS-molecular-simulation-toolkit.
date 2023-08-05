@@ -109,8 +109,8 @@ void ThreadForceBuffer<ForceBufferElementType>::resizeBufferAndClearMask(const i
 
     reductionMask_.resize(numBlocks);
 
-    constexpr size_t c_numComponentsInElement = sizeof(ForceBufferElementType) / sizeof(real);
-    int              newNumElements           = numBlocks * s_reductionBlockSize;
+    constexpr std::size_t c_numComponentsInElement = sizeof(ForceBufferElementType) / sizeof(real);
+    int                   newNumElements           = numBlocks * s_reductionBlockSize;
     if (c_numComponentsInElement != 4 && newNumElements == numAtoms)
     {
         // Pad with one element to allow 4-wide SIMD loads and stores.

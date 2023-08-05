@@ -67,7 +67,7 @@ void AnalysisDataFrameAverager::addValue(int index, real value)
 void AnalysisDataFrameAverager::addPoints(const AnalysisDataPointSetRef& points)
 {
     const int firstColumn = points.firstColumn();
-    GMX_ASSERT(static_cast<size_t>(firstColumn + points.columnCount()) <= values_.size(),
+    GMX_ASSERT(static_cast<std::size_t>(firstColumn + points.columnCount()) <= values_.size(),
                "Initialized with too few columns");
     for (int i = 0; i < points.columnCount(); ++i)
     {

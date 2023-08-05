@@ -78,14 +78,14 @@ namespace gmx
  * \inpublicapi
  * \ingroup module_utility
  */
-template<typename T, size_t capacity_>
+template<typename T, std::size_t capacity_>
 class FixedCapacityVector
 {
 public:
     //! Type of values stored in the vector
     using value_type = T;
     //! Type for representing size of the vector
-    using size_type = size_t;
+    using size_type = std::size_t;
     //! Type for representing difference between two indices
     using difference_type = ptrdiff_t;
     //! Const reference to an element

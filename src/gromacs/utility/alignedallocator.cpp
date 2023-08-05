@@ -112,7 +112,7 @@ gmx_unused void* alignedMallocGeneric(std::size_t bytes, std::size_t alignment)
         return nullptr;
     }
 
-    // Convert pMalloc to size_t (so we work with raw bytes), add the space we
+    // Convert pMalloc to std::size_t (so we work with raw bytes), add the space we
     // need to save the original pointer, and (alignment-1) bytes, and then mask
     // out the lowest bits.
     std::size_t mask     = ~static_cast<std::size_t>(alignment - 1);
@@ -257,12 +257,12 @@ static std::size_t getPageSize()
  * Note that thread-safety of the initialization is guaranteed by the
  * C++11 language standard.
  *
- * The size_t has no destructor, so there is no deinitialization
+ * The std::size_t has no destructor, so there is no deinitialization
  * issue.  See https://isocpp.org/wiki/faq/ctors for discussion of
  * alternatives and trade-offs. */
 std::size_t PageAlignedAllocationPolicy::alignment()
 {
-    static size_t thePageSize = getPageSize();
+    static std::size_t thePageSize = getPageSize();
     return thePageSize;
 }
 

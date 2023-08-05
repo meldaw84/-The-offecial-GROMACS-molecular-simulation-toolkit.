@@ -58,7 +58,7 @@
 static std::string append_before_extension(const std::string& pathname, const std::string& to_append)
 {
     /* Appends to_append before last '.' in pathname */
-    size_t extPos = pathname.find_last_of('.');
+    std::size_t extPos = pathname.find_last_of('.');
     if (extPos == std::string::npos)
     {
         return pathname + to_append;
@@ -73,7 +73,7 @@ static void addToPullxHistory(pull_t* pull)
 {
     GMX_RELEASE_ASSERT(pull->coordForceHistory, "Pull history does not exist.");
     pull->coordForceHistory->numValuesInXSum++;
-    for (size_t c = 0; c < pull->coord.size(); c++)
+    for (std::size_t c = 0; c < pull->coord.size(); c++)
     {
         const pull_coord_work_t& pcrd        = pull->coord[c];
         PullCoordinateHistory&   pcrdHistory = pull->coordForceHistory->pullCoordinateSums[c];
@@ -95,7 +95,7 @@ static void addToPullxHistory(pull_t* pull)
             }
         }
     }
-    for (size_t g = 0; g < pull->group.size(); g++)
+    for (std::size_t g = 0; g < pull->group.size(); g++)
     {
         PullGroupHistory& pgrpHistory = pull->coordForceHistory->pullGroupSums[g];
         for (int m = 0; m < DIM; m++)
@@ -109,7 +109,7 @@ static void addToPullfHistory(pull_t* pull)
 {
     GMX_RELEASE_ASSERT(pull->coordForceHistory, "Pull history does not exist.");
     pull->coordForceHistory->numValuesInFSum++;
-    for (size_t c = 0; c < pull->coord.size(); c++)
+    for (std::size_t c = 0; c < pull->coord.size(); c++)
     {
         const pull_coord_work_t& pcrd = pull->coord[c];
 
@@ -197,7 +197,7 @@ static void pull_print_x(FILE* out, pull_t* pull, double t)
 {
     fprintf(out, "%.4f", t);
 
-    for (size_t c = 0; c < pull->coord.size(); c++)
+    for (std::size_t c = 0; c < pull->coord.size(); c++)
     {
         const pull_coord_work_t&     pcrd           = pull->coord[c];
         int                          numValuesInSum = 1;
@@ -293,7 +293,7 @@ static void pull_print_f(FILE* out, const pull_t* pull, double t)
 
     if (pull->bFOutAverage)
     {
-        for (size_t c = 0; c < pull->coord.size(); c++)
+        for (std::size_t c = 0; c < pull->coord.size(); c++)
         {
             fprintf(out,
                     "\t%g",
@@ -436,7 +436,7 @@ static FILE* open_pull_out(const char*             fn,
          * and the components of the distance vectors can be printed (+ (ngroups_max/2)*DIM).
          */
 
-        for (size_t c = 0; c < pull->coord.size(); c++)
+        for (std::size_t c = 0; c < pull->coord.size(); c++)
         {
             if (bCoord)
             {

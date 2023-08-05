@@ -105,7 +105,7 @@ makeCheckpointArrayRef(T& container)
  */
 template<CheckpointDataOperation operation, typename T>
 ArrayRef<std::conditional_t<operation == CheckpointDataOperation::Write || std::is_const<T>::value, const T, T>>
-makeCheckpointArrayRefFromArray(T* begin, size_t size)
+makeCheckpointArrayRefFromArray(T* begin, std::size_t size)
 {
     return ArrayRef<T>(begin, begin + size);
 }

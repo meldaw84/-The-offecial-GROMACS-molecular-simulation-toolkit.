@@ -81,7 +81,7 @@ static thread_local bool g_threadDelayContextClearing = false;
  * \param[in]     nbytes  Size in bytes of the buffer to be allocated.
  * \param[in]     deviceContext SYCL context to use. Will use the default one (see \c pmallocSetDefaultDeviceContext) if not set.
  */
-void pmalloc(void** h_ptr, size_t nbytes, const DeviceContext* deviceContext)
+void pmalloc(void** h_ptr, std::size_t nbytes, const DeviceContext* deviceContext)
 {
     GMX_RELEASE_ASSERT(deviceContext || g_threadDefaultContext.has_value(),
                        "Calling pmalloc without a context");

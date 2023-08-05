@@ -143,13 +143,13 @@ const gmx::EnumerationArray<BackboneAtomTypes, const char*> c_backboneAtomTypeNa
 struct ResInfo
 {
     /*! \brief
-     * Size_t array of atoms' indices corresponding to backbone atom types.
+     * std::size_t array of atoms' indices corresponding to backbone atom types.
      */
-    gmx::EnumerationArray<BackboneAtomTypes, size_t> backboneIndices_ = { 0, 0, 0, 0, 0 };
+    gmx::EnumerationArray<BackboneAtomTypes, std::size_t> backboneIndices_ = { 0, 0, 0, 0, 0 };
     /*! \brief
      * Bitset of atoms' status. Used to minimize misinterpretation of data.
      */
-    std::bitset<static_cast<size_t>(BackboneAtomTypes::Count)> backboneIndicesStatus_{ 0x0 };
+    std::bitset<static_cast<std::size_t>(BackboneAtomTypes::Count)> backboneIndicesStatus_{ 0x0 };
     /*! \brief
      * Function that returns atom's index based on specific atom type.
      */
@@ -784,9 +784,9 @@ void SecondaryStructures::analyzeBridgesAndStrandsPatterns()
                             secondaryStructuresStatusVector_[i].getBridges(bridgeType);
                     std::vector<std::size_t> jPartners =
                             secondaryStructuresStatusVector_[i + j].getBridges(bridgeType);
-                    for (const size_t iPartner : iPartners)
+                    for (const std::size_t iPartner : iPartners)
                     {
-                        for (const size_t jPartner : jPartners)
+                        for (const std::size_t jPartner : jPartners)
                         {
 
                             int delta = std::abs(static_cast<int>(iPartner) - static_cast<int>(jPartner));

@@ -856,7 +856,7 @@ static void get_initial_ioncounts(const t_inputrec* ir,
 
         /* Copy the initial positions of the atoms in the group
          * to the collective array so that we can compartmentalize */
-        for (size_t i = 0; i < g->atomSet.numAtomsGlobal(); i++)
+        for (std::size_t i = 0; i < g->atomSet.numAtomsGlobal(); i++)
         {
             int ind = g->atomSet.globalIndex()[i];
             copy_rvec(x[ind], g->xc[i]);
@@ -1008,7 +1008,7 @@ static void check_swap_groups(t_swap* s, int nat, gmx_bool bVerbose)
     for (int i = 0; i < s->ngrp; i++)
     {
         t_swapgrp* g = &s->group[i];
-        for (size_t j = 0; j < g->atomSet.numAtomsGlobal(); j++)
+        for (std::size_t j = 0; j < g->atomSet.numAtomsGlobal(); j++)
         {
             /* Get the global index of this atom of this group: */
             ind = g->atomSet.globalIndex()[j];
@@ -1189,7 +1189,7 @@ static void detect_flux_per_channel_init(t_swap* s, swaphistory_t* swapstate, co
         snew(g->comp_now, g->atomSet.numAtomsGlobal() / g->apm);
 
         /* Initialize the channel and domain history counters */
-        for (size_t i = 0; i < g->atomSet.numAtomsGlobal() / g->apm; i++)
+        for (std::size_t i = 0; i < g->atomSet.numAtomsGlobal() / g->apm; i++)
         {
             g->comp_now[i] = Domain::Notset;
             if (!isRestart)
@@ -1311,12 +1311,12 @@ static void init_swapstate(swaphistory_t*    swapstate,
     {
         /* Copy the last whole positions of each channel from .cpt */
         g = &(s->group[static_cast<int>(SwapGroupSplittingType::Split0)]);
-        for (size_t i = 0; i < g->atomSet.numAtomsGlobal(); i++)
+        for (std::size_t i = 0; i < g->atomSet.numAtomsGlobal(); i++)
         {
             copy_rvec(swapstate->xc_old_whole[Channel::Zero][i], g->xc_old[i]);
         }
         g = &(s->group[static_cast<int>(SwapGroupSplittingType::Split1)]);
-        for (size_t i = 0; i < g->atomSet.numAtomsGlobal(); i++)
+        for (std::size_t i = 0; i < g->atomSet.numAtomsGlobal(); i++)
         {
             copy_rvec(swapstate->xc_old_whole[Channel::One][i], g->xc_old[i]);
         }
@@ -1356,7 +1356,7 @@ static void init_swapstate(swaphistory_t*    swapstate,
              ig++)
         {
             g = &(s->group[ig]);
-            for (size_t i = 0; i < g->atomSet.numAtomsGlobal(); i++)
+            for (std::size_t i = 0; i < g->atomSet.numAtomsGlobal(); i++)
             {
                 copy_rvec(x_pbc[g->atomSet.globalIndex()[i]], g->xc_old[i]);
             }
@@ -1672,7 +1672,7 @@ t_swap* init_swapcoords(FILE*                       fplog,
             /* Save the split group masses if mass-weighting is requested */
             snew(g->m, g->atomSet.numAtomsGlobal());
             int molb = 0;
-            for (size_t i = 0; i < g->atomSet.numAtomsGlobal(); i++)
+            for (std::size_t i = 0; i < g->atomSet.numAtomsGlobal(); i++)
             {
                 g->m[i] = mtopGetAtomMass(mtop, g->atomSet.globalIndex()[i], &molb);
             }
@@ -1733,7 +1733,7 @@ t_swap* init_swapcoords(FILE*                       fplog,
         {
             auto enumValue = static_cast<SwapGroupSplittingType>(j);
             g              = &(s->group[j]);
-            for (size_t i = 0; i < g->atomSet.numAtomsGlobal(); i++)
+            for (std::size_t i = 0; i < g->atomSet.numAtomsGlobal(); i++)
             {
                 copy_rvec(globalState->x[sc->grp[j].ind[i]], g->xc[i]);
             }

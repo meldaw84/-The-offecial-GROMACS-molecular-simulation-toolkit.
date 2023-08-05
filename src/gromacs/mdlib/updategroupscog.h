@@ -98,7 +98,7 @@ public:
      */
     RVec& cog(int cogIndex)
     {
-        GMX_ASSERT(cogIndex >= 0 && static_cast<size_t>(cogIndex) < cogs_.size(),
+        GMX_ASSERT(cogIndex >= 0 && static_cast<std::size_t>(cogIndex) < cogs_.size(),
                    "cogIndex should be in the range set in this object");
 
         return cogs_[cogIndex];
@@ -110,7 +110,7 @@ public:
      */
     int cogIndex(int atomIndex) const
     {
-        GMX_ASSERT(atomIndex >= 0 && static_cast<size_t>(atomIndex) < cogIndices_.size(),
+        GMX_ASSERT(atomIndex >= 0 && static_cast<std::size_t>(atomIndex) < cogIndices_.size(),
                    "atomIndex should be in the range set in this object");
 
         return cogIndices_[atomIndex];

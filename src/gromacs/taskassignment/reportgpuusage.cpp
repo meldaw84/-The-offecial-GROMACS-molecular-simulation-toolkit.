@@ -66,7 +66,7 @@ namespace
  * GPUs used (per node) can be different from the number of GPU IDs
  * used.
  */
-size_t countUniqueGpuIdsUsed(ArrayRef<const GpuTaskAssignment> gpuTaskAssignmentOnRanksOfThisNode)
+std::size_t countUniqueGpuIdsUsed(ArrayRef<const GpuTaskAssignment> gpuTaskAssignmentOnRanksOfThisNode)
 {
     std::set<int> uniqueIds;
     for (const auto& assignmentsOnRank : gpuTaskAssignmentOnRanksOfThisNode)
@@ -83,13 +83,13 @@ size_t countUniqueGpuIdsUsed(ArrayRef<const GpuTaskAssignment> gpuTaskAssignment
 
 void reportGpuUsage(const MDLogger&                   mdlog,
                     ArrayRef<const GpuTaskAssignment> gpuTaskAssignmentOnRanksOfThisNode,
-                    size_t                            numGpuTasksOnThisNode,
-                    size_t                            numRanks,
+                    std::size_t                       numGpuTasksOnThisNode,
+                    std::size_t                       numRanks,
                     bool                              printHostName,
                     PmeRunMode                        pmeRunMode,
                     const SimulationWorkload&         simulationWork)
 {
-    size_t numGpusInUse = countUniqueGpuIdsUsed(gpuTaskAssignmentOnRanksOfThisNode);
+    std::size_t numGpusInUse = countUniqueGpuIdsUsed(gpuTaskAssignmentOnRanksOfThisNode);
     if (numGpusInUse == 0)
     {
         return;

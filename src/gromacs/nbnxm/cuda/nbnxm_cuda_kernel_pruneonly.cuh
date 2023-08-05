@@ -128,7 +128,7 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
 
     // Kernel has been launched with max number of blocks across all passes (plist.nsci/numParts),
     // but the last pass will require 1 less block, so extra block should return early.
-    size_t numSciInPart = (plist.nsci - part) / numParts;
+    std::size_t numSciInPart = (plist.nsci - part) / numParts;
     if (blockIdx.x >= numSciInPart)
     {
         return;

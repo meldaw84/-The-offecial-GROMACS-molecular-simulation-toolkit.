@@ -65,7 +65,7 @@
  *
  * Does not throw.
  */
-int gmx_gethostname(char* buf, size_t len);
+int gmx_gethostname(char* buf, std::size_t len);
 
 /*! \brief
  * Returns the process ID of the current process.
@@ -88,7 +88,7 @@ int gmx_getuid();
  *
  * Does not throw.
  */
-int gmx_getusername(char* buf, size_t len);
+int gmx_getusername(char* buf, std::size_t len);
 
 /*! \brief
  * Portable version of ctime_r.

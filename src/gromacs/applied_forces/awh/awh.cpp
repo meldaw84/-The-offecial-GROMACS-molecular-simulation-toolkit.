@@ -143,7 +143,9 @@ BiasCoupledToSystem::BiasCoupledToSystem(Bias bias, const std::vector<int>& pull
 {
     /* We already checked for this in grompp, but check again here. */
     GMX_RELEASE_ASSERT(
-            static_cast<size_t>(bias_.ndim()) == pullCoordIndex_.size() + bias_.hasFepLambdaDimension() ? 1 : 0,
+            static_cast<std::size_t>(bias_.ndim()) == pullCoordIndex_.size() + bias_.hasFepLambdaDimension()
+                    ? 1
+                    : 0,
             "The bias dimensionality should match the number of pull and lambda coordinates.");
 }
 
@@ -284,7 +286,7 @@ Awh::Awh(FILE*                 fplog,
 
     if (biasSharing_ && MAIN(commRecord_))
     {
-        std::vector<size_t> pointSize;
+        std::vector<std::size_t> pointSize;
         for (auto const& biasCts : biasCoupledToSystem_)
         {
             pointSize.push_back(biasCts.bias_.state().points().size());
@@ -411,7 +413,7 @@ std::shared_ptr<AwhHistory> Awh::initHistoryFromState() const
         awhHistory->bias.clear();
         awhHistory->bias.resize(biasCoupledToSystem_.size());
 
-        for (size_t k = 0; k < awhHistory->bias.size(); k++)
+        for (std::size_t k = 0; k < awhHistory->bias.size(); k++)
         {
             biasCoupledToSystem_[k].bias_.initHistoryFromState(&awhHistory->bias[k]);
         }
@@ -448,7 +450,7 @@ void Awh::restoreStateFromHistory(const AwhHistory* awhHistory)
         gmx_bcast(sizeof(potentialOffset_), &potentialOffset_, commRecord_->mpi_comm_mygroup);
     }
 
-    for (size_t k = 0; k < biasCoupledToSystem_.size(); k++)
+    for (std::size_t k = 0; k < biasCoupledToSystem_.size(); k++)
     {
         biasCoupledToSystem_[k].bias_.restoreStateFromHistory(
                 awhHistory ? &awhHistory->bias[k] : nullptr, commRecord_);
@@ -468,7 +470,7 @@ void Awh::updateHistory(AwhHistory* awhHistory) const
 
     awhHistory->potentialOffset = potentialOffset_;
 
-    for (size_t k = 0; k < awhHistory->bias.size(); k++)
+    for (std::size_t k = 0; k < awhHistory->bias.size(); k++)
     {
         biasCoupledToSystem_[k].bias_.updateHistory(&awhHistory->bias[k]);
     }

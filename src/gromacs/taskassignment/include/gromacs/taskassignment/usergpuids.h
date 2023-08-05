@@ -126,7 +126,7 @@ std::vector<int> parseUserTaskAssignmentString(const std::string& gpuIdString);
  * \returns A sorted vector of IDs of compatible vectors, whose
  * length matches that of the number of GPU tasks required.
  */
-std::vector<int> makeGpuIds(ArrayRef<const int> compatibleGpus, size_t numGpuTasks);
+std::vector<int> makeGpuIds(ArrayRef<const int> compatibleGpus, std::size_t numGpuTasks);
 
 /*! \brief Convert a container of GPU deviced IDs to a string that
  * can be used by gmx tune_pme as input to mdrun -gputasks.

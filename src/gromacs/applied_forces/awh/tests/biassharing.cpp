@@ -183,7 +183,7 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
     bias.updateBiasStateSharedCorrelationTensorTimeIntegral();
     std::vector<double> rankWeightSumIteration, rankWeightSumTot, rankLocalWeightSum,
             rankLocalFriction, rankSharedFriction;
-    for (size_t pointIndex = 0; pointIndex < bias.state().points().size(); pointIndex++)
+    for (std::size_t pointIndex = 0; pointIndex < bias.state().points().size(); pointIndex++)
     {
         rankLocalWeightSum.push_back(bias.state().points()[pointIndex].localWeightSum());
         rankWeightSumTot.push_back(bias.state().points()[pointIndex].weightSumTot());
@@ -195,7 +195,7 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
         rankSharedFriction.push_back(getSqrtDeterminant(correlationIntegral));
     }
 
-    size_t numPoints = bias.state().points().size();
+    std::size_t numPoints = bias.state().points().size();
 
     /* There can be only one simultaneous test open, so send all the data to MPI rank 0 and run the
      * tests only on that rank. */

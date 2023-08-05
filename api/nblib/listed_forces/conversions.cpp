@@ -84,7 +84,7 @@ inline void transferParameters(const ListedTypeData<HarmonicBondType>& interacti
         throw InputException("Harmonic bond interactions array mismatch for A & B");
     }
 
-    for (size_t i = 0; i < interactionsA.parameters.size(); i++)
+    for (std::size_t i = 0; i < interactionsA.parameters.size(); i++)
     {
         t_iparams param;
         param.harmonic.krA = interactionsA.parameters[i].forceConstant();
@@ -107,7 +107,7 @@ inline void transferParameters(const ListedTypeData<G96BondType>& interactionsA,
         throw InputException("G96 bond interactions array mismatch for A & B");
     }
 
-    for (size_t i = 0; i < interactionsA.parameters.size(); i++)
+    for (std::size_t i = 0; i < interactionsA.parameters.size(); i++)
     {
         t_iparams param;
         param.harmonic.krA = interactionsA.parameters[i].forceConstant();
@@ -157,7 +157,7 @@ inline void transferParameters(const ListedTypeData<MorseBondType>& interactions
         throw InputException("Morse bond interactions array mismatch for A & B");
     }
 
-    for (size_t i = 0; i < interactionsA.parameters.size(); i++)
+    for (std::size_t i = 0; i < interactionsA.parameters.size(); i++)
     {
         t_iparams param;
         param.morse.b0A   = interactionsA.parameters[i].equilDistance();
@@ -182,7 +182,7 @@ inline void transferParameters(const ListedTypeData<PairLJType>& interactionsA,
         throw InputException("LJ1-4 pair interactions array mismatch for A & B");
     }
 
-    for (size_t i = 0; i < interactionsA.parameters.size(); i++)
+    for (std::size_t i = 0; i < interactionsA.parameters.size(); i++)
     {
         t_iparams param;
         param.lj14.c6A  = interactionsA.parameters[i].c6();
@@ -205,7 +205,7 @@ inline void transferParameters(const ListedTypeData<HarmonicAngle>& interactions
         throw InputException("Harmonic angle interactions array mismatch for A & B");
     }
 
-    for (size_t i = 0; i < interactionsA.parameters.size(); i++)
+    for (std::size_t i = 0; i < interactionsA.parameters.size(); i++)
     {
         t_iparams param;
         param.harmonic.krA = interactionsA.parameters[i].forceConstant();
@@ -228,7 +228,7 @@ inline void transferParameters(const ListedTypeData<G96Angle>& interactionsA,
         throw InputException("G96 angle interactions array mismatch for A & B");
     }
 
-    for (size_t i = 0; i < interactionsA.parameters.size(); i++)
+    for (std::size_t i = 0; i < interactionsA.parameters.size(); i++)
     {
         t_iparams param;
         param.harmonic.krA = interactionsA.parameters[i].forceConstant();
@@ -251,7 +251,7 @@ inline void transferParameters(const ListedTypeData<LinearAngle>& interactionsA,
         throw InputException("Linear angle interactions array mismatch for A & B");
     }
 
-    for (size_t i = 0; i < interactionsA.parameters.size(); i++)
+    for (std::size_t i = 0; i < interactionsA.parameters.size(); i++)
     {
         t_iparams param;
         param.linangle.klinA = interactionsA.parameters[i].forceConstant();
@@ -274,7 +274,7 @@ inline void transferParameters(const ListedTypeData<RestrictedAngle>& interactio
         throw InputException("Restricted angle interactions array mismatch for A & B");
     }
 
-    for (size_t i = 0; i < interactionsA.parameters.size(); i++)
+    for (std::size_t i = 0; i < interactionsA.parameters.size(); i++)
     {
         t_iparams param;
         param.harmonic.krA = interactionsA.parameters[i].forceConstant();
@@ -343,7 +343,7 @@ inline void transferParameters(const ListedTypeData<ProperDihedral>& interaction
         throw InputException("Proper dihedral interactions array mismatch for A & B");
     }
 
-    for (size_t i = 0; i < interactionsA.parameters.size(); i++)
+    for (std::size_t i = 0; i < interactionsA.parameters.size(); i++)
     {
         t_iparams param;
         param.pdihs.phiA = interactionsA.parameters[i].equilDistance() / DEG2RAD;
@@ -361,7 +361,7 @@ inline void transferParameters(const ListedTypeData<RyckaertBellemanDihedral>& i
                                const ListedTypeData<RyckaertBellemanDihedral>& interactionsB,
                                gmx_ffparams_t&                                 gmx_params)
 {
-    for (size_t i = 0; i < interactionsA.parameters.size(); i++)
+    for (std::size_t i = 0; i < interactionsA.parameters.size(); i++)
     {
         t_iparams param;
         param.rbdihs.rbcA[0] = interactionsA.parameters[i][0];

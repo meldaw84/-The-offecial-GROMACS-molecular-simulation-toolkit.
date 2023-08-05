@@ -164,7 +164,7 @@ static real calcBuckinghamBMax(FILE* fplog, const gmx_mtop_t& mtop)
 
     bmin            = -1;
     real bham_b_max = 0;
-    for (size_t mt1 = 0; mt1 < mtop.moltype.size(); mt1++)
+    for (std::size_t mt1 = 0; mt1 < mtop.moltype.size(); mt1++)
     {
         at1 = &mtop.moltype[mt1].atoms;
         for (i = 0; (i < at1->nr); i++)
@@ -175,7 +175,7 @@ static real calcBuckinghamBMax(FILE* fplog, const gmx_mtop_t& mtop)
                 gmx_fatal(FARGS, "Atomtype[%d] = %d, maximum = %d", i, tpi, ntypes);
             }
 
-            for (size_t mt2 = mt1; mt2 < mtop.moltype.size(); mt2++)
+            for (std::size_t mt2 = mt1; mt2 < mtop.moltype.size(); mt2++)
             {
                 at2 = &mtop.moltype[mt2].atoms;
                 for (j = 0; (j < at2->nr); j++)

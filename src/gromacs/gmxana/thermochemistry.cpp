@@ -64,9 +64,9 @@ double calcZeroPointEnergy(gmx::ArrayRef<const real> eigval, real scale_factor)
 
 double calcVibrationalInternalEnergy(gmx::ArrayRef<const real> eigval, real temperature, gmx_bool linear, real scale_factor)
 {
-    size_t nskip = linear ? 5 : 6;
-    double Evib  = 0;
-    double hbar  = gmx::c_planck1 / (2 * M_PI);
+    std::size_t nskip = linear ? 5 : 6;
+    double      Evib  = 0;
+    double      hbar  = gmx::c_planck1 / (2 * M_PI);
     for (gmx::Index i = nskip; i < eigval.ssize(); i++)
     {
         if (eigval[i] > 0)
@@ -96,9 +96,9 @@ double calcVibrationalInternalEnergy(gmx::ArrayRef<const real> eigval, real temp
 
 double calcVibrationalHeatCapacity(gmx::ArrayRef<const real> eigval, real temperature, gmx_bool linear, real scale_factor)
 {
-    size_t nskip = linear ? 5 : 6;
-    double cv    = 0;
-    double hbar  = gmx::c_planck1 / (2 * M_PI);
+    std::size_t nskip = linear ? 5 : 6;
+    double      cv    = 0;
+    double      hbar  = gmx::c_planck1 / (2 * M_PI);
     for (gmx::Index i = nskip; i < eigval.ssize(); i++)
     {
         if (eigval[i] > 0)
@@ -167,9 +167,9 @@ double calcRotationalEntropy(real temperature, int natom, gmx_bool linear, const
 
 double calcQuasiHarmonicEntropy(gmx::ArrayRef<const real> eigval, real temperature, gmx_bool bLinear, real scale_factor)
 {
-    size_t nskip = bLinear ? 5 : 6;
-    double S     = 0;
-    double hbar  = gmx::c_planck1 / (2 * M_PI);
+    std::size_t nskip = bLinear ? 5 : 6;
+    double      S     = 0;
+    double      hbar  = gmx::c_planck1 / (2 * M_PI);
     for (gmx::Index i = nskip; (i < eigval.ssize()); i++)
     {
         if (eigval[i] > 0)
@@ -199,11 +199,11 @@ double calcQuasiHarmonicEntropy(gmx::ArrayRef<const real> eigval, real temperatu
 
 double calcSchlitterEntropy(gmx::ArrayRef<const real> eigval, real temperature, gmx_bool bLinear)
 {
-    size_t nskip  = bLinear ? 5 : 6;
-    double hbar   = gmx::c_planck1 / (2 * M_PI);        // J s
-    double kt     = gmx::c_boltzmann * temperature;     // J
-    double kteh   = kt * std::exp(2.0) / (hbar * hbar); // 1/(J s^2) = 1/(kg m^2)
-    double evcorr = gmx::c_nano * gmx::c_nano * gmx::c_amu;
+    std::size_t nskip  = bLinear ? 5 : 6;
+    double      hbar   = gmx::c_planck1 / (2 * M_PI);        // J s
+    double      kt     = gmx::c_boltzmann * temperature;     // J
+    double      kteh   = kt * std::exp(2.0) / (hbar * hbar); // 1/(J s^2) = 1/(kg m^2)
+    double      evcorr = gmx::c_nano * gmx::c_nano * gmx::c_amu;
     if (debug)
     {
         fprintf(debug, "n = %td, kteh = %g evcorr = %g\n", ssize(eigval), kteh, evcorr);

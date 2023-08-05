@@ -752,7 +752,7 @@ static void sum_fftgrid_dd(const gmx_pme_t* pme, real* fftgrid, int grid_index)
         int send_size_y = overlap->send_size;
 #endif
 
-        for (size_t ipulse = 0; ipulse < overlap->comm_data.size(); ipulse++)
+        for (std::size_t ipulse = 0; ipulse < overlap->comm_data.size(); ipulse++)
         {
             send_index0 = overlap->comm_data[ipulse].send_index0 - overlap->comm_data[0].send_index0;
             send_nindex = overlap->comm_data[ipulse].send_nindex;
@@ -832,7 +832,7 @@ static void sum_fftgrid_dd(const gmx_pme_t* pme, real* fftgrid, int grid_index)
         /* Major dimension */
         const pme_overlap_t* overlap = &pme->overlap[0];
 
-        size_t ipulse = 0;
+        std::size_t ipulse = 0;
 
         send_nindex = overlap->comm_data[ipulse].send_nindex;
         /* We don't use recv_index0, as we always receive starting at 0 */

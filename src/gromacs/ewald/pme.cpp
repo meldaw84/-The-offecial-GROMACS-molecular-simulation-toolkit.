@@ -396,7 +396,7 @@ static void init_overlap_comm(pme_overlap_t* ol, int norder, MPI_Comm comm, int 
     ol->comm_data.resize(testRankCount - 1);
     ol->send_size = 0;
 
-    for (size_t b = 0; b < ol->comm_data.size(); b++)
+    for (std::size_t b = 0; b < ol->comm_data.size(); b++)
     {
         pme_grid_comm_t* pgc = &ol->comm_data[b];
 
@@ -432,7 +432,7 @@ static void init_overlap_comm(pme_overlap_t* ol, int norder, MPI_Comm comm, int 
 #if GMX_MPI
     /* Communicate the buffer sizes to receive */
     MPI_Status stat;
-    for (size_t b = 0; b < ol->comm_data.size(); b++)
+    for (std::size_t b = 0; b < ol->comm_data.size(); b++)
     {
         MPI_Sendrecv(&ol->send_size,
                      1,
@@ -1681,7 +1681,7 @@ int gmx_pme_do(struct gmx_pme_t*              pme,
             gmx::ArrayRef<gmx::RVec> forcesRef;
             if (d == pme->ndecompdim - 1)
             {
-                const size_t numAtoms = coordinates.size();
+                const std::size_t numAtoms = coordinates.size();
                 GMX_ASSERT(forces.size() >= numAtoms, "Need at least numAtoms forces");
                 forcesRef = forces.subArray(0, numAtoms);
             }

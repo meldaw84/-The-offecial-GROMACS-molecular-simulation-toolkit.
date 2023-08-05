@@ -1378,7 +1378,7 @@ void generate_qmexcl(gmx_mtop_t* sys, t_inputrec* ir, const gmx::MDLogger& logge
 
     grpnr = sys->groups.groupNumbers[SimulationAtomGroupType::QuantumMechanics].data();
 
-    for (size_t mb = 0; mb < sys->molblock.size(); mb++)
+    for (std::size_t mb = 0; mb < sys->molblock.size(); mb++)
     {
         molb    = &sys->molblock[mb];
         nat_mol = sys->moltype[molb->type].atoms.nr;
@@ -1422,12 +1422,12 @@ void generate_qmexcl(gmx_mtop_t* sys, t_inputrec* ir, const gmx::MDLogger& logge
                      * containing QM atoms and append it in the end of the list
                      */
                     std::vector<gmx_moltype_t> temp(sys->moltype.size());
-                    for (size_t i = 0; i < sys->moltype.size(); ++i)
+                    for (std::size_t i = 0; i < sys->moltype.size(); ++i)
                     {
                         copy_moltype(&sys->moltype[i], &temp[i]);
                     }
                     sys->moltype.resize(sys->moltype.size() + 1);
-                    for (size_t i = 0; i < temp.size(); ++i)
+                    for (std::size_t i = 0; i < temp.size(); ++i)
                     {
                         copy_moltype(&temp[i], &sys->moltype[i]);
                     }

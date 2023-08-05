@@ -59,9 +59,9 @@ namespace
  *
  * Does not throw.
  */
-int countLeadingSpace(const std::string& text, size_t start, size_t end)
+int countLeadingSpace(const std::string& text, std::size_t start, std::size_t end)
 {
-    for (size_t i = start; i < end; ++i)
+    for (std::size_t i = start; i < end; ++i)
     {
         if (!std::isspace(text[i]))
         {
@@ -76,7 +76,7 @@ int countLeadingSpace(const std::string& text, size_t start, size_t end)
  *
  * Does not throw.
  */
-bool startsListItem(const std::string& text, size_t index)
+bool startsListItem(const std::string& text, std::size_t index)
 {
     if (text.length() <= index + 1)
     {
@@ -110,7 +110,7 @@ bool startsListItem(const std::string& text, size_t index)
  *
  * Does not throw.
  */
-bool startsTable(const std::string& text, size_t index)
+bool startsTable(const std::string& text, std::size_t index)
 {
     if (text[index] == '=')
     {
@@ -144,7 +144,7 @@ bool startsTable(const std::string& text, size_t index)
  *
  * Does not throw.
  */
-bool isTitleUnderline(const std::string& text, size_t index)
+bool isTitleUnderline(const std::string& text, std::size_t index)
 {
     const char firstChar = text[index];
     if (std::ispunct(firstChar))
@@ -204,16 +204,16 @@ bool RstParagraphIterator::nextParagraph()
         type_ = eParagraphType_Literal;
     }
     // Loop over lines in input until the end of the current paragraph.
-    size_t i         = begin_;
-    int    lineCount = 0;
+    std::size_t i         = begin_;
+    int         lineCount = 0;
     while (true)
     {
-        const bool   bFirstLine = (lineCount == 0);
-        const size_t lineStart  = i;
-        const size_t lineEnd    = std::min(text_.find('\n', i), text_.length());
-        const int    lineIndent = countLeadingSpace(text_, lineStart, lineEnd);
-        const size_t textStart  = lineStart + lineIndent;
-        const bool   bListItem  = startsListItem(text_, textStart);
+        const bool        bFirstLine = (lineCount == 0);
+        const std::size_t lineStart  = i;
+        const std::size_t lineEnd    = std::min(text_.find('\n', i), text_.length());
+        const int         lineIndent = countLeadingSpace(text_, lineStart, lineEnd);
+        const std::size_t textStart  = lineStart + lineIndent;
+        const bool        bListItem  = startsListItem(text_, textStart);
         // Return each list item as a separate paragraph to make the behavior
         // the same always; the item text could even contain multiple
         // paragraphs, that would anyways produce breaks.
@@ -319,13 +319,13 @@ void RstParagraphIterator::getParagraphText(std::string* result) const
     result->clear();
     result->reserve(end_ - begin_);
     result->append(breakSize_, '\n');
-    const bool bPreserveNewlines = (type_ != eParagraphType_Normal);
-    size_t     i                 = begin_;
+    const bool  bPreserveNewlines = (type_ != eParagraphType_Normal);
+    std::size_t i                 = begin_;
     while (i < end_)
     {
-        const bool   bFirstLine = (i == begin_);
-        const size_t lineStart  = i + (bFirstLine ? firstLineIndent_ : indent_);
-        const size_t lineEnd    = std::min(text_.find('\n', i), end_);
+        const bool        bFirstLine = (i == begin_);
+        const std::size_t lineStart  = i + (bFirstLine ? firstLineIndent_ : indent_);
+        const std::size_t lineEnd    = std::min(text_.find('\n', i), end_);
         if (!bFirstLine)
         {
             if (bPreserveNewlines)

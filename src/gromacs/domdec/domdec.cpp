@@ -1861,7 +1861,7 @@ static bool moleculesAreAlwaysWhole(const gmx_mtop_t&                           
     {
         GMX_RELEASE_ASSERT(updateGroupingsPerMoleculeType.size() == mtop.moltype.size(),
                            "Need one grouping per moltype");
-        for (size_t mol = 0; mol < mtop.moltype.size(); mol++)
+        for (std::size_t mol = 0; mol < mtop.moltype.size(); mol++)
         {
             if (updateGroupingsPerMoleculeType[mol].numBlocks() > 1)
             {

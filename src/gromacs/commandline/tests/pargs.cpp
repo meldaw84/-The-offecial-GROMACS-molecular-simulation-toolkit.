@@ -118,7 +118,7 @@ public:
 
 private:
     gmx_output_env_t*          oenv_;
-    size_t                     fileCount_;
+    std::size_t                fileCount_;
     gmx::test::TestFileManager tempFiles_;
 };
 

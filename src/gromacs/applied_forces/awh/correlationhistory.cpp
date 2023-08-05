@@ -161,7 +161,7 @@ void CorrelationBlockData::restoreFromHistory(const CorrelationBlockDataHistory&
 
 /* Restore a correlation element from history. */
 void CorrelationTensor::restoreFromHistory(const std::vector<CorrelationBlockDataHistory>& blockDataBuffer,
-                                           size_t* bufferIndex)
+                                           std::size_t* bufferIndex)
 {
     /* Blockdata for each correlation element */
     for (CorrelationBlockData& blockData : blockDataList_)
@@ -222,7 +222,7 @@ void CorrelationTensor::restoreFromHistory(const std::vector<CorrelationBlockDat
 /* Restores the correlation grid state from the correlation grid history. */
 void CorrelationGrid::restoreStateFromHistory(const CorrelationGridHistory& correlationGridHistory)
 {
-    if (tensors_.size() != static_cast<size_t>(correlationGridHistory.numCorrelationTensors))
+    if (tensors_.size() != static_cast<std::size_t>(correlationGridHistory.numCorrelationTensors))
     {
         GMX_THROW(InvalidInputError(
                 "Mismatch of the grid size for the force correlation between checkpoint and "
@@ -230,7 +230,7 @@ void CorrelationGrid::restoreStateFromHistory(const CorrelationGridHistory& corr
     }
 
     /* Extract the state from the linear history array */
-    size_t bufferIndex = 0;
+    std::size_t bufferIndex = 0;
     for (CorrelationTensor& tensor : tensors_)
     {
         tensor.restoreFromHistory(correlationGridHistory.blockDataBuffer, &bufferIndex);

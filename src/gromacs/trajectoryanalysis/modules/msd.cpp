@@ -111,7 +111,7 @@ public:
         std::vector<double>* column_;
     };
     //! Returns a proxy to the column for the given tau index. Guarantees that the column is initialized.
-    MsdColumnProxy operator[](size_t index)
+    MsdColumnProxy operator[](std::size_t index)
     {
         if (msds_.size() <= index)
         {
@@ -203,7 +203,7 @@ template<bool x, bool y, bool z>
 double calcAverageDisplacement(ArrayRef<const RVec> c1, ArrayRef<const RVec> c2)
 {
     double result = 0;
-    for (size_t i = 0; i < c1.size(); i++)
+    for (std::size_t i = 0; i < c1.size(); i++)
     {
         result += calcSingleSquaredDistance<x, y, z>(c1[i], c2[i]);
     }
@@ -432,7 +432,7 @@ private:
     //! Inter-frame maximum time delta.
     double maxTau_ = std::numeric_limits<double>::max();
     //! Tracks the index of the first valid frame. Starts at 0, increases as old frames are deleted
-    size_t firstValidFrame_ = 0;
+    std::size_t firstValidFrame_ = 0;
 
     //! First tau value to fit from for diffusion coefficient, defaults to 0.1 * max tau
     real beginFit_ = -1.0;
@@ -447,8 +447,8 @@ private:
     //! Taus for output - won't know the size until the end.
     std::vector<double> taus_;
     //! Tau indices for fitting.
-    size_t beginFitIndex_ = 0;
-    size_t endFitIndex_   = 0;
+    std::size_t beginFitIndex_ = 0;
+    std::size_t endFitIndex_   = 0;
 
     // MSD per-molecule stuff
     //! Are we doing molecule COM-based MSDs?
@@ -672,7 +672,7 @@ void Msd::analyzeFrame(int gmx_unused                frameNumber,
         ArrayRef<const RVec> coords = msdData.coordinateManager_.buildCoordinates(sel, pbc);
 
         // For each preceding frame, calculate tau and do comparison.
-        for (size_t i = firstValidFrame_; i < msdData.frames.size(); i++)
+        for (std::size_t i = firstValidFrame_; i < msdData.frames.size(); i++)
         {
             // If dt > trestart, the tau increment will be dt rather than trestart.
             const double tau = time - (t0_ + std::max<double>(trestart_, *dt_) * i);
@@ -688,7 +688,7 @@ void Msd::analyzeFrame(int gmx_unused                frameNumber,
             int64_t tauIndex = gmx::roundToInt64(tau / *dt_);
             msdData.msds[tauIndex].push_back(calcMsd_(coords, msdData.frames[i]));
 
-            for (size_t molInd = 0; molInd < molecules_.size(); molInd++)
+            for (std::size_t molInd = 0; molInd < molecules_.size(); molInd++)
             {
                 molecules_[molInd].msdData[tauIndex].push_back(
                         calcMsd_(arrayRefFromArray(&coords[molInd], 1),
@@ -706,16 +706,16 @@ void Msd::analyzeFrame(int gmx_unused                frameNumber,
 }
 
 //! Calculate the tau index for fitting. If userFitTau < 0, uses the default fraction of max tau.
-static size_t calculateFitIndex(const int    userFitTau,
-                                const double defaultTauFraction,
-                                const int    numTaus,
-                                const double dt)
+static std::size_t calculateFitIndex(const int    userFitTau,
+                                     const double defaultTauFraction,
+                                     const int    numTaus,
+                                     const double dt)
 {
     if (userFitTau < 0)
     {
         return gmx::roundToInt((numTaus - 1) * defaultTauFraction);
     }
-    return std::min<size_t>(numTaus - 1, gmx::roundToInt(static_cast<double>(userFitTau) / dt));
+    return std::min<std::size_t>(numTaus - 1, gmx::roundToInt(static_cast<double>(userFitTau) / dt));
 }
 
 
@@ -809,15 +809,15 @@ void Msd::writeOutput()
     }
     msdPlotData_.addModule(msdPlotModule);
     msdPlotData_.setDataSetCount(groupData_.size());
-    for (size_t i = 0; i < groupData_.size(); i++)
+    for (std::size_t i = 0; i < groupData_.size(); i++)
     {
         msdPlotData_.setColumnCount(i, 1);
     }
     AnalysisDataHandle dh = msdPlotData_.startData({});
-    for (size_t tauIndex = 0; tauIndex < taus_.size(); tauIndex++)
+    for (std::size_t tauIndex = 0; tauIndex < taus_.size(); tauIndex++)
     {
         dh.startFrame(tauIndex, taus_[tauIndex]);
-        for (size_t dataSetIndex = 0; dataSetIndex < groupData_.size(); dataSetIndex++)
+        for (std::size_t dataSetIndex = 0; dataSetIndex < groupData_.size(); dataSetIndex++)
         {
             dh.selectDataSet(dataSetIndex);
             dh.setPoint(0, groupData_[dataSetIndex].msdSums[tauIndex]);
@@ -838,7 +838,7 @@ void Msd::writeOutput()
         msdMoleculePlotData_.setDataSetCount(1);
         msdMoleculePlotData_.setColumnCount(0, 1);
         AnalysisDataHandle molDh = msdMoleculePlotData_.startData({});
-        for (size_t moleculeIndex = 0; moleculeIndex < molecules_.size(); moleculeIndex++)
+        for (std::size_t moleculeIndex = 0; moleculeIndex < molecules_.size(); moleculeIndex++)
         {
             molDh.startFrame(moleculeIndex, moleculeIndex);
             molDh.setPoint(0, molecules_[moleculeIndex].diffusionCoefficient);

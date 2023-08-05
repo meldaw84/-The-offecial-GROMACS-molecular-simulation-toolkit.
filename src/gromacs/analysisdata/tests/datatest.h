@@ -158,7 +158,7 @@ public:
     //! Returns a point set object for a given point set.
     const AnalysisDataTestInputPointSet& pointSet(int index) const
     {
-        GMX_ASSERT(index >= 0 && static_cast<size_t>(index) < pointSets_.size(),
+        GMX_ASSERT(index >= 0 && static_cast<std::size_t>(index) < pointSets_.size(),
                    "Point set index out of range");
         return pointSets_[index];
     }

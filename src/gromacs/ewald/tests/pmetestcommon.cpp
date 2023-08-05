@@ -244,7 +244,7 @@ void pmeInitAtoms(gmx_pme_t*               pme,
 //! Getting local PME real grid pointer for test I/O
 static real* pmeGetRealGridInternal(const gmx_pme_t* pme)
 {
-    const size_t gridIndex = 0;
+    const std::size_t gridIndex = 0;
     return pme->fftgrid[gridIndex];
 }
 
@@ -254,8 +254,8 @@ static void pmeGetRealGridSizesInternal(const gmx_pme_t* pme,
                                         IVec& gridSize,       //NOLINT(google-runtime-references)
                                         IVec& paddedGridSize) //NOLINT(google-runtime-references)
 {
-    const size_t gridIndex = 0;
-    IVec         gridOffsetUnused;
+    const std::size_t gridIndex = 0;
+    IVec              gridOffsetUnused;
     switch (mode)
     {
         case CodePath::CPU:
@@ -274,7 +274,7 @@ static void pmeGetRealGridSizesInternal(const gmx_pme_t* pme,
 //! Getting local PME complex grid pointer for test I/O
 static t_complex* pmeGetComplexGridInternal(const gmx_pme_t* pme)
 {
-    const size_t gridIndex = 0;
+    const std::size_t gridIndex = 0;
     return pme->cfftgrid[gridIndex];
 }
 
@@ -283,8 +283,8 @@ static void pmeGetComplexGridSizesInternal(const gmx_pme_t* pme,
                                            IVec& gridSize,       //NOLINT(google-runtime-references)
                                            IVec& paddedGridSize) //NOLINT(google-runtime-references)
 {
-    const size_t gridIndex = 0;
-    IVec         gridOffsetUnused, complexOrderUnused;
+    const std::size_t gridIndex = 0;
+    IVec              gridOffsetUnused, complexOrderUnused;
     gmx_parallel_3dfft_complex_limits(
             pme->pfft_setup[gridIndex], complexOrderUnused, gridSize, gridOffsetUnused, paddedGridSize); // TODO: what about YZX ordering?
 }
@@ -324,11 +324,11 @@ void pmePerformSplineAndSpread(gmx_pme_t* pme,
                                bool       spreadCharges)
 {
     GMX_RELEASE_ASSERT(pme != nullptr, "PME data is not initialized");
-    PmeAtomComm* atc                          = &(pme->atc[0]);
-    const size_t gridIndex                    = 0;
-    const bool   computeSplinesForZeroCharges = true;
-    real**       fftgrid                      = spreadCharges ? pme->fftgrid : nullptr;
-    real*        pmegrid                      = pme->pmegrid[gridIndex].grid.grid;
+    PmeAtomComm*      atc                          = &(pme->atc[0]);
+    const std::size_t gridIndex                    = 0;
+    const bool        computeSplinesForZeroCharges = true;
+    real**            fftgrid                      = spreadCharges ? pme->fftgrid : nullptr;
+    real*             pmegrid                      = pme->pmegrid[gridIndex].grid.grid;
 
     switch (mode)
     {
@@ -385,7 +385,7 @@ static real* pmeGetSplineDataInternal(const gmx_pme_t* pme, PmeSplineDataType ty
 {
     GMX_ASSERT((0 <= dimIndex) && (dimIndex < DIM), "Invalid dimension index");
     const PmeAtomComm* atc          = &(pme->atc[0]);
-    const size_t       threadIndex  = 0;
+    const std::size_t  threadIndex  = 0;
     real*              splineBuffer = nullptr;
     switch (type)
     {
@@ -410,10 +410,10 @@ void pmePerformSolve(const gmx_pme_t*  pme,
                      GridOrdering      gridOrdering,
                      bool              computeEnergyAndVirial)
 {
-    t_complex*   h_grid              = pmeGetComplexGridInternal(pme);
-    const bool   useLorentzBerthelot = false;
-    const size_t threadIndex         = 0;
-    const size_t gridIndex           = 0;
+    t_complex*        h_grid              = pmeGetComplexGridInternal(pme);
+    const bool        useLorentzBerthelot = false;
+    const std::size_t threadIndex         = 0;
+    const std::size_t gridIndex           = 0;
     switch (mode)
     {
         case CodePath::CPU:
@@ -462,11 +462,11 @@ void pmePerformGather(gmx_pme_t* pme, CodePath mode, ForcesVector& forces)
     PmeAtomComm* atc       = &(pme->atc[0]);
     const Index  atomCount = atc->numAtoms();
     GMX_RELEASE_ASSERT(forces.ssize() == atomCount, "Invalid force buffer size");
-    const real   scale       = 1.0;
-    const size_t threadIndex = 0;
-    const size_t gridIndex   = 0;
-    real*        pmegrid     = pme->pmegrid[gridIndex].grid.grid;
-    real**       fftgrid     = pme->fftgrid;
+    const real        scale       = 1.0;
+    const std::size_t threadIndex = 0;
+    const std::size_t gridIndex   = 0;
+    real*             pmegrid     = pme->pmegrid[gridIndex].grid.grid;
+    real**            fftgrid     = pme->fftgrid;
 
     switch (mode)
     {
@@ -717,9 +717,9 @@ void pmeSetGridLineIndices(gmx_pme_t* pme, CodePath mode, const GridLineIndicesV
 }
 
 //! Getting plain index into the complex 3d grid
-inline size_t pmeGetGridPlainIndexInternal(const IVec& index, const IVec& paddedGridSize, GridOrdering gridOrdering)
+inline std::size_t pmeGetGridPlainIndexInternal(const IVec& index, const IVec& paddedGridSize, GridOrdering gridOrdering)
 {
-    size_t result;
+    std::size_t result;
     switch (gridOrdering)
     {
         case GridOrdering::YZX:
@@ -758,7 +758,7 @@ static void pmeSetGridInternal(const gmx_pme_t*                        pme,
                     GMX_RELEASE_ASSERT((0 <= gridValue.first[i]) && (gridValue.first[i] < gridSize[i]),
                                        "Invalid grid value index");
                 }
-                const size_t gridValueIndex =
+                const std::size_t gridValueIndex =
                         pmeGetGridPlainIndexInternal(gridValue.first, paddedGridSize, gridOrdering);
                 grid[gridValueIndex] = gridValue.second;
             }
@@ -788,9 +788,9 @@ SplineParamsDimVector pmeGetSplineData(const gmx_pme_t* pme, CodePath mode, PmeS
 {
     GMX_RELEASE_ASSERT(pme != nullptr, "PME data is not initialized");
     const PmeAtomComm* atc       = &(pme->atc[0]);
-    const size_t       atomCount = atc->numAtoms();
-    const size_t       pmeOrder  = pme->pme_order;
-    const size_t       dimSize   = pmeOrder * atomCount;
+    const std::size_t  atomCount = atc->numAtoms();
+    const std::size_t  pmeOrder  = pme->pme_order;
+    const std::size_t  dimSize   = pmeOrder * atomCount;
 
     real*                 sourceBuffer = pmeGetSplineDataInternal(pme, type, dimIndex);
     SplineParamsDimVector result;
@@ -813,7 +813,7 @@ GridLineIndicesVector pmeGetGridlineIndices(const gmx_pme_t* pme, CodePath mode)
 {
     GMX_RELEASE_ASSERT(pme != nullptr, "PME data is not initialized");
     const PmeAtomComm* atc       = &(pme->atc[0]);
-    const size_t       atomCount = atc->numAtoms();
+    const std::size_t  atomCount = atc->numAtoms();
 
     GridLineIndicesVector gridLineIndices;
     switch (mode)
@@ -855,8 +855,8 @@ static SparseGridValuesOutput<ValueType> pmeGetGridInternal(const gmx_pme_t* pme
                 {
                     for (int iz = 0; iz < gridSize[ZZ]; iz++)
                     {
-                        IVec         temp(ix, iy, iz);
-                        const size_t gridValueIndex =
+                        IVec              temp(ix, iy, iz);
+                        const std::size_t gridValueIndex =
                                 pmeGetGridPlainIndexInternal(temp, paddedGridSize, gridOrdering);
                         const ValueType value = grid[gridValueIndex];
                         if (value != ValueType{})

@@ -600,7 +600,7 @@ void Sasa::initAnalysis(const TrajectoryAnalysisSettings& settings, const Topolo
 
     // Pre-compute mapping from the output groups to the calculation group,
     // and store it in the selection ID map for easy lookup.
-    for (size_t g = 0; g < outputSel_.size(); ++g)
+    for (std::size_t g = 0; g < outputSel_.size(); ++g)
     {
         ArrayRef<const int> outputIndices = outputSel_[g].atomIndices();
         for (int i = 0, j = 0; i < outputSel_[g].posCount(); ++i)
@@ -636,7 +636,7 @@ void Sasa::initAnalysis(const TrajectoryAnalysisSettings& settings, const Topolo
         plotm->setXAxisIsTime();
         plotm->setYLabel("Area (nm\\S2\\N)");
         plotm->appendLegend("Total");
-        for (size_t i = 0; i < outputSel_.size(); ++i)
+        for (std::size_t i = 0; i < outputSel_.size(); ++i)
         {
             plotm->appendLegend(outputSel_[i].name());
         }
@@ -647,7 +647,7 @@ void Sasa::initAnalysis(const TrajectoryAnalysisSettings& settings, const Topolo
     {
         atomArea_.setDataSetCount(1 + outputSel_.size());
         residueArea_.setDataSetCount(1 + outputSel_.size());
-        for (size_t i = 0; i <= outputSel_.size(); ++i)
+        for (std::size_t i = 0; i <= outputSel_.size(); ++i)
         {
             atomArea_.setColumnCount(i, surfaceSel_.posCount());
             residueArea_.setColumnCount(i, resCount);
@@ -715,7 +715,7 @@ void Sasa::initAnalysis(const TrajectoryAnalysisSettings& settings, const Topolo
         plotm->setXAxisIsTime();
         plotm->setYLabel("D Gsolv");
         plotm->appendLegend("Total");
-        for (size_t i = 0; i < outputSel_.size(); ++i)
+        for (std::size_t i = 0; i < outputSel_.size(); ++i)
         {
             plotm->appendLegend(outputSel_[i].name());
         }
@@ -866,7 +866,7 @@ void computeAreas(const Selection&         surfaceSel,
     }
     if (bResAt)
     {
-        for (size_t i = 0; i < (*resAreaWork).size(); ++i)
+        for (std::size_t i = 0; i < (*resAreaWork).size(); ++i)
         {
             resAreaHandle.setPoint(i, (*resAreaWork)[i]);
         }
@@ -944,7 +944,7 @@ void Sasa::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* pbc, TrajectoryAn
         if (surfaceSel.isDynamic())
         {
             std::fill(frameData.atomAreas_.begin(), frameData.atomAreas_.end(), 0.0_real);
-            for (size_t i = 0; i < frameData.index_.size(); ++i)
+            for (std::size_t i = 0; i < frameData.index_.size(); ++i)
             {
                 frameData.atomAreas_[frameData.index_[i]] = area[i];
             }
@@ -1011,7 +1011,7 @@ void Sasa::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* pbc, TrajectoryAn
             dgh.setPoint(0, dgsolv);
         }
     }
-    for (size_t g = 0; g < outputSel.size(); ++g)
+    for (std::size_t g = 0; g < outputSel.size(); ++g)
     {
         if (bResAt)
         {

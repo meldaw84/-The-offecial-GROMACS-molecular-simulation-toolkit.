@@ -441,10 +441,10 @@ int gmx_fio_fclose(FILE* fp)
 static int gmx_fio_int_get_file_md5(t_fileio* fio, gmx_off_t offset, std::array<unsigned char, 16>* checksum)
 {
     /*1MB: large size important to catch almost identical files */
-    constexpr size_t maximumChecksumInputSize = 1048576;
-    md5_state_t      state;
-    gmx_off_t        readLength;
-    gmx_off_t        seekOffset;
+    constexpr std::size_t maximumChecksumInputSize = 1048576;
+    md5_state_t           state;
+    gmx_off_t             readLength;
+    gmx_off_t             seekOffset;
 
     seekOffset = offset - maximumChecksumInputSize;
     if (seekOffset < 0)

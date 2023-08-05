@@ -83,7 +83,7 @@ public:
             nextLineOffset_(0)
         {
             GMX_ASSERT(width >= 0, "Negative width not possible");
-            GMX_ASSERT(title_.length() <= static_cast<size_t>(width),
+            GMX_ASSERT(title_.length() <= static_cast<std::size_t>(width),
                        "Title too long for column width");
         }
 
@@ -132,8 +132,8 @@ public:
                 settings.setLineLength(columnWidth);
                 TextLineWrapper    wrapper(settings);
                 const std::string& currentLine = lines_[nextLineIndex_];
-                const size_t       prevOffset  = nextLineOffset_;
-                const size_t       nextOffset  = wrapper.findNextLine(currentLine, prevOffset);
+                const std::size_t  prevOffset  = nextLineOffset_;
+                const std::size_t  nextOffset  = wrapper.findNextLine(currentLine, prevOffset);
                 if (nextOffset >= currentLine.size())
                 {
                     ++nextLineIndex_;
@@ -164,7 +164,7 @@ public:
         //! Formatting state: index in `lines_` for the next line.
         int nextLineIndex_;
         //! Formatting state: offset within line `nextLineIndex_` for the next line.
-        size_t nextLineOffset_;
+        std::size_t nextLineOffset_;
     };
 
     //! Container type for column data.
@@ -285,7 +285,7 @@ std::string TextTableFormatter::formatRow()
     // Print a header if this is the first line.
     if (impl_->bPrintHeader_ && impl_->bFirstRow_)
     {
-        size_t totalWidth = 0;
+        std::size_t totalWidth = 0;
         result.append(impl_->firstColumnIndent_, ' ');
         for (column = impl_->columns_.begin(); column != impl_->columns_.end(); ++column)
         {
@@ -318,7 +318,7 @@ std::string TextTableFormatter::formatRow()
         column->startFormatting();
         columnLines.clear();
         columnLines.reserve(lines.size());
-        for (size_t line = 0; column->hasLinesRemaining(); ++line)
+        for (std::size_t line = 0; column->hasLinesRemaining(); ++line)
         {
             int columnWidth = column->width();
             if (line < lines.size())
@@ -348,7 +348,7 @@ std::string TextTableFormatter::formatRow()
         {
             lines.resize(columnLines.size());
         }
-        for (size_t line = 0; line < columnLines.size(); ++line)
+        for (std::size_t line = 0; line < columnLines.size(); ++line)
         {
             if (column != impl_->columns_.begin() && !columnLines[line].empty())
             {

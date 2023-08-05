@@ -184,7 +184,7 @@ typedef struct yy_buffer_state* YY_BUFFER_STATE;
 
 #ifndef YY_TYPEDEF_YY_SIZE_T
 #    define YY_TYPEDEF_YY_SIZE_T
-typedef size_t yy_size_t;
+typedef std::size_t yy_size_t;
 #endif
 
 #define EOB_ACT_CONTINUE_SCAN 0
@@ -357,11 +357,11 @@ yy_fatal_error(yyconst char msg[], yyscan_t yyscanner);
 /* Done after the current pattern has been matched and before the
  * corresponding action - sets up yytext.
  */
-#define YY_DO_BEFORE_ACTION                      \
-    yyg->yytext_ptr   = yy_bp;                   \
-    yyleng            = (size_t)(yy_cp - yy_bp); \
-    yyg->yy_hold_char = *yy_cp;                  \
-    *yy_cp            = '\0';                    \
+#define YY_DO_BEFORE_ACTION                           \
+    yyg->yytext_ptr   = yy_bp;                        \
+    yyleng            = (std::size_t)(yy_cp - yy_bp); \
+    yyg->yy_hold_char = *yy_cp;                       \
+    *yy_cp            = '\0';                         \
     yyg->yy_c_buf_p   = yy_cp;
 
 #define YY_NUM_RULES 21
@@ -545,8 +545,8 @@ struct yyguts_t
 
     /* The rest are the same as the globals declared in the non-reentrant scanner. */
     FILE *           yyin_r, *yyout_r;
-    size_t           yy_buffer_stack_top; /**< index of top of stack. */
-    size_t           yy_buffer_stack_max; /**< capacity of stack. */
+    std::size_t      yy_buffer_stack_top; /**< index of top of stack. */
+    std::size_t      yy_buffer_stack_max; /**< capacity of stack. */
     YY_BUFFER_STATE* yy_buffer_stack;     /**< Stack as an array. */
     char             yy_hold_char;
     yy_size_t        yy_n_chars;
@@ -674,8 +674,8 @@ static int input(yyscan_t yyscanner);
 #    define YY_INPUT(buf, result, max_size)                                                 \
         if (YY_CURRENT_BUFFER_LVALUE->yy_is_interactive)                                    \
         {                                                                                   \
-            int    c = '*';                                                                 \
-            size_t n;                                                                       \
+            int         c = '*';                                                            \
+            std::size_t n;                                                                  \
             for (n = 0; n < max_size && (c = std::getc(yyin)) != EOF && c != '\n'; ++n)     \
                 buf[n] = (char)c;                                                           \
             if (c == '\n')                                                                  \

@@ -127,7 +127,7 @@ protected:
         x_.resize(positions.size());
         std::copy(positions.begin(), positions.end(), x_.begin());
 
-        for (size_t i = 0; i < positions.size(); i++)
+        for (std::size_t i = 0; i < positions.size(); i++)
         {
             // First item is "type" - each atom will have a different forceparam type
             // Second item is index - we'll just go from 0.
@@ -145,7 +145,7 @@ protected:
     }
 };
 
-std::array<real, static_cast<size_t>(FreeEnergyPerturbationCouplingType::Count)> c_emptyLambdas = { { 0 } };
+std::array<real, static_cast<std::size_t>(FreeEnergyPerturbationCouplingType::Count)> c_emptyLambdas = { { 0 } };
 
 TEST_P(PositionRestraintsTest, BasicPosResNoFreeEnergy)
 {

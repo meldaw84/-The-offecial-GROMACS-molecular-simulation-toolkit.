@@ -324,7 +324,7 @@ choose_ff_impl(const char* ffsel, char* forcefield, int ff_maxlen, const gmx::MD
         sel = 0;
     }
 
-    if (ffs[sel].length() >= static_cast<size_t>(ff_maxlen))
+    if (ffs[sel].length() >= static_cast<std::size_t>(ff_maxlen))
     {
         std::string message = gmx::formatString("Length of force field name (%d) >= maxlen (%d)",
                                                 static_cast<int>(ffs[sel].length()),

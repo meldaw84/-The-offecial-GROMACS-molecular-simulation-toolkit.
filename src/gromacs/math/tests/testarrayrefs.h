@@ -54,7 +54,7 @@ namespace test
 template<typename T>
 void fillInputContents(ArrayRef<T> inputRef, int scaleFactorForElements)
 {
-    for (size_t i = 0; i < inputRef.size(); i++)
+    for (std::size_t i = 0; i < inputRef.size(); i++)
     {
         inputRef[i] = T((i + 1) * scaleFactorForElements);
     }
@@ -64,9 +64,9 @@ void fillInputContents(ArrayRef<T> inputRef, int scaleFactorForElements)
 template<typename T>
 void fillInputContents(ArrayRef<BasicVector<T>> inputRef, int scaleFactorForElements)
 {
-    for (size_t i = 0; i < inputRef.size(); i++)
+    for (std::size_t i = 0; i < inputRef.size(); i++)
     {
-        for (size_t j = 0; j < DIM; j++)
+        for (std::size_t j = 0; j < DIM; j++)
         {
             inputRef[i][j] = T((DIM * i + j + 1) * scaleFactorForElements);
         }

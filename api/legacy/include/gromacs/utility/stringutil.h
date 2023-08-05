@@ -331,7 +331,7 @@ std::string joinStrings(const ContainerType& container, const char* separator)
  *     between each pair.
  * \throws    std::bad_alloc if out of memory.
  */
-template<size_t count>
+template<std::size_t count>
 std::string joinStrings(const char* const (&array)[count], const char* separator)
 {
     return joinStrings(array, array + count, separator);
@@ -460,7 +460,7 @@ public:
  * \param[in] maxLengthOfComparison The maximum string length to compare.
  * \returns True if the strings match.
  */
-bool equalCaseInsensitive(const std::string& source, const std::string& target, size_t maxLengthOfComparison);
+bool equalCaseInsensitive(const std::string& source, const std::string& target, std::size_t maxLengthOfComparison);
 
 /*! \brief
  * Makes the string uppercase.
@@ -683,11 +683,11 @@ public:
      * \code
        gmx::TextLineWrapper wrapper;
        // <set desired wrapping settings>
-       size_t lineStart = 0;
-       size_t length = input.length();
+       std::size_t lineStart = 0;
+       std::size_t length = input.length();
        while (lineStart < length)
        {
-           size_t nextLineStart = wrapper.findNextLine(input, lineStart);
+           std::size_t nextLineStart = wrapper.findNextLine(input, lineStart);
            std::string line = wrapper.formatLine(input, lineStart, nextLineStart));
            // <do something with the line>
            lineStart = nextLineStart;
@@ -697,9 +697,9 @@ public:
      *
      * Does not throw.
      */
-    size_t findNextLine(const char* input, size_t lineStart) const;
+    std::size_t findNextLine(const char* input, std::size_t lineStart) const;
     //! \copydoc findNextLine(const char *, size_t)const
-    size_t findNextLine(const std::string& input, size_t lineStart) const;
+    std::size_t findNextLine(const std::string& input, std::size_t lineStart) const;
     /*! \brief
      * Formats a single line for output according to wrapping settings.
      *
@@ -716,7 +716,7 @@ public:
      * Trailing whitespace is always stripped (including any newlines,
      * i.e., the return value does not contain a newline).
      */
-    std::string formatLine(const std::string& input, size_t lineStart, size_t lineEnd) const;
+    std::string formatLine(const std::string& input, std::size_t lineStart, std::size_t lineEnd) const;
 
     /*! \brief
      * Formats a string, producing a single string with all the lines.

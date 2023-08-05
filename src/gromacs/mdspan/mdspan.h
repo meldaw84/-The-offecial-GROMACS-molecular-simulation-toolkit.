@@ -262,7 +262,7 @@ public:
      * \note Enabled only when rank() > 1
      *
      * \tparam IndexType integral tyoe for the index that enables indexing
-     *                   with, e.g., int or size_t
+     *                   with, e.g., int or std::size_t
      * \param[in] index  one-dimensional index of the slice to be indexed
      *
      * \returns basic_mdspan that is sliced at the given index
@@ -284,7 +284,7 @@ public:
      * \param[in] k dimension to query for static extent
      * \returns static extent along specified dimension
      */
-    constexpr index_type static_extent(size_t k) const noexcept
+    constexpr index_type static_extent(std::size_t k) const noexcept
     {
         return map_.extents().static_extent(k);
     }
@@ -313,7 +313,7 @@ public:
     //! Report if the currently applied map is contiguous
     constexpr bool is_contiguous() const noexcept { return map_.is_contiguous(); }
     //! Report stride along a specific rank.
-    constexpr index_type stride(size_t r) const noexcept { return map_.stride(r); }
+    constexpr index_type stride(std::size_t r) const noexcept { return map_.stride(r); }
     //! Return the currently applied mapping.
     constexpr mapping_type mapping() const noexcept { return map_; }
     //! Return the memory access model.

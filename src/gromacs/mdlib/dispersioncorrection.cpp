@@ -226,7 +226,7 @@ DispersionCorrection::TopologyParams::TopologyParams(const gmx_mtop_t&         m
             numCorrections_     = atoms_tpi.nr;
 
             npair = 0;
-            for (size_t mb = 0; mb < mtop.molblock.size(); mb++)
+            for (std::size_t mb = 0; mb < mtop.molblock.size(); mb++)
             {
                 const gmx_molblock_t& molb  = mtop.molblock[mb];
                 const t_atoms&        atoms = mtop.moltype[molb.type].atoms;

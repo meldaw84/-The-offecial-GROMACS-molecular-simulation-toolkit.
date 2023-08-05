@@ -128,7 +128,7 @@ TEST(biasGridTest, neighborhood)
     std::vector<bool> isInNeighborhood(grid.numPoints(), false);
 
     /* Checking for all points is overkill, we check every 7th */
-    for (size_t i = 0; i < grid.numPoints(); i += 7)
+    for (std::size_t i = 0; i < grid.numPoints(); i += 7)
     {
         const GridPoint& point = grid.point(i);
 
@@ -140,9 +140,9 @@ TEST(biasGridTest, neighborhood)
          * number of neighbors, if all neighbors are within the grid bounds
          * and if they are within scope.
          */
-        int    distanceFromEdge1 = std::min(pointIndex1, numPointsDim[1] - 1 - pointIndex1);
-        size_t numNeighbors      = (2 * scopeInPoints + 1)
-                              * (scopeInPoints + std::min(scopeInPoints, distanceFromEdge1) + 1);
+        int         distanceFromEdge1 = std::min(pointIndex1, numPointsDim[1] - 1 - pointIndex1);
+        std::size_t numNeighbors      = (2 * scopeInPoints + 1)
+                                   * (scopeInPoints + std::min(scopeInPoints, distanceFromEdge1) + 1);
         if (point.neighbor.size() != numNeighbors)
         {
             haveCorrectNumNeighbors = false;

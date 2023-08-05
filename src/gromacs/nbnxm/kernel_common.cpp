@@ -69,9 +69,9 @@ static void clearBufferFlagged(const nbnxn_atomdata_t& nbat, int outputIndex, gm
     gmx_bitmask_t                      our_flag; // NOLINT(cppcoreguidelines-init-variables)
     bitmask_init_bit(&our_flag, outputIndex);
 
-    constexpr size_t numComponentsPerBlock = NBNXN_BUFFERFLAG_SIZE * numComponentsPerElement;
+    constexpr std::size_t numComponentsPerBlock = NBNXN_BUFFERFLAG_SIZE * numComponentsPerElement;
 
-    for (size_t b = 0; b < flags.size(); b++)
+    for (std::size_t b = 0; b < flags.size(); b++)
     {
         if (!bitmask_is_disjoint(flags[b], our_flag))
         {

@@ -119,9 +119,9 @@ std::vector<int> parseUserGpuIdString(const std::string& gpuIdString)
     auto digits = parseGpuDeviceIdentifierList(gpuIdString);
 
     // Check and enforce that no duplicate IDs are allowed
-    for (size_t i = 0; i != digits.size(); ++i)
+    for (std::size_t i = 0; i != digits.size(); ++i)
     {
-        for (size_t j = i + 1; j != digits.size(); ++j)
+        for (std::size_t j = i + 1; j != digits.size(); ++j)
         {
             if (digits[i] == digits[j])
             {
@@ -179,14 +179,14 @@ std::vector<int> parseUserTaskAssignmentString(const std::string& gpuIdString)
     return parseGpuDeviceIdentifierList(gpuIdString);
 }
 
-std::vector<int> makeGpuIds(ArrayRef<const int> compatibleGpus, size_t numGpuTasks)
+std::vector<int> makeGpuIds(ArrayRef<const int> compatibleGpus, std::size_t numGpuTasks)
 {
     std::vector<int> gpuIdsToUse;
 
     gpuIdsToUse.reserve(numGpuTasks);
 
     auto currentGpuId = compatibleGpus.begin();
-    for (size_t i = 0; i != numGpuTasks; ++i)
+    for (std::size_t i = 0; i != numGpuTasks; ++i)
     {
         GMX_ASSERT(!compatibleGpus.empty(),
                    "Must have compatible GPUs from which to build a list of GPU IDs to use");

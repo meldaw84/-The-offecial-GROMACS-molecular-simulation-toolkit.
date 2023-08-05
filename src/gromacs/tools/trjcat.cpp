@@ -639,7 +639,7 @@ int gmx_trjcat(int argc, char* argv[])
         const char* out_file = outFiles[0].c_str();
         ftpout               = fn2ftp(out_file);
         n_append             = -1;
-        for (size_t i = 0; i < inFilesEdited.size() && n_append == -1; i++)
+        for (std::size_t i = 0; i < inFilesEdited.size() && n_append == -1; i++)
         {
             if (std::strcmp(inFilesEdited[i].c_str(), out_file) == 0)
             {
@@ -783,7 +783,7 @@ int gmx_trjcat(int argc, char* argv[])
         }
         /* Lets stitch up some files */
         timestep = timest[0];
-        for (size_t i = n_append + 1; i < inFilesEdited.size(); i++)
+        for (std::size_t i = n_append + 1; i < inFilesEdited.size(); i++)
         {
             /* Open next file */
 

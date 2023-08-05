@@ -508,7 +508,7 @@ void Select::initAnalysis(const TrajectoryAnalysisSettings& settings, const Topo
     // TODO: For large systems, a float may not have enough precision
     sdata_.setColumnCount(0, sel_.size());
     totsize_.reserve(sel_.size());
-    for (size_t g = 0; g < sel_.size(); ++g)
+    for (std::size_t g = 0; g < sel_.size(); ++g)
     {
         totsize_.push_back(sel_[g].posCount());
     }
@@ -519,7 +519,7 @@ void Select::initAnalysis(const TrajectoryAnalysisSettings& settings, const Topo
         plot->setTitle("Selection size");
         plot->setXAxisIsTime();
         plot->setYLabel("Number");
-        for (size_t g = 0; g < sel_.size(); ++g)
+        for (std::size_t g = 0; g < sel_.size(); ++g)
         {
             plot->appendLegend(sel_[g].name());
         }
@@ -535,7 +535,7 @@ void Select::initAnalysis(const TrajectoryAnalysisSettings& settings, const Topo
         plot->setXAxisIsTime();
         plot->setYLabel("Fraction");
         plot->setYFormat(6, 4);
-        for (size_t g = 0; g < sel_.size(); ++g)
+        for (std::size_t g = 0; g < sel_.size(); ++g)
         {
             plot->appendLegend(sel_[g].name());
         }
@@ -555,7 +555,7 @@ void Select::initAnalysis(const TrajectoryAnalysisSettings& settings, const Topo
     {
         std::shared_ptr<IndexFileWriterModule> writer(new IndexFileWriterModule());
         writer->setFileName(fnNdx_);
-        for (size_t g = 0; g < sel_.size(); ++g)
+        for (std::size_t g = 0; g < sel_.size(); ++g)
         {
             writer->addGroup(sel_[g].name(), sel_[g].isDynamic());
         }
@@ -563,7 +563,7 @@ void Select::initAnalysis(const TrajectoryAnalysisSettings& settings, const Topo
     }
 
     mdata_.setDataSetCount(sel_.size());
-    for (size_t g = 0; g < sel_.size(); ++g)
+    for (std::size_t g = 0; g < sel_.size(); ++g)
     {
         mdata_.setColumnCount(g, sel_[g].posCount());
     }
@@ -586,7 +586,7 @@ void Select::initAnalysis(const TrajectoryAnalysisSettings& settings, const Topo
         plot->setTitle("Fraction of time selection matches");
         plot->setXLabel("Selected position");
         plot->setYLabel("Occupied fraction");
-        for (size_t g = 0; g < sel_.size(); ++g)
+        for (std::size_t g = 0; g < sel_.size(); ++g)
         {
             plot->appendLegend(sel_[g].name());
         }
@@ -599,7 +599,7 @@ void Select::initAnalysis(const TrajectoryAnalysisSettings& settings, const Topo
         plot->setTitle("Lifetime histogram");
         plot->setXAxisIsTime();
         plot->setYLabel("Number of occurrences");
-        for (size_t g = 0; g < sel_.size(); ++g)
+        for (std::size_t g = 0; g < sel_.size(); ++g)
         {
             plot->appendLegend(sel_[g].name());
         }
@@ -619,7 +619,7 @@ void Select::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* /* pbc */, Traj
     const SelectionList& sel = TrajectoryAnalysisModuleData::parallelSelections(sel_);
 
     sdh.startFrame(frnr, fr.time);
-    for (size_t g = 0; g < sel.size(); ++g)
+    for (std::size_t g = 0; g < sel.size(); ++g)
     {
         real normfac = bFracNorm_ ? 1.0 / sel[g].coveredFraction() : 1.0;
         if (bTotNorm_)
@@ -631,14 +631,14 @@ void Select::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* /* pbc */, Traj
     sdh.finishFrame();
 
     cdh.startFrame(frnr, fr.time);
-    for (size_t g = 0; g < sel.size(); ++g)
+    for (std::size_t g = 0; g < sel.size(); ++g)
     {
         cdh.setPoint(g, sel[g].coveredFraction());
     }
     cdh.finishFrame();
 
     idh.startFrame(frnr, fr.time);
-    for (size_t g = 0; g < sel.size(); ++g)
+    for (std::size_t g = 0; g < sel.size(); ++g)
     {
         idh.setPoint(0, sel[g].posCount());
         idh.finishPointSet();
@@ -659,7 +659,7 @@ void Select::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* /* pbc */, Traj
     idh.finishFrame();
 
     mdh.startFrame(frnr, fr.time);
-    for (size_t g = 0; g < sel.size(); ++g)
+    for (std::size_t g = 0; g < sel.size(); ++g)
     {
         mdh.selectDataSet(g);
         for (int i = 0; i < totsize_[g]; ++i)
@@ -694,7 +694,7 @@ void Select::writeOutput()
         {
             atoms->pdbinfo[i].occup = 0.0;
         }
-        for (size_t g = 0; g < sel_.size(); ++g)
+        for (std::size_t g = 0; g < sel_.size(); ++g)
         {
             for (int i = 0; i < sel_[g].posCount(); ++i)
             {
@@ -729,7 +729,7 @@ void Select::writeOutput()
             case PdbAtomsSelection::MaxSelection:
             {
                 std::set<int> atomIndicesSet;
-                for (size_t g = 0; g < sel_.size(); ++g)
+                for (std::size_t g = 0; g < sel_.size(); ++g)
                 {
                     ArrayRef<const int> atomIndices = sel_[g].atomIndices();
                     atomIndicesSet.insert(atomIndices.begin(), atomIndices.end());

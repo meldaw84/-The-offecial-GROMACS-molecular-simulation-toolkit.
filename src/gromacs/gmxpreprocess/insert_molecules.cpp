@@ -131,7 +131,7 @@ static void generate_trial_conf(gmx::ArrayRef<RVec>       xin,
     {
         rotate_conf(xout->size(), as_rvec_array(xout->data()), nullptr, alfa, beta, gamma);
     }
-    for (size_t i = 0; i < xout->size(); ++i)
+    for (std::size_t i = 0; i < xout->size(); ++i)
     {
         rvec_inc((*xout)[i], offset);
     }

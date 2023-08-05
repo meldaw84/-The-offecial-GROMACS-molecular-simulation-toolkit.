@@ -137,9 +137,9 @@ bool haveBiasSharingWithinSimulation(const AwhParams& awhParams);
  * \param[in] pointSize     Vector of grid-point sizes for each bias.
  * \param[in] biasSharing   Object for communication for sharing bias data over simulations.
  */
-void biasesAreCompatibleForSharingBetweenSimulations(const AwhParams&       awhParams,
-                                                     ArrayRef<const size_t> pointSize,
-                                                     const BiasSharing&     biasSharing);
+void biasesAreCompatibleForSharingBetweenSimulations(const AwhParams&            awhParams,
+                                                     ArrayRef<const std::size_t> pointSize,
+                                                     const BiasSharing&          biasSharing);
 
 } // namespace gmx
 

@@ -106,7 +106,7 @@ static inline void validate_global_work_size(const KernelLaunchConfig& config,
 
     GMX_ASSERT(dinfo, "Need a valid device info object");
 
-    size_t global_work_size[3];
+    std::size_t global_work_size[3];
     GMX_ASSERT(work_dim <= 3, "Not supporting hyper-grids just yet");
     for (int i = 0; i < work_dim; i++)
     {
@@ -114,14 +114,14 @@ static inline void validate_global_work_size(const KernelLaunchConfig& config,
     }
 
     /* Each component of a global_work_size must not exceed the range given by the
-       sizeof(device size_t) for the device on which the kernel execution will
+       sizeof(device std::size_t) for the device on which the kernel execution will
        be enqueued. See:
        https://www.khronos.org/registry/cl/sdk/1.0/docs/man/xhtml/clEnqueueNDRangeKernel.html
      */
     device_size_t_size_bits = dinfo->adress_bits;
-    host_size_t_size_bits   = static_cast<cl_uint>(sizeof(size_t) * 8);
+    host_size_t_size_bits   = static_cast<cl_uint>(sizeof(std::size_t) * 8);
 
-    /* If sizeof(host size_t) <= sizeof(device size_t)
+    /* If sizeof(host std::size_t) <= sizeof(device std::size_t)
             => global_work_size components will always be valid
        else
             => get device limit for global work size and
@@ -129,7 +129,7 @@ static inline void validate_global_work_size(const KernelLaunchConfig& config,
      */
     if (host_size_t_size_bits > device_size_t_size_bits)
     {
-        size_t device_limit;
+        std::size_t device_limit;
 
         device_limit = (1ULL << device_size_t_size_bits) - 1;
 

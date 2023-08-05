@@ -311,9 +311,9 @@ bool haveBiasSharingWithinSimulation(const AwhParams& awhParams)
     return haveSharing;
 }
 
-void biasesAreCompatibleForSharingBetweenSimulations(const AwhParams&       awhParams,
-                                                     ArrayRef<const size_t> pointSize,
-                                                     const BiasSharing&     biasSharing)
+void biasesAreCompatibleForSharingBetweenSimulations(const AwhParams&            awhParams,
+                                                     ArrayRef<const std::size_t> pointSize,
+                                                     const BiasSharing&          biasSharing)
 {
     /* Check the point sizes. This is a sufficient condition for running
      * as shared multi-sim run. No physics checks are performed here.

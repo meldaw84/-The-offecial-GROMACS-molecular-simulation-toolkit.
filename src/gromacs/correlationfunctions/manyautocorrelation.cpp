@@ -50,18 +50,18 @@
 
 int many_auto_correl(std::vector<std::vector<real>>* c)
 {
-    size_t nfunc = (*c).size();
+    std::size_t nfunc = (*c).size();
     if (nfunc == 0)
     {
         GMX_THROW(gmx::InconsistentInputError("Empty array of vectors supplied"));
     }
-    size_t ndata = (*c)[0].size();
+    std::size_t ndata = (*c)[0].size();
     if (ndata == 0)
     {
         GMX_THROW(gmx::InconsistentInputError("Empty vector supplied"));
     }
 #ifndef NDEBUG
-    for (size_t i = 1; i < nfunc; i++)
+    for (std::size_t i = 1; i < nfunc; i++)
     {
         if ((*c)[i].size() != ndata)
         {
@@ -76,7 +76,7 @@ int many_auto_correl(std::vector<std::vector<real>>* c)
     }
 #endif
     // Add buffer size to the arrays.
-    size_t nfft = (3 * ndata / 2) + 1;
+    std::size_t nfft = (3 * ndata / 2) + 1;
     // Pad arrays with zeros
     for (auto& i : *c)
     {
@@ -100,20 +100,20 @@ int many_auto_correl(std::vector<std::vector<real>>* c)
             out.resize(2 * nfft, 0);
             for (int i = i0; (i < i1); i++)
             {
-                for (size_t j = 0; j < ndata; j++)
+                for (std::size_t j = 0; j < ndata; j++)
                 {
                     in[2 * j + 0] = (*c)[i][j];
                     in[2 * j + 1] = 0;
                 }
                 gmx_fft_1d(fft1, GMX_FFT_BACKWARD, in.data(), out.data());
-                for (size_t j = 0; j < nfft; j++)
+                for (std::size_t j = 0; j < nfft; j++)
                 {
                     in[2 * j + 0] =
                             (out[2 * j + 0] * out[2 * j + 0] + out[2 * j + 1] * out[2 * j + 1]) / nfft;
                     in[2 * j + 1] = 0;
                 }
                 gmx_fft_1d(fft1, GMX_FFT_FORWARD, in.data(), out.data());
-                for (size_t j = 0; (j < nfft); j++)
+                for (std::size_t j = 0; (j < nfft); j++)
                 {
                     (*c)[i][j] = out[2 * j + 0];
                 }

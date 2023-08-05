@@ -2344,7 +2344,7 @@ static void set_zones_size(gmx_domdec_t*      dd,
 
                     if (bDistMB)
                     {
-                        for (size_t zi = 0; zi < zones->iZones.size(); zi++)
+                        for (std::size_t zi = 0; zi < zones->iZones.size(); zi++)
                         {
                             if (zones->shift[zi][dim] == 0)
                             {
@@ -2518,7 +2518,7 @@ static void orderVector(gmx::ArrayRef<const gmx_cgsort_t> sort,
                "The sorting buffer needs to be sufficiently large");
 
     /* Order the data into the temporary buffer */
-    size_t i = 0;
+    std::size_t i = 0;
     for (const gmx_cgsort_t& entry : sort)
     {
         sortBuffer[i++] = dataToSort[entry.ind];
@@ -2553,7 +2553,7 @@ static void dd_sort_order_nbnxn(const t_forcerec* fr, std::vector<gmx_cgsort_t>*
     /* Using push_back() instead of this resize results in much slower code */
     sort->resize(atomOrder.size());
     gmx::ArrayRef<gmx_cgsort_t> buffer    = *sort;
-    size_t                      numSorted = 0;
+    std::size_t                 numSorted = 0;
     for (int i : atomOrder)
     {
         if (i >= 0)

@@ -130,7 +130,7 @@ CommandLine::Impl::Impl(const ArrayRef<const std::string>& cmdline) :
 
 CommandLine::Impl::~Impl()
 {
-    for (size_t i = 0; i < args_.size(); ++i)
+    for (std::size_t i = 0; i < args_.size(); ++i)
     {
         std::free(args_[i]);
     }
@@ -162,7 +162,7 @@ void CommandLine::append(const char* arg)
 {
     GMX_RELEASE_ASSERT(impl_->argc_ == ssize(impl_->args_),
                        "Command-line has been modified externally");
-    size_t newSize = impl_->args_.size() + 1;
+    std::size_t newSize = impl_->args_.size() + 1;
     impl_->args_.reserve(newSize);
     impl_->argv_.reserve(newSize + 1);
     char* newArg = strdup(arg);

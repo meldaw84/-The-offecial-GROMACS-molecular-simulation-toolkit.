@@ -316,7 +316,7 @@ gmx_shellfc_t* init_shell_flexcon(FILE*             fplog,
     shfc->bInterCG = FALSE;
     ns             = 0;
     a_offset       = 0;
-    for (size_t mb = 0; mb < mtop.molblock.size(); mb++)
+    for (std::size_t mb = 0; mb < mtop.molblock.size(); mb++)
     {
         const gmx_molblock_t& molb = mtop.molblock[mb];
         const gmx_moltype_t&  molt = mtop.moltype[molb.type];

@@ -90,7 +90,7 @@ public:
     std::optional<int> atomTypeFromName(const std::string& str) const;
 
     //! Get number of defined atom types.
-    size_t size() const;
+    std::size_t size() const;
 
     /*! \brief
      * Get name of atom from internal atom type number.

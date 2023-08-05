@@ -120,7 +120,7 @@ void SimulationSignaller::setSignals()
     }
 
     SimulationSignals& s = *signals_;
-    for (size_t i = 0; i < s.size(); i++)
+    for (std::size_t i = 0; i < s.size(); i++)
     {
         if (doInterSim_ || s[i].isLocal)
         {

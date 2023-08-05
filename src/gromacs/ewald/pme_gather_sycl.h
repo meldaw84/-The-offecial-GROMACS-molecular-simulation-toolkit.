@@ -52,7 +52,7 @@ class PmeGatherKernel : public ISyclKernelFunctor
 {
 public:
     PmeGatherKernel();
-    void setArg(size_t argIndex, void* arg) override;
+    void setArg(std::size_t argIndex, void* arg) override;
     void launch(const KernelLaunchConfig& config, const DeviceStream& deviceStream) override;
 
 private:

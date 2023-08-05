@@ -133,7 +133,7 @@ TEST(GaussianOn1DLattice, doesNotOverflowForLargeRange)
     const real          weightFirst  = 1;
     gauss1d.spread(weightFirst, shift);
 
-    for (size_t i = 0; i < 187; i++)
+    for (std::size_t i = 0; i < 187; i++)
     {
         EXPECT_FLOAT_EQ(0, viewOnResult[i]);
     }
@@ -147,19 +147,19 @@ TEST(GaussianOn1DLattice, doesNotOverflowForLargeRange)
         0.12951759994029998779296875,        0.3520653247833251953125
     };
 
-    for (size_t i = 188; i < 200; i++)
+    for (std::size_t i = 188; i < 200; i++)
     {
         EXPECT_FLOAT_EQ(expectedResult[i - 188], viewOnResult[i]);
     }
 
-    for (size_t i = 200; i < 212; i++)
+    for (std::size_t i = 200; i < 212; i++)
     {
         EXPECT_FLOAT_EQ(expectedResult[211 - i], viewOnResult[i]);
     }
 
     EXPECT_FLOAT_EQ(4.69519506491195688717869977423e-35, viewOnResult[212]);
 
-    for (size_t i = 213; i < 2 * spreadWidth + 1; i++)
+    for (std::size_t i = 213; i < 2 * spreadWidth + 1; i++)
     {
         EXPECT_FLOAT_EQ(0, viewOnResult[i]);
     }

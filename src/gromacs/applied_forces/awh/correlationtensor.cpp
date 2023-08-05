@@ -138,8 +138,8 @@ double CorrelationTensor::getTimeIntegral(int tensorIndex, double dtSample) cons
 double CorrelationTensor::getVolumeElement(const double dtSample) const
 {
     gmx::FixedCapacityVector<double, (c_biasMaxNumDim * (c_biasMaxNumDim - 1)) / 2> correlationIntegral;
-    const size_t correlationIntegralSize = blockDataList_[0].correlationIntegral().size();
-    for (size_t i = 0; i < correlationIntegralSize; i++)
+    const std::size_t correlationIntegralSize = blockDataList_[0].correlationIntegral().size();
+    for (std::size_t i = 0; i < correlationIntegralSize; i++)
     {
         correlationIntegral.push_back(getTimeIntegral(i, dtSample));
     }
@@ -151,7 +151,7 @@ void CorrelationTensor::doubleBlockLengths()
     /* We need to shift the data so that a given blockdata gets the data for double the block
        length. The data for the shortest block length is not needed anymore. */
 
-    for (size_t i = 0; i < blockDataList_.size() - 1; i++)
+    for (std::size_t i = 0; i < blockDataList_.size() - 1; i++)
     {
         blockDataList_[i] = blockDataList_[i + 1];
     }
@@ -259,7 +259,7 @@ void CorrelationTensor::addData(double weight, gmx::ArrayRef<const double> data,
 
     /* Store the data for each block length considered. First update the longest block which has all
        data since it's used for updating the correlation function for the other block lengths. */
-    for (size_t i = 0; i < blockDataList_.size() - 1; i++)
+    for (std::size_t i = 0; i < blockDataList_.size() - 1; i++)
     {
         CorrelationBlockData& bd = blockDataList_[i];
 

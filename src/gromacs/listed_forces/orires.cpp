@@ -272,7 +272,7 @@ t_oriresdata::t_oriresdata(FILE*                     fplog,
         }
     }
 
-    const size_t numFitAtoms = referenceCoordinates_.size();
+    const std::size_t numFitAtoms = referenceCoordinates_.size();
     xTmp_.resize(numFitAtoms);
 
     if (fplog)

@@ -57,7 +57,7 @@ template<typename T>
 class CharBuffer
 {
 public:
-    static constexpr size_t ValueSize = sizeof(T);
+    static constexpr std::size_t ValueSize = sizeof(T);
 
     explicit CharBuffer(T value) { u.v = value; }
     explicit CharBuffer(const char buffer[]) { std::copy(buffer, buffer + ValueSize, u.c); }
@@ -290,7 +290,7 @@ public:
 
     ArrayRef<const char> buffer_;
     bool                 sourceIsDouble_;
-    size_t               pos_;
+    std::size_t          pos_;
     EndianSwapBehavior   endianSwapBehavior_;
 };
 

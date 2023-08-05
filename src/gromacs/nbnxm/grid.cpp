@@ -935,7 +935,7 @@ void Grid::fillCell(GridSetData*                   gridSetData,
     if (nbat->XFormat == nbatX4)
     {
         /* Store the bounding boxes as xyz.xyz. */
-        size_t       offset = atomToCluster(atomStart - cellOffset_ * geometry_.numAtomsICluster);
+        std::size_t  offset = atomToCluster(atomStart - cellOffset_ * geometry_.numAtomsICluster);
         BoundingBox* bb_ptr = bb_.data() + offset;
 
 #if GMX_SIMD && GMX_SIMD_REAL_WIDTH == 2
@@ -955,7 +955,7 @@ void Grid::fillCell(GridSetData*                   gridSetData,
     else if (nbat->XFormat == nbatX8)
     {
         /* Store the bounding boxes as xyz.xyz. */
-        size_t       offset = atomToCluster(atomStart - cellOffset_ * geometry_.numAtomsICluster);
+        std::size_t  offset = atomToCluster(atomStart - cellOffset_ * geometry_.numAtomsICluster);
         BoundingBox* bb_ptr = bb_.data() + offset;
 
         calc_bounding_box_x_x8(numAtoms, nbat->x().data() + atom_to_x_index<c_packX8>(atomStart), bb_ptr);

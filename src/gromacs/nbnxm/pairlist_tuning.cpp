@@ -136,7 +136,7 @@ void increaseNstlist(FILE*               fp,
         return;
     }
 
-    size_t      nstlist_ind = 0;
+    std::size_t nstlist_ind = 0;
     const char* nstl_gpu =
             "\nFor optimal performance with a GPU nstlist (now %d) should be larger.\nThe "
             "optimum depends on your CPU and GPU resources.\nYou might want to try several "

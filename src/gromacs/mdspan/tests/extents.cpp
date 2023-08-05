@@ -133,7 +133,7 @@ public:
     {
         std::array<ptrdiff_t, extents_type::rank()> s = { { E_STATIC... } };
         std::array<ptrdiff_t, extents_type::rank()> a = { { e... } };
-        for (size_t r = 0; r < extents_type::rank(); r++)
+        for (std::size_t r = 0; r < extents_type::rank(); r++)
         {
             EXPECT_EQ(my_extents_explicit.static_extent(r), s[r]);
             EXPECT_EQ(my_extents_explicit.extent(r), a[r]);
@@ -186,7 +186,7 @@ TEST(ExtentsTest, Assignment)
     extents<5, dynamic_extent, 3, dynamic_extent, 1> e1(4, 2);
     extents<5, 4, 3, 2, 1>                           e2;
     e2 = e1;
-    for (size_t r = 0; r < 5; r++)
+    for (std::size_t r = 0; r < 5; r++)
     {
         EXPECT_EQ(e2.extent(r), e1.extent(r));
     }

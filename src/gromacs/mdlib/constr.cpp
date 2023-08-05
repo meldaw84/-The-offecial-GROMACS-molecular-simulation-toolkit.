@@ -210,7 +210,7 @@ bool Constraints::havePerturbedConstraints() const
 {
     const gmx_ffparams_t& ffparams = impl_->mtop.ffparams;
 
-    for (size_t i = 0; i < ffparams.functype.size(); i++)
+    for (std::size_t i = 0; i < ffparams.functype.size(); i++)
     {
         if ((ffparams.functype[i] == F_CONSTR || ffparams.functype[i] == F_CONSTRNC)
             && ffparams.iparams[i].constr.dA != ffparams.iparams[i].constr.dB)
@@ -1198,7 +1198,7 @@ Constraints::Impl::Impl(const gmx_mtop_t&          mtop_p,
         }
 
         /* Make an atom to settle index for use in domain decomposition */
-        for (size_t mt = 0; mt < mtop.moltype.size(); mt++)
+        for (std::size_t mt = 0; mt < mtop.moltype.size(); mt++)
         {
             at2settle_mt.emplace_back(
                     make_at2settle(mtop.moltype[mt].atoms.nr, mtop.moltype[mt].ilist[F_SETTLE]));

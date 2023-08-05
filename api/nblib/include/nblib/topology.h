@@ -205,7 +205,7 @@ inline auto expandQuantity(const Topology& topology, F&& particleTypeExtractor)
 
     const std::vector<ParticleType>& particleTypes = topology.getParticleTypes();
 
-    for (size_t id : topology.getParticleTypeIdOfAllParticles())
+    for (std::size_t id : topology.getParticleTypeIdOfAllParticles())
     {
         ret.push_back((particleTypes[id].*particleTypeExtractor)());
     }

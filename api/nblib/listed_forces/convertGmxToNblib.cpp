@@ -208,9 +208,9 @@ transferIndicesGmxToNblib(const InteractionDefinitions&  idef,
                           const std::vector<int>&        uniqueParamIndices)
 {
     // copy indices
-    auto   gmxListedID           = FindIndex<TwoCenterType, GmxToNblibMapping>::value;
-    size_t numInteractionsofType = idef.il[gmxListedID].iatoms.size() / 3;
-    for (size_t i = 0; i < numInteractionsofType; i++)
+    auto        gmxListedID           = FindIndex<TwoCenterType, GmxToNblibMapping>::value;
+    std::size_t numInteractionsofType = idef.il[gmxListedID].iatoms.size() / 3;
+    for (std::size_t i = 0; i < numInteractionsofType; i++)
     {
         InteractionIndex<TwoCenterType> indices;
         indices[0]    = idef.il[gmxListedID].iatoms[3 * i + 1];
@@ -229,9 +229,9 @@ transferIndicesGmxToNblib(const InteractionDefinitions&    idef,
                           const std::vector<int>&          uniqueParamIndices)
 {
     // copy indices
-    auto   gmxListedID           = FindIndex<ThreeCenterType, GmxToNblibMapping>::value;
-    size_t numInteractionsofType = idef.il[gmxListedID].iatoms.size() / 4;
-    for (size_t i = 0; i < numInteractionsofType; i++)
+    auto        gmxListedID           = FindIndex<ThreeCenterType, GmxToNblibMapping>::value;
+    std::size_t numInteractionsofType = idef.il[gmxListedID].iatoms.size() / 4;
+    for (std::size_t i = 0; i < numInteractionsofType; i++)
     {
         InteractionIndex<ThreeCenterType> indices;
         indices[0]    = idef.il[gmxListedID].iatoms[4 * i + 1];
@@ -251,9 +251,9 @@ transferIndicesGmxToNblib(const InteractionDefinitions&   idef,
                           const std::vector<int>&         uniqueParamIndices)
 {
     // copy indices
-    auto   gmxListedID           = FindIndex<FourCenterType, GmxToNblibMapping>::value;
-    size_t numInteractionsofType = idef.il[gmxListedID].iatoms.size() / 5;
-    for (size_t i = 0; i < numInteractionsofType; i++)
+    auto        gmxListedID           = FindIndex<FourCenterType, GmxToNblibMapping>::value;
+    std::size_t numInteractionsofType = idef.il[gmxListedID].iatoms.size() / 5;
+    for (std::size_t i = 0; i < numInteractionsofType; i++)
     {
         InteractionIndex<FourCenterType> indices;
         indices[0]    = idef.il[gmxListedID].iatoms[5 * i + 1];
@@ -288,8 +288,8 @@ ListedInteractionData convertToNblibInteractions(const InteractionDefinitions& i
 
         if constexpr (Contains<InteractionType, GmxToNblibMapping>{})
         {
-            constexpr size_t typeID     = FindIndex<InteractionType, GmxToNblibMapping>::value;
-            int              numCenters = NCenter<InteractionType>{};
+            constexpr std::size_t typeID     = FindIndex<InteractionType, GmxToNblibMapping>::value;
+            int                   numCenters = NCenter<InteractionType>{};
             auto numInstancesOfType = interactionDefinitions.il[typeID].size() / (numCenters + 1);
             // calculate number of unique parameter sets
             // initiate with a vector of param set IDs
@@ -303,10 +303,10 @@ ListedInteractionData convertToNblibInteractions(const InteractionDefinitions& i
             uniqueParamIndices.erase(std::unique(uniqueParamIndices.begin(), uniqueParamIndices.end()),
                                      uniqueParamIndices.end());
 
-            size_t numUniqueParamSets = uniqueParamIndices.size();
+            std::size_t numUniqueParamSets = uniqueParamIndices.size();
             // start filling params and indices into interactions
             // copy param sets
-            for (size_t i = 0; i < numUniqueParamSets; i++)
+            for (std::size_t i = 0; i < numUniqueParamSets; i++)
             {
                 detail::transferParametersGmxToNblib(
                         interactionDefinitions.iparams[uniqueParamIndices[i]], interactionElement);

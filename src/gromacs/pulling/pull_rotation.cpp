@@ -2761,7 +2761,7 @@ static void do_fixed(gmx_enfrotgrp* erg,
     N_M                                      = erg->rotg->nat * erg->invmass;
     const auto& collectiveRotationGroupIndex = erg->atomSet->collectiveIndex();
     /* Each process calculates the forces on its local atoms */
-    for (size_t j = 0; j < erg->atomSet->numAtomsLocal(); j++)
+    for (std::size_t j = 0; j < erg->atomSet->numAtomsLocal(); j++)
     {
         /* Calculate (x_i-x_c) resp. (x_i-u) */
         rvec_sub(erg->x_loc_pbc[j], erg->xc_center, xi_xc);
@@ -2865,7 +2865,7 @@ static void do_radial_motion(gmx_enfrotgrp* erg,
     N_M                                      = erg->rotg->nat * erg->invmass;
     const auto& collectiveRotationGroupIndex = erg->atomSet->collectiveIndex();
     /* Each process calculates the forces on its local atoms */
-    for (size_t j = 0; j < erg->atomSet->numAtomsLocal(); j++)
+    for (std::size_t j = 0; j < erg->atomSet->numAtomsLocal(); j++)
     {
         /* Calculate (xj-u) */
         rvec_sub(erg->x_loc_pbc[j], erg->xc_center, xj_u); /* xj_u = xj-u */
@@ -3842,7 +3842,7 @@ std::unique_ptr<gmx::EnforcedRotation> init_rot(FILE*                       fplo
 static void rotate_local_reference(gmx_enfrotgrp* erg)
 {
     const auto& collectiveRotationGroupIndex = erg->atomSet->collectiveIndex();
-    for (size_t i = 0; i < erg->atomSet->numAtomsLocal(); i++)
+    for (std::size_t i = 0; i < erg->atomSet->numAtomsLocal(); i++)
     {
         /* Index of this rotation group atom with respect to the whole rotation group */
         int ii = collectiveRotationGroupIndex[i];

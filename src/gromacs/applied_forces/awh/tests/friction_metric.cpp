@@ -110,10 +110,10 @@ TEST_P(FrictionMetricTest, FrictionMetric)
     gmx::test::TestReferenceChecker checker(data.rootChecker());
     GMX_RELEASE_ASSERT(coordinates_.size() == forces_.size(),
                        "The number of coordinate steps and force steps do not match.");
-    size_t           numSteps        = coordinates_.size();
+    std::size_t      numSteps        = coordinates_.size();
     CorrelationGrid& correlationGrid = *correlationGrid_;
 
-    for (size_t step = 0; step < numSteps; step++)
+    for (std::size_t step = 0; step < numSteps; step++)
     {
         const double coord      = coordinates_[step];
         const int    pointIndex = coord * numPoints_;
@@ -132,8 +132,8 @@ TEST_P(FrictionMetricTest, FrictionMetric)
             neighbors.push_back(pointIndex + 1);
             neighborSampleWeights.push_back(g_sampleWeightNeighbor);
         }
-        const size_t numNeighbors = neighbors.size();
-        for (size_t neighborIndex = 0; neighborIndex < numNeighbors; neighborIndex++)
+        const std::size_t numNeighbors = neighbors.size();
+        for (std::size_t neighborIndex = 0; neighborIndex < numNeighbors; neighborIndex++)
         {
             std::vector<double> force;
             for (int64_t dim = 0; dim < numDim_; dim++)

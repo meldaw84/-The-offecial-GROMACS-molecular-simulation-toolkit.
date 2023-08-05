@@ -80,7 +80,7 @@ struct LayoutTests
     void check_extents(E... e)
     {
         std::array<ptrdiff_t, extents_type::rank()> a = { { e... } };
-        for (size_t r = 0; r < extents_type::rank(); r++)
+        for (std::size_t r = 0; r < extents_type::rank(); r++)
         {
             EXPECT_EQ(my_mapping_explicit.extents().extent(r), a[r]);
             EXPECT_EQ(my_mapping_copy.extents().extent(r), a[r]);
@@ -90,7 +90,7 @@ struct LayoutTests
     void check_strides(E... e)
     {
         std::array<ptrdiff_t, extents_type::rank()> a = { { e... } };
-        for (size_t r = 0; r < extents_type::rank(); r++)
+        for (std::size_t r = 0; r < extents_type::rank(); r++)
         {
             EXPECT_EQ(my_mapping_explicit.stride(r), a[r]);
             EXPECT_EQ(my_mapping_copy.stride(r), a[r]);

@@ -83,7 +83,7 @@
  */
 template<typename ValueType>
 void reallocateDeviceBuffer(DeviceBuffer<ValueType>* buffer,
-                            size_t                   numValues,
+                            std::size_t              numValues,
                             int*                     currentNumValues,
                             int*                     currentMaxNumValues,
                             const DeviceContext&     deviceContext)

@@ -315,7 +315,7 @@ int multiDimGridIndexToLinear(ArrayRef<const GridAxis> axis, const awh_ivec inde
 {
     awh_ivec numPointsDim = { 0 };
 
-    for (size_t d = 0; d < axis.size(); d++)
+    for (std::size_t d = 0; d < axis.size(); d++)
     {
         numPointsDim[d] = axis[d].numPoints();
     }
@@ -562,7 +562,7 @@ static int pointDistanceAlongAxis(const GridAxis& axis, double x, double x0)
 static bool valueIsInGrid(const awh_dvec value, ArrayRef<const GridAxis> axis)
 {
     /* For each dimension get the one-dimensional index and check if it is in range. */
-    for (size_t d = 0; d < axis.size(); d++)
+    for (std::size_t d = 0; d < axis.size(); d++)
     {
         /* The index is computed as the point distance from the origin. */
         int index = pointDistanceAlongAxis(axis[d], value[d], axis[d].origin());
@@ -583,7 +583,7 @@ bool BiasGrid::covers(const awh_dvec value) const
 
 std::optional<int> BiasGrid::lambdaAxisIndex() const
 {
-    for (size_t i = 0; i < axis_.size(); i++)
+    for (std::size_t i = 0; i < axis_.size(); i++)
     {
         if (axis_[i].isFepLambdaAxis())
         {
@@ -595,7 +595,7 @@ std::optional<int> BiasGrid::lambdaAxisIndex() const
 
 int BiasGrid::numFepLambdaStates() const
 {
-    for (size_t i = 0; i < axis_.size(); i++)
+    for (std::size_t i = 0; i < axis_.size(); i++)
     {
         if (axis_[i].isFepLambdaAxis())
         {
@@ -641,7 +641,7 @@ static int getNearestIndexInGrid(const awh_dvec value, ArrayRef<const GridAxis> 
     awh_ivec indexMulti;
 
     /* If the index is out of range, modify it so that it is in range by choosing the nearest point on the edge. */
-    for (size_t d = 0; d < axis.size(); d++)
+    for (std::size_t d = 0; d < axis.size(); d++)
     {
         indexMulti[d] = axis[d].nearestIndex(value[d]);
     }
@@ -717,7 +717,7 @@ void BiasGrid::initPoints()
     awh_ivec numPointsDimWork = { 0 };
     awh_ivec indexWork        = { 0 };
 
-    for (size_t d = 0; d < axis_.size(); d++)
+    for (std::size_t d = 0; d < axis_.size(); d++)
     {
         /* Temporarily gather the number of points in each dimension in one array */
         numPointsDimWork[d] = axis_[d].numPoints();
@@ -725,7 +725,7 @@ void BiasGrid::initPoints()
 
     for (auto& point : point_)
     {
-        for (size_t d = 0; d < axis_.size(); d++)
+        for (std::size_t d = 0; d < axis_.size(); d++)
         {
             if (axis_[d].isFepLambdaAxis())
             {
@@ -861,7 +861,7 @@ BiasGrid::BiasGrid(ArrayRef<const DimParams> dimParams, ArrayRef<const AwhDimPar
      * Note: could also generate neighbor list only when needed
      * instead of storing them for each point.
      */
-    for (size_t m = 0; m < point_.size(); m++)
+    for (std::size_t m = 0; m < point_.size(); m++)
     {
         std::vector<int>* neighbor = &point_[m].neighbor;
 
@@ -938,7 +938,7 @@ void mapGridToDataGrid(std::vector<int>* gridpointToDatapoint,
     /* Map each grid point to a data point. No interpolation, just pick the nearest one.
      * It is assumed that the given data is uniformly spaced for each dimension.
      */
-    for (size_t m = 0; m < grid.numPoints(); m++)
+    for (std::size_t m = 0; m < grid.numPoints(); m++)
     {
         /* We only define what we need for the datagrid since it's not needed here which is a bit ugly */
 

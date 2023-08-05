@@ -610,7 +610,7 @@ void HelpExportReStructuredText::exportModuleGroup(const char* title, const Modu
         std::string displayName(tag);
         // TODO: This does not work if the binary name would contain a dash,
         // but that is not currently the case.
-        const size_t dashPos = displayName.find('-');
+        const std::size_t dashPos = displayName.find('-');
         GMX_RELEASE_ASSERT(dashPos != std::string::npos,
                            "There should always be at least one dash in the tag");
         displayName[dashPos] = ' ';

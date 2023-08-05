@@ -141,7 +141,7 @@ private:
     template<bool allowAssign>
     void insert_assign(int key, const T& value)
     {
-        size_t ind = (key & bitMask_);
+        std::size_t ind = (key & bitMask_);
 
         if (table_[ind].key >= 0)
         {

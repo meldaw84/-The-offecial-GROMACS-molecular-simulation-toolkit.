@@ -71,7 +71,7 @@ public:
     //! Removes all stored values.
     virtual void clear() = 0;
     //! Reserves memory for additional `count` entries.
-    virtual void reserve(size_t count) = 0;
+    virtual void reserve(std::size_t count) = 0;
     //! Appends a value to the store.
     virtual void append(const T& value) = 0;
 };

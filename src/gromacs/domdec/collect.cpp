@@ -185,7 +185,7 @@ static void dd_collect_vec_sendrecv(gmx_domdec_t*                  dd,
                 /* When we send/recv instead of scatter/gather, we might need
                  * to increase the communication buffer size here.
                  */
-                if (static_cast<size_t>(domainGroups.numAtoms) > ma.rvecBuffer.size())
+                if (static_cast<std::size_t>(domainGroups.numAtoms) > ma.rvecBuffer.size())
                 {
                     ma.rvecBuffer.resize(domainGroups.numAtoms);
                 }

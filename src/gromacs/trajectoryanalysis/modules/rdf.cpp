@@ -349,7 +349,7 @@ void Rdf::optionsFinished(TrajectoryAnalysisSettings* settings)
 void Rdf::initAnalysis(const TrajectoryAnalysisSettings& settings, const TopologyInformation& top)
 {
     pairDist_.setDataSetCount(sel_.size());
-    for (size_t i = 0; i < sel_.size(); ++i)
+    for (std::size_t i = 0; i < sel_.size(); ++i)
     {
         pairDist_.setColumnCount(i, 1);
     }
@@ -377,7 +377,7 @@ void Rdf::initAnalysis(const TrajectoryAnalysisSettings& settings, const Topolog
                     InconsistentInputError("-excl only works with a -ref selection that consist of "
                                            "atoms in ascending (sorted) order"));
         }
-        for (size_t i = 0; i < sel_.size(); ++i)
+        for (std::size_t i = 0; i < sel_.size(); ++i)
         {
             if (!sel_[i].hasOnlyAtoms())
             {
@@ -522,7 +522,7 @@ void Rdf::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* pbc, TrajectoryAna
 
     dh.startFrame(frnr, fr.time);
     AnalysisNeighborhoodSearch nbsearch = nb_.initSearch(pbc, refSel);
-    for (size_t g = 0; g < sel.size(); ++g)
+    for (std::size_t g = 0; g < sel.size(); ++g)
     {
         dh.selectDataSet(g);
 
@@ -547,7 +547,7 @@ void Rdf::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* pbc, TrajectoryAna
                     }
                 }
                 // Accumulate the RDF from the distances to the surface.
-                for (size_t i = 0; i < surfaceDist2.size(); ++i)
+                for (std::size_t i = 0; i < surfaceDist2.size(); ++i)
                 {
                     const real r2 = surfaceDist2[i];
                     // Here, we need to check for rmax, since the value might
@@ -620,7 +620,7 @@ void Rdf::finishAnalysis(int /*nframes*/)
         if (normalization_ == Normalization::Rdf)
         {
             // Normalize by particle density.
-            for (size_t g = 0; g < sel_.size(); ++g)
+            for (std::size_t g = 0; g < sel_.size(); ++g)
             {
                 finalRdf->scaleSingle(g, 1.0 / normAve_->average(0, g + 1));
             }
@@ -643,7 +643,7 @@ void Rdf::finishAnalysis(int /*nframes*/)
         plotm->setSubtitle(formatString("reference %s", refSel_.name()));
         plotm->setXLabel("r (nm)");
         plotm->setYLabel("g(r)");
-        for (size_t i = 0; i < sel_.size(); ++i)
+        for (std::size_t i = 0; i < sel_.size(); ++i)
         {
             plotm->appendLegend(sel_[i].name());
         }
@@ -662,7 +662,7 @@ void Rdf::finishAnalysis(int /*nframes*/)
         plotm->setSubtitle(formatString("reference %s", refSel_.name()));
         plotm->setXLabel("r (nm)");
         plotm->setYLabel("number");
-        for (size_t i = 0; i < sel_.size(); ++i)
+        for (std::size_t i = 0; i < sel_.size(); ++i)
         {
             plotm->appendLegend(sel_[i].name());
         }

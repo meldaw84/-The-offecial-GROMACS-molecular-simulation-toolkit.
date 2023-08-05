@@ -68,7 +68,7 @@
  * \param[in]     deviceContext        The buffer's dummy device  context - not managed explicitly in CUDA RT.
  */
 template<typename ValueType>
-void allocateDeviceBuffer(DeviceBuffer<ValueType>* buffer, size_t numValues, const DeviceContext& /* deviceContext */)
+void allocateDeviceBuffer(DeviceBuffer<ValueType>* buffer, std::size_t numValues, const DeviceContext& /* deviceContext */)
 {
     GMX_ASSERT(buffer, "needs a buffer pointer");
     cudaError_t stat = cudaMalloc(buffer, numValues * sizeof(ValueType));
@@ -130,8 +130,8 @@ void freeDeviceBuffer(DeviceBuffer* buffer)
 template<typename ValueType>
 void copyToDeviceBuffer(DeviceBuffer<ValueType>* buffer,
                         const ValueType*         hostBuffer,
-                        size_t                   startingOffset,
-                        size_t                   numValues,
+                        std::size_t              startingOffset,
+                        std::size_t              numValues,
                         const DeviceStream&      deviceStream,
                         GpuApiCallBehavior       transferKind,
                         CommandEvent* /*timingEvent*/)
@@ -142,8 +142,8 @@ void copyToDeviceBuffer(DeviceBuffer<ValueType>* buffer,
     }
     GMX_ASSERT(buffer, "needs a buffer pointer");
     GMX_ASSERT(hostBuffer, "needs a host buffer pointer");
-    cudaError_t  stat;
-    const size_t bytes = numValues * sizeof(ValueType);
+    cudaError_t       stat;
+    const std::size_t bytes = numValues * sizeof(ValueType);
 
     switch (transferKind)
     {
@@ -189,8 +189,8 @@ void copyToDeviceBuffer(DeviceBuffer<ValueType>* buffer,
 template<typename ValueType>
 void copyFromDeviceBuffer(ValueType*               hostBuffer,
                           DeviceBuffer<ValueType>* buffer,
-                          size_t                   startingOffset,
-                          size_t                   numValues,
+                          std::size_t              startingOffset,
+                          std::size_t              numValues,
                           const DeviceStream&      deviceStream,
                           GpuApiCallBehavior       transferKind,
                           CommandEvent* /*timingEvent*/)
@@ -202,8 +202,8 @@ void copyFromDeviceBuffer(ValueType*               hostBuffer,
     GMX_ASSERT(buffer, "needs a buffer pointer");
     GMX_ASSERT(hostBuffer, "needs a host buffer pointer");
 
-    cudaError_t  stat;
-    const size_t bytes = numValues * sizeof(ValueType);
+    cudaError_t       stat;
+    const std::size_t bytes = numValues * sizeof(ValueType);
     switch (transferKind)
     {
         case GpuApiCallBehavior::Async:
@@ -248,7 +248,7 @@ void copyFromDeviceBuffer(ValueType*               hostBuffer,
 template<typename ValueType>
 void copyBetweenDeviceBuffers(DeviceBuffer<ValueType>* destinationDeviceBuffer,
                               DeviceBuffer<ValueType>* sourceDeviceBuffer,
-                              size_t                   numValues,
+                              std::size_t              numValues,
                               const DeviceStream&      deviceStream,
                               GpuApiCallBehavior       transferKind,
                               CommandEvent* /*timingEvent*/)
@@ -260,8 +260,8 @@ void copyBetweenDeviceBuffers(DeviceBuffer<ValueType>* destinationDeviceBuffer,
     GMX_ASSERT(destinationDeviceBuffer, "needs a destination buffer pointer");
     GMX_ASSERT(sourceDeviceBuffer, "needs a source buffer pointer");
 
-    cudaError_t  stat;
-    const size_t bytes = numValues * sizeof(ValueType);
+    cudaError_t       stat;
+    const std::size_t bytes = numValues * sizeof(ValueType);
     switch (transferKind)
     {
         case GpuApiCallBehavior::Async:
@@ -297,8 +297,8 @@ void copyBetweenDeviceBuffers(DeviceBuffer<ValueType>* destinationDeviceBuffer,
  */
 template<typename ValueType>
 void clearDeviceBufferAsync(DeviceBuffer<ValueType>* buffer,
-                            size_t                   startingOffset,
-                            size_t                   numValues,
+                            std::size_t              startingOffset,
+                            std::size_t              numValues,
                             const DeviceStream&      deviceStream)
 {
     if (numValues == 0)
@@ -306,8 +306,8 @@ void clearDeviceBufferAsync(DeviceBuffer<ValueType>* buffer,
         return;
     }
     GMX_ASSERT(buffer, "needs a buffer pointer");
-    const size_t bytes   = numValues * sizeof(ValueType);
-    const char   pattern = 0;
+    const std::size_t bytes   = numValues * sizeof(ValueType);
+    const char        pattern = 0;
 
     cudaError_t stat = cudaMemsetAsync(
             *reinterpret_cast<ValueType**>(buffer) + startingOffset, pattern, bytes, deviceStream.stream());
@@ -365,7 +365,7 @@ void initParamLookupTable(DeviceBuffer<ValueType>* deviceBuffer,
 
     allocateDeviceBuffer(deviceBuffer, numValues, deviceContext);
 
-    const size_t sizeInBytes = numValues * sizeof(ValueType);
+    const std::size_t sizeInBytes = numValues * sizeof(ValueType);
 
     cudaError_t stat = cudaMemcpy(
             *reinterpret_cast<ValueType**>(deviceBuffer), hostBuffer, sizeInBytes, cudaMemcpyHostToDevice);
@@ -433,7 +433,7 @@ ValueType* asMpiPointer(DeviceBuffer<ValueType>& buffer)
  */
 template<typename ValueType>
 void allocateDeviceBufferNvShmem(DeviceBuffer<ValueType>* buffer,
-                                 size_t                   numValues,
+                                 std::size_t              numValues,
                                  const DeviceContext& /* deviceContext */)
 {
     GMX_ASSERT(buffer, "needs a buffer pointer");
@@ -462,7 +462,7 @@ void allocateDeviceBufferNvShmem(DeviceBuffer<ValueType>* buffer,
  */
 template<typename ValueType>
 void reallocateDeviceBufferNvShmem(DeviceBuffer<ValueType>* buffer,
-                                   size_t                   numValues,
+                                   std::size_t              numValues,
                                    int*                     currentNumValues,
                                    int*                     currentMaxNumValues,
                                    const DeviceContext&     deviceContext)

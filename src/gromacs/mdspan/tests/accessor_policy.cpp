@@ -61,7 +61,7 @@ TEST_F(BasicAccessorPolicy, Decay)
 
 TEST_F(BasicAccessorPolicy, Access)
 {
-    for (size_t i = 0; i < testdata.size(); ++i)
+    for (std::size_t i = 0; i < testdata.size(); ++i)
     {
         EXPECT_EQ(acc.access(testdata.data(), i), testdata[i]);
     }
@@ -69,7 +69,7 @@ TEST_F(BasicAccessorPolicy, Access)
 
 TEST_F(BasicAccessorPolicy, Offset)
 {
-    for (size_t i = 0; i < testdata.size(); ++i)
+    for (std::size_t i = 0; i < testdata.size(); ++i)
     {
         EXPECT_EQ(acc.offset(testdata.data(), i), testdata.data() + i);
     }
@@ -80,12 +80,12 @@ TEST_F(BasicAccessorPolicy, CopyAccessor)
     const auto newAcc = acc;
 
     EXPECT_EQ(acc.decay(testdata.data()), newAcc.decay(testdata.data()));
-    for (size_t i = 0; i < testdata.size(); ++i)
+    for (std::size_t i = 0; i < testdata.size(); ++i)
     {
         EXPECT_EQ(acc.access(testdata.data(), i), newAcc.access(testdata.data(), i));
     }
 
-    for (size_t i = 0; i < testdata.size(); ++i)
+    for (std::size_t i = 0; i < testdata.size(); ++i)
     {
         EXPECT_EQ(acc.offset(testdata.data(), i), newAcc.offset(testdata.data(), i));
     }

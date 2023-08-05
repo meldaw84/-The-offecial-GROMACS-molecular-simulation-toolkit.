@@ -155,7 +155,7 @@ static int scan_ene_files(const std::vector<std::string>& files, real* readtime,
 
     snew(fr, 1);
 
-    for (size_t f = 0; f < files.size(); f++)
+    for (std::size_t f = 0; f < files.size(); f++)
     {
         in  = open_enx(files[f].c_str(), "r");
         enm = nullptr;
@@ -543,7 +543,7 @@ int gmx_eneconv(int argc, char* argv[])
     bFirst = TRUE;
 
     last_t = fro->t;
-    for (size_t f = 0; f < files.size(); f++)
+    for (std::size_t f = 0; f < files.size(); f++)
     {
         bNewFile   = TRUE;
         bNewOutput = TRUE;

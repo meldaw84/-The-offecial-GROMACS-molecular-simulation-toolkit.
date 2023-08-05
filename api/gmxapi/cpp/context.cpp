@@ -331,11 +331,11 @@ std::shared_ptr<Session> ContextImpl::launch(const Workflow& work)
         // argv[0] is ignored, but should be a valid string (e.g. null terminated array of char)
         argv[0]  = new char[1];
         *argv[0] = '\0';
-        for (size_t argvIndex = offset; argvIndex < argc; ++argvIndex)
+        for (std::size_t argvIndex = offset; argvIndex < argc; ++argvIndex)
         {
-            const auto&  mdArg   = mdArgs_[argvIndex - offset];
-            const size_t argSize = mdArg.length() + 1;
-            argv[argvIndex]      = new char[argSize];
+            const auto&       mdArg   = mdArgs_[argvIndex - offset];
+            const std::size_t argSize = mdArg.length() + 1;
+            argv[argvIndex]           = new char[argSize];
             strncpy(argv[argvIndex], mdArg.c_str(), argSize);
         }
 

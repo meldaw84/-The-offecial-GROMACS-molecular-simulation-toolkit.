@@ -58,8 +58,8 @@ inline int gmxSetenv(const char* name, const char* value, int overwrite)
 #    if GMX_NATIVE_WINDOWS
     if (!overwrite)
     {
-        size_t size  = 0;
-        int    error = getenv_s(&size, nullptr, 0, name);
+        std::size_t size  = 0;
+        int         error = getenv_s(&size, nullptr, 0, name);
         if (error != 0 || size != 0)
         {
             return error;

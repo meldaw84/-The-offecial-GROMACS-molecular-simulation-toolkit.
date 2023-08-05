@@ -95,7 +95,7 @@ static inline bool haveStreamTasksCompleted(const DeviceStream& /* deviceStream 
  * \param[in]     config          Kernel configuration for launching
  * \param[in]     argIndex        Index of the current argument
  */
-void inline prepareGpuKernelArgument(cl_kernel kernel, const KernelLaunchConfig& config, size_t argIndex)
+void inline prepareGpuKernelArgument(cl_kernel kernel, const KernelLaunchConfig& config, std::size_t argIndex)
 {
     if (config.sharedMemorySize > 0)
     {
@@ -121,7 +121,7 @@ void inline prepareGpuKernelArgument(cl_kernel kernel, const KernelLaunchConfig&
 template<typename CurrentArg, typename... RemainingArgs>
 void prepareGpuKernelArgument(cl_kernel                 kernel,
                               const KernelLaunchConfig& config,
-                              size_t                    argIndex,
+                              std::size_t               argIndex,
                               const CurrentArg*         argPtr,
                               const RemainingArgs*... otherArgsPtrs)
 {
@@ -131,8 +131,9 @@ void prepareGpuKernelArgument(cl_kernel                 kernel,
     // Assert on types not allowed to be passed to a kernel
     // (as per section 6.9 of the OpenCL spec).
     static_assert(
-            !std::is_same_v<CurrentArg,
-                            bool> && !std::is_same_v<CurrentArg, size_t> && !std::is_same_v<CurrentArg, ptrdiff_t> && !std::is_same_v<CurrentArg, intptr_t> && !std::is_same_v<CurrentArg, uintptr_t>,
+            !std::is_same_v<
+                    CurrentArg,
+                    bool> && !std::is_same_v<CurrentArg, std::size_t> && !std::is_same_v<CurrentArg, ptrdiff_t> && !std::is_same_v<CurrentArg, intptr_t> && !std::is_same_v<CurrentArg, uintptr_t>,
             "Invalid type passed to OpenCL kernel functions (see OpenCL spec section 6.9).");
 
     prepareGpuKernelArgument(kernel, config, argIndex + 1, otherArgsPtrs...);
@@ -172,11 +173,11 @@ inline void launchGpuKernel(cl_kernel                 kernel,
                             const char*               kernelName,
                             const void* /*kernelArgs*/)
 {
-    const int       workDimensions   = 3;
-    const size_t*   globalWorkOffset = nullptr;
-    const size_t    waitListSize     = 0;
-    const cl_event* waitList         = nullptr;
-    size_t          globalWorkSize[3];
+    const int          workDimensions   = 3;
+    const std::size_t* globalWorkOffset = nullptr;
+    const std::size_t  waitListSize     = 0;
+    const cl_event*    waitList         = nullptr;
+    std::size_t        globalWorkSize[3];
     for (int i = 0; i < workDimensions; i++)
     {
         globalWorkSize[i] = config.gridSize[i] * config.blockSize[i];

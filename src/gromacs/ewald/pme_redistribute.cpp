@@ -176,7 +176,7 @@ static void pme_realloc_splinedata(splinedata_t* spline, const PmeAtomComm* atc)
         return;
     }
 
-    spline->nalloc = std::max(atc->x.capacity(), static_cast<size_t>(atc->numAtoms()));
+    spline->nalloc = std::max(atc->x.capacity(), static_cast<std::size_t>(atc->numAtoms()));
     spline->ind.resize(spline->nalloc);
     /* Initialize the index to identity so it works without threads */
     for (int i = 0; i < spline->nalloc; i++)

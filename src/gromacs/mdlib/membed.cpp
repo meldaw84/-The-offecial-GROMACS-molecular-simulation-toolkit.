@@ -129,7 +129,7 @@ static int get_molblock(int mol_id, const std::vector<gmx_molblock_t>& mblock)
 {
     int nmol = 0;
 
-    for (size_t i = 0; i < mblock.size(); i++)
+    for (std::size_t i = 0; i < mblock.size(); i++)
     {
         nmol += mblock[i].nmol;
         if (mol_id < nmol)
@@ -823,7 +823,7 @@ static void rm_group(SimulationGroups* groups,
 
     /* remove empty molblocks */
     RMmolblock = 0;
-    for (size_t i = 0; i < mtop->molblock.size(); i++)
+    for (std::size_t i = 0; i < mtop->molblock.size(); i++)
     {
         if (mtop->molblock[i].nmol == 0)
         {
@@ -850,12 +850,12 @@ static int rm_bonded(t_block* ins_at, gmx_mtop_t* mtop)
 
 
     snew(bRM, mtop->moltype.size());
-    for (size_t i = 0; i < mtop->moltype.size(); i++)
+    for (std::size_t i = 0; i < mtop->moltype.size(); i++)
     {
         bRM[i] = TRUE;
     }
 
-    for (size_t i = 0; i < mtop->molblock.size(); i++)
+    for (std::size_t i = 0; i < mtop->molblock.size(); i++)
     {
         /*loop over molecule blocks*/
         type  = mtop->molblock[i].type;
@@ -885,7 +885,7 @@ static int rm_bonded(t_block* ins_at, gmx_mtop_t* mtop)
         }
     }
 
-    for (size_t i = 0; i < mtop->moltype.size(); i++)
+    for (std::size_t i = 0; i < mtop->moltype.size(); i++)
     {
         if (bRM[i])
         {
@@ -957,7 +957,7 @@ static void top_update(const char* topfile, rm_t* rm_p, gmx_mtop_t* mtop)
             }
             else if (bMolecules == 1)
             {
-                for (size_t i = 0; i < mtop->molblock.size(); i++)
+                for (std::size_t i = 0; i < mtop->molblock.size(); i++)
                 {
                     nmol = mtop->molblock[i].nmol;
                     sprintf(buf, "%-15s %5d\n", *(mtop->moltype[mtop->molblock[i].type].name), nmol);
@@ -1342,7 +1342,7 @@ gmx_membed_t* init_membed(FILE*          fplog,
             }
         }
 
-        for (size_t i = 0; i < mtop->molblock.size(); i++)
+        for (std::size_t i = 0; i < mtop->molblock.size(); i++)
         {
             ntype = 0;
             for (j = 0; j < rm_p->nr; j++)

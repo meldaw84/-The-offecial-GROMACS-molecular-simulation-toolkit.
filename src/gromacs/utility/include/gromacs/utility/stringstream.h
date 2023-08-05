@@ -116,7 +116,7 @@ public:
 
 private:
     std::string input_;
-    size_t      pos_;
+    std::size_t pos_;
 };
 
 } // namespace gmx

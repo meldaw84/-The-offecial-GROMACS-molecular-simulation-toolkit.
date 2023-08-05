@@ -68,7 +68,7 @@ LeapFrog::LeapFrog(gmx::ArrayRef<const real> inverseMasses, const Box& box) :
 
 void LeapFrog::integrate(const real dt, gmx::ArrayRef<Vec3> x, gmx::ArrayRef<Vec3> v, gmx::ArrayRef<const Vec3> f)
 {
-    for (size_t i = 0; i < x.size(); i++)
+    for (std::size_t i = 0; i < x.size(); i++)
     {
         for (int dim = 0; dim < dimSize; dim++)
         {

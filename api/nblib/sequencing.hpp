@@ -80,7 +80,7 @@ collectInteractions(const std::vector<std::tuple<Molecule, int>>& molecules)
     for (const auto& molNumberTuple : molecules)
     {
         const Molecule& molecule = std::get<0>(molNumberTuple);
-        size_t          numMols  = std::get<1>(molNumberTuple);
+        std::size_t     numMols  = std::get<1>(molNumberTuple);
 
         auto& interactions = pickType<I>(molecule.interactionData()).interactionTypes_;
 
@@ -91,7 +91,7 @@ collectInteractions(const std::vector<std::tuple<Molecule, int>>& molecules)
 
         std::copy(begin(interactions), end(interactions), std::back_inserter(collectedBonds));
 
-        for (size_t i = 0; i < numMols; ++i)
+        for (std::size_t i = 0; i < numMols; ++i)
         {
             std::copy(begin(moleculeExpansion), end(moleculeExpansion), std::back_inserter(expansionArray));
         }
@@ -125,7 +125,7 @@ std::tuple<std::vector<size_t>, std::vector<I>> eliminateDuplicateInteractions(c
                    end(aggregatedInteractions),
                    begin(uniqueIndices),
                    begin(enumeratedBonds),
-                   [](I b, size_t i) { return std::make_tuple(b, i); });
+                   [](I b, std::size_t i) { return std::make_tuple(b, i); });
 
     auto sortKey = [](const auto& t1, const auto& t2) { return std::get<0>(t1) < std::get<0>(t2); };
     // sort w.r.t bonds. the result will contain contiguous segments of identical bond instances
@@ -213,9 +213,9 @@ std::vector<CoordinateIndex<B>> sequenceIDs(const std::vector<std::tuple<Molecul
     for (const auto& molNumberTuple : molecules)
     {
         const Molecule& molecule = std::get<0>(molNumberTuple);
-        size_t          numMols  = std::get<1>(molNumberTuple);
+        std::size_t     numMols  = std::get<1>(molNumberTuple);
 
-        for (size_t i = 0; i < numMols; ++i)
+        for (std::size_t i = 0; i < numMols; ++i)
         {
             auto& interactions = pickType<B>(molecule.interactionData()).interactions_;
             for (const auto& interactionString : interactions)

@@ -437,7 +437,7 @@ std::array<unsigned char, 16> gmx_md5_finish(md5_state_t* pms)
     /* Append the length. */
     gmx_md5_append(pms, data, 8);
     std::array<unsigned char, 16> digest;
-    for (size_t i = 0; i < digest.size(); ++i)
+    for (std::size_t i = 0; i < digest.size(); ++i)
     {
         digest[i] = static_cast<unsigned char>(pms->abcd[i >> 2] >> ((i & 3) << 3));
     }

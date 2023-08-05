@@ -100,9 +100,9 @@ void add_vsite4_atoms(InteractionsOfType* ps, int ai, int aj, int ak, int al, in
 
 int search_jtype(const PreprocessResidue& localPpResidue, const char* name, bool bNterm)
 {
-    int    niter, jmax;
-    size_t k, kmax, minstrlen;
-    char * rtpname, searchname[12];
+    int         niter, jmax;
+    std::size_t k, kmax, minstrlen;
+    char *      rtpname, searchname[12];
 
     strcpy(searchname, name);
 

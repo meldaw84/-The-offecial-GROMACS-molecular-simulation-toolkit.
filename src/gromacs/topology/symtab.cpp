@@ -183,7 +183,7 @@ static char* trim_string(const char* s, char* out, int maxlen)
 {
     int len = 0, i = 0;
 
-    if (strlen(s) > static_cast<size_t>(maxlen - 1))
+    if (strlen(s) > static_cast<std::size_t>(maxlen - 1))
     {
         gmx_fatal(FARGS, "String '%s' (%zu) is longer than buffer (%d).\n", s, strlen(s), maxlen - 1);
     }

@@ -175,10 +175,10 @@ void checkRotForcesAtStepZero(const std::string& fn, const std::vector<std::vect
     auto f      = frame.f();
 
     // Loop over all 4 atoms of the system
-    for (size_t i = 0; i < 4; i++)
+    for (std::size_t i = 0; i < 4; i++)
     {
         // Loop over x, y, and z entry of the forces
-        for (size_t j = 0; j < 3; j++)
+        for (std::size_t j = 0; j < 3; j++)
         {
             EXPECT_REAL_EQ_TOL(f[i][j],
                                reference[i][j],

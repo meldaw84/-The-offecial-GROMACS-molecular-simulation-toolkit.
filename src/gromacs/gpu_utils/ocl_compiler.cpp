@@ -107,8 +107,8 @@ static void writeOclBuildLog(FILE*              fplog,
     }
 
     // Get build log string size
-    size_t buildLogSize;
-    cl_int cl_error =
+    std::size_t buildLogSize;
+    cl_int      cl_error =
             clGetProgramBuildInfo(program, deviceId, CL_PROGRAM_BUILD_LOG, 0, nullptr, &buildLogSize);
     if (cl_error != CL_SUCCESS)
     {
@@ -252,10 +252,10 @@ static std::filesystem::path getSourceRootPath(const std::string& sourceRelative
     return sourceRootPath.make_preferred();
 }
 
-size_t getKernelWarpSize(cl_kernel kernel, cl_device_id deviceId)
+std::size_t getKernelWarpSize(cl_kernel kernel, cl_device_id deviceId)
 {
-    size_t warpSize = 0;
-    cl_int cl_error = clGetKernelWorkGroupInfo(
+    std::size_t warpSize = 0;
+    cl_int      cl_error = clGetKernelWorkGroupInfo(
             kernel, deviceId, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(warpSize), &warpSize, nullptr);
     if (cl_error != CL_SUCCESS)
     {
@@ -269,7 +269,7 @@ size_t getKernelWarpSize(cl_kernel kernel, cl_device_id deviceId)
     return warpSize;
 }
 
-size_t getDeviceWarpSize(cl_context context, cl_device_id deviceId)
+std::size_t getDeviceWarpSize(cl_context context, cl_device_id deviceId)
 {
     cl_int      cl_error;
     const char* warpSizeKernel =
@@ -295,7 +295,7 @@ size_t getDeviceWarpSize(cl_context context, cl_device_id deviceId)
                                 + ocl_get_error_string(cl_error)));
     }
 
-    size_t warpSize = getKernelWarpSize(kernel, deviceId);
+    std::size_t warpSize = getKernelWarpSize(kernel, deviceId);
 
     cl_error = clReleaseKernel(kernel);
     if (cl_error != CL_SUCCESS)
@@ -384,7 +384,7 @@ static void removeExtraSpaces(std::string* str)
  * \throws std::bad_alloc  if out of memory. */
 static std::string makePreprocessorOptions(const std::filesystem::path& kernelRootPath,
                                            const std::filesystem::path& includeRootPath,
-                                           size_t                       warpSize,
+                                           std::size_t                  warpSize,
                                            DeviceVendor                 deviceVendor,
                                            const std::string&           extraDefines)
 {
@@ -479,7 +479,7 @@ cl_program compileProgram(FILE*              fplog,
                                                     kernelFilename.u8string().c_str())));
         }
         const char* kernelSourcePtr  = kernelSource.c_str();
-        size_t      kernelSourceSize = kernelSource.size();
+        std::size_t kernelSourceSize = kernelSource.size();
         /* Create program from source code */
         program = clCreateProgramWithSource(context, 1, &kernelSourcePtr, &kernelSourceSize, &cl_error);
         if (cl_error != CL_SUCCESS)

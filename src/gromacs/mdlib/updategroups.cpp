@@ -93,7 +93,7 @@ static bool hasFlexibleConstraints(const gmx_moltype_t& moltype, gmx::ArrayRef<c
     {
         if (ilist.functionType != F_SETTLE)
         {
-            for (size_t i = 0; i < ilist.iatoms.size(); i += ilistStride(ilist))
+            for (std::size_t i = 0; i < ilist.iatoms.size(); i += ilistStride(ilist))
             {
                 if (isConstraintFlexible(iparams, ilist.iatoms[i]))
                 {
@@ -119,7 +119,7 @@ static bool hasIncompatibleVsites(const gmx_moltype_t& moltype, gmx::ArrayRef<co
     {
         if (ilist.functionType == F_VSITE2 || ilist.functionType == F_VSITE3)
         {
-            for (size_t i = 0; i < ilist.iatoms.size(); i += ilistStride(ilist))
+            for (std::size_t i = 0; i < ilist.iatoms.size(); i += ilistStride(ilist))
             {
                 const t_iparams& iparam = iparams[ilist.iatoms[i]];
                 real             coeffMin;
@@ -161,7 +161,7 @@ static InteractionList jointConstraintList(const gmx_moltype_t& moltype)
     {
         if (ilist.functionType == F_SETTLE)
         {
-            for (size_t i = 0; i < ilist.iatoms.size(); i += ilistStride(ilist))
+            for (std::size_t i = 0; i < ilist.iatoms.size(); i += ilistStride(ilist))
             {
                 iatoms.push_back(-1);
                 iatoms.push_back(ilist.iatoms[i + 1]);
@@ -200,13 +200,13 @@ static AtomIndexExtremes vsiteConstructRange(int a, const gmx_moltype_t& moltype
 
     for (auto& ilist : extractILists(moltype.ilist, IF_VSITE))
     {
-        for (size_t i = 0; i < ilist.iatoms.size(); i += ilistStride(ilist))
+        for (std::size_t i = 0; i < ilist.iatoms.size(); i += ilistStride(ilist))
         {
             if (ilist.iatoms[i + 1] == a)
             {
                 extremes.minAtom = ilist.iatoms[i + 2];
                 extremes.maxAtom = ilist.iatoms[i + 2];
-                for (size_t j = i + 3; j < i + ilistStride(ilist); j++)
+                for (std::size_t j = i + 3; j < i + ilistStride(ilist); j++)
                 {
                     extremes.minAtom = std::min(extremes.minAtom, ilist.iatoms[j]);
                     extremes.maxAtom = std::max(extremes.maxAtom, ilist.iatoms[j]);
@@ -248,7 +248,7 @@ static std::vector<bool> buildIsParticleVsite(const gmx_moltype_t& moltype)
 
     for (auto& ilist : extractILists(moltype.ilist, IF_VSITE))
     {
-        for (size_t i = 0; i < ilist.iatoms.size(); i += ilistStride(ilist))
+        for (std::size_t i = 0; i < ilist.iatoms.size(); i += ilistStride(ilist))
         {
             int vsiteAtom      = ilist.iatoms[i + 1];
             isVsite[vsiteAtom] = true;
@@ -516,7 +516,7 @@ static real constraintGroupRadius(const gmx_moltype_t&                     molty
             /* Count the number of angle interactions per atoms */
             for (int ind = it->second + 1; ind < it->second + 4; ind += 2)
             {
-                for (size_t i = 0; i < partnerAtoms.size(); i++)
+                for (std::size_t i = 0; i < partnerAtoms.size(); i++)
                 {
                     if (angles.iatoms[ind] == partnerAtoms[i])
                     {
@@ -760,7 +760,7 @@ real computeMaxUpdateGroupRadius(const gmx_mtop_t&                      mtop,
 
     real maxRadius = 0;
 
-    for (size_t moltype = 0; moltype < mtop.moltype.size(); moltype++)
+    for (std::size_t moltype = 0; moltype < mtop.moltype.size(); moltype++)
     {
         const real radiusOfThisMoleculeType = computeMaxUpdateGroupRadius(
                 mtop.moltype[moltype], mtop.ffparams.iparams, updateGroupingsPerMoleculeType[moltype], temperature);

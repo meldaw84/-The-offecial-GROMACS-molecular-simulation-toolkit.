@@ -59,11 +59,11 @@ gmx_sel_mempool_t* _gmx_sel_mempool_create();
 void _gmx_sel_mempool_destroy(gmx_sel_mempool_t* mp);
 
 /** Allocate memory from a memory pool. */
-void* _gmx_sel_mempool_alloc(gmx_sel_mempool_t* mp, size_t size);
+void* _gmx_sel_mempool_alloc(gmx_sel_mempool_t* mp, std::size_t size);
 /** Release memory allocated from a memory pool. */
 void _gmx_sel_mempool_free(gmx_sel_mempool_t* mp, void* ptr);
 /** Set the size of a memory pool. */
-void _gmx_sel_mempool_reserve(gmx_sel_mempool_t* mp, size_t size);
+void _gmx_sel_mempool_reserve(gmx_sel_mempool_t* mp, std::size_t size);
 
 /** Convenience function for allocating an index group from a memory pool. */
 void _gmx_sel_mempool_alloc_group(gmx_sel_mempool_t* mp, struct gmx_ana_index_t* g, int isize);

@@ -328,7 +328,7 @@ static int load_vmd_library(const std::filesystem::path& fn, gmx_vmdplugin_t* vm
                "The architecture (e.g. 32bit versus 64bit) of GROMACS and VMD has to match.\n");
         return 0;
     }
-    for (size_t i = 0; i < globbuf.gl_pathc && vmdplugin->api == nullptr; i++)
+    for (std::size_t i = 0; i < globbuf.gl_pathc && vmdplugin->api == nullptr; i++)
     {
         /* FIXME: Undefined which plugin is chosen if more than one plugin
            can read a certain file ending. Requires some additional command

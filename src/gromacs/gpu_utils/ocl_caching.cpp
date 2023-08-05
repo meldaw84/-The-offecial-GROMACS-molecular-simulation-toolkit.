@@ -71,7 +71,7 @@ std::string makeBinaryCacheFilename(const std::string& kernelFilename, cl_device
     // Note that the OpenCL API is defined in terms of bytes, and we
     // assume that sizeof(char) is one byte.
     std::array<char, 1024> deviceName;
-    size_t                 deviceNameLength;
+    std::size_t            deviceNameLength;
     cl_int                 cl_error = clGetDeviceInfo(
             deviceId, CL_DEVICE_NAME, deviceName.size(), deviceName.data(), &deviceNameLength);
     if (cl_error != CL_SUCCESS)
@@ -113,11 +113,11 @@ cl_program makeProgramFromCache(const std::string& filename, cl_context context,
     fseek(f.get(), 0, SEEK_END);
     unsigned char*             binary;
     unique_cptr<unsigned char> binaryGuard;
-    size_t                     fileSize = ftell(f.get());
+    std::size_t                fileSize = ftell(f.get());
     snew(binary, fileSize);
     binaryGuard.reset(binary);
     fseek(f.get(), 0, SEEK_SET);
-    size_t readCount = fread(binary, 1, fileSize, f.get());
+    std::size_t readCount = fread(binary, 1, fileSize, f.get());
 
     if (readCount != fileSize)
     {
@@ -146,8 +146,8 @@ cl_program makeProgramFromCache(const std::string& filename, cl_context context,
 
 void writeBinaryToCache(cl_program program, const std::string& filename)
 {
-    size_t fileSize;
-    cl_int cl_error =
+    std::size_t fileSize;
+    cl_int      cl_error =
             clGetProgramInfo(program, CL_PROGRAM_BINARY_SIZES, sizeof(fileSize), &fileSize, nullptr);
     if (cl_error != CL_SUCCESS)
     {

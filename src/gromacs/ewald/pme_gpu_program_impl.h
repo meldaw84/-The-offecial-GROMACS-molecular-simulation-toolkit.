@@ -95,7 +95,7 @@ struct PmeGpuProgramImpl
      * For CUDA, this is a static value that comes from gromacs/gpu_utils/cuda_arch_utils.cuh;
      * for OpenCL, we have to query it dynamically.
      */
-    size_t warpSize_;
+    std::size_t warpSize_;
 
     //@{
     /**
@@ -110,7 +110,7 @@ struct PmeGpuProgramImpl
      * two sets of coefficients) or on two grids (required for energy and virial
      * calculations).
      */
-    size_t spreadWorkGroupSize;
+    std::size_t spreadWorkGroupSize;
 
     PmeKernelHandle splineKernelSingle;
     PmeKernelHandle splineKernelThPerAtom4Single;
@@ -138,7 +138,7 @@ struct PmeGpuProgramImpl
      * The kernels are templated separately for using one or two grids (required for
      * calculating energies and virial).
      */
-    size_t gatherWorkGroupSize;
+    std::size_t gatherWorkGroupSize;
 
     PmeKernelHandle gatherKernelSingle;
     PmeKernelHandle gatherKernelThPerAtom4Single;
@@ -155,7 +155,7 @@ struct PmeGpuProgramImpl
      * compute energy and virial, and supports XYZ and YZX grid orderings.
      * The kernels are templated separately for grids in state A and B.
      */
-    size_t solveMaxWorkGroupSize;
+    std::size_t solveMaxWorkGroupSize;
 
     PmeKernelHandle solveYZXKernelA;
     PmeKernelHandle solveXYZKernelA;

@@ -207,7 +207,7 @@ static void nnb2excl(t_nextnb* nnb, gmx::ListOfLists<int>* excls)
         prints("nnb2excl before qsort", nr_of_sortables, s);
         if (nr_of_sortables > 1)
         {
-            qsort(s, nr_of_sortables, static_cast<size_t>(sizeof(s[0])), bond_sort);
+            qsort(s, nr_of_sortables, static_cast<std::size_t>(sizeof(s[0])), bond_sort);
             prints("nnb2excl after qsort", nr_of_sortables, s);
         }
 
@@ -378,7 +378,7 @@ void gen_nnb(t_nextnb* nnb, gmx::ArrayRef<InteractionsOfType> plist)
     prints("gen_excl before qsort", nrbonds, s);
     if (nrbonds > 1)
     {
-        qsort(s, nrbonds, static_cast<size_t>(sizeof(sortable)), bond_sort);
+        qsort(s, nrbonds, static_cast<std::size_t>(sizeof(sortable)), bond_sort);
         prints("gen_excl after qsort", nrbonds, s);
     }
 

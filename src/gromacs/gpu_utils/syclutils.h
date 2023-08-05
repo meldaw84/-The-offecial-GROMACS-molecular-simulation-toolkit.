@@ -70,7 +70,7 @@ public:
      * \note Similar to \c clSetKernelArg, it is not safe to call this
      *       function on the same kernel object from multiple host threads.
      */
-    virtual void setArg(size_t argIndex, void* arg) = 0;
+    virtual void setArg(std::size_t argIndex, void* arg) = 0;
     /*! \brief Launch the kernel.
      *
      * \param config       Work-group configuration.
@@ -88,7 +88,7 @@ public:
  * \param[in]     kernel          Kernel function handle
  * \param[in]     argIndex        Index of the current argument
  */
-void inline prepareGpuKernelArgument(ISyclKernelFunctor* /*kernel*/, size_t /*argIndex*/) {}
+void inline prepareGpuKernelArgument(ISyclKernelFunctor* /*kernel*/, std::size_t /*argIndex*/) {}
 
 /*! \brief
  * Compile-time recursive function for setting up a single SYCL kernel argument.
@@ -105,7 +105,7 @@ void inline prepareGpuKernelArgument(ISyclKernelFunctor* /*kernel*/, size_t /*ar
  */
 template<typename CurrentArg, typename... RemainingArgs>
 void prepareGpuKernelArgument(ISyclKernelFunctor* kernel,
-                              size_t              argIndex,
+                              std::size_t         argIndex,
                               const CurrentArg*   argPtr,
                               const RemainingArgs*... otherArgsPtrs)
 {
