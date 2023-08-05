@@ -110,7 +110,7 @@ public:
 
     public:
         //! exposing the type of indices
-        using index_type = ptrdiff_t;
+        using index_type = std::ptrdiff_t;
         //! exposing the type of the extents
         using extents_type = Extents;
         //! Default constructor.
@@ -137,7 +137,7 @@ public:
          * \param[in] sum The accumulated offset over all dimensions
          * \returns The offset.
          */
-        static constexpr index_type offset(const std::size_t /*r*/, const ptrdiff_t sum)
+        static constexpr index_type offset(const std::size_t /*r*/, const std::ptrdiff_t sum)
         {
             return sum;
         }
@@ -156,8 +156,10 @@ public:
          * \returns The offset.
          */
         template<class... Indices>
-        inline constexpr index_type
-        offset(const std::size_t r, ptrdiff_t sum, const index_type i, Indices... indices) const noexcept
+        inline constexpr index_type offset(const std::size_t r,
+                                           std::ptrdiff_t    sum,
+                                           const index_type  i,
+                                           Indices... indices) const noexcept
         {
             return offset(r + 1, sum * m_extents.extent(r) + i, indices...);
         }
@@ -210,7 +212,7 @@ public:
          */
         constexpr index_type stride(const std::size_t R) const noexcept
         {
-            ptrdiff_t stride = 1;
+            std::ptrdiff_t stride = 1;
             for (std::size_t r = m_extents.rank() - 1; r > R; r--)
             {
                 stride *= m_extents.extent(r);

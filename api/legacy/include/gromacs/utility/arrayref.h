@@ -137,7 +137,7 @@ public:
     //! Type for representing size of the reference.
     typedef std::size_t size_type;
     //! Type for representing difference between two indices.
-    typedef ptrdiff_t difference_type;
+    typedef std::ptrdiff_t difference_type;
     //! Const reference to an element.
     typedef const T& const_reference;
     //! Const pointer to an element.

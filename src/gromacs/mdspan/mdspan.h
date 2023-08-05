@@ -122,9 +122,9 @@ public:
     //! Expose the underlying type of the stored elements.
     using value_type = std::remove_cv_t<element_type>;
     //! Expose the type used for indexing.
-    using index_type = ptrdiff_t;
+    using index_type = std::ptrdiff_t;
     //! Expose type for index differences.
-    using difference_type = ptrdiff_t;
+    using difference_type = std::ptrdiff_t;
     //! Expose underlying pointer to data type.
     using pointer = typename accessor_type::pointer;
     //! Expose reference to data type.
@@ -174,8 +174,8 @@ public:
      * \param[in] ptr Pointer to data to be accessed by this span
      * \param[in] dynamic_extents Array the size of dynamic extents.
      */
-    constexpr basic_mdspan(pointer                                                    ptr,
-                           const std::array<ptrdiff_t, extents_type::rank_dynamic()>& dynamic_extents) :
+    constexpr basic_mdspan(pointer                                                         ptr,
+                           const std::array<std::ptrdiff_t, extents_type::rank_dynamic()>& dynamic_extents) :
         acc_(accessor_type()), map_(extents_type(dynamic_extents)), ptr_(ptr)
     {
     }
@@ -331,7 +331,7 @@ private:
 };
 
 //! basic_mdspan with wrapped indices, basic_accessor policiy and right-aligned  memory layout.
-template<class T, ptrdiff_t... Indices>
+template<class T, std::ptrdiff_t... Indices>
 using mdspan = basic_mdspan<T, extents<Indices...>, layout_right, accessor_basic<T>>;
 
 } // namespace gmx

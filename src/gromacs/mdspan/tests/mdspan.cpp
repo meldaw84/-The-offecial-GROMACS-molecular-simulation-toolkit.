@@ -123,15 +123,15 @@ struct fill_raw_data
     static void fill(ElementType* p, Mapping m)
     {
         typename Mapping::extents_type e = m.extents();
-        for (ptrdiff_t i0 = 0; i0 < e.extent(0); i0++)
+        for (std::ptrdiff_t i0 = 0; i0 < e.extent(0); i0++)
         {
-            for (ptrdiff_t i1 = 0; i1 < e.extent(1); i1++)
+            for (std::ptrdiff_t i1 = 0; i1 < e.extent(1); i1++)
             {
-                for (ptrdiff_t i2 = 0; i2 < e.extent(2); i2++)
+                for (std::ptrdiff_t i2 = 0; i2 < e.extent(2); i2++)
                 {
-                    for (ptrdiff_t i3 = 0; i3 < e.extent(3); i3++)
+                    for (std::ptrdiff_t i3 = 0; i3 < e.extent(3); i3++)
                     {
-                        for (ptrdiff_t i4 = 0; i4 < e.extent(4); i4++)
+                        for (std::ptrdiff_t i4 = 0; i4 < e.extent(4); i4++)
                         {
                             p[i0 * m.stride(0) + i1 * m.stride(1) + i2 * m.stride(2)
                               + i3 * m.stride(3) + i4 * m.stride(4)] =
@@ -170,21 +170,21 @@ struct MdSpanTest : public ::testing::Test
         fill_raw_data<element_type, mapping_type>::fill(rawData.data(), map);
         pointer_type p(rawData.data());
 
-        my_mdspan_array   = mdspan_type(p, std::array<ptrdiff_t, sizeof...(ED)>({ { e... } }));
+        my_mdspan_array   = mdspan_type(p, std::array<std::ptrdiff_t, sizeof...(ED)>({ { e... } }));
         my_mdspan_mapping = mdspan_type(p, map);
         my_mdspan_map_acc = mdspan_type(p, map, acc);
         my_mdspan_extents = mdspan_type(p, e...);
         my_mdspan_copy    = my_mdspan_mapping;
     }
 
-    void check_rank(ptrdiff_t r)
+    void check_rank(std::ptrdiff_t r)
     {
         EXPECT_EQ(my_mdspan_mapping.rank(), r);
         EXPECT_EQ(my_mdspan_map_acc.rank(), r);
         EXPECT_EQ(my_mdspan_extents.rank(), r);
         EXPECT_EQ(my_mdspan_copy.rank(), r);
     }
-    void check_rank_dynamic(ptrdiff_t r)
+    void check_rank_dynamic(std::ptrdiff_t r)
     {
         EXPECT_EQ(my_mdspan_mapping.rank_dynamic(), r);
         EXPECT_EQ(my_mdspan_map_acc.rank_dynamic(), r);
@@ -194,7 +194,7 @@ struct MdSpanTest : public ::testing::Test
     template<class... E>
     void check_extents(E... e)
     {
-        std::array<ptrdiff_t, extents_type::rank()> a{ { e... } };
+        std::array<std::ptrdiff_t, extents_type::rank()> a{ { e... } };
         for (std::size_t r = 0; r < extents_type::rank(); r++)
         {
             EXPECT_EQ(my_mdspan_mapping.extent(r), a[r]);
@@ -206,7 +206,7 @@ struct MdSpanTest : public ::testing::Test
     template<class... E>
     void check_strides(E... e)
     {
-        std::array<ptrdiff_t, extents_type::rank()> a{ { e... } };
+        std::array<std::ptrdiff_t, extents_type::rank()> a{ { e... } };
         for (std::size_t r = 0; r < extents_type::rank(); r++)
         {
             EXPECT_EQ(my_mdspan_mapping.stride(r), a[r]);
@@ -252,15 +252,15 @@ struct MdSpanTest : public ::testing::Test
     void check_operator()
     {
         extents_type e = my_mdspan_mapping.extents();
-        for (ptrdiff_t i0 = 0; i0 < e.extent(0); i0++)
+        for (std::ptrdiff_t i0 = 0; i0 < e.extent(0); i0++)
         {
-            for (ptrdiff_t i1 = 0; i1 < e.extent(1); i1++)
+            for (std::ptrdiff_t i1 = 0; i1 < e.extent(1); i1++)
             {
-                for (ptrdiff_t i2 = 0; i2 < e.extent(2); i2++)
+                for (std::ptrdiff_t i2 = 0; i2 < e.extent(2); i2++)
                 {
-                    for (ptrdiff_t i3 = 0; i3 < e.extent(3); i3++)
+                    for (std::ptrdiff_t i3 = 0; i3 < e.extent(3); i3++)
                     {
-                        for (ptrdiff_t i4 = 0; i4 < e.extent(4); i4++)
+                        for (std::ptrdiff_t i4 = 0; i4 < e.extent(4); i4++)
                         {
                             element_type value = i0 * 10000 + i1 * 1000 + i2 * 100 + i3 * 10 + i4;
                             EXPECT_EQ(my_mdspan_mapping(i0, i1, i2, i3, i4), value);

@@ -49,7 +49,7 @@
 namespace gmx
 {
 
-template<class Layout, ptrdiff_t... E_STATIC>
+template<class Layout, std::ptrdiff_t... E_STATIC>
 struct LayoutTests
 {
 
@@ -66,12 +66,12 @@ struct LayoutTests
         my_mapping_copy     = mapping_type(my_mapping_explicit);
     }
 
-    void check_rank(ptrdiff_t r)
+    void check_rank(std::ptrdiff_t r)
     {
         EXPECT_EQ(my_mapping_explicit.extents().rank(), r);
         EXPECT_EQ(my_mapping_copy.extents().rank(), r);
     }
-    void check_rank_dynamic(ptrdiff_t r)
+    void check_rank_dynamic(std::ptrdiff_t r)
     {
         EXPECT_EQ(my_mapping_explicit.extents().rank_dynamic(), r);
         EXPECT_EQ(my_mapping_copy.extents().rank_dynamic(), r);
@@ -79,7 +79,7 @@ struct LayoutTests
     template<class... E>
     void check_extents(E... e)
     {
-        std::array<ptrdiff_t, extents_type::rank()> a = { { e... } };
+        std::array<std::ptrdiff_t, extents_type::rank()> a = { { e... } };
         for (std::size_t r = 0; r < extents_type::rank(); r++)
         {
             EXPECT_EQ(my_mapping_explicit.extents().extent(r), a[r]);
@@ -89,14 +89,14 @@ struct LayoutTests
     template<class... E>
     void check_strides(E... e)
     {
-        std::array<ptrdiff_t, extents_type::rank()> a = { { e... } };
+        std::array<std::ptrdiff_t, extents_type::rank()> a = { { e... } };
         for (std::size_t r = 0; r < extents_type::rank(); r++)
         {
             EXPECT_EQ(my_mapping_explicit.stride(r), a[r]);
             EXPECT_EQ(my_mapping_copy.stride(r), a[r]);
         }
     }
-    void check_required_span_size(ptrdiff_t size)
+    void check_required_span_size(std::ptrdiff_t size)
     {
         EXPECT_EQ(my_mapping_explicit.required_span_size(), size);
         EXPECT_EQ(my_mapping_copy.required_span_size(), size);
@@ -124,7 +124,7 @@ struct LayoutTests
     }
 
     template<class... E>
-    void check_operator(ptrdiff_t offset, E... e)
+    void check_operator(std::ptrdiff_t offset, E... e)
     {
         EXPECT_EQ(my_mapping_explicit(e...), offset);
         EXPECT_EQ(my_mapping_copy(e...), offset);

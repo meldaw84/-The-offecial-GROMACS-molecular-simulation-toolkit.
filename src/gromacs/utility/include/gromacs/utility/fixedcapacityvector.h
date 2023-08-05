@@ -87,7 +87,7 @@ public:
     //! Type for representing size of the vector
     using size_type = std::size_t;
     //! Type for representing difference between two indices
-    using difference_type = ptrdiff_t;
+    using difference_type = std::ptrdiff_t;
     //! Const reference to an element
     using const_reference = const T&;
     //! Const pointer to an element

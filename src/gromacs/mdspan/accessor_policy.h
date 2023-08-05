@@ -112,7 +112,7 @@ public:
      * \param[in] i offset from memory location.
      * \returns pointer to offset memory location.
      */
-    constexpr typename offset_policy::pointer offset(pointer p, ptrdiff_t i) const noexcept
+    constexpr typename offset_policy::pointer offset(pointer p, std::ptrdiff_t i) const noexcept
     {
         return typename offset_policy::pointer(p + i);
     }
@@ -122,7 +122,7 @@ public:
      * \param[in] i offset from memory location.
      * \returns reference to element stored at offset from memory location.
      */
-    constexpr reference access(pointer p, ptrdiff_t i) const noexcept { return p[i]; }
+    constexpr reference access(pointer p, std::ptrdiff_t i) const noexcept { return p[i]; }
 
     /*! \brief Decay pointer to pointer to ElementType.
      * NOTE This function does nothing, because it is the trivial implementation of an accessor.

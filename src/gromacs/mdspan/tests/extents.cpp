@@ -91,7 +91,7 @@
 namespace gmx
 {
 
-template<ptrdiff_t... E_STATIC>
+template<std::ptrdiff_t... E_STATIC>
 class ExtentsTest
 {
 public:
@@ -104,7 +104,7 @@ public:
     ExtentsTest()
     {
         my_extents_explicit = extents<E_STATIC...>();
-        my_extents_array    = extents<E_STATIC...>(std::array<ptrdiff_t, 0>());
+        my_extents_array    = extents<E_STATIC...>(std::array<std::ptrdiff_t, 0>());
         my_extents_copy     = extents<E_STATIC...>(my_extents_explicit);
     }
 
@@ -112,17 +112,17 @@ public:
     ExtentsTest(E... e)
     {
         my_extents_explicit = extents<E_STATIC...>(e...);
-        my_extents_array    = extents<E_STATIC...>(std::array<ptrdiff_t, 2>({ { e... } }));
+        my_extents_array    = extents<E_STATIC...>(std::array<std::ptrdiff_t, 2>({ { e... } }));
         my_extents_copy     = extents<E_STATIC...>(my_extents_explicit);
     }
 
-    void check_rank(ptrdiff_t r)
+    void check_rank(std::ptrdiff_t r)
     {
         EXPECT_EQ(my_extents_explicit.rank(), r);
         EXPECT_EQ(my_extents_array.rank(), r);
         EXPECT_EQ(my_extents_copy.rank(), r);
     }
-    void check_rank_dynamic(ptrdiff_t r)
+    void check_rank_dynamic(std::ptrdiff_t r)
     {
         EXPECT_EQ(my_extents_explicit.rank_dynamic(), r);
         EXPECT_EQ(my_extents_array.rank_dynamic(), r);
@@ -131,8 +131,8 @@ public:
     template<class... E>
     void check_extents(E... e)
     {
-        std::array<ptrdiff_t, extents_type::rank()> s = { { E_STATIC... } };
-        std::array<ptrdiff_t, extents_type::rank()> a = { { e... } };
+        std::array<std::ptrdiff_t, extents_type::rank()> s = { { E_STATIC... } };
+        std::array<std::ptrdiff_t, extents_type::rank()> a = { { e... } };
         for (std::size_t r = 0; r < extents_type::rank(); r++)
         {
             EXPECT_EQ(my_extents_explicit.static_extent(r), s[r]);
