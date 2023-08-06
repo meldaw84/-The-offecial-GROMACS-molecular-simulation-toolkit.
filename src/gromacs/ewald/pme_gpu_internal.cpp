@@ -252,6 +252,7 @@ void pme_gpu_realloc_forces(PmeGpu* pmeGpu)
                            &pmeGpu->archSpecific->forcesSize,
                            &pmeGpu->archSpecific->forcesSizeAlloc,
                            pmeGpu->archSpecific->deviceContext_);
+
     pmeGpu->staging.h_forces.reserveWithPadding(pmeGpu->nAtomsAlloc);
     pmeGpu->staging.h_forces.resizeWithPadding(pmeGpu->kernelParams->atoms.nAtoms);
 }
@@ -2321,6 +2322,7 @@ void pme_gpu_gather(PmeGpu*               pmeGpu,
                "Recalculating splines not supported in OpenCL");
 
     const int atomsPerBlock = blockSize / threadsPerAtom;
+
 
     GMX_ASSERT(!(c_pmeAtomDataBlockSize % atomsPerBlock),
                "inconsistent atom data padding vs. gathering block size");

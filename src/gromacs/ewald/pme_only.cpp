@@ -101,6 +101,11 @@
 #include "pme_output.h"
 #include "pme_pp_communication.h"
 
+
+#if GMX_GPU_CUDA
+#    include "pme.cuh"
+#endif
+
 /*! \brief Main PP-PME communication data structure */
 struct gmx_pme_pp
 {
@@ -697,6 +702,7 @@ int gmx_pmeonly(struct gmx_pme_t**              pmeFromRunnerPtr,
     // the current PME data structure, may change due to PME tuning
     gmx_pme_t* pme               = pmeFromRunner;
     bool       haveStartedTiming = false;
+
     do /****** this is a quasi-loop over time steps! */
     {
         /* The reason for having a loop here is PME grid tuning/switching */
@@ -788,6 +794,22 @@ int gmx_pmeonly(struct gmx_pme_t**              pmeFromRunnerPtr,
                                   pme_pp->useGpuDirectComm,
                                   pme_pp->pmeCoordinateReceiverGpu.get());
             pme_gpu_launch_complex_transforms(pme, wcycle, stepWork);
+
+            // TODO should only have to do this every DD timestep, in gmx_pme_recv_coeffs_coords.
+            // setting directly before pme_gather out of paranoia.
+            pme->gpu->kernelParams->grid.d_pmeRemoteGpuForcePtrs =
+                    pme_pp->pmeForceSenderGpu->getPmeRemoteGpuForcePtrs();
+            pme->gpu->kernelParams->grid.d_atomsPerPpProc =
+                    pme_pp->pmeForceSenderGpu->getAtomsPerPpProc();
+            pme->gpu->kernelParams->grid.d_paddedPpRanks = pme_pp->pmeForceSenderGpu->getPaddedPpRanks();
+            pme->gpu->kernelParams->grid.d_paddedAtomIndices =
+                    pme_pp->pmeForceSenderGpu->getPaddedAtomIndices();
+            pme->gpu->kernelParams->grid.d_paddedAtomOffsets =
+                    pme_pp->pmeForceSenderGpu->getPaddedAtomOffsets();
+            pme->gpu->nPaddedAtoms = pme_pp->pmeForceSenderGpu->getNPaddedAtoms();
+
+            // TODO this should be allocated on pmeGpu.kernelParams directly
+            pme->gpu->nPpRanks = pme_pp->ppRanks.size();
             pme_gpu_launch_gather(pme, wcycle, lambda_q);
             output = pme_gpu_wait_finish_task(pme, computeEnergyAndVirial, lambda_q, wcycle);
         }

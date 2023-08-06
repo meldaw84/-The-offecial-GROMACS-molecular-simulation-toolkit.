@@ -1292,7 +1292,7 @@ static void setupLocalGpuForceReduction(const gmx::MdrunScheduleWorkload* runSch
     }
     else if (runScheduleWork->simulationWork.useGpuPmePpCommunication)
     {
-        pmeForcePtr = pmePpCommGpu->getGpuForceStagingPtr();
+        pmeForcePtr               = pmePpCommGpu->getGpuForceStagingPtr();
         if (pmeForcePtr)
         {
             if (GMX_THREAD_MPI)

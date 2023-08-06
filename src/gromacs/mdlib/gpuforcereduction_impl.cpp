@@ -70,6 +70,7 @@ void GpuForceReduction::Impl::reinit(DeviceBuffer<Float3>  baseForcePtr,
                                      ArrayRef<const int>   cell,
                                      const int             atomStart,
                                      const bool            accumulate,
+                                     AtomLocality          atomLocality,
                                      GpuEventSynchronizer* completionMarker)
 {
     GMX_ASSERT(baseForcePtr, "Input base force for reduction has no data");

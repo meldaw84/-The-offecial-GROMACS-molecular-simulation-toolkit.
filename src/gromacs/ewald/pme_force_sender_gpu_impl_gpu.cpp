@@ -50,6 +50,10 @@
 
 #include "pme_force_sender_gpu_impl.h"
 
+// for creating padded atom index arrays
+#include <algorithm>
+#include <numeric>
+
 namespace gmx
 {
 
@@ -75,8 +79,12 @@ PmeForceSenderGpu::Impl::Impl(GpuEventSynchronizer*  pmeForcesReady,
     pmeForcesReady_->setConsumptionLimits(ppRanks_.size(), ppRanks_.size());
     pmeForcesReady_->reset();
     stageThreadMpiGpuCpuComm_ = (getenv("GMX_ENABLE_STAGED_GPU_TO_CPU_PMEPP_COMM") != nullptr);
+
+    allocateDeviceBuffer(&d_pmeRemoteGpuForcePtrs, ppRanks.size() * sizeof(RVec*), deviceContext_);
+    allocateDeviceBuffer(&d_atomsPerPpProc, (1 + ppRanks.size()) * sizeof(size_t), deviceContext_);
 }
 
+// TODO need to free device buffers here
 PmeForceSenderGpu::Impl::~Impl() = default;
 
 /*! \brief Sets location of force to be sent to each PP rank  */
@@ -97,6 +105,10 @@ void PmeForceSenderGpu::Impl::setForceSendBuffer(DeviceBuffer<Float3> d_f)
     int ind_start = 0;
     int ind_end   = 0;
     int i         = 0;
+    int n_procs   = ppRanks_.size();
+    // set first element in array to array size
+    cudaMemcpy(&(d_atomsPerPpProc[0]), &(n_procs), sizeof(size_t), cudaMemcpyHostToDevice);
+
     for (const auto& receiver : ppRanks_)
     {
         ind_start = ind_end;
@@ -113,6 +125,7 @@ void PmeForceSenderGpu::Impl::setForceSendBuffer(DeviceBuffer<Float3> d_f)
                      0,
                      comm_,
                      MPI_STATUS_IGNORE);
+
             // NOLINTNEXTLINE(bugprone-sizeof-expression)
             MPI_Recv(&ppCommManagers_[i].pmeRemoteCpuForcePtr,
                      sizeof(Float3*),
@@ -130,10 +143,72 @@ void PmeForceSenderGpu::Impl::setForceSendBuffer(DeviceBuffer<Float3> d_f)
             tmpPpCommEventRecordedPtr->store(false, std::memory_order_release);
             // NOLINTNEXTLINE(bugprone-sizeof-expression)
             MPI_Send(&tmpPpCommEventRecordedPtr, sizeof(std::atomic<bool>*), MPI_BYTE, receiver.rankId, 0, comm_);
+
+
+            cudaMemcpy(&(d_pmeRemoteGpuForcePtrs[i]),
+                       &(ppCommManagers_[i].pmeRemoteGpuForcePtr),
+                       sizeof(RVec*),
+                       cudaMemcpyHostToDevice);
+            cudaMemcpy(&(d_atomsPerPpProc[i + 1]), &(receiver.numAtoms), sizeof(size_t), cudaMemcpyHostToDevice);
+        }
+        else
+        {
+            size_t zeroVal = 0;
+            cudaMemcpy(&(d_atomsPerPpProc[i + 1]), &(zeroVal), sizeof(size_t), cudaMemcpyHostToDevice);
         }
         i++;
     }
-
+    int atomsPerBlock = 32;
+    // int atomsPerBlock = 8;
+    int blockForcesSize = atomsPerBlock * DIM;
+    int totalAtoms      = ind_end + 1;
+    // hack, assume max is every pp rank requiring one additional overflow block
+    int maxPaddedAtoms           = totalAtoms + atomsPerBlock * ppRanks_.size();
+    int maxForceEls              = maxPaddedAtoms * DIM;
+    int totalPreviousPaddedAtoms = 0;
+    int totalPreviousAtoms       = 0;
+    int totalPreviousForceEls    = 0;
+    // TODO turn this into a single vector of a struct
+    paddedPpRanks.resize(maxForceEls);
+    paddedAtomIndices.resize(maxForceEls);
+    paddedAtomOffsets.resize(maxPaddedAtoms);
+    std::fill(paddedPpRanks.begin(), paddedPpRanks.end(), -1);
+    std::fill(paddedAtomIndices.begin(), paddedAtomIndices.end(), -1);
+    std::fill(paddedAtomOffsets.begin(), paddedAtomOffsets.end(), -1);
+    int tmp1=prevForceEls, tmp2=prevMaxForceEls;
+    reallocateDeviceBuffer(&d_paddedPpRanks, maxForceEls, &prevForceEls, &prevMaxForceEls, deviceContext_);
+    reallocateDeviceBuffer(&d_paddedAtomIndices, maxForceEls, &tmp1, &tmp2, deviceContext_);
+    reallocateDeviceBuffer(&d_paddedAtomOffsets, maxPaddedAtoms, &prevPaddedAtoms, &prevMaxPaddedAtoms, deviceContext_);
+    i = 0;
+    for (const auto& receiver : ppRanks_)
+    {
+        int nBlocks             = ceil(receiver.numAtoms / (float)atomsPerBlock);
+        int nPaddedAtoms_local  = nBlocks * atomsPerBlock;
+        int nForceEls           = nPaddedAtoms_local * DIM;
+        std::vector<int> rank_it_start           = paddedPpRanks.begin() + totalPreviousForceEls;
+        std::vector<int> rank_it_end_unpadded    = rank_it_start + receiver.numAtoms * DIM;
+        std::vector<int> indices_it_start        = paddedAtomIndices.begin() + totalPreviousForceEls;
+        std::vector<int> indices_it_end_unpadded = indices_it_start + receiver.numAtoms * DIM;
+        std::vector<int> offsets_it_start        = paddedAtomOffsets.begin() + totalPreviousPaddedAtoms;
+        std::vector<int> offsets_it_end_unpadded = offsets_it_start + receiver.numAtoms;
+        std::fill(rank_it_start, rank_it_end_unpadded, i);
+        std::iota(indices_it_start, indices_it_end_unpadded, 0);
+        std::iota(offsets_it_start, offsets_it_end_unpadded, totalPreviousAtoms);
+        totalPreviousForceEls += nForceEls;
+        totalPreviousPaddedAtoms += nPaddedAtoms_local;
+        totalPreviousAtoms += receiver.numAtoms;
+        i++;
+    }
+    nPaddedAtoms = totalPreviousPaddedAtoms;
+    cudaMemcpy(d_paddedPpRanks, paddedPpRanks.data(), paddedPpRanks.size() * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_paddedAtomIndices,
+               paddedAtomIndices.data(),
+               paddedAtomIndices.size() * sizeof(int),
+               cudaMemcpyHostToDevice);
+    cudaMemcpy(d_paddedAtomOffsets,
+               paddedAtomOffsets.data(),
+               paddedAtomOffsets.size() * sizeof(int),
+               cudaMemcpyHostToDevice);
 #else
     GMX_UNUSED_VALUE(d_f);
 #endif
@@ -162,6 +237,36 @@ void PmeForceSenderGpu::Impl::sendFToPpGpuAwareMpi(DeviceBuffer<RVec> sendbuf,
     GMX_UNUSED_VALUE(ppRank);
     GMX_UNUSED_VALUE(request);
 #endif
+}
+
+int PmeForceSenderGpu::Impl::getNPaddedAtoms()
+{
+    return nPaddedAtoms;
+}
+
+DeviceBuffer<RVec*> PmeForceSenderGpu::Impl::getPmeRemoteGpuForcePtrs()
+{
+    return d_pmeRemoteGpuForcePtrs;
+}
+
+DeviceBuffer<int> PmeForceSenderGpu::Impl::getPaddedPpRanks()
+{
+    return d_paddedPpRanks;
+}
+
+DeviceBuffer<int> PmeForceSenderGpu::Impl::getPaddedAtomIndices()
+{
+    return d_paddedAtomIndices;
+}
+
+DeviceBuffer<int> PmeForceSenderGpu::Impl::getPaddedAtomOffsets()
+{
+    return d_paddedAtomOffsets;
+}
+
+DeviceBuffer<size_t> PmeForceSenderGpu::Impl::getAtomsPerPpProc()
+{
+    return d_atomsPerPpProc;
 }
 
 PmeForceSenderGpu::PmeForceSenderGpu(GpuEventSynchronizer*  pmeForcesReady,
@@ -194,5 +299,34 @@ void PmeForceSenderGpu::sendFToPpPeerToPeer(int ppRank, int numAtoms, bool sendF
     impl_->sendFToPpPeerToPeer(ppRank, numAtoms, sendForcesDirectToPpGpu);
 }
 
+int PmeForceSenderGpu::getNPaddedAtoms()
+{
+    return impl_->getNPaddedAtoms();
+}
+
+DeviceBuffer<RVec*> PmeForceSenderGpu::getPmeRemoteGpuForcePtrs()
+{
+    return impl_->getPmeRemoteGpuForcePtrs();
+}
+
+DeviceBuffer<int> PmeForceSenderGpu::getPaddedPpRanks()
+{
+    return impl_->getPaddedPpRanks();
+}
+
+DeviceBuffer<int> PmeForceSenderGpu::getPaddedAtomIndices()
+{
+    return impl_->getPaddedAtomIndices();
+}
+
+DeviceBuffer<int> PmeForceSenderGpu::getPaddedAtomOffsets()
+{
+    return impl_->getPaddedAtomOffsets();
+}
+
+DeviceBuffer<size_t> PmeForceSenderGpu::getAtomsPerPpProc()
+{
+    return impl_->getAtomsPerPpProc();
+}
 
 } // namespace gmx

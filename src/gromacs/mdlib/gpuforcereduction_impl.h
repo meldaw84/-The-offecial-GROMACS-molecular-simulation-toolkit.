@@ -48,7 +48,6 @@
 #include "gromacs/math/vectypes.h"
 
 #include "gpuforcereduction.h"
-
 namespace gmx
 {
 
@@ -140,7 +139,7 @@ private:
     //! event to be marked when reduction launch has been completed
     GpuEventSynchronizer* completionMarker_ = nullptr;
     //! The wallclock counter
-    gmx_wallcycle* wcycle_ = nullptr;
+    gmx_wallcycle*     wcycle_ = nullptr;
 };
 
 } // namespace gmx

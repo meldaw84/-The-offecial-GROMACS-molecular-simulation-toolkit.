@@ -73,7 +73,7 @@ PmePpCommGpu::Impl::Impl(MPI_Comm                    comm,
     comm_(comm),
     pmeRank_(pmeRank),
     pmeCpuForceBuffer_(pmeCpuForceBuffer),
-    d_pmeForces_(nullptr)
+    d_pmeForces_(nullptr),
 {
     stageLibMpiGpuCpuComm_ = (getenv("GMX_DISABLE_STAGED_GPU_TO_CPU_PMEPP_COMM") == nullptr);
 }
@@ -93,6 +93,7 @@ void PmePpCommGpu::Impl::reinit(int size)
         MPI_Recv(&remotePmeXBuffer_, sizeof(Float3*), MPI_BYTE, pmeRank_, 0, comm_, MPI_STATUS_IGNORE);
         // send host and device force buffer addresses to PME rank
         MPI_Send(&d_pmeForces_, sizeof(Float3*), MPI_BYTE, pmeRank_, 0, comm_);
+        // TODO this ptr should never change -- could send once at beginning of program only
         RVec* pmeCpuForceBufferData = pmeCpuForceBuffer_->data();
         MPI_Send(&pmeCpuForceBufferData, sizeof(RVec*), MPI_BYTE, pmeRank_, 0, comm_);
         // Receive address of event and associated flag from PME rank, to allow sync to local stream after force transfer
@@ -216,6 +217,11 @@ void PmePpCommGpu::Impl::sendCoordinatesToPme(Float3*               sendPtr,
 DeviceBuffer<Float3> PmePpCommGpu::Impl::getGpuForceStagingPtr()
 {
     return d_pmeForces_;
+}
+
+cuda::atomic<int>* PmePpCommGpu::Impl::getPmeToPpReadyAtomicFlagPtr()
+{
+    return d_pmeToPpReadyAtomicFlag_;
 }
 
 GpuEventSynchronizer* PmePpCommGpu::Impl::getForcesReadySynchronizer()

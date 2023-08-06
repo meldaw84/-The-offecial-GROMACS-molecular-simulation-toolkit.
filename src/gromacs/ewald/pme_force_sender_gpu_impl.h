@@ -85,7 +85,7 @@ struct PpForceCommManager
     //! CPU force buffer pointer for remote PP rank
     Float3* pmeRemoteCpuForcePtr;
     //! GPU force buffer pointers for remote PP rank
-    Float3* pmeRemoteGpuForcePtr;
+    Float3*            pmeRemoteGpuForcePtr;
 };
 
 class PmeForceSenderGpu::Impl
@@ -129,6 +129,14 @@ public:
      */
     void sendFToPpGpuAwareMpi(DeviceBuffer<RVec> sendbuf, int offset, int numBytes, int ppRank, MPI_Request* request);
 
+    DeviceBuffer<RVec*>  getPmeRemoteGpuForcePtrs();
+    DeviceBuffer<int>    getPaddedPpRanks();
+    DeviceBuffer<int>    getPaddedAtomIndices();
+    DeviceBuffer<int>    getPaddedAtomOffsets();
+    DeviceBuffer<RVec*>  getPmeRemoteGpuForceReferencePtrs();
+    DeviceBuffer<size_t> getAtomsPerPpProc();
+    int                  getNPaddedAtoms();
+
 private:
     //! Event indicating when PME forces are ready on the GPU in order for PP stream to sync with the PME stream
     GpuEventSynchronizer* pmeForcesReady_;
@@ -147,6 +155,22 @@ private:
     bool stageThreadMpiGpuCpuComm_ = false;
     //! Communication manager objects corresponding to multiple receiving PP ranks
     std::vector<PpForceCommManager> ppCommManagers_;
+
+    int prevForceEls = 0, prevMaxForceEls = 0; 
+    int prevPaddedAtoms = 0, prevMaxPaddedAtoms = 0; 
+
+    // TODO these vars should have _ at end
+    DeviceBuffer<RVec*> d_pmeRemoteGpuForcePtrs;
+    DeviceBuffer<RVec*> d_pmeRemoteGpuForceReferencePtrs;
+    DeviceBuffer<int>   d_paddedPpRanks=nullptr;
+    DeviceBuffer<int>   d_paddedAtomIndices=nullptr;
+    DeviceBuffer<int>   d_paddedAtomOffsets=nullptr;
+    std::vector<int>    paddedPpRanks;
+    std::vector<int>    paddedAtomIndices;
+    std::vector<int>    paddedAtomOffsets;
+    // TODO find somewhere better for this
+    int                  nPaddedAtoms;
+    DeviceBuffer<size_t> d_atomsPerPpProc;
 };
 
 } // namespace gmx

@@ -61,32 +61,7 @@ void PmeForceSenderGpu::Impl::sendFToPpPeerToPeer(int ppRank, int numAtoms, bool
     GMX_ASSERT(GMX_THREAD_MPI, "sendFToPpCudaDirect is expected to be called only for Thread-MPI");
 
 #if GMX_MPI
-    Float3* pmeRemoteForcePtr = (sendForcesDirectToPpGpu || stageThreadMpiGpuCpuComm_)
-                                        ? ppCommManagers_[ppRank].pmeRemoteGpuForcePtr
-                                        : ppCommManagers_[ppRank].pmeRemoteCpuForcePtr;
-
-    pmeForcesReady_->enqueueWaitEvent(*ppCommManagers_[ppRank].stream);
-
-    // Push data to remote GPU's memory
-    cudaError_t stat = cudaMemcpyAsync(asFloat3(pmeRemoteForcePtr),
-                                       ppCommManagers_[ppRank].localForcePtr,
-                                       numAtoms * sizeof(rvec),
-                                       cudaMemcpyDefault,
-                                       ppCommManagers_[ppRank].stream->stream());
-    CU_RET_ERR(stat, "cudaMemcpyAsync on Recv from PME CUDA direct data transfer failed");
-
-    if (stageThreadMpiGpuCpuComm_ && !sendForcesDirectToPpGpu)
-    {
-        // Perform local D2H (from remote GPU memory to remote PP rank's CPU memory)
-        // to finalize staged data transfer
-        stat = cudaMemcpyAsync(ppCommManagers_[ppRank].pmeRemoteCpuForcePtr,
-                               ppCommManagers_[ppRank].pmeRemoteGpuForcePtr,
-                               numAtoms * sizeof(rvec),
-                               cudaMemcpyDefault,
-                               ppCommManagers_[ppRank].stream->stream());
-        CU_RET_ERR(stat, "cudaMemcpyAsync on local device to host transfer of PME forces failed");
-    }
-
+    pmeForcesReady_->enqueueWaitEvent(*ppCommManagers_[ppRank].stream); 
     ppCommManagers_[ppRank].event->markEvent(*ppCommManagers_[ppRank].stream);
     std::atomic<bool>* tmpPpCommEventRecordedPtr =
             reinterpret_cast<std::atomic<bool>*>(ppCommManagers_[ppRank].eventRecorded.get());

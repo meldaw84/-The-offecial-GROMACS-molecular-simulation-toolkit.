@@ -192,6 +192,14 @@ struct PmeGpu
      */
     int nAtomsAlloc;
 
+    // TODO this is needed by pme_gpu_gather to set shared memory for sm initiated pme-pp transfer.
+    // Arguably it doesn't make much sense here. Another option is to pass pme_pp.ppRanks as an
+    // argument to pme_gpu_launch_gather
+    int nPpRanks;
+
+    // TODO probably move, also disambiguate from nAtomsAlloc (which pads only to warp boundary for all pp ranks, not block boundary per pp rank)
+    int nPaddedAtoms;
+
     /*! \brief Kernel scheduling grid width limit in X - derived from deviceinfo compute capability in CUDA.
      * Declared as very large int to make it useful in computations with type promotion, to avoid overflows.
      * OpenCL seems to not have readily available global work size limit, so we just assign a large arbitrary constant to this instead.

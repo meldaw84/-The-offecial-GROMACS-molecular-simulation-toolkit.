@@ -47,7 +47,6 @@
 #include "pme_gpu_constants.h"
 #include "pme_gpu_internal.h" // for GridOrdering
 #include "pme_gpu_types.h"
-
 /*! \brief \internal
  * An alias for PME parameters in CUDA.
  * \todo Remove if we decide to unify CUDA and OpenCL

@@ -109,6 +109,15 @@ public:
      */
     void sendFToPpGpuAwareMpi(DeviceBuffer<RVec> sendbuf, int offset, int numBytes, int ppRank, MPI_Request* request);
 
+
+    DeviceBuffer<RVec*>  getPmeRemoteGpuForcePtrs();
+    DeviceBuffer<int>    getPaddedPpRanks();
+    DeviceBuffer<int>    getPaddedAtomIndices();
+    DeviceBuffer<int>    getPaddedAtomOffsets();
+    DeviceBuffer<RVec*>  getPmeRemoteGpuForceReferencePtrs();
+    DeviceBuffer<size_t> getAtomsPerPpProc();
+    int                  getNPaddedAtoms();
+
 private:
     class Impl;
     std::unique_ptr<Impl> impl_;

@@ -57,9 +57,9 @@ constexpr static int c_threadsPerBlock = 128;
 template<bool addRvecForce, bool accumulateForce>
 static __global__ void reduceKernel(const float3* __restrict__ gm_nbnxmForce,
                                     const float3* __restrict__ rvecForceToAdd,
-                                    float3*    gm_fTotal,
-                                    const int* gm_cell,
-                                    const int  numAtoms)
+                                    float3*            gm_fTotal,
+                                    const int*         gm_cell,
+                                    const int          numAtoms)
 {
 
     // map particle-level parallelism to 1D CUDA thread and block index
@@ -68,7 +68,6 @@ static __global__ void reduceKernel(const float3* __restrict__ gm_nbnxmForce,
     // perform addition for each particle
     if (threadIndex < numAtoms)
     {
-
         float3* gm_fDest = &gm_fTotal[threadIndex];
         float3  temp;
 
@@ -82,7 +81,6 @@ static __global__ void reduceKernel(const float3* __restrict__ gm_nbnxmForce,
         {
             temp = gm_nbnxmForce[gm_cell[threadIndex]];
         }
-
         if (addRvecForce)
         {
             temp += rvecForceToAdd[threadIndex];
@@ -120,8 +118,14 @@ void launchForceReductionKernel(int                        numAtoms,
                             ? (accumulate ? reduceKernel<true, true> : reduceKernel<true, false>)
                             : (accumulate ? reduceKernel<false, true> : reduceKernel<false, false>);
 
-    const auto kernelArgs = prepareGpuKernelArguments(
-            kernelFn, config, &d_nbnxmForcePtr, &d_rvecForceToAddPtr, &d_baseForcePtr, &d_cell, &numAtoms);
+    // TODO should atomLocality be a template arg?
+    const auto kernelArgs = prepareGpuKernelArguments(kernelFn,
+                                                      config,
+                                                      &d_nbnxmForcePtr,
+                                                      &d_rvecForceToAddPtr,
+                                                      &d_baseForcePtr,
+                                                      &d_cell,
+                                                      &numAtoms);
 
     launchGpuKernel(kernelFn, config, deviceStream, nullptr, "Force Reduction", kernelArgs);
 }
