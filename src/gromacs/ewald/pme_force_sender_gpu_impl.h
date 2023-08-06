@@ -169,6 +169,9 @@ private:
     DeviceBuffer<int>   d_paddedPpRanks=nullptr;
     DeviceBuffer<int>   d_paddedAtomIndices=nullptr;
     DeviceBuffer<int>   d_paddedAtomOffsets=nullptr;
+    std::vector<int>    paddedPpRanks;
+    std::vector<int>    paddedAtomIndices;
+    std::vector<int>    paddedAtomOffsets;
     // TODO find somewhere better for this
     int                  nPaddedAtoms;
     cuda::atomic<int>**  d_pmeToPpReadyAtomicFlagPtrs_;

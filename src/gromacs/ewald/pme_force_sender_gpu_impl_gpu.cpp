@@ -182,15 +182,12 @@ void PmeForceSenderGpu::Impl::setForceSendBuffer(DeviceBuffer<Float3> d_f)
     int totalPreviousAtoms       = 0;
     int totalPreviousForceEls    = 0;
     // TODO turn this into a single vector of a struct
-    std::vector<int> paddedPpRanks(maxForceEls);
-    std::vector<int> paddedAtomIndices(maxForceEls);
-    std::vector<int> paddedAtomOffsets(maxPaddedAtoms);
+    paddedPpRanks.resize(maxForceEls);
+    paddedAtomIndices.resize(maxForceEls);
+    paddedAtomOffsets.resize(maxPaddedAtoms);
     std::fill(paddedPpRanks.begin(), paddedPpRanks.end(), -1);
     std::fill(paddedAtomIndices.begin(), paddedAtomIndices.end(), -1);
     std::fill(paddedAtomOffsets.begin(), paddedAtomOffsets.end(), -1);
-    std::vector<int>::iterator rank_it_start, rank_it_end_unpadded;
-    std::vector<int>::iterator indices_it_start, indices_it_end_unpadded;
-    std::vector<int>::iterator offsets_it_start, offsets_it_end_unpadded;
     int tmp1=prevForceEls, tmp2=prevMaxForceEls;
     reallocateDeviceBuffer(&d_paddedPpRanks, maxForceEls, &prevForceEls, &prevMaxForceEls, deviceContext_);
     reallocateDeviceBuffer(&d_paddedAtomIndices, maxForceEls, &tmp1, &tmp2, deviceContext_);
@@ -201,12 +198,12 @@ void PmeForceSenderGpu::Impl::setForceSendBuffer(DeviceBuffer<Float3> d_f)
         int nBlocks             = ceil(receiver.numAtoms / (float)atomsPerBlock);
         int nPaddedAtoms_local  = nBlocks * atomsPerBlock;
         int nForceEls           = nPaddedAtoms_local * DIM;
-        rank_it_start           = paddedPpRanks.begin() + totalPreviousForceEls;
-        rank_it_end_unpadded    = rank_it_start + receiver.numAtoms * DIM;
-        indices_it_start        = paddedAtomIndices.begin() + totalPreviousForceEls;
-        indices_it_end_unpadded = indices_it_start + receiver.numAtoms * DIM;
-        offsets_it_start        = paddedAtomOffsets.begin() + totalPreviousPaddedAtoms;
-        offsets_it_end_unpadded = offsets_it_start + receiver.numAtoms;
+        std::vector<int> rank_it_start           = paddedPpRanks.begin() + totalPreviousForceEls;
+        std::vector<int> rank_it_end_unpadded    = rank_it_start + receiver.numAtoms * DIM;
+        std::vector<int> indices_it_start        = paddedAtomIndices.begin() + totalPreviousForceEls;
+        std::vector<int> indices_it_end_unpadded = indices_it_start + receiver.numAtoms * DIM;
+        std::vector<int> offsets_it_start        = paddedAtomOffsets.begin() + totalPreviousPaddedAtoms;
+        std::vector<int> offsets_it_end_unpadded = offsets_it_start + receiver.numAtoms;
         std::fill(rank_it_start, rank_it_end_unpadded, i);
         std::iota(indices_it_start, indices_it_end_unpadded, 0);
         std::iota(offsets_it_start, offsets_it_end_unpadded, totalPreviousAtoms);
