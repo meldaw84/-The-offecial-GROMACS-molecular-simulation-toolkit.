@@ -342,11 +342,11 @@ static void get_f_norm_max(const t_commrec*               cr,
 
     if (fnorm)
     {
-        *fnorm = sqrt(fnorm2);
+        *fnorm = std::sqrt(fnorm2);
     }
     if (fmax)
     {
-        *fmax = sqrt(fmax2);
+        *fmax = std::sqrt(fmax2);
     }
     if (a_fmax)
     {
@@ -1429,7 +1429,7 @@ void LegacySimulator::do_cg()
 
     if (MAIN(cr_))
     {
-        double sqrtNumAtoms = sqrt(static_cast<double>(stateGlobal_->numAtoms()));
+        double sqrtNumAtoms = std::sqrt(static_cast<double>(stateGlobal_->numAtoms()));
         fprintf(stderr, "   F-max             = %12.5e on atom %d\n", s_min->fmax, s_min->a_fmax + 1);
         fprintf(stderr, "   F-Norm            = %12.5e\n", s_min->fnorm / sqrtNumAtoms);
         fprintf(stderr, "\n");
@@ -1529,7 +1529,7 @@ void LegacySimulator::do_cg()
             gmx_sumd(1, &minstep, cr_);
         }
 
-        minstep = GMX_REAL_EPS / sqrt(minstep / (3 * topGlobal_.natoms));
+        minstep = GMX_REAL_EPS / std::sqrt(minstep / (3 * topGlobal_.natoms));
 
         if (stepsize < minstep)
         {
@@ -1845,7 +1845,7 @@ void LegacySimulator::do_cg()
         {
             if (mdrunOptions_.verbose)
             {
-                double sqrtNumAtoms = sqrt(static_cast<double>(stateGlobal_->numAtoms()));
+                double sqrtNumAtoms = std::sqrt(static_cast<double>(stateGlobal_->numAtoms()));
                 fprintf(stderr,
                         "\rStep %d, Epot=%12.6e, Fnorm=%9.3e, Fmax=%9.3e (atom %d)\n",
                         step,
@@ -1968,7 +1968,7 @@ void LegacySimulator::do_cg()
 
     if (MAIN(cr_))
     {
-        double sqrtNumAtoms = sqrt(static_cast<double>(stateGlobal_->numAtoms()));
+        double sqrtNumAtoms = std::sqrt(static_cast<double>(stateGlobal_->numAtoms()));
         print_converged(stderr, CG, inputRec_->em_tol, step, converged, number_steps, s_min, sqrtNumAtoms);
         print_converged(fpLog_, CG, inputRec_->em_tol, step, converged, number_steps, s_min, sqrtNumAtoms);
 
@@ -2195,7 +2195,7 @@ void LegacySimulator::do_lbfgs()
 
     if (MAIN(cr_))
     {
-        double sqrtNumAtoms = sqrt(static_cast<double>(stateGlobal_->numAtoms()));
+        double sqrtNumAtoms = std::sqrt(static_cast<double>(stateGlobal_->numAtoms()));
         fprintf(stderr, "Using %d BFGS correction steps.\n\n", nmaxcorr);
         fprintf(stderr, "   F-max             = %12.5e on atom %d\n", ems.fmax, ems.a_fmax + 1);
         fprintf(stderr, "   F-Norm            = %12.5e\n", ems.fnorm / sqrtNumAtoms);
@@ -2308,7 +2308,7 @@ void LegacySimulator::do_lbfgs()
             tmp = s[i] / tmp;
             minstep += tmp * tmp;
         }
-        minstep = GMX_REAL_EPS / sqrt(minstep / n);
+        minstep = GMX_REAL_EPS / std::sqrt(minstep / n);
 
         if (stepsize < minstep)
         {
@@ -2676,7 +2676,7 @@ void LegacySimulator::do_lbfgs()
         {
             if (mdrunOptions_.verbose)
             {
-                double sqrtNumAtoms = sqrt(static_cast<double>(stateGlobal_->numAtoms()));
+                double sqrtNumAtoms = std::sqrt(static_cast<double>(stateGlobal_->numAtoms()));
                 fprintf(stderr,
                         "\rStep %d, Epot=%12.6e, Fnorm=%9.3e, Fmax=%9.3e (atom %d)\n",
                         step,
@@ -2792,7 +2792,7 @@ void LegacySimulator::do_lbfgs()
 
     if (MAIN(cr_))
     {
-        double sqrtNumAtoms = sqrt(static_cast<double>(stateGlobal_->numAtoms()));
+        double sqrtNumAtoms = std::sqrt(static_cast<double>(stateGlobal_->numAtoms()));
         print_converged(stderr, LBFGS, inputRec_->em_tol, step, converged, number_steps, &ems, sqrtNumAtoms);
         print_converged(fpLog_, LBFGS, inputRec_->em_tol, step, converged, number_steps, &ems, sqrtNumAtoms);
 
@@ -3130,7 +3130,7 @@ void LegacySimulator::do_steep()
 
     if (MAIN(cr_))
     {
-        double sqrtNumAtoms = sqrt(static_cast<double>(stateGlobal_->numAtoms()));
+        double sqrtNumAtoms = std::sqrt(static_cast<double>(stateGlobal_->numAtoms()));
 
         print_converged(stderr, SD, inputRec_->em_tol, count, bDone, nsteps, s_min, sqrtNumAtoms);
         print_converged(fpLog_, SD, inputRec_->em_tol, count, bDone, nsteps, s_min, sqrtNumAtoms);
