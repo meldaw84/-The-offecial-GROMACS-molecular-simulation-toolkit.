@@ -29,13 +29,6 @@ if grep -qF 'nvidia.com/gpu' <<< "$KUBERNETES_EXTENDED_RESOURCE_NAME"; then
 	    echo "    with PME decomposition"
 	fi
 	gpuMemory=`nvidia-smi -i 0 --query-gpu=memory.total --format=csv | tail -1 | awk '{ print $1 }'`
-	if [ "$gpuMemory" -lt "8000" ]
-	then
-	    echo "    without FFT MPI Decomposition test, since GPU memory is less than 8GB"
-	    EXTRA_FLAGS="--exclude-regex FFTMpiUnitTests"
-	else
-	    echo "    with FFT MPI Decomposition test"
-	fi
     fi
 fi
 if grep -qF 'amd.com/gpu' <<< "$KUBERNETES_EXTENDED_RESOURCE_NAME"; then
