@@ -522,7 +522,7 @@ real NoseHooverGroup::applyNhc(real currentKineticEnergy, const real couplingTim
                 // Last thermostat in chain doesn't get scaled.
                 const real localScalingFactor =
                         (chainPosition < chainLength_ - 1)
-                                ? exp(-0.25 * timeStep * xiVelocities_[chainPosition + 1])
+                                ? std::exp(-0.25 * timeStep * xiVelocities_[chainPosition + 1])
                                 : 1.0;
                 xiVelocities_[chainPosition] = localScalingFactor
                                                * (xiVelocities_[chainPosition] * localScalingFactor
@@ -554,7 +554,7 @@ real NoseHooverGroup::applyNhc(real currentKineticEnergy, const real couplingTim
                 // Last thermostat in chain doesn't get scaled.
                 const real localScalingFactor =
                         (chainPosition < chainLength_ - 1)
-                                ? exp(-0.25 * timeStep * xiVelocities_[chainPosition + 1])
+                                ? std::exp(-0.25 * timeStep * xiVelocities_[chainPosition + 1])
                                 : 1.0;
                 xiVelocities_[chainPosition] = localScalingFactor
                                                * (xiVelocities_[chainPosition] * localScalingFactor
