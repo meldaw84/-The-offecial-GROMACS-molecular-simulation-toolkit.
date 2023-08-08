@@ -71,8 +71,8 @@ auto makeSolveKernel(sycl::handler& cgh,
     const int stride =
             8; // this is c_virialAndEnergyCount==7 rounded up to power of 2 for convenience, hence the assert
     static_assert(c_virialAndEnergyCount == 7);
-    const int                           reductionBufferSize = c_solveMaxWarpsPerBlock * stride;
-    sycl_2020::local_accessor<float, 1> sm_virialAndEnergy(sycl::range<1>(reductionBufferSize), cgh);
+    const int                      reductionBufferSize = c_solveMaxWarpsPerBlock * stride;
+    sycl::local_accessor<float, 1> sm_virialAndEnergy(sycl::range<1>(reductionBufferSize), cgh);
 
     /* Each thread works on one cell of the Fourier space complex 3D grid (gm_grid).
      * Each block handles up to c_solveMaxWarpsPerBlock * subGroupSize cells -
@@ -242,7 +242,7 @@ auto makeSolveKernel(sycl::handler& cgh,
                 SYCL_ASSERT(m2k != 0.0F);
                 float denom = m2k * float(M_PI) * solveKernelParams.boxVolume * gm_splineValueMajor[kMajor]
                               * gm_splineValueMiddle[kMiddle] * gm_splineValueMinor[kMinor];
-                SYCL_ASSERT(sycl_2020::isfinite(denom));
+                SYCL_ASSERT(sycl::isfinite(denom));
                 SYCL_ASSERT(denom != 0.0F);
 
                 const float tmp1   = sycl::exp(-solveKernelParams.ewaldFactor * m2k);
@@ -371,7 +371,7 @@ auto makeSolveKernel(sycl::handler& cgh,
                 /* Final output */
                 if (validComponentIndex)
                 {
-                    SYCL_ASSERT(sycl_2020::isfinite(output));
+                    SYCL_ASSERT(sycl::isfinite(output));
                     atomicFetchAdd(gm_virialAndEnergy[componentIndex], output);
                 }
             }
