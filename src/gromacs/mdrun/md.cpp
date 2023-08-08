@@ -1143,7 +1143,8 @@ void gmx::LegacySimulator::do_md()
                         && !needHalfStepKineticEnergy && !do_per_step(step, ir->nstxout)
                         && !do_per_step(step, ir->nstxout_compressed)
                         && !do_per_step(step, ir->nstvout) && !do_per_step(step, ir->nstfout)
-                        && !checkpointHandler->isCheckpointingStep();
+                        && !checkpointHandler->isCheckpointingStep()
+                        && !((step + 1) % ir->nstlist == 0);
                 if (mdGraph->captureThisStep(canUseMdGpuGraphThisStep))
                 {
                     // getCoordinatesReadyOnDeviceEvent() uses stepWork.doNeighborSearch but this is not set until
