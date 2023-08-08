@@ -359,10 +359,20 @@ void MdGpuGraph::Impl::createExecutableGraph(bool forceGraphReinstantiation)
         bool updateSuccessful = tryUpdate;
         if (tryUpdate)
         {
+#if __CUDACC_VER_MAJOR__ >= 12
             cudaGraphExecUpdateResultInfo updateResultInfo_out;
             cudaError_t stat = cudaGraphExecUpdate(instance_, graph_, &updateResultInfo_out);
-            if (stat && (havePPDomainDecomposition_ || haveSeparatePmeRank_)
-                && (updateResultInfo_out.result == cudaGraphExecUpdateErrorTopologyChanged))
+            bool        additionalCheck =
+                    (updateResultInfo_out.result == cudaGraphExecUpdateErrorTopologyChanged);
+#else
+            // Use old API, which doesn't provide as detailed error information
+            // TODO remove this section when GROMACS minumum requirement reaches CUDA 12
+            cudaGraphNode_t           hErrorNode_out;
+            cudaGraphExecUpdateResult updateResult_out;
+            cudaError_t stat = cudaGraphExecUpdate(instance_, graph_, &hErrorNode_out, &updateResult_out);
+            bool        additionalCheck = true; // dummy
+#endif
+            if (stat && (havePPDomainDecomposition_ || haveSeparatePmeRank_) && additionalCheck)
             {
                 // This unnsuccessful update is due to multithreaded graph capture resulting in a
                 // different ordering, which in a minority of cases CUDA wrongly interprets as being
