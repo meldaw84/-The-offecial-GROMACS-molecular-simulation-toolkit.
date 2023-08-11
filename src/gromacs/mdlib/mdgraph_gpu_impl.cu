@@ -359,14 +359,13 @@ void MdGpuGraph::Impl::createExecutableGraph(bool forceGraphReinstantiation)
         bool updateSuccessful = true;
         if (useGraphUpdate)
         {
-#if __CUDACC_VER_MAJOR__ >= 12
+#if CUDART_VERSION >= 12000
             cudaGraphExecUpdateResultInfo updateResultInfo_out;
             cudaError_t stat = cudaGraphExecUpdate(instance_, graph_, &updateResultInfo_out);
             bool        additionalCheck =
                     (updateResultInfo_out.result == cudaGraphExecUpdateErrorTopologyChanged);
 #else
             // Use old API, which doesn't provide as detailed error information
-            // TODO remove this section when GROMACS minumum requirement reaches CUDA 12
             cudaGraphNode_t           hErrorNode_out;
             cudaGraphExecUpdateResult updateResult_out;
             cudaError_t stat = cudaGraphExecUpdate(instance_, graph_, &hErrorNode_out, &updateResult_out);
