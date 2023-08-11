@@ -356,7 +356,7 @@ void MdGpuGraph::Impl::createExecutableGraph(bool forceGraphReinstantiation)
         // Update existing graph (which is cheaper than re-instantiation) if possible.
         bool useGraphUpdate = graphInstanceAllocated_ && !forceGraphReinstantiation
                               && !needOldDriverTransferWorkaround_;
-        bool updateUnsuccessful = false;
+        bool updateSuccessful = true;
         if (useGraphUpdate)
         {
 #if __CUDACC_VER_MAJOR__ >= 12
@@ -372,18 +372,19 @@ void MdGpuGraph::Impl::createExecutableGraph(bool forceGraphReinstantiation)
             cudaError_t stat = cudaGraphExecUpdate(instance_, graph_, &hErrorNode_out, &updateResult_out);
             bool        additionalCheck = true; // dummy
 #endif
-            if ((stat != cudaSuccess) && (havePPDomainDecomposition_ || haveSeparatePmeRank_) && additionalCheck)
+            if ((stat == cudaErrorGraphExecUpdateFailure)
+                && (havePPDomainDecomposition_ || haveSeparatePmeRank_) && additionalCheck)
             {
                 // This unnsuccessful update is due to multithreaded graph capture resulting in a
                 // different ordering, which in a minority of cases CUDA wrongly interprets as being
                 // a different graph topology. Reset the error and re-instantiate in this case.
                 stat = cudaSuccess;
                 cudaGetLastError();
-                updateUnsuccessful = true;
+                updateSuccessful = false;
             }
             CU_RET_ERR(stat, "cudaGraphExecUpdate in MD graph definition finalization failed.");
         }
-        if (!useGraphUpdate || updateUnsuccessful)
+        if (!useGraphUpdate || !updateSuccessful)
         {
             if (graphInstanceAllocated_)
             {
