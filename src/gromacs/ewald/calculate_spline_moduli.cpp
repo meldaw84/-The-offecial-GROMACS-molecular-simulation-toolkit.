@@ -59,7 +59,7 @@ static void make_dft_mod(real* mod, const double* data, int splineOrder, int nda
         for (int j = 0; j < splineOrder; j++)
         {
             double arg = (2.0 * M_PI * i * (j + 1)) / ndata;
-            sc += data[j] * cos(arg);
+            sc += data[j] * std::cos(arg);
             ss += data[j] * std::sin(arg);
         }
         mod[i] = sc * sc + ss * ss;
