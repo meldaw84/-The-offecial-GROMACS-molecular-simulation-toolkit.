@@ -60,7 +60,7 @@ static void make_dft_mod(real* mod, const double* data, int splineOrder, int nda
         {
             double arg = (2.0 * M_PI * i * (j + 1)) / ndata;
             sc += data[j] * cos(arg);
-            ss += data[j] * sin(arg);
+            ss += data[j] * std::sin(arg);
         }
         mod[i] = sc * sc + ss * ss;
     }
@@ -172,7 +172,7 @@ static void make_p3m_bspline_moduli_dim(real* bsp_mod, int n, int order)
     for (i = -maxk; i < 0; i++)
     {
         zai            = zarg * i;
-        sinzai         = sin(zai);
+        sinzai         = std::sin(zai);
         infl           = do_p3m_influence(sinzai, order);
         bsp_mod[n + i] = infl * infl * std::pow(sinzai / zai, -2.0 * order);
     }
@@ -180,7 +180,7 @@ static void make_p3m_bspline_moduli_dim(real* bsp_mod, int n, int order)
     for (i = 1; i < maxk; i++)
     {
         zai        = zarg * i;
-        sinzai     = sin(zai);
+        sinzai     = std::sin(zai);
         infl       = do_p3m_influence(sinzai, order);
         bsp_mod[i] = infl * infl * std::pow(sinzai / zai, -2.0 * order);
     }
