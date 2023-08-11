@@ -520,7 +520,7 @@ static float dih_angle_gpu_sincos(const T                   xi,
     float sinval = wlen * mnInv;
 
     float ipr  = r_ij->dot(*n);
-    float sign = (ipr < 0.0F) ? -1.0F : 1.0F;
+    float sign = (ipr > 0.0F) ? -1.0F : 1.0F;
 
     return sign * sinval;
 }
