@@ -510,7 +510,7 @@ std::unique_ptr<nonbonded_verlet_t> init_nb_verlet(const gmx::MDLogger& mdlog,
  * \param[in]     upperCorner  Atom groups to be gridded should have coordinates <= this corner
  * \param[in]     updateGroupsCog  Centers of geometry for update groups, pass nullptr when not using update groups
  * \param[in]     atomRange    Range of atoms to grid
- * \param[in]     atomDensity  An estimate of the atom density, used for peformance optimization and only with \p gridIndex = 0
+ * \param[in]     atomDensity  An estimate of the atom density, used for performance optimization and only with \p gridIndex = 0
  * \param[in]     atomInfo     Atom information flags
  * \param[in]     x            Coordinates for atoms to grid
  * \param[in]     numAtomsMoved  The number of atoms that will move to another domain, pass 0 without DD
