@@ -180,7 +180,7 @@ void GpuHaloExchange::Impl::launchUnpackFKernel(bool accumulateForces)
     }
 }
 
-void eagerGpuHaloExchangeJit(const DeviceStreamManager&)
+void eagerGpuForceReductionJit(const DeviceStreamManager& /* deviceStreamManager */)
 {
     // No known need for this in CUDA
 }

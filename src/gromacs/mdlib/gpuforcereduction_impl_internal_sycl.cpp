@@ -134,7 +134,6 @@ void launchForceReductionKernel(int                  numAtoms,
             accumulate);
 }
 
-// TODO implementations for other GPU SDKs
 void eagerGpuForceReductionJit(const DeviceStreamManager& deviceStreamManager)
 {
     // Prepare to run tiny kernels of each flavour of packing and

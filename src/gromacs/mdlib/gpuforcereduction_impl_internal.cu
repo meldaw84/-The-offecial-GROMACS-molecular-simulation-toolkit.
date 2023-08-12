@@ -126,4 +126,9 @@ void launchForceReductionKernel(int                        numAtoms,
     launchGpuKernel(kernelFn, config, deviceStream, nullptr, "Force Reduction", kernelArgs);
 }
 
+void eagerGpuForceReductionJit(const DeviceStreamManager& /* deviceStreamManager */)
+{
+    // No known need for this in CUDA
+}
+
 } // namespace gmx
