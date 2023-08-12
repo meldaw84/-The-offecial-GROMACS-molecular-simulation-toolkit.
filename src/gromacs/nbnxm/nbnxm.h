@@ -491,7 +491,7 @@ std::unique_ptr<nonbonded_verlet_t> init_nb_verlet(const gmx::MDLogger& mdlog,
 
 /*! \brief Put the atoms on the pair search grid.
  *
- * Only atoms with indices wihtin \p atomRange in x are put on the grid.
+ * Only atoms with indices within \p atomRange in x are put on the grid.
  * When \p updateGroupsCog != nullptr, atoms are put on the grid
  * based on the center of geometry of the group they belong to.
  * Atoms or COGs of groups should be within the bounding box provided,
