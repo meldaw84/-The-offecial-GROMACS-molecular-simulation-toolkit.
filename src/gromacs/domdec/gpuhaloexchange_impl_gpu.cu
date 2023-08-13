@@ -48,6 +48,7 @@
 
 #include "gromacs/gpu_utils/typecasts.cuh"
 #include "gromacs/gpu_utils/vectype_ops.cuh"
+#include "gromacs/gpu_utils/gpuhaloexchange.h"
 
 #include "domdec_struct.h"
 
