@@ -734,21 +734,16 @@ void SecondaryStructures::analyzeHydrogenBondsInFrame(const t_trxframe& fr, cons
 
 bool SecondaryStructures::hasHBondBetween(std::size_t donor, std::size_t acceptor) const
 {
-    if (frameVector_[donor].acceptor_[0] == frameVector_[acceptor].info_
-        && (frameVector_[donor].acceptorEnergy_[0] < hBondEnergyCutOff_ || hbDef_ == HBondDefinition::Geometry))
+    for (std::size_t i = 0; i < ResInfo::sc_maxDonorsPerResidue; ++i)
     {
-        return true;
+        if (frameVector_[donor].acceptor_[i] == frameVector_[acceptor].info_
+            && (frameVector_[donor].acceptorEnergy_[i] < hBondEnergyCutOff_
+                || hbDef_ == HBondDefinition::Geometry))
+        {
+            return true;
+        }
     }
-    else if (frameVector_[donor].acceptor_[1] == frameVector_[acceptor].info_
-             && (frameVector_[donor].acceptorEnergy_[1] < hBondEnergyCutOff_
-                 || hbDef_ == HBondDefinition::Geometry))
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return false;
 }
 
 bool SecondaryStructures::noChainBreaksBetween(std::size_t residueA, std::size_t residueB) const
@@ -1306,15 +1301,6 @@ void SecondaryStructures::calculateHBondEnergy(ResInfo*          donor,
                                                const t_trxframe& fr,
                                                const t_pbc*      pbc)
 {
-    // Values are taken from original DSSP algorithm, file Secondary.cpp from https://github.com/PDB-REDO/libcifpp/releases/tag/v3.0.0
-    const float kCouplingConstant   = 27.888;
-    const float minimalAtomDistance = 0.5;
-    const float minEnergy           = -9.9;
-    float       HbondEnergy         = 0;
-    float       distanceNO          = 0;
-    float       distanceHC          = 0;
-    float       distanceHO          = 0;
-    float       distanceNC          = 0;
     if (!(donor->isProline_)
         && (acceptor->hasIndex(BackboneAtomTypes::AtomC) && acceptor->hasIndex(BackboneAtomTypes::AtomO)
             && donor->hasIndex(BackboneAtomTypes::AtomN) && donor->hasIndex(BackboneAtomTypes::AtomH)))
@@ -1325,14 +1311,16 @@ void SecondaryStructures::calculateHBondEnergy(ResInfo*          donor,
                                      pbc)
             < minimalCAdistance_)
         {
-            distanceNO = calculateAtomicDistances(donor->getIndex(BackboneAtomTypes::AtomN),
-                                                  acceptor->getIndex(BackboneAtomTypes::AtomO),
-                                                  fr,
-                                                  pbc);
-            distanceNC = calculateAtomicDistances(donor->getIndex(BackboneAtomTypes::AtomN),
-                                                  acceptor->getIndex(BackboneAtomTypes::AtomC),
-                                                  fr,
-                                                  pbc);
+            float distanceHO = 0;
+            float distanceHC = 0;
+            float distanceNO = calculateAtomicDistances(donor->getIndex(BackboneAtomTypes::AtomN),
+                                                        acceptor->getIndex(BackboneAtomTypes::AtomO),
+                                                        fr,
+                                                        pbc);
+            float distanceNC = calculateAtomicDistances(donor->getIndex(BackboneAtomTypes::AtomN),
+                                                        acceptor->getIndex(BackboneAtomTypes::AtomC),
+                                                        fr,
+                                                        pbc);
             if (hMode_ == HydrogenMode::Dssp)
             {
                 if (donor->prevResi_ != nullptr && donor->prevResi_->getIndex(BackboneAtomTypes::AtomC)
@@ -1369,6 +1357,11 @@ void SecondaryStructures::calculateHBondEnergy(ResInfo*          donor,
                                                       fr,
                                                       pbc);
             }
+            // Values are taken from original DSSP algorithm, file Secondary.cpp from https://github.com/PDB-REDO/libcifpp/releases/tag/v3.0.0
+            float       HbondEnergy         = 0;
+            const float minEnergy           = -9.9;
+            const float minimalAtomDistance = 0.5;
+            const float kCouplingConstant   = 27.888;
             if ((distanceNO < minimalAtomDistance) || (distanceHC < minimalAtomDistance)
                 || (distanceHO < minimalAtomDistance) || (distanceNC < minimalAtomDistance))
             {
@@ -1414,24 +1407,20 @@ void SecondaryStructures::calculateHBondGeometry(ResInfo*          donor,
                                                  const t_trxframe& fr,
                                                  const t_pbc*      pbc)
 {
-    // Values are taken from the HBOND algorithm.
-    const float c_rMaxDistanceNM_ = 0.35;
-    const float c_angleMaxDegree_ = 30;
-    float       degree            = 0;
-    gmx::RVec   vectorNO          = { 0, 0, 0 };
-    gmx::RVec   vectorNH          = { 0, 0, 0 };
-    gmx::RVec   vectorH           = { 0, 0, 0 };
     if (!(donor->isProline_)
         && (acceptor->hasIndex(BackboneAtomTypes::AtomC) && acceptor->hasIndex(BackboneAtomTypes::AtomO)
             && donor->hasIndex(BackboneAtomTypes::AtomN) && donor->hasIndex(BackboneAtomTypes::AtomH)))
     {
+        gmx::RVec vectorNO = { 0, 0, 0 };
         pbc_dx(pbc,
                fr.x[acceptor->getIndex(BackboneAtomTypes::AtomO)],
                fr.x[donor->getIndex(BackboneAtomTypes::AtomN)],
                vectorNO.as_vec());
+        // Value is taken from the HBOND algorithm.
+        const float c_rMaxDistanceNM_ = 0.35;
         if (vectorNO.norm() <= c_rMaxDistanceNM_)
         {
-            vectorH = fr.x[donor->getIndex(BackboneAtomTypes::AtomH)];
+            gmx::RVec vectorH = fr.x[donor->getIndex(BackboneAtomTypes::AtomH)];
             if (hMode_ == HydrogenMode::Dssp)
             {
                 if (donor->prevResi_ != nullptr && donor->prevResi_->getIndex(BackboneAtomTypes::AtomC)
@@ -1448,8 +1437,12 @@ void SecondaryStructures::calculateHBondGeometry(ResInfo*          donor,
                     vectorH += prevCO / prevCODist;
                 }
             }
+            gmx::RVec vectorNH = { 0, 0, 0 };
             pbc_dx(pbc, vectorH, fr.x[donor->getIndex(BackboneAtomTypes::AtomN)], vectorNH.as_vec());
-            degree = gmx_angle(vectorNO, vectorNH) * gmx::c_rad2Deg;
+            // Values are taken from the HBOND algorithm.
+            float       degree            = 0;
+            const float c_angleMaxDegree_ = 30;
+            degree                        = gmx_angle(vectorNO, vectorNH) * gmx::c_rad2Deg;
             if (degree <= c_angleMaxDegree_)
             {
                 if (donor->acceptor_[0] == nullptr)
