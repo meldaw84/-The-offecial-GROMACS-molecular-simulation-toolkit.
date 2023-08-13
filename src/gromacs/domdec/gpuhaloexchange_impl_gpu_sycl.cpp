@@ -236,15 +236,15 @@ void eagerGpuHaloExchangeJit(const DeviceStreamManager& deviceStreamManager)
     Float3 shift{ 2, 2, 2 };
     // Run all the flavours of pack kernel
     launchPackSendBufKernel<false>(
-            stream, size, d_input.get_pointer(), d_output.get_pointer(), d_map, size, shift);
+            stream, size, d_input.get_pointer(), d_output.get_pointer(), d_map.get_pointer(), size, shift);
     launchPackSendBufKernel<true>(
-            stream, size, d_input.get_pointer(), d_output.get_pointer(), d_map, size, shift);
+            stream, size, d_input.get_pointer(), d_output.get_pointer(), d_map.get_pointer(), size, shift);
 
     // Run all the flavours of unpack kernel
     launchUnpackRecvBufKernel<false>(
-            stream, size, d_input.get_pointer(), d_output.get_pointer(), d_map, size);
+            stream, size, d_input.get_pointer(), d_output.get_pointer(), d_map.get_pointer(), size);
     launchUnpackRecvBufKernel<true>(
-            stream, size, d_input.get_pointer(), d_output.get_pointer(), d_map, size);
+            stream, size, d_input.get_pointer(), d_output.get_pointer(), d_map.get_pointer(), size);
 
     freeDeviceBuffer(&d_output);
     freeDeviceBuffer(&d_input);
