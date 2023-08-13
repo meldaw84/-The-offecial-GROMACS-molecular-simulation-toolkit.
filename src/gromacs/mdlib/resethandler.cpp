@@ -74,7 +74,7 @@ static inline ResetSignal convertToResetSignal(signed char sig)
 
 ResetHandler::ResetHandler(compat::not_null<SimulationSignal*> signal,
                            bool                                simulationsShareState,
-                           int64_t                             nsteps,
+                           std::int64_t                        nsteps,
                            bool                                isMain,
                            bool                                resetHalfway,
                            real                                maximumHoursToRun,
@@ -131,8 +131,8 @@ bool ResetHandler::setSignalImpl(gmx_walltime_accounting_t walltime_accounting)
     return false;
 }
 
-bool ResetHandler::resetCountersImpl(int64_t                     step,
-                                     int64_t                     step_rel,
+bool ResetHandler::resetCountersImpl(std::int64_t                step,
+                                     std::int64_t                step_rel,
                                      const MDLogger&             mdlog,
                                      FILE*                       fplog,
                                      const t_commrec*            cr,

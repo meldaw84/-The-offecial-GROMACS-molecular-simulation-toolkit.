@@ -211,7 +211,10 @@ static gmx_bool CheckHistogramRatios(int nhisto, const real* histo, real ratio)
     return bIfFlat;
 }
 
-static gmx_bool CheckIfDoneEquilibrating(int nlim, const t_expanded* expand, const df_history_t* dfhist, int64_t step)
+static gmx_bool CheckIfDoneEquilibrating(int                 nlim,
+                                         const t_expanded*   expand,
+                                         const df_history_t* dfhist,
+                                         std::int64_t        step)
 {
 
     int      i, totalsamples;
@@ -325,7 +328,7 @@ static gmx_bool UpdateWeights(int           nlim,
                               int           fep_state,
                               const real*   scaled_lamee,
                               const real*   weighted_lamee,
-                              int64_t       step)
+                              std::int64_t  step)
 {
     gmx_bool bSufficientSamples;
     real     acceptanceWeight;
@@ -837,8 +840,8 @@ static int ChooseNewLambda(int               nlim,
                            int               fep_state,
                            const real*       weighted_lamee,
                            double*           p_k,
-                           int64_t           seed,
-                           int64_t           step)
+                           std::int64_t      seed,
+                           std::int64_t      step)
 {
     /* Choose new lambda value, and update transition matrix */
 
@@ -1154,7 +1157,7 @@ void PrintFreeEnergyInfoToFile(FILE*               outfile,
                                const df_history_t* dfhist,
                                int                 fep_state,
                                int                 frequency,
-                               int64_t             step)
+                               std::int64_t        step)
 {
     int      nlim, ifep, jfep;
     real     dw, dg, dv, Tprint;
@@ -1333,7 +1336,7 @@ int expandedEnsembleUpdateLambdaState(FILE*                 log,
                                       const gmx_enerdata_t* enerd,
                                       int                   fep_state,
                                       df_history_t*         dfhist,
-                                      int64_t               step)
+                                      std::int64_t          step)
 {
     real *      pfep_lamee, *scaled_lamee, *weighted_lamee;
     double*     p_k;
@@ -1576,7 +1579,7 @@ int ExpandedEnsembleDynamics(FILE*                               log,
                              t_extmass*                          MassQ,
                              int                                 fep_state,
                              df_history_t*                       dfhist,
-                             int64_t                             step,
+                             std::int64_t                        step,
                              rvec*                               v,
                              const int                           homenr,
                              gmx::ArrayRef<const unsigned short> cTC)

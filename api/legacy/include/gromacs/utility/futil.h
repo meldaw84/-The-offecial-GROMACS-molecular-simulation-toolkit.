@@ -52,7 +52,7 @@
 #include "gromacs/utility/fileptr.h"
 
 /** \Gromacs definition to use instead of `off_t`. */
-typedef int64_t gmx_off_t;
+typedef std::int64_t gmx_off_t;
 
 /*! \brief
  * Turn off buffering for output files (which is default) for debugging

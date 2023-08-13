@@ -160,13 +160,13 @@ static std::vector<char> awhParamSerialized(AwhHistogramGrowthType            ea
                                             AwhPotentialType                  eawhpotential,
                                             double                            beta,
                                             double                            inputErrorScaling,
-                                            int64_t                           inputSeed,
+                                            std::int64_t                      inputSeed,
                                             ArrayRef<const std::vector<char>> dimensionParameterBuffers,
                                             int                               biasShareGroup,
                                             bool                              inputUserData)
 {
     int              numBias                    = 1;
-    int64_t          seed                       = inputSeed;
+    std::int64_t     seed                       = inputSeed;
     int              nstOut                     = 0;
     int              nstSampleCoord             = 1;
     int              numSamplesUpdateFreeEnergy = 10;
@@ -207,9 +207,9 @@ AwhTestParameters getAwhTestParameters(AwhHistogramGrowthType            eawhgro
                                        int                               numFepLambdaStates,
                                        int                               biasShareGroup)
 {
-    double  convFactor = 1;
-    double  k          = 1000;
-    int64_t seed       = 93471803;
+    double       convFactor = 1;
+    double       k          = 1000;
+    std::int64_t seed       = 93471803;
 
     auto awhParamBuffer = awhParamSerialized(
             eawhgrowth, eawhpotential, beta, inputErrorScaling, seed, dimensionParameterBuffers, biasShareGroup, inputUserData);

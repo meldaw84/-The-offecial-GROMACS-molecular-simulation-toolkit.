@@ -80,7 +80,7 @@ int intFromString(const char* str);
  *
  * Also checks for overflow.
  */
-int64_t int64FromString(const char* str);
+std::int64_t int64FromString(const char* str);
 /*! \brief
  * Parses a float value from a string.
  *
@@ -140,7 +140,7 @@ inline int fromString<int>(const char* str)
 }
 //! Implementation for 64-bit integer values.
 template<>
-inline int64_t fromString<int64_t>(const char* str)
+inline std::int64_t fromString<std::int64_t>(const char* str)
 {
     return int64FromString(str);
 }
@@ -176,7 +176,7 @@ static inline std::string intToString(int t)
     return formatString("%d", t);
 }
 //! \copydoc intToString(int)
-static inline std::string int64ToString(int64_t t)
+static inline std::string int64ToString(std::int64_t t)
 {
     return formatString("%" PRId64, t);
 }
@@ -200,7 +200,7 @@ static inline std::string toString(int t)
 {
     return intToString(t);
 }
-static inline std::string toString(int64_t t)
+static inline std::string toString(std::int64_t t)
 {
     return int64ToString(t);
 }

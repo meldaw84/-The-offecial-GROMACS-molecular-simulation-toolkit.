@@ -90,9 +90,9 @@ struct gmx_walltime_accounting
      * with respect to parallelism implementation. */
     int numOpenMPThreads;
     //! Numbers of steps done before reset of counters
-    int64_t nsteps_done_at_reset;
+    std::int64_t nsteps_done_at_reset;
     //! Set by integrators to report the amount of work they did
-    int64_t nsteps_done;
+    std::int64_t nsteps_done;
     //! Whether the simulation has finished in a way valid for walltime reporting.
     bool isValidFinish;
 };
@@ -136,7 +136,7 @@ void walltime_accounting_destroy(gmx_walltime_accounting_t walltime_accounting)
     sfree(walltime_accounting);
 }
 
-void walltime_accounting_reset_time(gmx_walltime_accounting_t walltime_accounting, int64_t step)
+void walltime_accounting_reset_time(gmx_walltime_accounting_t walltime_accounting, std::int64_t step)
 {
     walltime_accounting->reset_time_stamp            = gmx_gettime();
     walltime_accounting->reset_time_stamp_per_thread = gmx_gettime_per_thread();
@@ -191,12 +191,12 @@ double walltime_accounting_get_start_time_stamp(gmx_walltime_accounting_t wallti
     return walltime_accounting->start_time_stamp;
 }
 
-int64_t walltime_accounting_get_nsteps_done_since_reset(gmx_walltime_accounting_t walltime_accounting)
+std::int64_t walltime_accounting_get_nsteps_done_since_reset(gmx_walltime_accounting_t walltime_accounting)
 {
     return walltime_accounting->nsteps_done - walltime_accounting->nsteps_done_at_reset;
 }
 
-void walltime_accounting_set_nsteps_done(gmx_walltime_accounting_t walltime_accounting, int64_t nsteps_done)
+void walltime_accounting_set_nsteps_done(gmx_walltime_accounting_t walltime_accounting, std::int64_t nsteps_done)
 {
     walltime_accounting->nsteps_done = nsteps_done;
 }

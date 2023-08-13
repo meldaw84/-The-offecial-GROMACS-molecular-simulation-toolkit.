@@ -141,7 +141,7 @@ void do_rotation(const t_commrec*               cr,
                  const matrix                   box,
                  gmx::ArrayRef<const gmx::RVec> coords,
                  real                           t,
-                 int64_t                        step,
+                 std::int64_t                   step,
                  bool                           bNS);
 
 
@@ -162,7 +162,7 @@ void do_rotation(const t_commrec*               cr,
  * \param t       Time, used for output.
  * \returns       The potential energy of the rotation potentials.
  */
-real add_rot_forces(gmx_enfrot* er, gmx::ArrayRef<gmx::RVec> force, const t_commrec* cr, int64_t step, real t);
+real add_rot_forces(gmx_enfrot* er, gmx::ArrayRef<gmx::RVec> force, const t_commrec* cr, std::int64_t step, real t);
 
 
 #endif

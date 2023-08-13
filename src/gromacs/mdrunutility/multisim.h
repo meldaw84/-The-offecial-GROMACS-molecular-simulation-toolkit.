@@ -118,7 +118,7 @@ struct gmx_multisim_t
 void gmx_sumi_sim(int nr, int r[], const gmx_multisim_t* ms);
 
 //! Calculate the sum over the simulations of an array of large ints
-void gmx_sumli_sim(int nr, int64_t r[], const gmx_multisim_t* ms);
+void gmx_sumli_sim(int nr, std::int64_t r[], const gmx_multisim_t* ms);
 
 //! Calculate the sum over the simulations of an array of floats
 void gmx_sumf_sim(int nr, float r[], const gmx_multisim_t* ms);
@@ -138,7 +138,7 @@ std::vector<int> gatherIntFromMultiSimulation(const gmx_multisim_t* ms, int loca
  * no output is written. */
 void check_multi_int(FILE* log, const gmx_multisim_t* ms, int val, const char* name, gmx_bool bQuiet);
 /*! \copydoc check_multi_int() */
-void check_multi_int64(FILE* log, const gmx_multisim_t* ms, int64_t val, const char* name, gmx_bool bQuiet);
+void check_multi_int64(FILE* log, const gmx_multisim_t* ms, std::int64_t val, const char* name, gmx_bool bQuiet);
 
 #if GMX_DOUBLE
 //! Convenience define for sum of reals

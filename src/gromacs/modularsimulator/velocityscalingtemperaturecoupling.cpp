@@ -211,11 +211,11 @@ public:
     }
 
     //! Constructor
-    VRescaleTemperatureCoupling(int64_t seed) : seed_(seed) {}
+    VRescaleTemperatureCoupling(std::int64_t seed) : seed_(seed) {}
 
 private:
     //! The random seed
-    const int64_t seed_;
+    const std::int64_t seed_;
 
     //! View on the scaling factor of the propagator (pre-step velocities)
     ArrayRef<real> lambdaStartVelocities_;
@@ -507,7 +507,7 @@ VelocityScalingTemperatureCoupling::VelocityScalingTemperatureCoupling(
         int                               offset,
         UseFullStepKE                     useFullStepKE,
         ReportPreviousStepConservedEnergy reportPreviousConservedEnergy,
-        int64_t                           seed,
+        std::int64_t                      seed,
         int                               numTemperatureGroups,
         double                            couplingTimeStep,
         const real*                       referenceTemperature,

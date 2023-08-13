@@ -75,7 +75,7 @@ private:
 
 public:
     //! Random seed for AWH MC sampling
-    int64_t seed_;
+    std::int64_t seed_;
 
     //! The awh Bias
     std::unique_ptr<Bias> bias_;
@@ -257,7 +257,7 @@ TEST(BiasFepLambdaStateTest, DetectsCovering)
               "",
               Bias::ThisRankWillDoIO::No);
 
-    const int64_t exitStepRef = 320;
+    const std::int64_t exitStepRef = 320;
 
     bool inInitialStage = bias.state().inInitialStage();
 
@@ -271,7 +271,7 @@ TEST(BiasFepLambdaStateTest, DetectsCovering)
         neighborLambdaDhdl[i]     = magnitude * std::cos(i * 0.1);
     }
 
-    int64_t step;
+    std::int64_t step;
     /* Normally this loop exits at exitStepRef, but we extend with failure */
     for (step = 0; step <= 2 * exitStepRef; step++)
     {

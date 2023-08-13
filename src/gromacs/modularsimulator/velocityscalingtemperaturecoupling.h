@@ -89,7 +89,7 @@ public:
                                        int                               offset,
                                        UseFullStepKE                     useFullStepKE,
                                        ReportPreviousStepConservedEnergy reportPreviousConservedEnergy,
-                                       int64_t                           seed,
+                                       std::int64_t                      seed,
                                        int                               numTemperatureGroups,
                                        double                            couplingTimeStep,
                                        const real*                       referenceTemperature,

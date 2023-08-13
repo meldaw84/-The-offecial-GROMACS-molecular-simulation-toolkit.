@@ -137,7 +137,7 @@ void finish_swapcoords(t_swap* s);
  * \returns Whether at least one pair of molecules was swapped.
  */
 gmx_bool do_swapcoords(t_commrec*        cr,
-                       int64_t           step,
+                       std::int64_t      step,
                        double            t,
                        const t_inputrec* ir,
                        t_swap*           s,

@@ -74,7 +74,7 @@ void* save_malloc(const char* name, const char* file, int line, std::size_t size
                       "Not enough memory. Failed to malloc %" PRId64
                       " bytes for %s\n"
                       "(called from file %s, line %d)",
-                      static_cast<int64_t>(size),
+                      static_cast<std::int64_t>(size),
                       name,
                       file,
                       line);
@@ -116,8 +116,8 @@ void* save_calloc(const char* name, const char* file, int line, std::size_t nele
                       __LINE__,
                       "Not enough memory. Failed to calloc %" PRId64 " elements of size %" PRId64
                       " for %s\n(called from file %s, line %d)",
-                      (int64_t)nelem,
-                      (int64_t)elsize,
+                      (std::int64_t)nelem,
+                      (std::int64_t)elsize,
                       name,
                       file,
                       line);
@@ -131,8 +131,8 @@ void* save_calloc(const char* name, const char* file, int line, std::size_t nele
                       __LINE__,
                       "Not enough memory. Failed to calloc %" PRId64 " elements of size %" PRId64
                       " for %s\n(called from file %s, line %d)",
-                      static_cast<int64_t>(nelem),
-                      static_cast<int64_t>(elsize),
+                      static_cast<std::int64_t>(nelem),
+                      static_cast<std::int64_t>(elsize),
                       name,
                       file,
                       line);

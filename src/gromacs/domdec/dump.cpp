@@ -55,7 +55,7 @@
 
 #include "domdec_internal.h"
 
-void write_dd_grid_pdb(const char* fn, int64_t step, gmx_domdec_t* dd, matrix box, gmx_ddbox_t* ddbox)
+void write_dd_grid_pdb(const char* fn, std::int64_t step, gmx_domdec_t* dd, matrix box, gmx_ddbox_t* ddbox)
 {
     rvec   grid_s[2], cx, r;
     char   fname[STRLEN], buf[22];
@@ -157,7 +157,7 @@ void write_dd_grid_pdb(const char* fn, int64_t step, gmx_domdec_t* dd, matrix bo
 }
 
 void write_dd_pdb(const char*       fn,
-                  int64_t           step,
+                  std::int64_t      step,
                   const char*       title,
                   const gmx_mtop_t& mtop,
                   const t_commrec*  cr,

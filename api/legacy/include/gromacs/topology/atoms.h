@@ -285,7 +285,7 @@ private:
     //! Type of the particle.
     ParticleType particleType_;
     //! Residue this atoms is part of.
-    int64_t residueIndex_;
+    std::int64_t residueIndex_;
     //! Atomic Number or 0.
     int atomicNumber_;
     //! Name of the element if applicable.

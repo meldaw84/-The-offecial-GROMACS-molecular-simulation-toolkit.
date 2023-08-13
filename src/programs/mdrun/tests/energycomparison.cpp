@@ -152,9 +152,9 @@ void checkEnergiesAgainstReferenceData(const std::string&          energyFilenam
         unsigned int frameNumber = 0;
         while (frameNumber < maxNumEnergyFrames && energyReader->readNextFrame())
         {
-            const EnergyFrame& frame = energyReader->frame();
-            const std::string  frameName =
-                    frame.frameName() + " in frame " + toString(static_cast<int64_t>(frameNumber));
+            const EnergyFrame& frame     = energyReader->frame();
+            const std::string  frameName = frame.frameName() + " in frame "
+                                          + toString(static_cast<std::int64_t>(frameNumber));
 
             SCOPED_TRACE("Comparing frame " + frameName);
             for (const auto& energyTermToCompare : energyTermsToCompare)

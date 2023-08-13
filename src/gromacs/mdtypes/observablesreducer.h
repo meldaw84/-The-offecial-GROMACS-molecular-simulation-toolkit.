@@ -212,7 +212,7 @@ template<typename>
 class ArrayRef;
 
 class ObservablesReducer;
-using Step = int64_t;
+using Step = std::int64_t;
 
 /*! \brief Control whether reduction is required soon. */
 enum class ReductionRequirement : int

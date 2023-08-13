@@ -70,11 +70,11 @@ void global_stat(const gmx_global_stat&   gs,
                  gmx::ArrayRef<real>      sig,
                  bool                     bSumEkinhOld,
                  int                      flags,
-                 int64_t                  step,
+                 std::int64_t             step,
                  gmx::ObservablesReducer* observablesReducer);
 
 /*! \brief Returns TRUE if io should be done */
-inline bool do_per_step(int64_t step, int64_t nstep)
+inline bool do_per_step(std::int64_t step, std::int64_t nstep)
 {
     if (nstep != 0)
     {

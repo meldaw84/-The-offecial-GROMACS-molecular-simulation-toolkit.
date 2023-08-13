@@ -57,7 +57,7 @@ gmx_bool equal_double(double i1, double i2, real ftol, real abstol);
 void cmp_int(FILE* fp, const char* s, int index, int i1, int i2);
 
 //! Compares two 64-bit integers and prints differences.
-void cmp_int64(FILE* fp, const char* s, int64_t i1, int64_t i2);
+void cmp_int64(FILE* fp, const char* s, std::int64_t i1, std::int64_t i2);
 
 //! Compares two unsigned short values and prints differences.
 void cmp_us(FILE* fp, const char* s, int index, unsigned short i1, unsigned short i2);

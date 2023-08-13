@@ -61,7 +61,7 @@ namespace gmx
  *
  *  \return 64-bit unsigned integer with random bits.
  */
-uint64_t makeRandomSeed();
+std::uint64_t makeRandomSeed();
 
 /*! \brief Random device
  *

@@ -59,7 +59,7 @@ void MimicCommunicator::sendInitData(gmx_mtop_t* /*mtop*/, ArrayRef<const RVec> 
             "GROMACS is compiled without MiMiC support! Please, reconfigure with -DGMX_MIMIC=ON"));
 }
 
-int64_t MimicCommunicator::getStepNumber()
+std::int64_t MimicCommunicator::getStepNumber()
 {
     GMX_THROW(InternalError(
             "GROMACS is compiled without MiMiC support! Please, reconfigure with -DGMX_MIMIC=ON"));

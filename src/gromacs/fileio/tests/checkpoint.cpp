@@ -65,26 +65,26 @@ TEST(Checkpoint, ReadingThrowsWhenValueNotPresent)
 
 TEST(Checkpoint, ReadingDoesNotThrowWhenValuePresent)
 {
-    int64_t             value      = 37;
+    std::int64_t        value      = 37;
     std::string         name       = "checkpointedInteger";
     std::string         identifier = "testingmodule";
     KeyValueTreeBuilder kvtBuilder;
     writeKvtCheckpointValue(value, name, identifier, kvtBuilder.rootObject());
-    const auto kvtObject = kvtBuilder.build();
-    int64_t    readValue = 0;
+    const auto   kvtObject = kvtBuilder.build();
+    std::int64_t readValue = 0;
     EXPECT_NO_THROW_GMX(
             readKvtCheckpointValue(compat::make_not_null(&readValue), name, identifier, kvtObject));
 }
 
 TEST(Checkpoint, KvtRoundTripInt64)
 {
-    int64_t             value      = INT64_MAX;
+    std::int64_t        value      = INT64_MAX;
     std::string         name       = "checkpointedInteger";
     std::string         identifier = "testingmodule";
     KeyValueTreeBuilder kvtBuilder;
     writeKvtCheckpointValue(value, name, identifier, kvtBuilder.rootObject());
-    const auto kvtObject = kvtBuilder.build();
-    int64_t    readValue = 0;
+    const auto   kvtObject = kvtBuilder.build();
+    std::int64_t readValue = 0;
     readKvtCheckpointValue(compat::make_not_null(&readValue), name, identifier, kvtObject);
     EXPECT_EQ(value, readValue);
 }

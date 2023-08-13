@@ -127,7 +127,7 @@ class EnergyCalculationFrequencyErrors
 {
 public:
     //! Construct by setting the energy calculation frequency
-    EnergyCalculationFrequencyErrors(int64_t energyCalculationIntervalInSteps);
+    EnergyCalculationFrequencyErrors(std::int64_t energyCalculationIntervalInSteps);
     //! Return the number of steps of an energy calculation interval
     std::int64_t energyCalculationIntervalInSteps() const;
     //! Collect error messages

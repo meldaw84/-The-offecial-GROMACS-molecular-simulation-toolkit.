@@ -103,8 +103,8 @@ void pme_loadbal_do(pme_load_balancing_t*          pme_lb,
                     const matrix                   box,
                     gmx::ArrayRef<const gmx::RVec> x,
                     gmx_wallcycle*                 wcycle,
-                    int64_t                        step,
-                    int64_t                        step_rel,
+                    std::int64_t                   step,
+                    std::int64_t                   step_rel,
                     gmx_bool*                      bPrinting,
                     bool                           useGpuPmePpCommunication);
 

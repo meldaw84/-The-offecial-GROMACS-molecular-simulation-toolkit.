@@ -685,7 +685,7 @@ void Msd::analyzeFrame(int gmx_unused                frameNumber,
                 firstValidFrame_ = i + 1;
                 continue;
             }
-            int64_t tauIndex = gmx::roundToInt64(tau / *dt_);
+            std::int64_t tauIndex = gmx::roundToInt64(tau / *dt_);
             msdData.msds[tauIndex].push_back(calcMsd_(coords, msdData.frames[i]));
 
             for (std::size_t molInd = 0; molInd < molecules_.size(); molInd++)

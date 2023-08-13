@@ -60,17 +60,17 @@ namespace gmx
  * here, reserving bits 0-7 for the energy-group ID.
  */
 //! \{
-static constexpr int64_t sc_atomInfo_FreeEnergyPerturbation = 1 << 15;
-static constexpr int64_t sc_atomInfo_HasPerturbedCharge     = 1 << 16;
-static constexpr int64_t sc_atomInfo_Exclusion              = 1 << 17;
-static constexpr int64_t sc_atomInfo_Constraint             = 1 << 20;
-static constexpr int64_t sc_atomInfo_Settle                 = 1 << 21;
-static constexpr int64_t sc_atomInfo_BondCommunication      = 1 << 22;
-static constexpr int64_t sc_atomInfo_HasVdw                 = 1 << 23;
-static constexpr int64_t sc_atomInfo_HasCharge              = 1 << 24;
+static constexpr std::int64_t sc_atomInfo_FreeEnergyPerturbation = 1 << 15;
+static constexpr std::int64_t sc_atomInfo_HasPerturbedCharge     = 1 << 16;
+static constexpr std::int64_t sc_atomInfo_Exclusion              = 1 << 17;
+static constexpr std::int64_t sc_atomInfo_Constraint             = 1 << 20;
+static constexpr std::int64_t sc_atomInfo_Settle                 = 1 << 21;
+static constexpr std::int64_t sc_atomInfo_BondCommunication      = 1 << 22;
+static constexpr std::int64_t sc_atomInfo_HasVdw                 = 1 << 23;
+static constexpr std::int64_t sc_atomInfo_HasCharge              = 1 << 24;
 //! \}
 //! The first 8 bits are reserved for energy-group ID
-static constexpr int64_t sc_atomInfo_EnergyGroupIdMask = 0b11111111;
+static constexpr std::int64_t sc_atomInfo_EnergyGroupIdMask = 0b11111111;
 
 /*! \internal
  *  \brief Contains information about each atom in a molecule block of the global topology.
@@ -97,7 +97,7 @@ struct AtomInfoWithinMoleculeBlock
      *
      * The vector needs to be indexed accordingly.
      */
-    std::vector<int64_t> atomInfo;
+    std::vector<std::int64_t> atomInfo;
 };
 
 } // namespace gmx

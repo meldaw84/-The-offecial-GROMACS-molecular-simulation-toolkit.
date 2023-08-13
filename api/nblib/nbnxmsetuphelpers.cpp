@@ -69,7 +69,7 @@
 namespace nblib
 {
 
-int64_t findNumEnergyGroups(gmx::ArrayRef<int64_t> particleInteractionFlags)
+std::int64_t findNumEnergyGroups(gmx::ArrayRef<std::int64_t> particleInteractionFlags)
 {
     auto groupId = [](int code1, int code2) {
         return (code1 & gmx::sc_atomInfo_EnergyGroupIdMask) < (code2 & gmx::sc_atomInfo_EnergyGroupIdMask);
@@ -139,9 +139,9 @@ Nbnxm::KernelSetup createKernelSetupGPU(const bool useTabulatedEwaldCorr)
     return kernelSetup;
 }
 
-std::vector<int64_t> createParticleInfoAllVdw(const std::size_t numParticles)
+std::vector<std::int64_t> createParticleInfoAllVdw(const std::size_t numParticles)
 {
-    std::vector<int64_t> particleInfoAllVdw(numParticles);
+    std::vector<std::int64_t> particleInfoAllVdw(numParticles);
     for (std::size_t particleI = 0; particleI < numParticles; particleI++)
     {
         particleInfoAllVdw[particleI] |= gmx::sc_atomInfo_HasVdw;

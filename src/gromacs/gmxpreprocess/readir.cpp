@@ -719,9 +719,9 @@ void check_ir(const char*                    mdparin,
             if (fep->n_lambda > 1)
             {
                 /* warn about capping if lambda vector is provided as user input */
-                double  stepNumberWhenLambdaIsOne = (1.0 - fep->init_lambda) / fep->delta_lambda;
-                int64_t intStepNumberWhenLambdaIsOne =
-                        static_cast<int64_t>(std::round(stepNumberWhenLambdaIsOne));
+                double stepNumberWhenLambdaIsOne = (1.0 - fep->init_lambda) / fep->delta_lambda;
+                std::int64_t intStepNumberWhenLambdaIsOne =
+                        static_cast<std::int64_t>(std::round(stepNumberWhenLambdaIsOne));
 
                 auto warningText = gmx::formatString(
                         "With init-lambda = %g and delta_lambda = %g, the lambda "
@@ -753,7 +753,7 @@ void check_ir(const char*                    mdparin,
         if (fep->delta_lambda != 0)
         {
             /* warn about capping */
-            int64_t intStepNumberWhenLambdaIsCapped = ir->nsteps;
+            std::int64_t intStepNumberWhenLambdaIsCapped = ir->nsteps;
 
             if (fep->init_fep_state >= 0 && fep->init_fep_state < fep->n_lambda)
             {
@@ -763,14 +763,14 @@ void check_ir(const char*                    mdparin,
                     double stepNumberWhenLambdaIsCapped =
                             (fep->n_lambda - 1 - fep->init_fep_state) / deltaLambdaWithMultiplier;
                     intStepNumberWhenLambdaIsCapped =
-                            static_cast<int64_t>(std::round(stepNumberWhenLambdaIsCapped));
+                            static_cast<std::int64_t>(std::round(stepNumberWhenLambdaIsCapped));
                 }
                 else if (fep->delta_lambda < 0)
                 {
                     double stepNumberWhenLambdaIsCapped =
                             (0 - fep->init_fep_state) / deltaLambdaWithMultiplier;
                     intStepNumberWhenLambdaIsCapped =
-                            static_cast<int64_t>(std::round(stepNumberWhenLambdaIsCapped));
+                            static_cast<std::int64_t>(std::round(stepNumberWhenLambdaIsCapped));
                 }
 
                 if (intStepNumberWhenLambdaIsCapped < ir->nsteps || ir->nsteps < 0)
@@ -795,7 +795,7 @@ void check_ir(const char*                    mdparin,
                     double stepNumberWhenLambdaIsCapped = (1.0 - fep->init_lambda) / fep->delta_lambda;
                     stepNumberWhenLambdaIsCapped = std::max(stepNumberWhenLambdaIsCapped, 0.0);
                     intStepNumberWhenLambdaIsCapped =
-                            static_cast<int64_t>(std::round(stepNumberWhenLambdaIsCapped));
+                            static_cast<std::int64_t>(std::round(stepNumberWhenLambdaIsCapped));
 
                     /* There's no upper limit (capping) if no lambda value array is specified by the
                      * user. However, soft-core potentials may not be used with coul-lambdas or
@@ -827,7 +827,7 @@ void check_ir(const char*                    mdparin,
                 {
                     double stepNumberWhenLambdaIsCapped = (0.0 - fep->init_lambda) / fep->delta_lambda;
                     intStepNumberWhenLambdaIsCapped =
-                            static_cast<int64_t>(std::round(stepNumberWhenLambdaIsCapped));
+                            static_cast<std::int64_t>(std::round(stepNumberWhenLambdaIsCapped));
                 }
                 if (intStepNumberWhenLambdaIsCapped < ir->nsteps
                     || (ir->nsteps < 0 && !(fep->delta_lambda > 0 && fep->n_lambda <= 0)))
@@ -4740,8 +4740,8 @@ static void checksForFepLambaLargerOne(const t_inputrec& ir, const gmx_mtop_t& m
     {
         double stepNumberWhenLambdaIsOne = (1.0 - ir.fepvals->init_lambda) / ir.fepvals->delta_lambda;
         stepNumberWhenLambdaIsOne        = std::max(stepNumberWhenLambdaIsOne, 0.0);
-        int64_t intStepNumberWhenLambdaIsOne =
-                static_cast<int64_t>(std::round(stepNumberWhenLambdaIsOne));
+        std::int64_t intStepNumberWhenLambdaIsOne =
+                static_cast<std::int64_t>(std::round(stepNumberWhenLambdaIsOne));
 
         if ((ir.nsteps < 0 || intStepNumberWhenLambdaIsOne < ir.nsteps) && ir.fepvals->n_lambda <= 0
             && ir.fepvals->sc_alpha <= 0 && ir.fepvals->softcoreFunction != SoftcoreType::Gapsys)

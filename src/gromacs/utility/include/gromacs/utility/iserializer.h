@@ -87,8 +87,8 @@ public:
     virtual void doChar(char* value)                    = 0;
     virtual void doUShort(unsigned short* value)        = 0;
     virtual void doInt(int* value)                      = 0;
-    virtual void doInt32(int32_t* value)                = 0;
-    virtual void doInt64(int64_t* value)                = 0;
+    virtual void doInt32(std::int32_t* value)           = 0;
+    virtual void doInt64(std::int64_t* value)           = 0;
     virtual void doFloat(float* value)                  = 0;
     virtual void doDouble(double* value)                = 0;
     virtual void doReal(real* value)                    = 0;
@@ -137,14 +137,14 @@ public:
             doInt(&(values[i]));
         }
     }
-    void doInt32Array(int32_t* values, int elements)
+    void doInt32Array(std::int32_t* values, int elements)
     {
         for (int i = 0; i < elements; i++)
         {
             doInt32(&(values[i]));
         }
     }
-    void doInt64Array(int64_t* values, int elements)
+    void doInt64Array(std::int64_t* values, int elements)
     {
         for (int i = 0; i < elements; i++)
         {

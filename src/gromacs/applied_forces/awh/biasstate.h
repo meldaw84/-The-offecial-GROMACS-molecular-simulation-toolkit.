@@ -287,8 +287,8 @@ public:
                         ArrayRef<const double>    probWeightNeighbor,
                         ArrayRef<const double>    neighborLambdaDhdl,
                         ArrayRef<double>          biasForce,
-                        int64_t                   step,
-                        int64_t                   seed,
+                        std::int64_t              step,
+                        std::int64_t              seed,
                         int                       indexSeed,
                         bool                      onlySampleUmbrellaGridpoint);
 
@@ -388,7 +388,7 @@ public:
                                                   const BiasGrid&           grid,
                                                   const BiasParams&         params,
                                                   double                    t,
-                                                  int64_t                   step,
+                                                  std::int64_t              step,
                                                   FILE*                     fplog,
                                                   std::vector<int>*         updateList);
 

@@ -562,7 +562,7 @@ static void detect_flux_per_channel(t_swapgrp*          g,
                                     t_swap*             s,
                                     real                cyl0_r2,
                                     real                cyl1_r2,
-                                    int64_t             step,
+                                    std::int64_t        step,
                                     gmx_bool            bRerun,
                                     FILE*               fpout)
 {
@@ -707,7 +707,7 @@ static void sortMoleculesIntoCompartments(t_swapgrp*          g,
                                           const t_swapcoords* sc,
                                           t_swap*             s,
                                           const matrix        box,
-                                          int64_t             step,
+                                          std::int64_t        step,
                                           FILE*               fpout,
                                           gmx_bool            bRerun,
                                           gmx_bool            bIsSolvent)
@@ -2021,7 +2021,7 @@ static void apply_modified_positions(swap_group* g, rvec x[])
 
 
 gmx_bool do_swapcoords(t_commrec*        cr,
-                       int64_t           step,
+                       std::int64_t      step,
                        double            t,
                        const t_inputrec* ir,
                        t_swap*           s,

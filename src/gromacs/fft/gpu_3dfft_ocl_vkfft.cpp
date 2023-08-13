@@ -106,8 +106,8 @@ public:
     VkFFTConfiguration configuration_;
     VkFFTApplication   application_;
     VkFFTLaunchParams  launchParams_;
-    uint64_t           bufferSize_;
-    uint64_t           inputBufferSize_;
+    std::uint64_t      bufferSize_;
+    std::uint64_t      inputBufferSize_;
     cl_context         context_;
     cl_device_id       device_;
     cl_command_queue   commandQueue_;

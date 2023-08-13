@@ -89,7 +89,7 @@ class TrajectorySignaller;
 
 // This will make signatures more legible
 //! Step number
-using Step = int64_t;
+using Step = std::int64_t;
 //! Simulation time
 using Time = double;
 

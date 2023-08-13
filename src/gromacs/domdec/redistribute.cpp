@@ -147,7 +147,7 @@ static void clear_and_mark_ind(gmx::ArrayRef<const int> move,
 
 static void print_cg_move(FILE*               fplog,
                           const gmx_domdec_t* dd,
-                          int64_t             step,
+                          std::int64_t        step,
                           int                 cg,
                           int                 dim,
                           int                 dir,
@@ -201,7 +201,7 @@ static void print_cg_move(FILE*               fplog,
 
 [[noreturn]] static void cg_move_error(FILE*               fplog,
                                        const gmx_domdec_t* dd,
-                                       int64_t             step,
+                                       std::int64_t        step,
                                        int                 cg,
                                        int                 dim,
                                        int                 dir,
@@ -323,7 +323,7 @@ static int computeMoveFlag(const gmx_domdec_t& dd, const ivec& dev)
  * Returns in the move array where the atoms should go.
  */
 static void calc_cg_move(FILE*              fplog,
-                         int64_t            step,
+                         std::int64_t       step,
                          gmx_domdec_t*      dd,
                          t_state*           state,
                          const ivec         tric_dir,
@@ -444,7 +444,7 @@ struct PbcAndFlag
  * Also updates the COGs and coordinates for jumps over periodic boundaries.
  */
 static void calcGroupMove(FILE*                     fplog,
-                          int64_t                   step,
+                          std::int64_t              step,
                           const gmx_domdec_t*       dd,
                           const t_state*            state,
                           const ivec                tric_dir,
@@ -550,7 +550,7 @@ static void applyPbcAndSetMoveFlags(const gmx::UpdateGroupsCog&     updateGroups
 }
 
 void dd_redistribute_cg(FILE*         fplog,
-                        int64_t       step,
+                        std::int64_t  step,
                         gmx_domdec_t* dd,
                         ivec          tric_dir,
                         t_state*      state,

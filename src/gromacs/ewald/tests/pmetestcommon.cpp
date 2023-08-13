@@ -112,12 +112,12 @@ MessageStringCollector getSkipMessagesIfNecessary(const t_inputrec& inputRec, co
     return messages;
 }
 
-uint64_t getSplineModuliDoublePrecisionUlps(int splineOrder)
+std::uint64_t getSplineModuliDoublePrecisionUlps(int splineOrder)
 {
     /* Arbitrary ulp tolerance for sine/cosine implementation. It's
      * hard to know what to pick without testing lots of
      * implementations. */
-    const uint64_t sineUlps = 10;
+    const std::uint64_t sineUlps = 10;
     return 4 * (splineOrder - 2) + 2 * sineUlps * splineOrder;
 }
 
@@ -602,9 +602,9 @@ static void pme_gpu_transform_spline_atom_data(const PmeGpu*      pmeGpu,
     // Ideally we should use similar layouts on CPU and GPU if we care about mixed modes and their
     // performance (e.g. spreading on GPU, gathering on CPU).
     GMX_RELEASE_ASSERT(atc->nthread == 1, "Only the serial PME data layout is supported");
-    const uintmax_t threadIndex  = 0;
-    const auto      atomCount    = atc->numAtoms();
-    const auto      atomsPerWarp = pme_gpu_get_atoms_per_warp(pmeGpu);
+    const std::uintmax_t threadIndex  = 0;
+    const auto           atomCount    = atc->numAtoms();
+    const auto           atomsPerWarp = pme_gpu_get_atoms_per_warp(pmeGpu);
     GMX_RELEASE_ASSERT(atomsPerWarp > 0, "Can not get GPU warp size");
     const auto pmeOrder = pmeGpu->common->pme_order;
     GMX_ASSERT(pmeOrder == c_pmeGpuOrder, "Only PME order 4 is implemented");

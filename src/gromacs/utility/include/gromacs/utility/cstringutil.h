@@ -153,23 +153,23 @@ unsigned int gmx_string_hash_func(const char* s, unsigned int hash_init);
 char* wrap_lines(const char* buf, int line_width, int indent, gmx_bool bIndentFirst);
 
 /*! \brief
- * Convert a string to int64_t.
+ * Convert a string to std::int64_t.
  *
  * This method works as the standard library function strtol(), except that it
  * does not support different bases.
  */
-int64_t str_to_int64_t(const char* str, char** endptr);
+std::int64_t str_to_int64_t(const char* str, char** endptr);
 
 /** Minimum size of buffer to pass to gmx_step_str(). */
 #define STEPSTRSIZE 22
 
 /*! \brief
- * Prints a int64_t value in buf and returns the pointer to buf.
+ * Prints a std::int64_t value in buf and returns the pointer to buf.
  *
  * buf should be large enough to contain i: STEPSTRSIZE (22) chars.
- * When multiple int64_t values are printed in the same printf call,
+ * When multiple std::int64_t values are printed in the same printf call,
  * be sure to call gmx_step_str with different buffers.
  */
-char* gmx_step_str(int64_t i, char* buf);
+char* gmx_step_str(std::int64_t i, char* buf);
 
 #endif

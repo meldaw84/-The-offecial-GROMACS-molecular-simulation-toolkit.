@@ -353,15 +353,15 @@ public:
                        gmx::PinningPolicy pinningPolicy);
 
     //! Sets the cell indices using indices in \p gridSetData and \p gridWork
-    void setCellIndices(int                            ddZone,
-                        int                            cellOffset,
-                        GridSetData*                   gridSetData,
-                        gmx::ArrayRef<GridWork>        gridWork,
-                        gmx::Range<int>                atomRange,
-                        gmx::ArrayRef<const int64_t>   atomInfo,
-                        gmx::ArrayRef<const gmx::RVec> x,
-                        int                            numAtomsMoved,
-                        nbnxn_atomdata_t*              nbat);
+    void setCellIndices(int                               ddZone,
+                        int                               cellOffset,
+                        GridSetData*                      gridSetData,
+                        gmx::ArrayRef<GridWork>           gridWork,
+                        gmx::Range<int>                   atomRange,
+                        gmx::ArrayRef<const std::int64_t> atomInfo,
+                        gmx::ArrayRef<const gmx::RVec>    x,
+                        int                               numAtomsMoved,
+                        nbnxn_atomdata_t*                 nbat);
 
     //! Determine in which grid columns atoms should go, store cells and atom counts in \p cell and \p cxy_na
     static void calcColumnIndices(const Grid::Dimensions&        gridDims,
@@ -380,31 +380,31 @@ private:
      *
      * Potentially sorts atoms and sets the interaction flags.
      */
-    void fillCell(GridSetData*                   gridSetData,
-                  nbnxn_atomdata_t*              nbat,
-                  int                            atomStart,
-                  int                            atomEnd,
-                  gmx::ArrayRef<const int64_t>   atomInfo,
-                  gmx::ArrayRef<const gmx::RVec> x,
+    void fillCell(GridSetData*                      gridSetData,
+                  nbnxn_atomdata_t*                 nbat,
+                  int                               atomStart,
+                  int                               atomEnd,
+                  gmx::ArrayRef<const std::int64_t> atomInfo,
+                  gmx::ArrayRef<const gmx::RVec>    x,
                   BoundingBox gmx_unused* bb_work_aligned);
 
     //! Spatially sort the atoms within the given column range, for CPU geometry
-    void sortColumnsCpuGeometry(GridSetData*                   gridSetData,
-                                int                            dd_zone,
-                                gmx::ArrayRef<const int64_t>   atomInfo,
-                                gmx::ArrayRef<const gmx::RVec> x,
-                                nbnxn_atomdata_t*              nbat,
-                                gmx::Range<int>                columnRange,
-                                gmx::ArrayRef<int>             sort_work);
+    void sortColumnsCpuGeometry(GridSetData*                      gridSetData,
+                                int                               dd_zone,
+                                gmx::ArrayRef<const std::int64_t> atomInfo,
+                                gmx::ArrayRef<const gmx::RVec>    x,
+                                nbnxn_atomdata_t*                 nbat,
+                                gmx::Range<int>                   columnRange,
+                                gmx::ArrayRef<int>                sort_work);
 
     //! Spatially sort the atoms within the given column range, for GPU geometry
-    void sortColumnsGpuGeometry(GridSetData*                   gridSetData,
-                                int                            dd_zone,
-                                gmx::ArrayRef<const int64_t>   atomInfo,
-                                gmx::ArrayRef<const gmx::RVec> x,
-                                nbnxn_atomdata_t*              nbat,
-                                gmx::Range<int>                columnRange,
-                                gmx::ArrayRef<int>             sort_work);
+    void sortColumnsGpuGeometry(GridSetData*                      gridSetData,
+                                int                               dd_zone,
+                                gmx::ArrayRef<const std::int64_t> atomInfo,
+                                gmx::ArrayRef<const gmx::RVec>    x,
+                                nbnxn_atomdata_t*                 nbat,
+                                gmx::Range<int>                   columnRange,
+                                gmx::ArrayRef<int>                sort_work);
 
     /* Data members */
     //! The geometry of the grid clusters and cells

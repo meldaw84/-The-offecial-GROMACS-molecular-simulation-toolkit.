@@ -90,11 +90,11 @@ int intFromString(const char* str)
     return value;
 }
 
-int64_t int64FromString(const char* str)
+std::int64_t int64FromString(const char* str)
 {
-    errno                = 0;
-    char*         endptr = nullptr;
-    const int64_t value  = str_to_int64_t(str, &endptr);
+    errno                     = 0;
+    char*              endptr = nullptr;
+    const std::int64_t value  = str_to_int64_t(str, &endptr);
     if (errno == ERANGE)
     {
         GMX_THROW(InvalidInputError("Invalid value: '" + std::string(str)

@@ -219,9 +219,9 @@ static void warn_step(FILE* fp, real ftol, real fmax, gmx_bool bLastStep, gmx_bo
 static void print_converged(FILE*             fp,
                             const char*       alg,
                             real              ftol,
-                            int64_t           count,
+                            std::int64_t      count,
                             gmx_bool          bDone,
-                            int64_t           nsteps,
+                            std::int64_t      nsteps,
                             const em_state_t* ems,
                             double            sqrtNumAtoms)
 {
@@ -547,7 +547,7 @@ static void write_em_traj(FILE*               fplog,
                           const char*         confout,
                           const gmx_mtop_t&   top_global,
                           const t_inputrec*   ir,
-                          int64_t             step,
+                          std::int64_t        step,
                           em_state_t*         state,
                           t_state*            state_global,
                           ObservablesHistory* observablesHistory)
@@ -631,7 +631,7 @@ static bool do_em_step(const t_commrec*                          cr,
                        gmx::ArrayRefWithPadding<const gmx::RVec> force,
                        em_state_t*                               ems2,
                        gmx::Constraints*                         constr,
-                       int64_t                                   count)
+                       std::int64_t                              count)
 
 {
     t_state *    s1, *s2;
@@ -894,7 +894,7 @@ public:
      * unsuited for aggregate initialization. When the types
      * improve, the call signature of this method can be reduced.
      */
-    void run(em_state_t* ems, rvec mu_tot, tensor vir, tensor pres, int64_t count, gmx_bool bFirst, int64_t step);
+    void run(em_state_t* ems, rvec mu_tot, tensor vir, tensor pres, std::int64_t count, gmx_bool bFirst, std::int64_t step);
     //! Handles logging (deprecated).
     FILE* fplog;
     //! Handles logging.
@@ -941,7 +941,13 @@ public:
     std::vector<RVec> pairSearchCoordinates;
 };
 
-void EnergyEvaluator::run(em_state_t* ems, rvec mu_tot, tensor vir, tensor pres, int64_t count, gmx_bool bFirst, int64_t step)
+void EnergyEvaluator::run(em_state_t*  ems,
+                          rvec         mu_tot,
+                          tensor       vir,
+                          tensor       pres,
+                          std::int64_t count,
+                          gmx_bool     bFirst,
+                          std::int64_t step)
 {
     real     t;
     gmx_bool bNS;
@@ -3277,7 +3283,7 @@ void LegacySimulator::do_nm()
     /* Write start time and temperature */
     print_em_start(fpLog_, cr_, wallTimeAccounting_, wallCycleCounters_, NM);
 
-    const int64_t numSteps = atom_index.size() * 2;
+    const std::int64_t numSteps = atom_index.size() * 2;
     if (bIsMain)
     {
         fprintf(stderr,
@@ -3347,9 +3353,9 @@ void LegacySimulator::do_nm()
         std::size_t atom = atom_index[aid];
         for (std::size_t d = 0; d < DIM; d++)
         {
-            int64_t step        = 0;
-            int     force_flags = GMX_FORCE_STATECHANGED | GMX_FORCE_ALLFORCES;
-            double  t           = 0;
+            std::int64_t step        = 0;
+            int          force_flags = GMX_FORCE_STATECHANGED | GMX_FORCE_ALLFORCES;
+            double       t           = 0;
 
             x_min = state_work_x[atom][d];
 

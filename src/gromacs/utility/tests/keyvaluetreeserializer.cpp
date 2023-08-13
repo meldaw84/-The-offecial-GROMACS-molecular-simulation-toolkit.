@@ -69,8 +69,8 @@ public:
     void doChar(char* /* value */) override { raiseAssert(); }
     void doUShort(unsigned short* /* value */) override { raiseAssert(); }
     void doInt(int* value) override { checker_.checkInteger(*value, nullptr); }
-    void doInt32(int32_t* value) override { checker_.checkInt32(*value, nullptr); }
-    void doInt64(int64_t* value) override { checker_.checkInt64(*value, nullptr); }
+    void doInt32(std::int32_t* value) override { checker_.checkInt32(*value, nullptr); }
+    void doInt64(std::int64_t* value) override { checker_.checkInt64(*value, nullptr); }
     void doFloat(float* value) override { checker_.checkFloat(*value, nullptr); }
     void doDouble(double* value) override { checker_.checkDouble(*value, nullptr); }
     void doString(std::string* value) override { checker_.checkString(*value, nullptr); }
@@ -123,8 +123,8 @@ TEST_F(KeyValueTreeSerializerTest, EmptyTree)
 TEST_F(KeyValueTreeSerializerTest, SimpleObject)
 {
     builder_.rootObject().addValue<int>("foo", 1);
-    builder_.rootObject().addValue<int32_t>("foo32", 1);
-    builder_.rootObject().addValue<int64_t>("foo64", 1);
+    builder_.rootObject().addValue<std::int32_t>("foo32", 1);
+    builder_.rootObject().addValue<std::int64_t>("foo64", 1);
     builder_.rootObject().addValue<std::string>("bar", "a");
     builder_.rootObject().addValue<float>("f", 1.5);
     builder_.rootObject().addValue<double>("d", 2.5);

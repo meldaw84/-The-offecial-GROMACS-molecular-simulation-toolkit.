@@ -67,13 +67,13 @@ struct TprReader;
 class GmxNBForceCalculatorCpu final
 {
 public:
-    GmxNBForceCalculatorCpu(gmx::ArrayRef<int>     particleTypeIdOfAllParticles,
-                            gmx::ArrayRef<real>    nonBondedParams,
-                            gmx::ArrayRef<real>    charges,
-                            gmx::ArrayRef<int64_t> particleInteractionFlags,
-                            gmx::ArrayRef<int>     exclusionRanges,
-                            gmx::ArrayRef<int>     exclusionElements,
-                            const NBKernelOptions& options);
+    GmxNBForceCalculatorCpu(gmx::ArrayRef<int>          particleTypeIdOfAllParticles,
+                            gmx::ArrayRef<real>         nonBondedParams,
+                            gmx::ArrayRef<real>         charges,
+                            gmx::ArrayRef<std::int64_t> particleInteractionFlags,
+                            gmx::ArrayRef<int>          exclusionRanges,
+                            gmx::ArrayRef<int>          exclusionElements,
+                            const NBKernelOptions&      options);
 
     ~GmxNBForceCalculatorCpu();
 

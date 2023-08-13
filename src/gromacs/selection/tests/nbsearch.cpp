@@ -115,7 +115,7 @@ public:
 
     typedef std::vector<TestPosition> TestPositionList;
 
-    NeighborhoodSearchTestData(uint64_t seed, real cutoff);
+    NeighborhoodSearchTestData(std::uint64_t seed, real cutoff);
 
     gmx::AnalysisNeighborhoodPositions refPositions() const
     {
@@ -144,7 +144,7 @@ public:
         testPositions_.emplace_back(x);
     }
     gmx::RVec               generateRandomPosition();
-    static std::vector<int> generateIndex(int count, uint64_t seed);
+    static std::vector<int> generateIndex(int count, std::uint64_t seed);
     void                    generateRandomRefPositions(int count);
     void                    generateRandomTestPositions(int count);
     void                    useRefPositionsAsTestPositions();
@@ -187,7 +187,7 @@ private:
 //! Shorthand for a collection of reference pairs.
 typedef std::vector<NeighborhoodSearchTestData::RefPair> RefPairList;
 
-NeighborhoodSearchTestData::NeighborhoodSearchTestData(uint64_t seed, real cutoff) :
+NeighborhoodSearchTestData::NeighborhoodSearchTestData(std::uint64_t seed, real cutoff) :
     rng_(seed), cutoff_(cutoff), refPosCount_(0)
 {
     clear_mat(box_);
@@ -209,7 +209,7 @@ gmx::RVec NeighborhoodSearchTestData::generateRandomPosition()
     return x;
 }
 
-std::vector<int> NeighborhoodSearchTestData::generateIndex(int count, uint64_t seed)
+std::vector<int> NeighborhoodSearchTestData::generateIndex(int count, std::uint64_t seed)
 {
     gmx::DefaultRandomEngine           rngIndex(seed);
     gmx::UniformRealDistribution<real> dist;
@@ -388,7 +388,7 @@ public:
                                const NeighborhoodSearchTestData& data);
     static void testPairSearchIndexed(gmx::AnalysisNeighborhood*        nb,
                                       const NeighborhoodSearchTestData& data,
-                                      uint64_t                          seed);
+                                      std::uint64_t                     seed);
     static void testPairSearchFull(gmx::AnalysisNeighborhoodSearch*          search,
                                    const NeighborhoodSearchTestData&         data,
                                    const gmx::AnalysisNeighborhoodPositions& pos,
@@ -488,7 +488,7 @@ void NeighborhoodSearchTest::testPairSearch(gmx::AnalysisNeighborhoodSearch*  se
 
 void NeighborhoodSearchTest::testPairSearchIndexed(gmx::AnalysisNeighborhood*        nb,
                                                    const NeighborhoodSearchTestData& data,
-                                                   uint64_t                          seed)
+                                                   std::uint64_t                     seed)
 {
     std::vector<int> refIndices(data.generateIndex(data.refPos_.size(), seed++));
     std::vector<int> testIndices(data.generateIndex(data.testPositions_.size(), seed++));

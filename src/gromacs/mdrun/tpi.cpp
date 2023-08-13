@@ -176,9 +176,9 @@ void LegacySimulator::do_tpi()
     rvec*                      x_mol;
     rvec                       mu_tot, x_init, dx;
     int                        nnodes, frame;
-    int64_t                    frame_step_prev, frame_step;
-    int64_t                    nsteps, stepblocksize = 0, step;
-    int64_t                    seed;
+    std::int64_t               frame_step_prev, frame_step;
+    std::int64_t               nsteps, stepblocksize = 0, step;
+    std::int64_t               seed;
     int                        i;
     FILE*                      fp_tpi = nullptr;
     char *                     ptr, *dump_pdb;

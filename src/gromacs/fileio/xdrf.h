@@ -40,7 +40,7 @@
 #include "gromacs/utility/real.h"
 
 #ifdef __PGI /*Portland group compiler*/
-#    define int64_t long long
+#    define std ::int64_t long long
 #endif
 
 #include "config.h"
@@ -89,11 +89,11 @@ int xdr_real(XDR* xdrs, real* r);
 int xdr3drcoord(XDR* xdrs, real* fp, int* size, real* precision, int magic_number);
 
 
-//! Read or write a int32_t value.
-int xdr_int32(XDR* xdrs, int32_t* i);
+//! Read or write a std::int32_t value.
+int xdr_int32(XDR* xdrs, std::int32_t* i);
 
-//! Read or write a int64_t value.
-int xdr_int64(XDR* xdrs, int64_t* i);
+//! Read or write a std::int64_t value.
+int xdr_int64(XDR* xdrs, std::int64_t* i);
 
 int xdr_xtc_seek_time(real time, FILE* fp, XDR* xdrs, int natoms, gmx_bool bSeekForwardOnly);
 

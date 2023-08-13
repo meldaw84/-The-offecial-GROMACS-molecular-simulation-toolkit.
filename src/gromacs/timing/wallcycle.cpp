@@ -1155,7 +1155,7 @@ void wallcycle_print(FILE*                            fplog,
     }
 }
 
-int64_t wcycle_get_reset_counters(gmx_wallcycle* wc)
+std::int64_t wcycle_get_reset_counters(gmx_wallcycle* wc)
 {
     if (wc == nullptr)
     {
@@ -1164,7 +1164,7 @@ int64_t wcycle_get_reset_counters(gmx_wallcycle* wc)
     return wc->reset_counters;
 }
 
-void wcycle_set_reset_counters(gmx_wallcycle* wc, int64_t reset_counters)
+void wcycle_set_reset_counters(gmx_wallcycle* wc, std::int64_t reset_counters)
 {
     if (wc == nullptr)
     {

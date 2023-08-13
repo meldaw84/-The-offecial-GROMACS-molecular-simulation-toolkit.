@@ -437,20 +437,20 @@ static real get_fitangle(const gmx_enfrotgrp* erg)
 
 
 /* Reduce potential angle fit data for this group at this time step? */
-static inline gmx_bool bPotAngle(const gmx_enfrot* er, const t_rotgrp* rotg, int64_t step)
+static inline gmx_bool bPotAngle(const gmx_enfrot* er, const t_rotgrp* rotg, std::int64_t step)
 {
     return ((RotationGroupFitting::Pot == rotg->eFittype)
             && (do_per_step(step, er->nstsout) || do_per_step(step, er->nstrout)));
 }
 
 /* Reduce slab torqe data for this group at this time step? */
-static inline gmx_bool bSlabTau(const gmx_enfrot* er, const t_rotgrp* rotg, int64_t step)
+static inline gmx_bool bSlabTau(const gmx_enfrot* er, const t_rotgrp* rotg, std::int64_t step)
 {
     return ((ISFLEX(rotg)) && do_per_step(step, er->nstsout));
 }
 
 /* Output rotation energy, torques, etc. for each rotation group */
-static void reduce_output(const t_commrec* cr, gmx_enfrot* er, real t, int64_t step)
+static void reduce_output(const t_commrec* cr, gmx_enfrot* er, real t, std::int64_t step)
 {
     int      i, islab, nslabs = 0;
     int      count; /* MPI element counter                               */
@@ -603,7 +603,7 @@ static void reduce_output(const t_commrec* cr, gmx_enfrot* er, real t, int64_t s
 
 /* Add the forces from enforced rotation potential to the local forces.
  * Should be called after the SR forces have been evaluated */
-real add_rot_forces(gmx_enfrot* er, gmx::ArrayRef<gmx::RVec> force, const t_commrec* cr, int64_t step, real t)
+real add_rot_forces(gmx_enfrot* er, gmx::ArrayRef<gmx::RVec> force, const t_commrec* cr, std::int64_t step, real t)
 {
     real Vrot = 0.0; /* If more than one rotation group is present, Vrot
                         assembles the local parts from all groups         */
@@ -3882,7 +3882,7 @@ void do_rotation(const t_commrec*               cr,
                  const matrix                   box,
                  gmx::ArrayRef<const gmx::RVec> coords,
                  real                           t,
-                 int64_t                        step,
+                 std::int64_t                   step,
                  gmx_bool                       bNS)
 {
     gmx_bool    outstep_slab, outstep_rot;

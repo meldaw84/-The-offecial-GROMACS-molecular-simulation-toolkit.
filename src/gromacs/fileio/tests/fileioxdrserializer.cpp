@@ -132,9 +132,9 @@ TEST_F(FileIOXdrSerializerTest, SizeIsCorrect)
     std::vector<char> charBuffer = { 'a', 'b', 'c' };
     serializer.doCharArray(charBuffer.data(), charBuffer.size()); // 12 bytes
     serializer.doOpaque(charBuffer.data(), charBuffer.size());    // 4 bytes
-    std::vector<int32_t> int32Buffer = { 0x1BCDEF78, 0x654321FE };
+    std::vector<std::int32_t> int32Buffer = { 0x1BCDEF78, 0x654321FE };
     serializer.doInt32Array(int32Buffer.data(), int32Buffer.size()); // 8 bytes
-    std::vector<int64_t> int64Buffer = { 0x1BCDEF78654321FE, 0x3726ABFEAB34716C };
+    std::vector<std::int64_t> int64Buffer = { 0x1BCDEF78654321FE, 0x3726ABFEAB34716C };
     serializer.doInt64Array(int64Buffer.data(), int64Buffer.size()); // 16 bytes
     gmx_fio_close(file_);
 

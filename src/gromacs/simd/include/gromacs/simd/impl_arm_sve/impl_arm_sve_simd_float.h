@@ -80,7 +80,7 @@ private:
 public:
     SimdFInt32() {}
 
-    SimdFInt32(const int32_t i) { this->simdInternal_ = svdup_n_s32(i); }
+    SimdFInt32(const std::int32_t i) { this->simdInternal_ = svdup_n_s32(i); }
 
     SimdFInt32(svint32_t simd) : simdInternal_(simd) {}
 
@@ -166,7 +166,7 @@ static inline SimdFloat gmx_simdcall setZeroF()
 
 static inline void gmx_simdcall simdIncr(SimdFloat*& p, SimdFloatTag)
 {
-    p = reinterpret_cast<SimdFloat*>(reinterpret_cast<uint64_t>(p) + svcntw());
+    p = reinterpret_cast<SimdFloat*>(reinterpret_cast<std::uint64_t>(p) + svcntw());
 }
 
 static inline SimdFInt32 gmx_simdcall simdLoad(const std::int32_t* m, SimdFInt32Tag)
@@ -552,7 +552,7 @@ static inline SimdFIBool gmx_simdcall operator==(SimdFInt32 a, SimdFInt32 b)
 static inline SimdFIBool gmx_simdcall testBits(SimdFInt32 a)
 {
     svbool_t pg = svptrue_b32();
-    return { svcmpne_n_s32(pg, a.simdInternal_, (int32_t)0) };
+    return { svcmpne_n_s32(pg, a.simdInternal_, (std::int32_t)0) };
 }
 
 static inline SimdFIBool gmx_simdcall operator<(SimdFInt32 a, SimdFInt32 b)

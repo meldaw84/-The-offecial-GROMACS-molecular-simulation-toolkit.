@@ -75,10 +75,10 @@ TEST_F(ConvertTprTest, ExtendRuntimeExtensionTest)
     t_state    state;
     read_tpx_state(tprFileHandle.tprName().c_str(), &ir, &state, &top);
 
-    const int64_t originalNStep = ir.nsteps;
+    const std::int64_t originalNStep = ir.nsteps;
 
-    const int64_t extendByPs     = 100;
-    std::string   extendByString = std::to_string(extendByPs);
+    const std::int64_t extendByPs     = 100;
+    std::string        extendByString = std::to_string(extendByPs);
 
     TestFileManager   fileManager;
     std::string       outTprFilename = fileManager.getTemporaryFilePath("extended.tpr").u8string();
@@ -132,10 +132,10 @@ TEST_F(ConvertTprTest, UntilRuntimeExtensionTest)
     t_state    state;
     read_tpx_state(tprFileHandle.tprName().c_str(), &ir, &state, &top);
 
-    const int64_t originalNStep = ir.nsteps;
+    const std::int64_t originalNStep = ir.nsteps;
 
-    const int64_t untilPs       = 100;
-    std::string   untilPsString = std::to_string(untilPs);
+    const std::int64_t untilPs       = 100;
+    std::string        untilPsString = std::to_string(untilPs);
 
     TestFileManager   fileManager;
     std::string       outTprFilename = fileManager.getTemporaryFilePath("extended.tpr").u8string();
@@ -167,10 +167,10 @@ TEST_F(ConvertTprTest, nstepRuntimeExtensionTest)
     t_state    state;
     read_tpx_state(tprFileHandle.tprName().c_str(), &ir, &state, &top);
 
-    const int64_t originalNStep = ir.nsteps;
+    const std::int64_t originalNStep = ir.nsteps;
 
-    const int64_t nsteps    = 102;
-    std::string   nstepsStr = std::to_string(nsteps);
+    const std::int64_t nsteps    = 102;
+    std::string        nstepsStr = std::to_string(nsteps);
 
     TestFileManager   fileManager;
     std::string       outTprFilename = fileManager.getTemporaryFilePath("extended.tpr").u8string();

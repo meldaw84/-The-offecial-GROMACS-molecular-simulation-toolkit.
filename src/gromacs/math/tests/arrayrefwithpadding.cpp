@@ -75,7 +75,7 @@ TEST(EmptyConstArrayRefWithPaddingTest, IsEmpty)
 #ifdef GTEST_HAS_TYPED_TEST
 
 //! Define the types that end up being available as TypeParam in the test cases for both kinds of ArrayRefWithPadding
-typedef ::testing::Types<ArrayRefWithPadding<int32_t>, ArrayRefWithPadding<float>, ArrayRefWithPadding<double>> ArrayRefTypes;
+typedef ::testing::Types<ArrayRefWithPadding<std::int32_t>, ArrayRefWithPadding<float>, ArrayRefWithPadding<double>> ArrayRefTypes;
 
 //! Helper constant used in the text fixture.
 constexpr Index aSize = 3;

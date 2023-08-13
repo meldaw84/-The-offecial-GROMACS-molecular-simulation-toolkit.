@@ -55,18 +55,18 @@ struct t_energy
 /* The frames that are read/written */
 struct t_enxframe
 {
-    double      t;            /* Timestamp of this frame	                     */
-    int64_t     step;         /* MD step	                             */
-    int64_t     nsteps;       /* The number of steps between frames            */
-    double      dt;           /* The MD time step                              */
-    int         nsum;         /* The number of terms for the sums in energyGroupPairTerms      */
-    int         nre;          /* Number of energies			     */
-    int         e_size;       /* Size (in bytes) of energies		     */
-    int         e_alloc;      /* Allocated size (in elements) of energyGroupPairTerms          */
-    t_energy*   ener;         /* The energies                                  */
-    int         nblock;       /* Number of following energy blocks             */
-    t_enxblock* block;        /* The blocks                                    */
-    int         nblock_alloc; /* The number of blocks allocated                */
+    double       t;            /* Timestamp of this frame	                     */
+    std::int64_t step;         /* MD step	                             */
+    std::int64_t nsteps;       /* The number of steps between frames            */
+    double       dt;           /* The MD time step                              */
+    int          nsum;         /* The number of terms for the sums in energyGroupPairTerms      */
+    int          nre;          /* Number of energies			     */
+    int          e_size;       /* Size (in bytes) of energies		     */
+    int          e_alloc;      /* Allocated size (in elements) of energyGroupPairTerms          */
+    t_energy*    ener;         /* The energies                                  */
+    int          nblock;       /* Number of following energy blocks             */
+    t_enxblock*  block;        /* The blocks                                    */
+    int          nblock_alloc; /* The number of blocks allocated                */
 };
 
 namespace gmx

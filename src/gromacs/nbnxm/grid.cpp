@@ -797,12 +797,12 @@ static void print_bbsizes_supersub(FILE* fp, const Grid& grid)
  *
  * Sorts atoms on LJ coefficients: !=0 first, ==0 at the end.
  */
-static void sort_cluster_on_flag(int                          numAtomsInCluster,
-                                 int                          atomStart,
-                                 int                          atomEnd,
-                                 gmx::ArrayRef<const int64_t> atomInfo,
-                                 gmx::ArrayRef<int>           order,
-                                 int*                         flags)
+static void sort_cluster_on_flag(int                               numAtomsInCluster,
+                                 int                               atomStart,
+                                 int                               atomEnd,
+                                 gmx::ArrayRef<const std::int64_t> atomInfo,
+                                 gmx::ArrayRef<int>                order,
+                                 int*                              flags)
 {
     constexpr int c_maxNumAtomsInCluster = 8;
     int           sort1[c_maxNumAtomsInCluster];
@@ -874,12 +874,12 @@ static void sort_cluster_on_flag(int                          numAtomsInCluster,
  *
  * Potentially sorts atoms and sets the interaction flags.
  */
-void Grid::fillCell(GridSetData*                   gridSetData,
-                    nbnxn_atomdata_t*              nbat,
-                    int                            atomStart,
-                    int                            atomEnd,
-                    gmx::ArrayRef<const int64_t>   atomInfo,
-                    gmx::ArrayRef<const gmx::RVec> x,
+void Grid::fillCell(GridSetData*                      gridSetData,
+                    nbnxn_atomdata_t*                 nbat,
+                    int                               atomStart,
+                    int                               atomEnd,
+                    gmx::ArrayRef<const std::int64_t> atomInfo,
+                    gmx::ArrayRef<const gmx::RVec>    x,
                     BoundingBox gmx_unused* bb_work_aligned)
 {
     const int numAtoms = atomEnd - atomStart;
@@ -1022,13 +1022,13 @@ void Grid::fillCell(GridSetData*                   gridSetData,
     }
 }
 
-void Grid::sortColumnsCpuGeometry(GridSetData*                   gridSetData,
-                                  int                            dd_zone,
-                                  gmx::ArrayRef<const int64_t>   atomInfo,
-                                  gmx::ArrayRef<const gmx::RVec> x,
-                                  nbnxn_atomdata_t*              nbat,
-                                  const gmx::Range<int>          columnRange,
-                                  gmx::ArrayRef<int>             sort_work)
+void Grid::sortColumnsCpuGeometry(GridSetData*                      gridSetData,
+                                  int                               dd_zone,
+                                  gmx::ArrayRef<const std::int64_t> atomInfo,
+                                  gmx::ArrayRef<const gmx::RVec>    x,
+                                  nbnxn_atomdata_t*                 nbat,
+                                  const gmx::Range<int>             columnRange,
+                                  gmx::ArrayRef<int>                sort_work)
 {
     if (debug)
     {
@@ -1097,13 +1097,13 @@ void Grid::sortColumnsCpuGeometry(GridSetData*                   gridSetData,
 }
 
 /* Spatially sort the atoms within one grid column */
-void Grid::sortColumnsGpuGeometry(GridSetData*                   gridSetData,
-                                  int                            dd_zone,
-                                  gmx::ArrayRef<const int64_t>   atomInfo,
-                                  gmx::ArrayRef<const gmx::RVec> x,
-                                  nbnxn_atomdata_t*              nbat,
-                                  const gmx::Range<int>          columnRange,
-                                  gmx::ArrayRef<int>             sort_work)
+void Grid::sortColumnsGpuGeometry(GridSetData*                      gridSetData,
+                                  int                               dd_zone,
+                                  gmx::ArrayRef<const std::int64_t> atomInfo,
+                                  gmx::ArrayRef<const gmx::RVec>    x,
+                                  nbnxn_atomdata_t*                 nbat,
+                                  const gmx::Range<int>             columnRange,
+                                  gmx::ArrayRef<int>                sort_work)
 {
     BoundingBox bb_work_array[2];
     auto*       bb_work_aligned = reinterpret_cast<BoundingBox*>(
@@ -1366,15 +1366,15 @@ static void resizeForNumberOfCells(const int         numNbnxnAtoms,
     nbat->resizeCoordinateBuffer(numNbnxnAtoms);
 }
 
-void Grid::setCellIndices(int                            ddZone,
-                          int                            cellOffset,
-                          GridSetData*                   gridSetData,
-                          gmx::ArrayRef<GridWork>        gridWork,
-                          const gmx::Range<int>          atomRange,
-                          gmx::ArrayRef<const int64_t>   atomInfo,
-                          gmx::ArrayRef<const gmx::RVec> x,
-                          const int                      numAtomsMoved,
-                          nbnxn_atomdata_t*              nbat)
+void Grid::setCellIndices(int                               ddZone,
+                          int                               cellOffset,
+                          GridSetData*                      gridSetData,
+                          gmx::ArrayRef<GridWork>           gridWork,
+                          const gmx::Range<int>             atomRange,
+                          gmx::ArrayRef<const std::int64_t> atomInfo,
+                          gmx::ArrayRef<const gmx::RVec>    x,
+                          const int                         numAtomsMoved,
+                          nbnxn_atomdata_t*                 nbat)
 {
     cellOffset_ = cellOffset;
 

@@ -101,7 +101,7 @@ void set_lincs(const InteractionDefinitions& idef,
  * \returns true if the constraining succeeded. */
 bool constrain_lincs(bool                            computeRmsd,
                      const t_inputrec&               ir,
-                     int64_t                         step,
+                     std::int64_t                    step,
                      Lincs*                          lincsd,
                      ArrayRef<const real>            invmass,
                      const t_commrec*                cr,

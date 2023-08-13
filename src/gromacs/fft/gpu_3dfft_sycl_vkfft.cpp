@@ -124,8 +124,8 @@ public:
     VkFFTConfiguration configuration_;
     VkFFTApplication   application_;
     VkFFTLaunchParams  launchParams_;
-    uint64_t           bufferSize_;
-    uint64_t           inputBufferSize_;
+    std::uint64_t      bufferSize_;
+    std::uint64_t      inputBufferSize_;
     NativeDevice       queue_device_;
 
     DeviceBuffer<float> realGrid_;

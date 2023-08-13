@@ -131,7 +131,7 @@ StopConditionTime::StopConditionTime(int nstList, real maximumHoursToRun, int ns
 {
 }
 
-StopSignal StopConditionTime::getSignal(bool bNS, int64_t step, FILE* fplog, gmx_walltime_accounting_t walltime_accounting)
+StopSignal StopConditionTime::getSignal(bool bNS, std::int64_t step, FILE* fplog, gmx_walltime_accounting_t walltime_accounting)
 {
     if (signalSent_)
     {
@@ -180,8 +180,8 @@ std::unique_ptr<StopHandler> StopHandlerBuilder::getStopHandlerMD(compat::not_nu
                                                                   real  maximumHoursToRun,
                                                                   bool  neverUpdateNeighborList,
                                                                   FILE* fplog,
-                                                                  const int64_t&  step,
-                                                                  const gmx_bool& bNS,
+                                                                  const std::int64_t& step,
+                                                                  const gmx_bool&     bNS,
                                                                   gmx_walltime_accounting_t walltime_accounting)
 {
     if (!GMX_THREAD_MPI || isMain)

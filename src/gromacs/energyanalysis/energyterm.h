@@ -68,11 +68,11 @@ private:
     //! Unit of this energy
     std::string energyUnit_;
     //! Number of energy terms summed so far
-    int64_t numberOfEnergyTerms_ = 0;
+    std::int64_t numberOfEnergyTerms_ = 0;
     //! First MD step in the analysis
-    int64_t firstStep_ = 0;
+    std::int64_t firstStep_ = 0;
     //! Last MD step in the analysis added so far
-    int64_t lastStep_ = 0;
+    std::int64_t lastStep_ = 0;
     //! Index in the energy array in the energy file
     unsigned int indexWithinEnergyFile_;
     //! Best estimate of the average energy so far
@@ -141,7 +141,7 @@ public:
      * \param[in] frameIndex The frame number to search the storage for.
      * \return the actual EnergyFrameIterator, or end() if not found
      */
-    EnergyAnalysisFrameIterator findFrame(int64_t frameIndex) const;
+    EnergyAnalysisFrameIterator findFrame(std::int64_t frameIndex) const;
 
     /*! \brief
      * Add a data frame to this EnergyTerm
@@ -152,12 +152,12 @@ public:
      * \param[in] energyVarianceOverNumSteps The variance of the energies over the last nsum steps
      * \param[in] energyAtTime The energy at this point in time (trajectory)
      */
-    void addFrame(double  time,
-                  int64_t step,
-                  int     numIntermediateStepsSum,
-                  double  energySumOverNumSteps,
-                  double  energyVarianceOverNumSteps,
-                  double  energyAtTime);
+    void addFrame(double       time,
+                  std::int64_t step,
+                  int          numIntermediateStepsSum,
+                  double       energySumOverNumSteps,
+                  double       energyVarianceOverNumSteps,
+                  double       energyAtTime);
 
     //! Return the average energy
     double average() const { return average_; }
@@ -183,7 +183,7 @@ public:
     std::optional<real> slopeOfLinearFit() const;
 
     //! Return the number of points stored
-    int64_t numFrames() const { return energyAnalysisFrames_.size(); }
+    std::int64_t numFrames() const { return energyAnalysisFrames_.size(); }
 
     //! Return the length of the data set in time
     double timeSpan() const { return timeEnd() - timeBegin(); }
@@ -195,13 +195,13 @@ public:
     double timeEnd() const { return endTime_; }
 
     //! Return the length of the data set in steps
-    int64_t numSteps() const { return stepEnd() - stepBegin(); }
+    std::int64_t numSteps() const { return stepEnd() - stepBegin(); }
 
     //! Return the begin step of the data set
-    int64_t stepBegin() const { return firstStep_; }
+    std::int64_t stepBegin() const { return firstStep_; }
 
     //! Return the end step of the data set
-    int64_t stepEnd() const { return lastStep_; }
+    std::int64_t stepEnd() const { return lastStep_; }
 };
 
 } // namespace gmx

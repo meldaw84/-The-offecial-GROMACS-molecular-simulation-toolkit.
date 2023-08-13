@@ -484,7 +484,7 @@ static void dd_set_atominfo(gmx::ArrayRef<const int> index_gl, int cg0, int cg1,
     {
         gmx::ArrayRef<gmx::AtomInfoWithinMoleculeBlock> atomInfoForEachMoleculeBlock =
                 fr->atomInfoForEachMoleculeBlock;
-        gmx::ArrayRef<int64_t> atomInfo = fr->atomInfo;
+        gmx::ArrayRef<std::int64_t> atomInfo = fr->atomInfo;
 
         for (int cg = cg0; cg < cg1; cg++)
         {
@@ -716,7 +716,11 @@ static float dd_force_load(gmx_domdec_comm_t* comm)
 }
 
 //! Runs cell size checks and communicates the boundaries.
-static void comm_dd_ns_cell_sizes(gmx_domdec_t* dd, gmx_ddbox_t* ddbox, rvec cell_ns_x0, rvec cell_ns_x1, int64_t step)
+static void comm_dd_ns_cell_sizes(gmx_domdec_t* dd,
+                                  gmx_ddbox_t*  ddbox,
+                                  rvec          cell_ns_x0,
+                                  rvec          cell_ns_x1,
+                                  std::int64_t  step)
 {
     gmx_domdec_comm_t* comm;
     int                dim_ind, dim;
@@ -1171,7 +1175,7 @@ static float dd_f_imbal(gmx_domdec_t* dd)
 }
 
 //! Returns DD load balance report.
-static std::string dd_print_load(gmx_domdec_t* dd, int64_t step)
+static std::string dd_print_load(gmx_domdec_t* dd, std::int64_t step)
 {
     gmx::StringOutputStream stream;
     gmx::TextWriter         log(&stream);
@@ -1224,7 +1228,7 @@ static void dd_print_load_verbose(gmx_domdec_t* dd)
 }
 
 //! Turns on dynamic load balancing if possible and needed.
-static void turn_on_dlb(const gmx::MDLogger& mdlog, gmx_domdec_t* dd, int64_t step)
+static void turn_on_dlb(const gmx::MDLogger& mdlog, gmx_domdec_t* dd, std::int64_t step)
 {
     gmx_domdec_comm_t* comm = dd->comm.get();
 
@@ -1294,7 +1298,7 @@ static void turn_on_dlb(const gmx::MDLogger& mdlog, gmx_domdec_t* dd, int64_t st
 }
 
 //! Turns off dynamic load balancing (but leave it able to turn back on).
-static void turn_off_dlb(const gmx::MDLogger& mdlog, gmx_domdec_t* dd, int64_t step)
+static void turn_off_dlb(const gmx::MDLogger& mdlog, gmx_domdec_t* dd, std::int64_t step)
 {
     GMX_LOG(mdlog.info)
             .appendText(
@@ -1306,7 +1310,7 @@ static void turn_off_dlb(const gmx::MDLogger& mdlog, gmx_domdec_t* dd, int64_t s
 }
 
 //! Turns off dynamic load balancing permanently.
-static void turn_off_dlb_forever(const gmx::MDLogger& mdlog, gmx_domdec_t* dd, int64_t step)
+static void turn_off_dlb_forever(const gmx::MDLogger& mdlog, gmx_domdec_t* dd, std::int64_t step)
 {
     GMX_RELEASE_ASSERT(dd->comm->dlbState == DlbState::offCanTurnOn,
                        "Can only turn off DLB forever when it was in the can-turn-on state");
@@ -1348,7 +1352,7 @@ static void merge_cg_buffers(int                                             nce
                              gmx::ArrayRef<gmx::RVec>                        x,
                              gmx::ArrayRef<const gmx::RVec>                  recv_vr,
                              gmx::ArrayRef<gmx::AtomInfoWithinMoleculeBlock> atomInfoForEachMoleculeBlock,
-                             gmx::ArrayRef<int64_t>                          atomInfo)
+                             gmx::ArrayRef<std::int64_t>                     atomInfo)
 {
     gmx_domdec_ind_t *ind, *ind_p;
     int               p, cell, c, cg, cg0, cg1, cg_gl;
@@ -1550,37 +1554,37 @@ static void set_dd_corners(const gmx_domdec_t* dd, int dim0, int dim1, int dim2,
 
 /*! \brief Add the atom groups and coordinates we need to send in this
  * pulse from this zone to \p localAtomGroups and \p work. */
-static void get_zone_pulse_groups(gmx_domdec_t*                  dd,
-                                  int                            zonei,
-                                  int                            zone,
-                                  int                            cg0,
-                                  int                            cg1,
-                                  gmx::ArrayRef<const int>       globalAtomGroupIndices,
-                                  int                            dim,
-                                  int                            dim_ind,
-                                  int                            dim0,
-                                  int                            dim1,
-                                  int                            dim2,
-                                  real                           r_comm2,
-                                  real                           r_bcomm2,
-                                  matrix                         box,
-                                  bool                           distanceIsTriclinic,
-                                  rvec*                          normal,
-                                  real                           skew_fac2_d,
-                                  real                           skew_fac_01,
-                                  rvec*                          v_d,
-                                  rvec*                          v_0,
-                                  rvec*                          v_1,
-                                  const dd_corners_t*            c,
-                                  const rvec                     sf2_round,
-                                  gmx_bool                       bDistBonded,
-                                  gmx_bool                       bBondComm,
-                                  gmx_bool                       bDist2B,
-                                  gmx_bool                       bDistMB,
-                                  gmx::ArrayRef<const gmx::RVec> coordinates,
-                                  gmx::ArrayRef<const int64_t>   atomInfo,
-                                  std::vector<int>*              localAtomGroups,
-                                  dd_comm_setup_work_t*          work)
+static void get_zone_pulse_groups(gmx_domdec_t*                     dd,
+                                  int                               zonei,
+                                  int                               zone,
+                                  int                               cg0,
+                                  int                               cg1,
+                                  gmx::ArrayRef<const int>          globalAtomGroupIndices,
+                                  int                               dim,
+                                  int                               dim_ind,
+                                  int                               dim0,
+                                  int                               dim1,
+                                  int                               dim2,
+                                  real                              r_comm2,
+                                  real                              r_bcomm2,
+                                  matrix                            box,
+                                  bool                              distanceIsTriclinic,
+                                  rvec*                             normal,
+                                  real                              skew_fac2_d,
+                                  real                              skew_fac_01,
+                                  rvec*                             v_d,
+                                  rvec*                             v_0,
+                                  rvec*                             v_1,
+                                  const dd_corners_t*               c,
+                                  const rvec                        sf2_round,
+                                  gmx_bool                          bDistBonded,
+                                  gmx_bool                          bBondComm,
+                                  gmx_bool                          bDist2B,
+                                  gmx_bool                          bDistMB,
+                                  gmx::ArrayRef<const gmx::RVec>    coordinates,
+                                  gmx::ArrayRef<const std::int64_t> atomInfo,
+                                  std::vector<int>*                 localAtomGroups,
+                                  dd_comm_setup_work_t*             work)
 {
     gmx_domdec_comm_t* comm;
     gmx_bool           bScrew;
@@ -2602,7 +2606,7 @@ static void dd_sort_state(gmx_domdec_t* dd, t_forcerec* fr, t_state* state)
     /* Reorder the global cg index */
     orderVector<int>(cgsort, dd->globalAtomGroupIndices, &sort->intBuffer);
     /* Reorder the atom info */
-    orderVector<int64_t>(cgsort, fr->atomInfo, &sort->int64Buffer);
+    orderVector<std::int64_t>(cgsort, fr->atomInfo, &sort->int64Buffer);
     /* Set the home atom number */
     dd->comm->atomRanges.setEnd(DDAtomRanges::Type::Home, dd->numHomeAtoms);
 
@@ -2645,7 +2649,7 @@ void reset_dd_statistics_counters(gmx_domdec_t* dd)
 namespace gmx
 {
 
-bool check_grid_jump(int64_t step, const gmx_domdec_t* dd, real cutoff, const gmx_ddbox_t* ddbox, bool bFatal)
+bool check_grid_jump(std::int64_t step, const gmx_domdec_t* dd, real cutoff, const gmx_ddbox_t* ddbox, bool bFatal)
 {
     gmx_domdec_comm_t* comm    = dd->comm.get();
     bool               invalid = false;
@@ -2746,7 +2750,7 @@ void print_dd_statistics(const t_commrec* cr, const t_inputrec& inputrec, FILE* 
 //!\brief TODO Remove fplog when group scheme and charge groups are gone
 void dd_partition_system(FILE*                     fplog,
                          const gmx::MDLogger&      mdlog,
-                         int64_t                   step,
+                         std::int64_t              step,
                          const t_commrec*          cr,
                          bool                      bMainState,
                          t_state*                  state_global,
@@ -2789,8 +2793,8 @@ void dd_partition_system(FILE*                     fplog,
          * We need to determine the last step in which p-coupling occurred.
          * MRS -- need to validate this for vv?
          */
-        int     n = inputrec.pressureCouplingOptions.nstpcouple;
-        int64_t step_pcoupl;
+        int          n = inputrec.pressureCouplingOptions.nstpcouple;
+        std::int64_t step_pcoupl;
         if (n == 1)
         {
             step_pcoupl = step - 1;

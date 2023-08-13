@@ -229,7 +229,7 @@ public:
      * Stop signal is set if run time is greater than 99% of maximal run time. Signal will
      * trigger stopping of the simulation at the next neighbor-searching step.
      */
-    StopSignal getSignal(bool bNS, int64_t step, FILE* fplog, gmx_walltime_accounting* walltime_accounting);
+    StopSignal getSignal(bool bNS, std::int64_t step, FILE* fplog, gmx_walltime_accounting* walltime_accounting);
 
 private:
     bool signalSent_;
@@ -285,16 +285,16 @@ public:
      * pointer or reference remain valid for the lifetime of the returned StopHandler.
      */
     std::unique_ptr<StopHandler> getStopHandlerMD(compat::not_null<SimulationSignal*> signal,
-                                                  bool            simulationShareState,
-                                                  bool            isMain,
-                                                  int             nstList,
-                                                  bool            makeBinaryReproducibleSimulation,
-                                                  int             nstSignalComm,
-                                                  real            maximumHoursToRun,
-                                                  bool            neverUpdateNeighborList,
-                                                  FILE*           fplog,
-                                                  const int64_t&  step,
-                                                  const gmx_bool& bNS,
+                                                  bool  simulationShareState,
+                                                  bool  isMain,
+                                                  int   nstList,
+                                                  bool  makeBinaryReproducibleSimulation,
+                                                  int   nstSignalComm,
+                                                  real  maximumHoursToRun,
+                                                  bool  neverUpdateNeighborList,
+                                                  FILE* fplog,
+                                                  const std::int64_t&      step,
+                                                  const gmx_bool&          bNS,
                                                   gmx_walltime_accounting* walltime_accounting);
 
 private:

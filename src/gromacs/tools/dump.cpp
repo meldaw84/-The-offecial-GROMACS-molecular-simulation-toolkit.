@@ -292,15 +292,15 @@ void list_trr(const char* fn)
 //! Dump an xtc file
 void list_xtc(const char* fn)
 {
-    t_fileio* xd;
-    int       indent;
-    char      buf[256];
-    rvec*     x;
-    matrix    box;
-    int       nframe, natoms;
-    int64_t   step;
-    real      prec, time;
-    gmx_bool  bOK;
+    t_fileio*    xd;
+    int          indent;
+    char         buf[256];
+    rvec*        x;
+    matrix       box;
+    int          nframe, natoms;
+    std::int64_t step;
+    real         prec, time;
+    gmx_bool     bOK;
 
     xd = open_xtc(fn, "r");
     read_first_xtc(xd, &natoms, &step, &time, box, &x, &prec, &bOK);
@@ -328,16 +328,16 @@ void list_xtc(const char* fn)
 #if GMX_USE_TNG
 
 /*! \brief Callback used by list_tng_for_gmx_dump. */
-void list_tng_inner(const char* fn,
-                    gmx_bool    bFirstFrame,
-                    real*       values,
-                    int64_t     step,
-                    double      frame_time,
-                    int64_t     n_values_per_frame,
-                    int64_t     n_atoms,
-                    real        prec,
-                    int64_t     nframe,
-                    char*       block_name)
+void list_tng_inner(const char*  fn,
+                    gmx_bool     bFirstFrame,
+                    real*        values,
+                    std::int64_t step,
+                    double       frame_time,
+                    std::int64_t n_values_per_frame,
+                    std::int64_t n_atoms,
+                    real         prec,
+                    std::int64_t nframe,
+                    char*        block_name)
 {
     char buf[256];
     int  indent = 0;
@@ -365,8 +365,8 @@ void list_tng(const char* fn)
 {
 #if GMX_USE_TNG
     gmx_tng_trajectory_t tng;
-    int64_t              nframe = 0;
-    int64_t              i, *block_ids = nullptr, step, ndatablocks;
+    std::int64_t         nframe = 0;
+    std::int64_t         i, *block_ids = nullptr, step, ndatablocks;
     gmx_bool             bOK;
     real*                values = nullptr;
 
@@ -378,10 +378,10 @@ void list_tng(const char* fn)
     {
         for (i = 0; i < ndatablocks; i++)
         {
-            double  frame_time;
-            real    prec;
-            int64_t n_values_per_frame, n_atoms;
-            char    block_name[STRLEN];
+            double       frame_time;
+            real         prec;
+            std::int64_t n_values_per_frame, n_atoms;
+            char         block_name[STRLEN];
 
             gmx_get_tng_data_next_frame_of_block_type(tng,
                                                       block_ids[i],

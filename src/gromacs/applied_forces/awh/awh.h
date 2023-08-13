@@ -188,7 +188,7 @@ public:
                                       ArrayRef<const double> neighborLambdaDhdl,
                                       const matrix           box,
                                       double                 t,
-                                      int64_t                step,
+                                      std::int64_t           step,
                                       gmx_wallcycle*         wallcycle,
                                       FILE*                  fplog);
 
@@ -231,7 +231,7 @@ public:
      * \param[in]     step  The current MD step.
      * \param[in,out] fr    Energy data frame.
      */
-    void writeToEnergyFrame(int64_t step, t_enxframe* fr);
+    void writeToEnergyFrame(std::int64_t step, t_enxframe* fr);
 
     /*! \brief Returns string "AWH" for registering AWH as an external potential provider with the pull module.
      */
@@ -258,7 +258,7 @@ public:
     /*! \brief Returns if foreign energy differences are required during this step.
      * \param[in]     step             The current MD step.
      */
-    bool needForeignEnergyDifferences(int64_t step) const;
+    bool needForeignEnergyDifferences(std::int64_t step) const;
 
     /*! \brief Returns true if AWH has a bias with a free energy lambda state dimension at all.
      */
@@ -269,12 +269,12 @@ private:
      *
      * \param[in]     step             The current MD step.
      */
-    bool isOutputStep(int64_t step) const;
+    bool isOutputStep(std::int64_t step) const;
 
     std::vector<BiasCoupledToSystem> biasCoupledToSystem_; /**< AWH biases and definitions of their coupling to the system. */
-    const int64_t    seed_;   /**< Random seed for MC jumping with umbrella type bias potential. */
-    const int        nstout_; /**< Interval in steps for writing to energy file. */
-    const t_commrec* commRecord_; /**< Pointer to the communication record. */
+    const std::int64_t seed_; /**< Random seed for MC jumping with umbrella type bias potential. */
+    const int          nstout_;     /**< Interval in steps for writing to energy file. */
+    const t_commrec*   commRecord_; /**< Pointer to the communication record. */
     //! Object for sharing bias between simulations, only set when needed
     std::unique_ptr<BiasSharing> biasSharing_;
     pull_t*                      pull_; /**< Pointer to the pull working data. */

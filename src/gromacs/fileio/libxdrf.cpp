@@ -800,7 +800,7 @@ int xdr3dfcoord(XDR* xdrs, float* fp, int* size, float* precision, int magic_num
         // only having one indicator (the magic number) for the size of the data.
         if (magic_number == XTC_NEW_MAGIC)
         {
-            rc = xdr_int64(xdrs, reinterpret_cast<int64_t*>(&buffer.index));
+            rc = xdr_int64(xdrs, reinterpret_cast<std::int64_t*>(&buffer.index));
         }
         else
         {
@@ -947,7 +947,7 @@ int xdr3dfcoord(XDR* xdrs, float* fp, int* size, float* precision, int magic_num
         // no matter how large the system happens to be.
         if (magic_number == XTC_NEW_MAGIC)
         {
-            rc = xdr_int64(xdrs, reinterpret_cast<int64_t*>(&buffer.index));
+            rc = xdr_int64(xdrs, reinterpret_cast<std::int64_t*>(&buffer.index));
         }
         else
         {

@@ -200,7 +200,7 @@ public:
     //! Storage for wallcycle counters
     gmx::EnumerationArray<WallCycleCounter, wallcc_t> wcc;
     //! The step count at which counter reset will happen
-    int64_t reset_counters;
+    std::int64_t reset_counters;
     //! Storage for wallcycle subcounters
     gmx::EnumerationArray<WallCycleSubCounter, wallcc_t> wcsc;
 
@@ -380,10 +380,10 @@ void wallcycle_reset_all(gmx_wallcycle* wc);
 void wallcycle_scale_by_num_threads(gmx_wallcycle* wc, bool isPmeRank, int nthreads_pp, int nthreads_pme);
 
 //! Return reset_counters from wc struct
-int64_t wcycle_get_reset_counters(gmx_wallcycle* wc);
+std::int64_t wcycle_get_reset_counters(gmx_wallcycle* wc);
 
 //! Set reset_counters
-void wcycle_set_reset_counters(gmx_wallcycle* wc, int64_t reset_counters);
+void wcycle_set_reset_counters(gmx_wallcycle* wc, std::int64_t reset_counters);
 
 //! Set the start sub cycle count for ewcs
 inline void wallcycle_sub_start(gmx_wallcycle* wc, WallCycleSubCounter ewcs)

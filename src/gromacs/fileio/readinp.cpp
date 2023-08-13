@@ -377,7 +377,7 @@ int get_eint(std::vector<t_inpfile>* inp, const std::string& name, int def, Warn
 }
 
 /* Note that sanitizing the trailing part of inp[ii].value was the responsibility of read_inpfile() */
-int64_t get_eint64(std::vector<t_inpfile>* inp, const char* name, int64_t def, WarningHandler* wi)
+std::int64_t get_eint64(std::vector<t_inpfile>* inp, const char* name, std::int64_t def, WarningHandler* wi)
 {
     std::vector<t_inpfile>& inpRef = *inp;
     char                    buf[32], *ptr;
@@ -393,7 +393,7 @@ int64_t get_eint64(std::vector<t_inpfile>* inp, const char* name, int64_t def, W
     }
     else
     {
-        int64_t ret = str_to_int64_t(inpRef[ii].value_.c_str(), &ptr);
+        std::int64_t ret = str_to_int64_t(inpRef[ii].value_.c_str(), &ptr);
         if (*ptr != '\0')
         {
             wi->addError(gmx::formatString(
@@ -407,7 +407,7 @@ int64_t get_eint64(std::vector<t_inpfile>* inp, const char* name, int64_t def, W
     }
 }
 
-int64_t get_eint64(std::vector<t_inpfile>* inp, const std::string& name, int64_t def, WarningHandler* wi)
+std::int64_t get_eint64(std::vector<t_inpfile>* inp, const std::string& name, std::int64_t def, WarningHandler* wi)
 {
     return get_eint64(inp, name.c_str(), def, wi);
 }

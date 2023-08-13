@@ -4300,7 +4300,7 @@ void PairlistSets::construct(const InteractionLocality iLocality,
                              PairSearch*               pairSearch,
                              nbnxn_atomdata_t*         nbat,
                              const ListOfLists<int>&   exclusions,
-                             const int64_t             step,
+                             const std::int64_t        step,
                              t_nrnb*                   nrnb)
 {
     const auto& gridSet = pairSearch->gridSet();
@@ -4348,7 +4348,7 @@ void PairlistSets::construct(const InteractionLocality iLocality,
 
 void nonbonded_verlet_t::constructPairlist(const InteractionLocality iLocality,
                                            const ListOfLists<int>&   exclusions,
-                                           int64_t                   step,
+                                           std::int64_t              step,
                                            t_nrnb*                   nrnb) const
 {
     pairlistSets_->construct(iLocality, pairSearch_.get(), nbat.get(), exclusions, step, nrnb);

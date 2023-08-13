@@ -112,7 +112,7 @@ struct MdrunOptions
     //! Options for checkpointing th simulation
     CheckpointOptions checkpointOptions;
     //! Number of steps to run, -2 is use inputrec, -1 is infinite
-    int64_t numStepsCommandline = -2;
+    std::int64_t numStepsCommandline = -2;
     //! Maximum duration of this simulation in wall-clock hours, -1 is no limit
     real maximumHoursToRun = -1;
     //! Options for timing the run

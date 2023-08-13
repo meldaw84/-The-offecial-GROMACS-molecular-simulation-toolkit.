@@ -69,7 +69,7 @@ class ReadCheckpointDataHolder;
 class WriteCheckpointDataHolder;
 
 //! The maximum number of atoms that can be stored in a checkpoint file
-static constexpr int64_t sc_checkpointMaxAtomCount = std::numeric_limits<unsigned int>::max() / 3;
+static constexpr std::int64_t sc_checkpointMaxAtomCount = std::numeric_limits<unsigned int>::max() / 3;
 
 /*! \brief Read to a key-value-tree value used for checkpointing.
  *
@@ -268,7 +268,7 @@ struct CheckpointHeaderContents
     //! Which part of the simulation this is.
     int simulation_part;
     //! Which step the checkpoint is at.
-    int64_t step;
+    std::int64_t step;
     //! Current simulation time.
     double t;
     //! Number of nodes used for simulation,
@@ -353,7 +353,9 @@ void list_checkpoint(const std::filesystem::path& fn, FILE* out);
  *
  * The output variables will both contain 0 if filename is NULL, the file
  * does not exist, or is not readable. */
-void read_checkpoint_part_and_step(const std::filesystem::path& filename, int* simulation_part, int64_t* step);
+void read_checkpoint_part_and_step(const std::filesystem::path& filename,
+                                   int*                         simulation_part,
+                                   std::int64_t*                step);
 
 /*!\brief Return header information from an open checkpoint file.
  *

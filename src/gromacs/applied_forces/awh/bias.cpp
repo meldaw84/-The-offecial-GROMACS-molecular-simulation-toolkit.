@@ -74,7 +74,7 @@
 namespace gmx
 {
 
-void Bias::warnForHistogramAnomalies(double t, int64_t step, FILE* fplog)
+void Bias::warnForHistogramAnomalies(double t, std::int64_t step, FILE* fplog)
 {
     const int maxNumWarningsInCheck = 1;  /* The maximum number of warnings to print per check */
     const int maxNumWarningsInRun   = 10; /* The maximum number of warnings to print in a run */
@@ -108,8 +108,8 @@ gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         
                                                          double*                awhPotential,
                                                          double*                potentialJump,
                                                          double                 t,
-                                                         int64_t                step,
-                                                         int64_t                seed,
+                                                         std::int64_t           step,
+                                                         std::int64_t           seed,
                                                          FILE*                  fplog)
 {
     if (step < 0)
@@ -249,7 +249,7 @@ gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         
  * \param[in] pointState  The state of the points in a bias.
  * \returns the total sample count.
  */
-static int64_t countSamples(ArrayRef<const PointState> pointState)
+static std::int64_t countSamples(ArrayRef<const PointState> pointState)
 {
     double numSamples = 0;
     for (const PointState& point : pointState)
@@ -270,10 +270,10 @@ static int64_t countSamples(ArrayRef<const PointState> pointState)
  */
 static void ensureStateAndRunConsistency(const BiasParams& params, const BiasState& state)
 {
-    int64_t numSamples = countSamples(state.points());
-    int64_t numUpdatesFromSamples =
+    std::int64_t numSamples = countSamples(state.points());
+    std::int64_t numUpdatesFromSamples =
             numSamples / (params.numSamplesUpdateFreeEnergy_ * params.numSharedUpdate);
-    int64_t numUpdatesExpected = state.histogramSize().numUpdates();
+    std::int64_t numUpdatesExpected = state.histogramSize().numUpdates();
     if (numUpdatesFromSamples != numUpdatesExpected)
     {
         std::string mesg = gmx::formatString(
@@ -477,7 +477,7 @@ int Bias::writeToEnergySubblocks(t_enxsubblock* subblock) const
     return writer_->writeToEnergySubblocks(*this, subblock);
 }
 
-bool Bias::isSampleCoordStep(const int64_t step) const
+bool Bias::isSampleCoordStep(const std::int64_t step) const
 {
     return params_.isSampleCoordStep(step);
 }

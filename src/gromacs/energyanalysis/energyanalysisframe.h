@@ -64,12 +64,12 @@ public:
      * \param[in] energySumOverNumSteps The sum of energies over previous steps
      * \param[in] energyVarianceOverNumSteps The variance over previous steps
      */
-    EnergyAnalysisFrame(double  time,
-                        int64_t step,
-                        double  energyAtTime,
-                        int     numSteps,
-                        double  energySumOverNumSteps,
-                        double  energyVarianceOverNumSteps) :
+    EnergyAnalysisFrame(double       time,
+                        std::int64_t step,
+                        double       energyAtTime,
+                        int          numSteps,
+                        double       energySumOverNumSteps,
+                        double       energyVarianceOverNumSteps) :
         time_(time),
         step_(step),
         energyAtTime_(energyAtTime),
@@ -87,7 +87,7 @@ public:
      *
      * \return the step
      */
-    int64_t step() const { return step_; }
+    std::int64_t step() const { return step_; }
     /*! \brief Return the instantaneous energy
      *
      * \return the instantaneous energy
@@ -113,7 +113,7 @@ private:
     //! The time in the simulation
     double time_;
     //! The step in the simulation
-    int64_t step_;
+    std::int64_t step_;
     //! The energy at this time point
     double energyAtTime_;
     //! The number of statistics points

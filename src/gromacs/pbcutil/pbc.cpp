@@ -271,7 +271,7 @@ PbcType guessPbcType(const matrix box)
 }
 
 //! Check if the box still obeys the restrictions, if not, correct it
-static int correct_box_elem(FILE* fplog, const int64_t step, matrix box, const int v, const int d)
+static int correct_box_elem(FILE* fplog, const std::int64_t step, matrix box, const int v, const int d)
 {
     int shift, maxshift = 10;
 
@@ -318,7 +318,7 @@ static int correct_box_elem(FILE* fplog, const int64_t step, matrix box, const i
     return shift;
 }
 
-gmx_bool correct_box(FILE* fplog, const int64_t step, matrix box)
+gmx_bool correct_box(FILE* fplog, const std::int64_t step, matrix box)
 {
     int      zy, zx, yx;
     gmx_bool bCorrected;

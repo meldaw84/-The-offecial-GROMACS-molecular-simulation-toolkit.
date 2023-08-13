@@ -167,7 +167,7 @@ private:
  *
  * \inpublicapi
  */
-class Int64Option : public OptionTemplate<int64_t, Int64Option>
+class Int64Option : public OptionTemplate<std::int64_t, Int64Option>
 {
 public:
     //! OptionInfo subclass corresponding to this option type.

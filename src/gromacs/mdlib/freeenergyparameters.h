@@ -42,6 +42,8 @@
 #ifndef GMX_MDLIB_FREEENERGYPARAMETERS_H
 #define GMX_MDLIB_FREEENERGYPARAMETERS_H
 
+#include <cstdint>
+
 #include <array>
 
 #include "gromacs/mdtypes/md_enums.h"
@@ -60,7 +62,7 @@ namespace gmx
  * \param[in] currentLambdaState the lambda state to use to set the lambdas, -1 if not set
  * \returns the current lambda-value array
  */
-gmx::EnumerationArray<FreeEnergyPerturbationCouplingType, real> currentLambdas(int64_t         step,
+gmx::EnumerationArray<FreeEnergyPerturbationCouplingType, real> currentLambdas(std::int64_t    step,
                                                                                const t_lambda& fepvals,
                                                                                int currentLambdaState);
 

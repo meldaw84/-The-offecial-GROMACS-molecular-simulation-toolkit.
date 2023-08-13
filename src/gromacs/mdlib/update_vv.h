@@ -111,7 +111,7 @@ enum class StartingBehavior : int;
  * \param[in]  fplog             Another logger.
  * \param[in]  wcycle            Wall-clock cycle counter.
  */
-void integrateVVFirstStep(int64_t                   step,
+void integrateVVFirstStep(std::int64_t              step,
                           bool                      bFirstStep,
                           bool                      bInitStep,
                           gmx::StartingBehavior     startingBehavior,
@@ -189,7 +189,7 @@ void integrateVVFirstStep(int64_t                   step,
  * \param[in]  nrnb              Cycle counters.
  * \param[in]  wcycle            Wall-clock cycle counter.
  */
-void integrateVVSecondStep(int64_t                   step,
+void integrateVVSecondStep(std::int64_t              step,
                            const t_inputrec*         ir,
                            t_forcerec*               fr,
                            t_commrec*                cr,

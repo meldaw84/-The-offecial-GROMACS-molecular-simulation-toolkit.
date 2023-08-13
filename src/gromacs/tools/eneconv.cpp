@@ -344,16 +344,16 @@ static void edit_files(gmx::ArrayRef<std::string> files,
 }
 
 
-static void update_ee_sum(int         nre,
-                          int64_t*    ee_sum_step,
-                          int64_t*    ee_sum_nsteps,
-                          int64_t*    ee_sum_nsum,
-                          t_energy*   ee_sum,
-                          t_enxframe* fr,
-                          int         out_step)
+static void update_ee_sum(int           nre,
+                          std::int64_t* ee_sum_step,
+                          std::int64_t* ee_sum_nsteps,
+                          std::int64_t* ee_sum_nsum,
+                          t_energy*     ee_sum,
+                          t_enxframe*   fr,
+                          int           out_step)
 {
-    int64_t nsteps, nsum, fr_nsum;
-    int     i;
+    std::int64_t nsteps, nsum, fr_nsum;
+    int          i;
 
     nsteps = *ee_sum_nsteps;
     nsum   = *ee_sum_nsum;
@@ -457,9 +457,9 @@ int gmx_eneconv(int argc, char* argv[])
     gmx_enxnm_t      *enm = NULL;
 #endif
     t_enxframe *      fr, *fro;
-    int64_t           ee_sum_step = 0, ee_sum_nsteps, ee_sum_nsum;
+    std::int64_t      ee_sum_step = 0, ee_sum_nsteps, ee_sum_nsum;
     t_energy*         ee_sum;
-    int64_t           lastfilestep, laststep, startstep_file = 0;
+    std::int64_t      lastfilestep, laststep, startstep_file = 0;
     int               noutfr;
     int               nre, nremax, this_nre, i, kkk, nset, *set = nullptr;
     double            last_t;

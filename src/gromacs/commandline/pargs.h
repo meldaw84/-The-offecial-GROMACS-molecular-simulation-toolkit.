@@ -98,7 +98,7 @@ typedef struct
         /** Integer value for etINT. */
         int* i;
         /** Integer value for etINT64. */
-        int64_t* is;
+        std::int64_t* is;
         /** Real value for etREAL and etTIME. */
         real* r;
         /*! \brief

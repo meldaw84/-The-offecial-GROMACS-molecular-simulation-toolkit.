@@ -143,7 +143,7 @@ namespace test
 {
 
 //! The types used in testing of all operations.
-typedef ::testing::Types<int32_t, real, RVec, test::MoveOnly> TestTypes;
+typedef ::testing::Types<std::int32_t, real, RVec, test::MoveOnly> TestTypes;
 
 //! Typed test fixture
 template<typename T>
@@ -167,7 +167,7 @@ struct HostAllocatorTestNoMemCopyable : HostAllocatorTestNoMem<T>
 {
 };
 //! The types used in testing minus move only types
-using TestTypesCopyable = ::testing::Types<int32_t, real, RVec>;
+using TestTypesCopyable = ::testing::Types<std::int32_t, real, RVec>;
 
 TYPED_TEST_SUITE(HostAllocatorTestNoMemCopyable, TestTypesCopyable);
 
@@ -376,7 +376,7 @@ TEST(HostAllocatorUntypedTest, Comparison)
 
 //! Declare allocator types to test.
 using AllocatorTypesToTest =
-        ::testing::Types<HostAllocator<real>, HostAllocator<int32_t>, HostAllocator<RVec>, HostAllocator<MoveOnly>>;
+        ::testing::Types<HostAllocator<real>, HostAllocator<std::int32_t>, HostAllocator<RVec>, HostAllocator<MoveOnly>>;
 
 TYPED_TEST_SUITE(AllocatorTest, AllocatorTypesToTest);
 

@@ -115,14 +115,14 @@ typedef struct
 
 struct PmeTuneInputs
 {
-    int     nr_inputfiles;  /* The number of tpr and mdp input files */
-    int64_t orig_sim_steps; /* Number of steps to be done in the real simulation */
-    int64_t orig_init_step; /* Init step for the real simulation */
-    real*   rcoulomb;       /* The coulomb radii [0...nr_inputfiles] */
-    real*   rvdw;           /* The vdW radii */
-    real*   rlist;          /* Neighbourlist cutoff radius */
-    int *   nkx, *nky, *nkz;
-    real *  fsx, *fsy, *fsz; /* Fourierspacing in x,y,z dimension */
+    int          nr_inputfiles;  /* The number of tpr and mdp input files */
+    std::int64_t orig_sim_steps; /* Number of steps to be done in the real simulation */
+    std::int64_t orig_init_step; /* Init step for the real simulation */
+    real*        rcoulomb;       /* The coulomb radii [0...nr_inputfiles] */
+    real*        rvdw;           /* The vdW radii */
+    real*        rlist;          /* Neighbourlist cutoff radius */
+    int *        nkx, *nky, *nkz;
+    real *       fsx, *fsy, *fsz; /* Fourierspacing in x,y,z dimension */
 };
 
 
@@ -190,28 +190,28 @@ enum
     eFoundCycleStr
 };
 
-static int parse_logfile(const char* logfile,
-                         const char* errfile,
-                         t_perf*     perfdata,
-                         int         test_nr,
-                         int         presteps,
-                         int64_t     cpt_steps,
-                         int         nnodes)
+static int parse_logfile(const char*  logfile,
+                         const char*  errfile,
+                         t_perf*      perfdata,
+                         int          test_nr,
+                         int          presteps,
+                         std::int64_t cpt_steps,
+                         int          nnodes)
 {
-    FILE*      fp;
-    char       line[STRLEN], dumstring[STRLEN], dumstring2[STRLEN];
-    const char matchstrdd[]  = "Domain decomposition grid";
-    const char matchstrcr[]  = "resetting all time and cycle counters";
-    const char matchstrbal[] = "Average PME mesh/force load:";
-    const char matchstring[] = "R E A L   C Y C L E   A N D   T I M E   A C C O U N T I N G";
-    const char errSIG[]      = "signal, stopping at the next";
-    int        iFound;
-    float      dum1, dum2, dum3, dum4;
-    int        ndum;
-    int        npme;
-    int64_t    resetsteps     = -1;
-    gmx_bool   bFoundResetStr = FALSE;
-    gmx_bool   bResetChecked  = FALSE;
+    FILE*        fp;
+    char         line[STRLEN], dumstring[STRLEN], dumstring2[STRLEN];
+    const char   matchstrdd[]  = "Domain decomposition grid";
+    const char   matchstrcr[]  = "resetting all time and cycle counters";
+    const char   matchstrbal[] = "Average PME mesh/force load:";
+    const char   matchstring[] = "R E A L   C Y C L E   A N D   T I M E   A C C O U N T I N G";
+    const char   errSIG[]      = "signal, stopping at the next";
+    int          iFound;
+    float        dum1, dum2, dum3, dum4;
+    int          ndum;
+    int          npme;
+    std::int64_t resetsteps     = -1;
+    gmx_bool     bFoundResetStr = FALSE;
+    gmx_bool     bResetChecked  = FALSE;
 
 
     if (!gmx_fexist(logfile))
@@ -864,10 +864,10 @@ static void launch_simulation(gmx_bool    bLaunch,          /* Should the simula
 }
 
 
-static void modify_PMEsettings(int64_t     simsteps,    /* Set this value as number of time steps */
-                               int64_t     init_step,   /* Set this value as init_step */
-                               const char* fn_best_tpr, /* tpr file with the best performance */
-                               const char* fn_sim_tpr)  /* name of tpr file to be launched */
+static void modify_PMEsettings(std::int64_t simsteps,  /* Set this value as number of time steps */
+                               std::int64_t init_step, /* Set this value as init_step */
+                               const char*  fn_best_tpr, /* tpr file with the best performance */
+                               const char*  fn_sim_tpr)   /* name of tpr file to be launched */
 {
     t_state    state;
     gmx_mtop_t mtop;
@@ -898,12 +898,12 @@ static gmx_bool can_scale_rvdw(VanDerWaalsType vdwtype)
 
 /* Make additional TPR files with more computational load for the
  * direct space processors: */
-static void make_benchmark_tprs(const char* fn_sim_tpr,  /* READ : User-provided tpr file */
-                                char*   fn_bench_tprs[], /* WRITE: Names of benchmark tpr files  */
-                                int64_t benchsteps, /* Number of time steps for benchmark runs */
-                                int64_t statesteps, /* Step counter in checkpoint file */
-                                real    rmin,    /* Minimal Coulomb radius                        */
-                                real    rmax,    /* Maximal Coulomb radius                        */
+static void make_benchmark_tprs(const char* fn_sim_tpr, /* READ : User-provided tpr file */
+                                char* fn_bench_tprs[],  /* WRITE: Names of benchmark tpr files  */
+                                std::int64_t benchsteps, /* Number of time steps for benchmark runs */
+                                std::int64_t statesteps, /* Step counter in checkpoint file */
+                                real rmin,       /* Minimal Coulomb radius                        */
+                                real rmax,       /* Maximal Coulomb radius                        */
                                 bool bScaleRvdw, /* Scale rvdw along with rcoulomb                */
                                 const int* ntprs,    /* No. of TPRs to write, each with a different
                                                         rcoulomb and fourierspacing  */
@@ -1455,7 +1455,7 @@ static void do_the_tests(FILE*  fp,                    /* General tune_pme outpu
                          const t_filenm* fnm,          /* List of filenames from command line    */
                          int             nfile,        /* Number of files specified on the cmdl. */
                          int             presteps,     /* DLB equilibration steps, is checked    */
-                         int64_t         cpt_steps,    /* Time step counter in the checkpoint    */
+                         std::int64_t    cpt_steps,    /* Time step counter in the checkpoint    */
                          gmx_bool        bCheck,       /* Check whether benchmark mdrun works    */
                          const char*     eligible_gpu_ids) /* GPU IDs for
                                                         * constructing mdrun command lines */
@@ -1690,7 +1690,7 @@ static void check_input(int             nnodes,
                         real            maxPMEfraction,
                         real            minPMEfraction,
                         int             npme_fixed,
-                        int64_t         bench_nsteps,
+                        std::int64_t    bench_nsteps,
                         const t_filenm* fnm,
                         int             nfile,
                         int             sim_part,
@@ -2222,23 +2222,23 @@ int gmx_tune_pme(int argc, char* argv[])
     float guessPMEnodes;
     int   npme_fixed = -2; /* If >= -1, use only this number
                             * of PME-only nodes                */
-    int         ntprs = 0;
-    real        rmin = 0.0, rmax = 0.0; /* min and max value for rcoulomb if scaling is requested */
-    real        rcoulomb       = -1.0;  /* Coulomb radius as set in .tpr file */
-    gmx_bool    bScaleRvdw     = TRUE;
-    int64_t     bench_nsteps   = BENCHSTEPS;
-    int64_t     new_sim_nsteps = -1;   /* -1 indicates: not set by the user */
-    int64_t     cpt_steps      = 0;    /* Step counter in .cpt input file   */
-    int         presteps       = 1500; /* Do a full cycle reset after presteps steps */
-    gmx_bool    bOverwrite     = FALSE, bKeepTPR;
-    gmx_bool    bLaunch        = FALSE;
-    char*       ExtraArgs      = nullptr;
-    char**      tpr_names      = nullptr;
-    const char* simulation_tpr = nullptr;
-    char*       deffnm         = nullptr;
-    int         best_npme, best_tpr;
-    int         sim_part = 1; /* For benchmarks with checkpoint files */
-    char        bbuf[STRLEN];
+    int      ntprs = 0;
+    real     rmin = 0.0, rmax = 0.0;    /* min and max value for rcoulomb if scaling is requested */
+    real     rcoulomb           = -1.0; /* Coulomb radius as set in .tpr file */
+    gmx_bool bScaleRvdw         = TRUE;
+    std::int64_t bench_nsteps   = BENCHSTEPS;
+    std::int64_t new_sim_nsteps = -1;   /* -1 indicates: not set by the user */
+    std::int64_t cpt_steps      = 0;    /* Step counter in .cpt input file   */
+    int          presteps       = 1500; /* Do a full cycle reset after presteps steps */
+    gmx_bool     bOverwrite     = FALSE, bKeepTPR;
+    gmx_bool     bLaunch        = FALSE;
+    char*        ExtraArgs      = nullptr;
+    char**       tpr_names      = nullptr;
+    const char*  simulation_tpr = nullptr;
+    char*        deffnm         = nullptr;
+    int          best_npme, best_tpr;
+    int          sim_part = 1; /* For benchmarks with checkpoint files */
+    char         bbuf[STRLEN];
 
 
     /* Default program names if nothing else is found */

@@ -105,10 +105,10 @@ template<class RealType = real, unsigned int Bits, class Rng>
 RealType generateCanonical(Rng& g)
 {
     // No point in using more bits than fit in RealType
-    const uint64_t digits   = std::numeric_limits<RealType>::digits;
-    const uint64_t realBits = std::min(digits, static_cast<uint64_t>(Bits));
-    const uint64_t log2R    = std::numeric_limits<typename Rng::result_type>::digits;
-    uint64_t       k        = realBits / log2R + (realBits % log2R != 0) + (realBits == 0);
+    const std::uint64_t digits   = std::numeric_limits<RealType>::digits;
+    const std::uint64_t realBits = std::min(digits, static_cast<std::uint64_t>(Bits));
+    const std::uint64_t log2R    = std::numeric_limits<typename Rng::result_type>::digits;
+    std::uint64_t       k        = realBits / log2R + (realBits % log2R != 0) + (realBits == 0);
     // Note that Rng::max and Rng::min are typically an integer type.
     // Only unsigned integer types can express the range using the
     // same type. Converting to RealType before computing the range
@@ -120,7 +120,7 @@ RealType generateCanonical(Rng& g)
     RealType base = r;
     RealType result;
 
-    for (uint64_t i = 1; i < k; ++i)
+    for (std::uint64_t i = 1; i < k; ++i)
     {
         s += RealType(g() - Rng::min()) * base;
         base *= r;

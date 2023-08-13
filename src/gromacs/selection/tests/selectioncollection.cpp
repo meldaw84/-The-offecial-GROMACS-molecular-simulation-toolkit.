@@ -172,7 +172,7 @@ void SelectionCollectionInteractiveTest::runTest(int  count,
 class SelectionCollectionDataTest : public SelectionCollectionTest
 {
 public:
-    enum TestFlag : uint64_t
+    enum TestFlag : std::uint64_t
     {
         efTestEvaluation          = 1 << 0,
         efTestPositionAtoms       = 1 << 1,

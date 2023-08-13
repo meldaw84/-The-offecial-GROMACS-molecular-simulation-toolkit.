@@ -396,7 +396,7 @@ public:
     // result_type must be lower case to be compatible with C++11 standard library
 
     /*! \brief Integer type for output. */
-    typedef uint64_t result_type;
+    typedef std::uint64_t result_type;
     /*! \brief Use array for counter & key states so it is allocated on the stack */
     typedef std::array<result_type, 2> counter_type;
 
@@ -626,7 +626,7 @@ public:
      *          bits are nonzero.
      */
     //NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-    ThreeFry2x64General(uint64_t key0 = 0, RandomDomain domain = RandomDomain::Other)
+    ThreeFry2x64General(std::uint64_t key0 = 0, RandomDomain domain = RandomDomain::Other)
     {
         seed(key0, domain);
     }
@@ -645,7 +645,7 @@ public:
      *          bits are nonzero. To test arbitrary values, use 0 internal counter bits.
      */
     //NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-    ThreeFry2x64General(uint64_t key0, uint64_t key1) { seed(key0, key1); }
+    ThreeFry2x64General(std::uint64_t key0, std::uint64_t key1) { seed(key0, key1); }
 
     /*! \brief Seed 2x64 random engine with two 64-bit key values
      *
@@ -666,9 +666,9 @@ public:
      *  to save the user the trouble of making sure these are zero
      *  when using e.g. a random device, we just ignore them.
      */
-    void seed(uint64_t key0 = 0, RandomDomain domain = RandomDomain::Other)
+    void seed(std::uint64_t key0 = 0, RandomDomain domain = RandomDomain::Other)
     {
-        seed(key0, static_cast<uint64_t>(domain));
+        seed(key0, static_cast<std::uint64_t>(domain));
     }
 
     /*! \brief Seed random engine from 2x64-bit unsigned integers
@@ -684,7 +684,7 @@ public:
      *  \throws InternalError if the high bits needed to encode the number of counter
      *          bits are nonzero. To test arbitrary values, use 0 internal counter bits.
      */
-    void seed(uint64_t key0, uint64_t key1)
+    void seed(std::uint64_t key0, std::uint64_t key1)
     {
         const unsigned int internalCounterBitsBits =
                 (internalCounterBits > 0) ? (StaticLog2<internalCounterBits>::value + 1) : 0;
@@ -714,7 +714,7 @@ public:
      *         for the internal part of the counter are set. The number of
      *         reserved bits is to the last template parameter to the class.
      */
-    void restart(uint64_t ctr0 = 0, uint64_t ctr1 = 0)
+    void restart(std::uint64_t ctr0 = 0, std::uint64_t ctr1 = 0)
     {
 
         counter_ = { { ctr0, ctr1 } };
@@ -757,7 +757,7 @@ public:
      *
      *  \throws InternalError if the internal counter space is exhausted.
      */
-    void discard(uint64_t n)
+    void discard(std::uint64_t n)
     {
         index_ += n % c_resultsPerCounter_;
         n /= c_resultsPerCounter_;
@@ -862,7 +862,7 @@ public:
      *  \throws InternalError if the high bits needed to encode the number of counter
      *          bits are nonzero.
      */
-    ThreeFry2x64(uint64_t key0 = 0, RandomDomain domain = RandomDomain::Other) :
+    ThreeFry2x64(std::uint64_t key0 = 0, RandomDomain domain = RandomDomain::Other) :
         ThreeFry2x64General<20, internalCounterBits>(key0, domain)
     {
     }
@@ -880,7 +880,7 @@ public:
      *  \throws InternalError if the high bits needed to encode the number of counter
      *          bits are nonzero. To test arbitrary values, use 0 internal counter bits.
      */
-    ThreeFry2x64(uint64_t key0, uint64_t key1) :
+    ThreeFry2x64(std::uint64_t key0, std::uint64_t key1) :
         ThreeFry2x64General<20, internalCounterBits>(key0, key1)
     {
     }
@@ -916,7 +916,7 @@ public:
      *  \throws InternalError if the high bits needed to encode the number of counter
      *          bits are nonzero.
      */
-    ThreeFry2x64Fast(uint64_t key0 = 0, RandomDomain domain = RandomDomain::Other) :
+    ThreeFry2x64Fast(std::uint64_t key0 = 0, RandomDomain domain = RandomDomain::Other) :
         ThreeFry2x64General<13, internalCounterBits>(key0, domain)
     {
     }
@@ -934,7 +934,7 @@ public:
      *  \throws InternalError if the high bits needed to encode the number of counter
      *          bits are nonzero. To test arbitrary values, use 0 internal counter bits.
      */
-    ThreeFry2x64Fast(uint64_t key0, uint64_t key1) :
+    ThreeFry2x64Fast(std::uint64_t key0, std::uint64_t key1) :
         ThreeFry2x64General<13, internalCounterBits>(key0, key1)
     {
     }

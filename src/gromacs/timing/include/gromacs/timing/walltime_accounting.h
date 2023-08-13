@@ -56,7 +56,7 @@ void walltime_accounting_start_time(gmx_walltime_accounting_t walltime_accountin
 /*! \brief
  * Reset time stamps, e.g. at counter re-initalization time
  */
-void walltime_accounting_reset_time(gmx_walltime_accounting_t walltime_accounting, int64_t step);
+void walltime_accounting_reset_time(gmx_walltime_accounting_t walltime_accounting, std::int64_t step);
 
 /*! \brief
  * Measure and cache the elapsed wall-clock time since
@@ -78,12 +78,13 @@ double walltime_accounting_get_time_since_reset_over_all_threads(gmx_walltime_ac
 double walltime_accounting_get_start_time_stamp(gmx_walltime_accounting_t walltime_accounting);
 
 //! Get the number of integration steps done
-int64_t walltime_accounting_get_nsteps_done_since_reset(gmx_walltime_accounting_t walltime_accounting);
+std::int64_t walltime_accounting_get_nsteps_done_since_reset(gmx_walltime_accounting_t walltime_accounting);
 
 /*! \brief Set the number of integration steps done
  *
  * TODO consider whether this should get done in walltime_accounting_end */
-void walltime_accounting_set_nsteps_done(gmx_walltime_accounting_t walltime_accounting, int64_t nsteps_done);
+void walltime_accounting_set_nsteps_done(gmx_walltime_accounting_t walltime_accounting,
+                                         std::int64_t              nsteps_done);
 
 //! Record that the simulation finished in a way valid for reporting walltime.
 void walltime_accounting_set_valid_finish(gmx_walltime_accounting_t walltime_accounting);

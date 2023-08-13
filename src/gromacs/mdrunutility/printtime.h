@@ -52,7 +52,7 @@ struct t_inputrec;
 //! Print time to \c out.
 void print_time(FILE*                    out,
                 gmx_walltime_accounting* walltime_accounting,
-                int64_t                  step,
+                std::int64_t             step,
                 const t_inputrec*        ir,
                 const t_commrec*         cr);
 

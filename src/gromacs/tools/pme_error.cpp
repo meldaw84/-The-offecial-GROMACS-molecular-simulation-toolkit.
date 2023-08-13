@@ -83,27 +83,27 @@ enum
 
 struct PmeErrorInputs
 {
-    int64_t orig_sim_steps;  /* Number of steps to be done in the real simulation  */
-    int     n_entries;       /* Number of entries in arrays                        */
-    real    volume;          /* The volume of the box                              */
-    matrix  recipbox;        /* The reciprocal box                                 */
-    int     natoms;          /* The number of atoms in the MD system               */
-    real*   fac;             /* The scaling factor                                 */
-    real*   rcoulomb;        /* The coulomb radii [0...nr_inputfiles]              */
-    real*   rvdw;            /* The vdW radii                                      */
-    int *   nkx, *nky, *nkz; /* Number of k vectors in each spatial dimension      */
-    real*   fourier_sp;      /* Fourierspacing                                     */
-    real*   ewald_rtol;      /* Real space tolerance for Ewald, determines         */
-                             /* the real/reciprocal space relative weight          */
-    real*    ewald_beta;     /* Splitting parameter [1/nm]                         */
-    real     fracself;       /* fraction of particles for SI error                 */
-    real     q2all;          /* sum ( q ^2 )                                       */
-    real     q2allnr;        /* nr of charges                                      */
-    int*     pme_order;      /* Interpolation order for PME (bsplines)             */
-    char**   fn_out;         /* Name of the output tpr file                        */
-    real*    e_dir;          /* Direct space part of PME error with these settings */
-    real*    e_rec;          /* Reciprocal space part of PME error                 */
-    gmx_bool bTUNE;          /* flag for tuning */
+    std::int64_t orig_sim_steps;  /* Number of steps to be done in the real simulation  */
+    int          n_entries;       /* Number of entries in arrays                        */
+    real         volume;          /* The volume of the box                              */
+    matrix       recipbox;        /* The reciprocal box                                 */
+    int          natoms;          /* The number of atoms in the MD system               */
+    real*        fac;             /* The scaling factor                                 */
+    real*        rcoulomb;        /* The coulomb radii [0...nr_inputfiles]              */
+    real*        rvdw;            /* The vdW radii                                      */
+    int *        nkx, *nky, *nkz; /* Number of k vectors in each spatial dimension      */
+    real*        fourier_sp;      /* Fourierspacing                                     */
+    real*        ewald_rtol;      /* Real space tolerance for Ewald, determines         */
+                                  /* the real/reciprocal space relative weight          */
+    real*    ewald_beta;          /* Splitting parameter [1/nm]                         */
+    real     fracself;            /* fraction of particles for SI error                 */
+    real     q2all;               /* sum ( q ^2 )                                       */
+    real     q2allnr;             /* nr of charges                                      */
+    int*     pme_order;           /* Interpolation order for PME (bsplines)             */
+    char**   fn_out;              /* Name of the output tpr file                        */
+    real*    e_dir;               /* Direct space part of PME error with these settings */
+    real*    e_rec;               /* Reciprocal space part of PME error                 */
+    gmx_bool bTUNE;               /* flag for tuning */
 };
 
 

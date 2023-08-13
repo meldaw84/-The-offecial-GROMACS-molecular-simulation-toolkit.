@@ -124,6 +124,6 @@ std::string ocl_get_error_string(cl_int error)
         case -1003: return "CL_INVALID_D3D10_RESOURCE_KHR";
         case -1004: return "CL_D3D10_RESOURCE_ALREADY_ACQUIRED_KHR";
         case -1005: return "CL_D3D10_RESOURCE_NOT_ACQUIRED_KHR";
-        default: return "Unknown OpenCL error: " + std::to_string(static_cast<int32_t>(error));
+        default: return "Unknown OpenCL error: " + std::to_string(static_cast<std::int32_t>(error));
     }
 }

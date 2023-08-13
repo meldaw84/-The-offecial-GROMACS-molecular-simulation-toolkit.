@@ -78,7 +78,7 @@ private:
 
 public:
     //! Random seed for AWH MC sampling
-    int64_t seed_;
+    std::int64_t seed_;
     //! Coordinates representing a trajectory in time
     std::vector<double> coordinates_;
     //! The awh Bias
@@ -162,9 +162,9 @@ TEST_P(BiasTest, ForcesBiasPmfWeightSum)
 
     std::vector<double> force, pot, potJump;
 
-    double  coordMaxValue = 0;
-    double  potentialJump = 0;
-    int64_t step          = 0;
+    double       coordMaxValue = 0;
+    double       potentialJump = 0;
+    std::int64_t step          = 0;
     for (auto& coord : coordinates_)
     {
         coordMaxValue = std::max(coordMaxValue, std::abs(coord));
@@ -272,13 +272,13 @@ TEST(BiasTest, DetectsCovering)
      * coordinate range in a semi-realistic way. The period is 4*pi=12.57.
      * We get out of the initial stage after 4 coverings at step 300.
      */
-    constexpr int64_t exitStepRef = 300;
-    const double      midPoint    = 0.5 * (awhDimParams.end() + awhDimParams.origin());
-    const double      halfWidth   = 0.5 * (awhDimParams.end() - awhDimParams.origin());
+    constexpr std::int64_t exitStepRef = 300;
+    const double           midPoint    = 0.5 * (awhDimParams.end() + awhDimParams.origin());
+    const double           halfWidth   = 0.5 * (awhDimParams.end() - awhDimParams.origin());
 
     bool inInitialStage = bias.state().inInitialStage();
     /* Normally this loop exits at exitStepRef, but we extend with failure */
-    int64_t step;
+    std::int64_t step;
     for (step = 0; step <= 2 * exitStepRef; step++)
     {
         double t     = step * mdTimeStep;

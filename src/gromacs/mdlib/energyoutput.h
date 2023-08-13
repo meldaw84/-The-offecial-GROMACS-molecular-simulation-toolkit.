@@ -224,15 +224,15 @@ public:
      *                     including orientation and distance restraints.
      * \param[in] awh      AWH data.
      */
-    void printStepToEnergyFile(ener_file* fp_ene,
-                               bool       bEne,
-                               bool       bDR,
-                               bool       bOR,
-                               FILE*      log,
-                               int64_t    step,
-                               double     time,
-                               t_fcdata*  fcd,
-                               gmx::Awh*  awh);
+    void printStepToEnergyFile(ener_file*   fp_ene,
+                               bool         bEne,
+                               bool         bDR,
+                               bool         bOR,
+                               FILE*        log,
+                               std::int64_t step,
+                               double       time,
+                               t_fcdata*    fcd,
+                               gmx::Awh*    awh);
 
     /*! \brief Print reference temperatures for annealing groups.
      *
@@ -287,7 +287,7 @@ public:
     void restoreFromEnergyHistory(const energyhistory_t& enerhist);
 
     //! Print an output header to the log file.
-    static void printHeader(FILE* log, int64_t steps, double time);
+    static void printHeader(FILE* log, std::int64_t steps, double time);
 
     /*! \brief Print conserved energy drift message to \p fplog
      *

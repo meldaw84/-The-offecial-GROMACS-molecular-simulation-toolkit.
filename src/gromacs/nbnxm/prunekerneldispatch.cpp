@@ -97,7 +97,7 @@ void nonbonded_verlet_t::dispatchPruneKernelCpu(const gmx::InteractionLocality i
     pairlistSets_->dispatchPruneKernel(iLocality, nbat.get(), shift_vec);
 }
 
-void nonbonded_verlet_t::dispatchPruneKernelGpu(int64_t step)
+void nonbonded_verlet_t::dispatchPruneKernelGpu(std::int64_t step)
 {
     wallcycle_start_nocount(wcycle_, WallCycleCounter::LaunchGpuPp);
     wallcycle_sub_start_nocount(wcycle_, WallCycleSubCounter::LaunchGpuNonBonded);

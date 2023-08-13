@@ -68,13 +68,13 @@ namespace nblib
 class GmxNBForceCalculatorCpu::CpuImpl final
 {
 public:
-    CpuImpl(gmx::ArrayRef<int>     particleTypeIdOfAllParticles,
-            gmx::ArrayRef<real>    nonBondedParams,
-            gmx::ArrayRef<real>    charges,
-            gmx::ArrayRef<int64_t> particleInteractionFlags,
-            gmx::ArrayRef<int>     exclusionRanges,
-            gmx::ArrayRef<int>     exclusionElements,
-            const NBKernelOptions& options);
+    CpuImpl(gmx::ArrayRef<int>          particleTypeIdOfAllParticles,
+            gmx::ArrayRef<real>         nonBondedParams,
+            gmx::ArrayRef<real>         charges,
+            gmx::ArrayRef<std::int64_t> particleInteractionFlags,
+            gmx::ArrayRef<int>          exclusionRanges,
+            gmx::ArrayRef<int>          exclusionElements,
+            const NBKernelOptions&      options);
 
     //! calculates a new pair list based on new coordinates (for every NS step)
     void updatePairlist(gmx::ArrayRef<gmx::RVec> coordinates, const Box& box);
@@ -105,13 +105,13 @@ private:
     GmxBackendData backend_;
 };
 
-GmxNBForceCalculatorCpu::CpuImpl::CpuImpl(gmx::ArrayRef<int>     particleTypeIdOfAllParticles,
-                                          gmx::ArrayRef<real>    nonBondedParams,
-                                          gmx::ArrayRef<real>    charges,
-                                          gmx::ArrayRef<int64_t> particleInteractionFlags,
-                                          gmx::ArrayRef<int>     exclusionRanges,
-                                          gmx::ArrayRef<int>     exclusionElements,
-                                          const NBKernelOptions& options) :
+GmxNBForceCalculatorCpu::CpuImpl::CpuImpl(gmx::ArrayRef<int>          particleTypeIdOfAllParticles,
+                                          gmx::ArrayRef<real>         nonBondedParams,
+                                          gmx::ArrayRef<real>         charges,
+                                          gmx::ArrayRef<std::int64_t> particleInteractionFlags,
+                                          gmx::ArrayRef<int>          exclusionRanges,
+                                          gmx::ArrayRef<int>          exclusionElements,
+                                          const NBKernelOptions&      options) :
     system_(SystemDescription(particleTypeIdOfAllParticles, nonBondedParams, charges, particleInteractionFlags)),
     backend_(GmxBackendData(options, findNumEnergyGroups(particleInteractionFlags), exclusionRanges, exclusionElements))
 {
@@ -270,10 +270,10 @@ void GmxNBForceCalculatorCpu::CpuImpl::compute(gmx::ArrayRef<const gmx::RVec> co
 GmxNBForceCalculatorCpu::GmxNBForceCalculatorCpu(gmx::ArrayRef<int>  particleTypeIdOfAllParticles,
                                                  gmx::ArrayRef<real> nonBondedParams,
                                                  gmx::ArrayRef<real> charges,
-                                                 gmx::ArrayRef<int64_t> particleInteractionFlags,
-                                                 gmx::ArrayRef<int>     exclusionRanges,
-                                                 gmx::ArrayRef<int>     exclusionElements,
-                                                 const NBKernelOptions& options)
+                                                 gmx::ArrayRef<std::int64_t> particleInteractionFlags,
+                                                 gmx::ArrayRef<int>          exclusionRanges,
+                                                 gmx::ArrayRef<int>          exclusionElements,
+                                                 const NBKernelOptions&      options)
 {
     if (options.useGpu)
     {
@@ -330,7 +330,8 @@ std::unique_ptr<GmxNBForceCalculatorCpu> setupGmxForceCalculatorCpu(const Topolo
     std::vector<real> nonBondedParameters = createNonBondedParameters(
             topology.getParticleTypes(), topology.getNonBondedInteractionMap());
 
-    std::vector<int64_t> particleInteractionFlags = createParticleInfoAllVdw(topology.numParticles());
+    std::vector<std::int64_t> particleInteractionFlags =
+            createParticleInfoAllVdw(topology.numParticles());
 
     return std::make_unique<GmxNBForceCalculatorCpu>(topology.getParticleTypeIdOfAllParticles(),
                                                      nonBondedParameters,

@@ -82,7 +82,7 @@ void set_dd_cell_sizes(gmx_domdec_t*      dd,
                        gmx_bool           bDynamicBox,
                        gmx_bool           bUniform,
                        gmx_bool           bDoDLB,
-                       int64_t            step,
+                       std::int64_t       step,
                        gmx_wallcycle*     wcycle);
 
 #endif

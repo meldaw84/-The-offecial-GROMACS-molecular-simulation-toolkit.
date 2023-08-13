@@ -61,14 +61,14 @@ namespace
  * 0x44 0x44 small endian
  * Byte-swap data if appropriate, when transferring data files between machines.
  */
-enum class MachineStamp : int32_t
+enum class MachineStamp : std::int32_t
 {
     bigEndian   = 0x11110000, //!< big endian magic number 0x11 0x11 0x00 0x00 = 286,326,784
     smallEndian = 0x44440000, //!< small endian magic number 0x44 0x44 0x00 0x00 = 1,145,307,136
 };
 
-/*! \brief Serialize a container of int32_t values.
- * Serializes all containers with value_type int32_t that may looped over in a
+/*! \brief Serialize a container of std::int32_t values.
+ * Serializes all containers with value_type std::int32_t that may looped over in a
  * range based for loop and have modifiable elements.
  *
  * \tparam ContainerType type of container to be serialized
@@ -76,7 +76,7 @@ enum class MachineStamp : int32_t
  * \param[in,out] valueContainer the array to be serialized
  */
 template<typename ContainerType>
-std::enable_if_t<std::is_same_v<typename ContainerType::value_type, int32_t>, void>
+std::enable_if_t<std::is_same_v<typename ContainerType::value_type, std::int32_t>, void>
 serialize(ISerializer* serializer, ContainerType* valueContainer)
 {
     for (auto& value : *valueContainer)
@@ -104,9 +104,9 @@ serialize(ISerializer* serializer, ContainerType* valueContainer)
 }
 
 //! Serialize and convert from FORTRAN 1-based to C 0-based indices when reading and vice versa when writing
-void serializeIndex(ISerializer* serializer, int32_t* index)
+void serializeIndex(ISerializer* serializer, std::int32_t* index)
 {
-    int32_t fortranIndex;
+    std::int32_t fortranIndex;
     if (!serializer->reading())
     {
         fortranIndex = *index + 1;
@@ -121,7 +121,7 @@ void serializeIndex(ISerializer* serializer, int32_t* index)
 /*! \brief
  * Serializes an integer array and add unity when writing, substracting unity when reading.
  */
-void serializeIndices(ISerializer* serializer, std::array<int32_t, 3>* valueArray)
+void serializeIndices(ISerializer* serializer, std::array<std::int32_t, 3>* valueArray)
 {
     for (auto& value : *valueArray)
     {
@@ -129,17 +129,17 @@ void serializeIndices(ISerializer* serializer, std::array<int32_t, 3>* valueArra
     }
 }
 
-/*! \brief Serialize input as int32_t via static casting.
- * \tparam IntegralType type to be serialized as int32_t
+/*! \brief Serialize input as std::int32_t via static casting.
+ * \tparam IntegralType type to be serialized as std::int32_t
  */
 template<class IntegralType>
 std::enable_if_t<(std::is_integral_v<IntegralType> || std::is_enum_v<IntegralType>), void>
 serializeAsInt32(ISerializer* serializer, IntegralType* value)
 {
-    int32_t serializedValue;
+    std::int32_t serializedValue;
     if (!serializer->reading())
     {
-        serializedValue = static_cast<int32_t>(*value);
+        serializedValue = static_cast<std::int32_t>(*value);
     }
     serializer->doInt32(&serializedValue);
     if (serializer->reading())
@@ -244,7 +244,7 @@ void doMrcDensityMapHeader(ISerializer* serializer, MrcDensityMapHeader* mrcFile
 
     // 24 | NSYMBT | signed int | 80n | emdb: 0
     // # of bytes in symmetry table, expected to be multiple of 80
-    int32_t numBytesExtendedHeader;
+    std::int32_t numBytesExtendedHeader;
     if (!serializer->reading())
     {
         numBytesExtendedHeader = mrcFile->extendedHeader_.size();

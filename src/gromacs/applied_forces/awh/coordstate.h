@@ -94,8 +94,8 @@ public:
     void sampleUmbrellaGridpoint(const BiasGrid&             grid,
                                  int                         gridpointIndex,
                                  gmx::ArrayRef<const double> probWeightNeighbor,
-                                 int64_t                     step,
-                                 int64_t                     seed,
+                                 std::int64_t                step,
+                                 std::int64_t                seed,
                                  int                         indexSeed);
 
     /*! \brief Update the coordinate value with coordValue.

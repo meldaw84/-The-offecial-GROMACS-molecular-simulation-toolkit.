@@ -147,7 +147,7 @@ public:
     }
     void doString(const std::string& value)
     {
-        doValue<uint64_t>(value.size());
+        doValue<std::uint64_t>(value.size());
         buffer_.insert(buffer_.end(), value.begin(), value.end());
     }
     void doOpaque(const char* data, std::size_t size)
@@ -196,12 +196,12 @@ void InMemorySerializer::doInt(int* value)
     impl_->doValue(*value);
 }
 
-void InMemorySerializer::doInt32(int32_t* value)
+void InMemorySerializer::doInt32(std::int32_t* value)
 {
     impl_->doValue(*value);
 }
 
-void InMemorySerializer::doInt64(int64_t* value)
+void InMemorySerializer::doInt64(std::int64_t* value)
 {
     impl_->doValue(*value);
 }
@@ -277,8 +277,8 @@ public:
     }
     void doString(std::string* value)
     {
-        uint64_t size = 0;
-        doValue<uint64_t>(&size);
+        std::uint64_t size = 0;
+        doValue<std::uint64_t>(&size);
         *value = std::string(&buffer_[pos_], size);
         pos_ += size;
     }
@@ -333,12 +333,12 @@ void InMemoryDeserializer::doInt(int* value)
     impl_->doValue(value);
 }
 
-void InMemoryDeserializer::doInt32(int32_t* value)
+void InMemoryDeserializer::doInt32(std::int32_t* value)
 {
     impl_->doValue(value);
 }
 
-void InMemoryDeserializer::doInt64(int64_t* value)
+void InMemoryDeserializer::doInt64(std::int64_t* value)
 {
     impl_->doValue(value);
 }

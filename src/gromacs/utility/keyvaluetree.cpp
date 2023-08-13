@@ -247,9 +247,9 @@ private:
         {
             return value1.cast<int>() == value2.cast<int>();
         }
-        else if (value1.isType<int64_t>())
+        else if (value1.isType<std::int64_t>())
         {
-            return value1.cast<int64_t>() == value2.cast<int64_t>();
+            return value1.cast<std::int64_t>() == value2.cast<std::int64_t>();
         }
         else if (value1.isType<double>())
         {

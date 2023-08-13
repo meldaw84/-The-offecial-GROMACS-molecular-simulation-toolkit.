@@ -218,8 +218,8 @@ public:
                                                        double*                awhPotential,
                                                        double*                potentialJump,
                                                        double                 t,
-                                                       int64_t                step,
-                                                       int64_t                seed,
+                                                       std::int64_t           step,
+                                                       std::int64_t           seed,
                                                        FILE*                  fplog);
 
     /*! \brief
@@ -309,7 +309,7 @@ private:
      * \param[in]     step     Time step.
      * \param[in,out] fplog    Output file for warnings.
      */
-    void warnForHistogramAnomalies(double t, int64_t step, FILE* fplog);
+    void warnForHistogramAnomalies(double t, std::int64_t step, FILE* fplog);
 
     /*! \brief
      * Collect samples for the force correlation analysis on the grid.
@@ -364,7 +364,7 @@ public:
      *
      * \param[in] step  The MD step number.
      */
-    bool isSampleCoordStep(int64_t step) const;
+    bool isSampleCoordStep(std::int64_t step) const;
 
     /* Data members. */
 private:

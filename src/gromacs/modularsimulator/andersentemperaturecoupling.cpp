@@ -67,7 +67,7 @@ namespace gmx
 {
 AndersenTemperatureCoupling::AndersenTemperatureCoupling(double               simulationTimestep,
                                                          bool                 doMassive,
-                                                         int64_t              seed,
+                                                         std::int64_t         seed,
                                                          ArrayRef<const real> referenceTemperature,
                                                          ArrayRef<const real> couplingTime,
                                                          StatePropagatorData* statePropagatorData,

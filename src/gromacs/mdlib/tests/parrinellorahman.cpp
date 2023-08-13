@@ -246,8 +246,8 @@ TEST_P(ParrRahmTest, Works)
     // properly.
     {
         SCOPED_TRACE("Check the diagonal values of mu are equal");
-        const uint64_t         singleUlpDiff = 10;
-        const uint64_t         doubleUlpDiff = boxShape == BoxShape::Other ? 10 : 5;
+        const std::uint64_t    singleUlpDiff = 10;
+        const std::uint64_t    doubleUlpDiff = boxShape == BoxShape::Other ? 10 : 5;
         FloatingPointTolerance tolerance(0, 0, 0, 0, singleUlpDiff, doubleUlpDiff, false);
         EXPECT_REAL_EQ_TOL(mu(XX, XX), mu(YY, YY), tolerance);
         EXPECT_REAL_EQ_TOL(mu(XX, XX), mu(ZZ, ZZ), tolerance);
@@ -287,7 +287,7 @@ TEST_P(ParrRahmTest, Works)
     {
         TestReferenceData    refData;
         TestReferenceChecker checker(refData.rootChecker());
-        const uint64_t       singleUlpDiff = 20, doubleUlpDiff = 10;
+        const std::uint64_t  singleUlpDiff = 20, doubleUlpDiff = 10;
         checker.setDefaultTolerance(FloatingPointTolerance(0, 0, 0, 0, singleUlpDiff, doubleUlpDiff, false));
         std::vector<real> newBoxVelocities;
         for (int d = 0; d < DIM; d++)

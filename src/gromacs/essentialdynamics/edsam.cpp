@@ -746,7 +746,7 @@ void write_edo_flood(const t_edpar& edi, FILE* fp, real rmsd)
 
 
 /* From flood.xproj compute the Vfl(x) at this point */
-static real flood_energy(t_edpar* edi, int64_t step)
+static real flood_energy(t_edpar* edi, std::int64_t step)
 {
     /* compute flooding energy Vfl
        Vfl = Efl * exp( - \frac {kT} {2Efl alpha^2} * sum_i { \lambda_i c_i^2 } )
@@ -905,7 +905,7 @@ static void do_single_flood(FILE*                          edo,
                             gmx::ArrayRef<const gmx::RVec> coords,
                             gmx::ArrayRef<gmx::RVec>       force,
                             t_edpar*                       edi,
-                            int64_t                        step,
+                            std::int64_t                   step,
                             const matrix                   box,
                             const t_commrec*               cr,
                             gmx_bool bNS) /* Are we in a neighbor searching step? */
@@ -1031,7 +1031,7 @@ void do_flood(const t_commrec*               cr,
               gmx::ArrayRef<gmx::RVec>       force,
               gmx_edsam*                     ed,
               const matrix                   box,
-              int64_t                        step,
+              std::int64_t                   step,
               bool                           bNS)
 {
     /* Write time to edo, when required. Output the time anyhow since we need
@@ -2044,7 +2044,7 @@ namespace
  * \param[in] edi the essential dynamics parameters
  * \param[in] step the current simulation step
  */
-void do_linfix(rvec* xcoll, const t_edpar& edi, int64_t step)
+void do_linfix(rvec* xcoll, const t_edpar& edi, std::int64_t step)
 {
     /* loop over linfix vectors */
     for (int i = 0; i < edi.vecs.linfix.neig; i++)
@@ -2277,7 +2277,7 @@ static void do_radcon(rvec* xcoll, t_edpar* edi)
 }
 
 
-static void ed_apply_constraints(rvec* xcoll, t_edpar* edi, int64_t step)
+static void ed_apply_constraints(rvec* xcoll, t_edpar* edi, std::int64_t step)
 {
     int i;
 
@@ -3067,7 +3067,7 @@ std::unique_ptr<gmx::EssentialDynamics> init_edsam(const gmx::MDLogger&        m
 
 
 void do_edsam(const t_inputrec*        ir,
-              int64_t                  step,
+              std::int64_t             step,
               const t_commrec*         cr,
               gmx::ArrayRef<gmx::RVec> coords,
               gmx::ArrayRef<gmx::RVec> velocities,

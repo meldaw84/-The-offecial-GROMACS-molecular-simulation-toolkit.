@@ -77,9 +77,9 @@ struct PaddingTraits
 };
 
 template<>
-struct PaddingTraits<int32_t>
+struct PaddingTraits<std::int32_t>
 {
-    using SimdBaseType                          = int32_t;
+    using SimdBaseType                          = std::int32_t;
     static constexpr int maxSimdWidthOfBaseType = 16;
 };
 

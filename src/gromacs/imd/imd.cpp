@@ -114,16 +114,16 @@ enum class IMDMessageType : int;
  */
 typedef struct
 {
-    int32_t tstep;   /**< time step                                     */
-    float   T_abs;   /**< absolute temperature                          */
-    float   E_tot;   /**< total energy                                  */
-    float   E_pot;   /**< potential energy                              */
-    float   E_vdw;   /**< van der Waals energy                          */
-    float   E_coul;  /**< Coulomb interaction energy                    */
-    float   E_bond;  /**< bonds energy                                  */
-    float   E_angle; /**< angles energy                                 */
-    float   E_dihe;  /**< dihedrals energy                              */
-    float   E_impr;  /**< improper dihedrals energy                     */
+    std::int32_t tstep;   /**< time step                                     */
+    float        T_abs;   /**< absolute temperature                          */
+    float        E_tot;   /**< total energy                                  */
+    float        E_pot;   /**< potential energy                              */
+    float        E_vdw;   /**< van der Waals energy                          */
+    float        E_coul;  /**< Coulomb interaction energy                    */
+    float        E_bond;  /**< bonds energy                                  */
+    float        E_angle; /**< angles energy                                 */
+    float        E_dihe;  /**< dihedrals energy                              */
+    float        E_impr;  /**< improper dihedrals energy                     */
 } IMDEnergyBlock;
 
 
@@ -134,8 +134,8 @@ typedef struct
  */
 typedef struct
 {
-    int32_t type;   /**< Type of IMD message, see IMDType_t above      */
-    int32_t length; /**< Length                                        */
+    std::int32_t type;   /**< Type of IMD message, see IMDType_t above      */
+    std::int32_t length; /**< Length                                        */
 } IMDHeader;
 
 
@@ -206,7 +206,7 @@ public:
     /*! \brief Initialize arrays used to assemble the positions from the other nodes. */
     void prepareForPositionAssembly(const t_commrec* cr, gmx::ArrayRef<const gmx::RVec> coords);
     /*! \brief Interact with any connected VMD session */
-    bool run(int64_t step, bool bNS, const matrix box, gmx::ArrayRef<const gmx::RVec> coords, double t);
+    bool run(std::int64_t step, bool bNS, const matrix box, gmx::ArrayRef<const gmx::RVec> coords, double t);
 
     // TODO rename all the data members to have underscore suffixes
 
@@ -267,9 +267,9 @@ public:
     IMDEnergyBlock* energies = nullptr;
 
     //! Number of VMD forces.
-    int32_t vmd_nforces = 0;
+    std::int32_t vmd_nforces = 0;
     //! VMD forces indices.
-    int32_t* vmd_f_ind = nullptr;
+    std::int32_t* vmd_f_ind = nullptr;
     //! The VMD forces flat in memory.
     float* vmd_forces = nullptr;
     //! Number of actual MD forces; this gets communicated to the clients.
@@ -365,7 +365,7 @@ static const char* enumValueToString(IMDMessageType enumValue)
 
 
 /*! \brief Fills the header with message and the length argument. */
-static void fill_header(IMDHeader* header, IMDMessageType type, int32_t length)
+static void fill_header(IMDHeader* header, IMDMessageType type, std::int32_t length)
 {
     /* We (ab-)use htonl network function for the correct endianness */
     header->type   = imd_htonl(static_cast<int>(type));
@@ -383,9 +383,9 @@ static void swap_header(IMDHeader* header)
 
 
 /*! \brief Reads multiple bytes from socket. */
-static int32_t imd_read_multiple(IMDSocket* socket, char* datptr, int32_t toread)
+static std::int32_t imd_read_multiple(IMDSocket* socket, char* datptr, std::int32_t toread)
 {
-    int32_t leftcount, countread;
+    std::int32_t leftcount, countread;
 
 
     leftcount = toread;
@@ -421,9 +421,9 @@ static int32_t imd_read_multiple(IMDSocket* socket, char* datptr, int32_t toread
 
 
 /*! \brief Writes multiple bytes to socket in analogy to imd_read_multiple. */
-static int32_t imd_write_multiple(IMDSocket* socket, const char* datptr, int32_t towrite)
+static std::int32_t imd_write_multiple(IMDSocket* socket, const char* datptr, std::int32_t towrite)
 {
-    int32_t leftcount, countwritten;
+    std::int32_t leftcount, countwritten;
 
 
     leftcount = towrite;
@@ -465,7 +465,7 @@ static int imd_handshake(IMDSocket* socket)
 /*! \brief Send energies using the energy block and the send buffer. */
 static int imd_send_energies(IMDSocket* socket, const IMDEnergyBlock* energies, char* buffer)
 {
-    int32_t recsize;
+    std::int32_t recsize;
 
 
     recsize = c_headerSize + sizeof(IMDEnergyBlock);
@@ -477,7 +477,7 @@ static int imd_send_energies(IMDSocket* socket, const IMDEnergyBlock* energies, 
 
 
 /*! \brief Receive IMD header from socket, sets the length and returns the IMD message. */
-static IMDMessageType imd_recv_header(IMDSocket* socket, int32_t* length)
+static IMDMessageType imd_recv_header(IMDSocket* socket, std::int32_t* length)
 {
     IMDHeader header;
 
@@ -497,10 +497,10 @@ static IMDMessageType imd_recv_header(IMDSocket* socket, int32_t* length)
  *
  * The number of forces was previously communicated via the header.
  */
-static bool imd_recv_mdcomm(IMDSocket* socket, int32_t nforces, int32_t* forcendx, float* forces)
+static bool imd_recv_mdcomm(IMDSocket* socket, std::int32_t nforces, std::int32_t* forcendx, float* forces)
 {
     /* reading indices */
-    int retsize  = sizeof(int32_t) * nforces;
+    int retsize  = sizeof(std::int32_t) * nforces;
     int retbytes = imd_read_multiple(socket, reinterpret_cast<char*>(forcendx), retsize);
     if (retbytes != retsize)
     {
@@ -558,17 +558,19 @@ void ImdSession::dd_make_local_IMD_atoms(const gmx_domdec_t* dd)
  */
 static int imd_send_rvecs(IMDSocket* socket, int nat, rvec* x, char* buffer)
 {
-    int32_t size;
-    int     i;
-    float   sendx[3];
-    int     tuplesize = 3 * sizeof(float);
+    std::int32_t size;
+    int          i;
+    float        sendx[3];
+    int          tuplesize = 3 * sizeof(float);
 
 
     /* Required size for the send buffer */
     size = c_headerSize + 3 * sizeof(float) * nat;
 
     /* Prepare header */
-    fill_header(reinterpret_cast<IMDHeader*>(buffer), IMDMessageType::FCoords, static_cast<int32_t>(nat));
+    fill_header(reinterpret_cast<IMDHeader*>(buffer),
+                IMDMessageType::FCoords,
+                static_cast<std::int32_t>(nat));
     for (i = 0; i < nat; i++)
     {
         sendx[0] = static_cast<float>(x[i][0]) * gmx::c_nm2A;
@@ -1443,7 +1445,7 @@ std::unique_ptr<ImdSession> makeImdSession(const t_inputrec*              ir,
     if (MAIN(cr))
     {
         /* we allocate memory for our IMD energy structure */
-        int32_t recsize = c_headerSize + sizeof(IMDEnergyBlock);
+        std::int32_t recsize = c_headerSize + sizeof(IMDEnergyBlock);
         snew(impl->energysendbuf, recsize);
 
         /* Shall we wait for a connection? */
@@ -1475,7 +1477,7 @@ std::unique_ptr<ImdSession> makeImdSession(const t_inputrec*              ir,
         /* Initialize send buffers with constant size */
         snew(impl->sendxbuf, impl->nat);
         snew(impl->energies, 1);
-        int32_t bufxsize = c_headerSize + 3 * sizeof(float) * impl->nat;
+        std::int32_t bufxsize = c_headerSize + 3 * sizeof(float) * impl->nat;
         snew(impl->coordsendbuf, bufxsize);
     }
 
@@ -1516,7 +1518,11 @@ std::unique_ptr<ImdSession> makeImdSession(const t_inputrec*              ir,
 }
 
 
-bool ImdSession::Impl::run(int64_t step, bool bNS, const matrix box, gmx::ArrayRef<const gmx::RVec> coords, double t)
+bool ImdSession::Impl::run(std::int64_t                   step,
+                           bool                           bNS,
+                           const matrix                   box,
+                           gmx::ArrayRef<const gmx::RVec> coords,
+                           double                         t)
 {
     /* IMD at all? */
     if (!sessionPossible)
@@ -1580,12 +1586,12 @@ bool ImdSession::Impl::run(int64_t step, bool bNS, const matrix box, gmx::ArrayR
     return imdstep;
 }
 
-bool ImdSession::run(int64_t step, bool bNS, const matrix box, gmx::ArrayRef<const gmx::RVec> coords, double t)
+bool ImdSession::run(std::int64_t step, bool bNS, const matrix box, gmx::ArrayRef<const gmx::RVec> coords, double t)
 {
     return impl_->run(step, bNS, box, coords, t);
 }
 
-void ImdSession::fillEnergyRecord(int64_t step, bool bHaveNewEnergies)
+void ImdSession::fillEnergyRecord(std::int64_t step, bool bHaveNewEnergies)
 {
     if (!impl_->sessionPossible || !impl_->clientsocket)
     {
@@ -1633,7 +1639,7 @@ void ImdSession::sendPositionsAndEnergies()
 }
 
 
-void ImdSession::updateEnergyRecordAndSendPositionsAndEnergies(bool bIMDstep, int64_t step, bool bHaveNewEnergies)
+void ImdSession::updateEnergyRecordAndSendPositionsAndEnergies(bool bIMDstep, std::int64_t step, bool bHaveNewEnergies)
 {
     if (!impl_->sessionPossible)
     {

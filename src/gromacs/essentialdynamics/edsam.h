@@ -101,7 +101,7 @@ class MDLogger;
  * \param ed                The essential dynamics data.
  */
 void do_edsam(const t_inputrec*        ir,
-              int64_t                  step,
+              std::int64_t             step,
               const t_commrec*         cr,
               gmx::ArrayRef<gmx::RVec> coords,
               gmx::ArrayRef<gmx::RVec> velocities,
@@ -164,7 +164,7 @@ void do_flood(const t_commrec*               cr,
               gmx::ArrayRef<gmx::RVec>       force,
               gmx_edsam*                     ed,
               const matrix                   box,
-              int64_t                        step,
+              std::int64_t                   step,
               bool                           bNS);
 
 #endif

@@ -75,7 +75,7 @@ struct IsVectorOfSerializableType<std::vector<T>>
  *
  * This class allows to write a loop over test data as
  *     for (const auto& value : TestValues::testValueGenerator<type>())
- * where type can be any of std::string, int, int64_t, bool, float, double,
+ * where type can be any of std::string, int, std::int64_t, bool, float, double,
  * std::vector<[std::string, int, int64_6, float, double]>, or tensor.
  */
 class TestValues
@@ -182,9 +182,9 @@ const std::vector<int>& TestValues::getTestVector()
     return testInts;
 }
 template<>
-const std::vector<int64_t>& TestValues::getTestVector()
+const std::vector<std::int64_t>& TestValues::getTestVector()
 {
-    static const std::vector<int64_t> testInt64s({ -7, LLONG_MAX, LLONG_MIN });
+    static const std::vector<std::int64_t> testInt64s({ -7, LLONG_MAX, LLONG_MIN });
     return testInt64s;
 }
 template<>
@@ -428,13 +428,13 @@ public:
     std::vector<std::function<void()>> addTestValueFunctions_ = {
         [this]() { addTestValues<std::string>(); },
         [this]() { addTestValues<int>(); },
-        [this]() { addTestValues<int64_t>(); },
+        [this]() { addTestValues<std::int64_t>(); },
         [this]() { addTestValues<bool>(); },
         [this]() { addTestValues<float>(); },
         [this]() { addTestValues<double>(); },
         [this]() { addTestValues<std::vector<std::string>>(); },
         [this]() { addTestValues<std::vector<int>>(); },
-        [this]() { addTestValues<std::vector<int64_t>>(); },
+        [this]() { addTestValues<std::vector<std::int64_t>>(); },
         [this]() { addTestValues<std::vector<float>>(); },
         [this]() { addTestValues<std::vector<double>>(); },
         [this]() { addTestValues<tensor>(); }
@@ -443,13 +443,13 @@ public:
     // The types we're testing - for scoped trace output only
     std::vector<std::string> testingTypes_ = { "std::string",
                                                "int",
-                                               "int64_t",
+                                               "std::int64_t",
                                                "bool",
                                                "float",
                                                "double",
                                                "std::vector<std::string>",
                                                "std::vector<int>",
-                                               "std::vector<int64_t>",
+                                               "std::vector<std::int64_t>",
                                                "std::vector<float>",
                                                "std::vector<double>",
                                                "tensor" };

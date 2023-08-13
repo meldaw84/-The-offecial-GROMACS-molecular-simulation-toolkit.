@@ -74,9 +74,9 @@ typedef struct
     std::array<std::vector<int>, 2> bin; /* the histogram(s) */
     double                          dx;  /* the histogram spacing in kJ/mol. This is the
                                             same for the two histograms? */
-    unsigned int           nbins;        /* the number of bins in the histograms*/
-    std::array<int64_t, 2> x0;           /* the starting point in units of spacing
-                                        of the histogram */
+    unsigned int                nbins;   /* the number of bins in the histograms*/
+    std::array<std::int64_t, 2> x0;      /* the starting point in units of spacing
+                                   of the histogram */
     std::array<unsigned int, 2> maxbin;  /* highest bin number with data */
 
     int type;                    /* the block type according to dhbtDH, etc. */
@@ -86,14 +86,14 @@ typedef struct
     int                 nlambda; /* length of the lambda vector */
     bool                written; /* whether this data has already been written out */
 
-    std::array<int64_t, 5> subblock_meta_l; /* metadata for an mdebin subblock for
+    std::array<std::int64_t, 5> subblock_meta_l; /* metadata for an mdebin subblock for
                                            I/O: for histogram counts, etc.*/
-    std::vector<double> subblock_meta_d;    /* metadata subblock for I/O, used for
-                                   communicating doubles (i.e. the lambda
-                                   vector) */
-    std::array<int, 4> subblock_meta_i;     /* metadata subblock for I/O, used for
-                                   communicating ints (i.e. derivative indices,
-                                   etc.) */
+    std::vector<double> subblock_meta_d;         /* metadata subblock for I/O, used for
+                                        communicating doubles (i.e. the lambda
+                                        vector) */
+    std::array<int, 4> subblock_meta_i;          /* metadata subblock for I/O, used for
+                                        communicating ints (i.e. derivative indices,
+                                        etc.) */
 } t_mde_delta_h;
 
 /* the type definition is in mdebin_bar.h */

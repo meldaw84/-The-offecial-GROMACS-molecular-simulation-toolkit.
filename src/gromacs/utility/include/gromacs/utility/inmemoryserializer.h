@@ -82,8 +82,8 @@ public:
     void doChar(char* value) override;
     void doUShort(unsigned short* value) override;
     void doInt(int* value) override;
-    void doInt32(int32_t* value) override;
-    void doInt64(int64_t* value) override;
+    void doInt32(std::int32_t* value) override;
+    void doInt64(std::int64_t* value) override;
     void doFloat(float* value) override;
     void doDouble(double* value) override;
     void doReal(real* value) override;
@@ -116,8 +116,8 @@ public:
     void doChar(char* value) override;
     void doUShort(unsigned short* value) override;
     void doInt(int* value) override;
-    void doInt32(int32_t* value) override;
-    void doInt64(int64_t* value) override;
+    void doInt32(std::int32_t* value) override;
+    void doInt64(std::int64_t* value) override;
     void doFloat(float* value) override;
     void doDouble(double* value) override;
     void doReal(real* value) override;

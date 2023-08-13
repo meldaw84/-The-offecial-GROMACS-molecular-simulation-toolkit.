@@ -83,7 +83,7 @@ void gmx_pme_send_coordinates(t_forcerec*                    fr,
                               real                           lambda_q,
                               real                           lambda_lj,
                               bool                           computeEnergyAndVirial,
-                              int64_t                        step,
+                              std::int64_t                   step,
                               bool                           useGpuPmePpComms,
                               bool                           reinitGpuPmePpComms,
                               bool                           sendCoordinatesFromGpu,
@@ -96,7 +96,7 @@ void gmx_pme_send_coordinates(t_forcerec*                    fr,
 void gmx_pme_send_finish(const t_commrec* cr);
 
 /*! \brief Tell our PME-only node to reset all cycle and flop counters */
-void gmx_pme_send_resetcounters(const t_commrec* cr, int64_t step);
+void gmx_pme_send_resetcounters(const t_commrec* cr, std::int64_t step);
 
 /*! \brief PP nodes receive the long range forces from the PME nodes */
 void gmx_pme_receive_f(gmx::PmePpCommGpu*    pmePpCommGpu,

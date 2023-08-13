@@ -145,18 +145,18 @@ static int getGridOffset(gmx::ArrayRef<const Grid> grids, int gridIndex)
     }
 }
 
-void GridSet::putOnGrid(const matrix                   box,
-                        const int                      gridIndex,
-                        const rvec                     lowerCorner,
-                        const rvec                     upperCorner,
-                        const gmx::UpdateGroupsCog*    updateGroupsCog,
-                        const gmx::Range<int>          atomRange,
-                        real                           atomDensity,
-                        gmx::ArrayRef<const int64_t>   atomInfo,
-                        gmx::ArrayRef<const gmx::RVec> x,
-                        const int                      numAtomsMoved,
-                        const int*                     move,
-                        nbnxn_atomdata_t*              nbat)
+void GridSet::putOnGrid(const matrix                      box,
+                        const int                         gridIndex,
+                        const rvec                        lowerCorner,
+                        const rvec                        upperCorner,
+                        const gmx::UpdateGroupsCog*       updateGroupsCog,
+                        const gmx::Range<int>             atomRange,
+                        real                              atomDensity,
+                        gmx::ArrayRef<const std::int64_t> atomInfo,
+                        gmx::ArrayRef<const gmx::RVec>    x,
+                        const int                         numAtomsMoved,
+                        const int*                        move,
+                        nbnxn_atomdata_t*                 nbat)
 {
     Nbnxm::Grid& grid               = grids_[gridIndex];
     const int    cellOffset         = getGridOffset(grids_, gridIndex);

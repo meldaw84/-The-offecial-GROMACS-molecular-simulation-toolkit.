@@ -77,9 +77,9 @@ namespace
  *                   execute 12 FMA and 12 shuffle instructions.
  * \return Number of cycles used for the loop.
  */
-uint64_t timeFmaAndShuffleLoop(uint64_t loopCount)
+std::uint64_t timeFmaAndShuffleLoop(std::uint64_t loopCount)
 {
-    uint64_t cycles;
+    std::uint64_t cycles;
     // Unfortunately we need to resort to inline ASM since we are
     // making a choice based on timing, and without efficient optimization
     // (e.g. when doing debugging) the usual intrinsics are often implemented
@@ -195,9 +195,9 @@ uint64_t timeFmaAndShuffleLoop(uint64_t loopCount)
  *                   execute 12 FMA instructions.
  * \return Number of cycles used for the loop.
  */
-uint64_t timeFmaOnlyLoop(uint64_t loopCount)
+std::uint64_t timeFmaOnlyLoop(std::uint64_t loopCount)
 {
-    uint64_t cycles;
+    std::uint64_t cycles;
     // Unfortunately we need to resort to inline ASM since we are
     // making a choice based on timing, and without efficient optimization
     // (e.g. when doing debugging) the usual intrinsics are often implemented
@@ -266,12 +266,12 @@ uint64_t timeFmaOnlyLoop(uint64_t loopCount)
 
 bool checkDualAvx512FmaUnits()
 {
-    uint64_t timeFmaAndShuf = static_cast<uint64_t>(1e9); // Large value
+    std::uint64_t timeFmaAndShuf = static_cast<std::uint64_t>(1e9); // Large value
 
     // Make sure the CPU is in AVX512 mode by executing a fairly long loop.
     // Use the return value to make sure it is not optimized away. Later invocations
     // use fewer iterations, so they should always be faster.
-    uint64_t timeFmaOnly = timeFmaOnlyLoop(100000);
+    std::uint64_t timeFmaOnly = timeFmaOnlyLoop(100000);
 
     // Execute the loops three times
     for (int i = 0; i < 3; i++)

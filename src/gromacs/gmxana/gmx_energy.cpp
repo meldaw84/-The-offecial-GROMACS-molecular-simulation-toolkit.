@@ -92,14 +92,14 @@ typedef struct
 
 typedef struct
 {
-    int64_t    nsteps;
-    int64_t    npoints;
-    int        nframes;
-    int*       step;
-    int*       steps;
-    int*       points;
-    enerdat_t* s;
-    gmx_bool   bHaveSums;
+    std::int64_t nsteps;
+    std::int64_t npoints;
+    int          nframes;
+    int*         step;
+    int*         steps;
+    int*         points;
+    enerdat_t*   s;
+    gmx_bool     bHaveSums;
 } enerdata_t;
 
 static void done_enerdata_t(int nset, enerdata_t* edat)
@@ -382,18 +382,18 @@ static void einstein_visco(const char*             fn,
 
 typedef struct
 {
-    int64_t np;
-    double  sum;
-    double  sav;
-    double  sav2;
+    std::int64_t np;
+    double       sum;
+    double       sav;
+    double       sav2;
 } ee_sum_t;
 
 typedef struct
 {
-    int      b;
-    ee_sum_t sum;
-    int64_t  nst;
-    int64_t  nst_min;
+    int          b;
+    ee_sum_t     sum;
+    std::int64_t nst;
+    std::int64_t nst_min;
 } ener_ee_t;
 
 static void clear_ee_sum(ee_sum_t* ees)
@@ -444,14 +444,14 @@ static void set_ee_av(ener_ee_t* eee)
 
 static void calc_averages(int nset, enerdata_t* edat, int nbmin, int nbmax)
 {
-    int         nb, i, f, nee;
-    double      sum, sum2, sump, see2;
-    int64_t     np, p, bound_nb;
-    enerdat_t*  ed;
-    exactsum_t* es;
-    gmx_bool    bAllZero;
-    double      x, sx, sy, sxx, sxy;
-    ener_ee_t*  eee;
+    int          nb, i, f, nee;
+    double       sum, sum2, sump, see2;
+    std::int64_t np, p, bound_nb;
+    enerdat_t*   ed;
+    exactsum_t*  es;
+    gmx_bool     bAllZero;
+    double       x, sx, sy, sxx, sxy;
+    ener_ee_t*   eee;
 
     /* Check if we have exact statistics over all points */
     for (i = 0; i < nset; i++)
@@ -882,9 +882,9 @@ static void analyse_ener(gmx_bool                         bCorr,
                          gmx_bool                         bVisco,
                          const char*                      visfn,
                          int                              nmol,
-                         int64_t                          start_step,
+                         std::int64_t                     start_step,
                          double                           start_t,
-                         int64_t                          step,
+                         std::int64_t                     step,
                          double                           t,
                          real                             reftemp,
                          enerdata_t*                      edat,
@@ -901,15 +901,15 @@ static void analyse_ener(gmx_bool                         bCorr,
 {
     FILE* fp;
     /* Check out the printed manual for equations! */
-    double      Dt, aver, stddev, errest, delta_t, totaldrift;
-    enerdata_t* esum = nullptr;
-    real        integral, intBulk, Temp = 0, Pres = 0;
-    real        pr_aver, pr_stddev, pr_errest;
-    double      beta = 0, expE, expEtot, *fee = nullptr;
-    int64_t     nsteps;
-    int         nexact, nnotexact;
-    int         i, j, nout;
-    char        buf[256], eebuf[100];
+    double       Dt, aver, stddev, errest, delta_t, totaldrift;
+    enerdata_t*  esum = nullptr;
+    real         integral, intBulk, Temp = 0, Pres = 0;
+    real         pr_aver, pr_stddev, pr_errest;
+    double       beta = 0, expE, expEtot, *fee = nullptr;
+    std::int64_t nsteps;
+    int          nexact, nnotexact;
+    int          i, j, nout;
+    char         buf[256], eebuf[100];
 
     nsteps = step - start_step + 1;
     if (nsteps < 1)
@@ -1524,16 +1524,16 @@ static void do_dhdl(t_enxframe*             fr,
     /* write the data */
     if (nblock_hist > 0)
     {
-        int64_t sum = 0;
+        std::int64_t sum = 0;
         /* histograms */
         for (i = 0; i < fr->nblock; i++)
         {
             t_enxblock* blk = &(fr->block[i]);
             if (blk->id == enxDHHIST)
             {
-                double  foreign_lambda, dx;
-                int64_t x0;
-                int     nhist, derivative;
+                double       foreign_lambda, dx;
+                std::int64_t x0;
+                int          nhist, derivative;
 
                 /* check the block types etc. */
                 if ((blk->nsub < 2) || (blk->sub[0].type != XdrDataType::Double)
@@ -1801,7 +1801,7 @@ int gmx_energy(int argc, char* argv[])
     int          cur = 0;
 #define NEXT (1 - cur)
     int                      nre, nfr;
-    int64_t                  start_step;
+    std::int64_t             start_step;
     real                     start_t;
     gmx_bool                 bDHDL;
     gmx_bool                 bFoundStart, bCont, bVisco;

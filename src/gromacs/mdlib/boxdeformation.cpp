@@ -99,10 +99,10 @@ std::unique_ptr<BoxDeformation> buildBoxDeformation(const Matrix3x3&  initialBox
             inputrec.delta_t, inputrec.init_step, createMatrix3x3FromLegacyMatrix(inputrec.deform), box);
 }
 
-BoxDeformation::BoxDeformation(const double     timeStep,
-                               const int64_t    initialStep,
-                               const Matrix3x3& deformationTensor,
-                               const Matrix3x3& referenceBox) :
+BoxDeformation::BoxDeformation(const double       timeStep,
+                               const std::int64_t initialStep,
+                               const Matrix3x3&   deformationTensor,
+                               const Matrix3x3&   referenceBox) :
     timeStep_(timeStep),
     initialStep_(initialStep),
     deformationTensor_(deformationTensor),
@@ -110,7 +110,7 @@ BoxDeformation::BoxDeformation(const double     timeStep,
 {
 }
 
-void BoxDeformation::apply(ArrayRef<RVec> x, Matrix3x3* box, const int64_t step)
+void BoxDeformation::apply(ArrayRef<RVec> x, Matrix3x3* box, const std::int64_t step)
 {
     const real elapsedTime = (step + 1 - initialStep_) * timeStep_;
     Matrix3x3  updatedBox  = *box;

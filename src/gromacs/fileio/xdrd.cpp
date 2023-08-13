@@ -90,39 +90,40 @@ int xdr3drcoord(XDR* xdrs, real* fp, int* size, real* precision, int magic_numbe
 #endif
 }
 
-int xdr_int32(XDR* xdrs, int32_t* i)
+int xdr_int32(XDR* xdrs, std::int32_t* i)
 {
     // Note that this implementation assumes that an int is at least
     // 32 bits, which is not strictly required by the language, but
     // good enough in practice on 32- or 64-bit systems. GROMACS
     // requires 64-bit systems.
-    static_assert(sizeof(int) >= 4, "XDR handling assumes that an int32_t can be stored in an int");
+    static_assert(sizeof(int) >= 4,
+                  "XDR handling assumes that an std::int32_t can be stored in an int");
     int temporary = static_cast<int>(*i);
     int ret       = xdr_int(xdrs, &temporary);
-    *i            = static_cast<int32_t>(temporary);
+    *i            = static_cast<std::int32_t>(temporary);
 
     return ret;
 }
 
-int xdr_int64(XDR* xdrs, int64_t* i)
+int xdr_int64(XDR* xdrs, std::int64_t* i)
 {
     // Note that this implementation assumes that an int is at least
     // 32 bits, which is not strictly required by the language, but
     // good enough in practice on 32- or 64-bit systems. GROMACS
     // requires 64-bit systems.
     static_assert(2 * sizeof(int) >= 8,
-                  "XDR handling assumes that an int64_t can be stored in two ints");
+                  "XDR handling assumes that an std::int64_t can be stored in two ints");
 
-    static const uint64_t two_p32_m1 = 0xFFFFFFFF;
+    static const std::uint64_t two_p32_m1 = 0xFFFFFFFF;
 
-    uint64_t imaj64 = ((*i) >> 32) & two_p32_m1;
-    uint64_t imin64 = (*i) & two_p32_m1;
-    int      imaj   = static_cast<int>(imaj64);
-    int      imin   = static_cast<int>(imin64);
-    int      ret    = xdr_int(xdrs, &imaj);
+    std::uint64_t imaj64 = ((*i) >> 32) & two_p32_m1;
+    std::uint64_t imin64 = (*i) & two_p32_m1;
+    int           imaj   = static_cast<int>(imaj64);
+    int           imin   = static_cast<int>(imin64);
+    int           ret    = xdr_int(xdrs, &imaj);
     ret |= xdr_int(xdrs, &imin);
 
-    *i = ((static_cast<uint64_t>(imaj) << 32) | (static_cast<uint64_t>(imin) & two_p32_m1));
+    *i = ((static_cast<std::uint64_t>(imaj) << 32) | (static_cast<std::uint64_t>(imin) & two_p32_m1));
 
     return ret;
 }

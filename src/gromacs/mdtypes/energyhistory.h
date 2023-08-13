@@ -47,6 +47,8 @@
 #ifndef GMX_MDLIB_ENERGYHISTORY_H
 #define GMX_MDLIB_ENERGYHISTORY_H
 
+#include <cstdint>
+
 #include <memory>
 #include <vector>
 
@@ -86,12 +88,12 @@ public:
 class energyhistory_t
 {
 public:
-    int64_t             nsteps;       //! The number of steps in the history
-    int64_t             nsum;         //! Nr. of steps in the ener_ave and ener_sum
+    std::int64_t        nsteps;       //! The number of steps in the history
+    std::int64_t        nsum;         //! Nr. of steps in the ener_ave and ener_sum
     std::vector<double> ener_ave;     //! Energy terms difference^2 sum to get fluctuations
     std::vector<double> ener_sum;     //! Energy terms sum
-    int64_t             nsteps_sim;   //! The number of steps in ener_sum_sim
-    int64_t             nsum_sim;     //! The number of frames in ener_sum_sim
+    std::int64_t        nsteps_sim;   //! The number of steps in ener_sum_sim
+    std::int64_t        nsum_sim;     //! The number of frames in ener_sum_sim
     std::vector<double> ener_sum_sim; //! Energy term history sum of the whole sim
 
     //! History for energy difference for foreign lambdas (useful for BAR)

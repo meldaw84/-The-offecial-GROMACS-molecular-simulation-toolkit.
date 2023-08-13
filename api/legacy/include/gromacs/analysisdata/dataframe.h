@@ -153,7 +153,7 @@ public:
 
 private:
     //! Possible flags for \a flags_.
-    enum Flag : uint64_t
+    enum Flag : std::uint64_t
     {
         efSet      = 1 << 0, //!< Value has been set.
         efErrorSet = 1 << 1, //!< Error estimate has been set.

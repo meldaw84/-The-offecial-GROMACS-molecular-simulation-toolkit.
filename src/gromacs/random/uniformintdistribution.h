@@ -165,7 +165,7 @@ public:
     template<class Rng>
     result_type operator()(Rng& g, const param_type& param)
     {
-        static_assert(sizeof(typename Rng::result_type) >= sizeof(uint32_t),
+        static_assert(sizeof(typename Rng::result_type) >= sizeof(std::uint32_t),
                       "The random engine result_type should be 32 or 64 bits");
 
         result_type  range = param.b() - param.a();
@@ -182,9 +182,9 @@ public:
         }
         else
         {
-            if (sizeof(result_type) == sizeof(uint32_t))
+            if (sizeof(result_type) == sizeof(std::uint32_t))
             {
-                rangeBits = log2I(static_cast<uint32_t>(range));
+                rangeBits = log2I(static_cast<std::uint32_t>(range));
             }
             else
             {
@@ -197,14 +197,14 @@ public:
         {
             if (savedRandomBitsLeft_ < rangeBits)
             {
-                savedRandomBits_     = static_cast<uint64_t>(g());
+                savedRandomBits_     = static_cast<std::uint64_t>(g());
                 savedRandomBitsLeft_ = std::numeric_limits<typename Rng::result_type>::digits;
 
-                if (sizeof(typename Rng::result_type) == sizeof(uint32_t))
+                if (sizeof(typename Rng::result_type) == sizeof(std::uint32_t))
                 {
-                    savedRandomBits_ <<= std::numeric_limits<uint32_t>::digits;
+                    savedRandomBits_ <<= std::numeric_limits<std::uint32_t>::digits;
                     savedRandomBits_ |= g();
-                    savedRandomBitsLeft_ += std::numeric_limits<uint32_t>::digits;
+                    savedRandomBitsLeft_ += std::numeric_limits<std::uint32_t>::digits;
                 }
             }
             result = savedRandomBits_;
@@ -247,7 +247,7 @@ private:
     /*! \brief Internal value for parameters, can be overridden at generation time. */
     param_type param_;
     /*! \brief Saved output from random engine, shifted tableBits right each time */
-    uint64_t savedRandomBits_;
+    std::uint64_t savedRandomBits_;
     /*! \brief Number of valid bits remaining i savedRandomBits_ */
     unsigned int savedRandomBitsLeft_;
 

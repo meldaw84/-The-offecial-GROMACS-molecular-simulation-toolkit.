@@ -60,7 +60,7 @@
  * fix the fact that after 2^31 frames, step numbers will wrap to be
  * negative. Fortunately, this tends not to cause serious problems,
  * and we've fixed it in TNG. Meanwhile, the implementation pretends
- * to the rest of GROMACS that it functions with int64_t like all
+ * to the rest of GROMACS that it functions with std::int64_t like all
  * other step numbers, but the actual range in practice depends on the
  * defaults of the implementation in use now (or when the file was
  * written).
@@ -69,7 +69,7 @@
 
 struct t_fileio;
 
-static constexpr int64_t sc_trrMaxAtomCount = std::numeric_limits<unsigned int>::max() / 3;
+static constexpr std::int64_t sc_trrMaxAtomCount = std::numeric_limits<unsigned int>::max() / 3;
 
 /* This struct describes the order and the  */
 /* sizes of the structs in a trr file, sizes are given in bytes. */
@@ -87,12 +87,12 @@ typedef struct gmx_trr_header_t
     unsigned int v_size;    /* Non zero if velocities are present  */
     unsigned int f_size;    /* Non zero if forces are present      */
 
-    int     natoms;    /* The total number of atoms           */
-    int64_t step;      /* Current step number                 */
-    int     nre;       /* Backward compatibility              */
-    real    t;         /* Current time                        */
-    real    lambda;    /* Current value of lambda             */
-    int     fep_state; /* Current value of alchemical state   */
+    int          natoms;    /* The total number of atoms           */
+    std::int64_t step;      /* Current step number                 */
+    int          nre;       /* Backward compatibility              */
+    real         t;         /* Current time                        */
+    real         lambda;    /* Current value of lambda             */
+    int          fep_state; /* Current value of alchemical state   */
 } gmx_trr_header_t;
 
 struct t_fileio* gmx_trr_open(const std::filesystem::path& fn, const char* mode);
@@ -113,7 +113,7 @@ gmx_bool gmx_trr_read_frame_data(struct t_fileio* fio, gmx_trr_header_t* sh, rve
  */
 
 gmx_bool gmx_trr_read_frame(struct t_fileio* fio,
-                            int64_t*         step,
+                            std::int64_t*    step,
                             real*            t,
                             real*            lambda,
                             rvec*            box,
@@ -127,7 +127,7 @@ gmx_bool gmx_trr_read_frame(struct t_fileio* fio,
  */
 
 void gmx_trr_write_frame(struct t_fileio* fio,
-                         int64_t          step,
+                         std::int64_t     step,
                          real             t,
                          real             lambda,
                          const rvec*      box,
@@ -142,7 +142,7 @@ void gmx_trr_read_single_header(const std::filesystem::path& fn, gmx_trr_header_
  */
 
 void gmx_trr_read_single_frame(const std::filesystem::path& fn,
-                               int64_t*                     step,
+                               std::int64_t*                step,
                                real*                        t,
                                real*                        lambda,
                                rvec*                        box,
@@ -154,7 +154,7 @@ void gmx_trr_read_single_frame(const std::filesystem::path& fn,
  */
 
 void gmx_trr_write_single_frame(const std::filesystem::path& fn,
-                                int64_t                      step,
+                                std::int64_t                 step,
                                 real                         t,
                                 real                         lambda,
                                 const rvec*                  box,

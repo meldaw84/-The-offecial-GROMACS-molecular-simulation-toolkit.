@@ -81,7 +81,7 @@ public:
      *
      * @return nsteps the number of MD steps to perform
      */
-    static int64_t getStepNumber();
+    static std::int64_t getStepNumber();
 
     /*! \brief
      * Receive and array of updated atomic coordinates from MiMiC

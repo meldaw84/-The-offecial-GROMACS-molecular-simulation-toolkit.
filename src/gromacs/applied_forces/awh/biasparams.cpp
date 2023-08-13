@@ -74,9 +74,9 @@ namespace
  * \param[in] awhBiasParams  Bias parameters.
  * \returns the target update interval in steps.
  */
-int64_t calcTargetUpdateInterval(const AwhParams& awhParams, const AwhBiasParams& awhBiasParams)
+std::int64_t calcTargetUpdateInterval(const AwhParams& awhParams, const AwhBiasParams& awhBiasParams)
 {
-    int64_t numStepsUpdateTarget = 0;
+    std::int64_t numStepsUpdateTarget = 0;
     /* Set the target update frequency based on the target distrbution type
      * (this could be made a user-option but there is most likely no big need
      * for tweaking this for most users).
@@ -115,9 +115,9 @@ int64_t calcTargetUpdateInterval(const AwhParams& awhParams, const AwhBiasParams
  * \param[in] gridAxis          The BiasGrid axes.
  * \returns the check interval in steps.
  */
-int64_t calcCheckCoveringInterval(const AwhParams&          awhParams,
-                                  ArrayRef<const DimParams> dimParams,
-                                  ArrayRef<const GridAxis>  gridAxis)
+std::int64_t calcCheckCoveringInterval(const AwhParams&          awhParams,
+                                       ArrayRef<const DimParams> dimParams,
+                                       ArrayRef<const GridAxis>  gridAxis)
 {
     /* Each sample will have a width of sigma. To cover the axis a
        minimum number of samples of width sigma is required. */

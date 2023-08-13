@@ -62,8 +62,8 @@ gmx_bool gmx_fio_doe_float(struct t_fileio* fio, float* item, const char* desc, 
 gmx_bool gmx_fio_doe_double(struct t_fileio* fio, double* item, const char* desc, const char* srcfile, int line);
 gmx_bool gmx_fio_doe_gmx_bool(struct t_fileio* fio, gmx_bool* item, const char* desc, const char* srcfile, int line);
 gmx_bool gmx_fio_doe_int(struct t_fileio* fio, int* item, const char* desc, const char* srcfile, int line);
-gmx_bool gmx_fio_doe_int32(struct t_fileio* fio, int32_t* item, const char* desc, const char* srcfile, int line);
-gmx_bool gmx_fio_doe_int64(struct t_fileio* fio, int64_t* item, const char* desc, const char* srcfile, int line);
+gmx_bool gmx_fio_doe_int32(struct t_fileio* fio, std::int32_t* item, const char* desc, const char* srcfile, int line);
+gmx_bool gmx_fio_doe_int64(struct t_fileio* fio, std::int64_t* item, const char* desc, const char* srcfile, int line);
 gmx_bool gmx_fio_doe_uchar(struct t_fileio* fio, unsigned char* item, const char* desc, const char* srcfile, int line);
 gmx_bool gmx_fio_doe_char(struct t_fileio* fio, char* item, const char* desc, const char* srcfile, int line);
 gmx_bool gmx_fio_doe_ushort(struct t_fileio* fio,
@@ -92,8 +92,18 @@ gmx_bool gmx_fio_ndoe_gmx_bool(struct t_fileio* fio,
                                const char*      srcfile,
                                int              line);
 gmx_bool gmx_fio_ndoe_int(struct t_fileio* fio, int* item, int n, const char* desc, const char* srcfile, int line);
-gmx_bool gmx_fio_ndoe_int32(struct t_fileio* fio, int32_t* item, int n, const char* desc, const char* srcfile, int line);
-gmx_bool gmx_fio_ndoe_int64(struct t_fileio* fio, int64_t* item, int n, const char* desc, const char* srcfile, int line);
+gmx_bool gmx_fio_ndoe_int32(struct t_fileio* fio,
+                            std::int32_t*    item,
+                            int              n,
+                            const char*      desc,
+                            const char*      srcfile,
+                            int              line);
+gmx_bool gmx_fio_ndoe_int64(struct t_fileio* fio,
+                            std::int64_t*    item,
+                            int              n,
+                            const char*      desc,
+                            const char*      srcfile,
+                            int              line);
 gmx_bool gmx_fio_ndoe_uchar(struct t_fileio* fio,
                             unsigned char*   item,
                             int              n,
@@ -180,9 +190,9 @@ public:
     //! Handle default integer I/O.
     void doInt(int* value) override;
     //! Handle int32 I/O.
-    void doInt32(int32_t* value) override;
+    void doInt32(std::int32_t* value) override;
     //! Handle int64 I/O.
-    void doInt64(int64_t* value) override;
+    void doInt64(std::int64_t* value) override;
     //! Handle single precision float I/O.
     void doFloat(float* value) override;
     //! Handle double precision float I/O.

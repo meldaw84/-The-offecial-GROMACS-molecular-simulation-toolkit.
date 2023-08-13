@@ -486,7 +486,7 @@ char* wrap_lines(const char* buf, int line_width, int indent, gmx_bool bIndentFi
     return b2;
 }
 
-int64_t str_to_int64_t(const char* str, char** endptr)
+std::int64_t str_to_int64_t(const char* str, char** endptr)
 {
 #ifndef _MSC_VER
     return strtoll(str, endptr, 10);
@@ -495,7 +495,7 @@ int64_t str_to_int64_t(const char* str, char** endptr)
 #endif
 }
 
-char* gmx_step_str(int64_t i, char* buf)
+char* gmx_step_str(std::int64_t i, char* buf)
 {
     sprintf(buf, "%" PRId64, i);
     return buf;

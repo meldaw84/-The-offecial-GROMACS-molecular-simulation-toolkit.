@@ -45,7 +45,7 @@
 
 #include "gromacs/utility/futil.h"
 
-/*! \brief Convert a int64_t value to int.
+/*! \brief Convert a std::int64_t value to int.
  *
  * \param[in] step The step number (or other int64)
  * \param[in] warn If warn!=NULL a warning message will be written
@@ -54,6 +54,6 @@
  *                 "WARNING during %s:", where warn is printed in %s.
  * \return the truncated step number.
  */
-int int64_to_int(int64_t step, const char* warn);
+int int64_to_int(std::int64_t step, const char* warn);
 
 #endif

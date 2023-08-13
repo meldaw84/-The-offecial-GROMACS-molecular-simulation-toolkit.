@@ -80,7 +80,7 @@ private:
 public:
     SimdDInt32() {}
 
-    SimdDInt32(const int32_t i) { this->simdInternal_ = svdup_n_s64(i); }
+    SimdDInt32(const std::int32_t i) { this->simdInternal_ = svdup_n_s64(i); }
 
     SimdDInt32(svint64_t simd) : simdInternal_(simd) {}
 
@@ -543,7 +543,7 @@ static inline SimdDIBool gmx_simdcall operator==(SimdDInt32 a, SimdDInt32 b)
 static inline SimdDIBool gmx_simdcall testBits(SimdDInt32 a)
 {
     svbool_t pg = svptrue_b64();
-    return { svcmpne_n_s64(pg, a.simdInternal_, (int64_t)0) };
+    return { svcmpne_n_s64(pg, a.simdInternal_, (std::int64_t)0) };
 }
 
 static inline SimdDIBool gmx_simdcall operator<(SimdDInt32 a, SimdDInt32 b)

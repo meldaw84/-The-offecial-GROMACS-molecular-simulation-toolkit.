@@ -95,7 +95,7 @@ gmx_bool replica_exchange(FILE*                 fplog,
                           t_state*              state,
                           const gmx_enerdata_t* enerd,
                           t_state*              state_local,
-                          int64_t               step,
+                          std::int64_t          step,
                           real                  time);
 
 /*! \brief Prints replica exchange statistics to the log file.

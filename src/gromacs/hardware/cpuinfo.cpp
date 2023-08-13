@@ -83,7 +83,7 @@
 #endif
 
 #include <cctype>
-#include <cstdint> // uint32_t in X86 processor name code
+#include <cstdint> // std::uint32_t in X86 processor name code
 #include <cstdlib>
 
 #include <algorithm>

@@ -229,11 +229,11 @@ static void regression_analysis(int n, gmx_bool bXYdy, real* x, int nset, real**
 
 static void histogram(const char* distfile, real binwidth, int n, int nset, real** val, const gmx_output_env_t* oenv)
 {
-    FILE*    fp;
-    int      i, s;
-    double   minval, maxval;
-    int      nbin;
-    int64_t* histo;
+    FILE*         fp;
+    int           i, s;
+    double        minval, maxval;
+    int           nbin;
+    std::int64_t* histo;
 
     minval = val[0][0];
     maxval = val[0][0];

@@ -70,10 +70,10 @@ struct SystemDescription
 {
     SystemDescription() = default;
 
-    SystemDescription(gmx::ArrayRef<int>     particleTypeIdOfAllParticles,
-                      gmx::ArrayRef<real>    nonBondedParams,
-                      gmx::ArrayRef<real>    charges,
-                      gmx::ArrayRef<int64_t> particleInteractionFlags)
+    SystemDescription(gmx::ArrayRef<int>          particleTypeIdOfAllParticles,
+                      gmx::ArrayRef<real>         nonBondedParams,
+                      gmx::ArrayRef<real>         charges,
+                      gmx::ArrayRef<std::int64_t> particleInteractionFlags)
     {
         std::array inputSizes{ particleTypeIdOfAllParticles.size(),
                                charges.size(),
@@ -98,8 +98,8 @@ struct SystemDescription
 
         nonBondedParams_ = std::vector<real>(nonBondedParams.begin(), nonBondedParams.end());
         charges_         = std::vector<real>(charges.begin(), charges.end());
-        particleInfo_ =
-                std::vector<int64_t>(particleInteractionFlags.begin(), particleInteractionFlags.end());
+        particleInfo_    = std::vector<std::int64_t>(particleInteractionFlags.begin(),
+                                                  particleInteractionFlags.end());
     }
 
     //! number of particles
@@ -118,7 +118,7 @@ struct SystemDescription
     std::vector<real> charges_;
 
     //! flag for each particle to set LJ and Q interactions
-    std::vector<int64_t> particleInfo_;
+    std::vector<std::int64_t> particleInfo_;
 
     //! Legacy matrix for box
     Box box_{ 0 };

@@ -61,16 +61,16 @@ class ArrayRef;
 /*! \brief Generate the local topology and virtual site data
  *
  * \returns Total count of bonded interactions in the local topology on this domain */
-int dd_make_local_top(const gmx_domdec_t&            dd,
-                      const gmx_domdec_zones_t&      zones,
-                      int                            npbcdim,
-                      matrix                         box,
-                      rvec                           cellsize_min,
-                      const ivec                     npulse,
-                      t_forcerec*                    fr,
-                      gmx::ArrayRef<const gmx::RVec> coordinates,
-                      const gmx_mtop_t&              top,
-                      gmx::ArrayRef<const int64_t>   atomInfo,
-                      gmx_localtop_t*                ltop);
+int dd_make_local_top(const gmx_domdec_t&               dd,
+                      const gmx_domdec_zones_t&         zones,
+                      int                               npbcdim,
+                      matrix                            box,
+                      rvec                              cellsize_min,
+                      const ivec                        npulse,
+                      t_forcerec*                       fr,
+                      gmx::ArrayRef<const gmx::RVec>    coordinates,
+                      const gmx_mtop_t&                 top,
+                      gmx::ArrayRef<const std::int64_t> atomInfo,
+                      gmx_localtop_t*                   ltop);
 
 #endif

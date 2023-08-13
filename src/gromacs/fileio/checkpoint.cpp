@@ -508,7 +508,7 @@ static void do_cpt_bool_err(XDR* xd, const char* desc, bool* b, FILE* list)
     *b = (i != 0);
 }
 
-static void do_cpt_step_err(XDR* xd, const char* desc, int64_t* i, FILE* list)
+static void do_cpt_step_err(XDR* xd, const char* desc, std::int64_t* i, FILE* list)
 {
     char buf[STEPSTRSIZE];
 
@@ -719,7 +719,7 @@ template<typename T, typename AllocatorType, typename Enum>
 static int doVectorLow(XDR*                           xd,
                        Enum                           ecpt,
                        int                            sflags,
-                       const int64_t                  nval,
+                       const std::int64_t             nval,
                        T**                            v,
                        std::vector<T, AllocatorType>* vector,
                        FILE*                          list,
@@ -736,7 +736,7 @@ static int doVectorLow(XDR*                           xd,
     {
         if (nval >= 0)
         {
-            // Remove this check when we store int64_t in the file
+            // Remove this check when we store std::int64_t in the file
             GMX_RELEASE_ASSERT(nval <= std::numeric_limits<unsigned int>::max(),
                                "Vector size in checkpoint beyond max uint");
 
@@ -745,7 +745,7 @@ static int doVectorLow(XDR*                           xd,
         else
         {
             GMX_RELEASE_ASSERT(v == nullptr, "With nval<0 we should have v=nullptr");
-            // Remove this check when we store int64_t in the file
+            // Remove this check when we store std::int64_t in the file
             GMX_RELEASE_ASSERT(
                     vector->size() <= static_cast<std::size_t>(std::numeric_limits<unsigned int>::max()),
                     "Vector size in checkpoint beyond max uint");
@@ -1207,7 +1207,7 @@ static void do_cpt_header(XDR* xd, gmx_bool bRead, FILE* list, CheckpointHeaderC
     {
         int idum = 0;
         do_cpt_int_err(xd, "step", &idum, list);
-        contents->step = static_cast<int64_t>(idum);
+        contents->step = static_cast<std::int64_t>(idum);
     }
     do_cpt_double_err(xd, "t", &contents->t, list);
     do_cpt_int_err(xd, "#PP-ranks", &contents->nnodes, list);
@@ -2942,7 +2942,7 @@ void load_checkpoint(const std::filesystem::path&   fn,
     ir->simulation_part = headerContents.simulation_part + 1;
 }
 
-void read_checkpoint_part_and_step(const std::filesystem::path& filename, int* simulation_part, int64_t* step)
+void read_checkpoint_part_and_step(const std::filesystem::path& filename, int* simulation_part, std::int64_t* step)
 {
     t_fileio* fp;
 

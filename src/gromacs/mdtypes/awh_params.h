@@ -269,7 +269,7 @@ public:
     //! What king of potential is being used. \todo should use actual enum class.
     AwhPotentialType potential() const { return potentialEnum_; }
     //! Seed used for starting AWH.
-    int64_t seed() const { return seed_; }
+    std::int64_t seed() const { return seed_; }
     //! Output step interval.
     int nstout() const { return nstOut_; }
     //! Number of samples per coordinate sample.
@@ -285,7 +285,7 @@ private:
     //! AWH bias parameters.
     std::vector<AwhBiasParams> awhBiasParams_;
     //! Random seed.
-    int64_t seed_;
+    std::int64_t seed_;
     //! Output step interval.
     int nstOut_;
     //! Number of samples per coordinate sample (also used for PMF)

@@ -118,18 +118,18 @@ public:
             gmx::PinningPolicy        pinningPolicy);
 
     //! Puts the atoms on the grid with index \p gridIndex and copies the coordinates to \p nbat
-    void putOnGrid(const matrix                   box,
-                   int                            gridIndex,
-                   const rvec                     lowerCorner,
-                   const rvec                     upperCorner,
-                   const gmx::UpdateGroupsCog*    updateGroupsCog,
-                   gmx::Range<int>                atomRange,
-                   real                           atomDensity,
-                   gmx::ArrayRef<const int64_t>   atomInfo,
-                   gmx::ArrayRef<const gmx::RVec> x,
-                   int                            numAtomsMoved,
-                   const int*                     move,
-                   nbnxn_atomdata_t*              nbat);
+    void putOnGrid(const matrix                      box,
+                   int                               gridIndex,
+                   const rvec                        lowerCorner,
+                   const rvec                        upperCorner,
+                   const gmx::UpdateGroupsCog*       updateGroupsCog,
+                   gmx::Range<int>                   atomRange,
+                   real                              atomDensity,
+                   gmx::ArrayRef<const std::int64_t> atomInfo,
+                   gmx::ArrayRef<const gmx::RVec>    x,
+                   int                               numAtomsMoved,
+                   const int*                        move,
+                   nbnxn_atomdata_t*                 nbat);
 
     //! Returns the domain setup
     DomainSetup domainSetup() const { return domainSetup_; }

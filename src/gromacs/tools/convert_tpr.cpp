@@ -319,7 +319,7 @@ private:
     //! If the option to run simulation until specified time is set.
     bool runToMaxTimeIsSet_ = false;
     //! Maximum number of steps to run.
-    int64_t maxSteps_ = 0;
+    std::int64_t maxSteps_ = 0;
     //! If the option to use maximumstep number is set.
     bool maxStepsIsSet_ = false;
     //! Reassign velocities
@@ -460,9 +460,9 @@ int ConvertTpr::run()
     {
         // Doing runtime modification
 
-        const double  inputTimeAtStartOfRun = ir->init_step * ir->delta_t + ir->init_t;
-        const int64_t inputStepAtEndOfRun   = ir->init_step + ir->nsteps;
-        const double  inputTimeAtEndOfRun   = inputStepAtEndOfRun * ir->delta_t + ir->init_t;
+        const double       inputTimeAtStartOfRun = ir->init_step * ir->delta_t + ir->init_t;
+        const std::int64_t inputStepAtEndOfRun   = ir->init_step + ir->nsteps;
+        const double       inputTimeAtEndOfRun   = inputStepAtEndOfRun * ir->delta_t + ir->init_t;
 
         printf("Input file:\n");
         print_runtime_info(ir);

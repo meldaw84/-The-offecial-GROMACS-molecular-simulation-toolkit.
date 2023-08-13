@@ -67,7 +67,7 @@ static void checkpointVectorSize(gmx::CheckpointData<operation>* checkpointData,
                                  const std::string&              name,
                                  std::vector<T>*                 vector)
 {
-    auto size = static_cast<int64_t>(vector->size());
+    auto size = static_cast<std::int64_t>(vector->size());
     checkpointData->scalar(name, &size);
     if (operation == gmx::CheckpointDataOperation::Read)
     {

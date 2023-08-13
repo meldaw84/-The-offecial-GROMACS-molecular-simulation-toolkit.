@@ -148,7 +148,7 @@ void global_stat(const gmx_global_stat&   gs,
                  gmx::ArrayRef<real>      sig,
                  bool                     bSumEkinhOld,
                  int                      flags,
-                 int64_t                  step,
+                 std::int64_t             step,
                  gmx::ObservablesReducer* observablesReducer)
 /* instead of current system, gmx_booleans for summing virial, kinetic energy, and other terms */
 {

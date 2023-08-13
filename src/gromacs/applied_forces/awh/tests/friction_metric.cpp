@@ -82,9 +82,9 @@ public:
     //! The correlation grid
     std::unique_ptr<CorrelationGrid> correlationGrid_;
     //! Number of dimensions
-    int64_t numDim_;
+    std::int64_t numDim_;
     //! Number of grid points
-    int64_t numPoints_;
+    std::int64_t numPoints_;
     //! Time between samples
     double sampleTimeStep_ = g_sampleTimeStep;
 
@@ -136,7 +136,7 @@ TEST_P(FrictionMetricTest, FrictionMetric)
         for (std::size_t neighborIndex = 0; neighborIndex < numNeighbors; neighborIndex++)
         {
             std::vector<double> force;
-            for (int64_t dim = 0; dim < numDim_; dim++)
+            for (std::int64_t dim = 0; dim < numDim_; dim++)
             {
                 /* Make the forces a little different in dimensions > 1 */
                 force.push_back(g_forces[step] * (dim + 1));

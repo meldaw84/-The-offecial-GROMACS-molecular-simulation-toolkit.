@@ -511,11 +511,11 @@ static void nb_free_energy_kernel(const t_nblist&                               
             RealType r, rInv;
 
 #if GMX_SIMD_HAVE_REAL
-            alignas(GMX_SIMD_ALIGNMENT) real    preloadPairIsValid[DataTypes::simdRealWidth];
-            alignas(GMX_SIMD_ALIGNMENT) real    preloadPairIncluded[DataTypes::simdRealWidth];
-            alignas(GMX_SIMD_ALIGNMENT) int32_t preloadJnr[DataTypes::simdRealWidth];
-            alignas(GMX_SIMD_ALIGNMENT) int32_t typeIndices[NSTATES][DataTypes::simdRealWidth];
-            alignas(GMX_SIMD_ALIGNMENT) real    preloadQq[NSTATES][DataTypes::simdRealWidth];
+            alignas(GMX_SIMD_ALIGNMENT) real         preloadPairIsValid[DataTypes::simdRealWidth];
+            alignas(GMX_SIMD_ALIGNMENT) real         preloadPairIncluded[DataTypes::simdRealWidth];
+            alignas(GMX_SIMD_ALIGNMENT) std::int32_t preloadJnr[DataTypes::simdRealWidth];
+            alignas(GMX_SIMD_ALIGNMENT) std::int32_t typeIndices[NSTATES][DataTypes::simdRealWidth];
+            alignas(GMX_SIMD_ALIGNMENT) real         preloadQq[NSTATES][DataTypes::simdRealWidth];
             alignas(GMX_SIMD_ALIGNMENT) real gmx_unused preloadSigma6[NSTATES][DataTypes::simdRealWidth];
             alignas(GMX_SIMD_ALIGNMENT) real gmx_unused preloadAlphaVdwEff[DataTypes::simdRealWidth];
             alignas(GMX_SIMD_ALIGNMENT) real gmx_unused preloadAlphaCoulEff[DataTypes::simdRealWidth];

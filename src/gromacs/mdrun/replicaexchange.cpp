@@ -869,7 +869,7 @@ static void test_for_replica_exchange(FILE*                 fplog,
                                       struct gmx_repl_ex*   re,
                                       const gmx_enerdata_t* enerd,
                                       real                  vol,
-                                      int64_t               step,
+                                      std::int64_t          step,
                                       real                  time)
 {
     int                                m, i, j, a, b, ap, bp, i0, i1, tmp;
@@ -1267,7 +1267,7 @@ gmx_bool replica_exchange(FILE*                 fplog,
                           t_state*              state,
                           const gmx_enerdata_t* enerd,
                           t_state*              state_local,
-                          int64_t               step,
+                          std::int64_t          step,
                           real                  time)
 {
     int j;

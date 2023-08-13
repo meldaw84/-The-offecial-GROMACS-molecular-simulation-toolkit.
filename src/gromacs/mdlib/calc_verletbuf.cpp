@@ -887,10 +887,10 @@ static real computeEffectiveAtomDensity(gmx::ArrayRef<const gmx::RVec> coordinat
         atomCount[index]++;
     }
 
-    int64_t sumSquares = 0;
+    std::int64_t sumSquares = 0;
     for (int count : atomCount)
     {
-        sumSquares += gmx::square(int64_t(count));
+        sumSquares += gmx::square(std::int64_t(count));
     }
 
     return (double(sumSquares) / coordinates.size()) * invCellSize[XX] * invCellSize[YY] * invCellSize[ZZ];

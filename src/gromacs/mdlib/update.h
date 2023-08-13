@@ -123,7 +123,7 @@ public:
      * \param[in]  haveConstraints           If the system has constraints.
      */
     void update_coords(const t_inputrec&                                inputRecord,
-                       int64_t                                          step,
+                       std::int64_t                                     step,
                        int                                              homenr,
                        bool                                             havePartiallyFrozenAtoms,
                        gmx::ArrayRef<const ParticleType>                ptype,
@@ -177,7 +177,7 @@ public:
      * \param[in]  do_ene       If this is an energy evaluation step.
      */
     void update_sd_second_half(const t_inputrec&                 inputRecord,
-                               int64_t                           step,
+                               std::int64_t                      step,
                                real*                             dvdlambda,
                                int                               homenr,
                                gmx::ArrayRef<const ParticleType> ptype,

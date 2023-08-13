@@ -261,7 +261,7 @@ static void pme_receive_force_ener(t_forcerec*           fr,
 static void print_large_forces(FILE*                fp,
                                const t_mdatoms*     md,
                                const t_commrec*     cr,
-                               int64_t              step,
+                               std::int64_t         step,
                                real                 forceTolerance,
                                ArrayRef<const RVec> x,
                                ArrayRef<const RVec> f)
@@ -338,7 +338,7 @@ static void postProcessForceWithShiftForces(t_nrnb*                   nrnb,
 
 //! Spread, compute virial for and sum forces, when necessary
 static void postProcessForces(const t_commrec*          cr,
-                              int64_t                   step,
+                              std::int64_t              step,
                               t_nrnb*                   nrnb,
                               gmx_wallcycle*            wcycle,
                               const matrix              box,
@@ -413,7 +413,7 @@ static void do_nb_verlet(t_forcerec*                fr,
                          const StepWorkload&        stepWork,
                          const InteractionLocality  ilocality,
                          const int                  clearF,
-                         const int64_t              step,
+                         const std::int64_t         step,
                          t_nrnb*                    nrnb,
                          gmx_wallcycle*             wcycle)
 {
@@ -527,7 +527,7 @@ static real averageKineticEnergyEstimate(const t_grpopts& groupOptions)
  *                      \c enerd.term[F_EPOT] before calling this routine
  * \param[in] inputrec  The input record
  */
-static void checkPotentialEnergyValidity(int64_t step, const gmx_enerdata_t& enerd, const t_inputrec& inputrec)
+static void checkPotentialEnergyValidity(std::int64_t step, const gmx_enerdata_t& enerd, const t_inputrec& inputrec)
 {
     /* Threshold valid for comparing absolute potential energy against
      * the kinetic energy. Normally one should not consider absolute
@@ -628,7 +628,7 @@ static void computeSpecialForces(FILE*                          fplog,
                                  gmx_enfrot*                    enforcedRotation,
                                  gmx::ImdSession*               imdSession,
                                  pull_t*                        pull_work,
-                                 int64_t                        step,
+                                 std::int64_t                   step,
                                  double                         t,
                                  gmx_wallcycle*                 wcycle,
                                  gmx::ForceProviders*           forceProviders,
@@ -982,7 +982,7 @@ static DomainLifetimeWorkload setupDomainLifetimeWorkload(const t_inputrec&     
  */
 static StepWorkload setupStepWorkload(const int                     legacyFlags,
                                       ArrayRef<const gmx::MtsLevel> mtsLevels,
-                                      const int64_t                 step,
+                                      const std::int64_t            step,
                                       const DomainLifetimeWorkload& domainWork,
                                       const SimulationWorkload&     simulationWork)
 {
@@ -1039,7 +1039,7 @@ static void launchGpuEndOfStepTasks(nonbonded_verlet_t*               nbv,
                                     gmx_pme_t*                        pmedata,
                                     gmx_enerdata_t*                   enerd,
                                     const gmx::MdrunScheduleWorkload& runScheduleWork,
-                                    int64_t                           step,
+                                    std::int64_t                      step,
                                     gmx_wallcycle*                    wcycle)
 {
     if (runScheduleWork.simulationWork.useGpuNonbonded && runScheduleWork.stepWork.computeNonbondedForces)
@@ -1383,7 +1383,7 @@ void do_force(FILE*                               fplog,
               gmx_enfrot*                         enforcedRotation,
               gmx::ImdSession*                    imdSession,
               pull_t*                             pull_work,
-              int64_t                             step,
+              std::int64_t                        step,
               t_nrnb*                             nrnb,
               gmx_wallcycle*                      wcycle,
               const gmx_localtop_t*               top,

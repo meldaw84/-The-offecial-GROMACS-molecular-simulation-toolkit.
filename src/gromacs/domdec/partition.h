@@ -74,7 +74,7 @@ struct MDModulesNotifiers;
 class VirtualSitesHandler;
 
 //! Check whether the DD grid has moved too far for correctness.
-bool check_grid_jump(int64_t step, const gmx_domdec_t* dd, real cutoff, const gmx_ddbox_t* ddbox, bool bFatal);
+bool check_grid_jump(std::int64_t step, const gmx_domdec_t* dd, real cutoff, const gmx_ddbox_t* ddbox, bool bFatal);
 
 /*! \brief Print statistics for domain decomposition communication */
 void print_dd_statistics(const t_commrec* cr, const t_inputrec& inputrec, FILE* fplog);
@@ -110,7 +110,7 @@ void print_dd_statistics(const t_commrec* cr, const t_inputrec& inputrec, FILE* 
  */
 void dd_partition_system(FILE*                     fplog,
                          const gmx::MDLogger&      mdlog,
-                         int64_t                   step,
+                         std::int64_t              step,
                          const t_commrec*          cr,
                          bool                      bMainState,
                          t_state*                  state_global,

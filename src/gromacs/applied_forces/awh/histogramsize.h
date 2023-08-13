@@ -169,7 +169,7 @@ public:
     double logScaledSampleWeight() const { return logScaledSampleWeight_; }
 
 private:
-    int64_t numUpdates_; /**< The number of updates performed since the start of the simulation. */
+    std::int64_t numUpdates_; /**< The number of updates performed since the start of the simulation. */
 
     /* The histogram size sets the update size and so controls the convergence rate of the free energy and bias. */
     double histogramSize_; /**< Size of reference weight histogram. */

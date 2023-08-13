@@ -172,7 +172,7 @@ int gmx_spatial(int argc, char* argv[])
     int               minx, miny, minz, maxx, maxy, maxz;
     int               numfr, numcu;
     int               maxval, minval;
-    int64_t           tot;
+    std::int64_t      tot;
     double            norm;
     gmx_output_env_t* oenv;
     gmx_rmpbc_t       gpbc = nullptr;

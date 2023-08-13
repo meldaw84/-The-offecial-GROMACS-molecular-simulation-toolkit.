@@ -64,7 +64,7 @@
 #include "gromacs/timing/wallcycle.h"
 #include "gromacs/topology/topology.h"
 
-void integrateVVFirstStep(int64_t                   step,
+void integrateVVFirstStep(std::int64_t              step,
                           bool                      bFirstStep,
                           bool                      bInitStep,
                           gmx::StartingBehavior     startingBehavior,
@@ -324,7 +324,7 @@ void integrateVVFirstStep(int64_t                   step,
     }
 }
 
-void integrateVVSecondStep(int64_t                   step,
+void integrateVVSecondStep(std::int64_t              step,
                            const t_inputrec*         ir,
                            t_forcerec*               fr,
                            t_commrec*                cr,

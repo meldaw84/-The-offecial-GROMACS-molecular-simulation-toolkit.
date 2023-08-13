@@ -49,7 +49,7 @@ namespace gmx
 {
 
 
-EnergyCalculationFrequencyErrors::EnergyCalculationFrequencyErrors(int64_t energyCalculationIntervalInSteps) :
+EnergyCalculationFrequencyErrors::EnergyCalculationFrequencyErrors(std::int64_t energyCalculationIntervalInSteps) :
     energyCalculationIntervalInSteps_(energyCalculationIntervalInSteps)
 {
 }

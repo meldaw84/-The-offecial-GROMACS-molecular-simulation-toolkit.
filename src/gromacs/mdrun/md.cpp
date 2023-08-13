@@ -619,8 +619,8 @@ void gmx::LegacySimulator::do_md()
     t_vcm vcm(topGlobal_.groups, *ir);
     reportComRemovalInfo(fpLog_, vcm);
 
-    int64_t step     = ir->init_step;
-    int64_t step_rel = 0;
+    std::int64_t step     = ir->init_step;
+    std::int64_t step_rel = 0;
 
     /* To minimize communication, compute_globals computes the COM velocity
      * and the kinetic energy for the velocities without COM motion removed.

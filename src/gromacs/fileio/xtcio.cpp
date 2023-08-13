@@ -106,7 +106,7 @@ static int xtc_check(const char* str, gmx_bool bResult, const char* file, int li
 
 #define XTC_CHECK(s, b) xtc_check(s, b, __FILE__, __LINE__)
 
-static int xtc_header(XDR* xd, int* magic, int* natoms, int64_t* step, real* time, gmx_bool bRead, gmx_bool* bOK)
+static int xtc_header(XDR* xd, int* magic, int* natoms, std::int64_t* step, real* time, gmx_bool bRead, gmx_bool* bOK)
 {
     int result;
 
@@ -193,7 +193,7 @@ static int xtc_coord(XDR* xd, int* natoms, rvec* box, rvec* x, real* prec, int m
 }
 
 
-int write_xtc(t_fileio* fio, int natoms, int64_t step, real time, const rvec* box, const rvec* x, real prec)
+int write_xtc(t_fileio* fio, int natoms, std::int64_t step, real time, const rvec* box, const rvec* x, real prec)
 {
     // By default we only write the new format for very large systems, but since the reading code
     // will adapt to whatever magic number is present in the header you could generate frames
@@ -232,7 +232,7 @@ int write_xtc(t_fileio* fio, int natoms, int64_t step, real time, const rvec* bo
     return bOK; /* 0 if bad, 1 if writing went well */
 }
 
-int read_first_xtc(t_fileio* fio, int* natoms, int64_t* step, real* time, matrix box, rvec** x, real* prec, gmx_bool* bOK)
+int read_first_xtc(t_fileio* fio, int* natoms, std::int64_t* step, real* time, matrix box, rvec** x, real* prec, gmx_bool* bOK)
 {
     int  magic;
     XDR* xd;
@@ -256,7 +256,7 @@ int read_first_xtc(t_fileio* fio, int* natoms, int64_t* step, real* time, matrix
     return static_cast<int>(*bOK);
 }
 
-int read_next_xtc(t_fileio* fio, int natoms, int64_t* step, real* time, matrix box, rvec* x, real* prec, gmx_bool* bOK)
+int read_next_xtc(t_fileio* fio, int natoms, std::int64_t* step, real* time, matrix box, rvec* x, real* prec, gmx_bool* bOK)
 {
     int  magic;
     int  n;

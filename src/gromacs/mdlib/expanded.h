@@ -65,7 +65,7 @@ int ExpandedEnsembleDynamics(FILE*                               log,
                              t_extmass*                          MassQ,
                              int                                 fep_state,
                              df_history_t*                       dfhist,
-                             int64_t                             step,
+                             std::int64_t                        step,
                              rvec*                               v,
                              int                                 homenr,
                              gmx::ArrayRef<const unsigned short> cTC);
@@ -86,7 +86,7 @@ int expandedEnsembleUpdateLambdaState(FILE*                 log,
                                       const gmx_enerdata_t* enerd,
                                       int                   fep_state,
                                       df_history_t*         dfhist,
-                                      int64_t               step);
+                                      std::int64_t          step);
 
 void PrintFreeEnergyInfoToFile(FILE*               outfile,
                                const t_lambda*     fep,
@@ -95,6 +95,6 @@ void PrintFreeEnergyInfoToFile(FILE*               outfile,
                                const df_history_t* dfhist,
                                int                 fep_state,
                                int                 frequency,
-                               int64_t             step);
+                               std::int64_t        step);
 
 #endif

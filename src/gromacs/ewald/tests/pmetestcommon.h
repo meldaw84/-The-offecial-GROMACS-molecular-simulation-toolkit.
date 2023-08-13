@@ -130,11 +130,11 @@ enum class PmeSolveAlgorithm : int
 MessageStringCollector getSkipMessagesIfNecessary(const t_inputrec& inputRec, CodePath mode);
 
 //! Spline moduli are computed in double precision, so they're very good in single precision
-constexpr int64_t c_splineModuliSinglePrecisionUlps = 1;
+constexpr std::int64_t c_splineModuliSinglePrecisionUlps = 1;
 /*! \brief For double precision checks, the recursive interpolation
  * and use of trig functions in make_dft_mod require a lot more flops,
  * and thus opportunity for deviation between implementations. */
-uint64_t getSplineModuliDoublePrecisionUlps(int splineOrder);
+std::uint64_t getSplineModuliDoublePrecisionUlps(int splineOrder);
 
 // PME stages
 

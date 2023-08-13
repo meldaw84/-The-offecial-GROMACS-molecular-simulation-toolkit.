@@ -262,7 +262,7 @@ public:
      * \returns true if at least one update was applied.
      */
     bool performPreviouslySkippedUpdates(const BiasParams& params,
-                                         int64_t           numUpdates,
+                                         std::int64_t      numUpdates,
                                          double            weighthistScaling,
                                          double            logPmfSumScaling)
     {
@@ -275,8 +275,8 @@ public:
         }
 
         /* The most current past update */
-        int64_t lastUpdateIndex   = numUpdates;
-        int64_t numUpdatesSkipped = lastUpdateIndex - lastUpdateIndex_;
+        std::int64_t lastUpdateIndex   = numUpdates;
+        std::int64_t numUpdatesSkipped = lastUpdateIndex - lastUpdateIndex_;
 
         if (numUpdatesSkipped == 0)
         {
@@ -284,7 +284,7 @@ public:
             return false;
         }
 
-        for (int64_t i = 0; i < numUpdatesSkipped; i++)
+        for (std::int64_t i = 0; i < numUpdatesSkipped; i++)
         {
             /* This point was non-local at the time of the update meaning no weight */
             updateFreeEnergyAndWeight(params, 0, weighthistScaling, logPmfSumScaling);
@@ -306,7 +306,10 @@ public:
      * \param[in] weighthistScaling   Scaling factor for the reference weight histogram.
      * \param[in] logPmfSumScaling    Log of the scaling factor for the PMF histogram.
      */
-    void updateWithNewSampling(const BiasParams& params, int64_t numUpdates, double weighthistScaling, double logPmfSumScaling)
+    void updateWithNewSampling(const BiasParams& params,
+                               std::int64_t      numUpdates,
+                               double            weighthistScaling,
+                               double            logPmfSumScaling)
     {
         GMX_RELEASE_ASSERT(lastUpdateIndex_ == numUpdates,
                            "When doing a normal update, the point update index should match the "
@@ -477,11 +480,11 @@ private:
     double weightSumIteration_; /**< Accumulated weight this iteration; note: only contains data for this Bias, even when sharing biases. */
     double weightSumTot_;       /**< Accumulated weights, never reset or scaled. */
     double weightSumRef_; /**< The reference weight histogram determining the free energy updates */
-    int64_t lastUpdateIndex_; /**< The last update that was performed at this point, in units of number of updates. */
-    double  logPmfSum_;          /**< Logarithm of the PMF histogram */
-    double  numVisitsIteration_; /**< Visits to this bin this iteration; note: only contains data for this Bias, even when sharing biases. */
-    double  numVisitsTot_;       /**< Accumulated visits to this bin */
-    double  localWeightSum_; /**< The contributed weight sum from the local Bias. This is used for computing the average shared friction metric. Never reset or scaled. */
+    std::int64_t lastUpdateIndex_; /**< The last update that was performed at this point, in units of number of updates. */
+    double       logPmfSum_;          /**< Logarithm of the PMF histogram */
+    double       numVisitsIteration_; /**< Visits to this bin this iteration; note: only contains data for this Bias, even when sharing biases. */
+    double       numVisitsTot_;       /**< Accumulated visits to this bin */
+    double       localWeightSum_; /**< The contributed weight sum from the local Bias. This is used for computing the average shared friction metric. Never reset or scaled. */
 };
 
 } // namespace gmx

@@ -66,6 +66,8 @@
 #ifndef GMX_MDLIB_RESETHANDLER_H
 #define GMX_MDLIB_RESETHANDLER_H
 
+#include <cstdint>
+
 #include "gromacs/compat/pointers.h"
 #include "gromacs/mdlib/simulationsignal.h"
 #include "gromacs/utility/logger.h"
@@ -111,7 +113,7 @@ public:
      */
     ResetHandler(compat::not_null<SimulationSignal*> signal,
                  bool                                simulationsShareState,
-                 int64_t                             nsteps,
+                 std::int64_t                        nsteps,
                  bool                                isMain,
                  bool                                resetHalfway,
                  real                                maximumHoursToRun,
@@ -146,8 +148,8 @@ public:
      * specific time), the reset will only take place once, whenever the first condition
      * is met.
      */
-    void resetCounters(int64_t                     step,
-                       int64_t                     step_rel,
+    void resetCounters(std::int64_t                step,
+                       std::int64_t                step_rel,
                        const MDLogger&             mdlog,
                        FILE*                       fplog,
                        const t_commrec*            cr,
@@ -174,8 +176,8 @@ private:
     bool setSignalImpl(gmx_walltime_accounting* walltime_accounting);
 
     //! Implementation of the resetCounters() function
-    bool resetCountersImpl(int64_t                     step,
-                           int64_t                     step_rel,
+    bool resetCountersImpl(std::int64_t                step,
+                           std::int64_t                step_rel,
                            const MDLogger&             mdlog,
                            FILE*                       fplog,
                            const t_commrec*            cr,

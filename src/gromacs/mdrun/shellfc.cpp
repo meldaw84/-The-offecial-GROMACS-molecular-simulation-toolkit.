@@ -738,7 +738,7 @@ static void decrease_step_size(ArrayRef<t_shell> shells)
     }
 }
 
-static void print_epot(FILE* fp, int64_t mdstep, int count, real epot, real df, int ndir, real sf_dir)
+static void print_epot(FILE* fp, std::int64_t mdstep, int count, real epot, real df, int ndir, real sf_dir)
 {
     char buf[22];
 
@@ -814,7 +814,7 @@ static void init_adir(gmx_shellfc_t*            shfc,
                       const t_inputrec*         ir,
                       const t_commrec*          cr,
                       int                       dd_ac1,
-                      int64_t                   step,
+                      std::int64_t              step,
                       const t_mdatoms&          md,
                       int                       end,
                       ArrayRefWithPadding<RVec> xOld,
@@ -932,7 +932,7 @@ void relax_shell_flexcon(FILE*                          fplog,
                          const gmx_multisim_t*          ms,
                          gmx_bool                       bVerbose,
                          gmx_enfrot*                    enforcedRotation,
-                         int64_t                        mdstep,
+                         std::int64_t                   mdstep,
                          const t_inputrec*              inputrec,
                          const gmx::MDModulesNotifiers& mdModulesNotifiers,
                          gmx::ImdSession*               imdSession,
@@ -1341,7 +1341,7 @@ void relax_shell_flexcon(FILE*                          fplog,
     std::copy(force[Min].begin(), force[Min].end(), f->force().begin());
 }
 
-void done_shellfc(FILE* fplog, gmx_shellfc_t* shfc, int64_t numSteps)
+void done_shellfc(FILE* fplog, gmx_shellfc_t* shfc, std::int64_t numSteps)
 {
     if (shfc && fplog && numSteps > 0)
     {

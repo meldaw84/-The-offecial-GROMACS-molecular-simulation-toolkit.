@@ -1137,7 +1137,7 @@ void EnergyOutput::recordNonEnergyStep()
     ebin_increase_count(1, ebin_, false);
 }
 
-void EnergyOutput::printHeader(FILE* log, int64_t steps, double time)
+void EnergyOutput::printHeader(FILE* log, std::int64_t steps, double time)
 {
     char buf[22];
 
@@ -1150,15 +1150,15 @@ void EnergyOutput::printHeader(FILE* log, int64_t steps, double time)
             time);
 }
 
-void EnergyOutput::printStepToEnergyFile(ener_file* fp_ene,
-                                         bool       bEne,
-                                         bool       bDR,
-                                         bool       bOR,
-                                         FILE*      log,
-                                         int64_t    step,
-                                         double     time,
-                                         t_fcdata*  fcd,
-                                         gmx::Awh*  awh)
+void EnergyOutput::printStepToEnergyFile(ener_file*   fp_ene,
+                                         bool         bEne,
+                                         bool         bDR,
+                                         bool         bOR,
+                                         FILE*        log,
+                                         std::int64_t step,
+                                         double       time,
+                                         t_fcdata*    fcd,
+                                         gmx::Awh*    awh)
 {
     t_enxframe fr;
     init_enxframe(&fr);

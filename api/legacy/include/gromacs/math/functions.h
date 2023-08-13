@@ -427,13 +427,13 @@ float erfinv(float x);
  *
  * \return quotient of division
  */
-constexpr int32_t exactDiv(int32_t a, int32_t b)
+constexpr std::int32_t exactDiv(std::int32_t a, std::int32_t b)
 {
     return GMX_ASSERT(a % b == 0, "exactDiv called with non-divisible arguments"), a / b;
 }
 
 //! Exact integer division, 64bit.
-constexpr int64_t exactDiv(int64_t a, int64_t b)
+constexpr std::int64_t exactDiv(std::int64_t a, std::int64_t b)
 {
     return GMX_ASSERT(a % b == 0, "exactDiv called with non-divisible arguments"), a / b;
 }
@@ -460,15 +460,15 @@ static inline int roundToInt(double x)
 {
     return static_cast<int>(std::rint(x));
 }
-//! Round float to int64_t
-static inline int64_t roundToInt64(float x)
+//! Round float to std::int64_t
+static inline std::int64_t roundToInt64(float x)
 {
-    return static_cast<int64_t>(std::rintf(x));
+    return static_cast<std::int64_t>(std::rintf(x));
 }
-//! Round double to int64_t
-static inline int64_t roundToInt64(double x)
+//! Round double to std::int64_t
+static inline std::int64_t roundToInt64(double x)
 {
-    return static_cast<int64_t>(std::rint(x));
+    return static_cast<std::int64_t>(std::rint(x));
 }
 
 //! \brief Check whether \p v is an integer power of 2.

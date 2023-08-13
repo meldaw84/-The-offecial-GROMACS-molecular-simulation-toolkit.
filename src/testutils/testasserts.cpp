@@ -139,7 +139,8 @@ typename FloatingPoint<FloatType>::Bits floatingPointToBiasedInteger(const Float
  * treating also values of different sign.
  */
 template<typename FloatType>
-uint64_t calculateUlpDifference(const FloatingPoint<FloatType>& value1, const FloatingPoint<FloatType>& value2)
+std::uint64_t calculateUlpDifference(const FloatingPoint<FloatType>& value1,
+                                     const FloatingPoint<FloatType>& value2)
 {
     typename FloatingPoint<FloatType>::Bits biased1 = floatingPointToBiasedInteger(value1);
     typename FloatingPoint<FloatType>::Bits biased2 = floatingPointToBiasedInteger(value2);
@@ -150,7 +151,11 @@ uint64_t calculateUlpDifference(const FloatingPoint<FloatType>& value1, const Fl
  * Helper to implement the constructors for FloatingPointDifference.
  */
 template<typename FloatType>
-void initDifference(FloatType raw1, FloatType raw2, double* absoluteDifference, uint64_t* ulpDifference, bool* bSignDifference)
+void initDifference(FloatType      raw1,
+                    FloatType      raw2,
+                    double*        absoluteDifference,
+                    std::uint64_t* ulpDifference,
+                    bool*          bSignDifference)
 {
     FloatingPoint<FloatType> value1(raw1);
     FloatingPoint<FloatType> value2(raw2);
@@ -171,7 +176,7 @@ void initDifference(FloatType raw1, FloatType raw2, double* absoluteDifference, 
  * Converts a relative tolerance into an ULP difference.
  */
 template<typename FloatType>
-uint64_t relativeToleranceToUlp(FloatType tolerance)
+std::uint64_t relativeToleranceToUlp(FloatType tolerance)
 {
     FloatingPoint<FloatType> m(1.0);
     FloatingPoint<FloatType> t(1.0 + tolerance);
@@ -269,7 +274,7 @@ bool FloatingPointTolerance::isWithin(const FloatingPointDifference& difference)
         return true;
     }
 
-    const uint64_t ulpTolerance = difference.isDouble() ? doubleUlpTolerance_ : singleUlpTolerance_;
+    const std::uint64_t ulpTolerance = difference.isDouble() ? doubleUlpTolerance_ : singleUlpTolerance_;
     return ulpTolerance < UINT64_MAX && difference.asUlps() <= ulpTolerance;
 }
 
@@ -280,7 +285,7 @@ std::string FloatingPointTolerance::toString(const FloatingPointDifference& diff
             difference.isDouble() ? doubleAbsoluteTolerance_ : singleAbsoluteTolerance_;
     const double relativeTolerance =
             difference.isDouble() ? doubleRelativeTolerance_ : singleRelativeTolerance_;
-    const uint64_t ulpTolerance = difference.isDouble() ? doubleUlpTolerance_ : singleUlpTolerance_;
+    const std::uint64_t ulpTolerance = difference.isDouble() ? doubleUlpTolerance_ : singleUlpTolerance_;
 
     if (absoluteTolerance > 0.0)
     {

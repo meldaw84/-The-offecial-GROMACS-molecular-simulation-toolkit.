@@ -336,13 +336,13 @@ public:
      */
     void constructPairlist(gmx::InteractionLocality     iLocality,
                            const gmx::ListOfLists<int>& exclusions,
-                           int64_t                      step,
+                           std::int64_t                 step,
                            t_nrnb*                      nrnb) const;
 
     //! Updates all the atom properties in Nbnxm
-    void setAtomProperties(gmx::ArrayRef<const int>     atomTypes,
-                           gmx::ArrayRef<const real>    atomCharges,
-                           gmx::ArrayRef<const int64_t> atomInfo) const;
+    void setAtomProperties(gmx::ArrayRef<const int>          atomTypes,
+                           gmx::ArrayRef<const real>         atomCharges,
+                           gmx::ArrayRef<const std::int64_t> atomInfo) const;
 
     /*!\brief Convert the coordinates to NBNXM format for the given locality.
      *
@@ -373,17 +373,17 @@ public:
     const PairlistSets& pairlistSets() const { return *pairlistSets_; }
 
     //! Returns whether step is a dynamic list pruning step, for CPU lists
-    bool isDynamicPruningStepCpu(int64_t step) const;
+    bool isDynamicPruningStepCpu(std::int64_t step) const;
 
     //! Returns whether step is a dynamic list pruning step, for GPU lists
-    bool isDynamicPruningStepGpu(int64_t step) const;
+    bool isDynamicPruningStepGpu(std::int64_t step) const;
 
     //! Dispatches the dynamic pruning kernel for the given locality, for CPU lists
     void dispatchPruneKernelCpu(gmx::InteractionLocality       iLocality,
                                 gmx::ArrayRef<const gmx::RVec> shift_vec) const;
 
     //! Dispatches the dynamic pruning kernel for GPU lists
-    void dispatchPruneKernelGpu(int64_t step);
+    void dispatchPruneKernelGpu(std::int64_t step);
 
     //! \brief Executes the non-bonded kernel of the GPU or launches it on the GPU
     void dispatchNonbondedKernel(gmx::InteractionLocality       iLocality,
@@ -516,28 +516,28 @@ std::unique_ptr<nonbonded_verlet_t> init_nb_verlet(const gmx::MDLogger& mdlog,
  * \param[in]     numAtomsMoved  The number of atoms that will move to another domain, pass 0 without DD
  * \param[in]     move         Move flags for atoms, pass nullptr without DD
  */
-void nbnxn_put_on_grid(nonbonded_verlet_t*            nb_verlet,
-                       const matrix                   box,
-                       int                            gridIndex,
-                       const rvec                     lowerCorner,
-                       const rvec                     upperCorner,
-                       const gmx::UpdateGroupsCog*    updateGroupsCog,
-                       gmx::Range<int>                atomRange,
-                       real                           atomDensity,
-                       gmx::ArrayRef<const int64_t>   atomInfo,
-                       gmx::ArrayRef<const gmx::RVec> x,
-                       int                            numAtomsMoved,
-                       const int*                     move);
+void nbnxn_put_on_grid(nonbonded_verlet_t*               nb_verlet,
+                       const matrix                      box,
+                       int                               gridIndex,
+                       const rvec                        lowerCorner,
+                       const rvec                        upperCorner,
+                       const gmx::UpdateGroupsCog*       updateGroupsCog,
+                       gmx::Range<int>                   atomRange,
+                       real                              atomDensity,
+                       gmx::ArrayRef<const std::int64_t> atomInfo,
+                       gmx::ArrayRef<const gmx::RVec>    x,
+                       int                               numAtomsMoved,
+                       const int*                        move);
 
 /*! \brief As nbnxn_put_on_grid, but for the non-local atoms
  *
  * with domain decomposition. Should be called after calling
  * nbnxn_search_put_on_grid for the local atoms / home zone.
  */
-void nbnxn_put_on_grid_nonlocal(nonbonded_verlet_t*              nb_verlet,
-                                const struct gmx_domdec_zones_t* zones,
-                                gmx::ArrayRef<const int64_t>     atomInfo,
-                                gmx::ArrayRef<const gmx::RVec>   x);
+void nbnxn_put_on_grid_nonlocal(nonbonded_verlet_t*               nb_verlet,
+                                const struct gmx_domdec_zones_t*  zones,
+                                gmx::ArrayRef<const std::int64_t> atomInfo,
+                                gmx::ArrayRef<const gmx::RVec>    x);
 
 /*! \brief Check if GROMACS has been built with GPU support.
  *

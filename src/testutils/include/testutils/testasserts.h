@@ -290,7 +290,7 @@ public:
      * constructor used to initialize the difference.
      * The ULP difference between 0.0 and -0.0 is zero.
      */
-    uint64_t asUlps() const { return ulpDifference_; }
+    std::uint64_t asUlps() const { return ulpDifference_; }
     /*! \brief
      * Whether the compared values were of different sign.
      *
@@ -312,9 +312,9 @@ private:
     //! Save the magnitude of the reference value for relative (i.e., not ULP) tolerance
     double termMagnitude_;
     //! Stores the absolute difference, or NaN if one or both values were NaN.
-    double   absoluteDifference_;
-    uint64_t ulpDifference_;
-    bool     bSignDifference_;
+    double        absoluteDifference_;
+    std::uint64_t ulpDifference_;
+    bool          bSignDifference_;
     /*! \brief
      * Whether the difference was computed for single or double precision.
      *
@@ -392,13 +392,13 @@ public:
      * \param[in]  bSignMustMatch
      *     Whether sign mismatch fails the comparison.
      */
-    FloatingPointTolerance(float    singleAbsoluteTolerance,
-                           double   doubleAbsoluteTolerance,
-                           float    singleRelativeTolerance,
-                           double   doubleRelativeTolerance,
-                           uint64_t singleUlpTolerance,
-                           uint64_t doubleUlpTolerance,
-                           bool     bSignMustMatch) :
+    FloatingPointTolerance(float         singleAbsoluteTolerance,
+                           double        doubleAbsoluteTolerance,
+                           float         singleRelativeTolerance,
+                           double        doubleRelativeTolerance,
+                           std::uint64_t singleUlpTolerance,
+                           std::uint64_t doubleUlpTolerance,
+                           bool          bSignMustMatch) :
         singleAbsoluteTolerance_(singleAbsoluteTolerance),
         doubleAbsoluteTolerance_(doubleAbsoluteTolerance),
         singleRelativeTolerance_(singleRelativeTolerance),
@@ -420,13 +420,13 @@ public:
     std::string toString(const FloatingPointDifference& difference) const;
 
 private:
-    float    singleAbsoluteTolerance_;
-    double   doubleAbsoluteTolerance_;
-    float    singleRelativeTolerance_;
-    double   doubleRelativeTolerance_;
-    uint64_t singleUlpTolerance_;
-    uint64_t doubleUlpTolerance_;
-    bool     bSignMustMatch_;
+    float         singleAbsoluteTolerance_;
+    double        doubleAbsoluteTolerance_;
+    float         singleRelativeTolerance_;
+    double        doubleRelativeTolerance_;
+    std::uint64_t singleUlpTolerance_;
+    std::uint64_t doubleUlpTolerance_;
+    bool          bSignMustMatch_;
 };
 
 /*! \brief
@@ -437,7 +437,7 @@ private:
  *
  * \related FloatingPointTolerance
  */
-static inline FloatingPointTolerance ulpTolerance(uint64_t ulpDiff)
+static inline FloatingPointTolerance ulpTolerance(std::uint64_t ulpDiff)
 {
     return FloatingPointTolerance(0.0, 0.0, 0.0, 0.0, ulpDiff, ulpDiff, false);
 }
@@ -504,9 +504,9 @@ FloatingPointTolerance relativeToleranceAsPrecisionDependentFloatingPoint(double
  *
  * \related FloatingPointTolerance
  */
-static inline FloatingPointTolerance relativeToleranceAsPrecisionDependentUlp(double   magnitude,
-                                                                              uint64_t singleUlpDiff,
-                                                                              uint64_t doubleUlpDiff)
+static inline FloatingPointTolerance relativeToleranceAsPrecisionDependentUlp(double magnitude,
+                                                                              std::uint64_t singleUlpDiff,
+                                                                              std::uint64_t doubleUlpDiff)
 {
     return FloatingPointTolerance(float(magnitude) * singleUlpDiff * GMX_FLOAT_EPS,
                                   magnitude * doubleUlpDiff * GMX_DOUBLE_EPS,
@@ -543,7 +543,7 @@ static inline FloatingPointTolerance absoluteTolerance(double tolerance)
  *
  * \related FloatingPointTolerance
  */
-static inline FloatingPointTolerance relativeToleranceAsUlp(double magnitude, uint64_t ulpDiff)
+static inline FloatingPointTolerance relativeToleranceAsUlp(double magnitude, std::uint64_t ulpDiff)
 {
     return relativeToleranceAsPrecisionDependentUlp(magnitude, ulpDiff, ulpDiff);
 }
@@ -551,7 +551,7 @@ static inline FloatingPointTolerance relativeToleranceAsUlp(double magnitude, ui
 namespace detail
 {
 //! Default tolerance in ULPs for two floating-point values to compare equal.
-constexpr uint64_t g_defaultUlpTolerance = 4;
+constexpr std::uint64_t g_defaultUlpTolerance = 4;
 } // namespace detail
 
 /*! \brief
@@ -579,7 +579,7 @@ static inline FloatingPointTolerance defaultFloatTolerance()
     return relativeToleranceAsPrecisionDependentUlp(
             1.0,
             detail::g_defaultUlpTolerance,
-            static_cast<uint64_t>(detail::g_defaultUlpTolerance * (GMX_FLOAT_EPS / GMX_DOUBLE_EPS)));
+            static_cast<std::uint64_t>(detail::g_defaultUlpTolerance * (GMX_FLOAT_EPS / GMX_DOUBLE_EPS)));
 }
 
 /*! \name Assertions for floating-point comparison

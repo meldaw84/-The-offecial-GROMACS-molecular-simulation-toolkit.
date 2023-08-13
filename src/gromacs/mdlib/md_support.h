@@ -126,7 +126,7 @@ void compute_globals(gmx_global_stat*               gstat,
                      const matrix                   lastbox,
                      gmx_bool*                      bSumEkinhOld,
                      int                            flags,
-                     int64_t                        step,
+                     std::int64_t                   step,
                      gmx::ObservablesReducer*       observablesReducer);
 
 #endif

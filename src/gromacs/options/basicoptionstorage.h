@@ -104,7 +104,7 @@ private:
 /*! \internal \brief
  * Converts, validates, and stores integer values.
  */
-class Int64OptionStorage : public OptionStorageTemplateSimple<int64_t>
+class Int64OptionStorage : public OptionStorageTemplateSimple<std::int64_t>
 {
 public:
     //! \copydoc BooleanOptionStorage::BooleanOptionStorage()
@@ -112,7 +112,7 @@ public:
 
     OptionInfo& optionInfo() override { return info_; }
     std::string typeString() const override { return "int"; }
-    std::string formatSingleValue(const int64_t& value) const override;
+    std::string formatSingleValue(const std::int64_t& value) const override;
 
 private:
     void initConverter(ConverterType* converter) override;

@@ -208,7 +208,7 @@ gmx_radial_distribution_histogram_t* calc_radial_distribution_histogram(gmx_sans
     int                       nthreads;
     gmx::DefaultRandomEngine* trng = nullptr;
 #endif
-    int64_t                  mc_max;
+    std::int64_t             mc_max;
     gmx::DefaultRandomEngine rng(seed);
 
     /* allocate memory for pr */
@@ -234,11 +234,11 @@ gmx_radial_distribution_histogram_t* calc_radial_distribution_histogram(gmx_sans
         /* Special case for setting automaticaly number of mc iterations to 1% of total number of direct iterations */
         if (mcover == -1)
         {
-            mc_max = static_cast<int64_t>(std::floor(0.5 * 0.01 * isize * (isize - 1)));
+            mc_max = static_cast<std::int64_t>(std::floor(0.5 * 0.01 * isize * (isize - 1)));
         }
         else
         {
-            mc_max = static_cast<int64_t>(std::floor(0.5 * mcover * isize * (isize - 1)));
+            mc_max = static_cast<std::int64_t>(std::floor(0.5 * mcover * isize * (isize - 1)));
         }
 #if GMX_OPENMP
         nthreads = gmx_omp_get_max_threads();
@@ -255,7 +255,7 @@ gmx_radial_distribution_histogram_t* calc_radial_distribution_histogram(gmx_sans
             tid = gmx_omp_get_thread_num();
             /* now starting parallel threads */
 #    pragma omp for
-            for (int64_t mc = 0; mc < mc_max; mc++)
+            for (std::int64_t mc = 0; mc < mc_max; mc++)
             {
                 try
                 {
@@ -287,7 +287,7 @@ gmx_radial_distribution_histogram_t* calc_radial_distribution_histogram(gmx_sans
         delete[] trng;
 #else
         gmx::UniformIntDistribution<int> dist(0, isize - 1);
-        for (int64_t mc = 0; mc < mc_max; mc++)
+        for (std::int64_t mc = 0; mc < mc_max; mc++)
         {
             i = dist(rng); // [0,isize-1]
             j = dist(rng); // [0,isize-1]

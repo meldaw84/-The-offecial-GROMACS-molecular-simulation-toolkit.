@@ -78,7 +78,7 @@ public:
                    PairSearch*                  pairSearch,
                    nbnxn_atomdata_t*            nbat,
                    const gmx::ListOfLists<int>& exclusions,
-                   int64_t                      step,
+                   std::int64_t                 step,
                    t_nrnb*                      nrnb);
 
     //! Dispatches the dynamic pruning kernel for the given locality
@@ -90,19 +90,19 @@ public:
     const PairlistParams& params() const { return params_; }
 
     //! Returns the number of steps performed with the current pair list
-    int numStepsWithPairlist(int64_t step) const
+    int numStepsWithPairlist(std::int64_t step) const
     {
         return static_cast<int>(step - outerListCreationStep_);
     }
 
     //! Returns whether step is a dynamic list pruning step, for CPU lists
-    bool isDynamicPruningStepCpu(int64_t step) const
+    bool isDynamicPruningStepCpu(std::int64_t step) const
     {
         return (params_.useDynamicPruning && numStepsWithPairlist(step) % params_.nstlistPrune == 0);
     }
 
     //! Returns whether step is a dynamic list pruning step, for GPU lists
-    bool isDynamicPruningStepGpu(int64_t step) const
+    bool isDynamicPruningStepGpu(std::int64_t step) const
     {
         const int age = numStepsWithPairlist(step);
 
@@ -156,7 +156,7 @@ private:
     //! Non-local pairlist set
     std::unique_ptr<PairlistSet> nonlocalSet_;
     //! MD step at with the outer lists in pairlistSets_ were created
-    int64_t outerListCreationStep_;
+    std::int64_t outerListCreationStep_;
 };
 
 #endif

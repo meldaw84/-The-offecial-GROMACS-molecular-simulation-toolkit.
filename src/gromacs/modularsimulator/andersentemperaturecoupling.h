@@ -64,7 +64,7 @@ public:
     //! Constructor
     AndersenTemperatureCoupling(double               simulationTimestep,
                                 bool                 doMassive,
-                                int64_t              seed,
+                                std::int64_t         seed,
                                 ArrayRef<const real> referenceTemperature,
                                 ArrayRef<const real> couplingTime,
                                 StatePropagatorData* statePropagatorData,
@@ -119,7 +119,7 @@ private:
     //! The frequency at which the thermostat is applied
     const int couplingFrequency_;
     //! The random seed
-    const int64_t seed_;
+    const std::int64_t seed_;
     //! Coupling temperature per group
     ArrayRef<const real> referenceTemperature_;
     //! Coupling time per group

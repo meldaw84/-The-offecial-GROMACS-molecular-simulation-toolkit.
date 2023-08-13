@@ -254,7 +254,7 @@ TEST(SimdScalarTest, cvtD2D)
 TEST(SimdScalarTest, loadI)
 {
     std::int32_t ref = 42;
-    std::int32_t val = load<int32_t>(&ref);
+    std::int32_t val = load<std::int32_t>(&ref);
 
     EXPECT_EQ(ref, val);
 }
@@ -262,7 +262,7 @@ TEST(SimdScalarTest, loadI)
 TEST(SimdScalarTest, loadUI)
 {
     std::int32_t ref = 42;
-    std::int32_t val = loadU<int32_t>(&ref);
+    std::int32_t val = loadU<std::int32_t>(&ref);
 
     EXPECT_EQ(ref, val);
 }

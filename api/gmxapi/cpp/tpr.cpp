@@ -259,7 +259,7 @@ std::map<std::string, double t_inputrec::*> float64Params()
     return fullMap;
 }
 
-std::map<std::string, int64_t t_inputrec::*> int64Params()
+std::map<std::string, std::int64_t t_inputrec::*> int64Params()
 {
     return {
         { "nsteps", &t_inputrec::nsteps },
@@ -358,7 +358,7 @@ public:
         throw TypeError("unhandled type");
     }
 
-    void set(const std::string& key, const int64_t& value)
+    void set(const std::string& key, const std::int64_t& value)
     {
         if (int64Params_.find(key) != int64Params_.end())
         {
@@ -426,10 +426,10 @@ private:
     // Hold the settable parameters and whether or not they have been set.
     // TODO: update to gmxapi named types?
     // TODO: update to gmx::compat::optional now that this file is in the GROMACS source.
-    std::map<std::string, std::pair<int64_t, bool>> int64Params_;
-    std::map<std::string, std::pair<int, bool>>     intParams_;
-    std::map<std::string, std::pair<float, bool>>   floatParams_;
-    std::map<std::string, std::pair<double, bool>>  float64Params_;
+    std::map<std::string, std::pair<std::int64_t, bool>> int64Params_;
+    std::map<std::string, std::pair<int, bool>>          intParams_;
+    std::map<std::string, std::pair<float, bool>>        floatParams_;
+    std::map<std::string, std::pair<double, bool>>       float64Params_;
 
     /*! \brief Shared ownership of a pack of TPR data.
      *
@@ -446,7 +446,7 @@ void setParam(gmxapicompat::GmxMdParams* params, const std::string& name, double
     params->params_->set(name, value);
 }
 
-void setParam(gmxapicompat::GmxMdParams* params, const std::string& name, int64_t value)
+void setParam(gmxapicompat::GmxMdParams* params, const std::string& name, std::int64_t value)
 {
     assert(params != nullptr);
     assert(params->params_ != nullptr);
@@ -506,7 +506,7 @@ int GmxMdParamsImpl::extract<int>(const std::string& key) const
 }
 
 template<>
-int64_t GmxMdParamsImpl::extract<int64_t>(const std::string& key) const
+std::int64_t GmxMdParamsImpl::extract<std::int64_t>(const std::string& key) const
 {
     const auto& params = int64Params_;
     const auto& entry  = params.find(key);
@@ -570,10 +570,10 @@ int extractParam(const GmxMdParams& params, const std::string& name, int /*unuse
     return params.params_->extract<int>(name);
 }
 
-int64_t extractParam(const GmxMdParams& params, const std::string& name, int64_t /*unused*/)
+std::int64_t extractParam(const GmxMdParams& params, const std::string& name, std::int64_t /*unused*/)
 {
     assert(params.params_);
-    int64_t value{};
+    std::int64_t value{};
     // Allow fetching both known integer types.
     try
     {
@@ -584,7 +584,7 @@ int64_t extractParam(const GmxMdParams& params, const std::string& name, int64_t
         // If not found as a regular int, check for int64.
         try
         {
-            value = params.params_->extract<int64_t>(name);
+            value = params.params_->extract<std::int64_t>(name);
         }
         catch (const KeyError& error64)
         {

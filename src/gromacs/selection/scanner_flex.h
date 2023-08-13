@@ -48,12 +48,12 @@
 #    if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
 
 #        include <inttypes.h>
-typedef int8_t   flex_int8_t;
-typedef uint8_t  flex_uint8_t;
-typedef int16_t  flex_int16_t;
-typedef uint16_t flex_uint16_t;
-typedef int32_t  flex_int32_t;
-typedef uint32_t flex_uint32_t;
+typedef std::int8_t   flex_int8_t;
+typedef std::uint8_t  flex_uint8_t;
+typedef std::int16_t  flex_int16_t;
+typedef std::uint16_t flex_uint16_t;
+typedef std::int32_t  flex_int32_t;
+typedef std::uint32_t flex_uint32_t;
 #    else
 typedef signed char        flex_int8_t;
 typedef short int          flex_int16_t;

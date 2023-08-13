@@ -366,8 +366,8 @@ void gmx::LegacySimulator::do_rerun()
         doFreeEnergyPerturbation = true;
     }
 
-    int64_t step     = ir->init_step;
-    int64_t step_rel = 0;
+    std::int64_t step     = ir->init_step;
+    std::int64_t step_rel = 0;
 
     {
         int    cglo_flags   = CGLO_GSTAT;

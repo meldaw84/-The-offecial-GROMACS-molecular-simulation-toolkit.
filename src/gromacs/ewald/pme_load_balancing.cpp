@@ -166,13 +166,13 @@ static const char* enumValueToString(PmeLoadBalancingLimit enumValue)
 
 struct pme_load_balancing_t
 {
-    gmx_bool bSepPMERanks;  /**< do we have separate PME ranks? */
-    gmx_bool bActive;       /**< is PME tuning active? */
-    int64_t  step_rel_stop; /**< stop the tuning after this value of step_rel */
-    gmx_bool bTriggerOnDLB; /**< trigger balancing only on DD DLB */
-    gmx_bool bBalance;      /**< are we in the balancing phase, i.e. trying different setups? */
-    int      nstage;        /**< the current maximum number of stages */
-    bool     startupTimeDelayElapsed; /**< Has the c_startupTimeDelay elapsed indicating that the balancing can start. */
+    gmx_bool     bSepPMERanks;  /**< do we have separate PME ranks? */
+    gmx_bool     bActive;       /**< is PME tuning active? */
+    std::int64_t step_rel_stop; /**< stop the tuning after this value of step_rel */
+    gmx_bool     bTriggerOnDLB; /**< trigger balancing only on DD DLB */
+    gmx_bool     bBalance;      /**< are we in the balancing phase, i.e. trying different setups? */
+    int          nstage;        /**< the current maximum number of stages */
+    bool         startupTimeDelayElapsed; /**< Has the c_startupTimeDelay elapsed indicating that the balancing can start. */
 
     real                     cut_spacing;        /**< the minimum cutoff / PME grid spacing ratio */
     real                     rcut_vdw;           /**< Vdw cutoff (does not change) */
@@ -489,7 +489,7 @@ static int pme_loadbal_end(pme_load_balancing_t* pme_lb)
 }
 
 /*! \brief Print descriptive string about what limits PME load balancing */
-static void print_loadbal_limited(FILE* fp_err, FILE* fp_log, int64_t step, pme_load_balancing_t* pme_lb)
+static void print_loadbal_limited(FILE* fp_err, FILE* fp_log, std::int64_t step, pme_load_balancing_t* pme_lb)
 {
     auto buf = gmx::formatString(
             "step %4s: the %s limits the PME load balancing to a coulomb cut-off of %.3f",
@@ -574,7 +574,7 @@ static void pme_load_balance(pme_load_balancing_t*          pme_lb,
                              interaction_const_t*           ic,
                              struct nonbonded_verlet_t*     nbv,
                              struct gmx_pme_t**             pmedata,
-                             int64_t                        step)
+                             std::int64_t                   step)
 {
     gmx_bool     OK;
     pme_setup_t* set;
@@ -931,8 +931,8 @@ void pme_loadbal_do(pme_load_balancing_t*          pme_lb,
                     const matrix                   box,
                     gmx::ArrayRef<const gmx::RVec> x,
                     gmx_wallcycle*                 wcycle,
-                    int64_t                        step,
-                    int64_t                        step_rel,
+                    std::int64_t                   step,
+                    std::int64_t                   step_rel,
                     gmx_bool*                      bPrinting,
                     bool                           useGpuPmePpCommunication)
 {

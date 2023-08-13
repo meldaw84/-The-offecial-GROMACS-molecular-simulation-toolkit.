@@ -119,7 +119,7 @@ public:
                         gmx::ArrayRef<const unsigned short> cFREEZE);
     bool apply(bool                      bLog,
                bool                      bEner,
-               int64_t                   step,
+               std::int64_t              step,
                int                       delta_step,
                real                      step_scaling,
                ArrayRefWithPadding<RVec> x,
@@ -326,7 +326,7 @@ static void write_constr_pdb(const char*          fn,
 
 //! Writes out domain contents to help diagnose crashes.
 static void dump_confs(FILE*                log,
-                       int64_t              step,
+                       std::int64_t         step,
                        const gmx_mtop_t&    mtop,
                        int                  start,
                        int                  homenr,
@@ -356,7 +356,7 @@ static void dump_confs(FILE*                log,
 
 bool Constraints::apply(bool                      bLog,
                         bool                      bEner,
-                        int64_t                   step,
+                        std::int64_t              step,
                         int                       delta_step,
                         real                      step_scaling,
                         ArrayRefWithPadding<RVec> x,
@@ -389,7 +389,7 @@ bool Constraints::apply(bool                      bLog,
 
 bool Constraints::Impl::apply(bool                      bLog,
                               bool                      bEner,
-                              int64_t                   step,
+                              std::int64_t              step,
                               int                       delta_step,
                               real                      step_scaling,
                               ArrayRefWithPadding<RVec> x,
@@ -1274,10 +1274,10 @@ void do_constrain_first(FILE*                     fplog,
                         const matrix              box,
                         real                      lambda)
 {
-    int     i, m, start, end;
-    int64_t step;
-    real    dt = ir->delta_t;
-    real    dvdl_dum;
+    int          i, m, start, end;
+    std::int64_t step;
+    real         dt = ir->delta_t;
+    real         dvdl_dum;
 
     PaddedVector<RVec> savex(numAtoms);
 
@@ -1390,7 +1390,7 @@ void do_constrain_first(FILE*                     fplog,
 void constrain_velocities(gmx::Constraints* constr,
                           bool              do_log,
                           bool              do_ene,
-                          int64_t           step,
+                          std::int64_t      step,
                           t_state*          state,
                           real*             dvdlambda,
                           gmx_bool          computeVirial,
@@ -1419,7 +1419,7 @@ void constrain_velocities(gmx::Constraints* constr,
 void constrain_coordinates(gmx::Constraints*         constr,
                            bool                      do_log,
                            bool                      do_ene,
-                           int64_t                   step,
+                           std::int64_t              step,
                            t_state*                  state,
                            ArrayRefWithPadding<RVec> xp,
                            real*                     dvdlambda,

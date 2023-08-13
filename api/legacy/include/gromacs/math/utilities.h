@@ -97,7 +97,7 @@ bool gmx_numzero(double a);
  *
  * \return False iff overflow occurred
  */
-bool check_int_multiply_for_overflow(int64_t a, int64_t b, int64_t* result);
+bool check_int_multiply_for_overflow(std::int64_t a, std::int64_t b, std::int64_t* result);
 
 /*! \brief Enable floating-point exceptions if supported on OS
  *

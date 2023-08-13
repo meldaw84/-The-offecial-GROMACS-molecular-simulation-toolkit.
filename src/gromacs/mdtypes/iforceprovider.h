@@ -94,7 +94,7 @@ public:
                        ArrayRef<const real> chargeA,
                        ArrayRef<const real> massT,
                        double               time,
-                       int64_t              step,
+                       std::int64_t         step,
                        const matrix         box,
                        const t_commrec&     cr) :
         x_(x), homenr_(homenr), chargeA_(chargeA), massT_(massT), t_(time), step_(step), cr_(cr)
@@ -107,7 +107,7 @@ public:
     ArrayRef<const real> chargeA_;
     ArrayRef<const real> massT_;
     double               t_;    //!< The current time in the simulation
-    int64_t              step_; //!< The current step in the simulation
+    std::int64_t         step_; //!< The current step in the simulation
     matrix               box_ = { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } }; //!< The simulation box
     const t_commrec&     cr_; //!< Communication record structure
 };

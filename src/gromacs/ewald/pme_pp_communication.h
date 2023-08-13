@@ -114,7 +114,7 @@ struct gmx_pme_comm_n_box_t
     real         lambda_q;   /**< Free-energy lambda for electrostatics */
     real         lambda_lj;  /**< Free-energy lambda for Lennard-Jones */
     unsigned int flags;      /**< Control flags */
-    int64_t      step;       /**< MD integration step number */
+    std::int64_t step;       /**< MD integration step number */
     //@{
     /*! \brief Used in PME grid tuning */
     ivec grid_size;

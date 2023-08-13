@@ -159,7 +159,7 @@ int gmx_covar(int argc, char* argv[])
     real              xj, *w_rls = nullptr;
     real              min, max, *axis;
     int               natoms, nat, nframes0, nframes, nlevels;
-    int64_t           ndim, i, j, k, l;
+    std::int64_t      ndim, i, j, k, l;
     int               WriteXref;
     const char *      fitfile, *trxfile, *ndxfile;
     const char *      eigvalfile, *eigvecfile, *averfile, *logfile;

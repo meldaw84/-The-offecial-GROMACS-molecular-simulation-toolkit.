@@ -96,7 +96,10 @@ namespace
  * \param[in] indexSeed1  Random seed needed by the random number generator.
  * \returns a sample index in [0, distr.size() - 1]
  */
-int getSampleFromDistribution(ArrayRef<const double> distr, int64_t seed, int64_t indexSeed0, int64_t indexSeed1)
+int getSampleFromDistribution(ArrayRef<const double> distr,
+                              std::int64_t           seed,
+                              std::int64_t           indexSeed0,
+                              std::int64_t           indexSeed1)
 {
     gmx::ThreeFry2x64<0>               rng(seed, gmx::RandomDomain::AwhBiasing);
     gmx::UniformRealDistribution<real> uniformRealDistr;
@@ -131,8 +134,8 @@ int getSampleFromDistribution(ArrayRef<const double> distr, int64_t seed, int64_
 void CoordState::sampleUmbrellaGridpoint(const BiasGrid&             grid,
                                          int                         gridpointIndex,
                                          gmx::ArrayRef<const double> probWeightNeighbor,
-                                         int64_t                     step,
-                                         int64_t                     seed,
+                                         std::int64_t                step,
+                                         std::int64_t                seed,
                                          int                         indexSeed)
 {
     /* Sample new umbrella reference value from the probability distribution

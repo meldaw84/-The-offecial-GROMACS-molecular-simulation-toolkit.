@@ -316,7 +316,7 @@ static void pull_print_f(FILE* out, const pull_t* pull, double t)
     }
 }
 
-void pull_print_output(struct pull_t* pull, int64_t step, double time)
+void pull_print_output(struct pull_t* pull, std::int64_t step, double time)
 {
     GMX_ASSERT(pull->numExternalPotentialsStillToBeAppliedThisStep == 0,
                "pull_print_output called before all external pull potentials have been applied");

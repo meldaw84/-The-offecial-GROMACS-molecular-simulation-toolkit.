@@ -101,7 +101,7 @@ static void nosehoover_tcoupl(const gmx_ekindata_t& ekind,
                               gmx::ArrayRef<double> vxi,
                               const t_extmass&      MassQ);
 
-void update_tcouple(int64_t                             step,
+void update_tcouple(std::int64_t                        step,
                     const t_inputrec*                   inputrec,
                     t_state*                            state,
                     gmx_ekindata_t*                     ekind,
@@ -174,7 +174,7 @@ void update_tcouple(int64_t                             step,
 }
 
 void update_pcouple_before_coordinates(const gmx::MDLogger&           mdlog,
-                                       int64_t                        step,
+                                       std::int64_t                   step,
                                        const PressureCouplingOptions& pressureCouplingOptions,
                                        const tensor                   deform,
                                        const real                     delta_t,
@@ -205,9 +205,9 @@ void update_pcouple_before_coordinates(const gmx::MDLogger&           mdlog,
 }
 
 void update_pcouple_after_coordinates(FILE*                               fplog,
-                                      int64_t                             step,
+                                      std::int64_t                        step,
                                       const PressureCouplingOptions&      pressureCouplingOptions,
-                                      const int64_t                       ld_seed,
+                                      const std::int64_t                  ld_seed,
                                       const real                          ensembleTemperature,
                                       const ivec*                         nFreeze,
                                       const tensor                        deform,
@@ -392,7 +392,7 @@ void update_pcouple_after_coordinates(FILE*                               fplog,
 }
 
 extern bool update_randomize_velocities(const t_inputrec*                   ir,
-                                        int64_t                             step,
+                                        std::int64_t                        step,
                                         const t_commrec*                    cr,
                                         int                                 homenr,
                                         gmx::ArrayRef<const unsigned short> cTC,
@@ -761,7 +761,7 @@ void init_parrinellorahman(const PressureCouplingOptions& pressureCouplingOption
 }
 
 void parrinellorahman_pcoupl(const gmx::MDLogger&           mdlog,
-                             int64_t                        step,
+                             std::int64_t                   step,
                              const PressureCouplingOptions& pressureCouplingOptions,
                              const tensor                   deform,
                              const real                     couplingTimePeriod,
@@ -934,7 +934,7 @@ static inline real compressibilityFactor(int                            i,
 //! Details of Berendsen / C-rescale scaling matrix calculation
 template<PressureCoupling pressureCouplingType>
 static void calculateScalingMatrixImplDetail(const PressureCouplingOptions& pressureCouplingOptions,
-                                             int64_t                        ld_seed,
+                                             std::int64_t                   ld_seed,
                                              real                           ensembleTemperature,
                                              Matrix3x3*                     mu,
                                              real                           couplingTimePeriod,
@@ -942,18 +942,18 @@ static void calculateScalingMatrixImplDetail(const PressureCouplingOptions& pres
                                              const matrix                   box,
                                              real                           scalar_pressure,
                                              real                           xy_pressure,
-                                             int64_t                        step);
+                                             std::int64_t                   step);
 
 //! Calculate Berendsen / C-rescale scaling matrix
 template<PressureCoupling pressureCouplingType>
 static void calculateScalingMatrixImpl(const PressureCouplingOptions& pressureCouplingOptions,
-                                       const int64_t                  ld_seed,
+                                       const std::int64_t             ld_seed,
                                        const real                     ensembleTemperature,
                                        Matrix3x3*                     mu,
                                        const real                     couplingTimePeriod,
                                        const matrix                   pres,
                                        const matrix                   box,
-                                       int64_t                        step)
+                                       std::int64_t                   step)
 {
     real scalar_pressure = 0;
     real xy_pressure     = 0;
@@ -980,7 +980,7 @@ static void calculateScalingMatrixImpl(const PressureCouplingOptions& pressureCo
 
 template<>
 void calculateScalingMatrixImplDetail<PressureCoupling::Berendsen>(const PressureCouplingOptions& pressureCouplingOptions,
-                                                                   int64_t /*ld_seed*/,
+                                                                   std::int64_t /*ld_seed*/,
                                                                    real /*ensembleTemperature*/,
                                                                    Matrix3x3*   mu,
                                                                    const real   couplingTimePeriod,
@@ -988,7 +988,7 @@ void calculateScalingMatrixImplDetail<PressureCoupling::Berendsen>(const Pressur
                                                                    const matrix box,
                                                                    real         scalar_pressure,
                                                                    real         xy_pressure,
-                                                                   int64_t gmx_unused step)
+                                                                   std::int64_t gmx_unused step)
 {
     real p_corr_z = 0;
     switch (pressureCouplingOptions.epct)
@@ -1057,15 +1057,15 @@ void calculateScalingMatrixImplDetail<PressureCoupling::Berendsen>(const Pressur
 
 template<>
 void calculateScalingMatrixImplDetail<PressureCoupling::CRescale>(const PressureCouplingOptions& pressureCouplingOptions,
-                                                                  const int64_t ld_seed,
-                                                                  const real    ensembleTemperature,
-                                                                  Matrix3x3*    mu,
-                                                                  const real    couplingTimePeriod,
-                                                                  const matrix  pres,
-                                                                  const matrix  box,
-                                                                  real          scalar_pressure,
-                                                                  real          xy_pressure,
-                                                                  int64_t       step)
+                                                                  const std::int64_t ld_seed,
+                                                                  const real   ensembleTemperature,
+                                                                  Matrix3x3*   mu,
+                                                                  const real   couplingTimePeriod,
+                                                                  const matrix pres,
+                                                                  const matrix box,
+                                                                  real         scalar_pressure,
+                                                                  real         xy_pressure,
+                                                                  std::int64_t step)
 {
     gmx::ThreeFry2x64<64>         rng(ld_seed, gmx::RandomDomain::Barostat);
     gmx::NormalDistribution<real> normalDist;
@@ -1148,9 +1148,9 @@ void calculateScalingMatrixImplDetail<PressureCoupling::CRescale>(const Pressure
 
 template<PressureCoupling pressureCouplingType>
 void pressureCouplingCalculateScalingMatrix(FILE*                          fplog,
-                                            int64_t                        step,
+                                            std::int64_t                   step,
                                             const PressureCouplingOptions& pressureCouplingOptions,
-                                            int64_t                        ld_seed,
+                                            std::int64_t                   ld_seed,
                                             real                           ensembleTemperature,
                                             const real                     couplingTimePeriod,
                                             const tensor                   pres,
@@ -1220,9 +1220,9 @@ void pressureCouplingCalculateScalingMatrix(FILE*                          fplog
 }
 
 template void pressureCouplingCalculateScalingMatrix<PressureCoupling::CRescale>(FILE*,
-                                                                                 int64_t,
+                                                                                 std::int64_t,
                                                                                  const PressureCouplingOptions&,
-                                                                                 int64_t,
+                                                                                 std::int64_t,
                                                                                  real,
                                                                                  real,
                                                                                  const tensor,
@@ -1233,9 +1233,9 @@ template void pressureCouplingCalculateScalingMatrix<PressureCoupling::CRescale>
                                                                                  double*);
 
 template void pressureCouplingCalculateScalingMatrix<PressureCoupling::Berendsen>(FILE*,
-                                                                                  int64_t,
+                                                                                  std::int64_t,
                                                                                   const PressureCouplingOptions&,
-                                                                                  int64_t,
+                                                                                  std::int64_t,
                                                                                   real,
                                                                                   real,
                                                                                   const tensor,
@@ -1402,7 +1402,7 @@ void berendsen_tcoupl(const t_inputrec* ir, gmx_ekindata_t* ekind, real dt, std:
 }
 
 void andersen_tcoupl(const t_inputrec*                   ir,
-                     int64_t                             step,
+                     std::int64_t                        step,
                      const t_commrec*                    cr,
                      const int                           homenr,
                      gmx::ArrayRef<const unsigned short> cTC,
@@ -1482,7 +1482,7 @@ static void nosehoover_tcoupl(const gmx_ekindata_t& ekind,
 }
 
 void trotter_update(const t_inputrec*                   ir,
-                    int64_t                             step,
+                    std::int64_t                        step,
                     gmx_ekindata_t*                     ekind,
                     const gmx_enerdata_t*               enerd,
                     t_state*                            state,
@@ -1498,7 +1498,7 @@ void trotter_update(const t_inputrec*                   ir,
     int              n, i, d, ngtc, gc = 0, t;
     t_grp_tcstat*    tcstat;
     const t_grpopts* opts;
-    int64_t          step_eff;
+    std::int64_t     step_eff;
     real             dt;
     double *         scalefac, dtc;
     rvec             sumv = { 0, 0, 0 };
@@ -2135,7 +2135,7 @@ static real vrescale_sumnoises(real nn, gmx::ThreeFry2x64<>* rng, gmx::NormalDis
     return r;
 }
 
-real vrescale_resamplekin(real kk, real sigma, real ndeg, real taut, int64_t step, int64_t seed)
+real vrescale_resamplekin(real kk, real sigma, real ndeg, real taut, std::int64_t step, std::int64_t seed)
 {
     /*
      * Generates a new value for the kinetic energy,
@@ -2170,7 +2170,11 @@ real vrescale_resamplekin(real kk, real sigma, real ndeg, real taut, int64_t ste
     return ekin_new;
 }
 
-void vrescale_tcoupl(const t_inputrec* ir, int64_t step, gmx_ekindata_t* ekind, real dt, gmx::ArrayRef<double> therm_integral)
+void vrescale_tcoupl(const t_inputrec*     ir,
+                     std::int64_t          step,
+                     gmx_ekindata_t*       ekind,
+                     real                  dt,
+                     gmx::ArrayRef<double> therm_integral)
 {
     const t_grpopts* opts;
     int              i;

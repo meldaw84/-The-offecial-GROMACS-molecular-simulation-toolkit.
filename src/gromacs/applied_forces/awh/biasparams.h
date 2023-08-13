@@ -112,7 +112,7 @@ public:
      *
      * \param[in] step  The MD step number.
      */
-    inline bool isSampleCoordStep(int64_t step) const
+    inline bool isSampleCoordStep(std::int64_t step) const
     {
         return (step > 0 && step % numStepsSampleCoord_ == 0);
     }
@@ -122,7 +122,7 @@ public:
      *
      * \param[in] step  The MD step number.
      */
-    inline bool isUpdateFreeEnergyStep(int64_t step) const
+    inline bool isUpdateFreeEnergyStep(std::int64_t step) const
     {
         int stepIntervalUpdateFreeEnergy = numSamplesUpdateFreeEnergy_ * numStepsSampleCoord_;
         return (step > 0 && step % stepIntervalUpdateFreeEnergy == 0);
@@ -133,7 +133,10 @@ public:
      *
      * \param[in] step  The MD step number.
      */
-    inline bool isUpdateTargetStep(int64_t step) const { return step % numStepsUpdateTarget_ == 0; }
+    inline bool isUpdateTargetStep(std::int64_t step) const
+    {
+        return step % numStepsUpdateTarget_ == 0;
+    }
 
     /*! \brief
      * Returns if to do checks for covering in the initial stage.
@@ -147,7 +150,7 @@ public:
      * \returns true at steps where checks should be performed.
      * \note  Only returns true at free energy update steps.
      */
-    bool isCheckCoveringStep(int64_t step) const
+    bool isCheckCoveringStep(std::int64_t step) const
     {
         return step > 0 && (step % numStepsCheckCovering_ == 0);
     }
@@ -165,7 +168,10 @@ public:
      * \note Only returns true at free energy update steps.
      * \todo Currently this function just calls isCheckCoveringStep but the checks could be done less frequently.
      */
-    bool isCheckHistogramForAnomaliesStep(int64_t step) const { return isCheckCoveringStep(step); }
+    bool isCheckHistogramForAnomaliesStep(std::int64_t step) const
+    {
+        return isCheckCoveringStep(step);
+    }
 
     /*! \brief Constructor.
      *
@@ -203,12 +209,12 @@ public:
     /* Data members */
     const double invBeta; /**< 1/beta = kT in kJ/mol */
 private:
-    const int64_t numStepsSampleCoord_; /**< Number of steps per coordinate value sample. */
+    const std::int64_t numStepsSampleCoord_; /**< Number of steps per coordinate value sample. */
 public:
     const int numSamplesUpdateFreeEnergy_; /**< Number of samples per free energy update. */
 private:
-    const int64_t numStepsUpdateTarget_; /**< Number of steps per updating the target distribution. */
-    const int64_t numStepsCheckCovering_; /**< Number of steps per checking for covering. */
+    const std::int64_t numStepsUpdateTarget_; /**< Number of steps per updating the target distribution. */
+    const std::int64_t numStepsCheckCovering_; /**< Number of steps per checking for covering. */
 public:
     const AwhTargetType eTarget;       /**< Type of target distribution. */
     const double freeEnergyCutoffInKT; /**< Free energy cut-off in kT for cut-off target distribution. */

@@ -183,7 +183,7 @@ public:
      *
      * \returns            Whether or not we have to do IMD communication at this step.
      */
-    bool run(int64_t step, bool bNS, const matrix box, gmx::ArrayRef<const gmx::RVec> coords, double t);
+    bool run(std::int64_t step, bool bNS, const matrix box, gmx::ArrayRef<const gmx::RVec> coords, double t);
 
     /*! \brief Add external forces from a running interactive molecular dynamics session.
      *
@@ -198,7 +198,7 @@ public:
      * \param step             The time step.
      * \param bHaveNewEnergies Only copy energies if we have done global summing of them before.
      */
-    void fillEnergyRecord(int64_t step, bool bHaveNewEnergies);
+    void fillEnergyRecord(std::int64_t step, bool bHaveNewEnergies);
 
     /*! \brief Send positions and energies to the client. */
     void sendPositionsAndEnergies();
@@ -209,7 +209,7 @@ public:
      * \param step             The time step.
      * \param bHaveNewEnergies Update the energy record if we have done global summing of the energies.
      */
-    void updateEnergyRecordAndSendPositionsAndEnergies(bool bIMDstep, int64_t step, bool bHaveNewEnergies);
+    void updateEnergyRecordAndSendPositionsAndEnergies(bool bIMDstep, std::int64_t step, bool bHaveNewEnergies);
 
 private:
     //! Implementation type.

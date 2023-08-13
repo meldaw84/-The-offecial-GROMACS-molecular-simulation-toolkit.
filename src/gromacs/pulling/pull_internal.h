@@ -234,8 +234,8 @@ struct pull_comm_t
     int nparticipate; /* The number of ranks participating */
     bool isMainRank; /* Tells whether our rank is the main rank and thus should add the pull virial */
 
-    int64_t setup_count; /* The number of decomposition calls */
-    int64_t must_count;  /* The last count our rank needed to be part */
+    std::int64_t setup_count; /* The number of decomposition calls */
+    std::int64_t must_count;  /* The last count our rank needed to be part */
 
     /* Buffers for parallel reductions */
     std::vector<gmx::RVec>                pbcAtomBuffer; /* COM calculation buffer */

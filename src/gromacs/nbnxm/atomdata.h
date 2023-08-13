@@ -220,9 +220,9 @@ struct nbnxn_atomdata_t
         //! Helper data for setting up diaginal exclusion masks in the SIMD 2xNN kernels
         AlignedVector<real> diagonal_2xnn_j_minus_i;
         //! Filters for topology exclusion masks for the SIMD kernels
-        AlignedVector<uint32_t> exclusion_filter;
+        AlignedVector<std::uint32_t> exclusion_filter;
         //! Filters for topology exclusion masks for double SIMD kernels without SIMD int32 logical support
-        AlignedVector<uint64_t> exclusion_filter64;
+        AlignedVector<std::uint64_t> exclusion_filter64;
     };
 
     /*! \brief Constructor
@@ -324,11 +324,11 @@ enum
 };
 
 //! Sets the atomdata after pair search
-void nbnxn_atomdata_set(nbnxn_atomdata_t*            nbat,
-                        const Nbnxm::GridSet&        gridSet,
-                        gmx::ArrayRef<const int>     atomTypes,
-                        gmx::ArrayRef<const real>    atomCharges,
-                        gmx::ArrayRef<const int64_t> atomInfo);
+void nbnxn_atomdata_set(nbnxn_atomdata_t*                 nbat,
+                        const Nbnxm::GridSet&             gridSet,
+                        gmx::ArrayRef<const int>          atomTypes,
+                        gmx::ArrayRef<const real>         atomCharges,
+                        gmx::ArrayRef<const std::int64_t> atomInfo);
 
 //! Copy the shift vectors to nbat
 void nbnxn_atomdata_copy_shiftvec(bool dynamic_box, gmx::ArrayRef<gmx::RVec> shift_vec, nbnxn_atomdata_t* nbat);

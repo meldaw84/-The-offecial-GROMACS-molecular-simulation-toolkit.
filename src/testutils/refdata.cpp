@@ -917,25 +917,25 @@ void TestReferenceChecker::checkInteger(int value, const char* id)
             Impl::cIntegerNodeName, id, ExactStringChecker(formatString("%d", value))));
 }
 
-void TestReferenceChecker::checkInt32(int32_t value, const char* id)
+void TestReferenceChecker::checkInt32(std::int32_t value, const char* id)
 {
     EXPECT_PLAIN(impl_->processItem(
             Impl::cInt32NodeName, id, ExactStringChecker(formatString("%" PRId32, value))));
 }
 
-void TestReferenceChecker::checkUInt32(uint32_t value, const char* id)
+void TestReferenceChecker::checkUInt32(std::uint32_t value, const char* id)
 {
     EXPECT_PLAIN(impl_->processItem(
             Impl::cUInt32NodeName, id, ExactStringChecker(formatString("%" PRIu32, value))));
 }
 
-void TestReferenceChecker::checkInt64(int64_t value, const char* id)
+void TestReferenceChecker::checkInt64(std::int64_t value, const char* id)
 {
     EXPECT_PLAIN(impl_->processItem(
             Impl::cInt64NodeName, id, ExactStringChecker(formatString("%" PRId64, value))));
 }
 
-void TestReferenceChecker::checkUInt64(uint64_t value, const char* id)
+void TestReferenceChecker::checkUInt64(std::uint64_t value, const char* id)
 {
     EXPECT_PLAIN(impl_->processItem(
             Impl::cUInt64NodeName, id, ExactStringChecker(formatString("%" PRIu64, value))));
@@ -1029,21 +1029,21 @@ void TestReferenceChecker::checkAny(const Any& any, const char* id)
     {
         checkInteger(any.cast<int>(), id);
     }
-    else if (any.isType<int32_t>())
+    else if (any.isType<std::int32_t>())
     {
-        checkInt32(any.cast<int32_t>(), id);
+        checkInt32(any.cast<std::int32_t>(), id);
     }
-    else if (any.isType<uint32_t>())
+    else if (any.isType<std::uint32_t>())
     {
-        checkInt32(any.cast<uint32_t>(), id);
+        checkInt32(any.cast<std::uint32_t>(), id);
     }
-    else if (any.isType<int64_t>())
+    else if (any.isType<std::int64_t>())
     {
-        checkInt64(any.cast<int64_t>(), id);
+        checkInt64(any.cast<std::int64_t>(), id);
     }
-    else if (any.isType<uint64_t>())
+    else if (any.isType<std::uint64_t>())
     {
-        checkInt64(any.cast<uint64_t>(), id);
+        checkInt64(any.cast<std::uint64_t>(), id);
     }
     else if (any.isType<float>())
     {
@@ -1125,26 +1125,26 @@ int TestReferenceChecker::readInteger(const char* id)
 }
 
 
-int32_t TestReferenceChecker::readInt32(const char* id)
+std::int32_t TestReferenceChecker::readInt32(const char* id)
 {
     if (impl_->shouldIgnore())
     {
         GMX_THROW(TestException("Trying to read from non-existent reference data value"));
     }
-    int32_t value = 0;
-    EXPECT_PLAIN(impl_->processItem(Impl::cInt32NodeName, id, ValueExtractor<int32_t>(&value)));
+    std::int32_t value = 0;
+    EXPECT_PLAIN(impl_->processItem(Impl::cInt32NodeName, id, ValueExtractor<std::int32_t>(&value)));
     return value;
 }
 
 
-int64_t TestReferenceChecker::readInt64(const char* id)
+std::int64_t TestReferenceChecker::readInt64(const char* id)
 {
     if (impl_->shouldIgnore())
     {
         GMX_THROW(TestException("Trying to read from non-existent reference data value"));
     }
-    int64_t value = 0;
-    EXPECT_PLAIN(impl_->processItem(Impl::cInt64NodeName, id, ValueExtractor<int64_t>(&value)));
+    std::int64_t value = 0;
+    EXPECT_PLAIN(impl_->processItem(Impl::cInt64NodeName, id, ValueExtractor<std::int64_t>(&value)));
     return value;
 }
 

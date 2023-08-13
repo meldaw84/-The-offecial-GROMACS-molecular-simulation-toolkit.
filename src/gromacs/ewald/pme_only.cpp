@@ -168,7 +168,7 @@ gmx_pme_pp::gmx_pme_pp(MPI_Comm simulationCommunicator, std::vector<PpRanks>&& p
 static void reset_pmeonly_counters(gmx_wallcycle*            wcycle,
                                    gmx_walltime_accounting_t walltime_accounting,
                                    t_nrnb*                   nrnb,
-                                   int64_t                   step,
+                                   std::int64_t              step,
                                    bool                      useGpuForPme)
 {
     /* Reset all the counters related to performance over the run */
@@ -256,7 +256,7 @@ static int gmx_pme_recv_coeffs_coords(struct gmx_pme_t*            pme,
                                       real*                        lambda_q,
                                       real*                        lambda_lj,
                                       gmx_bool*                    computeEnergyAndVirial,
-                                      int64_t*                     step,
+                                      std::int64_t*                step,
                                       ivec*                        grid_size,
                                       real*                        ewaldcoeff_q,
                                       real*                        ewaldcoeff_lj,
@@ -640,15 +640,15 @@ int gmx_pmeonly(struct gmx_pme_t**              pmeFromRunnerPtr,
                 bool                            useGpuPmePpCommunication,
                 const gmx::DeviceStreamManager* deviceStreamManager)
 {
-    int     ret;
-    int     natoms = 0;
-    matrix  box;
-    real    lambda_q   = 0;
-    real    lambda_lj  = 0;
-    int     maxshift_x = 0, maxshift_y = 0;
-    float   cycles;
-    bool    computeEnergyAndVirial = false;
-    int64_t step;
+    int          ret;
+    int          natoms = 0;
+    matrix       box;
+    real         lambda_q   = 0;
+    real         lambda_lj  = 0;
+    int          maxshift_x = 0, maxshift_y = 0;
+    float        cycles;
+    bool         computeEnergyAndVirial = false;
+    std::int64_t step;
 
     gmx_pme_t* pmeFromRunner = *pmeFromRunnerPtr;
 

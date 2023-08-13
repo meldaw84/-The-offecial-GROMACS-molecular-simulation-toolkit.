@@ -182,14 +182,17 @@ struct SerializationTraits<int>
 };
 
 template<>
-struct SerializationTraits<int64_t>
+struct SerializationTraits<std::int64_t>
 {
-    static void serialize(int64_t value, ISerializer* serializer) { serializer->doInt64(&value); }
+    static void serialize(std::int64_t value, ISerializer* serializer)
+    {
+        serializer->doInt64(&value);
+    }
     static void deserialize(KeyValueTreeValueBuilder* builder, ISerializer* serializer)
     {
-        int64_t value = 0;
+        std::int64_t value = 0;
         serializer->doInt64(&value);
-        builder->setValue<int64_t>(value);
+        builder->setValue<std::int64_t>(value);
     }
 };
 
@@ -246,7 +249,7 @@ void ValueSerializer::initSerializers()
         SERIALIZER('s', std::string),
         SERIALIZER('b', bool),
         SERIALIZER('i', int),
-        SERIALIZER('l', int64_t),
+        SERIALIZER('l', std::int64_t),
         SERIALIZER('f', float),
         SERIALIZER('d', double),
     };

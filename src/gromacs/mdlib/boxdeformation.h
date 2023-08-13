@@ -64,18 +64,18 @@ class BoxDeformation
 public:
     //! Trivial constructor.
     BoxDeformation(double           timeStep,
-                   int64_t          initialStep,
+                   std::int64_t     initialStep,
                    const Matrix3x3& deformationTensor,
                    const Matrix3x3& referenceBox);
 
     //! Deform \c x and \c box at this \c step;
-    void apply(ArrayRef<RVec> x, Matrix3x3* box, int64_t step);
+    void apply(ArrayRef<RVec> x, Matrix3x3* box, std::int64_t step);
 
 private:
     //! The integrator time step.
     double timeStep_;
     //! The initial step number (from the .tpr, which permits checkpointing to work correctly).
-    int64_t initialStep_;
+    std::int64_t initialStep_;
     //! Non-zero elements provide a scaling factor for deformation in that box dimension.
     Matrix3x3 deformationTensor_;
     //! The initial box, ie from the .tpr file.

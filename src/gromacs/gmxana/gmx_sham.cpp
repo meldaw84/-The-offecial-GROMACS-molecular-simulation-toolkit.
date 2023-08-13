@@ -67,10 +67,10 @@ static int index3(const int* ibox, int x, int y, int z)
     return (ibox[2] * (ibox[1] * x + y) + z);
 }
 
-static int64_t indexn(int ndim, const int* ibox, const int* nxyz)
+static std::int64_t indexn(int ndim, const int* ibox, const int* nxyz)
 {
-    int64_t d, dd;
-    int     k, kk;
+    std::int64_t d, dd;
+    int          k, kk;
 
     /* Compute index in 1-D array */
     d = 0;
@@ -216,8 +216,8 @@ static void normalize_p_e(int len, double* P, const int* nbin, real* E, real pmi
 
 typedef struct
 {
-    int64_t index;
-    real    ener;
+    std::int64_t index;
+    real         ener;
 } t_minimum;
 
 static int comp_minima(const void* a, const void* b)
@@ -1121,7 +1121,7 @@ int gmx_sham(int argc, char* argv[])
     real *            rmin, *rmax;
     const char *      fn_ge, *fn_ene;
     gmx_output_env_t* oenv;
-    int64_t           num_grid_points;
+    std::int64_t      num_grid_points;
 
     t_filenm fnm[] = {
         { efXVG, "-f", "graph", ffREAD },       { efXVG, "-ge", "gibbs", ffOPTRD },
@@ -1234,7 +1234,7 @@ int gmx_sham(int argc, char* argv[])
     num_grid_points = ibox[0];
     for (i = 1; i < nset; i++)
     {
-        int64_t result;
+        std::int64_t result;
         if (!check_int_multiply_for_overflow(num_grid_points, ibox[i], &result))
         {
             gmx_fatal(FARGS,
@@ -1242,7 +1242,7 @@ int gmx_sham(int argc, char* argv[])
         }
         num_grid_points = result;
     }
-    /* The number of grid points fits in a int64_t. */
+    /* The number of grid points fits in a std::int64_t. */
 
     do_sham(opt2fn("-dist", NFILE, fnm),
             opt2fn("-bin", NFILE, fnm),

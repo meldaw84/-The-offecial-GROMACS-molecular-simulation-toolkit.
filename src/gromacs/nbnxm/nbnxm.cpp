@@ -55,18 +55,18 @@
 
 /*! \cond INTERNAL */
 
-void nbnxn_put_on_grid(nonbonded_verlet_t*            nb_verlet,
-                       const matrix                   box,
-                       int                            gridIndex,
-                       const rvec                     lowerCorner,
-                       const rvec                     upperCorner,
-                       const gmx::UpdateGroupsCog*    updateGroupsCog,
-                       gmx::Range<int>                atomRange,
-                       real                           atomDensity,
-                       gmx::ArrayRef<const int64_t>   atomInfo,
-                       gmx::ArrayRef<const gmx::RVec> x,
-                       int                            numAtomsMoved,
-                       const int*                     move)
+void nbnxn_put_on_grid(nonbonded_verlet_t*               nb_verlet,
+                       const matrix                      box,
+                       int                               gridIndex,
+                       const rvec                        lowerCorner,
+                       const rvec                        upperCorner,
+                       const gmx::UpdateGroupsCog*       updateGroupsCog,
+                       gmx::Range<int>                   atomRange,
+                       real                              atomDensity,
+                       gmx::ArrayRef<const std::int64_t> atomInfo,
+                       gmx::ArrayRef<const gmx::RVec>    x,
+                       int                               numAtomsMoved,
+                       const int*                        move)
 {
     nb_verlet->pairSearch_->putOnGrid(box,
                                       gridIndex,
@@ -83,10 +83,10 @@ void nbnxn_put_on_grid(nonbonded_verlet_t*            nb_verlet,
 }
 
 /* Calls nbnxn_put_on_grid for all non-local domains */
-void nbnxn_put_on_grid_nonlocal(nonbonded_verlet_t*              nbv,
-                                const struct gmx_domdec_zones_t* zones,
-                                gmx::ArrayRef<const int64_t>     atomInfo,
-                                gmx::ArrayRef<const gmx::RVec>   x)
+void nbnxn_put_on_grid_nonlocal(nonbonded_verlet_t*               nbv,
+                                const struct gmx_domdec_zones_t*  zones,
+                                gmx::ArrayRef<const std::int64_t> atomInfo,
+                                gmx::ArrayRef<const gmx::RVec>    x)
 {
     for (int zone = 1; zone < zones->n; zone++)
     {
@@ -112,12 +112,12 @@ void nbnxn_put_on_grid_nonlocal(nonbonded_verlet_t*              nbv,
     }
 }
 
-bool nonbonded_verlet_t::isDynamicPruningStepCpu(int64_t step) const
+bool nonbonded_verlet_t::isDynamicPruningStepCpu(std::int64_t step) const
 {
     return pairlistSets_->isDynamicPruningStepCpu(step);
 }
 
-bool nonbonded_verlet_t::isDynamicPruningStepGpu(int64_t step) const
+bool nonbonded_verlet_t::isDynamicPruningStepGpu(std::int64_t step) const
 {
     return pairlistSets_->isDynamicPruningStepGpu(step);
 }
@@ -137,9 +137,9 @@ void nonbonded_verlet_t::setLocalAtomOrder() const
     pairSearch_->setLocalAtomOrder();
 }
 
-void nonbonded_verlet_t::setAtomProperties(gmx::ArrayRef<const int>     atomTypes,
-                                           gmx::ArrayRef<const real>    atomCharges,
-                                           gmx::ArrayRef<const int64_t> atomInfo) const
+void nonbonded_verlet_t::setAtomProperties(gmx::ArrayRef<const int>          atomTypes,
+                                           gmx::ArrayRef<const real>         atomCharges,
+                                           gmx::ArrayRef<const std::int64_t> atomInfo) const
 {
     nbnxn_atomdata_set(nbat.get(), pairSearch_->gridSet(), atomTypes, atomCharges, atomInfo);
 }

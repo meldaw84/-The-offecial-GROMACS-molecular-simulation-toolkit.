@@ -69,15 +69,15 @@ struct t_ebin
     //! Name and units for each term
     gmx_enxnm_t* enm;
     //! Number of steps used for sum (for energy history)
-    int64_t nsteps;
+    std::int64_t nsteps;
     //! Number of values added to the sum so far
-    int64_t nsum;
+    std::int64_t nsum;
     //! Term values: each structure stores current, running average and sum.
     t_energy* e;
     //! Total number of steps saved (for energy history)
-    int64_t nsteps_sim;
+    std::int64_t nsteps_sim;
     //! Total number of values added to sum (used when printing average values at the end of the run)
-    int64_t nsum_sim;
+    std::int64_t nsum_sim;
     //! Energy values throughout the entire simulation: structure stores current, average and sum, but only sum value is used to compute averages
     t_energy* e_sim;
 };

@@ -73,8 +73,8 @@ void pr_doubles(FILE* fp, int indent, const char* title, const double* vec, int 
 void pr_reals_of_dim(FILE* fp, int indent, const char* title, const real* vec, int n, int dim);
 //! Prints an integer value.
 void pr_int(FILE* fp, int indent, const char* title, int i);
-//! Prints a int64_t value.
-void pr_int64(FILE* fp, int indent, const char* title, int64_t i);
+//! Prints a std::int64_t value.
+void pr_int64(FILE* fp, int indent, const char* title, std::int64_t i);
 //! Prints a floating-point value.
 void pr_real(FILE* fp, int indent, const char* title, real r);
 //! Prints a double-precision floating-point value.

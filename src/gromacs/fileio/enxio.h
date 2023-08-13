@@ -107,7 +107,7 @@ struct t_enxsubblock
     float*         fval;
     double*        dval;
     int*           ival;
-    int64_t*       lval;
+    std::int64_t*  lval;
     unsigned char* cval;
     char**         sval;
 

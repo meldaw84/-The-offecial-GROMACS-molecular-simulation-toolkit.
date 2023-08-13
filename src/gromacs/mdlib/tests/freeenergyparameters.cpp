@@ -75,7 +75,7 @@ struct FreeEnergyParameterTestParameters
     //! number of lambda entries
     int nLambda = 0;
     //! the current simulation step
-    int64_t step = 0;
+    std::int64_t step = 0;
     //! the expected lambda at the current simulation step
     gmx::EnumerationArray<FreeEnergyPerturbationCouplingType, real> expectedLambdas = { -1, -1, -1,
                                                                                         -1, -1, -1,

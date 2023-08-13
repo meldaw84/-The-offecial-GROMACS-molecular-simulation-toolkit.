@@ -395,13 +395,13 @@ void print_flop(FILE* out, t_nrnb* nrnb, double* nbfs, double* mflop)
     }
 }
 
-void print_perf(FILE*   out,
-                double  time_per_thread,
-                double  time_per_node,
-                int64_t nsteps,
-                double  delta_t,
-                double  nbfs,
-                double  mflop)
+void print_perf(FILE*        out,
+                double       time_per_thread,
+                double       time_per_node,
+                std::int64_t nsteps,
+                double       delta_t,
+                double       nbfs,
+                double       mflop)
 {
     double wallclocktime;
 

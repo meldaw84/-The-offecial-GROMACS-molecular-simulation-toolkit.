@@ -80,7 +80,7 @@ void init_pull_output_files(pull_t*                 pull,
  * \param step     Time step number.
  * \param time     Time.
  */
-void pull_print_output(pull_t* pull, int64_t step, double time);
+void pull_print_output(pull_t* pull, std::int64_t step, double time);
 
 /*! \brief Allocate and initialize pull work history (for average pull output) and set it in a pull work struct
  *

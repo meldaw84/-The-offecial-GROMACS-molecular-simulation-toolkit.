@@ -880,9 +880,9 @@ int gmx_cluster(int argc, char* argv[])
         "   of the cluster.",
     };
 
-    FILE *  fp, *log;
-    int     nf   = 0, i, i1, i2, j;
-    int64_t nrms = 0;
+    FILE *       fp, *log;
+    int          nf   = 0, i, i1, i2, j;
+    std::int64_t nrms = 0;
 
     matrix      box;
     matrix*     boxes = nullptr;
@@ -1255,7 +1255,7 @@ int gmx_cluster(int argc, char* argv[])
     else /* !bReadMat */
     {
         rms  = init_mat(nf, method == m_diagonalize);
-        nrms = (static_cast<int64_t>(nf) * static_cast<int64_t>(nf - 1)) / 2;
+        nrms = (static_cast<std::int64_t>(nf) * static_cast<std::int64_t>(nf - 1)) / 2;
         if (!bRMSdist)
         {
             fprintf(stderr, "Computing %dx%d RMS deviation matrix\n", nf, nf);

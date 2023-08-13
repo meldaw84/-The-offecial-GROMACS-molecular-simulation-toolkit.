@@ -313,13 +313,13 @@ public:
             gridValuesMagnitude = std::max(std::fabs(point.second.im), gridValuesMagnitude);
         }
         // Spline moduli participate 3 times in the computation; 2 is an additional factor for SIMD exp() precision
-        uint64_t gridUlpToleranceFactor = DIM * 2;
+        std::uint64_t gridUlpToleranceFactor = DIM * 2;
         if (method == PmeSolveAlgorithm::LennardJones)
         {
             // Lennard Jones is more complex and also uses erfc(), relax more
             gridUlpToleranceFactor *= 2;
         }
-        const uint64_t splineModuliDoublePrecisionUlps =
+        const std::uint64_t splineModuliDoublePrecisionUlps =
                 getSplineModuliDoublePrecisionUlps(inputRec.pme_order + 1);
         auto gridTolerance = relativeToleranceAsPrecisionDependentUlp(
                 gridValuesMagnitude,
@@ -359,8 +359,8 @@ public:
             /* Energy */
             double energyMagnitude = 10.0;
             // TODO This factor is arbitrary, do a proper error-propagation analysis
-            uint64_t energyUlpToleranceFactor = gridUlpToleranceFactor * 2;
-            auto     energyTolerance          = relativeToleranceAsPrecisionDependentUlp(
+            std::uint64_t energyUlpToleranceFactor = gridUlpToleranceFactor * 2;
+            auto          energyTolerance          = relativeToleranceAsPrecisionDependentUlp(
                     energyMagnitude,
                     energyUlpToleranceFactor * c_splineModuliSinglePrecisionUlps,
                     energyUlpToleranceFactor * splineModuliDoublePrecisionUlps);
@@ -370,8 +370,8 @@ public:
             /* Virial */
             double virialMagnitude = 1000.0;
             // TODO This factor is arbitrary, do a proper error-propagation analysis
-            uint64_t virialUlpToleranceFactor = energyUlpToleranceFactor * 2;
-            auto     virialTolerance          = relativeToleranceAsPrecisionDependentUlp(
+            std::uint64_t virialUlpToleranceFactor = energyUlpToleranceFactor * 2;
+            auto          virialTolerance          = relativeToleranceAsPrecisionDependentUlp(
                     virialMagnitude,
                     virialUlpToleranceFactor * c_splineModuliSinglePrecisionUlps,
                     virialUlpToleranceFactor * splineModuliDoublePrecisionUlps);

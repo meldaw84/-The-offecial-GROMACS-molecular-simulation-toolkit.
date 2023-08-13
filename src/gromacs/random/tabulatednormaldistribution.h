@@ -294,7 +294,7 @@ public:
             // also avoids drawing multiple 32-bit random numbers
             // even if we just call this routine for a single
             // result.
-            savedRandomBits_     = static_cast<uint64_t>(g());
+            savedRandomBits_     = static_cast<std::uint64_t>(g());
             savedRandomBitsLeft_ = std::numeric_limits<typename Rng::result_type>::digits;
         }
         result_type value = c_table_[savedRandomBits_ & ((1ULL << tableBits) - 1)];
@@ -328,7 +328,7 @@ private:
     /*! \brief Array with tabluated values of normal distribution */
     static const std::array<RealType, 1 << tableBits> c_table_;
     /*! \brief Saved output from random engine, shifted tableBits right each time */
-    uint64_t savedRandomBits_;
+    std::uint64_t savedRandomBits_;
     /*! \brief Number of valid bits remaining i savedRandomBits_ */
     unsigned int savedRandomBitsLeft_;
 

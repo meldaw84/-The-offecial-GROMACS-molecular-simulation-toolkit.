@@ -39,11 +39,11 @@
 
 #include "gromacs/utility/basedefinitions.h"
 
-int int64_to_int(int64_t step, const char* warn)
+int int64_to_int(std::int64_t step, const char* warn)
 {
     int i = static_cast<int>(step);
 
-    if (warn != nullptr && (static_cast<int64_t>(i) != step))
+    if (warn != nullptr && (static_cast<std::int64_t>(i) != step))
     {
         fprintf(stderr, "\nWARNING during %s:\n", warn);
         fprintf(stderr, "int64 value ");

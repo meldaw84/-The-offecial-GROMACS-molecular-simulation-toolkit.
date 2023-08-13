@@ -58,7 +58,7 @@ void cmp_int(FILE* fp, const char* s, int index, int i1, int i2)
     }
 }
 
-void cmp_int64(FILE* fp, const char* s, int64_t i1, int64_t i2)
+void cmp_int64(FILE* fp, const char* s, std::int64_t i1, std::int64_t i2)
 {
     if (i1 != i2)
     {

@@ -572,7 +572,7 @@ static void prepare_verlet_scheme(FILE*                          fplog,
  *
  * with value passed on the command line (if any)
  */
-static void override_nsteps_cmdline(const gmx::MDLogger& mdlog, int64_t nsteps_cmdline, t_inputrec* ir)
+static void override_nsteps_cmdline(const gmx::MDLogger& mdlog, std::int64_t nsteps_cmdline, t_inputrec* ir)
 {
     assert(ir);
 
@@ -1720,7 +1720,7 @@ int Mdrunner::mdrunner()
     {
         /* Main synchronizes its value of reset_counters with all nodes
          * including PME only nodes */
-        int64_t reset_counters = wcycle_get_reset_counters(wcycle.get());
+        std::int64_t reset_counters = wcycle_get_reset_counters(wcycle.get());
         gmx_bcast(sizeof(reset_counters), &reset_counters, cr->mpi_comm_mysim);
         wcycle_set_reset_counters(wcycle.get(), reset_counters);
     }

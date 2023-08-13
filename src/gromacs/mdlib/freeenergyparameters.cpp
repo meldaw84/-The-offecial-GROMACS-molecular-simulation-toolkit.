@@ -78,11 +78,11 @@ lambdasAtState(const int stateIndex, gmx::ArrayRef<const std::vector<double>> la
  * \param[in] lambdaArrayExtent how many lambda values we have
  * \returns a number that reflects where in the lambda arrays we are at the moment
  */
-double currentGlobalLambda(const int64_t step,
-                           const double  deltaLambdaPerStep,
-                           const int     initialFEPStateIndex,
-                           const double  initialLambda,
-                           const int     lambdaArrayExtent)
+double currentGlobalLambda(const std::int64_t step,
+                           const double       deltaLambdaPerStep,
+                           const int          initialFEPStateIndex,
+                           const double       initialLambda,
+                           const int          lambdaArrayExtent)
 {
     const real fracSimulationLambda = step * deltaLambdaPerStep;
 
@@ -152,7 +152,7 @@ interpolatedLambdas(const double                             currentGlobalLambda
 } // namespace
 
 gmx::EnumerationArray<FreeEnergyPerturbationCouplingType, real>
-currentLambdas(const int64_t step, const t_lambda& fepvals, const int currentLambdaState)
+currentLambdas(const std::int64_t step, const t_lambda& fepvals, const int currentLambdaState)
 {
     if (fepvals.delta_lambda == 0)
     {

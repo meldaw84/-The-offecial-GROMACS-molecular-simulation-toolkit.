@@ -78,12 +78,12 @@ EnergyTerm::EnergyTerm(unsigned int       indexWithinEnergyFile,
     }
 }
 
-void EnergyTerm::addFrame(double  time,
-                          int64_t step,
-                          int     numIntermediateStepsSum,
-                          double  energySumOverNumSteps,
-                          double  energyVarianceOverNumSteps,
-                          double  energyAtTime)
+void EnergyTerm::addFrame(double       time,
+                          std::int64_t step,
+                          int          numIntermediateStepsSum,
+                          double       energySumOverNumSteps,
+                          double       energyVarianceOverNumSteps,
+                          double       energyAtTime)
 {
     if (!firstFrameRead_)
     {
@@ -130,7 +130,7 @@ void EnergyTerm::addFrame(double  time,
     }
 }
 
-EnergyAnalysisFrameIterator EnergyTerm::findFrame(int64_t frameIndex) const
+EnergyAnalysisFrameIterator EnergyTerm::findFrame(std::int64_t frameIndex) const
 {
     if (storeData())
     {
@@ -193,7 +193,7 @@ std::optional<real> EnergyTerm::errorEstimate(unsigned int numBlocks) const
         EnergyAnalysisFrameIterator f0  = findFrame(b * numFrames() / numBlocks);
         EnergyAnalysisFrameIterator f1  = findFrame((b + 1) * numFrames() / numBlocks);
         double                      sum = 0;
-        int64_t                     np  = 0;
+        std::int64_t                np  = 0;
         for (EnergyAnalysisFrameIterator f = f0; (f < f1); ++f)
         {
             sum += f->energySumOverNumSteps();

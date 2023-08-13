@@ -69,12 +69,12 @@ public:
 };
 
 //! The types used in testing
-using Implementations = ::testing::Types<std::allocator<int32_t>,
+using Implementations = ::testing::Types<std::allocator<std::int32_t>,
                                          std::allocator<float>,
                                          std::allocator<double>,
                                          std::allocator<BasicVector<float>>,
                                          std::allocator<BasicVector<double>>,
-                                         AlignedAllocator<int32_t>,
+                                         AlignedAllocator<std::int32_t>,
                                          AlignedAllocator<float>,
                                          AlignedAllocator<double>,
                                          AlignedAllocator<BasicVector<float>>,

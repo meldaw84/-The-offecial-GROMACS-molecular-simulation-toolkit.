@@ -723,7 +723,7 @@ static void make_exclusions_zone(ArrayRef<const int>               globalAtomInd
                                  const gmx_domdec_zones_t&         zones,
                                  ArrayRef<const MolblockIndices>   molblockIndices,
                                  const std::vector<gmx_moltype_t>& moltype,
-                                 gmx::ArrayRef<const int64_t>      atomInfo,
+                                 gmx::ArrayRef<const std::int64_t> atomInfo,
                                  ListOfLists<int>*                 lexcls,
                                  int                               iz,
                                  int                               at_start,
@@ -796,18 +796,18 @@ static void make_exclusions_zone(ArrayRef<const int>               globalAtomInd
 /*! \brief Generate and store all required local bonded interactions in \p idef and local exclusions in \p lexcls
  *
  * \returns Total count of bonded interactions in the local topology on this domain */
-static int make_local_bondeds_excls(const gmx_domdec_t&       dd,
-                                    const gmx_domdec_zones_t& zones,
-                                    const gmx_mtop_t&         mtop,
-                                    ArrayRef<const int64_t>   atomInfo,
-                                    const bool                checkDistanceMultiBody,
-                                    const ivec                rcheck,
-                                    const gmx_bool            checkDistanceTwoBody,
-                                    const real                cutoff,
-                                    const t_pbc*              pbc_null,
-                                    ArrayRef<const RVec>      coordinates,
-                                    InteractionDefinitions*   idef,
-                                    ListOfLists<int>*         lexcls)
+static int make_local_bondeds_excls(const gmx_domdec_t&          dd,
+                                    const gmx_domdec_zones_t&    zones,
+                                    const gmx_mtop_t&            mtop,
+                                    ArrayRef<const std::int64_t> atomInfo,
+                                    const bool                   checkDistanceMultiBody,
+                                    const ivec                   rcheck,
+                                    const gmx_bool               checkDistanceTwoBody,
+                                    const real                   cutoff,
+                                    const t_pbc*                 pbc_null,
+                                    ArrayRef<const RVec>         coordinates,
+                                    InteractionDefinitions*      idef,
+                                    ListOfLists<int>*            lexcls)
 {
     int nzone_bondeds = 0;
 
@@ -943,17 +943,17 @@ static int make_local_bondeds_excls(const gmx_domdec_t&       dd,
     return numBondedInteractions;
 }
 
-int dd_make_local_top(const gmx_domdec_t&          dd,
-                      const gmx_domdec_zones_t&    zones,
-                      int                          npbcdim,
-                      matrix                       box,
-                      rvec                         cellsize_min,
-                      const ivec                   npulse,
-                      t_forcerec*                  fr,
-                      ArrayRef<const RVec>         coordinates,
-                      const gmx_mtop_t&            mtop,
-                      gmx::ArrayRef<const int64_t> atomInfo,
-                      gmx_localtop_t*              ltop)
+int dd_make_local_top(const gmx_domdec_t&               dd,
+                      const gmx_domdec_zones_t&         zones,
+                      int                               npbcdim,
+                      matrix                            box,
+                      rvec                              cellsize_min,
+                      const ivec                        npulse,
+                      t_forcerec*                       fr,
+                      ArrayRef<const RVec>              coordinates,
+                      const gmx_mtop_t&                 mtop,
+                      gmx::ArrayRef<const std::int64_t> atomInfo,
+                      gmx_localtop_t*                   ltop)
 {
     real  rc = -1;
     ivec  rcheck;

@@ -199,16 +199,16 @@ static gmx_bool do_trr_frame_data(t_fileio* fio, gmx_trr_header_t* sh, rvec* box
     return bOK;
 }
 
-static gmx_bool do_trr_frame(t_fileio* fio,
-                             bool      bRead,
-                             int64_t*  step,
-                             real*     t,
-                             real*     lambda,
-                             rvec*     box,
-                             int*      natoms,
-                             rvec*     x,
-                             rvec*     v,
-                             rvec*     f)
+static gmx_bool do_trr_frame(t_fileio*     fio,
+                             bool          bRead,
+                             std::int64_t* step,
+                             real*         t,
+                             real*         lambda,
+                             rvec*         box,
+                             int*          natoms,
+                             rvec*         x,
+                             rvec*         v,
+                             rvec*         f)
 {
     gmx_trr_header_t* sh;
     gmx_bool          bOK;
@@ -286,7 +286,7 @@ gmx_bool gmx_trr_read_frame_header(t_fileio* fio, gmx_trr_header_t* header, gmx_
 }
 
 void gmx_trr_write_single_frame(const std::filesystem::path& fn,
-                                int64_t                      step,
+                                std::int64_t                 step,
                                 real                         t,
                                 real                         lambda,
                                 const rvec*                  box,
@@ -310,7 +310,7 @@ void gmx_trr_write_single_frame(const std::filesystem::path& fn,
 }
 
 void gmx_trr_read_single_frame(const std::filesystem::path& fn,
-                               int64_t*                     step,
+                               std::int64_t*                step,
                                real*                        t,
                                real*                        lambda,
                                rvec*                        box,
@@ -324,15 +324,15 @@ void gmx_trr_read_single_frame(const std::filesystem::path& fn,
     gmx_trr_close(fio);
 }
 
-void gmx_trr_write_frame(t_fileio*   fio,
-                         int64_t     step,
-                         real        t,
-                         real        lambda,
-                         const rvec* box,
-                         int         natoms,
-                         const rvec* x,
-                         const rvec* v,
-                         const rvec* f)
+void gmx_trr_write_frame(t_fileio*    fio,
+                         std::int64_t step,
+                         real         t,
+                         real         lambda,
+                         const rvec*  box,
+                         int          natoms,
+                         const rvec*  x,
+                         const rvec*  v,
+                         const rvec*  f)
 {
     if (!do_trr_frame(fio,
                       false,
@@ -350,15 +350,15 @@ void gmx_trr_write_frame(t_fileio*   fio,
 }
 
 
-gmx_bool gmx_trr_read_frame(t_fileio* fio,
-                            int64_t*  step,
-                            real*     t,
-                            real*     lambda,
-                            rvec*     box,
-                            int*      natoms,
-                            rvec*     x,
-                            rvec*     v,
-                            rvec*     f)
+gmx_bool gmx_trr_read_frame(t_fileio*     fio,
+                            std::int64_t* step,
+                            real*         t,
+                            real*         lambda,
+                            rvec*         box,
+                            int*          natoms,
+                            rvec*         x,
+                            rvec*         v,
+                            rvec*         f)
 {
     return do_trr_frame(fio, true, step, t, lambda, box, natoms, x, v, f);
 }

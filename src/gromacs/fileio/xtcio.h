@@ -62,7 +62,7 @@ void close_xtc(struct t_fileio* fio);
 
 int read_first_xtc(struct t_fileio* fio,
                    int*             natoms,
-                   int64_t*         step,
+                   std::int64_t*    step,
                    real*            time,
                    matrix           box,
                    rvec**           x,
@@ -70,10 +70,17 @@ int read_first_xtc(struct t_fileio* fio,
                    gmx_bool*        bOK);
 /* Open xtc file, read xtc file first time, allocate memory for x */
 
-int read_next_xtc(struct t_fileio* fio, int natoms, int64_t* step, real* time, matrix box, rvec* x, real* prec, gmx_bool* bOK);
+int read_next_xtc(struct t_fileio* fio,
+                  int              natoms,
+                  std::int64_t*    step,
+                  real*            time,
+                  matrix           box,
+                  rvec*            x,
+                  real*            prec,
+                  gmx_bool*        bOK);
 /* Read subsequent frames */
 
-int write_xtc(struct t_fileio* fio, int natoms, int64_t step, real time, const rvec* box, const rvec* x, real prec);
+int write_xtc(struct t_fileio* fio, int natoms, std::int64_t step, real time, const rvec* box, const rvec* x, real prec);
 /* Write a frame to xtc file */
 
 #endif

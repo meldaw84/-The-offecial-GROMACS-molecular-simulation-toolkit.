@@ -61,7 +61,7 @@ namespace gmx
  * Table 12.3.4.1 Standard space-group symbols, pages 824-831,
  * International Tables for Crystallography, Volume A, fifth edition
  */
-enum class SpaceGroup : int32_t
+enum class SpaceGroup : std::int32_t
 {
     P1 = 1, //!< no symmetry
 };
@@ -72,7 +72,7 @@ enum class SpaceGroup : int32_t
  * Modes 0-4 are defined by the standard.
  * NOTE only mode 2 is currently implemented and used.
  */
-enum class MrcDataMode : int32_t
+enum class MrcDataMode : std::int32_t
 {
     uInt8   = 0, //!< compressed data mode, 8 bits, signed byte (range -128 to 127, ISO/IEC 10967)
     int16   = 1, //!< 16 bits, signed integer (range -32768 to 32767, ISO/IEC 10967)
@@ -111,7 +111,7 @@ struct CrystallographicLabels
 {
     static constexpr int c_labelSize = 80; //!< Length of crystallographic labels is eighty.
     //! Number of used crystallographic labels, 0 for imagestacks, 1 for emdb data
-    int32_t numUsedLabels_ = 0;
+    std::int32_t numUsedLabels_ = 0;
 
     //! Crystallographic labels or "::::EMDataBank.org::::EMD-1234::::" for EMDB entries
     std::array<std::array<unsigned char, c_labelSize>, 10> labels_ = {};
@@ -147,11 +147,11 @@ struct MrcDensityMapHeader
     std::array<float, DIM> cellAngles_ = { { 90., 90., 90. } };
 
     //! Data axis order with columns varying the fastest, and sections the slowest.
-    std::array<int32_t, DIM> columnRowSectionToXyz_ = { { 0, 1, 2 } };
+    std::array<std::int32_t, DIM> columnRowSectionToXyz_ = { { 0, 1, 2 } };
 
-    std::array<int32_t, DIM> numColumnRowSection_   = {}; //!< Column, row and section count
-    std::array<int32_t, DIM> columnRowSectionStart_ = {}; //!< Start of values in grid
-    std::array<int32_t, DIM> extent_ = {}; //!< The number of grid points in the crystall cell
+    std::array<std::int32_t, DIM> numColumnRowSection_   = {}; //!< Column, row and section count
+    std::array<std::int32_t, DIM> columnRowSectionStart_ = {}; //!< Start of values in grid
+    std::array<std::int32_t, DIM> extent_ = {}; //!< The number of grid points in the crystall cell
 
     //! Statistics about the data stored in the file.
     MrcDataStatistics dataStatistics_ = {};

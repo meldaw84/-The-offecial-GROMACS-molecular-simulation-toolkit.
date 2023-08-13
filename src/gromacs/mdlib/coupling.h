@@ -70,7 +70,7 @@ class ArrayRef;
 /* Update the size of per-atom arrays (e.g. after DD re-partitioning,
    which might increase the number of home atoms). */
 
-void update_tcouple(int64_t                             step,
+void update_tcouple(std::int64_t                        step,
                     const t_inputrec*                   inputrec,
                     t_state*                            state,
                     gmx_ekindata_t*                     ekind,
@@ -81,7 +81,7 @@ void update_tcouple(int64_t                             step,
 /* Update Parrinello-Rahman, to be called before the coordinate update
  * Returns the box-scaling matrix mu and the coordinate-scaling matrix M */
 void update_pcouple_before_coordinates(const gmx::MDLogger&           mdlog,
-                                       int64_t                        step,
+                                       std::int64_t                   step,
                                        const PressureCouplingOptions& pressureCoupling,
                                        const tensor                   deform,
                                        real                           delta_t,
@@ -119,9 +119,9 @@ void update_pcouple_before_coordinates(const gmx::MDLogger&           mdlog,
  *                                 coordinates to suit the new box size
  */
 void update_pcouple_after_coordinates(FILE*                               fplog,
-                                      int64_t                             step,
+                                      std::int64_t                        step,
                                       const PressureCouplingOptions&      pressureCoupling,
-                                      int64_t                             ld_seed,
+                                      std::int64_t                        ld_seed,
                                       real                                ensembleTemperature,
                                       const ivec*                         nFreeze,
                                       const tensor                        deform,
@@ -140,7 +140,7 @@ void update_pcouple_after_coordinates(FILE*                               fplog,
 /* Return TRUE if OK, FALSE in case of Shake Error */
 
 extern bool update_randomize_velocities(const t_inputrec*                   ir,
-                                        int64_t                             step,
+                                        std::int64_t                        step,
                                         const t_commrec*                    cr,
                                         int                                 homenr,
                                         gmx::ArrayRef<const unsigned short> cTC,
@@ -155,7 +155,7 @@ void berendsen_tcoupl(const t_inputrec*    ir,
                       std::vector<double>& therm_integral); //NOLINT(google-runtime-references)
 
 void andersen_tcoupl(const t_inputrec*                   ir,
-                     int64_t                             step,
+                     std::int64_t                        step,
                      const t_commrec*                    cr,
                      int                                 homenr,
                      gmx::ArrayRef<const unsigned short> cTC,
@@ -166,7 +166,7 @@ void andersen_tcoupl(const t_inputrec*                   ir,
                      gmx::ArrayRef<const real>           boltzfac);
 
 void trotter_update(const t_inputrec*                   ir,
-                    int64_t                             step,
+                    std::int64_t                        step,
                     gmx_ekindata_t*                     ekind,
                     const gmx_enerdata_t*               enerd,
                     t_state*                            state,
@@ -196,7 +196,7 @@ real NPT_energy(const PressureCouplingOptions& pressureCoupling,
 /* computes all the pressure/tempertature control energy terms to get a conserved energy */
 
 void vrescale_tcoupl(const t_inputrec*     ir,
-                     int64_t               step,
+                     std::int64_t          step,
                      gmx_ekindata_t*       ekind,
                      real                  delta_t,
                      gmx::ArrayRef<double> therm_integral);
@@ -296,7 +296,7 @@ void init_parrinellorahman(const PressureCouplingOptions& pressureCouplingOption
  *
  */
 void parrinellorahman_pcoupl(const gmx::MDLogger&           mdlog,
-                             int64_t                        step,
+                             std::int64_t                   step,
                              const PressureCouplingOptions& pressureCouplingOptions,
                              const tensor                   deform,
                              real                           couplingTimePeriod,
@@ -315,9 +315,9 @@ void parrinellorahman_pcoupl(const gmx::MDLogger&           mdlog,
  */
 template<PressureCoupling pressureCouplingType>
 void pressureCouplingCalculateScalingMatrix(FILE*                          fplog,
-                                            int64_t                        step,
+                                            std::int64_t                   step,
                                             const PressureCouplingOptions& pressureCoupling,
-                                            int64_t                        ld_seed,
+                                            std::int64_t                   ld_seed,
                                             real                           ensembleTemperature,
                                             real                           delta_t,
                                             const tensor                   pres,
@@ -372,6 +372,6 @@ void pleaseCiteCouplingAlgorithms(FILE* fplog, const t_inputrec& ir);
  * \param[in] seed   the random number generator seed
  * \return  the new kinetic energy
  */
-real vrescale_resamplekin(real kk, real sigma, real ndeg, real taut, int64_t step, int64_t seed);
+real vrescale_resamplekin(real kk, real sigma, real ndeg, real taut, std::int64_t step, std::int64_t seed);
 
 #endif // GMX_MDLIB_COUPLING_H

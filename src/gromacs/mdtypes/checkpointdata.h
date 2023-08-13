@@ -122,7 +122,7 @@ template<typename T>
 struct IsSerializableType
 {
     static bool const value = std::is_same<T, std::string>::value || std::is_same<T, bool>::value
-                              || std::is_same<T, int>::value || std::is_same<T, int64_t>::value
+                              || std::is_same<T, int>::value || std::is_same<T, std::int64_t>::value
                               || std::is_same<T, float>::value || std::is_same<T, double>::value;
 };
 
@@ -174,7 +174,7 @@ class CheckpointData<CheckpointDataOperation::Read>
 public:
     /*! \brief Read or write a single value from / to checkpoint
      *
-     * Allowed scalar types include std::string, bool, int, int64_t,
+     * Allowed scalar types include std::string, bool, int, std::int64_t,
      * float, double, or any enum with one of the previously mentioned
      * scalar types as underlying type. Type compatibility is checked
      * at compile time.
@@ -194,7 +194,7 @@ public:
     /*! \brief Read or write an ArrayRef from / to checkpoint
      *
      * Allowed types stored in the ArrayRef include std::string, bool, int,
-     * int64_t, float, double, and gmx::RVec. Type compatibility is checked
+     * std::int64_t, float, double, and gmx::RVec. Type compatibility is checked
      * at compile time.
      *
      * \tparam operation  Whether we are reading or writing

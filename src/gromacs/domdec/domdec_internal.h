@@ -191,7 +191,7 @@ typedef struct gmx_domdec_sort
     /**< Integer buffer for sorting */
     std::vector<int> intBuffer;
     /**< Int64 buffer for sorting */
-    std::vector<int64_t> int64Buffer;
+    std::vector<std::int64_t> int64Buffer;
 } gmx_domdec_sort_t;
 
 /*! \brief Manages atom ranges and order for the local state atom vectors */
@@ -651,7 +651,7 @@ struct gmx_domdec_comm_t // NOLINT (clang-analyzer-optin.performance.Padding)
     /** Which cg distribution is stored on the main node,
      *  stored as DD partitioning call count.
      */
-    int64_t main_cg_ddp_count = 0;
+    std::int64_t main_cg_ddp_count = 0;
 
     /** The number of cg's received from the direct neighbors */
     std::array<int, DD_MAXZONE> zone_ncg1 = { 0 };
@@ -729,7 +729,7 @@ struct gmx_domdec_comm_t // NOLINT (clang-analyzer-optin.performance.Padding)
     /**< Have we turned off DLB (after turning DLB on)? */
     bool haveTurnedOffDlb = false;
     /**< The DD step at which we last measured that DLB off was faster than DLB on, 0 if there was no such step */
-    int64_t dlbSlowerPartitioningCount = 0;
+    std::int64_t dlbSlowerPartitioningCount = 0;
 
     /* Statistics for atoms */
     /**< The atoms per range, summed over the steps */
@@ -754,7 +754,7 @@ struct gmx_domdec_comm_t // NOLINT (clang-analyzer-optin.performance.Padding)
     double load_pme = 0.0;
 
     /** The last partition step */
-    int64_t partition_step = INT_MIN;
+    std::int64_t partition_step = INT_MIN;
 };
 
 /*! \brief DD zone permutation

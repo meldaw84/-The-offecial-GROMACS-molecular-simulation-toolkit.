@@ -298,7 +298,7 @@ Awh::Awh(FILE*                 fplog,
 
 Awh::~Awh() = default;
 
-bool Awh::isOutputStep(int64_t step) const
+bool Awh::isOutputStep(std::int64_t step) const
 {
     return (nstout_ > 0 && step % nstout_ == 0);
 }
@@ -308,7 +308,7 @@ real Awh::applyBiasForcesAndUpdateBias(PbcType                pbcType,
                                        ArrayRef<const double> neighborLambdaDhdl,
                                        const matrix           box,
                                        double                 t,
-                                       int64_t                step,
+                                       std::int64_t           step,
                                        gmx_wallcycle*         wallcycle,
                                        FILE*                  fplog)
 {
@@ -500,7 +500,7 @@ void Awh::registerAwhWithPull(const AwhParams& awhParams, pull_t* pull_work)
 }
 
 /* Fill the AWH data block of an energy frame with data (if there is any). */
-void Awh::writeToEnergyFrame(int64_t step, t_enxframe* frame)
+void Awh::writeToEnergyFrame(std::int64_t step, t_enxframe* frame)
 {
     GMX_ASSERT(MAIN(commRecord_), "writeToEnergyFrame should only be called on the main rank");
     GMX_ASSERT(frame != nullptr, "Need a valid energy frame");
@@ -552,7 +552,7 @@ bool Awh::hasFepLambdaDimension() const
             [](const auto& coupledBias) { return coupledBias.bias_.hasFepLambdaDimension(); });
 }
 
-bool Awh::needForeignEnergyDifferences(const int64_t step) const
+bool Awh::needForeignEnergyDifferences(const std::int64_t step) const
 {
     /* If there is no FEP lambda dimension at all in any bias there will be no need for foreign
      * energy differences */

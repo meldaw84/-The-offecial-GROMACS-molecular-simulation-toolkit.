@@ -194,7 +194,7 @@ void MimicCommunicator::sendInitData(gmx_mtop_t* mtop, ArrayRef<const RVec> coor
     MCL_send(&*convertedCoords.begin(), 3 * mtop->natoms, TYPE_DOUBLE, 0);
 }
 
-int64_t MimicCommunicator::getStepNumber()
+std::int64_t MimicCommunicator::getStepNumber()
 {
     int steps;
     MCL_receive(&steps, 1, TYPE_INT, 0);

@@ -116,7 +116,7 @@ void gmx_tng_prepare_low_prec_writing(gmx_tng_trajectory_t tng, const gmx_mtop_t
  * (that component). box can only be NULL if x is also NULL. */
 void gmx_fwrite_tng(gmx_tng_trajectory_t tng,
                     gmx_bool             bUseLossyCompression,
-                    int64_t              step,
+                    std::int64_t         step,
                     real                 elapsedPicoSeconds,
                     real                 lambda,
                     const rvec*          box,
@@ -169,7 +169,7 @@ void gmx_tng_setup_atom_subgroup(gmx_tng_trajectory_t tng, gmx::ArrayRef<const i
 /*! \brief Read the first/next TNG frame. */
 gmx_bool gmx_read_next_tng_frame(gmx_tng_trajectory_t input,
                                  struct t_trxframe*   fr,
-                                 int64_t*             requestedIds,
+                                 std::int64_t*        requestedIds,
                                  int                  numRequestedIds);
 
 /*! \brief Print the molecule system to stream */
@@ -179,20 +179,20 @@ void gmx_print_tng_molecule_system(gmx_tng_trajectory_t input, FILE* stream);
 gmx_bool gmx_get_tng_data_block_types_of_next_frame(gmx_tng_trajectory_t input,
                                                     int                  frame,
                                                     int                  nRequestedIds,
-                                                    int64_t*             requestedIds,
-                                                    int64_t*             nextFrame,
-                                                    int64_t*             nBlocks,
-                                                    int64_t**            blockIds);
+                                                    std::int64_t*        requestedIds,
+                                                    std::int64_t*        nextFrame,
+                                                    std::int64_t*        nBlocks,
+                                                    std::int64_t**       blockIds);
 
 /*! \brief Get data of the next frame with data from the data block
  * with the specified block ID. */
 gmx_bool gmx_get_tng_data_next_frame_of_block_type(gmx_tng_trajectory_t input,
-                                                   int64_t              blockId,
+                                                   std::int64_t         blockId,
                                                    real**               values,
-                                                   int64_t*             frameNumber,
+                                                   std::int64_t*        frameNumber,
                                                    double*              frameTime,
-                                                   int64_t*             nValuesPerFrame,
-                                                   int64_t*             nAtoms,
+                                                   std::int64_t*        nValuesPerFrame,
+                                                   std::int64_t*        nAtoms,
                                                    real*                prec,
                                                    char*                name,
                                                    int                  maxLen,

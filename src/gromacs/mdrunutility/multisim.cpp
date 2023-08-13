@@ -206,7 +206,7 @@ void gmx_sumi_sim(int gmx_unused nr, int gmx_unused r[], const gmx_multisim_t gm
 #endif
 }
 
-void gmx_sumli_sim(int gmx_unused nr, int64_t gmx_unused r[], const gmx_multisim_t gmx_unused* ms)
+void gmx_sumli_sim(int gmx_unused nr, std::int64_t gmx_unused r[], const gmx_multisim_t gmx_unused* ms)
 {
 #if !GMX_MPI
     GMX_RELEASE_ASSERT(false, "Invalid call to gmx_sumli_sim");
@@ -284,11 +284,11 @@ void check_multi_int(FILE* log, const gmx_multisim_t* ms, int val, const char* n
     sfree(ibuf);
 }
 
-void check_multi_int64(FILE* log, const gmx_multisim_t* ms, int64_t val, const char* name, gmx_bool bQuiet)
+void check_multi_int64(FILE* log, const gmx_multisim_t* ms, std::int64_t val, const char* name, gmx_bool bQuiet)
 {
-    int64_t* ibuf;
-    int      p;
-    gmx_bool bCompatible;
+    std::int64_t* ibuf;
+    int           p;
+    gmx_bool      bCompatible;
 
     if (nullptr != log && !bQuiet)
     {
@@ -384,10 +384,10 @@ bool isMainSimMainRank(const gmx_multisim_t* ms, const bool isMain)
     return (isMain && isMainSim(ms));
 }
 
-static bool multisim_int_all_are_equal(const gmx_multisim_t* ms, int64_t value)
+static bool multisim_int_all_are_equal(const gmx_multisim_t* ms, std::int64_t value)
 {
-    bool     allValuesAreEqual = true;
-    int64_t* buf;
+    bool          allValuesAreEqual = true;
+    std::int64_t* buf;
 
     GMX_RELEASE_ASSERT(ms, "Invalid use of multi-simulation pointer");
 

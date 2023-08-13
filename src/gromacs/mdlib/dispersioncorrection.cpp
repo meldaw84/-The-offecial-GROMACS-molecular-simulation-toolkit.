@@ -137,10 +137,10 @@ DispersionCorrection::TopologyParams::TopologyParams(const gmx_mtop_t&         m
 
     for (int q = 0; q < (inputrec.efep == FreeEnergyPerturbationType::No ? 1 : 2); q++)
     {
-        double  csix    = 0;
-        double  ctwelve = 0;
-        int64_t npair   = 0;
-        int64_t nexcl   = 0;
+        double       csix    = 0;
+        double       ctwelve = 0;
+        std::int64_t npair   = 0;
+        std::int64_t nexcl   = 0;
         if (!EI_TPI(inputrec.eI))
         {
             numAtomsForDensity_ = mtop.natoms;
@@ -154,9 +154,9 @@ DispersionCorrection::TopologyParams::TopologyParams(const gmx_mtop_t&         m
             {
                 for (int tpj = tpi; tpj < ntp; tpj++)
                 {
-                    const int64_t iCount = typecount[tpi];
-                    const int64_t jCount = typecount[tpj];
-                    int64_t       npair_ij;
+                    const std::int64_t iCount = typecount[tpi];
+                    const std::int64_t jCount = typecount[tpj];
+                    std::int64_t       npair_ij;
                     if (tpi != tpj)
                     {
                         npair_ij = iCount * jCount;

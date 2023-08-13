@@ -342,11 +342,11 @@ struct t_inputrec // NOLINT (clang-analyzer-optin.performance.Padding)
     //! Integration method
     IntegrationAlgorithm eI = IntegrationAlgorithm::Default;
     //! Number of steps to be taken
-    int64_t nsteps = 0;
+    std::int64_t nsteps = 0;
     //! Used in checkpointing to separate chunks
     int simulation_part = 0;
     //! Start at a stepcount >0 (used w. convert-tpr)
-    int64_t init_step = 0;
+    std::int64_t init_step = 0;
     //! Frequency of energy calc. and T/P coupl. upd.
     int nstcalcenergy = 0;
     //! Group or verlet cutoffs
@@ -512,7 +512,7 @@ struct t_inputrec // NOLINT (clang-analyzer-optin.performance.Padding)
     //! Friction coefficient for BD (amu/ps)
     real bd_fric = 0;
     //! Random seed for SD and BD
-    int64_t ld_seed = 0;
+    std::int64_t ld_seed = 0;
     //! The number of walls
     int nwall = 0;
     //! The type of walls

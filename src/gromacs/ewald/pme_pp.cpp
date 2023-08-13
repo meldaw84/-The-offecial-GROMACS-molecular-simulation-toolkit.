@@ -105,7 +105,7 @@ static void gmx_pme_send_coeffs_coords(t_forcerec*                    fr,
                                        real                           lambda_lj,
                                        int                            maxshift_x,
                                        int                            maxshift_y,
-                                       int64_t                        step,
+                                       std::int64_t                   step,
                                        bool                           useGpuPmePpComms,
                                        bool                           reinitGpuPmePpComms,
                                        bool                           sendCoordinatesFromGpu,
@@ -380,7 +380,7 @@ void gmx_pme_send_coordinates(t_forcerec*                    fr,
                               real                           lambda_q,
                               real                           lambda_lj,
                               bool                           computeEnergyAndVirial,
-                              int64_t                        step,
+                              std::int64_t                   step,
                               bool                           useGpuPmePpComms,
                               bool                           receiveCoordinateAddressFromPme,
                               bool                           sendCoordinatesFromGpu,
@@ -474,7 +474,7 @@ void gmx_pme_send_switchgrid(const t_commrec* cr, ivec grid_size, real ewaldcoef
 #endif
 }
 
-void gmx_pme_send_resetcounters(const t_commrec gmx_unused* cr, int64_t gmx_unused step)
+void gmx_pme_send_resetcounters(const t_commrec gmx_unused* cr, std::int64_t gmx_unused step)
 {
 #if GMX_MPI
     gmx_pme_comm_n_box_t cnb;

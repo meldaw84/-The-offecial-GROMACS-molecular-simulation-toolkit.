@@ -77,9 +77,9 @@ gatherLoadBySimdIntTranspose(const float* base, SimdFInt32 offset, SimdFloat* v0
     {
         svbool_t    pg    = svptrue_b32();
         svfloat32_t t0    = svreinterpret_f32_u64(svld1_gather_s64index_u64(
-                svunpklo_b(pg), (uint64_t*)base, svunpklo_s64(offset.simdInternal_)));
+                svunpklo_b(pg), (std::uint64_t*)base, svunpklo_s64(offset.simdInternal_)));
         svfloat32_t t1    = svreinterpret_f32_u64(svld1_gather_s64index_u64(
-                svunpkhi_b(pg), (uint64_t*)base, svunpkhi_s64(offset.simdInternal_)));
+                svunpkhi_b(pg), (std::uint64_t*)base, svunpkhi_s64(offset.simdInternal_)));
         v0->simdInternal_ = svuzp1(t0, t1);
         v1->simdInternal_ = svuzp2(t0, t1);
     }
@@ -87,12 +87,12 @@ gatherLoadBySimdIntTranspose(const float* base, SimdFInt32 offset, SimdFloat* v0
     {
         svbool_t    pg      = svptrue_b32();
         svint32_t   offsets = svmul_n_s32_x(pg, offset.simdInternal_, align / 2);
-        svfloat32_t t0      = svreinterpret_f32_u64(
-                svld1_gather_s64index_u64(svunpklo_b(pg), (uint64_t*)base, svunpklo_s64(offsets)));
-        svfloat32_t t1 = svreinterpret_f32_u64(
-                svld1_gather_s64index_u64(svunpkhi_b(pg), (uint64_t*)base, svunpkhi_s64(offsets)));
-        v0->simdInternal_ = svuzp1(t0, t1);
-        v1->simdInternal_ = svuzp2(t0, t1);
+        svfloat32_t t0      = svreinterpret_f32_u64(svld1_gather_s64index_u64(
+                svunpklo_b(pg), (std::uint64_t*)base, svunpklo_s64(offsets)));
+        svfloat32_t t1      = svreinterpret_f32_u64(svld1_gather_s64index_u64(
+                svunpkhi_b(pg), (std::uint64_t*)base, svunpkhi_s64(offsets)));
+        v0->simdInternal_   = svuzp1(t0, t1);
+        v1->simdInternal_   = svuzp2(t0, t1);
     }
 }
 
@@ -214,11 +214,11 @@ static inline void gmx_simdcall expandScalarsToTriplets(SimdFloat  scalar,
                                                         SimdFloat* triplets2)
 {
     assert(GMX_SIMD_FLOAT_WIDTH <= 16);
-    uint32_t   ind[48] = { 0,  0,  0,  1,  1,  1,  2,  2,  2,  3,  3,  3,  4,  4,  4,  5,
-                         5,  5,  6,  6,  6,  7,  7,  7,  8,  8,  8,  9,  9,  9,  10, 10,
-                         10, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15 };
-    svbool_t   pg;
-    svuint32_t idx;
+    std::uint32_t ind[48] = { 0,  0,  0,  1,  1,  1,  2,  2,  2,  3,  3,  3,  4,  4,  4,  5,
+                              5,  5,  6,  6,  6,  7,  7,  7,  8,  8,  8,  9,  9,  9,  10, 10,
+                              10, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15 };
+    svbool_t      pg;
+    svuint32_t    idx;
 
     pg                       = svptrue_b32();
     idx                      = svld1_u32(pg, ind);

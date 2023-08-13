@@ -60,9 +60,9 @@ bool gmx_numzero(double a)
 }
 
 
-bool check_int_multiply_for_overflow(int64_t a, int64_t b, int64_t* result)
+bool check_int_multiply_for_overflow(std::int64_t a, std::int64_t b, std::int64_t* result)
 {
-    int64_t sign = 1;
+    std::int64_t sign = 1;
     if ((0 == a) || (0 == b))
     {
         *result = 0;

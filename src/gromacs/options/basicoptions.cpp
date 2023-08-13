@@ -212,14 +212,14 @@ AbstractOptionStorage* IntegerOption::createStorage(const OptionManagerContainer
  * Int64OptionStorage
  */
 
-std::string Int64OptionStorage::formatSingleValue(const int64_t& value) const
+std::string Int64OptionStorage::formatSingleValue(const std::int64_t& value) const
 {
     return toString(value);
 }
 
 void Int64OptionStorage::initConverter(ConverterType* converter)
 {
-    converter->addConverter<std::string>(&fromStdString<int64_t>);
+    converter->addConverter<std::string>(&fromStdString<std::int64_t>);
 }
 
 /********************************************************************

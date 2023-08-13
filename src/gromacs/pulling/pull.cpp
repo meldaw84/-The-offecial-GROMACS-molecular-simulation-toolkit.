@@ -1764,9 +1764,9 @@ void dd_make_local_pull_groups(const t_commrec* cr, struct pull_t* pull)
          * if they needed to participate up to 20 decompositions ago.
          * This avoids frequent rebuilds due to atoms jumping back and forth.
          */
-        const int64_t history_count = 20;
-        gmx_bool      bWillParticipate;
-        int           count[2];
+        const std::int64_t history_count = 20;
+        gmx_bool           bWillParticipate;
+        int                count[2];
 
         /* Increase the decomposition counter for the current call */
         comm->setup_count++;

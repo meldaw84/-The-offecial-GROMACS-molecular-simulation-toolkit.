@@ -47,6 +47,8 @@
 #ifndef GMXAPICOMPAT_H
 #define GMXAPICOMPAT_H
 
+#include <cstdint>
+
 #include <map>
 #include <string>
 
@@ -96,11 +98,11 @@ class TypeError : public gmxapi::BasicException<TypeError>
  */
 std::map<std::string, gmxapi::GmxapiType> simulationParameterTypeMap();
 
-std::map<std::string, bool t_inputrec::*>    boolParams();
-std::map<std::string, int t_inputrec::*>     int32Params();
-std::map<std::string, float t_inputrec::*>   float32Params();
-std::map<std::string, double t_inputrec::*>  float64Params();
-std::map<std::string, int64_t t_inputrec::*> int64Params();
+std::map<std::string, bool t_inputrec::*>         boolParams();
+std::map<std::string, int t_inputrec::*>          int32Params();
+std::map<std::string, float t_inputrec::*>        float32Params();
+std::map<std::string, double t_inputrec::*>       float64Params();
+std::map<std::string, std::int64_t t_inputrec::*> int64Params();
 
 /*!
  * \brief Static mapping of parameter names to gmxapi types for GROMACS.
@@ -227,13 +229,13 @@ std::unique_ptr<GmxMdParams> getMdParams(const TprReadHandle& handle);
  * Could be used for dispatch and/or some sort of templating in the future, but
  * invoked directly for now.
  */
-int     extractParam(const GmxMdParams& params, const std::string& name, int /*unused*/);
-int64_t extractParam(const GmxMdParams& params, const std::string& name, int64_t /*unused*/);
-float   extractParam(const GmxMdParams& params, const std::string& name, float /*unused*/);
-double  extractParam(const GmxMdParams& params, const std::string& name, double /*unused*/);
+int          extractParam(const GmxMdParams& params, const std::string& name, int /*unused*/);
+std::int64_t extractParam(const GmxMdParams& params, const std::string& name, std::int64_t /*unused*/);
+float        extractParam(const GmxMdParams& params, const std::string& name, float /*unused*/);
+double       extractParam(const GmxMdParams& params, const std::string& name, double /*unused*/);
 
 void setParam(GmxMdParams* params, const std::string& name, double value);
-void setParam(GmxMdParams* params, const std::string& name, int64_t value);
+void setParam(GmxMdParams* params, const std::string& name, std::int64_t value);
 // TODO: unsetParam
 
 } // end namespace gmxapicompat

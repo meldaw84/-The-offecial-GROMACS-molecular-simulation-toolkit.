@@ -59,8 +59,8 @@ TEST(SeedTest, makeRandomSeed)
     // if you execute the unit tests once per second you might have to run them
     // an extra time rougly once per 300 billion years - apologies in advance!
 
-    uint64_t i0 = makeRandomSeed();
-    uint64_t i1 = makeRandomSeed();
+    std::uint64_t i0 = makeRandomSeed();
+    std::uint64_t i1 = makeRandomSeed();
 
     EXPECT_NE(i0, i1);
 }

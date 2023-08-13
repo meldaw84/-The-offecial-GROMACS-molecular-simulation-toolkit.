@@ -71,9 +71,9 @@ std::string simpleValueToString(const Any& value)
     {
         return toString(value.cast<int>());
     }
-    else if (value.isType<int64_t>())
+    else if (value.isType<std::int64_t>())
     {
-        return toString(value.cast<int64_t>());
+        return toString(value.cast<std::int64_t>());
     }
     else if (value.isType<std::string>())
     {

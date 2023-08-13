@@ -58,8 +58,8 @@ static bool checkIfRandomDeviceIsFunctional()
     {
         std::random_device rd;
 
-        uint64_t randomNumber1 = static_cast<uint64_t>(rd());
-        uint64_t randomNumber2 = static_cast<uint64_t>(rd());
+        std::uint64_t randomNumber1 = static_cast<std::uint64_t>(rd());
+        std::uint64_t randomNumber2 = static_cast<std::uint64_t>(rd());
 
         // Due to a bug in AMD Ryzen microcode, RDRAND may always return -1 (0xFFFFFFFF).
         // To avoid that, fall back to using PRNG instead of RDRAND if this happens.
@@ -98,24 +98,24 @@ static bool checkIfRandomDeviceIsFunctional()
  * \return Random or pseudo-random number.
  */
 template<typename GeneratorType>
-static uint64_t makeRandomSeedInternal(GeneratorType& gen)
+static std::uint64_t makeRandomSeedInternal(GeneratorType& gen)
 {
-    constexpr std::size_t resultBits = std::numeric_limits<uint64_t>::digits;
+    constexpr std::size_t resultBits = std::numeric_limits<std::uint64_t>::digits;
     constexpr std::size_t numBitsInRandomNumber =
             std::numeric_limits<typename GeneratorType::result_type>::digits;
 
-    uint64_t result = static_cast<uint64_t>(gen());
+    std::uint64_t result = static_cast<std::uint64_t>(gen());
     // This is needed so that compiler understands that what follows is a dead branch
     // and not complains about shift count larger than number of bits in the result.
     constexpr std::size_t shiftCount = (resultBits < numBitsInRandomNumber) ? numBitsInRandomNumber : 0;
     for (std::size_t bits = numBitsInRandomNumber; bits < resultBits; bits += numBitsInRandomNumber)
     {
-        result = (result << shiftCount) | static_cast<uint64_t>(gen());
+        result = (result << shiftCount) | static_cast<std::uint64_t>(gen());
     }
     return result;
 }
 
-uint64_t makeRandomSeed()
+std::uint64_t makeRandomSeed()
 {
     bool useRdrand = checkIfRandomDeviceIsFunctional();
     if (useRdrand)
@@ -125,9 +125,9 @@ uint64_t makeRandomSeed()
     }
     else
     {
-        int64_t microsecondsSinceEpoch = std::chrono::duration_cast<std::chrono::microseconds>(
-                                                 std::chrono::system_clock::now().time_since_epoch())
-                                                 .count();
+        std::int64_t microsecondsSinceEpoch = std::chrono::duration_cast<std::chrono::microseconds>(
+                                                      std::chrono::system_clock::now().time_since_epoch())
+                                                      .count();
         std::mt19937_64 prng(microsecondsSinceEpoch);
         return makeRandomSeedInternal(prng);
     }
