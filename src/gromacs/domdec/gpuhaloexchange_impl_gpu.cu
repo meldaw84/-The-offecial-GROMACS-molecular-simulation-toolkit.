@@ -46,7 +46,6 @@
 
 #include "config.h"
 
-#include "gromacs/domdec/gpuhaloexchange.h"
 #include "gromacs/gpu_utils/typecasts.cuh"
 #include "gromacs/gpu_utils/vectype_ops.cuh"
 
@@ -181,7 +180,7 @@ void GpuHaloExchange::Impl::launchUnpackFKernel(bool accumulateForces)
     }
 }
 
-void eagerGpuForceReductionJit(const DeviceStreamManager& /* deviceStreamManager */)
+void eagerGpuHaloExchangeJit(const DeviceStreamManager& /* deviceStreamManager */)
 {
     // No known need for this in CUDA
 }
