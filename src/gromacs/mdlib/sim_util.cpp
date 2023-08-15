@@ -1472,9 +1472,20 @@ void do_force(FILE*                               fplog,
         {
             calc_shifts(box, fr->shift_vec);
         }
+    }
+    nbnxn_atomdata_copy_shiftvec(stepWork.haveDynamicBox, fr->shift_vec, nbv->nbat.get());
 
-        const bool fillGrid = (stepWork.doNeighborSearch && stepWork.stateChanged);
-        const bool calcCGCM = (fillGrid && !haveDDAtomOrdering(*cr));
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    if (stepWork.doNeighborSearch)
+    {
+
+        // XXX indent
+    if (fr->pbcType != PbcType::No)
+    {
+        const bool calcCGCM = (stepWork.stateChanged && !haveDDAtomOrdering(*cr));
         if (calcCGCM)
         {
             put_atoms_in_box_omp(fr->pbcType,
@@ -1484,7 +1495,7 @@ void do_force(FILE*                               fplog,
             inc_nrnb(nrnb, eNR_SHIFTX, mdatoms->homenr);
         }
 
-        if (stepWork.doNeighborSearch && !haveDDAtomOrdering(*cr))
+        if (!haveDDAtomOrdering(*cr))
         {
             // Atoms might have changed periodic image, signal MDModules
             gmx::MDModulesAtomsRedistributedSignal mdModulesAtomsRedistributedSignal(
@@ -1492,68 +1503,7 @@ void do_force(FILE*                               fplog,
             mdModulesNotifiers.simulationSetupNotifier_.notify(mdModulesAtomsRedistributedSignal);
         }
     }
-
-    nbnxn_atomdata_copy_shiftvec(stepWork.haveDynamicBox, fr->shift_vec, nbv->nbat.get());
-
-    const bool pmeSendCoordinatesFromGpu =
-            simulationWork.useGpuPmePpCommunication && !(stepWork.doNeighborSearch);
-    const bool reinitGpuPmePpComms =
-            simulationWork.useGpuPmePpCommunication && (stepWork.doNeighborSearch);
-
-    GMX_ASSERT(simulationWork.useGpuHaloExchange
-                       == ((cr->dd != nullptr) && (!cr->dd->gpuHaloExchange[0].empty())),
-               "The GPU halo exchange is active, but it has not been constructed.");
-
-    bool gmx_used_in_debug haveCopiedXFromGpu = false;
-    // Copy coordinate from the GPU if update is on the GPU and there
-    // are forces to be computed on the CPU, or for the computation of
-    // virial, or if host-side data will be transferred from this task
-    // to a remote task for halo exchange or PME-PP communication. At
-    // search steps the current coordinates are already on the host,
-    // hence copy is not needed.
-    if (simulationWork.useGpuUpdate && !stepWork.doNeighborSearch
-        && (runScheduleWork->domainWork.haveCpuLocalForceWork || stepWork.computeVirial
-            || simulationWork.useCpuPmePpCommunication || simulationWork.useCpuHaloExchange
-            || simulationWork.computeMuTot))
-    {
-        stateGpu->copyCoordinatesFromGpu(x.unpaddedArrayRef(), AtomLocality::Local);
-        haveCopiedXFromGpu = true;
-    }
-
-    // Coordinates on the device are needed if PME or BufferOps are offloaded.
-    // The local coordinates can be copied right away.
-    // NOTE: Consider moving this copy to right after they are updated and constrained,
-    //       if the later is not offloaded.
-    if (stepWork.haveGpuPmeOnThisRank || stepWork.useGpuXBufferOps)
-    {
-        GMX_ASSERT(stateGpu != nullptr, "stateGpu should not be null");
-        const int expectedLocalXReadyOnDeviceConsumptionCount =
-                getExpectedLocalXReadyOnDeviceConsumptionCount(
-                        simulationWork, stepWork, pmeSendCoordinatesFromGpu);
-
-        // We need to copy coordinates when:
-        // 1. Update is not offloaded
-        // 2. The buffers were reinitialized on search step
-        if (!simulationWork.useGpuUpdate || stepWork.doNeighborSearch)
-        {
-            stateGpu->copyCoordinatesToGpu(x.unpaddedArrayRef(),
-                                           AtomLocality::Local,
-                                           expectedLocalXReadyOnDeviceConsumptionCount);
-        }
-        else if (simulationWork.useGpuUpdate)
-        {
-            stateGpu->setXUpdatedOnDeviceEventExpectedConsumptionCount(
-                    expectedLocalXReadyOnDeviceConsumptionCount);
-        }
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /* do gridding for pair search */
-    if (stepWork.doNeighborSearch)
-    {
+    
         if (fr->wholeMoleculeTransform && stepWork.stateChanged)
         {
             fr->wholeMoleculeTransform->updateForAtomPbcJumps(x.unpaddedArrayRef(), box);
@@ -1693,6 +1643,60 @@ void do_force(FILE*                               fplog,
     ////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+    const bool pmeSendCoordinatesFromGpu =
+            simulationWork.useGpuPmePpCommunication && !(stepWork.doNeighborSearch);
+    const bool reinitGpuPmePpComms =
+            simulationWork.useGpuPmePpCommunication && (stepWork.doNeighborSearch);
+
+    GMX_ASSERT(simulationWork.useGpuHaloExchange
+                       == ((cr->dd != nullptr) && (!cr->dd->gpuHaloExchange[0].empty())),
+               "The GPU halo exchange is active, but it has not been constructed.");
+
+    bool gmx_used_in_debug haveCopiedXFromGpu = false;
+    // Copy coordinate from the GPU if update is on the GPU and there
+    // are forces to be computed on the CPU, or for the computation of
+    // virial, or if host-side data will be transferred from this task
+    // to a remote task for halo exchange or PME-PP communication. At
+    // search steps the current coordinates are already on the host,
+    // hence copy is not needed.
+    if (simulationWork.useGpuUpdate && !stepWork.doNeighborSearch
+        && (runScheduleWork->domainWork.haveCpuLocalForceWork || stepWork.computeVirial
+            || simulationWork.useCpuPmePpCommunication || simulationWork.useCpuHaloExchange
+            || simulationWork.computeMuTot))
+    {
+        stateGpu->copyCoordinatesFromGpu(x.unpaddedArrayRef(), AtomLocality::Local);
+        haveCopiedXFromGpu = true;
+    }
+
+    // Coordinates on the device are needed if PME or BufferOps are offloaded.
+    // The local coordinates can be copied right away.
+    // NOTE: Consider moving this copy to right after they are updated and constrained,
+    //       if the later is not offloaded.
+    if (stepWork.haveGpuPmeOnThisRank || stepWork.useGpuXBufferOps)
+    {
+        GMX_ASSERT(stateGpu != nullptr, "stateGpu should not be null");
+        const int expectedLocalXReadyOnDeviceConsumptionCount =
+                getExpectedLocalXReadyOnDeviceConsumptionCount(
+                        simulationWork, stepWork, pmeSendCoordinatesFromGpu);
+
+        // We need to copy coordinates when:
+        // 1. Update is not offloaded
+        // 2. The buffers were reinitialized on search step
+        if (!simulationWork.useGpuUpdate || stepWork.doNeighborSearch)
+        {
+            stateGpu->copyCoordinatesToGpu(x.unpaddedArrayRef(),
+                                           AtomLocality::Local,
+                                           expectedLocalXReadyOnDeviceConsumptionCount);
+        }
+        else if (simulationWork.useGpuUpdate)
+        {
+            stateGpu->setXUpdatedOnDeviceEventExpectedConsumptionCount(
+                    expectedLocalXReadyOnDeviceConsumptionCount);
+        }
+    }
 
     if (stepWork.computePmeOnSeparateRank)
     {
