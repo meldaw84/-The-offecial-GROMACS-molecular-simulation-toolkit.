@@ -747,7 +747,8 @@ public:
 };
 
 #if GENERATE_REFERENCE_DATA
-// The plain-C kernels only support tabulated Ewald, to get high accuracy, we use SIMD for reference
+// The plain-C kernels only support tabulated Ewald.
+// To get high accuracy in the reference data, we use SIMD kernels.
 #    ifdef GMX_NBNXN_SIMD_4XN
 const auto testKernelTypes = ::testing::Values(Nbnxm::KernelType::Cpu4xN_Simd_4xN);
 #    else
