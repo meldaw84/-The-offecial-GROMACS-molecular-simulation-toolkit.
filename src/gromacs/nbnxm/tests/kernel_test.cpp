@@ -448,7 +448,7 @@ const std::array<const char*, vdwktNR> vdwKernelTypeName = { "CutCombGeom", "Cut
  * This is intended to work like a custom test-naming function that
  * would be passed as the fourth argument to INSTANTIATE_TEST_SUITE_P,
  * except that we are not using that macro for these tests. Only the
- * components of GatherInputParameters that affect the reference data
+ * components of KernelInputParameters that affect the reference data
  * values affect this name.
  * name. */
 std::string nameOfTest(const testing::TestParamInfo<KernelInputParameters>& info)
@@ -754,6 +754,7 @@ const auto testKernelTypes = ::testing::Values(Nbnxm::KernelType::Cpu4xN_Simd_4x
 #    else
 #        ifndef GMX_NBNXN_SIMD_2XNN
 #            error "We need SIMD kernels for generating reference data"
+#        else
 const auto testKernelTypes = ::testing::Values(Nbnxm::KernelType::Cpu4xN_Simd_2xNN);
 #        endif
 #    endif
