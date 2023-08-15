@@ -38,7 +38,7 @@
  * These tests covers all compiled flavors of the NBNxM kernels, not only
  * those used by default by mdrun.
  * The forces and energies are compared to reference data for the force+energy
- * kernel. The reference data is only stored one for kernels that are expected
+ * kernel. The reference data is only stored once for kernels that are expected
  * to produce the same output (i.e. only different kernel layout or analytical
  * vs tabulated Ewald LR correction).
  * For the force only kernel, the forces are compared to those produced
