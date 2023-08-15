@@ -1481,28 +1481,27 @@ void do_force(FILE*                               fplog,
 
     if (stepWork.doNeighborSearch)
     {
-
         // XXX indent
-    if (fr->pbcType != PbcType::No)
-    {
-        const bool calcCGCM = (stepWork.stateChanged && !haveDDAtomOrdering(*cr));
-        if (calcCGCM)
+        if (fr->pbcType != PbcType::No)
         {
-            put_atoms_in_box_omp(fr->pbcType,
-                                 box,
-                                 x.unpaddedArrayRef().subArray(0, mdatoms->homenr),
-                                 gmx_omp_nthreads_get(ModuleMultiThread::Default));
-            inc_nrnb(nrnb, eNR_SHIFTX, mdatoms->homenr);
-        }
+            const bool calcCGCM = (stepWork.stateChanged && !haveDDAtomOrdering(*cr));
+            if (calcCGCM)
+            {
+                put_atoms_in_box_omp(fr->pbcType,
+                                    box,
+                                    x.unpaddedArrayRef().subArray(0, mdatoms->homenr),
+                                    gmx_omp_nthreads_get(ModuleMultiThread::Default));
+                inc_nrnb(nrnb, eNR_SHIFTX, mdatoms->homenr);
+            }
 
-        if (!haveDDAtomOrdering(*cr))
-        {
-            // Atoms might have changed periodic image, signal MDModules
-            gmx::MDModulesAtomsRedistributedSignal mdModulesAtomsRedistributedSignal(
-                    box, x.unpaddedArrayRef().subArray(0, mdatoms->homenr));
-            mdModulesNotifiers.simulationSetupNotifier_.notify(mdModulesAtomsRedistributedSignal);
+            if (!haveDDAtomOrdering(*cr))
+            {
+                // Atoms might have changed periodic image, signal MDModules
+                gmx::MDModulesAtomsRedistributedSignal mdModulesAtomsRedistributedSignal(
+                        box, x.unpaddedArrayRef().subArray(0, mdatoms->homenr));
+                mdModulesNotifiers.simulationSetupNotifier_.notify(mdModulesAtomsRedistributedSignal);
+            }
         }
-    }
     
         if (fr->wholeMoleculeTransform && stepWork.stateChanged)
         {
