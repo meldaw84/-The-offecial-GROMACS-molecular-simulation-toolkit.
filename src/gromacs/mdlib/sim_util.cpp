@@ -1422,65 +1422,26 @@ void do_force(FILE*                               fplog,
     const StepWorkload& stepWork = runScheduleWork->stepWork;
     const gmx::DomainLifetimeWorkload& domainWork = runScheduleWork->domainWork;
 
-    if (stepWork.doNeighborSearch && gmx::needStateGpu(simulationWork))
-    {
-        // TODO refactor this to do_md, after partitioning.
-        stateGpu->reinit(mdatoms->homenr,
-                         getLocalAtomCount(cr->dd, *mdatoms, simulationWork.havePpDomainDecomposition));
-    }
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    if (stepWork.doNeighborSearch && simulationWork.haveGpuPmeOnPpRank())
-    {
-        GMX_ASSERT(gmx::needStateGpu(simulationWork), "StatePropagatorDataGpu is needed");
-        // TODO: This should be moved into PME setup function ( pme_gpu_prepare_computation(...) )
-        pme_gpu_set_device_x(fr->pmedata, stateGpu->getCoordinates());
-    }
-
-    auto* localXReadyOnDevice =
-            (stepWork.haveGpuPmeOnThisRank || simulationWork.useGpuXBufferOps || simulationWork.useGpuUpdate)
-                    ? stateGpu->getCoordinatesReadyOnDeviceEvent(AtomLocality::Local, simulationWork, stepWork)
-                    : nullptr;
-
-    if (stepWork.clearGpuFBufferEarly)
-    {
-        // GPU Force halo exchange will set a subset of local atoms with remote non-local data.
-        // First clear local portion of force array, so that untouched atoms are zero.
-        // The dependency for this is that forces from previous timestep have been consumed,
-        // which is satisfied when localXReadyOnDevice has been marked for GPU update case.
-        // For CPU update, the forces are consumed by the beginning of the step, so no extra sync needed.
-        GpuEventSynchronizer* dependency = simulationWork.useGpuUpdate ? localXReadyOnDevice : nullptr;
-        stateGpu->clearForcesOnGpu(AtomLocality::Local, dependency);
-    }
-
-    /* At a search step we need to start the first balancing region
-     * somewhere early inside the step after communication during domain
-     * decomposition (and not during the previous step as usual).
-     */
     if (stepWork.doNeighborSearch)
     {
-        ddBalanceRegionHandler.openBeforeForceComputationCpu(DdAllowBalanceRegionReopen::yes);
-    }
-
-    clear_mat(vir_force);
-
-    if (fr->pbcType != PbcType::No)
-    {
-        /* Compute shift vectors every step,
-         * because of pressure coupling or box deformation!
-         */
-        if (stepWork.haveDynamicBox && stepWork.stateChanged)
+        if (gmx::needStateGpu(simulationWork))
         {
-            calc_shifts(box, fr->shift_vec);
+            // TODO refactor this to do_md, after partitioning.
+            stateGpu->reinit(mdatoms->homenr,
+                            getLocalAtomCount(cr->dd, *mdatoms, simulationWork.havePpDomainDecomposition));
         }
-    }
-    nbnxn_atomdata_copy_shiftvec(stepWork.haveDynamicBox, fr->shift_vec, nbv->nbat.get());
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////
+        if (simulationWork.haveGpuPmeOnPpRank())
+        {
+            GMX_ASSERT(gmx::needStateGpu(simulationWork), "StatePropagatorDataGpu is needed");
+            // TODO: This should be moved into PME setup function ( pme_gpu_prepare_computation(...) )
+            pme_gpu_set_device_x(fr->pmedata, stateGpu->getCoordinates());
+        }
 
-    if (stepWork.doNeighborSearch)
-    {
         // XXX indent
         if (fr->pbcType != PbcType::No)
         {
@@ -1642,6 +1603,46 @@ void do_force(FILE*                               fplog,
     ////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+    auto* localXReadyOnDevice =
+            (stepWork.haveGpuPmeOnThisRank || simulationWork.useGpuXBufferOps || simulationWork.useGpuUpdate)
+                    ? stateGpu->getCoordinatesReadyOnDeviceEvent(AtomLocality::Local, simulationWork, stepWork)
+                    : nullptr;
+
+    if (stepWork.clearGpuFBufferEarly)
+    {
+        // GPU Force halo exchange will set a subset of local atoms with remote non-local data.
+        // First clear local portion of force array, so that untouched atoms are zero.
+        // The dependency for this is that forces from previous timestep have been consumed,
+        // which is satisfied when localXReadyOnDevice has been marked for GPU update case.
+        // For CPU update, the forces are consumed by the beginning of the step, so no extra sync needed.
+        GpuEventSynchronizer* dependency = simulationWork.useGpuUpdate ? localXReadyOnDevice : nullptr;
+        stateGpu->clearForcesOnGpu(AtomLocality::Local, dependency);
+    }
+
+    /* At a search step we need to start the first balancing region
+     * somewhere early inside the step after communication during domain
+     * decomposition (and not during the previous step as usual).
+     */
+    if (stepWork.doNeighborSearch)
+    {
+        ddBalanceRegionHandler.openBeforeForceComputationCpu(DdAllowBalanceRegionReopen::yes);
+    }
+
+    clear_mat(vir_force);
+
+    if (fr->pbcType != PbcType::No)
+    {
+        /* Compute shift vectors every step,
+         * because of pressure coupling or box deformation!
+         */
+        if (stepWork.haveDynamicBox && stepWork.stateChanged)
+        {
+            calc_shifts(box, fr->shift_vec);
+        }
+    }
+    nbnxn_atomdata_copy_shiftvec(stepWork.haveDynamicBox, fr->shift_vec, nbv->nbat.get());
 
 
 
