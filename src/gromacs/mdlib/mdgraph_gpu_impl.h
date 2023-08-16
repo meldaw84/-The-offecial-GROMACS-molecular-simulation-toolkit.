@@ -113,11 +113,10 @@ public:
     void createExecutableGraph(bool forceGraphReinstantiation);
 
     /*! \brief Launch graph corresponding to MD step
-     * \param [inout] xUpdatedOnDeviceEvent  Event marked when coordinates have been updated o\
-n device
+     * \param [in]    nextStepIsSearchStep   Whether the next step is a neighbour search step
+     * \param [inout] xUpdatedOnDeviceEvent  Event marked when coordinates have been updated on device
      */
-    void launchGraphMdStep(GpuEventSynchronizer* xUpdatedOnDeviceEvent);
-
+    void launchGraphMdStep(bool nextStepIsSearchStep, GpuEventSynchronizer* xUpdatedOnDeviceEvent);
     /*! \brief Whether graph is in use this step */
     bool useGraphThisStep() const { return useGraphThisStep_; }
 

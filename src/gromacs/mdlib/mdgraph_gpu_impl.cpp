@@ -112,7 +112,8 @@ void MdGpuGraph::createExecutableGraph(bool /* forceGraphReinstantiation */)
     GMX_ASSERT(!impl_, "A CPU stub for MD Graph was called instead of the correct implementation.");
 }
 
-void MdGpuGraph::launchGraphMdStep(GpuEventSynchronizer* /* xUpdatedOnDeviceEvent */)
+void MdGpuGraph::launchGraphMdStep(bool /* nextStepIsSearchStep */,
+                                   GpuEventSynchronizer* /* xUpdatedOnDeviceEvent */)
 {
     GMX_ASSERT(!impl_, "A CPU stub for MD Graph was called instead of the correct implementation.");
 }

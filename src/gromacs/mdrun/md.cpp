@@ -1672,7 +1672,8 @@ void gmx::LegacySimulator::do_md()
             }
             if (mdGraph->useGraphThisStep())
             {
-                mdGraph->launchGraphMdStep(integrator->xUpdatedOnDeviceEvent());
+                bool nextStepIsSearchStep = (step + 1) % ir->nstlist == 0;
+                mdGraph->launchGraphMdStep(nextStepIsSearchStep, integrator->xUpdatedOnDeviceEvent());
             }
             if (bNS)
             {

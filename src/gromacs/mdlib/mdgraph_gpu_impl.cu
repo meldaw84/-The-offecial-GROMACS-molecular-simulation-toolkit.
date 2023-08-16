@@ -380,7 +380,7 @@ void MdGpuGraph::Impl::createExecutableGraph(bool forceGraphReinstantiation)
     wallcycle_stop(wcycle_, WallCycleCounter::MdGpuGraph);
 };
 
-void MdGpuGraph::Impl::launchGraphMdStep(GpuEventSynchronizer* xUpdatedOnDeviceEvent)
+void MdGpuGraph::Impl::launchGraphMdStep(bool nextStepIsSearchStep, GpuEventSynchronizer* xUpdatedOnDeviceEvent)
 {
 
     GMX_ASSERT(useGraphThisStep_,
@@ -454,6 +454,12 @@ void MdGpuGraph::Impl::launchGraphMdStep(GpuEventSynchronizer* xUpdatedOnDeviceE
     enqueueRank0EventToAllPpStreams(helperEvent_.get(), *thisLaunchStream);
     xUpdatedOnDeviceEvent->markEvent(*thisLaunchStream);
 
+    if (nextStepIsSearchStep)
+    {
+        // Explicit wait required due to CPU activities at start of search step
+        thisLaunchStream->synchronize();
+    }
+
     wallcycle_sub_stop(wcycle_, WallCycleSubCounter::MdGpuGraphLaunch);
     wallcycle_stop(wcycle_, WallCycleCounter::MdGpuGraph);
 };
@@ -514,9 +520,9 @@ void MdGpuGraph::createExecutableGraph(bool forceGraphReinstantiation)
     impl_->createExecutableGraph(forceGraphReinstantiation);
 }
 
-void MdGpuGraph::launchGraphMdStep(GpuEventSynchronizer* xUpdatedOnDeviceEvent)
+void MdGpuGraph::launchGraphMdStep(bool nextStepIsSearchStep, GpuEventSynchronizer* xUpdatedOnDeviceEvent)
 {
-    impl_->launchGraphMdStep(xUpdatedOnDeviceEvent);
+    impl_->launchGraphMdStep(nextStepIsSearchStep, xUpdatedOnDeviceEvent);
 }
 
 bool MdGpuGraph::useGraphThisStep() const
