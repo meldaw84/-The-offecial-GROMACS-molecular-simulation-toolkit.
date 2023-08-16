@@ -1610,6 +1610,7 @@ void do_force(FILE*                               fplog,
                     ? stateGpu->getCoordinatesReadyOnDeviceEvent(AtomLocality::Local, simulationWork, stepWork)
                     : nullptr;
 
+    // FIXME: clearGpuFBufferEarly is potentially incorrect here because it is initialized with stale domainWork.haveCpuLocalForceWork
     if (stepWork.clearGpuFBufferEarly)
     {
         // GPU Force halo exchange will set a subset of local atoms with remote non-local data.
