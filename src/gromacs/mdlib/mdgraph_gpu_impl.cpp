@@ -140,6 +140,11 @@ GpuEventSynchronizer* MdGpuGraph::getPpTaskCompletionEvent()
     return nullptr;
 }
 
+void MdGpuGraph::waitForGraph()
+{
+    GMX_ASSERT(!impl_, "A CPU stub for MD Graph was called instead of the correct implementation.");
+}
+
 } // namespace gmx
 
 #endif // !GMX_GPU_CUDA

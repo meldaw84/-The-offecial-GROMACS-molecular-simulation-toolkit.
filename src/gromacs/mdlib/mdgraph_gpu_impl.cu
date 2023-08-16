@@ -468,6 +468,11 @@ GpuEventSynchronizer* MdGpuGraph::Impl::getPpTaskCompletionEvent()
     return ppTaskCompletionEvent_.get();
 }
 
+void MdGpuGraph::Impl::waitForGraph()
+{
+    launchStream_->synchronize();
+}
+
 MdGpuGraph::MdGpuGraph(const DeviceStreamManager& deviceStreamManager,
                        SimulationWorkload         simulationWork,
                        MPI_Comm                   mpiComm,
@@ -537,6 +542,11 @@ void MdGpuGraph::setAlternateStepPpTaskCompletionEvent(GpuEventSynchronizer* eve
 GpuEventSynchronizer* MdGpuGraph::getPpTaskCompletionEvent()
 {
     return impl_->getPpTaskCompletionEvent();
+}
+
+void MdGpuGraph::waitForGraph()
+{
+    impl_->waitForGraph();
 }
 
 } // namespace gmx

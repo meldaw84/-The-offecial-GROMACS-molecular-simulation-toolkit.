@@ -907,6 +907,12 @@ void gmx::LegacySimulator::do_md()
         /* Determine whether or not to do Neighbour Searching */
         bNS = (bFirstStep || bNStList || bExchanged || bNeedRepartition);
 
+        if (bNS && usedMdGpuGraphLastStep)
+        {
+            fr->mdGraph[MdGraphEvenOrOddStep::EvenStep]->waitForGraph();
+            fr->mdGraph[MdGraphEvenOrOddStep::OddStep]->waitForGraph();
+        }
+
         /* Note that the stopHandler will cause termination at nstglobalcomm
          * steps. Since this concides with nstcalcenergy, nsttcouple and/or
          * nstpcouple steps, we have computed the half-step kinetic energy

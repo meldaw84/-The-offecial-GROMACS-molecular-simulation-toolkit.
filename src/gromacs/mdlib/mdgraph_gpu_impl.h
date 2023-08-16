@@ -132,6 +132,9 @@ n device
      */
     GpuEventSynchronizer* getPpTaskCompletionEvent();
 
+    /*! Wait for graph to complete execution on GPU */
+    void waitForGraph();
+
 private:
     /*! \brief Collective operation to enqueue events from all PP ranks to a stream on PP rank 0
      * \param [in] event   Event to enqueue, valid on all PP ranks

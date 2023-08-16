@@ -143,6 +143,9 @@ public:
      */
     GpuEventSynchronizer* getPpTaskCompletionEvent();
 
+    /*! Wait for graph to complete execution on GPU */
+    void waitForGraph();
+
 private:
     class Impl;
     std::unique_ptr<Impl> impl_;
