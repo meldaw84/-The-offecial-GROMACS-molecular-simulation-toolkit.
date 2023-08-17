@@ -1417,10 +1417,20 @@ void do_force(FILE*                               fplog,
 
     const SimulationWorkload& simulationWork = runScheduleWork->simulationWork;
 
+    const gmx::DomainLifetimeWorkload& domainWork = runScheduleWork->domainWork;
+
+    if ((legacyFlags & GMX_FORCE_NS) != 0)
+    {
+        if (fr->listedForcesGpu)
+        {
+            fr->listedForcesGpu->updateHaveInteractions(top->idef);
+        }
+        runScheduleWork->domainWork = setupDomainLifetimeWorkload(inputrec, *fr, pull_work, ed, *mdatoms, simulationWork);
+    }
+
     runScheduleWork->stepWork = setupStepWorkload(
             legacyFlags, inputrec.mtsLevels, step, runScheduleWork->domainWork, simulationWork);
     const StepWorkload& stepWork = runScheduleWork->stepWork;
-    const gmx::DomainLifetimeWorkload& domainWork = runScheduleWork->domainWork;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1524,11 +1534,6 @@ void do_force(FILE*                               fplog,
                         nbv->getGridIndices(), top->idef, Nbnxm::gpuGetNBAtomData(nbv->gpu_nbv));
             }
         }
-
-        // Need to run after the GPU-offload bonded interaction lists
-        // are set up to be able to determine whether there is bonded work.
-        runScheduleWork->domainWork =
-                setupDomainLifetimeWorkload(inputrec, *fr, pull_work, ed, *mdatoms, simulationWork);
 
         wallcycle_start_nocount(wcycle, WallCycleCounter::NS);
         wallcycle_sub_start(wcycle, WallCycleSubCounter::NBSSearchLocal);

@@ -209,6 +209,25 @@ static inline int roundUpToFactor(const int input, const int factor)
     return (input + (factor - remainder));
 }
 
+void ListedForcesGpu::Impl::updateHaveInteractions(const InteractionDefinitions& idef)
+{
+    haveInteractions_ = false;
+
+    for (int fType : fTypesOnGpu)
+    {
+        /* Perturbation is not implemented in the GPU bonded kernels.
+         * But instead of doing all interactions on the CPU, we can
+         * still easily handle the types that have no perturbed
+         * interactions on the GPU. */
+        if (!idef.il[fType].empty() && !fTypeHasPerturbedEntries(idef, fType))
+        {
+            haveInteractions_ = true;
+            return;
+        }
+    }
+}
+
+
 // TODO Consider whether this function should be a factory method that
 // makes an object that is the only one capable of the device
 // operations needed for the lifetime of an interaction list. This
@@ -382,6 +401,11 @@ ListedForcesGpu::ListedForcesGpu(const gmx_ffparams_t&    ffparams,
 }
 
 ListedForcesGpu::~ListedForcesGpu() = default;
+
+void ListedForcesGpu::updateHaveInteractions(const InteractionDefinitions& idef)
+{
+    impl_->updateHaveInteractions(idef);
+}
 
 void ListedForcesGpu::updateInteractionListsAndDeviceBuffers(ArrayRef<const int> nbnxnAtomOrder,
                                                              const InteractionDefinitions& idef,

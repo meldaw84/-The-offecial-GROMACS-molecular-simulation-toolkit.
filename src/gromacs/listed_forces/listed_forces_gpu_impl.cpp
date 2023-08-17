@@ -149,6 +149,10 @@ ListedForcesGpu::ListedForcesGpu(const gmx_ffparams_t& /* ffparams */,
 
 ListedForcesGpu::~ListedForcesGpu() = default;
 
+void ListedForcesGpu::Impl::updateHaveInteractions(const InteractionDefinitions& /*idef*/)
+{
+}
+
 void ListedForcesGpu::updateInteractionListsAndDeviceBuffers(ArrayRef<const int> /* nbnxnAtomOrder */,
                                                              const InteractionDefinitions& /* idef */,
                                                              NBAtomDataGpu* /* nbnxmAtomDataGpu */)
