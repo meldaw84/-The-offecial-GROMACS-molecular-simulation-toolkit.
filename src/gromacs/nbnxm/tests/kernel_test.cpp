@@ -771,6 +771,11 @@ const auto testKernelTypes = ::testing::Values(Nbnxm::KernelType::Cpu4x4_PlainC
 );
 #endif // GENERATE_REFERENCE_DATA
 
+/* Note that which tests are registered is determined at compile time, not dynamically.
+ * The dynamic registration mechanism is only used to be able to call registerTests()
+ * so we can supply different names for the test and the string used for the reference
+ * data. This enables tests to share reference data.
+ */
 void registerTestsDynamically()
 {
     // Form the Cartesian product of all test values we might check
