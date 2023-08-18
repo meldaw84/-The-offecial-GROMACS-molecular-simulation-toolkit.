@@ -48,6 +48,11 @@
 
 enum class PmeRunMode;
 
+struct t_forcerec;
+struct pull_t;
+struct gmx_edsam;
+struct t_mdatoms;
+
 namespace gmx
 {
 
@@ -87,6 +92,12 @@ SimulationWorkload createSimulationWorkload(const t_inputrec& inputrec,
                                             bool       canUseDirectGpuComm,
                                             bool       useGpuPmeDecomposition);
 
+DomainLifetimeWorkload setupDomainLifetimeWorkload(const t_inputrec&         inputrec,
+                                                   const t_forcerec&         fr,
+                                                   const pull_t*             pull_work,
+                                                   const gmx_edsam*          ed,
+                                                   const t_mdatoms&          mdatoms,
+                                                   const SimulationWorkload& simulationWork);
 } // namespace gmx
 
 #endif
