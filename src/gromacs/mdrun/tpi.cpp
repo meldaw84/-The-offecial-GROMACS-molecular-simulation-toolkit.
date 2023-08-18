@@ -59,6 +59,7 @@
 #include "gromacs/gmxlib/conformation_utilities.h"
 #include "gromacs/gmxlib/network.h"
 #include "gromacs/gmxlib/nrnb.h"
+#include "gromacs/listed_forces/listed_forces_gpu.h"
 #include "gromacs/math/units.h"
 #include "gromacs/math/vec.h"
 #include "gromacs/mdlib/constr.h"
@@ -86,6 +87,7 @@
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/random/threefry.h"
 #include "gromacs/random/uniformrealdistribution.h"
+#include "gromacs/taskassignment/include/gromacs/taskassignment/decidesimulationworkload.h"
 #include "gromacs/timing/wallcycle.h"
 #include "gromacs/timing/walltime_accounting.h"
 #include "gromacs/topology/mtop_util.h"
@@ -612,6 +614,15 @@ void LegacySimulator::do_tpi()
             rng.restart(frame_step, step);
             dist.reset(); // erase any memory in the distribution
 
+            gmx_edsam* ed = nullptr;
+
+            if (bNS)
+            {
+                // TPI only computes non-bonded interaction energies, no other energies should be computed.
+                runScheduleWork_->domainWork = setupDomainLifetimeWorkload(
+                        *inputRec_, *fr_, pullWork_, ed, *mdatoms, runScheduleWork_->simulationWork);
+            }
+
             if (!bCavity)
             {
                 /* Random insertion in the whole volume */
@@ -773,7 +784,7 @@ void LegacySimulator::do_tpi()
                      nullptr,
                      mu_tot,
                      t,
-                     nullptr,
+                     ed,
                      fr_->longRangeNonbondeds.get(),
                      GMX_FORCE_NONBONDED | GMX_FORCE_ENERGY | (bStateChanged ? GMX_FORCE_STATECHANGED : 0),
                      DDBalanceRegionHandler(nullptr));

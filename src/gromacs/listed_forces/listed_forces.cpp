@@ -460,8 +460,8 @@ bool ListedForces::haveRestraints(const t_fcdata& fcdata) const
 {
     GMX_ASSERT(fcdata.disres, "NMR distance restraint object should be set up");
 
-    return (!idef_->il[F_POSRES].empty() || !idef_->il[F_FBPOSRES].empty() || fcdata.orires
-            || fcdata.disres->nres > 0);
+    return ((idef_ != nullptr && (!idef_->il[F_POSRES].empty() || !idef_->il[F_FBPOSRES].empty()))
+            || fcdata.orires || fcdata.disres->nres > 0);
 }
 
 bool ListedForces::haveCpuBondeds() const
