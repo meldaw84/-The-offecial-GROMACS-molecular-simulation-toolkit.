@@ -254,7 +254,7 @@ Performance and Run Control
 ``GMX_FORCE_GPU_AWARE_MPI``
         Override the result of build- and runtime GPU-aware MPI detection and force the use of
         direct GPU MPI communication. Aimed at cases where the user knows that the MPI library is
-        GPU-aware, but |GROMACS| is not able to detect this. Note that only CUDA and SYCL builds 
+        GPU-aware, but |Gromacs| is not able to detect this. Note that only CUDA and SYCL builds 
         support such functionality.
 
 ``GMX_FORCE_UPDATE_DEFAULT_CPU``
@@ -298,6 +298,24 @@ Performance and Run Control
         of GPU tasks to GPU device IDs to be different on different ranks, if e.g. the MPI
         runtime permits this variable to be different for different ranks. Cannot be used
         in conjunction with ``mdrun -gputasks``. Has all the same requirements as ``mdrun -gputasks``.
+
+.. _HeFFTe docs: https://mkstoyanov.bitbucket.io/heffte/structheffte_1_1plan__options.html
+
+``GMX_HEFFTE_RESHAPE_ALGORITHM``
+        Sets ``heffte::plan_options::reshape_algorithm`` to ``p2p`` (the default) or ``p2p_plined``, ``alltoallv``, or ``alltoall``.
+        See the `HeFFTe docs`_ for details.
+
+``GMX_HEFFTE_USE_GPU_AWARE``
+        Sets ``heffte::plan_options::use_gpu_aware`` to ``true`` (the default) or ``false``.
+        See the `HeFFTe docs`_ for details.
+
+``GMX_HEFFTE_USE_PENCILS``
+        Sets ``heffte::plan_options::use_pencils`` to ``true`` or ``false`` (the default).
+        See the `HeFFTe docs`_ for details.
+
+``GMX_HEFFTE_USE_REORDER``
+        Sets ``heffte::plan_options::use_reorder`` to ``true`` (the default) or ``false``.
+        See the `HeFFTe docs`_ for details.
 
 ``GMX_IGNORE_FSYNC_FAILURE_ENV``
         allow :ref:`gmx mdrun` to continue even if
@@ -429,6 +447,8 @@ compilation of OpenCL kernels, but they are also used in device selection.
 ..
    Please keep these in alphabetical order!
 
+
+
 ``GMX_OCL_DEBUG``
         Use in conjunction with ``OCL_FORCE_CPU`` or with an AMD device.
         It adds the debug flag to the compiler options (-g).
@@ -468,6 +488,11 @@ compilation of OpenCL kernels, but they are also used in device selection.
         kernels from a custom location. Use it only if you want to
         override |Gromacs| default behavior, or if you want to test
         your own kernels.
+
+``GMX_OCL_FORCE_AMD_WAVEFRONT64``
+        Force the use of Wave64 mode on AMD devices. This allows using
+        OpenCL on RDNA-family devices, but is not recommended.
+        For development use only.
 
 ``GMX_OCL_FORCE_CPU``
         Force the selection of a CPU device instead of a GPU.  This

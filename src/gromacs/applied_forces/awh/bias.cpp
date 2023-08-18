@@ -199,7 +199,7 @@ gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         
                                                       biasForce_,
                                                       step,
                                                       seed,
-                                                      params_.biasIndex,
+                                                      params_.biasIndex_,
                                                       onlySampleUmbrellaGridpoint);
             *potentialJump                         = newPotential - potential;
         }
@@ -230,7 +230,7 @@ gmx::ArrayRef<const double> Bias::calcForceAndUpdateBias(const awh_dvec         
                             biasForce_,
                             step,
                             seed,
-                            params_.biasIndex,
+                            params_.biasIndex_,
                             onlySampleUmbrellaGridpoint);
     }
 
@@ -411,14 +411,14 @@ void Bias::printInitializationToLog(FILE* fplog) const
 {
     if (fplog != nullptr && forceCorrelationGrid_ != nullptr)
     {
-        std::string prefix = gmx::formatString("\nawh%d:", params_.biasIndex + 1);
+        std::string prefix = gmx::formatString("\nawh%d:", params_.biasIndex_ + 1);
 
         fprintf(fplog,
                 "%s initial force correlation block length = %g %s"
                 "%s force correlation number of blocks = %d",
                 prefix.c_str(),
                 forceCorrelationGrid().getBlockLength(),
-                forceCorrelationGrid().blockLengthMeasure == CorrelationGrid::BlockLengthMeasure::Weight
+                forceCorrelationGrid().blockLengthMeasure_ == CorrelationGrid::BlockLengthMeasure::Weight
                         ? ""
                         : "ps",
                 prefix.c_str(),

@@ -63,6 +63,7 @@
 #         GROMACS     2021   6
 #         GROMACS     2022   7
 #         GROMACS     2023   8
+#         GROMACS     2024   9
 #   LIBRARY_SOVERSION_MINOR so minor version for the built libraries.
 #       Should be increased for each release that changes only the implementation.
 #       In GROMACS, the typical policy is to increase it for each patch version
@@ -219,7 +220,7 @@ set(GMX_VERSION_SUFFIX "")
 # here. The important thing is to minimize the chance of third-party
 # code being able to dynamically link with a version of libgromacs
 # that might not work.
-set(LIBRARY_SOVERSION_MAJOR 8)
+set(LIBRARY_SOVERSION_MAJOR 9)
 set(LIBRARY_SOVERSION_MINOR 0)
 set(LIBRARY_VERSION ${LIBRARY_SOVERSION_MAJOR}.${LIBRARY_SOVERSION_MINOR}.0)
 
@@ -238,7 +239,7 @@ set(REGRESSIONTEST_VERSION "${GMX_VERSION}${GMX_VERSION_SUFFIX}")
 # Note: Forks that use the suffixing feature later change GMX_VERSION_STRING
 # Ref: https://gitlab.com/gromacs/gromacs/-/merge_requests/2587
 set(GMX_VERSION_STRING "${REGRESSIONTEST_VERSION}")
-set(REGRESSIONTEST_BRANCH "release-2023")
+set(REGRESSIONTEST_BRANCH "main")
 # Follow the relevant part of the release checklist at
 # https://gitlab.com/gromacs/gromacs/-/wikis/Release-checklist#how-to-build-a-regressiontests-tarball
 # in order to have it build the regressiontests tarball with all the
@@ -246,7 +247,7 @@ set(REGRESSIONTEST_BRANCH "release-2023")
 # directory name within the regressiontests tarball, which affects the
 # md5sum of the tarball. The matching md5sum has to go here, and if it
 # isn't right the real release workflow will report a failure.
-set(REGRESSIONTEST_MD5SUM "f697cb2624e332aa6a4ea990990a4682" CACHE INTERNAL "MD5 sum of the regressiontests tarball for this GROMACS version")
+set(REGRESSIONTEST_MD5SUM "f9ef9657260e83382205d7e49985cf58" CACHE INTERNAL "MD5 sum of the regressiontests tarball for this GROMACS version")
 
 # If you are making a custom fork of GROMACS, please describe your
 # fork, perhaps with its version number, in the value of
@@ -392,6 +393,7 @@ if (GMX_GIT_VERSION_INFO)
             -D GIT_EXECUTABLE=${GIT_EXECUTABLE}
             -D PROJECT_VERSION=${GMX_VERSION_STRING}
             -D PROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+            -D PROJECT_BINARY_DIR=${PROJECT_BINARY_DIR}
             -D VERSION_CMAKEIN=${VERSION_INFO_CMAKEIN_FILE_PARTIAL}
             -D VERSION_OUT=${VERSION_INFO_CMAKE_FILE}
             -P ${CMAKE_CURRENT_LIST_DIR}/gmxGenerateVersionInfo.cmake

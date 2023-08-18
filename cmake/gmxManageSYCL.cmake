@@ -77,10 +77,21 @@ if(GMX_SYCL_HIPSYCL)
         message(FATAL_ERROR "HipSYCL build requires Clang compiler, but ${CMAKE_CXX_COMPILER_ID} is used")
     endif()
     set(HIPSYCL_CLANG "${CMAKE_CXX_COMPILER}")
+
     # -Wno-unknown-cuda-version because Clang often complains about the newest CUDA, despite working fine with it.
     # -Wno-unknown-attributes because hipSYCL does not support reqd_sub_group_size (because it can only do some sub group sizes).
     #    The latter can be added to HIPSYCL_SYCLCC_EXTRA_COMPILE_OPTIONS
     set(HIPSYCL_SYCLCC_EXTRA_ARGS "-Wno-unknown-cuda-version -Wno-unknown-attributes ${SYCL_CXX_FLAGS_EXTRA}")
+
+    # -ffast-math for performance
+    set(HIPSYCL_SYCLCC_EXTRA_COMPILE_OPTIONS -ffast-math)
+
+    # We want to inline aggressively, but only Clang 13 or newer supports this flag.
+    # Likely not needed on AMD, since hipSYCL by default sets AMD-specific flags to force inlining, but no harm either.
+    check_cxx_compiler_flag("-fgpu-inline-threshold=1" HAS_GPU_INLINE_THRESHOLD)
+    if(${HAS_GPU_INLINE_THRESHOLD})
+        list(APPEND HIPSYCL_SYCLCC_EXTRA_COMPILE_OPTIONS -fgpu-inline-threshold=99999)
+    endif()
 
     # Must be called before find_package to capture all user-set CMake variables, but not those set automatically
     _getHipSyclCmakeFlags(_ALL_HIPSYCL_CMAKE_FLAGS)
@@ -115,27 +126,6 @@ if(GMX_SYCL_HIPSYCL)
     endif()
     if (NOT GMX_HIPSYCL_COMPILATION_WORKS)
         message(FATAL_ERROR "hipSYCL compiler not working:\n${_HIPSYCL_COMPILATION_OUTPUT}")
-    endif()
-
-    # Does hipSYCL support passing compilation flags to a subset of files?
-    if(NOT DEFINED GMX_HIPSYCL_HAVE_SYCLCC_EXTRA_COMPILE_OPTIONS OR _rerun_hipsycl_try_compile_tests)
-        message(STATUS "Checking for hipSYCL compiler options handling")
-        set(_ALL_HIPSYCL_CMAKE_FLAGS_WITHOUT_EXTRA_FLAGS ${_ALL_HIPSYCL_CMAKE_FLAGS})
-        list(FILTER _ALL_HIPSYCL_CMAKE_FLAGS_WITHOUT_EXTRA_FLAGS EXCLUDE REGEX "-DHIPSYCL_SYCLCC_EXTRA_COMPILE_OPTIONS=.*")
-        try_compile(GMX_HIPSYCL_HAVE_SYCLCC_EXTRA_COMPILE_OPTIONS "${CMAKE_BINARY_DIR}/CMakeTmpHipSyclTest" "${CMAKE_SOURCE_DIR}/cmake/HipSyclTest/" "HipSyclTest"
-            CMAKE_FLAGS
-            -DHIPSYCL_SYCLCC_EXTRA_COMPILE_OPTIONS=-DTEST_MACRO_IS_SET=1
-            -DCHECK_TEST_MACRO_IS_SET=ON
-            ${_ALL_HIPSYCL_CMAKE_FLAGS_WITHOUT_EXTRA_FLAGS})
-        file(REMOVE_RECURSE "${CMAKE_BINARY_DIR}/CMakeTmpHipSyclTest")
-        if(GMX_HIPSYCL_HAVE_SYCLCC_EXTRA_COMPILE_OPTIONS)
-            message(STATUS "Checking for the ability to pass compilation flags - Success")
-        else()
-            message(STATUS "Checking for the ability to pass compilation flags - Failed")
-        endif()
-        if (NOT GMX_HIPSYCL_HAVE_SYCLCC_EXTRA_COMPILE_OPTIONS)
-            message(WARNING "hipSYCL cannot pass compilation flags to a subset of files. It might hurt the performance. Please update your hipSYCL.")
-        endif()
     endif()
 
     # Does hipSYCL compilation target CUDA devices?
@@ -191,19 +181,6 @@ if(GMX_SYCL_HIPSYCL)
         message(FATAL_ERROR "hipSYCL cannot have both CUDA and HIP targets active! This would require explicit multipass mode which both decreases performance on NVIDIA devices and has been removed in clang 12. Compile only for either CUDA or HIP targets.")
     endif()
     unset(_rerun_hipsycl_try_compile_tests)
-
-
-    if (GMX_HIPSYCL_HAVE_SYCLCC_EXTRA_COMPILE_OPTIONS)
-        # -ffast-math for performance
-        set(HIPSYCL_SYCLCC_EXTRA_COMPILE_OPTIONS -ffast-math)
-
-        # We want to inline aggressively, but only Clang 13 or newer supports this flag.
-        # Likely not needed on AMD, since hipSYCL by default sets AMD-specific flags to force inlining, but no harm either.
-        check_cxx_compiler_flag("-fgpu-inline-threshold=1" HAS_GPU_INLINE_THRESHOLD)
-        if(${HAS_GPU_INLINE_THRESHOLD})
-            list(APPEND HIPSYCL_SYCLCC_EXTRA_COMPILE_OPTIONS -fgpu-inline-threshold=99999)
-        endif()
-    endif()
 
     if(GMX_GPU_FFT_VKFFT)
         include(gmxManageVkFft)
@@ -320,39 +297,7 @@ else()
         endif()
     endif()
     if(CMAKE_CXX_COMPILER MATCHES "dpcpp")
-        # At least Intel dpcpp defaults to having SYCL enabled for all code. This leads to two problems:
-        #
-        # 1. Compiles take ~3x longer, since every file has to be compiled for multiple targets.
-        # 2. We get a ton of warnings for the device-specific pass when the compiler sees our SIMD code.
-        #
-        # To avoid this, we attempt to find a flag to disable SYCL for non-SYCL files. Unfortunately,
-        # when using gmx_find_flag_for_source() that includes calling check_cxx_compiler_flag(),
-        # this in turn exposes a bug in dpcpp, where an object file compiles with -fno-sycl leads to
-        # a failed link stage (when the same flag is not used). Since none of this is critical, we handle
-        # it by merely checking if it works to compile a source fils with this flag, and choking if SYCL
-        # is still enabled.
-    
-        if(NOT CHECK_DISABLE_SYCL_CXX_FLAGS_QUIETLY)
-            message(STATUS "Checking for flags to disable SYCL")
-        endif()
-    
-        gmx_check_source_compiles_with_flags(
-            "int main() { return 0; }"
-            "-fno-sycl"
-            "CXX"
-            DISABLE_SYCL_CXX_FLAGS_RESULT)
-    
-        if(DISABLE_SYCL_CXX_FLAGS_RESULT)
-            set(SYCL_TOOLCHAIN_CXX_FLAGS "-fno-sycl")
-        endif()
-        if(NOT CHECK_DISABLE_SYCL_CXX_FLAGS_QUIETLY)
-            if(DISABLE_SYCL_CXX_FLAGS_RESULT)
-                message(STATUS "Checking for flags to disable SYCL - -fno-sycl")
-            else()
-                message(WARNING "Cannot find flags to disable SYCL for non-SYCL hardware-specific C++ code. Expect many warnings, but they are likely benign.")
-            endif()
-            set(CHECK_DISABLE_SYCL_CXX_FLAGS_QUIETLY 1 CACHE INTERNAL "Keep quiet on future calls to detect no-SYCL flags" FORCE)
-        endif()
+        message(FATAL_ERROR "Intel's \"dpcpp\" compiler is deprecated; please use \"icpx\" for SYCL builds")
     endif()
 
     # Find the flags to enable (or re-enable) SYCL with Intel extensions. In case we turned it off above,
@@ -439,13 +384,13 @@ else()
     include(gmxManageFFTLibraries)
 
     if(GMX_GPU_FFT_MKL)
-        if(MKL_VERSION VERSION_LESS "2023.0.0")
-            list(APPEND GMX_EXTRA_LIBRARIES "mkl_sycl;OpenCL")
-        endif()
+        #MKLROOT is set by gmxManageFFTLibraries.cmake
+        find_library(mkl_sycl_PATH mkl_sycl PATHS "${MKLROOT}/lib/intel64" REQUIRED)
+        mark_as_advanced(mkl_sycl_PATH)
+        list(APPEND GMX_EXTRA_LIBRARIES "${mkl_sycl_PATH};OpenCL")
+
         set(CMAKE_REQUIRED_FLAGS "${SYCL_TOOLCHAIN_CXX_FLAGS}")
-        get_target_property(CMAKE_REQUIRED_LIBRARIES MKL::MKL INTERFACE_LINK_LIBRARIES)
-        list(APPEND CMAKE_REQUIRED_LIBRARIES "${GMX_EXTRA_LIBRARIES}")
-        get_target_property(CMAKE_REQUIRED_INCLUDES MKL::MKL INTERFACE_INCLUDE_DIRECTORIES)
+        set(CMAKE_REQUIRED_LIBRARIES "${GMX_EXTRA_LIBRARIES};${FFT_LIBRARIES}")
         check_cxx_source_compiles("
 #include <oneapi/mkl/dfti.hpp>
 int main() {
@@ -464,7 +409,7 @@ int main() {
         set(_sycl_has_valid_fft TRUE)
     endif()
 
-    if(GMX_GPU_FFT_DBFFT)
+    if(GMX_GPU_FFT_BBFFT)
         # The double-batched FFT library is still called by its former
         # name bbfft in the implementation. For now, only the shared
         # libraries can link into GROMACS shared libraries.
@@ -476,6 +421,18 @@ int main() {
         set(_sycl_has_valid_fft TRUE)
     endif()
 
+    # convert the space-separated strings to lists
+    separate_arguments(SYCL_TOOLCHAIN_CXX_FLAGS)
+    list(APPEND SYCL_TOOLCHAIN_CXX_FLAGS ${SYCL_CXX_FLAGS_EXTRA})
+    separate_arguments(SYCL_TOOLCHAIN_LINKER_FLAGS)
+    list(APPEND SYCL_TOOLCHAIN_LINKER_FLAGS ${SYCL_CXX_FLAGS_EXTRA})
+
+    # Make strings for pretty-printing in gmx -version
+    string(REPLACE ";" " " SYCL_TOOLCHAIN_CXX_FLAGS_STR "${SYCL_TOOLCHAIN_CXX_FLAGS}")
+    string(STRIP "${SYCL_TOOLCHAIN_CXX_FLAGS_STR}" SYCL_TOOLCHAIN_CXX_FLAGS_STR)
+    string(REPLACE ";" " " SYCL_TOOLCHAIN_LINKER_FLAGS_STR "${SYCL_TOOLCHAIN_LINKER_FLAGS}")
+    string(STRIP "${SYCL_TOOLCHAIN_LINKER_FLAGS_STR}" SYCL_TOOLCHAIN_LINKER_FLAGS_STR)
+
     # Add function wrapper similar to the one used by ComputeCPP and hipSYCL
     function(add_sycl_to_target)
         cmake_parse_arguments(
@@ -485,13 +442,8 @@ int main() {
             "TARGET" # One-value keyword
             "SOURCES" # Multi-value keyword
             )
-        # convert the space-separated string to a list
-        separate_arguments(SYCL_TOOLCHAIN_CXX_FLAGS)
-        set_property(SOURCE ${ARGS_SOURCES} APPEND PROPERTY COMPILE_OPTIONS
-            ${SYCL_TOOLCHAIN_CXX_FLAGS}
-            ${SYCL_CXX_FLAGS_EXTRA})
-        string(REPLACE " " ";" SYCL_TOOLCHAIN_LINKER_FLAGS_LIST "${SYCL_TOOLCHAIN_LINKER_FLAGS} ${SYCL_CXX_FLAGS_EXTRA}")
-        target_link_options(${ARGS_TARGET} PRIVATE ${SYCL_TOOLCHAIN_LINKER_FLAGS_LIST})
+        set_property(SOURCE ${ARGS_SOURCES} APPEND PROPERTY COMPILE_OPTIONS ${SYCL_TOOLCHAIN_CXX_FLAGS})
+        target_link_options(${ARGS_TARGET} PRIVATE ${SYCL_TOOLCHAIN_LINKER_FLAGS})
     endfunction(add_sycl_to_target)
 endif()
 

@@ -80,23 +80,6 @@
 namespace Nbnxm
 {
 
-static inline void issueClFlushInStream(const DeviceStream& deviceStream)
-{
-#if GMX_GPU_OPENCL
-    /* Based on the v1.2 section 5.13 of the OpenCL spec, a flush is needed
-     * in the stream after marking an event in it in order to be able to sync with
-     * the event from another stream.
-     */
-    cl_int cl_error = clFlush(deviceStream.stream());
-    if (cl_error != CL_SUCCESS)
-    {
-        GMX_THROW(gmx::InternalError("clFlush failed: " + ocl_get_error_string(cl_error)));
-    }
-#else
-    GMX_UNUSED_VALUE(deviceStream);
-#endif
-}
-
 static inline void init_ewald_coulomb_force_table(const EwaldCorrectionTables& tables,
                                                   NBParamGpu*                  nbp,
                                                   const DeviceContext&         deviceContext)
@@ -1187,6 +1170,7 @@ void gpu_free(NbnxmGpu* nb)
     freeDeviceBuffer(&plist->cjPacked);
     freeDeviceBuffer(&plist->imask);
     freeDeviceBuffer(&plist->excl);
+    freeDeviceBuffer(&plist->d_rollingPruningPart);
     delete plist;
     if (nb->bUseTwoStreams)
     {
@@ -1195,9 +1179,13 @@ void gpu_free(NbnxmGpu* nb)
         freeDeviceBuffer(&plist_nl->cjPacked);
         freeDeviceBuffer(&plist_nl->imask);
         freeDeviceBuffer(&plist_nl->excl);
+        freeDeviceBuffer(&plist_nl->d_rollingPruningPart);
         delete plist_nl;
     }
 
+    freeDeviceBuffer(&nb->cxy_na);
+    freeDeviceBuffer(&nb->cxy_ind);
+    freeDeviceBuffer(&nb->atomIndices);
     /* Free nbst */
     pfree(nb->nbst.eLJ);
     nb->nbst.eLJ = nullptr;

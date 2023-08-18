@@ -188,6 +188,16 @@ if (GMX_GPU_CUDA)
     else()
         target_link_libraries(libgromacs PRIVATE ${CUDA_CUFFT_LIBRARIES})
     endif()
+    if (GMX_NVSHMEM)
+        set_target_properties(libgromacs PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+        # -fvisibility=hidden is required to be passed during device link phase to hide the 
+        # libnvshmem_device.a symbols in libgromacs in order to allow application/tests to link 
+        # libnvshmem_device.a for their nvshmem kernel as well while linking with libgromacs.
+        # not setting this causes runtime failure.
+        target_link_options(libgromacs PRIVATE $<DEVICE_LINK:-fvisibility=hidden>)
+        set_target_properties(libgromacs PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+        target_link_libraries(libgromacs PRIVATE nvshmem_host_lib nvshmem_device_lib)
+    endif()
 else()
     add_library(libgromacs ${LIBGROMACS_SOURCES})
 endif()
@@ -200,7 +210,7 @@ if(GMX_GPU_FFT_VKFFT)
     target_link_libraries(libgromacs PRIVATE VkFFT)
 endif()
 if(GMX_GPU_FFT_ROCFFT)
-    target_link_libraries(libgromacs PUBLIC roc::rocfft)
+    target_link_libraries(libgromacs PRIVATE roc::rocfft)
 endif()
 
 target_link_libraries(libgromacs PRIVATE $<BUILD_INTERFACE:common>)
@@ -357,7 +367,7 @@ target_link_libraries(libgromacs PRIVATE
                       $<BUILD_INTERFACE:coordinateio>
                       $<BUILD_INTERFACE:correlationfunctions>
                       $<BUILD_INTERFACE:domdec>
-#                      $<BUILD_INTERFACE:energyanalysis>
+                      $<BUILD_INTERFACE:energyanalysis>
                       $<BUILD_INTERFACE:essentialdynamics>
                       $<BUILD_INTERFACE:ewald>
                       $<BUILD_INTERFACE:fft>

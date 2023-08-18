@@ -2964,8 +2964,14 @@ std::unique_ptr<gmx_domdec_t> DomainDecompositionBuilder::Impl::build(LocalAtomS
 
     dd->atomSets = atomSets;
 
-    dd->localTopologyChecker = std::make_unique<LocalTopologyChecker>(
-            mdlog_, cr_, mtop_, localTopology, localState, dd->comm->systemInfo.useUpdateGroups, observablesReducerBuilder);
+    dd->localTopologyChecker = std::make_unique<LocalTopologyChecker>(mdlog_,
+                                                                      cr_,
+                                                                      mtop_,
+                                                                      options_.ddBondedChecking,
+                                                                      localTopology,
+                                                                      localState,
+                                                                      dd->comm->systemInfo.useUpdateGroups,
+                                                                      observablesReducerBuilder);
 
 #if GMX_MPI
     MPI_Type_contiguous(DIM, GMX_MPI_REAL, &dd->comm->mpiRVec);
@@ -3202,7 +3208,7 @@ void dd_init_local_state(const gmx_domdec_t& dd, const t_state* state_global, t_
 
     if (DDMAIN(dd))
     {
-        buf[0] = state_global->flags;
+        buf[0] = state_global->flags();
         buf[1] = state_global->ngtc;
         buf[2] = state_global->nnhpres;
         buf[3] = state_global->nhchainlength;
@@ -3212,7 +3218,7 @@ void dd_init_local_state(const gmx_domdec_t& dd, const t_state* state_global, t_
 
     init_gtc_state(state_local, buf[1], buf[2], buf[3]);
     init_dfhist_state(state_local, buf[4]);
-    state_local->flags = buf[0];
+    state_local->setFlags(buf[0]);
 }
 
 void putUpdateGroupAtomsInSamePeriodicImage(const gmx_domdec_t&      dd,

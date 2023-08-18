@@ -67,6 +67,16 @@ from CMake or later during build.
 
 :issue:`4574`
 
+FFT errors with NVIDIA RTX 40xx-series GPUs and CUDA 11.7 or earlier
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+cuFFT library only has full support for RTX 40xx GPUs since version 11.8.
+If you are using older CUDA, you might encounter ``cufftPlanMany R2C plan failure``
+error when running a simulation with PME on such a GPU.
+To resolve, upgrade to CUDA 11.8 or 12.x.
+
+:issue:`4759`
+
 "Cannot find a working standard library" error with ROCm Clang
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -79,18 +89,6 @@ On Ubuntu 22.04, installing GCC 12 standard library (with
 setting ``-DGMX_GPLUSGPLUS_PATH``.
 
 :issue:`4679`
-
-Ryckaert-Bell dihedral potential calculated imprecisely on Gen9 Intel GPUs
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-In SYCL/oneAPI build, when bonded forces are offloaded to an Intel Gen9 GPU
-(HD Graphics 5xx to 7xx-series; Skylake to Gemini Lake) the Ryckaert-Bell potential
-is computed imprecisely. This is unlikely to lead to wrong results, but
-we still recommend disabling listed forces offload (``-bonded cpu``) when running
-on Gen9 Intel integrated GPUs, especially since offloading is unlikely to offer significant
-performance advantage on such devices.
-
-:issue:`4686`
 
 Expanded ensemble does not checkpoint correctly
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

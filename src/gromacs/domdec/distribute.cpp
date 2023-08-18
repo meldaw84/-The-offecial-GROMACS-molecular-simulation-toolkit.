@@ -259,17 +259,17 @@ static void dd_distribute_state(gmx_domdec_t* dd, const t_state* state, t_state*
     /* communicate df_history -- required for restarting from checkpoint */
     dd_distribute_dfhist(dd, state_local->dfhist);
 
-    state_change_natoms(state_local, dd->comm->atomRanges.numHomeAtoms());
+    state_local->changeNumAtoms(dd->comm->atomRanges.numHomeAtoms());
 
-    if (state_local->flags & enumValueToBitMask(StateEntry::X))
+    if (state_local->hasEntry(StateEntry::X))
     {
         distributeVec(dd, DDMAIN(dd) ? state->x : gmx::ArrayRef<const gmx::RVec>(), state_local->x);
     }
-    if (state_local->flags & enumValueToBitMask(StateEntry::V))
+    if (state_local->hasEntry(StateEntry::V))
     {
         distributeVec(dd, DDMAIN(dd) ? state->v : gmx::ArrayRef<const gmx::RVec>(), state_local->v);
     }
-    if (state_local->flags & enumValueToBitMask(StateEntry::Cgp))
+    if (state_local->hasEntry(StateEntry::Cgp))
     {
         distributeVec(dd, DDMAIN(dd) ? state->cg_p : gmx::ArrayRef<const gmx::RVec>(), state_local->cg_p);
     }
@@ -545,7 +545,7 @@ static void distributeAtomGroups(const gmx::MDLogger& mdlog,
                 dd->numHomeAtoms,
                 dd->globalAtomGroupIndices.data());
 
-    if (debug)
+    if (gmx_debug_at)
     {
         fprintf(debug, "Home charge groups:\n");
         for (int i = 0; i < dd->numHomeAtoms; i++)

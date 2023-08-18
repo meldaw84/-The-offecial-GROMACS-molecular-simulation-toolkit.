@@ -72,6 +72,7 @@
 #include "gromacs/fileio/gmxfio.h"
 #include "gromacs/fileio/oenv.h"
 #include "gromacs/fileio/tpxio.h"
+#include "gromacs/fileio/trrio.h"
 #include "gromacs/gmxlib/network.h"
 #include "gromacs/gmxlib/nrnb.h"
 #include "gromacs/gpu_utils/device_stream_manager.h"
@@ -927,6 +928,19 @@ int Mdrunner::mdrunner()
          */
         applyGlobalSimulationState(
                 *inputHolder_.get(), partialDeserializedTpr.get(), globalState.get(), inputrec.get(), &mtop);
+
+        static_assert(sc_trrMaxAtomCount == sc_checkpointMaxAtomCount);
+        if (mtop.natoms > sc_checkpointMaxAtomCount)
+        {
+            gmx_fatal(FARGS,
+                      "System has %d atoms, which is more than can be stored in checkpoint and trr "
+                      "files (max %" PRId64 ")",
+                      mtop.natoms,
+                      sc_checkpointMaxAtomCount);
+        }
+
+        // The XTC format has been updated to support up to 2^31-1 atoms, which is anyway the
+        // largest supported by GROMACS, so no need for any particular check here.
     }
 
     /* Check and update the hardware options for internal consistency */
@@ -952,6 +966,7 @@ int Mdrunner::mdrunner()
                     emulateGpuNonbonded,
                     canUseGpuForNonbonded,
                     gpuAccelerationOfNonbondedIsUseful(mdlog, *inputrec, GMX_THREAD_MPI, doRerun),
+                    mdrunOptions.reproducible,
                     hw_opt.nthreads_tmpi);
             useGpuForPme = decideWhetherToUseGpusForPmeWithThreadMpi(useGpuForNonbonded,
                                                                      pmeTarget,
@@ -1031,6 +1046,7 @@ int Mdrunner::mdrunner()
                 emulateGpuNonbonded,
                 canUseGpuForNonbonded,
                 gpuAccelerationOfNonbondedIsUseful(mdlog, *inputrec, !GMX_THREAD_MPI, doRerun),
+                mdrunOptions.reproducible,
                 gpusWereDetected);
         useGpuForPme    = decideWhetherToUseGpusForPme(useGpuForNonbonded,
                                                     pmeTarget,
@@ -1068,11 +1084,12 @@ int Mdrunner::mdrunner()
     // the task-deciding functions and will agree on the result
     // without needing to communicate.
     // The LBFGS minimizer, test-particle insertion, normal modes and shell dynamics don't support DD
+    const bool hasCustomParallelization =
+            (EI_TPI(inputrec->eI) || inputrec->eI == IntegrationAlgorithm::NM);
     const bool canUseDomainDecomposition =
-            !(inputrec->eI == IntegrationAlgorithm::LBFGS || EI_TPI(inputrec->eI)
-              || inputrec->eI == IntegrationAlgorithm::NM
-              || gmx_mtop_particletype_count(mtop)[ParticleType::Shell] > 0);
-    GMX_RELEASE_ASSERT(!PAR(cr) || canUseDomainDecomposition,
+            (inputrec->eI != IntegrationAlgorithm::LBFGS && !hasCustomParallelization
+             && gmx_mtop_particletype_count(mtop)[ParticleType::Shell] == 0);
+    GMX_RELEASE_ASSERT(!PAR(cr) || hasCustomParallelization || canUseDomainDecomposition,
                        "A parallel run should not arrive here without DD support");
 
     int useDDWithSingleRank = -1;
@@ -1133,7 +1150,7 @@ int Mdrunner::mdrunner()
     if (SIMMAIN(cr))
     {
         /* In rerun, set velocities to zero if present */
-        if (doRerun && ((globalState->flags & enumValueToBitMask(StateEntry::V)) != 0))
+        if (doRerun && globalState->hasEntry(StateEntry::V))
         {
             // rerun does not use velocities
             GMX_LOG(mdlog.info)
@@ -1141,11 +1158,11 @@ int Mdrunner::mdrunner()
                     .appendText(
                             "Rerun trajectory contains velocities. Rerun does only evaluate "
                             "potential energy and forces. The velocities will be ignored.");
-            for (int i = 0; i < globalState->natoms; i++)
+            for (int i = 0; i < globalState->numAtoms(); i++)
             {
                 clear_rvec(globalState->v[i]);
             }
-            globalState->flags &= ~enumValueToBitMask(StateEntry::V);
+            globalState->setFlags(globalState->flags() & ~enumValueToBitMask(StateEntry::V));
         }
 
         /* now make sure the state is initialized and propagated */
@@ -1441,6 +1458,9 @@ int Mdrunner::mdrunner()
     else
     {
         /* PME, if used, is done on all nodes with 1D decomposition */
+        cr->mpi_comm_mygroup = cr->mpiDefaultCommunicator;
+        cr->mpi_comm_mysim   = cr->mpiDefaultCommunicator;
+
         cr->nnodes     = cr->sizeOfDefaultCommunicator;
         cr->sim_nodeid = cr->rankInDefaultCommunicator;
         cr->nodeid     = cr->rankInDefaultCommunicator;
@@ -1728,6 +1748,7 @@ int Mdrunner::mdrunner()
         setupNotifier.notify(mtop);
         setupNotifier.notify(inputrec->pbcType);
         setupNotifier.notify(SimulationTimeStep{ inputrec->delta_t });
+
         /* Initiate forcerecord */
         fr                 = std::make_unique<t_forcerec>();
         fr->forceProviders = mdModules_->initForceProviders();

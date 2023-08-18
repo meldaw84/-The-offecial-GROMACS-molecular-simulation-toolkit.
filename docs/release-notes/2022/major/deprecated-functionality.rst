@@ -1,3 +1,6 @@
+Deprecated functionality
+------------------------
+
 .. Note to developers!
    Please use """"""" to underline the individual entries for fixed issues in the subfolders,
    otherwise the formatting on the webpage is messed up.
@@ -35,7 +38,7 @@ Guessing masses and atomic radii from atom names is deprecated
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 When atom masses or van-der-Waals radii are needed, we suggest building
-a proper GROMACS topology instead of using PDB files directly, even
+a proper |Gromacs| topology instead of using PDB files directly, even
 if the tool supports it.
 
 :issue:`3368`

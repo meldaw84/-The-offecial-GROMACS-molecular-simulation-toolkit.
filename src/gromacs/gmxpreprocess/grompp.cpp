@@ -700,32 +700,31 @@ static void new_status(const char*                           topfile,
     snew(conftop, 1);
     // Note that all components in v are set to zero when no v is present in confin
     read_tps_conf(confin, conftop, nullptr, &x, EI_DYNAMICS(ir->eI) ? &v : nullptr, state->box, FALSE);
-    state->natoms = conftop->atoms.nr;
-    if (state->natoms != sys->natoms)
+    if (conftop->atoms.nr != sys->natoms)
     {
         gmx_fatal(FARGS,
                   "number of coordinates in coordinate file (%s, %d)\n"
                   "             does not match topology (%s, %d)",
                   confin,
-                  state->natoms,
+                  conftop->atoms.nr,
                   topfile,
                   sys->natoms);
     }
     /* It would be nice to get rid of the copies below, but we don't know
      * a priori if the number of atoms in confin matches what we expect.
      */
-    state->flags |= enumValueToBitMask(StateEntry::X);
+    state->addEntry(StateEntry::X);
     if (EI_DYNAMICS(ir->eI))
     {
-        state->flags |= enumValueToBitMask(StateEntry::V);
+        state->addEntry(StateEntry::V);
     }
-    state_change_natoms(state, state->natoms);
-    std::copy(x, x + state->natoms, state->x.data());
+    state->changeNumAtoms(sys->natoms);
+    std::copy(x, x + state->numAtoms(), state->x.data());
     sfree(x);
     if (EI_DYNAMICS(ir->eI))
     {
         GMX_RELEASE_ASSERT(v, "With dynamics we expect a velocity vector");
-        std::copy(v, v + state->natoms, state->v.data());
+        std::copy(v, v + state->numAtoms(), state->v.data());
         sfree(v);
     }
     /* This call fixes the box shape for runs with pressure scaling */
@@ -764,7 +763,7 @@ static void new_status(const char*                           topfile,
 
     if (bGenVel)
     {
-        std::vector<real> mass(state->natoms);
+        std::vector<real> mass(state->numAtoms());
 
         for (const AtomProxy atomP : AtomRange(*sys))
         {
@@ -777,11 +776,11 @@ static void new_status(const char*                           topfile,
         {
             GMX_LOG(logger.info).asParagraph().appendTextFormatted("Setting gen_seed to %d", opts->seed);
         }
-        GMX_RELEASE_ASSERT((state->flags | enumValueToBitMask(StateEntry::V)) != 0,
+        GMX_RELEASE_ASSERT(state->hasEntry(StateEntry::V),
                            "Generate velocities only makes sense when they are used");
         maxwell_speed(opts->tempi, opts->seed, sys, state->v.rvec_array(), logger);
 
-        stop_cm(logger, state->natoms, mass.data(), state->x.rvec_array(), state->v.rvec_array());
+        stop_cm(logger, state->numAtoms(), mass.data(), state->x.rvec_array(), state->v.rvec_array());
     }
 }
 
@@ -796,14 +795,14 @@ static void copy_state(const char* slog, t_trxframe* fr, bool bReadVel, t_state*
         gmx_fatal(FARGS, "Did not find a frame with coordinates in file %s", slog);
     }
 
-    std::copy(fr->x, fr->x + state->natoms, state->x.data());
+    std::copy(fr->x, fr->x + state->numAtoms(), state->x.data());
     if (bReadVel)
     {
         if (!fr->bV)
         {
             gmx_incons("Trajecory frame unexpectedly does not contain velocities");
         }
-        std::copy(fr->v, fr->v + state->natoms, state->v.data());
+        std::copy(fr->v, fr->v + state->numAtoms(), state->v.data());
     }
     if (fr->bBox)
     {
@@ -879,14 +878,13 @@ static void cont_status(const char*             slog,
         }
     }
 
-    state->natoms = fr.natoms;
-
-    if (sys->natoms != state->natoms)
+    if (sys->natoms != fr.natoms)
     {
         gmx_fatal(FARGS,
                   "Number of atoms in Topology "
                   "is not the same as in Trajectory");
     }
+    state->changeNumAtoms(sys->natoms);
     copy_state(slog, &fr, bReadVel, state, &use_time);
 
     /* Find the appropriate frame */
@@ -2234,7 +2232,7 @@ int gmx_grompp(int argc, char* argv[])
                           "From GROMACS-2018, you need to specify the position restraint "
                           "coordinate files explicitly to avoid mistakes, although you can "
                           "still use the same file as you specify for the -c option.",
-                          fn);
+                          fnB);
             }
         }
         else
@@ -2652,6 +2650,10 @@ int gmx_grompp(int argc, char* argv[])
         copy_mat(state.box, coordinatesAndBoxPreprocessed.box_);
         coordinatesAndBoxPreprocessed.pbc_ = ir->pbcType;
         mdModules.notifiers().preProcessingNotifier_.notify(coordinatesAndBoxPreprocessed);
+
+        // Send also the constant ensemble temperature if available.
+        gmx::EnsembleTemperature ensembleTemperature(*ir);
+        mdModules.notifiers().preProcessingNotifier_.notify(ensembleTemperature);
     }
 
     // Add the md modules internal parameters that are not mdp options

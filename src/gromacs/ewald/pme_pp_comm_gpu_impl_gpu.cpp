@@ -78,7 +78,10 @@ PmePpCommGpu::Impl::Impl(MPI_Comm                    comm,
     stageLibMpiGpuCpuComm_ = (getenv("GMX_DISABLE_STAGED_GPU_TO_CPU_PMEPP_COMM") == nullptr);
 }
 
-PmePpCommGpu::Impl::~Impl() = default;
+PmePpCommGpu::Impl::~Impl()
+{
+    freeDeviceBuffer(&d_pmeForces_);
+}
 
 void PmePpCommGpu::Impl::reinit(int size)
 {
@@ -139,6 +142,7 @@ void PmePpCommGpu::Impl::receiveForceFromPmePeerToPeer(bool receivePmeForceToGpu
 #endif
 }
 
+// NOLINTNEXTLINE readability-convert-member-functions-to-static
 void PmePpCommGpu::Impl::receiveForceFromPmeGpuAwareMpi(Float3* pmeForcePtr, int recvSize)
 {
 #if GMX_LIB_MPI
@@ -188,6 +192,7 @@ void PmePpCommGpu::Impl::receiveForceFromPme(Float3* recvPtr, int recvSize, bool
     }
 }
 
+// NOLINTNEXTLINE readability-convert-member-functions-to-static
 void PmePpCommGpu::Impl::sendCoordinatesToPmeGpuAwareMpi(Float3*               sendPtr,
                                                          int                   sendSize,
                                                          GpuEventSynchronizer* coordinatesReadyOnDeviceEvent)

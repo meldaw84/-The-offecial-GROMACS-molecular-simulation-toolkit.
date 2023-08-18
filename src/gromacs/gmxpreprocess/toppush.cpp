@@ -1537,7 +1537,7 @@ static bool findIfAllNBAtomsMatch(gmx::ArrayRef<const int> atomsFromParameterArr
     }
     else if (bB)
     {
-        for (gmx::index i = 0; i < atomsFromCurrentParameter.ssize(); i++)
+        for (gmx::Index i = 0; i < atomsFromCurrentParameter.ssize(); i++)
         {
             if (at->atom[atomsFromCurrentParameter[i]].typeB != atomsFromParameterArray[i])
             {
@@ -1548,7 +1548,7 @@ static bool findIfAllNBAtomsMatch(gmx::ArrayRef<const int> atomsFromParameterArr
     }
     else
     {
-        for (gmx::index i = 0; i < atomsFromCurrentParameter.ssize(); i++)
+        for (gmx::Index i = 0; i < atomsFromCurrentParameter.ssize(); i++)
         {
             if (at->atom[atomsFromCurrentParameter[i]].type != atomsFromParameterArray[i])
             {
@@ -1774,8 +1774,9 @@ defaultInteractionsOfType(int                               ftype,
         {
             pos = std::find_if(bondType[ftype].interactionTypes.begin(),
                                bondType[ftype].interactionTypes.end(),
-                               [&atomTypes, &nmatch_max](const auto& bondType) {
-                                   return (findNumberOfDihedralAtomMatches(bondType, atomTypes) > nmatch_max);
+                               [&atomTypes, &nmatch_max](const auto& elemBondType) {
+                                   return (findNumberOfDihedralAtomMatches(elemBondType, atomTypes)
+                                           > nmatch_max);
                                });
             if (pos != bondType[ftype].interactionTypes.end())
             {

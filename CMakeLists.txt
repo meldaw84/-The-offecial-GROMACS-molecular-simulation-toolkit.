@@ -47,7 +47,10 @@ endif()
 
 # CMake modules/macros are in a subdirectory to keep this file cleaner
 # This needs to be set before project() in order to pick up toolchain files
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Platform)
+list(APPEND CMAKE_MODULE_PATH
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Platform
+    )
 
 if(APPLE)
     if(CMAKE_OSX_DEPLOYMENT_TARGET)
@@ -72,7 +75,7 @@ endif()
 
 # The GROMACS convention is that these are the version number of the next
 # release that is going to be made from this branch.
-project(Gromacs VERSION 2023.1)
+project(Gromacs VERSION 2024.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -302,10 +305,10 @@ if (GMX_GPU)
         GMX_GPU_FFT_LIBRARY
         "GPU FFT library"
         "${GMX_GPU_FFT_LIBRARY_DEFAULT}"
-        cuFFT clFFT VkFFT MKL rocFFT dbFFT none)
+        cuFFT clFFT VkFFT MKL rocFFT BBFFT none)
     # The validity of chosen option is later verified by the selected backend
 
-    foreach (_gpu_fft_library cuFFT clFFT VkFFT MKL rocFFT dbFFT)
+    foreach (_gpu_fft_library cuFFT clFFT VkFFT MKL rocFFT BBFFT)
         string(TOUPPER "${_gpu_fft_library}" _gpu_fft_library_upper)
         if (GMX_GPU_FFT_LIBRARY STREQUAL ${_gpu_fft_library_upper})
             if (NOT GMX_GPU_FFT_QUIET_AFTER_FIRST_RUN)
@@ -319,9 +322,20 @@ if (GMX_GPU)
         set("GMX_GPU_FFT_${_gpu_fft_library_upper}" "${_value}" CACHE INTERNAL "Use ${_gpu_fft_library} library for FFTs on GPUs")
     endforeach()
 endif()
+gmx_dependent_option(GMX_NVSHMEM "Build a parallel NVSHMEM multi-GPU code of GROMACS" OFF "GMX_GPU STREQUAL CUDA;GMX_MPI")
+
+if (GMX_NVSHMEM)
+    if (NVSHMEM_ROOT)
+        set(GMX_NVSHMEM_HOME ${NVSHMEM_ROOT} CACHE PATH "path to NVSHMEM")
+    elseif (DEFINED ENV{NVHPC_ROOT})
+        set(GMX_NVSHMEM_HOME "$ENV{NVHPC_ROOT}/comm_libs/nvshmem" CACHE PATH "path to NVSHMEM")
+    else()
+        message(FATAL_ERROR "NVSHMEM_ROOT path must be defined if GMX_NVSHMEM is set")
+    endif()
+endif()
 
 gmx_dependent_cache_variable(GMX_SIMD_REF_FLOAT_WIDTH  "Reference SIMD single precision width" STRING "4" "GMX_SIMD STREQUAL REFERENCE")
-gmx_dependent_cache_variable(GMX_SIMD_REF_DOUBLE_WIDTH "Reference SIMD double precision width" STRING "2" "GMX_SIMD STREQUAL REFERENCE")
+gmx_dependent_cache_variable(GMX_SIMD_REF_DOUBLE_WIDTH "Reference SIMD double precision width" STRING "4" "GMX_SIMD STREQUAL REFERENCE")
 
 # This should be moved to a separate NBNXN cmake module when that code is cleaned up and modularized
 
@@ -590,13 +604,10 @@ option(GMX_EXTERNAL_TINYXML2 "Use external TinyXML-2 instead of compiling the ve
 mark_as_advanced(GMX_EXTERNAL_TINYXML2)
 if(GMX_EXTERNAL_TINYXML2)
     # Find an external TinyXML-2 library.
-    find_package(TinyXML2 3.0.0)
+    find_package(TinyXML2 6.0.0)
     set(HAVE_TINYXML2 ${TinyXML2_FOUND})
     if(NOT HAVE_TINYXML2)
         message(FATAL_ERROR "External TinyXML-2 could not be found, please adjust your search paths")
-    endif()
-    if (TinyXML2_FOUND AND TinyXML2_VERSION VERSION_GREATER "6")
-        message(FATAL_ERROR "External TinyXML-2 is later than the highest supported version 6. Please adjust your search paths to include a supported version")
     endif()
 endif()
 
@@ -782,6 +793,9 @@ if(GMX_USE_CUFFTMP)
     set(GMX_USE_cuFFTMp ${cuFFTMp_FOUND})
 endif()
 
+# Set NVSHMEM host and device libs
+include(gmxManageNvshmem)
+
 if(WIN32)
     set(GMX_NATIVE_WINDOWS 1)
     # This makes windows.h not declare min/max as macros that would break
@@ -906,8 +920,8 @@ if (GMX_LIB_MPI)
 endif ()
 if (NOT GMX_SKIP_DEFAULT_CFLAGS)
     #TODO(#3672): Use target_link_libraries(... MPI::MPI_CXX) instead of ${MPI_CXX_LINK_FLAGS}
-    set(CMAKE_EXE_LINKER_FLAGS "${FFT_LINKER_FLAGS} ${_gmx_mpi_cxx_link_flags} ${CMAKE_EXE_LINKER_FLAGS} ${DISABLE_SYCL_CXX_FLAGS}")
-    set(CMAKE_SHARED_LINKER_FLAGS "${FFT_LINKER_FLAGS} ${_gmx_mpi_cxx_link_flags} ${CMAKE_SHARED_LINKER_FLAGS} ${DISABLE_SYCL_CXX_FLAGS}")
+    set(CMAKE_EXE_LINKER_FLAGS "${FFT_LINKER_FLAGS} ${_gmx_mpi_cxx_link_flags} ${CMAKE_EXE_LINKER_FLAGS}")
+    set(CMAKE_SHARED_LINKER_FLAGS "${FFT_LINKER_FLAGS} ${_gmx_mpi_cxx_link_flags} ${CMAKE_SHARED_LINKER_FLAGS}")
 else()
     message("Recommended flags which are not added because GMX_SKIP_DEFAULT_CFLAGS=yes:")
     message("CMAKE_C_FLAGS: ${SIMD_C_FLAGS};${_gmx_mpi_c_compile_flags};${EXTRA_C_FLAGS};${GMXC_CFLAGS}")

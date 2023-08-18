@@ -1385,12 +1385,9 @@ void check_ir(const char*                    mdparin,
         sprintf(warn_buf,
                 "The %s barostat does not generate any strictly correct ensemble, "
                 "and should not be used for new production simulations (in our opinion). "
-                "For isotropic scaling we would recommend the %s barostat that also "
-                "ensures fast relaxation without oscillations, and for anisotropic "
-                "scaling you likely want to use the %s barostat.",
+                "We recommend using the %s barostat instead.",
                 enumValueToString(ir->pressureCouplingOptions.epc),
-                enumValueToString(PressureCoupling::CRescale),
-                enumValueToString(PressureCoupling::ParrinelloRahman));
+                enumValueToString(PressureCoupling::CRescale));
         wi->addWarning(warn_buf);
     }
 
@@ -2375,7 +2372,7 @@ void get_ir(const char*     mdparin,
     ir->pressureCouplingOptions.epct       = getEnum<PressureCouplingType>(&inp, "pcoupltype", wi);
     ir->pressureCouplingOptions.nstpcouple = get_eint(&inp, "nstpcouple", -1, wi);
     printStringNoNewline(&inp, "Time constant (ps), compressibility (1/bar) and reference P (bar)");
-    ir->pressureCouplingOptions.tau_p = get_ereal(&inp, "tau-p", 1.0, wi);
+    ir->pressureCouplingOptions.tau_p = get_ereal(&inp, "tau-p", 5.0, wi);
     setStringEntry(&inp, "compressibility", dumstr[0], nullptr);
     setStringEntry(&inp, "ref-p", dumstr[1], nullptr);
     printStringNoNewline(&inp, "Scaling of reference coordinates, No, All or COM");
@@ -3259,11 +3256,11 @@ static void calc_nrdf(const gmx_mtop_t* mtop, t_inputrec* ir, gmx::ArrayRef<cons
     snew(na_vcm, groups.groups[SimulationAtomGroupType::MassCenterVelocityRemoval].size() + 1);
     snew(nrdf_vcm_sub, groups.groups[SimulationAtomGroupType::MassCenterVelocityRemoval].size() + 1);
 
-    for (gmx::index i = 0; i < gmx::ssize(groups.groups[SimulationAtomGroupType::TemperatureCoupling]); i++)
+    for (gmx::Index i = 0; i < gmx::ssize(groups.groups[SimulationAtomGroupType::TemperatureCoupling]); i++)
     {
         nrdf_tc[i] = 0;
     }
-    for (gmx::index i = 0;
+    for (gmx::Index i = 0;
          i < gmx::ssize(groups.groups[SimulationAtomGroupType::MassCenterVelocityRemoval]) + 1;
          i++)
     {
@@ -3442,7 +3439,7 @@ static void calc_nrdf(const gmx_mtop_t* mtop, t_inputrec* ir, gmx::ArrayRef<cons
          * translation is removed and 6 when rotation is removed as well.
          * Note that we do not and should not include the rest group here.
          */
-        for (gmx::index j = 0;
+        for (gmx::Index j = 0;
              j < gmx::ssize(groups.groups[SimulationAtomGroupType::MassCenterVelocityRemoval]);
              j++)
         {
@@ -3464,12 +3461,12 @@ static void calc_nrdf(const gmx_mtop_t* mtop, t_inputrec* ir, gmx::ArrayRef<cons
             }
         }
 
-        for (gmx::index i = 0;
+        for (gmx::Index i = 0;
              i < gmx::ssize(groups.groups[SimulationAtomGroupType::TemperatureCoupling]);
              i++)
         {
             /* Count the number of atoms of TC group i for every VCM group */
-            for (gmx::index j = 0;
+            for (gmx::Index j = 0;
                  j < gmx::ssize(groups.groups[SimulationAtomGroupType::MassCenterVelocityRemoval]) + 1;
                  j++)
             {
@@ -3489,7 +3486,7 @@ static void calc_nrdf(const gmx_mtop_t* mtop, t_inputrec* ir, gmx::ArrayRef<cons
              */
             nrdf_uc    = nrdf_tc[i];
             nrdf_tc[i] = 0;
-            for (gmx::index j = 0;
+            for (gmx::Index j = 0;
                  j < gmx::ssize(groups.groups[SimulationAtomGroupType::MassCenterVelocityRemoval]) + 1;
                  j++)
             {
@@ -3772,9 +3769,13 @@ static void processEnsembleTemperature(t_inputrec* ir, const bool allAtomsCouple
             }
             else if (doSimulatedAnnealing(*ir) && ir->opts.ngtc > 1)
             {
+                // We could support ensemble temperature if all annealing groups have the same
+                // temperature, but that is bug-prone, so we don't implement that.
                 fprintf(stderr,
                         "Simulated tempering is used with multiple T-coupling groups: setting the "
                         "ensemble temperature to not available\n");
+                ir->ensembleTemperatureSetting = EnsembleTemperatureSetting::NotAvailable;
+                ir->ensembleTemperature        = -1;
             }
             else if (doSimulatedAnnealing(*ir) || ir->bSimTemp)
             {

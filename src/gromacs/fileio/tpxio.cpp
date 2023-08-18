@@ -139,6 +139,7 @@ enum tpxv
     tpxv_RemoveTholeRfac,             /**< Remove unused rfac parameter from thole listed force */
     tpxv_RemoveAtomtypes,             /**< Remove unused atomtypes parameter from mtop */
     tpxv_EnsembleTemperature,         /**< Add ensemble temperature settings */
+    tpxv_AwhGrowthFactor,             /**< Add AWH growth factor */
     tpxv_Count                        /**< the total number of tpxv versions */
 };
 
@@ -564,7 +565,7 @@ static void do_fepvals(gmx::ISerializer* serializer, t_lambda* fepvals, int file
     }
     if (fepvals->sc_r_power != 6.0)
     {
-        gmx_fatal(FARGS, "sc-r-power=48 is no longer supported");
+        gmx_fatal(FARGS, "Only sc-r-power=6 is supported. Value in file is %f", fepvals->sc_r_power);
     }
     serializer->doReal(&fepvals->sc_sigma);
     if (serializer->reading())
@@ -1530,7 +1531,8 @@ static void do_inputrec(gmx::ISerializer* serializer, t_inputrec* ir, int file_v
         {
             if (serializer->reading())
             {
-                ir->awhParams = std::make_unique<gmx::AwhParams>(serializer);
+                ir->awhParams = std::make_unique<gmx::AwhParams>(
+                        serializer, file_version < tpxv_AwhGrowthFactor);
             }
             else
             {
@@ -2897,7 +2899,7 @@ static void do_tpx_state_first(gmx::ISerializer* serializer, TpxFileHeader* tpx,
 {
     if (serializer->reading())
     {
-        state->flags = 0;
+        state->setFlags(0);
         init_gtc_state(state, tpx->ngtc, 0, 0);
     }
     do_test(serializer, tpx->bBox, state->box);
@@ -3000,13 +3002,13 @@ static void do_tpx_state_second(gmx::ISerializer* serializer, TpxFileHeader* tpx
             // of the tpx file.
             if (tpx->bX)
             {
-                state->flags |= enumValueToBitMask(StateEntry::X);
+                state->addEntry(StateEntry::X);
             }
             if (tpx->bV)
             {
-                state->flags |= enumValueToBitMask(StateEntry::V);
+                state->addEntry(StateEntry::V);
             }
-            state_change_natoms(state, tpx->natoms);
+            state->changeNumAtoms(tpx->natoms);
         }
     }
 
@@ -3020,17 +3022,17 @@ static void do_tpx_state_second(gmx::ISerializer* serializer, TpxFileHeader* tpx
     {
         if (serializer->reading())
         {
-            state->flags |= enumValueToBitMask(StateEntry::X);
+            state->addEntry(StateEntry::X);
         }
         serializer->doRvecArray(x, tpx->natoms);
     }
 
-    do_test(serializer, tpx->bV, v);
+    // We cannot call do_test() with v as some "integrators" don't use v
     if (tpx->bV)
     {
         if (serializer->reading())
         {
-            state->flags |= enumValueToBitMask(StateEntry::V);
+            state->addEntry(StateEntry::V);
         }
         if (!v)
         {
@@ -3042,11 +3044,20 @@ static void do_tpx_state_second(gmx::ISerializer* serializer, TpxFileHeader* tpx
             serializer->doRvecArray(v, tpx->natoms);
         }
     }
+    else if (v)
+    {
+        // Velocities are not present in the tpr file, but v has been passed here.
+        // We clear v for backward compatibility.
+        for (int i = 0; i < tpx->natoms; i++)
+        {
+            clear_rvec(v[i]);
+        }
+    }
 
     // No need to run do_test when the last argument is NULL
     if (tpx->bF)
     {
-        std::vector<gmx::RVec> dummyForces(state->natoms);
+        std::vector<gmx::RVec> dummyForces(state->numAtoms());
         serializer->doRvecArray(as_rvec_array(dummyForces.data()), tpx->natoms);
     }
 }
@@ -3228,14 +3239,14 @@ static void close_tpx(t_fileio* fio)
 static TpxFileHeader populateTpxHeader(const t_state& state, const t_inputrec* ir, const gmx_mtop_t* mtop)
 {
     TpxFileHeader header;
-    header.natoms         = state.natoms;
+    header.natoms         = state.numAtoms();
     header.ngtc           = state.ngtc;
     header.fep_state      = state.fep_state;
     header.lambda         = state.lambda[FreeEnergyPerturbationCouplingType::Fep];
     header.bIr            = ir != nullptr;
     header.bTop           = mtop != nullptr;
-    header.bX             = (state.flags & enumValueToBitMask(StateEntry::X)) != 0;
-    header.bV             = (state.flags & enumValueToBitMask(StateEntry::V)) != 0;
+    header.bX             = state.hasEntry(StateEntry::X);
+    header.bV             = state.hasEntry(StateEntry::V);
     header.bF             = false;
     header.bBox           = true;
     header.fileVersion    = tpx_version;
