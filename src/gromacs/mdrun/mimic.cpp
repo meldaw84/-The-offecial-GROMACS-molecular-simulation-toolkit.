@@ -67,6 +67,7 @@
 #include "gromacs/gmxlib/nrnb.h"
 #include "gromacs/gpu_utils/gpu_utils.h"
 #include "gromacs/listed_forces/listed_forces.h"
+#include "gromacs/listed_forces/listed_forces_gpu.h"
 #include "gromacs/math/functions.h"
 #include "gromacs/math/utilities.h"
 #include "gromacs/math/vec.h"
@@ -505,6 +506,17 @@ void gmx::LegacySimulator::do_mimic()
                        | GMX_FORCE_VIRIAL | // TODO: Get rid of this once #2649 is solved
                        GMX_FORCE_ENERGY | (doFreeEnergyPerturbation ? GMX_FORCE_DHDL : 0));
 
+        gmx_edsam* ed  = nullptr;
+
+        if (bNS)
+        {
+            if (fr_->listedForcesGpu)
+            {
+                fr_->listedForcesGpu->updateHaveInteractions(top_->idef);
+            }
+            runScheduleWork_->domainWork = setupDomainLifetimeWorkload(*ir, *fr_, pullWork_, ed, *mdatoms, runScheduleWork_->simulationWork);
+        }
+
         if (shellfc)
         {
             /* Now is the time to relax the shells */
@@ -551,7 +563,7 @@ void gmx::LegacySimulator::do_mimic()
              * Check comments in sim_util.c
              */
             Awh*       awh = nullptr;
-            gmx_edsam* ed  = nullptr;
+
             do_force(fpLog_,
                      cr_,
                      ms_,
