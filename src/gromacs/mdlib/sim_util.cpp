@@ -1373,70 +1373,27 @@ static int getLocalAtomCount(const gmx_domdec_t* dd, const t_mdatoms& mdatoms, b
     return havePPDomainDecomposition ? dd_numAtomsZones(*dd) : mdatoms.homenr;
 }
 
-
-void do_force(FILE*                               fplog,
+static void do_pair_search(
               const t_commrec*                    cr,
-              const gmx_multisim_t*               ms,
-              const t_inputrec&                   inputrec,
               const gmx::MDModulesNotifiers&      mdModulesNotifiers,
-              gmx::Awh*                           awh,
-              gmx_enfrot*                         enforcedRotation,
-              gmx::ImdSession*                    imdSession,
-              pull_t*                             pull_work,
               int64_t                             step,
               t_nrnb*                             nrnb,
               gmx_wallcycle*                      wcycle,
               const gmx_localtop_t*               top,
               const matrix                        box,
               gmx::ArrayRefWithPadding<gmx::RVec> x,
-              const history_t*                    hist,
-              gmx::ForceBuffersView*              forceView,
-              tensor                              vir_force,
               const t_mdatoms*                    mdatoms,
-              gmx_enerdata_t*                     enerd,
-              gmx::ArrayRef<const real>           lambda,
               t_forcerec*                         fr,
               gmx::MdrunScheduleWorkload*         runScheduleWork,
-              gmx::VirtualSitesHandler*           vsite,
-              rvec                                muTotal,
-              double                              t,
-              gmx_edsam*                          ed,
-              CpuPpLongRangeNonbondeds*           longRangeNonbondeds,
-              int                                 legacyFlags,
               const DDBalanceRegionHandler&       ddBalanceRegionHandler)
 {
-    auto force = forceView->forceWithPadding();
-    GMX_ASSERT(force.unpaddedArrayRef().ssize() >= fr->natoms_force_constr,
-               "The size of the force buffer should be at least the number of atoms to compute "
-               "forces for");
-
     nonbonded_verlet_t*  nbv = fr->nbv.get();
-    interaction_const_t* ic  = fr->ic.get();
 
     gmx::StatePropagatorDataGpu* stateGpu = fr->stateGpu;
 
     const SimulationWorkload& simulationWork = runScheduleWork->simulationWork;
-
-    const gmx::DomainLifetimeWorkload& domainWork = runScheduleWork->domainWork;
-
-    if ((legacyFlags & GMX_FORCE_NS) != 0)
-    {
-        if (fr->listedForcesGpu)
-        {
-            fr->listedForcesGpu->updateHaveInteractions(top->idef);
-        }
-        runScheduleWork->domainWork = setupDomainLifetimeWorkload(inputrec, *fr, pull_work, ed, *mdatoms, simulationWork);
-    }
-
-    runScheduleWork->stepWork = setupStepWorkload(
-            legacyFlags, inputrec.mtsLevels, step, runScheduleWork->domainWork, simulationWork);
     const StepWorkload& stepWork = runScheduleWork->stepWork;
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-
-    if (stepWork.doNeighborSearch)
     {
         if (gmx::needStateGpu(simulationWork))
         {
@@ -1609,6 +1566,86 @@ void do_force(FILE*                               fplog,
         /* TODO:
          * do_rotation() and do_flood() seem to do search-related stuff which we might best split out?
          */
+    }
+}
+
+
+void do_force(FILE*                               fplog,
+              const t_commrec*                    cr,
+              const gmx_multisim_t*               ms,
+              const t_inputrec&                   inputrec,
+              const gmx::MDModulesNotifiers&      mdModulesNotifiers,
+              gmx::Awh*                           awh,
+              gmx_enfrot*                         enforcedRotation,
+              gmx::ImdSession*                    imdSession,
+              pull_t*                             pull_work,
+              int64_t                             step,
+              t_nrnb*                             nrnb,
+              gmx_wallcycle*                      wcycle,
+              const gmx_localtop_t*               top,
+              const matrix                        box,
+              gmx::ArrayRefWithPadding<gmx::RVec> x,
+              const history_t*                    hist,
+              gmx::ForceBuffersView*              forceView,
+              tensor                              vir_force,
+              const t_mdatoms*                    mdatoms,
+              gmx_enerdata_t*                     enerd,
+              gmx::ArrayRef<const real>           lambda,
+              t_forcerec*                         fr,
+              gmx::MdrunScheduleWorkload*         runScheduleWork,
+              gmx::VirtualSitesHandler*           vsite,
+              rvec                                muTotal,
+              double                              t,
+              gmx_edsam*                          ed,
+              CpuPpLongRangeNonbondeds*           longRangeNonbondeds,
+              int                                 legacyFlags,
+              const DDBalanceRegionHandler&       ddBalanceRegionHandler)
+{
+    auto force = forceView->forceWithPadding();
+    GMX_ASSERT(force.unpaddedArrayRef().ssize() >= fr->natoms_force_constr,
+               "The size of the force buffer should be at least the number of atoms to compute "
+               "forces for");
+
+    nonbonded_verlet_t*  nbv = fr->nbv.get();
+    interaction_const_t* ic  = fr->ic.get();
+
+    gmx::StatePropagatorDataGpu* stateGpu = fr->stateGpu;
+
+    const SimulationWorkload& simulationWork = runScheduleWork->simulationWork;
+
+    const gmx::DomainLifetimeWorkload& domainWork = runScheduleWork->domainWork;
+
+    if ((legacyFlags & GMX_FORCE_NS) != 0)
+    {
+        if (fr->listedForcesGpu)
+        {
+            fr->listedForcesGpu->updateHaveInteractions(top->idef);
+        }
+        runScheduleWork->domainWork = setupDomainLifetimeWorkload(inputrec, *fr, pull_work, ed, *mdatoms, simulationWork);
+    }
+
+    runScheduleWork->stepWork = setupStepWorkload(
+            legacyFlags, inputrec.mtsLevels, step, runScheduleWork->domainWork, simulationWork);
+    const StepWorkload& stepWork = runScheduleWork->stepWork;
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    if (stepWork.doNeighborSearch)
+    {
+        do_pair_search(cr,
+                       mdModulesNotifiers,
+                       step,
+                       nrnb,
+                       wcycle,
+                       top,
+                       box,
+                       x,
+                       mdatoms,
+                       fr,
+                       runScheduleWork,
+                       ddBalanceRegionHandler);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
