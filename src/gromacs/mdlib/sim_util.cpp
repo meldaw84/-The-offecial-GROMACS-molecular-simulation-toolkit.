@@ -1568,12 +1568,9 @@ void do_force(FILE*                               fplog,
                                                cr->dd);
             }
         }
-    }
 
-    /* do non-local pair search */
-    if (simulationWork.havePpDomainDecomposition)
-    {
-        if (stepWork.doNeighborSearch)
+        /* do non-local pair search */
+        if (simulationWork.havePpDomainDecomposition)
         {
             // TODO: fuse this branch with the above large stepWork.doNeighborSearch block
             wallcycle_start_nocount(wcycle, WallCycleCounter::NS);
@@ -1593,17 +1590,26 @@ void do_force(FILE*                               fplog,
                 reinitGpuHaloExchange(*cr, stateGpu->getCoordinates(), stateGpu->getForces());
             }
         }
-    }
 
-    // With FEP we set up the reduction over threads for local+non-local simultaneously,
-    // so we need to do that here after the local and non-local pairlist construction.
-    if (stepWork.doNeighborSearch && fr->efep != FreeEnergyPerturbationType::No)
-    {
-        wallcycle_sub_start(wcycle, WallCycleSubCounter::NonbondedFep);
-        nbv->setupFepThreadedForceBuffer(fr->natoms_force_constr);
-        wallcycle_sub_stop(wcycle, WallCycleSubCounter::NonbondedFep);
-    }
+        // With FEP we set up the reduction over threads for local+non-local simultaneously,
+        // so we need to do that here after the local and non-local pairlist construction.
+        if (fr->efep != FreeEnergyPerturbationType::No)
+        {
+            wallcycle_sub_start(wcycle, WallCycleSubCounter::NonbondedFep);
+            nbv->setupFepThreadedForceBuffer(fr->natoms_force_constr);
+            wallcycle_sub_stop(wcycle, WallCycleSubCounter::NonbondedFep);
+        }
 
+        /* At a search step we need to start the first balancing region
+        * somewhere early inside the step after communication during domain
+        * decomposition (and not during the previous step as usual).
+        */
+        ddBalanceRegionHandler.openBeforeForceComputationCpu(DdAllowBalanceRegionReopen::yes);
+
+        /* TODO:
+         * do_rotation() and do_flood() seem to do search-related stuff which we might best split out?
+         */
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1625,15 +1631,6 @@ void do_force(FILE*                               fplog,
         // For CPU update, the forces are consumed by the beginning of the step, so no extra sync needed.
         GpuEventSynchronizer* dependency = simulationWork.useGpuUpdate ? localXReadyOnDevice : nullptr;
         stateGpu->clearForcesOnGpu(AtomLocality::Local, dependency);
-    }
-
-    /* At a search step we need to start the first balancing region
-     * somewhere early inside the step after communication during domain
-     * decomposition (and not during the previous step as usual).
-     */
-    if (stepWork.doNeighborSearch)
-    {
-        ddBalanceRegionHandler.openBeforeForceComputationCpu(DdAllowBalanceRegionReopen::yes);
     }
 
     clear_mat(vir_force);
