@@ -131,7 +131,7 @@ private:
 /*! \brief Force JIT of GPU force-reduction kernels
  *
  * There are several flavours of kernels that can be run, and with
- * SYCL each needs a separate JIT compilation at the point it is first
+ * SYCL (DPC++) each needs a separate JIT compilation at the point it is first
  * called. That first point can come at an inconvenient time during
  * DLB, PME tuning, or benchmarking and distort the run-time
  * measurements. To avoid this, we run a small kernel of each possible
