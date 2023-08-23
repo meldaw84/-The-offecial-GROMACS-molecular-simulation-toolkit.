@@ -372,7 +372,7 @@ private:
      * \param[in] grid       The bias grid.
      * \returns the average of valid tensor volumes from neighboring points or 0.0 if there are no valid volumes.
      */
-    double averageNeighborPositiveCorrelationTensorVolume(const size_t pointIndex, const BiasGrid& grid);
+    double averageNeighborPositiveCorrelationTensorVolume(size_t pointIndex, const BiasGrid& grid) const;
 
 public:
     /*! \brief

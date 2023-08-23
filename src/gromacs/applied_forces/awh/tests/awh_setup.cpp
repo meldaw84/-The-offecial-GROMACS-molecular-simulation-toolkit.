@@ -104,6 +104,8 @@ std::vector<char> awhDimParamSerialized(AwhCoordinateProviderType inputCoordinat
  * \param[in] dimensionParameterBuffers Buffers containing the dimension parameters.
  * \param[in] shareGroup share group for, potentially, sharing the bias between simulations
  * \param[in] inputUserData If there is a user provided PMF estimate.
+ * \param[in] eTargetType Target distribution type.
+ * \param[in] frictionOptimize Whether to optimize the target distribution based on friction.
  */
 static std::vector<char> awhBiasParamSerialized(AwhHistogramGrowthType            eawhgrowth,
                                                 double                            beta,
@@ -158,6 +160,8 @@ static std::vector<char> awhBiasParamSerialized(AwhHistogramGrowthType          
  * \param[in] dimensionParameterBuffers Buffers containing the dimension parameters.
  * \param[in] biasShareGroup share group for, potentially, sharing the bias over simulations
  * \param[in] inputUserData If there is a user provided PMF estimate.
+ * \param[in] eTargetType Target distribution type.
+ * \param[in] frictionOptimize Whether to optimize the target distribution based on friction.
  */
 static std::vector<char> awhParamSerialized(AwhHistogramGrowthType            eawhgrowth,
                                             AwhPotentialType                  eawhpotential,

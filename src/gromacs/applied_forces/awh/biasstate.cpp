@@ -327,7 +327,7 @@ std::string gridPointValueString(const BiasGrid& grid, int point)
 } // namespace
 
 double BiasState::averageNeighborPositiveCorrelationTensorVolume(const size_t    pointIndex,
-                                                                 const BiasGrid& grid)
+                                                                 const BiasGrid& grid) const
 {
     const GridPoint& gridPoint       = grid.point(pointIndex);
     double           tensorVolumeSum = 0;
