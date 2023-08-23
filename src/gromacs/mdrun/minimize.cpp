@@ -97,9 +97,11 @@
 #include "gromacs/mdtypes/md_enums.h"
 #include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/mdtypes/mdrunoptions.h"
+#include "gromacs/mdtypes/multipletimestepping.h"
 #include "gromacs/mdtypes/observablesreducer.h"
 #include "gromacs/mdtypes/state.h"
 #include "gromacs/pbcutil/pbc.h"
+#include "gromacs/taskassignment/include/gromacs/taskassignment/decidesimulationworkload.h"
 #include "gromacs/timing/wallcycle.h"
 #include "gromacs/timing/walltime_accounting.h"
 #include "gromacs/topology/mtop_util.h"
@@ -117,6 +119,7 @@ using gmx::ArrayRef;
 using gmx::MDModulesNotifiers;
 using gmx::MdrunScheduleWorkload;
 using gmx::RVec;
+using gmx::ArrayRef;
 using gmx::VirtualSitesHandler;
 
 //! Utility structure for manipulating states during EM
@@ -1030,8 +1033,9 @@ void EnergyEvaluator::run(em_state_t* ems, rvec mu_tot, tensor vir, tensor pres,
         runScheduleWork->domainWork = setupDomainLifetimeWorkload(*inputrec, *fr, pull_work, ed, *mdAtoms->mdatoms(), runScheduleWork->simulationWork);
     }
 
-    runScheduleWork->stepWork = setupStepWorkload(GMX_FORCE_STATECHANGED | GMX_FORCE_ALLFORCES | GMX_FORCE_VIRIAL | GMX_FORCE_ENERGY | (bNS ? GMX_FORCE_NS : 0),
-                                                  inputrec->mtsLevels, step, runScheduleWork->domainWork, runScheduleWork->simulationWork);
+
+    const int legacyForceFlags = GMX_FORCE_STATECHANGED | GMX_FORCE_ALLFORCES | GMX_FORCE_VIRIAL | GMX_FORCE_ENERGY | (bNS ? GMX_FORCE_NS : 0);
+    runScheduleWork->stepWork = setupStepWorkload(legacyForceFlags, inputrec->mtsLevels, step, runScheduleWork->domainWork, runScheduleWork->simulationWork);
 
     /* Calc force & energy on new trial position  */
     /* do_force always puts the charge groups in the box and shifts again

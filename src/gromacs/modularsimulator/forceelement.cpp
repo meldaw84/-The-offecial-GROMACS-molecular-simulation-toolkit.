@@ -56,6 +56,7 @@
 #include "gromacs/mdtypes/interaction_const.h"
 #include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/mdtypes/mdrunoptions.h"
+#include "gromacs/mdtypes/multipletimestepping.h"
 #include "gromacs/mdtypes/simulation_workload.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/taskassignment/include/gromacs/taskassignment/decidesimulationworkload.h"
@@ -201,6 +202,7 @@ void ForceElement::run(Step step, Time time, unsigned int flags)
         runScheduleWork_->domainWork = setupDomainLifetimeWorkload(*inputrec_, *fr_, pull_work_, ed, *mdAtoms_->mdatoms(), runScheduleWork_->simulationWork);
     }
 
+    runScheduleWork_->stepWork = setupStepWorkload(flags, inputrec_->mtsLevels, step, runScheduleWork_->domainWork, runScheduleWork_->simulationWork);
 
     /* The coordinates (x) are shifted (to get whole molecules)
      * in do_force.

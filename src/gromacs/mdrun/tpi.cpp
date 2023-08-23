@@ -83,10 +83,12 @@
 #include "gromacs/mdtypes/mdatom.h"
 #include "gromacs/mdtypes/mdrunoptions.h"
 #include "gromacs/mdtypes/state.h"
+#include "gromacs/mdtypes/multipletimestepping.h"
 #include "gromacs/nbnxm/nbnxm.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/random/threefry.h"
 #include "gromacs/random/uniformrealdistribution.h"
+#include "gromacs/taskassignment/include/gromacs/taskassignment/decidesimulationworkload.h"
 #include "gromacs/timing/wallcycle.h"
 #include "gromacs/timing/walltime_accounting.h"
 #include "gromacs/topology/mtop_util.h"
@@ -755,6 +757,8 @@ void LegacySimulator::do_tpi()
             // might raise, then restore the old behaviour.
             std::fenv_t floatingPointEnvironment;
             std::feholdexcept(&floatingPointEnvironment);
+
+            runScheduleWork_->stepWork = setupStepWorkload(GMX_FORCE_NONBONDED | GMX_FORCE_ENERGY | (bStateChanged ? GMX_FORCE_STATECHANGED : 0), inputRec_->mtsLevels, step, runScheduleWork_->domainWork, runScheduleWork_->simulationWork);
             do_force(fpLog_,
                      cr_,
                      ms_,

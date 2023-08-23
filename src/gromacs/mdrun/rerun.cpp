@@ -115,11 +115,13 @@
 #include "gromacs/mdtypes/observablesreducer.h"
 #include "gromacs/mdtypes/simulation_workload.h"
 #include "gromacs/mdtypes/state.h"
+#include "gromacs/mdtypes/multipletimestepping.h"
 #include "gromacs/mimic/utilities.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/pulling/output.h"
 #include "gromacs/pulling/pull.h"
 #include "gromacs/swap/swapcoords.h"
+#include "gromacs/taskassignment/include/gromacs/taskassignment/decidesimulationworkload.h"
 #include "gromacs/timing/wallcycle.h"
 #include "gromacs/timing/walltime_accounting.h"
 #include "gromacs/topology/atoms.h"
@@ -605,6 +607,9 @@ void gmx::LegacySimulator::do_rerun()
                        | GMX_FORCE_VIRIAL | // TODO: Get rid of this once #2649 and #3400 are solved
                        GMX_FORCE_ENERGY | (doFreeEnergyPerturbation ? GMX_FORCE_DHDL : 0));
 
+        const int shellfc_flags = force_flags | (mdrunOptions_.verbose ? GMX_FORCE_ENERGY : 0);
+        const int legacyForceFlags = (shellfc) ? shellfc_flags : GMX_FORCE_NS | force_flags;
+
         gmx_edsam* ed  = nullptr;
 
         if (bNS)
@@ -615,6 +620,9 @@ void gmx::LegacySimulator::do_rerun()
             }
             runScheduleWork_->domainWork = setupDomainLifetimeWorkload(*ir, *fr_, pullWork_, ed, *mdatoms, runScheduleWork_->simulationWork);
         }
+
+
+        runScheduleWork_->stepWork = setupStepWorkload(legacyForceFlags, ir->mtsLevels, step, runScheduleWork_->domainWork, runScheduleWork_->simulationWork);
 
         if (shellfc)
         {
