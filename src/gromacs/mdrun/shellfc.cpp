@@ -66,8 +66,10 @@
 #include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/mdtypes/md_enums.h"
 #include "gromacs/mdtypes/mdatom.h"
+#include "gromacs/mdtypes/multipletimestepping.h"
 #include "gromacs/mdtypes/state.h"
 #include "gromacs/pbcutil/pbc.h"
+#include "gromacs/taskassignment/include/gromacs/taskassignment/decidesimulationworkload.h"
 #include "gromacs/topology/ifunc.h"
 #include "gromacs/topology/mtop_atomloops.h"
 #include "gromacs/topology/mtop_lookup.h"
@@ -1057,8 +1059,8 @@ void relax_shell_flexcon(FILE*                          fplog,
     {
         pr_rvecs(debug, 0, "x b4 do_force", as_rvec_array(x.data()), homenr);
     }
-    int                   shellfc_flags = force_flags | (bVerbose ? GMX_FORCE_ENERGY : 0);
     gmx::ForceBuffersView forceViewInit = gmx::ForceBuffersView(forceWithPadding[Min], {}, false);
+
     do_force(fplog,
              cr,
              ms,
@@ -1088,7 +1090,7 @@ void relax_shell_flexcon(FILE*                          fplog,
              t,
              nullptr,
              longRangeNonbondeds,
-             (bDoNS ? GMX_FORCE_NS : 0) | shellfc_flags,
+             force_flags,
              ddBalanceRegionHandler);
 
     sf_dir = 0;
@@ -1231,7 +1233,7 @@ void relax_shell_flexcon(FILE*                          fplog,
                  t,
                  nullptr,
                  longRangeNonbondeds,
-                 shellfc_flags,
+                 force_flags,
                  ddBalanceRegionHandler);
         accumulatePotentialEnergies(enerd, lambda, inputrec->fepvals.get());
         if (gmx_debug_at)
