@@ -1169,6 +1169,25 @@ void gmx::LegacySimulator::do_md()
             }
         }
 
+        if (bNS)
+        {
+            if (fr_->listedForcesGpu)
+            {
+                fr_->listedForcesGpu->updateHaveInteractions(top_->idef);
+            }
+            runScheduleWork_->domainWork = setupDomainLifetimeWorkload(
+                    *ir, *fr_, pullWork_, ed ? ed->getLegacyED() : nullptr, *md, simulationWork);
+        }
+
+        int shellfc_flags    = force_flags | (mdrunOptions_.verbose ? GMX_FORCE_ENERGY : 0);
+        int legacyForceFlags = (shellfc) ? shellfc_flags : (bNS ? GMX_FORCE_NS : 0) | force_flags;
+
+        runScheduleWork_->stepWork = setupStepWorkload((bNS ? GMX_FORCE_NS : 0) | force_flags,
+                                                       ir->mtsLevels,
+                                                       step,
+                                                       runScheduleWork_->domainWork,
+                                                       simulationWork);
+
         if (!simulationWork.useMdGpuGraph || mdGraph->graphIsCapturingThisStep()
             || !mdGraph->useGraphThisStep())
         {
@@ -1187,7 +1206,7 @@ void gmx::LegacySimulator::do_md()
                                     imdSession_,
                                     pullWork_,
                                     bNS,
-                                    force_flags,
+                                    legacyForceFlags,
                                     top_,
                                     constr_,
                                     enerd_,
@@ -1226,16 +1245,6 @@ void gmx::LegacySimulator::do_md()
                     awh->updateHistory(stateGlobal_->awhHistory.get());
                 }
 
-                if (bNS)
-                {
-                    if (fr_->listedForcesGpu)
-                    {
-                        fr_->listedForcesGpu->updateHaveInteractions(top_->idef);
-                    }
-                    runScheduleWork_->domainWork = setupDomainLifetimeWorkload(
-                            *ir, *fr_, pullWork_, ed ? ed->getLegacyED() : nullptr, *md, simulationWork);
-                }
-
                 /* The coordinates (x) are shifted (to get whole molecules)
                  * in do_force.
                  * This is parallellized as well, and does communication too.
@@ -1270,7 +1279,7 @@ void gmx::LegacySimulator::do_md()
                          t,
                          ed ? ed->getLegacyED() : nullptr,
                          fr_->longRangeNonbondeds.get(),
-                         (bNS ? GMX_FORCE_NS : 0) | force_flags,
+                         legacyForceFlags,
                          ddBalanceRegionHandler);
             }
 
