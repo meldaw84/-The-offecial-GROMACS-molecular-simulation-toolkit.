@@ -83,15 +83,22 @@ int64_t calcTargetUpdateInterval(const AwhParams& awhParams, const AwhBiasParams
      */
     switch (awhBiasParams.targetDistribution())
     {
-        case AwhTargetType::Constant: numStepsUpdateTarget = 0; break;
+        case AwhTargetType::Constant:
+            /* If the target distribution should be friction optimized set numStepsUpdateTarget below */
+            if (!awhBiasParams.frictionOptimize())
+            {
+                numStepsUpdateTarget = 0;
+                break;
+            }
+            [[fallthrough]];
         case AwhTargetType::Cutoff:
         case AwhTargetType::Boltzmann:
-        case AwhTargetType::FrictionOptimized:
             /* Updating the target generally requires updating the whole grid so to keep the cost
-               down we update the target when we update the free energy (unless the free
-               energy update is performed more frequently than every 100 steps). */
-            numStepsUpdateTarget =
-                    std::max(100, awhParams.numSamplesUpdateFreeEnergy() * awhParams.nstSampleCoord());
+               down we generally update the target less often than the free energy (unless the free
+               energy update step is set to > 100 samples). */
+            numStepsUpdateTarget = std::max(100 % awhParams.numSamplesUpdateFreeEnergy(),
+                                            awhParams.numSamplesUpdateFreeEnergy())
+                                   * awhParams.nstSampleCoord();
             break;
         case AwhTargetType::LocalBoltzmann:
             /* The target distribution is set equal to the reference histogram which is updated every free energy update.
@@ -237,6 +244,7 @@ BiasParams::BiasParams(const AwhParams&          awhParams,
     numStepsUpdateTarget_(calcTargetUpdateInterval(awhParams, awhBiasParams)),
     numStepsCheckCovering_(calcCheckCoveringInterval(awhParams, dimParams, gridAxis)),
     eTarget(awhBiasParams.targetDistribution()),
+    frictionOptimize(awhBiasParams.frictionOptimize()),
     freeEnergyCutoffInKT(beta * awhBiasParams.targetCutoff()),
     temperatureScaleFactor(awhBiasParams.targetBetaScaling()),
     idealWeighthistUpdate(eTarget != AwhTargetType::LocalBoltzmann),

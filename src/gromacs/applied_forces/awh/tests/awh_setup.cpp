@@ -111,7 +111,8 @@ static std::vector<char> awhBiasParamSerialized(AwhHistogramGrowthType          
                                                 ArrayRef<const std::vector<char>> dimensionParameterBuffers,
                                                 int                               shareGroup,
                                                 bool                              inputUserData,
-                                                AwhTargetType                     eTargetType)
+                                                AwhTargetType                     eTargetType,
+                                                bool                              frictionOptimize)
 {
     int                    ndim                 = dimensionParameterBuffers.size();
     double                 targetBetaScaling    = 0;
@@ -119,6 +120,7 @@ static std::vector<char> awhBiasParamSerialized(AwhHistogramGrowthType          
     AwhHistogramGrowthType eGrowth              = eawhgrowth;
     double                 growthFactor         = 3.0;
     bool                   bUserData            = inputUserData;
+    bool                   bFrictionOptimize    = frictionOptimize;
     double                 errorInitial         = inputErrorScaling / beta;
     bool                   equilibrateHistogram = false;
 
@@ -130,6 +132,7 @@ static std::vector<char> awhBiasParamSerialized(AwhHistogramGrowthType          
     serializer.doDouble(&growthFactor);
     int temp = static_cast<int>(bUserData);
     serializer.doInt(&temp);
+    serializer.doBool(&bFrictionOptimize);
     serializer.doDouble(&errorInitial);
     serializer.doInt(&ndim);
     serializer.doInt(&shareGroup);
@@ -164,7 +167,8 @@ static std::vector<char> awhParamSerialized(AwhHistogramGrowthType            ea
                                             ArrayRef<const std::vector<char>> dimensionParameterBuffers,
                                             int                               biasShareGroup,
                                             bool                              inputUserData,
-                                            AwhTargetType                     eTargetType)
+                                            AwhTargetType                     eTargetType,
+                                            bool                              frictionOptimize)
 {
     int              numBias                    = 1;
     int64_t          seed                       = inputSeed;
@@ -184,15 +188,23 @@ static std::vector<char> awhParamSerialized(AwhHistogramGrowthType            ea
     serializer.doBool(&shareBiasMultisim);
 
     auto awhParamBuffer = serializer.finishAndGetBuffer();
-    auto awhBiasBuffer  = awhBiasParamSerialized(
-            eawhgrowth, beta, inputErrorScaling, dimensionParameterBuffers, biasShareGroup, inputUserData, eTargetType);
+    auto awhBiasBuffer  = awhBiasParamSerialized(eawhgrowth,
+                                                beta,
+                                                inputErrorScaling,
+                                                dimensionParameterBuffers,
+                                                biasShareGroup,
+                                                inputUserData,
+                                                eTargetType,
+                                                frictionOptimize);
 
     awhParamBuffer.insert(awhParamBuffer.end(), awhBiasBuffer.begin(), awhBiasBuffer.end());
 
     return awhParamBuffer;
 }
 
-AwhTestParameters::AwhTestParameters(ISerializer* serializer) : awhParams(serializer, false) {}
+AwhTestParameters::AwhTestParameters(ISerializer* serializer) : awhParams(serializer, false, false)
+{
+}
 /*! \brief
  * Helper function to set up the C-style AWH parameters for the test.
  *
@@ -207,7 +219,8 @@ AwhTestParameters getAwhTestParameters(AwhHistogramGrowthType            eawhgro
                                        double                            inputErrorScaling,
                                        int                               numFepLambdaStates,
                                        int                               biasShareGroup,
-                                       AwhTargetType                     eTargetType)
+                                       AwhTargetType                     eTargetType,
+                                       bool                              frictionOptimize)
 {
     double  convFactor = 1;
     double  k          = 1000;
@@ -221,7 +234,8 @@ AwhTestParameters getAwhTestParameters(AwhHistogramGrowthType            eawhgro
                                              dimensionParameterBuffers,
                                              biasShareGroup,
                                              inputUserData,
-                                             eTargetType);
+                                             eTargetType,
+                                             frictionOptimize);
     gmx::InMemoryDeserializer deserializer(awhParamBuffer, false);
     AwhTestParameters         params(&deserializer);
 
@@ -263,14 +277,15 @@ TEST(SerializationTest, CanSerializeBiasParams)
     auto awhDimBuffer   = awhDimParamSerialized();
     auto awhDimArrayRef = gmx::arrayRefFromArray(&awhDimBuffer, 1);
     auto awhBiasBuffer  = awhBiasParamSerialized(
-            AwhHistogramGrowthType::ExponentialLinear, 0.4, 0.5, awhDimArrayRef, 0, false, AwhTargetType::Constant);
+            AwhHistogramGrowthType::ExponentialLinear, 0.4, 0.5, awhDimArrayRef, 0, false, AwhTargetType::Constant, false);
     gmx::InMemoryDeserializer deserializer(awhBiasBuffer, false);
-    AwhBiasParams             awhBiasParams(&deserializer, false);
+    AwhBiasParams             awhBiasParams(&deserializer, false, false);
     EXPECT_EQ(awhBiasParams.ndim(), 1);
     EXPECT_EQ(awhBiasParams.targetDistribution(), AwhTargetType::Constant);
     EXPECT_FLOAT_EQ(awhBiasParams.targetBetaScaling(), 0);
     EXPECT_FLOAT_EQ(awhBiasParams.targetCutoff(), 0);
     EXPECT_EQ(awhBiasParams.growthType(), AwhHistogramGrowthType::ExponentialLinear);
+    EXPECT_EQ(awhBiasParams.frictionOptimize(), false);
     EXPECT_EQ(awhBiasParams.userPMFEstimate(), 0);
     EXPECT_FLOAT_EQ(awhBiasParams.initialErrorEstimate(), 0.5 / 0.4);
     EXPECT_EQ(awhBiasParams.shareGroup(), 0);
@@ -303,9 +318,10 @@ TEST(SerializationTest, CanSerializeAwhParams)
                                              awhDimArrayRef,
                                              0,
                                              false,
-                                             AwhTargetType::Constant);
+                                             AwhTargetType::Constant,
+                                             false);
     gmx::InMemoryDeserializer deserializer(awhParamBuffer, false);
-    AwhParams                 awhParams(&deserializer, false);
+    AwhParams                 awhParams(&deserializer, false, false);
     EXPECT_EQ(awhParams.numBias(), 1);
     EXPECT_EQ(awhParams.seed(), 1337);
     EXPECT_EQ(awhParams.nstout(), 0);

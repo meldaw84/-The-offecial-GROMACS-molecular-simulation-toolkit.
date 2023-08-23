@@ -68,7 +68,7 @@ namespace gmx
 const char* enumValueToString(AwhTargetType enumValue)
 {
     constexpr gmx::EnumerationArray<AwhTargetType, const char*> awhTargetTypeNames = {
-        "constant", "cutoff", "boltzmann", "local-boltzmann", "friction-optimized"
+        "constant", "cutoff", "boltzmann", "local-boltzmann"
     };
     return awhTargetTypeNames[enumValue];
 }
@@ -785,9 +785,8 @@ AwhBiasParams::AwhBiasParams(std::vector<t_inpfile>* inp, const std::string& pre
 
     if (bComment)
     {
-        printStringNoNewline(inp,
-                             "Target distribution type: constant, cutoff, boltzmann, "
-                             "local-boltzmann or friction-optimized");
+        printStringNoNewline(
+                inp, "Target distribution type: constant, cutoff, boltzmann or local-boltzmann");
     }
     opt      = prefix + "-target";
     eTarget_ = getEnum<AwhTargetType>(inp, opt.c_str(), wi);
@@ -817,6 +816,15 @@ AwhBiasParams::AwhBiasParams(std::vector<t_inpfile>* inp, const std::string& pre
 
     if (bComment)
     {
+        printStringNoNewline(inp,
+                             "Optimize the target distribution (applies to 'constant' target "
+                             "distribution as well) based on the AWH friction metric: no or yes");
+    }
+    opt                = prefix + "target-friction-optimize";
+    bFrictionOptimize_ = getEnum<Boolean>(inp, opt.c_str(), wi) != Boolean::No;
+
+    if (bComment)
+    {
         printStringNoNewline(inp, "Group index to share the bias with, 0 means not shared");
     }
     opt         = prefix + "-share-group";
@@ -842,7 +850,9 @@ AwhBiasParams::AwhBiasParams(std::vector<t_inpfile>* inp, const std::string& pre
     }
 }
 
-AwhBiasParams::AwhBiasParams(ISerializer* serializer, const bool tprWithoutGrowthFactor)
+AwhBiasParams::AwhBiasParams(ISerializer* serializer,
+                             const bool   tprWithoutGrowthFactor,
+                             const bool   tprWithoutTargetOptimization)
 {
     GMX_RELEASE_ASSERT(serializer->reading(),
                        "Can not use writing serializer to create datastructure");
@@ -862,6 +872,14 @@ AwhBiasParams::AwhBiasParams(ISerializer* serializer, const bool tprWithoutGrowt
     int temp = 0;
     serializer->doInt(&temp);
     bUserData_ = static_cast<bool>(temp);
+    if (tprWithoutTargetOptimization)
+    {
+        bFrictionOptimize_ = false;
+    }
+    else
+    {
+        serializer->doBool(&bFrictionOptimize_);
+    }
     serializer->doDouble(&errorInitial_);
     int numDimensions = dimParams_.size();
     serializer->doInt(&numDimensions);
@@ -885,6 +903,7 @@ void AwhBiasParams::serialize(ISerializer* serializer)
     serializer->doDouble(&growthFactor_);
     int temp = static_cast<int>(bUserData_);
     serializer->doInt(&temp);
+    serializer->doBool(&bFrictionOptimize_);
     serializer->doDouble(&errorInitial_);
     int numDimensions = ndim();
     serializer->doInt(&numDimensions);
@@ -955,7 +974,7 @@ AwhParams::AwhParams(std::vector<t_inpfile>* inp, WarningHandler* wi)
     checkInputConsistencyAwh(*this, wi);
 }
 
-AwhParams::AwhParams(ISerializer* serializer, const bool tprWithoutGrowthFactor)
+AwhParams::AwhParams(ISerializer* serializer, const bool tprWithoutGrowthFactor, const bool tprWithoutTargetOptimization)
 {
     GMX_RELEASE_ASSERT(serializer->reading(),
                        "Can not use writing serializer to read AWH parameters");
@@ -972,7 +991,7 @@ AwhParams::AwhParams(ISerializer* serializer, const bool tprWithoutGrowthFactor)
     {
         for (int k = 0; k < numberOfBiases; k++)
         {
-            awhBiasParams_.emplace_back(serializer, tprWithoutGrowthFactor);
+            awhBiasParams_.emplace_back(serializer, tprWithoutGrowthFactor, tprWithoutTargetOptimization);
         }
     }
 }

@@ -360,16 +360,23 @@ void BiasState::updateTargetDistribution(const BiasParams&      params,
     }
 
     double sumTarget = 0;
-    if (params.eTarget == AwhTargetType::FrictionOptimized)
-    {
-        updateSharedCorrelationTensorTimeIntegral(params, forceCorrelation);
-    }
     for (size_t pointIndex = 0; pointIndex < points_.size(); pointIndex++)
     {
-        PointState& ps                      = points_[pointIndex];
-        double      correlationTensorVolume = 0;
-        if (params.eTarget == AwhTargetType::FrictionOptimized)
+        PointState& ps = points_[pointIndex];
+        sumTarget += ps.updateTargetWeight(params, freeEnergyCutoff);
+    }
+    GMX_RELEASE_ASSERT(sumTarget > 0, "We should have a non-zero distribution");
+
+    /* Perform friction optimization of the target distribution after it has been set - normalize afterwards */
+    if (params.frictionOptimize && !inInitialStage())
+    {
+        sumTarget = 0;
+        updateSharedCorrelationTensorTimeIntegral(params, forceCorrelation);
+        for (size_t pointIndex = 0; pointIndex < points_.size(); pointIndex++)
         {
+            PointState& ps                      = points_[pointIndex];
+            double      correlationTensorVolume = 0;
+
             std::vector<double> correlationIntegral = getSharedPointCorrelationIntegral(pointIndex);
             correlationTensorVolume                 = getSqrtDeterminant(correlationIntegral);
 
@@ -379,10 +386,17 @@ void BiasState::updateTargetDistribution(const BiasParams&      params,
             {
                 correlationTensorVolume = averageNeighborPositiveCorrelationTensorVolume(pointIndex, grid);
             }
+            /* Do not modify the target distribution, based on the friction, if the friction is
+             * still 0. N.b., this means that the normalized target of this point can still change
+             * based on the scaling of all other points. */
+            if (correlationTensorVolume > 0)
+            {
+                double scaleFactor = correlationTensorVolume;
+                ps.scaleTarget(scaleFactor);
+            }
+            sumTarget += ps.target();
         }
-        sumTarget += ps.updateTargetWeight(params, freeEnergyCutoff, correlationTensorVolume);
     }
-    GMX_RELEASE_ASSERT(sumTarget > 0, "We should have a non-zero distribution");
 
     /* Normalize to 1 */
     double invSum = 1.0 / sumTarget;
@@ -1157,12 +1171,10 @@ void BiasState::updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParam
     }
 
     /* Update target distribution? */
+    bool doFrictionOptimization = params.frictionOptimize && !inInitialStage();
     bool needToUpdateTargetDistribution =
-            (params.eTarget != AwhTargetType::Constant && params.isUpdateTargetStep(step));
-    if (params.eTarget == AwhTargetType::FrictionOptimized && inInitialStage())
-    {
-        needToUpdateTargetDistribution = false;
-    }
+            ((params.eTarget != AwhTargetType::Constant || doFrictionOptimization)
+             && params.isUpdateTargetStep(step));
 
     /* In the initial stage, the histogram grows dynamically as a function of the number of coverings. */
     bool detectedCovering = false;

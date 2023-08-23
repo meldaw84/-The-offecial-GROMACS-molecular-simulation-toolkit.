@@ -418,7 +418,7 @@ public:
      * \param[in] freeEnergyCutoff  The cut-off for the free energy for target type "cutoff".
      * \returns the updated value of the target.
      */
-    double updateTargetWeight(const BiasParams& params, double freeEnergyCutoff, const double correlationTensorVolume)
+    double updateTargetWeight(const BiasParams& params, double freeEnergyCutoff)
     {
         switch (params.eTarget)
         {
@@ -433,21 +433,6 @@ public:
                 target_ = std::exp(-params.temperatureScaleFactor * freeEnergy_);
                 break;
             case AwhTargetType::LocalBoltzmann: target_ = weightSumRef_; break;
-            case AwhTargetType::FrictionOptimized:
-                /* Do not update the target_ if there is not enough data to calculate the friction. */
-                if (correlationTensorVolume != 0)
-                {
-                    target_ = correlationTensorVolume;
-                }
-                /* Keep the target unchanged, compensate for the multiplication below. This does not guarantee
-                 * that the relative target of this point will remain constant. However, it avoids setting the
-                 * target distribution to 0 and in later updates, when there is a valid correlation tensor volume,
-                 * the target distribution will be set correctly. */
-                else
-                {
-                    target_ /= targetConstantWeight_;
-                }
-                break;
             default: GMX_RELEASE_ASSERT(false, "Unhandled enum");
         }
 

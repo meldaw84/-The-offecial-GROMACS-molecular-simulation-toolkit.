@@ -72,7 +72,6 @@ enum class AwhTargetType : int
     Cutoff,
     Boltzmann,
     LocalBoltzmann,
-    FrictionOptimized,
     Count,
     Default = Constant
 };
@@ -181,7 +180,7 @@ public:
     //! Constructor from input file.
     AwhBiasParams(std::vector<t_inpfile>* inp, const std::string& prefix, WarningHandler* wi, bool bComment);
     //! Constructor to generate from file reading.
-    explicit AwhBiasParams(ISerializer* serializer, bool tprWithoutGrowthFactor);
+    explicit AwhBiasParams(ISerializer* serializer, bool tprWithoutGrowthFactor, bool tprWithoutTargetOptimization);
 
     //! Move constructor.
     AwhBiasParams(AwhBiasParams&&) = default;
@@ -210,6 +209,8 @@ public:
     int ndim() const { return dimParams_.size(); }
     //! Number of groups to share this bias with.
     int shareGroup() const { return shareGroup_; }
+    //! Whether we should optimize the target distribution based on the AWH friction metric.
+    bool frictionOptimize() const { return bFrictionOptimize_; }
     //! If the simulation starts with equilibrating histogram.
     bool equilibrateHistogram() const { return equilibrateHistogram_; }
     //! Access to dimension parameters.
@@ -234,6 +235,8 @@ private:
     double growthFactor_;
     //! Is there a user-defined initial PMF estimate and target estimate?
     bool bUserData_;
+    //! Should the target distribution be optimized based on the friction metric?
+    bool bFrictionOptimize_;
     //! Estimated initial free energy error in kJ/mol.
     double errorInitial_;
     //! When >0, the bias is shared with biases of the same group and across multiple simulations when shareBiasMultisim=true
@@ -250,7 +253,7 @@ public:
     //! Constructor from input file.
     AwhParams(std::vector<t_inpfile>* inp, WarningHandler* wi);
     //! Constructor used to generate awh parameter from file reading.
-    explicit AwhParams(ISerializer* serializer, bool tprWithoutGrowthFactor);
+    explicit AwhParams(ISerializer* serializer, bool tprWithoutGrowthFactor, bool tprWithoutTargetOptimization);
 
     //! Move constructor.
     AwhParams(AwhParams&&) = default;
