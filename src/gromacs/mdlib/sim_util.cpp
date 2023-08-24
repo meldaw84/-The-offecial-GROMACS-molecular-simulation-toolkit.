@@ -1738,7 +1738,7 @@ void do_force(FILE*                               fplog,
     // kernel so that latter does not starve the former. On search
     // steps, halo exchange is not required at all.
     GpuEventSynchronizer* gpuCoordinateHaloLaunched = nullptr;
-    if (simulationWork.runGpuHaloExchangeEarly && &&!stepWork.doNeighborSearch && stepWork.useGpuXHalo)
+    if (simulationWork.runGpuHaloExchangeEarly && !stepWork.doNeighborSearch && stepWork.useGpuXHalo)
     {
         gpuCoordinateHaloLaunched =
                 launchGpuHaloExchange(*cr, box, stateGpu, localXReadyOnDevice, domainWork, x);
