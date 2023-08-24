@@ -388,15 +388,29 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
     devFlags.enableGpuPmeDecomposition =
             forcePmeGpuDecomposition && pmeGpuDecompositionRequested && pmeGpuDecompositionSupported;
 
-    devFlags.manualStreamPriority = getenv("GMX_GPU_MANUAL_STREAM_PRIORITY") != nullptr;
-    if (devFlags.manualStreamPriority)
+    if (getenv("GMX_GPU_MANUAL_STREAM_PRIORITY") != nullptr)
     {
-        GMX_LOG(mdlog.warning)
-                .asParagraph()
-                .appendTextFormatted(
-                        "This run uses manual work-arounds that avoid assuming hardware support "
-                        "for stream priority, enabled by the GMX_GPU_MANUAL_STREAM_PRIORITY "
-                        "environment variable.");
+        if (getenv("GMX_ENABLE_DIRECT_GPU_COMM") != nullptr)
+        {
+            devFlags.manualStreamPriority = true;
+            GMX_LOG(mdlog.warning)
+                    .asParagraph()
+                    .appendTextFormatted(
+                            "This run uses manual work-arounds that avoid assuming hardware "
+                            "support for stream priority, enabled by the "
+                            "GMX_GPU_MANUAL_STREAM_PRIORITY environment variable.");
+        }
+        else
+        {
+            GMX_LOG(mdlog.info)
+                    .asParagraph()
+                    .appendText(
+                            "The workarounds for lack of hardware support for stream priority were "
+                            "requested by the GMX_GPU_MANUAL_STREAM_PRIORITY environment variable. "
+                            "This request is being ignored because other run conditions mean no "
+                            "such workarounds are needed (e.g. you did not also set "
+                            "GMX_ENABLE_DIRECT_GPU_COMM environment variable).");
+        }
     }
 
     return devFlags;
