@@ -113,7 +113,8 @@ SimulationWorkload createSimulationWorkload(const t_inputrec& inputrec,
             && (simulationWorkload.haveSeparatePmeRank ? simulationWorkload.useGpuPmePpCommunication : true)
             && (havePpDomainDecomposition ? simulationWorkload.useGpuHaloExchange : true)
             && (havePpDomainDecomposition ? (GMX_THREAD_MPI > 0) : true);
-    simulationWorkload.manualStreamPriority = devFlags.manualStreamPriority;
+    simulationWorkload.runGpuHaloExchangeEarly =
+            devFlags.manualStreamPriority && simulationWorkload.havePpDomainDecomposition;
     return simulationWorkload;
 }
 
