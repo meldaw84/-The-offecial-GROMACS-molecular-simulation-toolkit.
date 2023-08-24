@@ -1378,20 +1378,22 @@ static int getLocalAtomCount(const gmx_domdec_t* dd, const t_mdatoms& mdatoms, b
  * The following must be called after convertCoordinates for the local
  * region, which records an event when the coordinate data has been
  * copied to the device. */
-static GpuEventSynchronizer* launchGpuHaloExchange(const t_commrec& cr,
-                                                   const matrix box,
+static GpuEventSynchronizer* launchGpuHaloExchange(const t_commrec&             cr,
+                                                   const matrix                 box,
                                                    gmx::StatePropagatorDataGpu* stateGpu,
-                                                   GpuEventSynchronizer* localXReadyOnDevice,
-                                                   const DomainLifetimeWorkload& domainWork,
+                                                   GpuEventSynchronizer*        localXReadyOnDevice,
+                                                   const DomainLifetimeWorkload&       domainWork,
                                                    gmx::ArrayRefWithPadding<gmx::RVec> x)
 {
-    GpuEventSynchronizer* gpuCoordinateHaloLaunched = communicateGpuHaloCoordinates(cr, box, localXReadyOnDevice);
+    GpuEventSynchronizer* gpuCoordinateHaloLaunched =
+            communicateGpuHaloCoordinates(cr, box, localXReadyOnDevice);
 
     // Now the non-local coordinates are valid.
     if (domainWork.haveCpuNonLocalForceWork)
     {
         // non-local part of coordinate buffer must be copied back to host for CPU work
-        stateGpu->copyCoordinatesFromGpu(x.unpaddedArrayRef(), AtomLocality::NonLocal, gpuCoordinateHaloLaunched);
+        stateGpu->copyCoordinatesFromGpu(
+                x.unpaddedArrayRef(), AtomLocality::NonLocal, gpuCoordinateHaloLaunched);
     }
     return gpuCoordinateHaloLaunched;
 }
@@ -1736,9 +1738,11 @@ void do_force(FILE*                               fplog,
     // kernel so that latter does not starve the former. On search
     // steps, halo exchange is not required at all.
     GpuEventSynchronizer* gpuCoordinateHaloLaunched = nullptr;
-    if (simulationWork.manualStreamPriority && simulationWork.havePpDomainDecomposition && !stepWork.doNeighborSearch && stepWork.useGpuXHalo)
+    if (simulationWork.manualStreamPriority && simulationWork.havePpDomainDecomposition
+        && !stepWork.doNeighborSearch && stepWork.useGpuXHalo)
     {
-        gpuCoordinateHaloLaunched = launchGpuHaloExchange(*cr, box, stateGpu, localXReadyOnDevice, domainWork, x);
+        gpuCoordinateHaloLaunched =
+                launchGpuHaloExchange(*cr, box, stateGpu, localXReadyOnDevice, domainWork, x);
     }
 
     if (simulationWork.useGpuNonbonded && (stepWork.computeNonbondedForces || domainWork.haveGpuBondedWork))
@@ -1815,7 +1819,8 @@ void do_force(FILE*                               fplog,
                 // priority, GPU halo exchange is launched earlier.
                 if (!simulationWork.manualStreamPriority)
                 {
-                    gpuCoordinateHaloLaunched = launchGpuHaloExchange(*cr, box, stateGpu, localXReadyOnDevice, domainWork, x);
+                    gpuCoordinateHaloLaunched = launchGpuHaloExchange(
+                            *cr, box, stateGpu, localXReadyOnDevice, domainWork, x);
                 }
             }
             else
