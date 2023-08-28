@@ -129,7 +129,6 @@ void do_force(FILE*                               log,
               double                              t,
               gmx_edsam*                          ed,
               CpuPpLongRangeNonbondeds*           longRangeNonbondeds,
-              int                                 legacyFlags,
               const DDBalanceRegionHandler&       ddBalanceRegionHandler);
 
 /* Communicate coordinates (if parallel).

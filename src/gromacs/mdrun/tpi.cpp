@@ -787,7 +787,6 @@ void LegacySimulator::do_tpi()
                      t,
                      ed,
                      fr_->longRangeNonbondeds.get(),
-                     GMX_FORCE_NONBONDED | GMX_FORCE_ENERGY | (bStateChanged ? GMX_FORCE_STATECHANGED : 0),
                      DDBalanceRegionHandler(nullptr));
             std::feclearexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
             std::feupdateenv(&floatingPointEnvironment);

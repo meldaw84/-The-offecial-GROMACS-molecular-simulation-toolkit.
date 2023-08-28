@@ -236,7 +236,6 @@ void ForceElement::run(Step step, Time time, unsigned int flags)
                             imdSession_,
                             pull_work_,
                             step == nextNSStep_,
-                            static_cast<int>(flags),
                             localTopology_,
                             constr_,
                             energyData_->enerdata(),
@@ -295,7 +294,6 @@ void ForceElement::run(Step step, Time time, unsigned int flags)
                  time,
                  ed,
                  longRangeNonbondeds_.get(),
-                 static_cast<int>(flags),
                  ddBalanceRegionHandler_);
     }
     energyData_->addToForceVirial(force_vir, step);
