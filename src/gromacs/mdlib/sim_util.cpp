@@ -1488,7 +1488,6 @@ void do_force(FILE*                               fplog,
               double                              t,
               gmx_edsam*                          ed,
               CpuPpLongRangeNonbondeds*           longRangeNonbondeds,
-              int                                 legacyFlags,
               const DDBalanceRegionHandler&       ddBalanceRegionHandler)
 {
     auto force = forceView->forceWithPadding();

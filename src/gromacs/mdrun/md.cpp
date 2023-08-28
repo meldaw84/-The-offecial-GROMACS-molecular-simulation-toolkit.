@@ -1131,9 +1131,9 @@ void gmx::LegacySimulator::do_md()
         }
 
         const int shellfc_flags = force_flags | (mdrunOptions_.verbose ? GMX_FORCE_ENERGY : 0);
-        const int legacyForceFlags = (shellfc) ? shellfc_flags : (bNS ? GMX_FORCE_NS : 0) | force_flags;
+        const int legacyForceFlags = ((shellfc) ? shellfc_flags : force_flags) | (bNS ? GMX_FORCE_NS : 0);
 
-        runScheduleWork_->stepWork = setupStepWorkload((bNS ? GMX_FORCE_NS : 0) | force_flags, ir->mtsLevels, step, runScheduleWork_->domainWork, simulationWork);
+        runScheduleWork_->stepWork = setupStepWorkload(legacyForceFlags, ir->mtsLevels, step, runScheduleWork_->domainWork, simulationWork);
 
         const bool doTemperatureScaling = (ir->etc != TemperatureCoupling::No
                                            && do_per_step(step + ir->nsttcouple - 1, ir->nsttcouple));
@@ -1203,7 +1203,6 @@ void gmx::LegacySimulator::do_md()
                                     imdSession_,
                                     pullWork_,
                                     bNS,
-                                    legacyForceFlags,
                                     top_,
                                     constr_,
                                     enerd_,
@@ -1276,7 +1275,6 @@ void gmx::LegacySimulator::do_md()
                          t,
                          ed ? ed->getLegacyED() : nullptr,
                          fr_->longRangeNonbondeds.get(),
-                         legacyForceFlags,
                          ddBalanceRegionHandler);
             }
 
