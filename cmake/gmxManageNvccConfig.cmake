@@ -250,6 +250,15 @@ gmx_add_nvcc_flag_if_supported(GMX_CUDA_NVCC_FLAGS NVCC_HAS_PTXAS_WERROR -Xptxas
 # assemble the CUDA host compiler flags
 list(APPEND GMX_CUDA_NVCC_FLAGS "${CUDA_HOST_COMPILER_OPTIONS}")
 
+if(GMX_OPENMP)
+    list(APPEND GMX_CUDA_NVCC_FLAGS -Xcompiler ${OpenMP_CXX_FLAGS})
+endif()
+
+if(CMAKE_USE_PTHREADS_INIT AND CMAKE_THREAD_LIBS_INIT)
+    list(APPEND GMX_CUDA_NVCC_FLAGS -Xcompiler ${CMAKE_THREAD_LIBS_INIT})
+endif()
+
+
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     # CUDA header cuda_runtime_api.h in at least CUDA 10.1 uses 0
     # where nullptr would be preferable. GROMACS can't fix these, so

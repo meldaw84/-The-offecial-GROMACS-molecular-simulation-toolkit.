@@ -106,10 +106,6 @@ if (BUILD_TESTING)
     add_subdirectory(testutils)
 endif()
 
-if(GMX_OPENMP)
-    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS})
-endif()
-
 add_subdirectory(gromacs)
 add_subdirectory(programs)
 
