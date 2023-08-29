@@ -254,10 +254,6 @@ if(GMX_OPENMP AND NOT "${OpenMP_CXX_FLAGS}" STREQUAL "")
     list(APPEND GMX_CUDA_NVCC_FLAGS -Xcompiler ${OpenMP_CXX_FLAGS})
 endif()
 
-if(CMAKE_USE_PTHREADS_INIT AND NOT "${CMAKE_THREAD_LIBS_INIT}" STREQUAL "")
-    list(APPEND GMX_CUDA_NVCC_FLAGS -Xcompiler ${CMAKE_THREAD_LIBS_INIT})
-endif()
-
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     # CUDA header cuda_runtime_api.h in at least CUDA 10.1 uses 0
     # where nullptr would be preferable. GROMACS can't fix these, so
