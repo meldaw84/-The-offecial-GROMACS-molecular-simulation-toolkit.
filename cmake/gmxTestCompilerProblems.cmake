@@ -62,6 +62,8 @@ macro(gmx_test_compiler_problems)
         endif()
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
         # All versions of IntelLLVM (a.k.a. DPCPP) compiler so far support C++17
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "NVHPC")
+        # All versions of NVC++ compiler so far support C++17
     else()
         message(WARNING "You are using an unsupported compiler. Please make sure it fully supports C++17.")
     endif()
