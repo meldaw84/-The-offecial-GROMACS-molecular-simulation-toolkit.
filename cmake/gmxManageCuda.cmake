@@ -45,8 +45,8 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 find_package(CUDA ${REQUIRED_CUDA_VERSION} REQUIRED)
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "NVHPC")
-# find_package(CUDA) sets the CUDA_HOST_COMPILER to nvc instead of nvc++
-# hence we set it explicitly to nvc++
+  # find_package(CUDA) sets the CUDA_HOST_COMPILER to nvc instead of nvc++
+  # hence we set it explicitly to nvc++
   set(CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
 endif()
 

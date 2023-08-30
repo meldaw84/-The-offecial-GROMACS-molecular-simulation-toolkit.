@@ -239,8 +239,8 @@ endif()
 # the compiler flag for the required C++ standard in the generated
 # build files, so we have to pass it ourselves
 if (CMAKE_CXX_COMPILER_ID MATCHES "NVHPC")
-# we explicitly set c++17 flag for NVHPC compiler as cmake doesn't set correct value in
-# ${CMAKE_CXX17_STANDARD_COMPILE_OPTION} which nvcc can understand (that is, -std=c++17).
+    # we explicitly set c++17 flag for NVHPC compiler as cmake doesn't set correct value in
+    # ${CMAKE_CXX17_STANDARD_COMPILE_OPTION} which nvcc can understand (that is, -std=c++17).
     list(APPEND GMX_CUDA_NVCC_FLAGS "-std=c++17")
 else()
     list(APPEND GMX_CUDA_NVCC_FLAGS "${CMAKE_CXX17_STANDARD_COMPILE_OPTION}")
