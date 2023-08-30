@@ -1120,6 +1120,7 @@ void gmx::LegacySimulator::do_md()
             force_flags |= GMX_FORCE_DO_NOT_NEED_NORMAL_FORCE;
         }
 
+        // TODO: move next to DD partitioning
         if (bNS)
         {
             if (fr_->listedForcesGpu)
@@ -1129,11 +1130,14 @@ void gmx::LegacySimulator::do_md()
             runScheduleWork_->domainWork = setupDomainLifetimeWorkload(*ir, *fr_, pullWork_, ed ? ed->getLegacyED() : nullptr, *md, simulationWork
                                                                        );
         }
+        const auto& domainWork = runScheduleWork_->domainWork;
 
         const int shellfc_flags = force_flags | (mdrunOptions_.verbose ? GMX_FORCE_ENERGY : 0);
         const int legacyForceFlags = ((shellfc) ? shellfc_flags : force_flags) | (bNS ? GMX_FORCE_NS : 0);
 
-        runScheduleWork_->stepWork = setupStepWorkload(legacyForceFlags, ir->mtsLevels, step, runScheduleWork_->domainWork, simulationWork);
+        runScheduleWork_->stepWork = setupStepWorkload(legacyForceFlags, ir->mtsLevels, step, domainWork, simulationWork);
+
+        const auto& stepWork = runScheduleWork_->stepWork;
 
         const bool doTemperatureScaling = (ir->etc != TemperatureCoupling::No
                                            && do_per_step(step + ir->nsttcouple - 1, ir->nsttcouple));
@@ -1175,12 +1179,8 @@ void gmx::LegacySimulator::do_md()
                         && !checkpointHandler->isCheckpointingStep();
                 if (mdGraph->captureThisStep(canUseMdGpuGraphThisStep))
                 {
-                    // getCoordinatesReadyOnDeviceEvent() uses stepWork.doNeighborSearch but this is not set until
-                    // later in do_force(), so preset this part here.
-                    // TODO remove this when stepWork initialization has been refactored to start of step.
-                    runScheduleWork_->stepWork.doNeighborSearch = false;
                     mdGraph->startRecord(stateGpu->getCoordinatesReadyOnDeviceEvent(
-                            AtomLocality::Local, simulationWork, runScheduleWork_->stepWork));
+                            AtomLocality::Local, simulationWork, stepWork));
                 }
             }
         }
@@ -1362,7 +1362,7 @@ void gmx::LegacySimulator::do_md()
 
             // Copy coordinate from the GPU for the output/checkpointing if the update is offloaded
             // and coordinates have not already been copied for i) search or ii) CPU force tasks.
-            if (useGpuForUpdate && !bNS && !runScheduleWork_->domainWork.haveCpuLocalForceWork
+            if (useGpuForUpdate && !bNS && !domainWork.haveCpuLocalForceWork
                 && (do_per_step(step, ir->nstxout) || do_per_step(step, ir->nstxout_compressed)
                     || checkpointHandler->isCheckpointingStep()))
             {
@@ -1387,7 +1387,7 @@ void gmx::LegacySimulator::do_md()
             //       copy call in do_force(...).
             // NOTE: The forces should not be copied here if the vsites are present, since they were modified
             //       on host after the D2H copy in do_force(...).
-            if (runScheduleWork_->stepWork.useGpuFBufferOps
+            if (stepWork.useGpuFBufferOps
                 && (simulationWork.useGpuUpdate && !virtualSites_) && do_per_step(step, ir->nstfout))
             {
                 stateGpu->copyForcesFromGpu(f.view().force(), AtomLocality::Local);
@@ -1569,8 +1569,8 @@ void gmx::LegacySimulator::do_md()
 
                     // Copy x to the GPU unless we have already transferred in do_force().
                     // We transfer in do_force() if a GPU force task requires x (PME or x buffer ops).
-                    if (!(runScheduleWork_->stepWork.haveGpuPmeOnThisRank
-                          || runScheduleWork_->stepWork.useGpuXBufferOps))
+                    if (!(stepWork.haveGpuPmeOnThisRank
+                          || stepWork.useGpuXBufferOps))
                     {
                         stateGpu->copyCoordinatesToGpu(state_->x, AtomLocality::Local);
                         // Coordinates are later used by the integrator running in the same stream.
@@ -1578,7 +1578,7 @@ void gmx::LegacySimulator::do_md()
                     }
 
                     if ((simulationWork.useGpuPme && simulationWork.useCpuPmePpCommunication)
-                        || (!runScheduleWork_->stepWork.useGpuFBufferOps))
+                        || (!stepWork.useGpuFBufferOps))
                     {
                         // The PME forces were recieved to the host, and reduced on the CPU with the
                         // rest of the forces computed on the GPU, so the final forces have to be
@@ -1593,7 +1593,7 @@ void gmx::LegacySimulator::do_md()
                     // This applies Leap-Frog, LINCS and SETTLE in succession
                     integrator->integrate(
                             stateGpu->getLocalForcesReadyOnDeviceEvent(
-                                    runScheduleWork_->stepWork, runScheduleWork_->simulationWork),
+                                    stepWork, simulationWork),
                             ir->delta_t,
                             true,
                             bCalcVir,
@@ -1716,9 +1716,9 @@ void gmx::LegacySimulator::do_md()
                 // TODO: merge disableForDomainIfAnyPpRankHasCpuForces() back into reset() when
                 // domainWork initialization is moved out of do_force().
                 fr_->mdGraph[MdGraphEvenOrOddStep::EvenStep]->disableForDomainIfAnyPpRankHasCpuForces(
-                        runScheduleWork_->domainWork.haveCpuLocalForceWork);
+                        domainWork.haveCpuLocalForceWork);
                 fr_->mdGraph[MdGraphEvenOrOddStep::OddStep]->disableForDomainIfAnyPpRankHasCpuForces(
-                        runScheduleWork_->domainWork.haveCpuLocalForceWork);
+                        domainWork.haveCpuLocalForceWork);
             }
             usedMdGpuGraphLastStep = mdGraph->useGraphThisStep();
         }
