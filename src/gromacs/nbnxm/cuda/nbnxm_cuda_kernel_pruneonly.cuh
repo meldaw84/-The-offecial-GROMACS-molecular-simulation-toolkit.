@@ -82,9 +82,9 @@
  *   - with large inputs NTHREAD_Z=1 is 2-3% faster (on CC>=5.0)
  */
 #define NTHREAD_Z (GMX_NBNXN_PRUNE_KERNEL_JPACKED_CONCURRENCY)
-#define THREADS_PER_BLOCK (c_clSize * c_clSize)
+#define THREADS_PER_BLOCK (c_clSize * c_clSize * NTHREAD_Z)
 // we want 100% occupancy, so max threads/block
-#define MIN_BLOCKS_PER_MP 8
+#define MIN_BLOCKS_PER_MP (GMX_CUDA_MAX_THREADS_PER_MP / THREADS_PER_BLOCK)
 /**@}*/
 
 /*! \brief Nonbonded list pruning kernel.
@@ -101,18 +101,18 @@
  *
  *   Each thread calculates an i-j atom distance..
  */
-template<bool haveFreshList, int threadsZ>
-__launch_bounds__(THREADS_PER_BLOCK * threadsZ, MIN_BLOCKS_PER_MP) __global__
-        void nbnxn_kernel_prune_cuda(NBAtomDataGpu atdat, NBParamGpu nbparam, Nbnxm::gpu_plist plist, int numParts, int part)
+template<bool haveFreshList>
+__launch_bounds__(THREADS_PER_BLOCK, MIN_BLOCKS_PER_MP) __global__
+        void nbnxn_kernel_prune_cuda(NBAtomDataGpu atdat, NBParamGpu nbparam, Nbnxm::gpu_plist plist, int numParts)
 #ifdef FUNCTION_DECLARATION_ONLY
                 ; /* Only do function declaration, omit the function body. */
 
 // Add extern declarations so each translation unit understands that
 // there will be a definition provided.
-extern template __launch_bounds__(THREADS_PER_BLOCK * (NTHREAD_Z / 2), MIN_BLOCKS_PER_MP) __global__ void
-nbnxn_kernel_prune_cuda<true, NTHREAD_Z / 2>(const NBAtomDataGpu, const NBParamGpu, const Nbnxm::gpu_plist, int, int);
-extern template __launch_bounds__(THREADS_PER_BLOCK * NTHREAD_Z, MIN_BLOCKS_PER_MP) __global__ void
-nbnxn_kernel_prune_cuda<false, NTHREAD_Z>(const NBAtomDataGpu, const NBParamGpu, const Nbnxm::gpu_plist, int, int);
+extern template __global__ void
+nbnxn_kernel_prune_cuda<true>(const NBAtomDataGpu, const NBParamGpu, const Nbnxm::gpu_plist, int);
+extern template __global__ void
+nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnxm::gpu_plist, int);
 #else
 {
 
@@ -184,7 +184,7 @@ nbnxn_kernel_prune_cuda<false, NTHREAD_Z>(const NBAtomDataGpu, const NBParamGpu,
     {
         /* the cjs buffer's use expects a base pointer offset for pairs of warps in the j-concurrent execution */
         cjs += tidxz * c_nbnxnGpuClusterpairSplit * c_nbnxnGpuJgroupSize;
-        sm_nextSlotPtr += (threadsZ * c_nbnxnGpuClusterpairSplit * c_nbnxnGpuJgroupSize * sizeof(*cjs));
+        sm_nextSlotPtr += (NTHREAD_Z * c_nbnxnGpuClusterpairSplit * c_nbnxnGpuJgroupSize * sizeof(*cjs));
     }
     /*********************************************************************/
 
@@ -217,7 +217,7 @@ nbnxn_kernel_prune_cuda<false, NTHREAD_Z>(const NBAtomDataGpu, const NBParamGpu,
      * The loop stride NTHREAD_Z ensures that consecutive warps-pairs are assigned
      * consecutive jPacked's entries.
      */
-    for (int jPacked = cijPackedBegin + tidxz; jPacked < cijPackedEnd; jPacked += threadsZ)
+    for (int jPacked = cijPackedBegin + tidxz; jPacked < cijPackedEnd; jPacked += THREAD_Z)
     {
         unsigned int imaskFull, imaskCheck, imaskNew;
 
@@ -317,7 +317,7 @@ nbnxn_kernel_prune_cuda<false, NTHREAD_Z>(const NBAtomDataGpu, const NBParamGpu,
     }
     if (haveFreshList && (tidx == 63))
     {
-        if (threadsZ > 1)
+        if (THREAD_Z > 1)
         {
             __syncthreads();
             char* sm_reuse = sm_dynamicShmem;
@@ -326,7 +326,7 @@ nbnxn_kernel_prune_cuda<false, NTHREAD_Z>(const NBAtomDataGpu, const NBParamGpu,
             count_sm[tidxz] = count;
             __syncthreads();
 
-            for( unsigned int index_z = 1; index_z < threadsZ; index_z++ )
+            for( unsigned int index_z = 1; index_z < THREAD_Z; index_z++ )
                 count += count_sm[index_z];
             __syncthreads();
         }
