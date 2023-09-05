@@ -62,7 +62,8 @@
 #    include "gromacs/gpu_utils/gpuregiontimer_sycl.h"
 #endif
 
-static constexpr int c_sciHistogramSize = 8192;
+static constexpr int c_sciHistogramSize =
+        8192; // TODO is it a problem to hard code this rather than using double the average cjPacked size as in the cpu version
 
 /*! \brief Macro definining default for the prune kernel's jPacked processing concurrency.
  *
@@ -264,10 +265,10 @@ struct gpu_plist
 
     int nscan_temporary;
 
-    // int scan_temporary_nalloc;
+    int scan_temporary_nalloc;
 
     // //! Temporary data of scan algorithm
-    // DeviceBuffer<char> scan_temporary;
+    DeviceBuffer<char> scan_temporary;
 
     int nsci_histogram;
 

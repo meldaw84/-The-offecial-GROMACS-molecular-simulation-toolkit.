@@ -43,8 +43,7 @@
 #include <cassert>
 #include <cstdlib>
 
-#include <thrust/execution_policy.h>
-#include <thrust/scan.h>
+#include <cub/device/device_scan.cuh>
 
 #include "gromacs/nbnxm/gpu_types_common.h"
 #include "gromacs/nbnxm/nbnxm_gpu.h"
@@ -346,10 +345,10 @@ static const nbnxn_cu_kfunc_ptr_t nb_kfunc_ener_prune_ptr[c_numElecTypes][c_numV
 };
 
 /*! Return a pointer to the kernel version to be executed at the current step. */
-static inline nbnxn_cu_kfunc_ptr_t select_nbnxn_kernel(enum ElecType elecType,
-                                                       enum VdwType  vdwType,
-                                                       bool          bDoEne,
-                                                       bool          bDoPrune,
+static inline nbnxn_cu_kfunc_ptr_t select_nbnxn_kernel(enum ElecType           elecType,
+                                                       enum VdwType            vdwType,
+                                                       bool                    bDoEne,
+                                                       bool                    bDoPrune,
                                                        const DeviceInformation gmx_unused* deviceInfo)
 {
     const int elecTypeIdx = static_cast<int>(elecType);
@@ -392,7 +391,7 @@ static inline nbnxn_cu_kfunc_ptr_t select_nbnxn_kernel(enum ElecType elecType,
 }
 
 /*! \brief Calculates the amount of shared memory required by the nonbonded kernel in use. */
-static inline int calc_shmem_required_nonbonded(const int                           num_threads_z,
+static inline int calc_shmem_required_nonbonded(const int               num_threads_z,
                                                 const DeviceInformation gmx_unused* deviceInfo,
                                                 const NBParamGpu*                   nbp)
 {
@@ -575,7 +574,6 @@ void gpu_launch_kernel_pruneonly(NbnxmGpu* nb, const InteractionLocality iloc, c
 
         /* Set rollingPruningNumParts to signal that it is not set */
         plist->rollingPruningNumParts = 0;
-        plist->rollingPruningPart     = 0;
     }
     else
     {
@@ -595,18 +593,10 @@ void gpu_launch_kernel_pruneonly(NbnxmGpu* nb, const InteractionLocality iloc, c
      * Also note that this CUDA implementation (parts tracking on device) differs from the
      * other backends (parts tracking on host, passed as kernel argument).
      */
-    int part = plist->rollingPruningPart;
+    int numSciInPartMax = (plist->nsci) / numParts;
 
-    plist->rollingPruningPart++;
-    if (plist->rollingPruningPart >= plist->rollingPruningNumParts)
-    {
-        plist->rollingPruningPart = 0;
-    }
-
-    
-    int numSciInPart = (plist->nsci - part) / numParts;
     /* Don't launch the kernel if there is no work to do (not allowed with CUDA) */
-    if (numSciInPart <= 0)
+    if (numSciInPartMax <= 0)
     {
         plist->haveFreshList = false;
 
@@ -631,8 +621,8 @@ void gpu_launch_kernel_pruneonly(NbnxmGpu* nb, const InteractionLocality iloc, c
      *   and j-cluster concurrency, in x, y, and z, respectively.
      * - The 1D block-grid contains as many blocks as super-clusters.
      */
-    int num_threads_z = plist->haveFreshList ? c_pruneKernelJPackedConcurrency / 2 : c_pruneKernelJPackedConcurrency; // TODO
-    int nblock        = calc_nb_kernel_nblock(numSciInPart, &nb->deviceContext_->deviceInfo());
+    int num_threads_z = c_pruneKernelJPackedConcurrency;
+    int nblock        = calc_nb_kernel_nblock(numSciInPartMax, &nb->deviceContext_->deviceInfo());
 
     KernelLaunchConfig config;
     config.blockSize[0]     = c_clSize;
@@ -652,7 +642,7 @@ void gpu_launch_kernel_pruneonly(NbnxmGpu* nb, const InteractionLocality iloc, c
                 config.blockSize[2],
                 config.gridSize[0],
                 config.gridSize[1],
-                numSciInPart * c_nbnxnGpuNumClusterPerSupercluster,
+                numSciInPartMax * c_nbnxnGpuNumClusterPerSupercluster,
                 c_nbnxnGpuNumClusterPerSupercluster,
                 plist->na_c,
                 config.sharedMemorySize);
@@ -666,34 +656,21 @@ void gpu_launch_kernel_pruneonly(NbnxmGpu* nb, const InteractionLocality iloc, c
     auto*          timingEvent  = bDoTime ? timer->fetchNextEvent() : nullptr;
     constexpr char kernelName[] = "k_pruneonly";
     const auto     kernel =
-            plist->haveFreshList ? nbnxn_kernel_prune_cuda<true, c_pruneKernelJPackedConcurrency / 2> : nbnxn_kernel_prune_cuda<false, c_pruneKernelJPackedConcurrency>;
-    const auto kernelArgs = prepareGpuKernelArguments(kernel, config, adat, nbp, plist, &numParts, &part);
+            plist->haveFreshList ? nbnxn_kernel_prune_cuda<true> : nbnxn_kernel_prune_cuda<false>;
+    const auto kernelArgs = prepareGpuKernelArguments(kernel, config, adat, nbp, plist, &numParts);
     launchGpuKernel(kernel, config, deviceStream, timingEvent, kernelName, kernelArgs);
 
     if (plist->haveFreshList)
     {
-        // size_t scan_temporary_size = (size_t)plist->nscan_temporary;
+        size_t scan_temporary_size = (size_t)plist->nscan_temporary;
 
-        // cudaDeviceSynchronize();
+        cub::DeviceScan::ExclusiveSum(plist->scan_temporary,
+                                      scan_temporary_size,
+                                      plist->sci_histogram,
+                                      plist->sci_offset,
+                                      c_sciHistogramSize,
+                                      deviceStream.stream());
 
-        // size_t scan_temporary_size = (size_t)plist->nscan_temporary;
-        thrust::exclusive_scan(thrust::device,
-                               plist->sci_histogram,
-                               plist->sci_histogram + c_sciHistogramSize,
-                               plist->sci_offset,
-                               0,
-                               thrust::plus<int>());
-        // rocprim::exclusive_scan(
-        //     *reinterpret_cast<void**>(&plist->scan_temporary),
-        //     scan_temporary_size,
-        //     *reinterpret_cast<int**>(&plist->sci_histogram),
-        //     *reinterpret_cast<int**>(&plist->sci_offset),
-        //     0,
-        //     c_sciHistogramSize,
-        //     ::rocprim::plus<int>(),
-        //     deviceStream.stream()
-        // );
-        // cudaDeviceSynchronize();
         KernelLaunchConfig configSortSci;
         const unsigned int items_per_block = 256 * 16;
         configSortSci.blockSize[0]         = 256;
@@ -704,21 +681,9 @@ void gpu_launch_kernel_pruneonly(NbnxmGpu* nb, const InteractionLocality iloc, c
 
         const auto kernelSciSort = nbnxn_kernel_bucket_sci_sort<256, 16>;
 
-        const auto kernelSciSortArgs =
-                prepareGpuKernelArguments(
-                    kernelSciSort,
-                    configSortSci,
-                    plist
-                );
+        const auto kernelSciSortArgs = prepareGpuKernelArguments(kernelSciSort, configSortSci, plist);
 
-        launchGpuKernel(
-            kernelSciSort,
-            configSortSci,
-            deviceStream,
-            nullptr,
-            "nbnxn_kernel_sci_sort",
-            kernelSciSortArgs
-        );
+        launchGpuKernel(kernelSciSort, configSortSci, deviceStream, nullptr, "nbnxn_kernel_sci_sort", kernelSciSortArgs);
     }
 
     /* TODO: consider a more elegant way to track which kernel has been called

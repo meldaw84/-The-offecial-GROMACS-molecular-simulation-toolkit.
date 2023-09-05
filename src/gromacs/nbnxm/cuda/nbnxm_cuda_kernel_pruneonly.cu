@@ -32,14 +32,15 @@
  * the research papers on the package. Check out https://www.gromacs.org.
  */
 #include "gmxpre.h"
-#include "gromacs/nbnxm/gpu_types_common.h"
 
 #include "nbnxm_cuda_kernel_pruneonly.cuh"
+
+#include "gromacs/nbnxm/gpu_types_common.h"
 
 #ifndef FUNCTION_DECLARATION_ONLY
 /* Instantiate external template functions */
 template __global__ void
-nbnxn_kernel_prune_cuda<false, c_pruneKernelJPackedConcurrency>(const NBAtomDataGpu, const NBParamGpu, const Nbnxm::gpu_plist, int, int);
+nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnxm::gpu_plist, int);
 template __global__ void
-nbnxn_kernel_prune_cuda<true, c_pruneKernelJPackedConcurrency / 2>(const NBAtomDataGpu, const NBParamGpu, const Nbnxm::gpu_plist, int, int);
+nbnxn_kernel_prune_cuda<true>(const NBAtomDataGpu, const NBParamGpu, const Nbnxm::gpu_plist, int);
 #endif
