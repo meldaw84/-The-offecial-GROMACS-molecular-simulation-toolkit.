@@ -219,6 +219,18 @@ static int fillSupportedSubGroupSizes(const cl_device_id devId,
     }
 }
 
+/*! \brief Return true if executing on compatible GPU for AMD OpenCL.
+ *
+ * There are known issues with OpenCL when running on 32-wide AMD hardware, such as
+ * desktop GPUs with RDNA and RDNA2 architectures (gfx10xx).
+ *
+ * \return true if running on 64-wide hardware (GCN, CDNA).
+ */
+static bool runningOnCompatibleHWForAmd(const DeviceInformation& deviceInfo)
+{
+    return (deviceInfo.supportedSubGroupSizesSize == 1 && deviceInfo.supportedSubGroupSizesData[0] == 64);
+}
+
 /*!
  * \brief Checks that device \c deviceInfo is compatible with GROMACS.
  *
@@ -270,7 +282,10 @@ static DeviceStatus isDeviceFunctional(const DeviceInformation& deviceInfo)
             return runningOnCompatibleHWForNvidia(deviceInfo) ? DeviceStatus::Compatible
                                                               : DeviceStatus::IncompatibleNvidiaVolta;
         case DeviceVendor::Amd:
-            return runningOnCompatibleOSForAmd() ? DeviceStatus::Compatible : DeviceStatus::Incompatible;
+            return runningOnCompatibleOSForAmd() ? (runningOnCompatibleHWForAmd(deviceInfo)
+                                                            ? DeviceStatus::Compatible
+                                                            : DeviceStatus::IncompatibleOclAmdRdna)
+                                                 : DeviceStatus::Incompatible;
         case DeviceVendor::Intel:
             return GMX_GPU_NB_CLUSTER_SIZE == 4 ? DeviceStatus::Compatible
                                                 : DeviceStatus::IncompatibleClusterSize;
@@ -326,7 +341,6 @@ static bool isDeviceFunctional(const DeviceInformation& deviceInfo, std::string*
     cl_context_properties properties[] = {
         CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties>(deviceInfo.oclPlatformId), 0
     };
-    // uncrustify spacing
 
     cl_int    status;
     auto      deviceId = deviceInfo.oclDeviceId;

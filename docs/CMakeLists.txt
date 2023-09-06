@@ -343,7 +343,6 @@ if (SPHINX_FOUND)
         dev-manual/includestyle.rst
         dev-manual/index.rst
         dev-manual/infrastructure.rst
-        dev-manual/jenkins.rst
         dev-manual/known-issues.rst
         dev-manual/language-features.rst
         dev-manual/naming.rst
@@ -365,6 +364,16 @@ if (SPHINX_FOUND)
         install-guide/index.rst
         reference-manual/plots/GMX_logos/gmx_logo_blue.svg
         release-notes/index.rst
+        release-notes/2024/major/highlights.rst
+        release-notes/2024/major/features.rst
+        release-notes/2024/major/performance.rst
+        release-notes/2024/major/tools.rst
+        release-notes/2024/major/bugs-fixed.rst
+        release-notes/2024/major/removed-functionality.rst
+        release-notes/2024/major/deprecated-functionality.rst
+        release-notes/2024/major/portability.rst
+        release-notes/2024/major/miscellaneous.rst
+        release-notes/2024/major/api.rst
         release-notes/2023/major/highlights.rst
         release-notes/2023/major/features.rst
         release-notes/2023/major/performance.rst
@@ -379,6 +388,7 @@ if (SPHINX_FOUND)
         release-notes/2022/2022.2.rst
         release-notes/2022/2022.3.rst
         release-notes/2022/2022.4.rst
+        release-notes/2022/2022.5.rst
         release-notes/2022/major/highlights.rst
         release-notes/2022/major/features.rst
         release-notes/2022/major/performance.rst
@@ -389,6 +399,8 @@ if (SPHINX_FOUND)
         release-notes/2022/major/portability.rst
         release-notes/2022/major/miscellaneous.rst
         release-notes/2022/major/api.rst
+        release-notes/2021/2021.7.rst
+        release-notes/2021/2021.6.rst
         release-notes/2021/2021.5.rst
         release-notes/2021/2021.4.rst
         release-notes/2021/2021.3.rst
@@ -755,7 +767,7 @@ set(HTML_BUILD_IS_POSSIBLE ON)
 set(HTML_BUILD_NOT_POSSIBLE_REASON)
 set(HTML_BUILD_WARNINGS)
 
-# Next, turn it off if any of the preconditions are unsatisified
+# Next, turn it off if any of the preconditions are unsatisfied
 if (NOT Python3_Interpreter_FOUND)
     set(HTML_BUILD_IS_POSSIBLE OFF)
     set(HTML_BUILD_NOT_POSSIBLE_REASON "Python is required")

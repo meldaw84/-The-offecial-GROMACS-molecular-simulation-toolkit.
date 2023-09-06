@@ -35,6 +35,16 @@ underestimated due to the extremely non-linear nature of the r^-12 potential.
 A temporary solution is to decrease the verlet-buffer-tolerance until you
 get a non-zero Verlet buffer. This issue will be fixed in the 2023 release.
 
+The deform option is not suitable for flow
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The deform option currently scales the coordinates, but for flow the deformation
+should only be driven by changing periodic vectors. In addition the velocities
+of particles need to be corrected when they are displaced by periodic vectors.
+Therefore the deform option is currently only suitable for slowly deforming
+systems.
+
+:issue:`4607`
 
 Build is fragile with gcc 7 and CUDA
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -62,13 +72,28 @@ running SYCL build of |Gromacs| on Intel GPUs.
 :issue:`4219`
 :issue:`4354`
 
-Unable to build with CUDA 11.6 and gcc-11
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-A bug in the nvcc toolchain version 11.6.1 makes it impossible
-to build recent |Gromacs| with gcc-11. As these two are the default
-versions in Ubuntu 22.04 users are recommended to either install and use
-an older version of gcc (version 9.x) has been reported to work, or
-manually update the nvcc toolchain to version 11.6.2.
+Unable to build with CUDA 11.5-11.6 and GCC 11 on Ubuntu 22.04
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A bug in the nvcc toolchain, versions 11.5.0-11.6.1, makes it impossible
+to build recent |Gromacs| with GCC 11.2 shipped with Ubuntu 22.04. 
+We recommend the users to either use an different version of GCC 
+(at the time of writing 9.x or 10.x have been reported to work), or manually update the nvcc 
+toolchain to version 11.6.2 or newer.
+
+Some non-Ubuntu installations of GCC 11.2 library have been observed to work fine.
+
+When an incompatible combination is used, an error will be raised
+from CMake or later during build.
 
 :issue:`4574`
 
+
+"Cannot find a working standard library" error with ROCm Clang
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some Clang installations don't contain a compatible C++ standard library.
+In such cases, you might have to install ``g++`` and help CMake find it
+by setting ``-DGMX_GPLUSGPLUS_PATH=/path/to/bin/g++``. 
+
+:issue:`4679`

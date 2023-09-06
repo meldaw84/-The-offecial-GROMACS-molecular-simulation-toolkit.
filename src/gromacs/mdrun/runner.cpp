@@ -195,7 +195,7 @@ namespace gmx
  *
  * \param[in]  mdlog                Logger object.
  * \param[in]  useGpuForNonbonded   True if the nonbonded task is offloaded in this run.
- * \param[in]  pmeRunMode   Run mode indicating what resource is PME execured on.
+ * \param[in]  pmeRunMode   Run mode indicating what resource is PME executed on.
  * \param[in]  numRanksPerSimulation   The number of ranks in each simulation.
  * \param[in]  numPmeRanksPerSimulation   The number of PME ranks in each simulation, can be -1
  * \returns                         The object populated with development feature flags.
@@ -210,7 +210,6 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
 
     devFlags.enableGpuBufferOps = (GMX_GPU_CUDA || GMX_GPU_SYCL) && useGpuForNonbonded
                                   && (getenv("GMX_USE_GPU_BUFFER_OPS") != nullptr);
-    devFlags.forceGpuUpdateDefault = (getenv("GMX_FORCE_UPDATE_DEFAULT_GPU") != nullptr) || GMX_FAHCORE;
 
     if (getenv("GMX_CUDA_GRAPH") != nullptr)
     {
@@ -331,15 +330,6 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
                         "GMX_USE_GPU_BUFFER_OPS environment variable.");
     }
 
-    if (devFlags.forceGpuUpdateDefault)
-    {
-        GMX_LOG(mdlog.warning)
-                .asParagraph()
-                .appendTextFormatted(
-                        "This run will default to '-update gpu' as requested by the "
-                        "GMX_FORCE_UPDATE_DEFAULT_GPU environment variable.");
-    }
-
     // PME decomposition is supported only with CUDA-backend in mixed mode
     // CUDA-backend also needs GPU-aware MPI support for decomposition to work
     const bool pmeGpuDecompositionRequested =
@@ -347,7 +337,7 @@ static DevelopmentFeatureFlags manageDevelopmentFeatures(const gmx::MDLogger& md
             && ((numRanksPerSimulation > 1 && numPmeRanksPerSimulation == 0)
                 || numPmeRanksPerSimulation > 1);
     const bool pmeGpuDecompositionSupported =
-            (devFlags.canUseGpuAwareMpi && GMX_GPU_CUDA
+            (devFlags.canUseGpuAwareMpi && (GMX_GPU_CUDA || GMX_GPU_SYCL)
              && ((pmeRunMode == PmeRunMode::GPU && (GMX_USE_Heffte || GMX_USE_cuFFTMp))
                  || pmeRunMode == PmeRunMode::Mixed));
 
@@ -968,7 +958,6 @@ int Mdrunner::mdrunner()
                                                                      pmeFftTarget,
                                                                      numAvailableDevices,
                                                                      userGpuTaskAssignment,
-                                                                     *hwinfo_,
                                                                      *inputrec,
                                                                      hw_opt.nthreads_tmpi,
                                                                      domdecOptions.numPmeRanks);
@@ -998,8 +987,8 @@ int Mdrunner::mdrunner()
 
     GMX_RELEASE_ASSERT(!GMX_MPI || ms || simulationCommunicator != MPI_COMM_NULL,
                        "Must have valid communicator unless running a multi-simulation");
-    CommrecHandle crHandle = init_commrec(simulationCommunicator);
-    t_commrec*    cr       = crHandle.get();
+    std::unique_ptr<t_commrec> crHandle(init_commrec(simulationCommunicator));
+    t_commrec*                 cr = crHandle.get();
     GMX_RELEASE_ASSERT(cr != nullptr, "Must have valid commrec");
 
     PhysicalNodeCommunicator physicalNodeComm(libraryWorldCommunicator, gmx_physicalnode_id_hash());
@@ -1047,7 +1036,6 @@ int Mdrunner::mdrunner()
                                                     pmeTarget,
                                                     pmeFftTarget,
                                                     userGpuTaskAssignment,
-                                                    *hwinfo_,
                                                     *inputrec,
                                                     cr->sizeOfDefaultCommunicator,
                                                     domdecOptions.numPmeRanks,
@@ -1064,6 +1052,23 @@ int Mdrunner::mdrunner()
     const DevelopmentFeatureFlags devFlags = manageDevelopmentFeatures(
             mdlog, useGpuForNonbonded, pmeRunMode, cr->sizeOfDefaultCommunicator, domdecOptions.numPmeRanks);
 
+    if (hw_opt.threadAffinity == ThreadAffinity::On && devFlags.enableGpuPmeDecomposition && GMX_USE_cuFFTMp)
+    {
+        // cuFFTMp uses NVSHMEM which requires CPU proxy thread, this thread may cause contention
+        // with application thread with `-pin on`. Future versions of cuFFTMp will not require
+        // CPU proxy thread whenever it moves to NVSHMEM's GPU initiated communication transport
+        // then we can remove this warning accordingly.
+        GMX_LOG(mdlog.warning)
+                .asParagraph()
+                .appendTextFormatted(
+                        "Note: This run has enabled the GPU PME decomposition feature "
+                        "in combination with the cuFFTMp library and requested setting thread "
+                        "affinities ('-pin on') which may result in poor performance."
+                        "For best performance we recommend using the job scheduler or MPI launcher "
+                        "to set CPU, GPU and network affinities and omitting the '-pin on' "
+                        "option in runs with GPU PME decomposition using cuFFTMp.");
+    }
+
     const bool useModularSimulator = checkUseModularSimulator(false,
                                                               inputrec.get(),
                                                               doRerun,
@@ -1072,7 +1077,8 @@ int Mdrunner::mdrunner()
                                                               replExParams,
                                                               nullptr,
                                                               doEssentialDynamics,
-                                                              membedHolder.doMembed());
+                                                              membedHolder.doMembed(),
+                                                              updateTarget == TaskTarget::Gpu);
 
     // Now the number of ranks is known to all ranks, and each knows
     // the inputrec read by the main rank. The ranks can now all run
@@ -1390,8 +1396,8 @@ int Mdrunner::mdrunner()
                                                          doEssentialDynamics,
                                                          gmx_mtop_ftype_count(mtop, F_ORIRES) > 0,
                                                          haveFrozenAtoms,
+                                                         useModularSimulator,
                                                          doRerun,
-                                                         devFlags,
                                                          mdlog);
     }
     GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR
@@ -1498,10 +1504,9 @@ int Mdrunner::mdrunner()
     // now, because DD needs them for the LocalTopologyChecker, but
     // they do not contain valid data until after the first DD
     // partition.
-    std::unique_ptr<t_state>      localStateInstance;
-    t_state*                      localState;
-    gmx_localtop_t                localTopology(mtop.ffparams);
-    std::unique_ptr<gmx_domdec_t> ddManager;
+    std::unique_ptr<t_state> localStateInstance;
+    t_state*                 localState;
+    gmx_localtop_t           localTopology(mtop.ffparams);
 
     if (ddBuilder)
     {
@@ -1509,8 +1514,7 @@ int Mdrunner::mdrunner()
         localState         = localStateInstance.get();
         // TODO Pass the GPU streams to ddBuilder to use in buffer
         // transfers (e.g. halo exchange)
-        ddManager = ddBuilder->build(&atomSets, localTopology, *localState, &observablesReducerBuilder);
-        cr->dd = ddManager.get();
+        cr->setDD(ddBuilder->build(&atomSets, localTopology, *localState, &observablesReducerBuilder));
         // The builder's job is done, so destruct it
         ddBuilder.reset(nullptr);
         // Note that local state still does not exist yet.
@@ -1585,12 +1589,13 @@ int Mdrunner::mdrunner()
                               || simWorkload.useGpuNonbonded || simWorkload.useGpuUpdate;
         if (haveAnyGpuWork)
         {
-            GMX_LOG(mdlog.warning)
+            GMX_LOG(mdlog.info)
                     .asParagraph()
                     .appendText(
-                            "\nNOTE: SYCL GPU support in GROMACS is still new and less tested than "
-                            "other backends.\n"
-                            "Please, pay extra attention to the correctness of your results.");
+                            "\nNOTE: SYCL GPU support in GROMACS, and the compilers, libraries,\n"
+                            "and drivers that it depends on are fairly new.\n"
+                            "Please, pay extra attention to the correctness of your results,\n"
+                            "and update to the latest GROMACS patch version if warranted.");
         }
     }
 
@@ -1826,6 +1831,7 @@ int Mdrunner::mdrunner()
                 runScheduleWork.simulationWork.useGpuNonbonded,
                 deviceStreamManager.get(),
                 mtop,
+                PAR(cr) ? &observablesReducerBuilder : nullptr,
                 isSimulationMainRank ? globalState->x : gmx::ArrayRef<const gmx::RVec>(),
                 box,
                 wcycle.get());
@@ -2238,7 +2244,7 @@ int Mdrunner::mdrunner()
         GMX_RELEASE_ASSERT(pmedata, "pmedata was NULL while cr->duty was not DUTY_PP");
         /* do PME only */
         walltime_accounting = walltime_accounting_init(gmx_omp_nthreads_get(ModuleMultiThread::Pme));
-        gmx_pmeonly(pmedata,
+        gmx_pmeonly(&pmedata,
                     cr,
                     &nrnb,
                     wcycle.get(),
@@ -2276,9 +2282,7 @@ int Mdrunner::mdrunner()
     // before we destroy the GPU context(s)
     // Pinned buffers are associated with contexts in CUDA.
     // As soon as we destroy GPU contexts after mdrunner() exits, these lines should go.
-    // Note: the current solution does not work when an exception gets thrown.
-    ddManager.reset(nullptr);
-    cr->dd = nullptr; // cr->dd is destroyed via ddManager
+    cr->destroyDD();
     mdAtoms.reset(nullptr);
     globalState.reset(nullptr);
     localStateInstance.reset(nullptr);
@@ -2358,7 +2362,7 @@ int Mdrunner::mdrunner()
     }
 #endif
     return rc;
-} // namespace gmx
+} // Mdrunner::mdrunner
 
 Mdrunner::~Mdrunner()
 {
@@ -2373,7 +2377,7 @@ Mdrunner::~Mdrunner()
                    "restraints added during runner life time should be cleared at runner "
                    "destruction.");
     }
-};
+}
 
 void Mdrunner::addPotential(std::shared_ptr<gmx::IRestraintPotential> puller, const std::string& name)
 {

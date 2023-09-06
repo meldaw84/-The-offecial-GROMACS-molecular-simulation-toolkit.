@@ -1121,8 +1121,12 @@ void gmx::LegacySimulator::do_md()
             else
             {
                 mdGraph->setUsedGraphLastStep(usedMdGpuGraphLastStep);
-                bool canUseMdGpuGraphThisStep = !bCalcVir && !doTemperatureScaling && !doParrinelloRahman
-                                                && !bGStat && !needHalfStepKineticEnergy;
+                bool canUseMdGpuGraphThisStep =
+                        !bCalcVir && !doTemperatureScaling && !doParrinelloRahman && !bGStat
+                        && !needHalfStepKineticEnergy && !do_per_step(step, ir->nstxout)
+                        && !do_per_step(step, ir->nstxout_compressed)
+                        && !do_per_step(step, ir->nstvout) && !do_per_step(step, ir->nstfout)
+                        && !checkpointHandler->isCheckpointingStep();
                 if (mdGraph->captureThisStep(canUseMdGpuGraphThisStep))
                 {
                     // getCoordinatesReadyOnDeviceEvent() uses stepWork.doNeighborSearch but this is not set until
@@ -2071,6 +2075,14 @@ void gmx::LegacySimulator::do_md()
 
         /* If bIMD is TRUE, the main updates the IMD energy record and sends positions to VMD client */
         imdSession->updateEnergyRecordAndSendPositionsAndEnergies(bInteractiveMDstep, step, bCalcEner);
+
+        // any run that uses GPUs must be at least offloading nonbondeds
+        const bool usingGpu = simulationWork.useGpuNonbonded;
+        if (usingGpu)
+        {
+            // ensure that GPU errors do not propagate between MD steps
+            checkPendingDeviceErrorBetweenSteps();
+        }
     }
     /* End of main MD loop */
 

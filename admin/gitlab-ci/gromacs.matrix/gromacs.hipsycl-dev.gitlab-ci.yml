@@ -22,7 +22,7 @@ gromacs:hipsycl-rocm:configure:
     CMAKE: /usr/local/cmake-3.18.4/bin/cmake
     CMAKE_SIMD_OPTIONS: "-DGMX_SIMD=AVX2_256"
     CMAKE_BUILD_TYPE_OPTIONS: "-DCMAKE_BUILD_TYPE=RelWithAssert"
-    CMAKE_GPU_OPTIONS: "-DGMX_GPU=SYCL -DGMX_SYCL_HIPSYCL=ON -DHIPSYCL_TARGETS='hip:gfx900'"
+    CMAKE_GPU_OPTIONS: "-DGMX_GPU=SYCL -DGMX_SYCL_HIPSYCL=ON -DHIPSYCL_TARGETS='hip:gfx900' -DGMX_GPU_FFT_LIBRARY=rocFFT"
     # Unset COMPILER_LAUNCHER (previously set to ccache) because it conflicts with hipSYCL's syclcc-launcher
     CMAKE_EXTRA_OPTIONS: "-DCMAKE_C_COMPILER_LAUNCHER= -DCMAKE_CXX_COMPILER_LAUNCHER="
     COMPILER_MAJOR_VERSION: 14
@@ -87,7 +87,6 @@ gromacs:hipsycl-rocm-nightly:test:
     # But it's easier to set them up and use the existing scripts for job preparation that rely on them
     KUBERNETES_EXTENDED_RESOURCE_NAME: "amd.com/gpu"
     KUBERNETES_EXTENDED_RESOURCE_LIMIT: 2
-    GMX_FORCE_UPDATE_DEFAULT_GPU: 1
     GMX_TEST_LABELS: "QuickGpuTest" # |SlowGpuTest" TODO: Enable Slow tests when LLVM with https://reviews.llvm.org/D131884 is used (ROCm 5.4 maybe)
   tags:
     - amd-gpu-gfx906
@@ -109,7 +108,7 @@ gromacs:hipsycl-nvidia-mpi:configure:
     CMAKE: /usr/local/cmake-3.18.4/bin/cmake
     CMAKE_SIMD_OPTIONS: "-DGMX_SIMD=AVX2_256"
     CMAKE_BUILD_TYPE_OPTIONS: "-DCMAKE_BUILD_TYPE=RelWithAssert"
-    CMAKE_GPU_OPTIONS: "-DGMX_GPU=SYCL -DGMX_SYCL_HIPSYCL=ON -DHIPSYCL_TARGETS='cuda:sm_50,sm_52,sm_60,sm_61,sm_70,sm_75' -DGMX_GPU_FFT_VKFFT=ON"
+    CMAKE_GPU_OPTIONS: "-DGMX_GPU=SYCL -DGMX_SYCL_HIPSYCL=ON -DHIPSYCL_TARGETS='cuda:sm_50,sm_52,sm_60,sm_61,sm_70,sm_75' -DGMX_GPU_FFT_LIBRARY=VkFFT"
     # Unset COMPILER_LAUNCHER (previously set to ccache) because it conflicts with hipSYCL's syclcc-launcher
     CMAKE_EXTRA_OPTIONS: "-DCMAKE_C_COMPILER_LAUNCHER= -DCMAKE_CXX_COMPILER_LAUNCHER="
     COMPILER_MAJOR_VERSION: 14
@@ -139,7 +138,6 @@ gromacs:hipsycl-nvidia-mpi:test-gpucommupd-MPI:
     KUBERNETES_EXTENDED_RESOURCE_NAME: "nvidia.com/gpu"
     KUBERNETES_EXTENDED_RESOURCE_LIMIT: 2
     GMX_ENABLE_DIRECT_GPU_COMM: 1
-    GMX_FORCE_UPDATE_DEFAULT_GPU: 1
     GMX_FORCE_GPU_AWARE_MPI: 1
     GMX_TEST_LABELS: "QuickGpuTest|SlowGpuTest"
   tags:
@@ -163,7 +161,6 @@ gromacs:hipsycl-nvidia-mpi:regressiontest-gpucommupd-MPI:
     REGRESSIONTEST_OMP_RANK_NUMBER: 2
     REGRESSIONTEST_PARALLEL: "-np"
     GMX_ENABLE_DIRECT_GPU_COMM: 1
-    GMX_FORCE_UPDATE_DEFAULT_GPU: 1
     GMX_FORCE_GPU_AWARE_MPI: 1
   tags:
     - k8s-scilifelab

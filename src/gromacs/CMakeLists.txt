@@ -70,6 +70,9 @@ endfunction ()
 option(GMX_USE_SIMD_KERNELS "Whether to compile NBNXM and other SIMD kernels" ON)
 mark_as_advanced(GMX_USE_SIMD_KERNELS)
 
+# pulling is using the muparser target as well, so detect it early
+gmx_manage_muparser()
+
 # Add these contents first because linking their tests can take a lot
 # of time, so we want lots of parallel work still available after
 # linking starts.
@@ -168,7 +171,7 @@ endif()
 
 if (GMX_GPU_CUDA)
     if(GMX_USE_cuFFTMp)
-        # needed as we need to inlude cufftmp include path before CUDA include path
+        # needed as we need to include cufftmp include path before CUDA include path
         cuda_include_directories(${cuFFTMp_INCLUDE_DIR})
     endif()
     # Work around FindCUDA that prevents using target_link_libraries()
@@ -194,12 +197,11 @@ if (TARGET Heffte::Heffte)
     target_link_libraries(libgromacs PRIVATE Heffte::Heffte)
 endif()
 
-if (GMX_SYCL_HIPSYCL)
-    if(GMX_GPU_FFT_VKFFT)
-        target_link_libraries(libgromacs PRIVATE VkFFT)
-    elseif(GMX_GPU_FFT_ROCFFT)
-        target_link_libraries(libgromacs PUBLIC roc::rocfft)
-    endif()
+if(GMX_GPU_FFT_VKFFT)
+    target_link_libraries(libgromacs PRIVATE VkFFT)
+endif()
+if(GMX_GPU_FFT_ROCFFT)
+    target_link_libraries(libgromacs PUBLIC roc::rocfft)
 endif()
 
 target_link_libraries(libgromacs PRIVATE $<BUILD_INTERFACE:common>)
@@ -237,50 +239,49 @@ target_compile_definitions(libgromacs PRIVATE HAVE_CONFIG_H
 
 target_include_directories(libgromacs SYSTEM BEFORE PRIVATE ${PROJECT_SOURCE_DIR}/src/external/thread_mpi/include)
 
-if (GMX_GPU_OPENCL)
-    if (GMX_GPU_FFT_VKFFT)
-        target_link_libraries(libgromacs PRIVATE VkFFT)
-    else()
-        option(GMX_EXTERNAL_CLFFT "True if an external clFFT is required to be used" FALSE)
-        mark_as_advanced(GMX_EXTERNAL_CLFFT)
+if (GMX_GPU_FFT_CLFFT)
+    if (NOT GMX_GPU_OPENCL)
+        message(FATAL_ERROR "clFFT is only supported in OpenCL builds")
+    endif()
+    option(GMX_EXTERNAL_CLFFT "True if an external clFFT is required to be used" FALSE)
+    mark_as_advanced(GMX_EXTERNAL_CLFFT)
 
-        # Default to using clFFT found on the system
-        # switch to quiet at the second run.
-        if (DEFINED clFFT_LIBRARY)
-            set (clFFT_FIND_QUIETLY TRUE)
+    # Default to using clFFT found on the system
+    # switch to quiet at the second run.
+    if (DEFINED clFFT_LIBRARY)
+        set (clFFT_FIND_QUIETLY TRUE)
+    endif()
+    find_package(clFFT)
+    if (NOT clFFT_FOUND)
+        if (GMX_EXTERNAL_CLFFT)
+            message(FATAL_ERROR "Did not find required external clFFT library, consider setting clFFT_ROOT_DIR")
         endif()
-        find_package(clFFT)
-        if (NOT clFFT_FOUND)
-            if (GMX_EXTERNAL_CLFFT)
-                message(FATAL_ERROR "Did not find required external clFFT library, consider setting clFFT_ROOT_DIR")
-            endif()
 
-            if(MSVC)
-                message(FATAL_ERROR
+        if(MSVC)
+            message(FATAL_ERROR
 "An OpenCL build was requested with Visual Studio compiler, but GROMACS
 requires clFFT, which was not found on your system. GROMACS does bundle
 clFFT to help with building for OpenCL, but that clFFT has not yet been
 ported to the more recent versions of that compiler that GROMACS itself
 requires. Thus for now, OpenCL is not available with MSVC and the internal
 build of clFFT in GROMACS 2019 and newer. Either change compiler, try
-installing a clFFT package, use VkFFT by setting -DGMX_GPU_FFT_VKFFT=ON,
+installing a clFFT package, use VkFFT by setting -DGMX_GPU_FFT_LIBRARY=VkFFT,
 or use GROMACS 2018.8 release (no longer maintained).")
-            endif()
-
-            # Fall back on the internal version
-            set (_clFFT_dir ../external/clFFT/src)
-            add_subdirectory(${_clFFT_dir} clFFT-build)
-            target_sources(libgromacs PRIVATE
-                $<TARGET_OBJECTS:clFFT>
-            )
-            target_include_directories(libgromacs SYSTEM PRIVATE ${_clFFT_dir}/include)
-            # Use the magic variable for how to link any library needed for
-            # dlopen, etc.  which is -ldl where needed, and empty otherwise
-            # (e.g. Windows, BSD, Mac).
-            target_link_libraries(libgromacs PRIVATE "${CMAKE_DL_LIBS}")
-        else()
-            target_link_libraries(libgromacs PRIVATE clFFT)
         endif()
+
+        # Fall back on the internal version
+        set (_clFFT_dir ../external/clFFT/src)
+        add_subdirectory(${_clFFT_dir} clFFT-build)
+        target_sources(libgromacs PRIVATE
+            $<TARGET_OBJECTS:clFFT>
+        )
+        target_include_directories(libgromacs SYSTEM PRIVATE ${_clFFT_dir}/include)
+        # Use the magic variable for how to link any library needed for
+        # dlopen, etc.  which is -ldl where needed, and empty otherwise
+        # (e.g. Windows, BSD, Mac).
+        target_link_libraries(libgromacs PRIVATE "${CMAKE_DL_LIBS}")
+    else()
+        target_link_libraries(libgromacs PRIVATE clFFT)
     endif()
 endif()
 
@@ -357,7 +358,7 @@ target_link_libraries(libgromacs PRIVATE
                       $<BUILD_INTERFACE:coordinateio>
                       $<BUILD_INTERFACE:correlationfunctions>
                       $<BUILD_INTERFACE:domdec>
-#                      $<BUILD_INTERFACE:energyanalysis>
+                      $<BUILD_INTERFACE:energyanalysis>
                       $<BUILD_INTERFACE:essentialdynamics>
                       $<BUILD_INTERFACE:ewald>
                       $<BUILD_INTERFACE:fft>
@@ -410,8 +411,7 @@ set_target_properties(libgromacs PROPERTIES
 
 gmx_manage_lmfit()
 target_link_libraries(libgromacs PRIVATE lmfit)
-gmx_manage_muparser()
-target_link_libraries(libgromacs PRIVATE muparser)
+target_link_libraries(libgromacs PRIVATE muparser::muparser)
 
 # Make sure we fix "everything" found by compilers that support that
 gmx_warn_on_everything(libgromacs)

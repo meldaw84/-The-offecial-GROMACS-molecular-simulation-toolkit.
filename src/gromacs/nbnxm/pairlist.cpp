@@ -68,6 +68,7 @@
 
 #include "boundingboxes.h"
 #include "clusterdistancekerneltype.h"
+#include "exclusionchecker.h"
 #include "gridset.h"
 #include "nbnxm_geometry.h"
 #include "nbnxm_simd.h"
@@ -1434,6 +1435,46 @@ static void setExclusionsForIEntry(const Nbnxm::GridSet&   gridSet,
     }
 }
 
+static gmx::RVec getCoordinate(const nbnxn_atomdata_t& nbat, const int a)
+{
+    gmx::RVec x;
+
+    switch (nbat.XFormat)
+    {
+        case nbatXYZQ:
+            x[XX] = nbat.x()[a * STRIDE_XYZQ];
+            x[YY] = nbat.x()[a * STRIDE_XYZQ + 1];
+            x[ZZ] = nbat.x()[a * STRIDE_XYZQ + 2];
+            break;
+        case nbatXYZ:
+            x[XX] = nbat.x()[a * STRIDE_XYZ];
+            x[YY] = nbat.x()[a * STRIDE_XYZ + 1];
+            x[ZZ] = nbat.x()[a * STRIDE_XYZ + 2];
+            break;
+        case nbatX4:
+        {
+            const int i = atom_to_x_index<c_packX4>(a);
+
+            x[XX] = nbat.x()[i + XX * c_packX4];
+            x[YY] = nbat.x()[i + YY * c_packX4];
+            x[ZZ] = nbat.x()[i + ZZ * c_packX4];
+            break;
+        }
+        case nbatX8:
+        {
+            const int i = atom_to_x_index<c_packX8>(a);
+
+            x[XX] = nbat.x()[i + XX * c_packX8];
+            x[YY] = nbat.x()[i + YY * c_packX8];
+            x[ZZ] = nbat.x()[i + ZZ * c_packX8];
+            break;
+        }
+        default: GMX_ASSERT(false, "Unsupported nbnxn_atomdata_t format");
+    }
+
+    return x;
+}
+
 /* Add a new i-entry to the FEP list and copy the i-properties */
 static inline void fep_list_new_nri_copy(t_nblist* nlist)
 {
@@ -1467,19 +1508,47 @@ static void reallocate_nblist(t_nblist* nl)
  */
 const int max_nrj_fep = 40;
 
-/* Exclude the perturbed pairs from the Verlet list. This is only done to avoid
+/* Extract perturbed interations to a separate free-energy pairlist \p nlist.
+ *
+ * Perturbed excluded pairs are put in the list and computed up to distance of
+ * sqrt(rlist_fep2). Any perturbed excluded pairs beyond that distance will
+ * trigger a fatal error at the next global communication step.
+ *
+ * Note that one has to be careful when computing interactions beyond the cut-off
+ * distance. When the unit-cell is small, the closest period image might change.
+ * This is not an issue in practice, as exclusion forces beyond the cut-off only
+ * occur with full-range treatment of Coulomb and LJ, such as PME. The potential
+ * near a periodic image switch has a minimum and is therefore nearly constant
+ * and the force is close to zero. So in the, extremely unlikely, case that an
+ * excluded pair switches periodic image, the error is going to be very small.
+ *
+ * Excludes the perturbed pairs from the Verlet list. This is only done to avoid
  * singularities for overlapping particles (0/0), since the charges and
  * LJ parameters have been zeroed in the nbnxn data structure.
  * Simultaneously make a group pair list for the perturbed pairs.
+ *
+ * Returns the number of excluded pairs in nlist that are with distance sqrt(rlist_fep2)
+ *
+ * \param[in] atomIndices  Local topology atom indices for NBNxM indices
+ * \param[in] nbat         Non-bonded atom data
+ * \param[in,out] nbl      The full pairlist, FEP pairs will be masked out
+ * \param[in] bDiagRemoved Tells whether to ignore pairs with j < i
+ * \param[in] shx          Shift of i-atoms along x
+ * \param[in] shy          Shift of i-atoms along y
+ * \param[in] shz          Shift of i-atoms along z
+ * \param[in] rlist_fep2   This is the normal rlist + 1x1 list buffer difference
+ * \param[in] iGrid        The grid with i-atoms
+ * \param[in] jGrid        The grid with j-atoms
+ * \param[in,out] nlist    FEP list to add the FEP pairs to
  */
 static void make_fep_list(gmx::ArrayRef<const int> atomIndices,
                           const nbnxn_atomdata_t*  nbat,
                           NbnxnPairlistCpu*        nbl,
                           gmx_bool                 bDiagRemoved,
-                          real gmx_unused          shx,
-                          real gmx_unused          shy,
-                          real gmx_unused          shz,
-                          real gmx_unused          rlist_fep2,
+                          const real               shx,
+                          const real               shy,
+                          const real               shz,
+                          const real gmx_unused    rlist_fep2,
                           const Grid&              iGrid,
                           const Grid&              jGrid,
                           t_nblist*                nlist)
@@ -1533,6 +1602,8 @@ static void make_fep_list(gmx::ArrayRef<const int> atomIndices,
     const int egp_shift = nbatParams.neg_2log;
     const int egp_mask  = (1 << egp_shift) - 1;
 
+    const gmx::RVec shift = { shx, shy, shz };
+
     /* Loop over the atoms in the i sub-cell */
     bool bFEP_i_all = true;
     for (int i = 0; i < nbl->na_ci; i++)
@@ -1541,6 +1612,8 @@ static void make_fep_list(gmx::ArrayRef<const int> atomIndices,
         const int ai    = atomIndices[ind_i];
         if (ai >= 0)
         {
+            const gmx::RVec xiShifted = getCoordinate(*nbat, ind_i) + shift;
+
             int nri                = nlist->nri;
             nlist->jindex[nri + 1] = nlist->jindex[nri];
             nlist->iinr[nri]       = ai;
@@ -1610,43 +1683,55 @@ static void make_fep_list(gmx::ArrayRef<const int> atomIndices,
                 {
                     for (int j = 0; j < nbl->na_cj; j++)
                     {
-                        /* Is this interaction perturbed and not excluded? */
-                        const int ind_j = cja * nbl->na_cj + j;
-                        const int aj    = atomIndices[ind_j];
-                        if (aj >= 0 && (bFEP_i || (fep_cj & (1 << j))) && (!bDiagRemoved || ind_j >= ind_i))
+                        const int  ind_j       = cja * nbl->na_cj + j;
+                        const int  aj          = atomIndices[ind_j];
+                        const bool isPerturbed = aj >= 0 && (bFEP_i || ((fep_cj & (1 << j)) != 0));
+                        const bool isSubDiagonal = bDiagRemoved && ind_j < ind_i;
+                        if (isPerturbed && !isSubDiagonal)
                         {
-                            if (ngid > 1)
+                            const bool isWithinFepListRange =
+                                    norm2(xiShifted - getCoordinate(*nbat, ind_j)) < rlist_fep2;
+                            if (isWithinFepListRange)
                             {
-                                const int gid_j = (gid_cj >> (j * egp_shift)) & egp_mask;
-                                const int gid   = GID(gid_i, gid_j, ngid);
-
-                                if (nlist->nrj > nlist->jindex[nri] && nlist->gid[nri] != gid)
+                                if (ngid > 1)
                                 {
-                                    /* Energy group pair changed: new list */
+                                    const int gid_j = (gid_cj >> (j * egp_shift)) & egp_mask;
+                                    const int gid   = GID(gid_i, gid_j, ngid);
+
+                                    if (nlist->nrj > nlist->jindex[nri] && nlist->gid[nri] != gid)
+                                    {
+                                        /* Energy group pair changed: new list */
+                                        fep_list_new_nri_copy(nlist);
+                                        nri = nlist->nri;
+                                    }
+                                    nlist->gid[nri] = gid;
+                                }
+
+                                if (nlist->nrj - nlist->jindex[nri] >= max_nrj_fep)
+                                {
                                     fep_list_new_nri_copy(nlist);
                                     nri = nlist->nri;
                                 }
-                                nlist->gid[nri] = gid;
+
+                                /* Add it to the FEP list */
+                                nlist->jjnr[nlist->nrj] = aj;
+                                const int pairIsIncluded =
+                                        ((nbl->cj.excl(cj_ind) >> (i * nbl->na_cj + j)) & 1);
+                                nlist->excl_fep[nlist->nrj] = pairIsIncluded;
+                                nlist->nrj++;
+                                /* Count excluded pairs within rlist */
+                                if (pairIsIncluded == 0)
+                                {
+                                    nlist->numExclusionsWithinRlist++;
+                                }
+
+                                /* Exclude it from the normal list.
+                                 * Note that the charge has been set to zero,
+                                 * but we need to avoid 0/0, as perturbed atoms
+                                 * can be on top of each other.
+                                 */
+                                nbl->cj.excl(cj_ind) &= ~(1U << (i * nbl->na_cj + j));
                             }
-
-                            if (nlist->nrj - nlist->jindex[nri] >= max_nrj_fep)
-                            {
-                                fep_list_new_nri_copy(nlist);
-                                nri = nlist->nri;
-                            }
-
-                            /* Add it to the FEP list */
-                            nlist->jjnr[nlist->nrj] = aj;
-                            nlist->excl_fep[nlist->nrj] =
-                                    (nbl->cj.excl(cj_ind) >> (i * nbl->na_cj + j)) & 1;
-                            nlist->nrj++;
-
-                            /* Exclude it from the normal list.
-                             * Note that the charge has been set to zero,
-                             * but we need to avoid 0/0, as perturbed atoms
-                             * can be on top of each other.
-                             */
-                            nbl->cj.excl(cj_ind) &= ~(1U << (i * nbl->na_cj + j));
                         }
                     }
                 }
@@ -1816,9 +1901,14 @@ static void make_fep_list(gmx::ArrayRef<const int> atomIndices,
 
                                         /* Add it to the FEP list */
                                         nlist->jjnr[nlist->nrj] = aj;
-                                        nlist->excl_fep[nlist->nrj] =
+                                        const int pairIsIncluded =
                                                 (excl.pair[excl_pair] & excl_bit) ? 1 : 0;
+                                        nlist->excl_fep[nlist->nrj] = pairIsIncluded;
                                         nlist->nrj++;
+                                        if (pairIsIncluded == 0)
+                                        {
+                                            nlist->numExclusionsWithinRlist++;
+                                        }
                                     }
 
                                     /* Exclude it from the normal list.
@@ -2211,6 +2301,8 @@ static void clear_pairlist_fep(t_nblist* nl)
         nl->jindex.resize(1);
     }
     nl->jindex[0] = 0;
+
+    nl->numExclusionsWithinRlist = 0;
 }
 
 /* Sets a simple list i-cell bounding box, including PBC shift */
@@ -3094,21 +3186,27 @@ static void nbnxn_make_pairlist_part(const Nbnxm::GridSet&   gridSet,
     // Select the cluster pair distance kernel type
     const ClusterDistanceKernelType kernelType = getClusterDistanceKernelType(pairlistType, *nbat);
 
-    if (haveFep && !pairlistIsSimple(*nbl))
+    if (haveFep)
     {
-        /* Determine an atom-pair list cut-off distance for FEP atom pairs.
+        /* To reduce the cost of the expensive free-energy kernel for which
+         * use a single-range instead of a double-range list, we should use
+         * a single-range sized buffer.
+         *
+         * Determine an atom-pair list cut-off distance for FEP atom pairs.
          * We should not simply use rlist, since then we would not have
          * the small, effective buffering of the NxN lists.
-         * The buffer is on overestimate, but the resulting cost for pairs
+         * The buffer is an overestimate, but the resulting cost for pairs
          * beyond rlist is negligible compared to the FEP pairs within rlist.
          */
-        rl_fep2 = nbl->rlist + effective_buffer_1x1_vs_MxN(iGrid, jGrid);
+        const real rlistFep = nbl->rlist + effective_buffer_1x1_vs_MxN(iGrid, jGrid);
+
+        /* Make sure we don't go above the maximum allowed cut-off distance */
+        rl_fep2 = std::min(gmx::square(rlistFep), max_cutoff2(gridSet.domainSetup().pbcType, box));
 
         if (debug)
         {
-            fprintf(debug, "nbl_fep atom-pair rlist %f\n", rl_fep2);
+            fprintf(debug, "nbl_fep atom-pair rlist %f\n", std::sqrt(rl_fep2));
         }
-        rl_fep2 = rl_fep2 * rl_fep2;
     }
 
     const Grid::Dimensions& iGridDims = iGrid.dimensions();
@@ -4111,6 +4209,12 @@ void PairlistSet::constructPairlists(gmx::InteractionLocality      locality,
 
     if (gridSet.haveFep())
     {
+        numPerturbedExclusionsWithinRlist_ = 0;
+        for (const auto& fepList : fepLists_)
+        {
+            numPerturbedExclusionsWithinRlist_ += fepList->numExclusionsWithinRlist;
+        }
+
         /* Balance the free-energy lists over all the threads */
         balance_fep_lists(fepLists_, searchWork);
     }
@@ -4170,6 +4274,13 @@ void PairlistSet::constructPairlists(gmx::InteractionLocality      locality,
     }
 }
 
+//! Returns whether iLocality is the last locality to construct pairlists for
+static bool isLastLocality(const PairSearch& pairSearch, const InteractionLocality iLocality)
+{
+    return !pairSearch.gridSet().domainSetup().haveMultipleDomains
+           || iLocality == InteractionLocality::NonLocal;
+}
+
 void PairlistSets::construct(const InteractionLocality iLocality,
                              PairSearch*               pairSearch,
                              nbnxn_atomdata_t*         nbat,
@@ -4213,8 +4324,7 @@ void PairlistSets::construct(const InteractionLocality iLocality,
     {
         pairSearch->cycleCounting_.searchCount_++;
     }
-    if (pairSearch->cycleCounting_.recordCycles_
-        && (!pairSearch->gridSet().domainSetup().haveMultipleDomains || iLocality == InteractionLocality::NonLocal)
+    if (pairSearch->cycleCounting_.recordCycles_ && isLastLocality(*pairSearch, iLocality)
         && pairSearch->cycleCounting_.searchCount_ % 100 == 0)
     {
         pairSearch->cycleCounting_.printCycles(stderr, pairSearch->work());
@@ -4235,6 +4345,20 @@ void nonbonded_verlet_t::constructPairlist(const InteractionLocality iLocality,
          * NOTE: The launch overhead is currently not timed separately
          */
         Nbnxm::gpu_init_pairlist(gpu_nbv, pairlistSets().pairlistSet(iLocality).gpuList(), iLocality);
+    }
+
+    /* With FEP we might need to check that we have all perturbed inclusions within rlist */
+    if (pairSearch_->gridSet().haveFep() && exclusionChecker_ && isLastLocality(*pairSearch_, iLocality))
+    {
+        int numPerturbedExclusionsWithinRlist =
+                pairlistSets().pairlistSet(InteractionLocality::Local).numPerturbedExclusionsWithinRlist();
+        if (pairSearch_->gridSet().domainSetup().haveMultipleDomains)
+        {
+            numPerturbedExclusionsWithinRlist +=
+                    pairlistSets().pairlistSet(InteractionLocality::NonLocal).numPerturbedExclusionsWithinRlist();
+        }
+
+        exclusionChecker_->scheduleCheckOfExclusions(numPerturbedExclusionsWithinRlist);
     }
 }
 

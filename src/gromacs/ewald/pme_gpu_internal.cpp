@@ -777,11 +777,9 @@ static void pme_gpu_init_internal(PmeGpu* pmeGpu, const DeviceContext& deviceCon
     pmeGpu->archSpecific.reset(new PmeGpuSpecific(deviceContext, deviceStream));
     pmeGpu->kernelParams.reset(new PmeGpuKernelParams());
 
-    pmeGpu->archSpecific->performOutOfPlaceFFT = true;
-    if (pmeGpu->settings.useDecomposition && GMX_USE_cuFFTMp)
-    {
-        pmeGpu->archSpecific->performOutOfPlaceFFT = false;
-    }
+    // Use in-place FFT with cuFFTMp or DBFFT.
+    pmeGpu->archSpecific->performOutOfPlaceFFT =
+            !((pmeGpu->settings.useDecomposition && GMX_USE_cuFFTMp) || GMX_GPU_FFT_DBFFT);
 
     /* This should give better performance, according to the cuFFT documentation.
      * The performance seems to be the same though.
@@ -862,29 +860,72 @@ static gmx::FftBackend getFftBackend(const PmeGpu* pmeGpu)
         }
         else
         {
+            GMX_RELEASE_ASSERT(GMX_GPU_FFT_CLFFT, "Only clFFT and VkFFT are supported with OpenCL");
             return gmx::FftBackend::Ocl;
         }
     }
     else if (GMX_GPU_SYCL)
     {
-        if ((GMX_SYCL_DPCPP != 0) && (GMX_FFT_MKL != 0)) // NOLINT(misc-redundant-expression)
+        if (GMX_GPU_FFT_MKL)
         {
-            return gmx::FftBackend::SyclMkl;
-        }
-        else if (GMX_SYCL_HIPSYCL)
-        {
-            if (GMX_GPU_FFT_VKFFT)
+            if (!pmeGpu->settings.useDecomposition)
             {
-                return gmx::FftBackend::SyclVkfft;
+                return gmx::FftBackend::SyclMkl;
             }
-            else if (GMX_GPU_FFT_ROCFFT)
+            else if (GMX_USE_Heffte)
             {
-                return gmx::FftBackend::SyclRocfft;
+                return gmx::FftBackend::HeFFTe_Sycl_OneMkl;
             }
             else
             {
-                return gmx::FftBackend::Sycl;
+                GMX_THROW(gmx::NotImplementedError(
+                        "GROMACS must be built with HeFFTe to enable fully GPU-offloaded "
+                        "PME decomposition on oneAPI-compatible GPUs"));
             }
+        }
+        else if (GMX_GPU_FFT_DBFFT)
+        {
+            return gmx::FftBackend::SyclDbfft;
+        }
+        else if (GMX_GPU_FFT_ROCFFT)
+        {
+            if (!pmeGpu->settings.useDecomposition)
+            {
+                return gmx::FftBackend::SyclRocfft;
+            }
+            else if (GMX_USE_Heffte)
+            {
+                return gmx::FftBackend::HeFFTe_Sycl_Rocfft;
+            }
+            else
+            {
+                GMX_THROW(gmx::NotImplementedError(
+                        "GROMACS must be built with HeFFTe to enable fully GPU-offloaded "
+                        "PME decomposition on ROCm-compatible GPUs"));
+            }
+        }
+        else if (GMX_GPU_FFT_CUFFT)
+        {
+            if (GMX_USE_Heffte)
+            {
+                if (pmeGpu->settings.useDecomposition)
+                {
+                    return gmx::FftBackend::HeFFTe_Sycl_cuFFT;
+                }
+                else
+                {
+                    GMX_THROW(gmx::NotImplementedError(
+                            "GROMACS can only do multi-GPU FFT in SYCL+cuFFT+HeFFTe build"));
+                }
+            }
+            else
+            {
+                GMX_THROW(gmx::NotImplementedError("GROMACS does not support cuFFT in SYCL build"));
+            }
+        }
+        else if (GMX_GPU_FFT_VKFFT)
+        {
+            return gmx::FftBackend::SyclVkfft;
         }
         else
         {

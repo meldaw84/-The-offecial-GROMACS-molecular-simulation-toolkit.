@@ -297,13 +297,57 @@ static inline float interpolateCoulombForceR(const sycl::global_ptr<const float>
 {
     const float normalized = coulombTabScale * r;
     const int   index      = static_cast<int>(normalized);
-    const float fraction   = normalized - index;
+#if defined(__SYCL_DEVICE_ONLY__) && defined(__AMDGCN__)
+    // TODO: up to ROCm v5.3 compiler does not do this transformation. Remove when this is no longer the case.
+    const float fraction = __builtin_amdgcn_fractf(normalized);
+#else
+    const float fraction = normalized - index;
+#endif
 
     const float left  = a_coulombTab[index];
     const float right = a_coulombTab[index + 1];
 
     return lerp(left, right, fraction); // TODO: sycl::mix
 }
+
+#if defined(__SYCL_DEVICE_ONLY__) && defined(__AMDGCN__)
+/*! \brief Reduce c_clSize j-force components using AMD DPP instruction and atomically accumulate into a_f.
+ *
+ * c_clSize consecutive threads hold the force components of a j-atom which we
+ * reduced in log2(cl_Size) steps using shift and atomically accumulate them into \p a_f.
+ *
+ * Note: This causes massive amount of spills with the tabulated kernel on gfx803 using ROCm 5.3.
+ * We don't disable it only for the tabulated kernel as the analytical is the default anyway.
+ */
+static inline void reduceForceJAmdDpp(Float3 f, const int tidxi, const int aidx, sycl::global_ptr<Float3> a_f)
+{
+    static_assert(c_clSize == 8);
+
+    f[0] += amdDppUpdateShfl<float, /* row_shl:1 */ 0x101>(f[0]);
+    f[1] += amdDppUpdateShfl<float, /* row_shr:1 */ 0x111>(f[1]);
+    f[2] += amdDppUpdateShfl<float, /* row_shl:1 */ 0x101>(f[2]);
+
+    if (tidxi & 1)
+    {
+        f[0] = f[1];
+    }
+
+    f[0] += amdDppUpdateShfl<float, /* row_shl:2 */ 0x102>(f[0]);
+    f[2] += amdDppUpdateShfl<float, /* row_shr:2 */ 0x112>(f[2]);
+
+    if (tidxi & 2)
+    {
+        f[0] = f[2];
+    }
+
+    f[0] += amdDppUpdateShfl<float, /* row_shl:4 */ 0x104>(f[0]);
+
+    if (tidxi < 3)
+    {
+        atomicFetchAdd(a_f[aidx][tidxi], f[0]);
+    }
+}
+#endif
 
 /*! \brief Reduce c_clSize j-force components using shifts and atomically accumulate into a_f.
  *
@@ -411,7 +455,7 @@ static inline void reduceForceJGeneric(sycl::local_ptr<float>   sm_buf,
     subGroupBarrier(itemIdx);
 
     // reducing data 8-by-by elements on the leader of same threads as those storing above
-    SYCL_ASSERT(itemIdx.get_sub_group().get_local_range().size() >= c_clSize);
+    SYCL_ASSERT(itemIdx.get_sub_group().get_max_local_range()[0] >= c_clSize);
 
     if (tidxi < 3)
     {
@@ -443,7 +487,11 @@ static inline void reduceForceJ(sycl::local_ptr<float>   sm_buf,
     }
     else
     {
+#if defined(__SYCL_DEVICE_ONLY__) && defined(__AMDGCN__)
+        reduceForceJAmdDpp(f, tidxi, aidx, a_f);
+#else
         reduceForceJShuffle(f, itemIdx, tidxi, aidx, a_f);
+#endif
     }
 }
 
@@ -570,19 +618,81 @@ static inline void reduceForceIAndFShiftShuffles(const float fCiBufX[c_nbnxnGpuN
 {
     const sycl::sub_group sg = itemIdx.get_sub_group();
     static_assert(numShuffleReductionSteps == 2 || numShuffleReductionSteps == 3);
-    assert(sg.get_local_linear_range() >= 4 * c_clSize
-           && "Subgroup too small for two-step shuffle reduction, use 1-step");
+    SYCL_ASSERT(sg.get_max_local_range()[0] >= 4 * c_clSize
+                && "Subgroup too small for two-step shuffle reduction, use 1-step");
+
+    float fShiftBuf = 0.0F;
+
+#if defined(__SYCL_DEVICE_ONLY__) && defined(__AMDGCN__) && (__AMDGCN_WAVEFRONT_SIZE == 64)
+    // Use AMD's cross-lane DPP reduction only for 64-wide exec
+    // can't use static_assert because 32-wide compiler passes will trip on it
+    SYCL_ASSERT(numShuffleReductionSteps == 3);
+#    pragma unroll c_nbnxnGpuNumClusterPerSupercluster
+    for (int ciOffset = 0; ciOffset < c_nbnxnGpuNumClusterPerSupercluster; ciOffset++)
+    {
+        const int aidx = (sci * c_nbnxnGpuNumClusterPerSupercluster + ciOffset) * c_clSize + tidxj;
+        float     fx   = fCiBufX[ciOffset];
+        float     fy   = fCiBufY[ciOffset];
+        float     fz   = fCiBufZ[ciOffset];
+
+        // Transpose values so DPP-based reduction can be used later
+        fx = sycl::select_from_group(sg, fx, tidxi * c_clSize + tidxj);
+        fy = sycl::select_from_group(sg, fy, tidxi * c_clSize + tidxj);
+        fz = sycl::select_from_group(sg, fz, tidxi * c_clSize + tidxj);
+
+        fx += amdDppUpdateShfl<float, /* row_shl:1 */ 0x101>(fx);
+        fy += amdDppUpdateShfl<float, /* row_shr:1 */ 0x111>(fy);
+        fz += amdDppUpdateShfl<float, /* row_shl:1 */ 0x101>(fz);
+
+        if (tidxi & 1)
+        {
+            fx = fy;
+        }
+
+        fx += amdDppUpdateShfl<float, /* row_shl:2 */ 0x102>(fx);
+        fz += amdDppUpdateShfl<float, /* row_shr:2 */ 0x112>(fz);
+
+        if (tidxi & 2)
+        {
+            fx = fz;
+        }
+
+        fx += amdDppUpdateShfl<float, /* row_shl:4 */ 0x104>(fx);
+
+        // Threads 0,1,2 increment X, Y, Z for their sub-groups
+        if (tidxi < 3)
+        {
+            atomicFetchAdd(a_f[aidx][(tidxi)], fx);
+
+            if (calcFShift)
+            {
+                fShiftBuf += fx;
+            }
+        }
+    }
+    /* add up local shift forces into global mem */
+    if (calcFShift)
+    {
+        if ((tidxi) < 3)
+        {
+            atomicFetchAdd(a_fShift[shift][(tidxi)], fShiftBuf);
+        }
+    }
+
+#else // GMX_SYCL_HIPSYCL && HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP
+
     // Thread mask to use to select first three threads (in tidxj) in each reduction "tree".
     // Two bits for two steps, three bits for three steps.
     constexpr int threadBitMask = (1U << numShuffleReductionSteps) - 1;
-    float         fShiftBuf     = 0.0F;
-#pragma unroll c_nbnxnGpuNumClusterPerSupercluster
+
+#    pragma unroll c_nbnxnGpuNumClusterPerSupercluster
     for (int ciOffset = 0; ciOffset < c_nbnxnGpuNumClusterPerSupercluster; ciOffset++)
     {
         const int aidx = (sci * c_nbnxnGpuNumClusterPerSupercluster + ciOffset) * c_clSize + tidxi;
         float     fx   = fCiBufX[ciOffset];
         float     fy   = fCiBufY[ciOffset];
         float     fz   = fCiBufZ[ciOffset];
+
         // First reduction step
         fx += sycl_2020::shift_left(sg, fx, c_clSize);
         fy += sycl_2020::shift_right(sg, fy, c_clSize);
@@ -622,6 +732,7 @@ static inline void reduceForceIAndFShiftShuffles(const float fCiBufX[c_nbnxnGpuN
             atomicFetchAdd(a_fShift[shift][(tidxj & threadBitMask)], fShiftBuf);
         }
     }
+#endif // GMX_SYCL_HIPSYCL && HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP
 }
 
 /*! \brief \c reduceForceIAndFShiftShuffles specialization for single-step reduction (e.g., Intel iGPUs).
@@ -651,10 +762,10 @@ inline void reduceForceIAndFShiftShuffles<1>(const float fCiBufX[c_nbnxnGpuNumCl
                                              sycl::global_ptr<Float3> a_fShift)
 {
     const sycl::sub_group sg = itemIdx.get_sub_group();
-    assert(sg.get_local_linear_range() >= 2 * c_clSize
-           && "Subgroup too small even for 1-step shuffle reduction");
-    assert(sg.get_local_linear_range() < 4 * c_clSize
-           && "One-step shuffle reduction inefficient, use two-step version");
+    SYCL_ASSERT(sg.get_max_local_range()[0] >= 2 * c_clSize
+                && "Subgroup too small even for 1-step shuffle reduction");
+    SYCL_ASSERT(sg.get_max_local_range()[0] < 4 * c_clSize
+                && "One-step shuffle reduction inefficient, use two-step version");
     float fShiftBufXY = 0.0F;
     float fShiftBufZ  = 0.0F;
 #pragma unroll c_nbnxnGpuNumClusterPerSupercluster
@@ -1008,12 +1119,14 @@ static auto nbnxmKernel(sycl::handler&                                          
         // loop over the j clusters = seen by any of the atoms in the current super-cluster
         for (int jPacked = cijPackedBegin; jPacked < cijPackedEnd; jPacked += 1)
         {
-            unsigned imask = a_plistCJPacked[jPacked].imei[imeiIdx].imask;
+            unsigned imask = UNIFORM_LOAD_CLUSTER_PAIR_DATA(a_plistCJPacked[jPacked].imei[imeiIdx].imask);
             if (!doPruneNBL && !imask)
             {
                 continue;
             }
-            const int wexclIdx = a_plistCJPacked[jPacked].imei[imeiIdx].excl_ind;
+            const int wexclIdx =
+                    UNIFORM_LOAD_CLUSTER_PAIR_DATA(a_plistCJPacked[jPacked].imei[imeiIdx].excl_ind);
+
             static_assert(gmx::isPowerOfTwo(prunedClusterPairSize));
             const unsigned wexcl = a_plistExcl[wexclIdx].pair[tidx & (prunedClusterPairSize - 1)];
 // Unrolling has been verified to improve performance on AMD

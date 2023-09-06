@@ -53,15 +53,14 @@ if (GMX_FFT_MKL)
     gmx_add_libgromacs_sources(fft_mkl.cpp)
 endif()
 if(GMX_USE_Heffte)
-    gmx_add_libgromacs_sources(
-        gpu_3dfft_heffte.cpp
-        )
+    gmx_add_libgromacs_sources(gpu_3dfft_heffte.cpp)
+    if (GMX_GPU_SYCL)
+        _gmx_add_files_to_property(SYCL_SOURCES gpu_3dfft_heffte.cpp)
+    endif()
 endif()
 if (GMX_GPU_CUDA)
     if(GMX_USE_cuFFTMp)
-        gmx_add_libgromacs_sources(
-            gpu_3dfft_cufftmp.cpp
-            )
+        gmx_add_libgromacs_sources(gpu_3dfft_cufftmp.cpp)
     endif()
     gmx_add_libgromacs_sources(
         # CUDA-specific sources
@@ -83,67 +82,30 @@ if (GMX_GPU_CUDA)
 elseif (GMX_GPU_OPENCL)
     if (GMX_GPU_FFT_VKFFT)
         gmx_add_libgromacs_sources(
-            # OpenCL-specific sources
             gpu_3dfft_ocl_vkfft.cpp
             gpu_3dfft_impl.cpp
             gpu_3dfft.cpp
             )
-    else()
+    elseif(GMX_GPU_FFT_CLFFT)
         gmx_add_libgromacs_sources(
-            # OpenCL-specific sources
             gpu_3dfft_ocl.cpp
             gpu_3dfft_impl.cpp
             gpu_3dfft.cpp
             )
     endif()
 elseif (GMX_GPU_SYCL)
-    if (NOT GMX_SYCL_HIPSYCL AND GMX_FFT_MKL)
-        gmx_add_libgromacs_sources(
-            gpu_3dfft_sycl_mkl.cpp
-            gpu_3dfft_impl.cpp
-            gpu_3dfft.cpp
-            )
-        _gmx_add_files_to_property(SYCL_SOURCES
-            gpu_3dfft_sycl_mkl.cpp
-            gpu_3dfft_impl.cpp
-            gpu_3dfft.cpp
-            )
+    set(_sycl_fft_sources gpu_3dfft.cpp gpu_3dfft_impl.cpp gpu_3dfft_sycl.cpp)
+    if (GMX_GPU_FFT_MKL)
+        list(APPEND _sycl_fft_sources gpu_3dfft_sycl_mkl.cpp)
+    elseif(GMX_GPU_FFT_DBFFT)
+        list(APPEND _sycl_fft_sources gpu_3dfft_sycl_dbfft.cpp)
+    elseif(GMX_GPU_FFT_ROCFFT)
+        list(APPEND _sycl_fft_sources gpu_3dfft_sycl_rocfft.cpp)
+    elseif(GMX_GPU_FFT_VKFFT)
+        list(APPEND _sycl_fft_sources gpu_3dfft_sycl_vkfft.cpp)
     endif()
-    if (GMX_SYCL_HIPSYCL)
-        if(GMX_GPU_FFT_VKFFT)
-            gmx_add_libgromacs_sources(
-                gpu_3dfft_sycl_vkfft.cpp 
-                gpu_3dfft_impl.cpp 
-                gpu_3dfft.cpp
-            )
-            _gmx_add_files_to_property(SYCL_SOURCES
-                gpu_3dfft_sycl_vkfft.cpp
-                gpu_3dfft_impl.cpp
-                gpu_3dfft.cpp
-            )
-        elseif(GMX_GPU_FFT_ROCFFT)
-            gmx_add_libgromacs_sources(
-                gpu_3dfft_sycl_rocfft.cpp
-                gpu_3dfft_impl.cpp
-                gpu_3dfft.cpp
-                )
-            _gmx_add_files_to_property(SYCL_SOURCES
-                gpu_3dfft_sycl_rocfft.cpp
-                gpu_3dfft_impl.cpp
-                gpu_3dfft.cpp
-                )
-        endif()
-    endif()
-    gmx_add_libgromacs_sources(
-        gpu_3dfft_sycl.cpp
-        gpu_3dfft_impl.cpp
-        gpu_3dfft.cpp
-        )
-    _gmx_add_files_to_property(SYCL_SOURCES
-        gpu_3dfft_sycl.cpp
-        gpu_3dfft.cpp
-        gpu_3dfft_impl.cpp
-        )
+    gmx_add_libgromacs_sources(${_sycl_fft_sources})
+    _gmx_add_files_to_property(SYCL_SOURCES ${_sycl_fft_sources})
 endif()
 
 # Source files have the following private module dependencies.
@@ -166,6 +128,10 @@ target_link_libraries(fft INTERFACE
                       timing
                       utility
                       )
+
+if (GMX_GPU_FFT_DBFFT)
+    target_link_libraries(fft INTERFACE bbfft::bbfft-sycl)
+endif()
 
 # TODO: when fft is an OBJECT target
 #target_link_libraries(fft PUBLIC legacy_api)

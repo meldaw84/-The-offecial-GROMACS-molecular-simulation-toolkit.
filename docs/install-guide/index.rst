@@ -204,11 +204,16 @@ It is not possible to support both Intel and other vendors' GPUs with OpenCL.
 A 64-bit implementation of OpenCL is required and therefore OpenCL is only
 supported on 64-bit platforms.
 
+Please note that OpenCL backend does not support the following GPUs:
+
+* NVIDIA Volta (CC 7.0, e.g., Tesla V100 or GTX 1630) or newer,
+* AMD RDNA1/2/3 (Navi 1/2X,3X, e.g., RX 5500 or RX6900).
+
 Since |Gromacs| 2021, the support for SYCL_ is added.
 The current SYCL implementation can be compiled either with `Intel oneAPI DPC++`_
 compiler for Intel GPUs, or with hipSYCL_ compiler and ROCm runtime for
-AMD GFX9 and CDNA GPUs. Using other devices supported by these compilers is
-possible, but not recommended.
+AMD GPUs (GFX9, CDNA 1/2, and RDNA1/2/3). Using other devices supported by
+these compilers is possible, but not recommended.
 
 It is not possible to configure several GPU backends in the same build
 of |Gromacs|.
@@ -333,11 +338,24 @@ slightly faster.
 Using MKL
 ~~~~~~~~~
 
-Use OneAPI MKL(>=2021.3) by setting up the environment, e.g., through
-``source /opt/intel/oneapi/setvars.sh`` or
+To target either Intel CPUs or GPUs, use OneAPI MKL(>=2021.3) by setting up the environment,
+e.g., through ``source /opt/intel/oneapi/setvars.sh`` or
 ``source /opt/intel/oneapi/mkl/latest/env/vars.sh``
 or manually setting environment variable ``MKLROOT=/full/path/to/mkl``.
-Then run CMake with setting ``-DGMX_FFT_LIBRARY=mkl``.
+Then run CMake with setting ``-DGMX_FFT_LIBRARY=mkl`` and/or ``-DGMX_GPU_FFT_LIBRARY=mkl``.
+
+Using double-batched FFT library
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Generally MKL will provide better performance on Intel GPUs, however
+this alternative open-source library from Intel
+(https://github.com/intel/double-batched-fft-library) is useful for
+very large FFT sizes in |Gromacs|.
+
+::
+
+     cmake -DGMX_GPU_FFT_LIBRARY=DBFFT -DCMAKE_PREFIX_PATH=$PATH_TO_DBFFT_INSTALL
+
 
 Using ARM Performance Libraries
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -361,8 +379,13 @@ options:
 Using cuFFTMp
 ~~~~~~~~~~~~~
 
-PME decomposition is supported with PME offloaded to NVIDIA GPUs when using a CUDA build. This requires building |Gromacs| with the NVIDIA `cuFFTMp (cuFFT Multi-process) library
-<https://docs.nvidia.com/hpc-sdk/cufftmp>`_, shipped with the NVIDIA HPC SDK, which provides distributed FFTs including across multiple compute nodes. To enable cuFFTMp support use the following cmake options:
+Decomposition of PME work to multiple GPUs is supported with NVIDIA
+GPUs when using a CUDA build. This requires building |Gromacs| with
+the NVIDIA `cuFFTMp (cuFFT Multi-process) library
+<https://docs.nvidia.com/hpc-sdk/cufftmp>`_, shipped with the NVIDIA
+HPC SDK, which provides distributed FFTs including across multiple
+compute nodes. To enable cuFFTMp support use the following cmake
+options:
 
 ::
 
@@ -375,6 +398,32 @@ are met before trying to use GPU PME decomposition feature.
 Also, since cuFFTMp internally uses `NVSHMEM <https://developer.nvidia.com/nvshmem>`_ it is advisable to refer to the `NVSHMEM FAQ page
 <https://docs.nvidia.com/hpc-sdk/nvshmem/api/faq.html#general-faqs>`_ for
 any issues faced at runtime.
+
+.. _heffte installation:
+
+Using heFFTe
+~~~~~~~~~~~~
+
+Decomposition of PME work to multiple GPUs is supported with PME
+offloaded to any vendor's GPU when building |Gromacs| linked to the
+`heFFTe library <https://icl.utk.edu/fft/>`_. HeFFTe uses GPU-aware MPI
+to provide distributed FFTs including across multiple compute
+nodes. It requires a CUDA build to target NVIDIA GPUs and a SYCL build
+to target Intel or AMD GPUs. To enable heFFTe support, use the
+following cmake options:
+
+::
+
+    cmake -DGMX_USE_HEFFTE=ON \
+          -DHeffte_ROOT=<path to heFFTe folder>
+
+You will need an installation of heFFTe configured to use the same
+GPU-aware MPI library that will be used by |Gromacs|, and with support
+that matches the intended |Gromacs| build. It is best to use the same
+C++ compiler and standard library also. When targeting Intel GPUs, add
+``-DHeffte_ENABLE_ONEAPI=ON -DHeffte_ONEMKL_ROOT=<path to oneMKL
+folder>``. When targeting AMD GPUs, add ``-DHeffte_ENABLE_ROCM=ON
+-DHeffte_ROCM_ROOT=<path to ROCm folder>``.
 
 Other optional build components
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -402,8 +451,9 @@ Other optional build components
   ``-DGMX_USE_LMFIT=none``.
 * zlib is used by TNG for compressing some kinds of trajectory data
 * Building the |Gromacs| documentation is optional, and requires
-  ImageMagick, pdflatex, bibtex, doxygen, python 3.6, sphinx
-  |EXPECTED_SPHINX_VERSION|, and pygments.
+  and other software.
+  Refer to https://manual.gromacs.org/current/dev-manual/documentation-generation.html
+  or the ``docs/dev-manual/documentation-generation.rst`` file in the sources.
 * The |Gromacs| utility programs often write data files in formats
   suitable for the Grace plotting tool, but it is straightforward to
   use these files in other plotting programs, too.
@@ -464,7 +514,7 @@ If there is a serious problem detected at this stage, then you will see
 a fatal error and some suggestions for how to overcome it. If you are
 not sure how to deal with that, please start by searching on the web
 (most computer problems already have known solutions!) and then
-consult the gmx-users mailing list. There are also informational
+consult the `user discussion forum`_. There are also informational
 warnings that you might like to take on board or not. Piping the
 output of ``cmake`` through ``less`` or ``tee`` can be
 useful, too.
@@ -599,7 +649,7 @@ lead to performance loss, e.g. on Intel Skylake-X/SP and AMD Zen.
    (compile- and runtime checks try to inform about such cases).
    Additionally, with GPU accelerated runs ``AVX2_256`` can also be
    faster on high-end Skylake CPUs with both 512-bit FMA units enabled.
-9. ``AVX_512_KNL`` Knights Landing Xeon Phi processors
+9. ``AVX_512_KNL`` Knights Landing Xeon Phi processors.
 10. ``IBM_VSX`` Power7, Power8, Power9 and later have this.
 11. ``ARM_NEON_ASIMD`` 64-bit ARMv8 and later.
 12. ``ARM_SVE`` 64-bit ARMv8 and later with the Scalable Vector Extensions (SVE).
@@ -608,7 +658,7 @@ lead to performance loss, e.g. on Intel Skylake-X/SP and AMD Zen.
     ``GMX_SIMD_ARM_SVE_LENGTH`` CMake variable.
     Minimum required compiler versions are GNU >= 10, LLVM >=13, or ARM >= 21.1. 
     For maximum performance we strongly suggest the latest gcc compilers,
-    or at least LLVM 14 (when released) or ARM 22.0 (when released). 
+    or at least LLVM 14 or ARM 22.0 (when released).
     Lower performance has been observed with LLVM 13 and Arm compiler 21.1.
 
 The CMake configure system will check that the compiler you have
@@ -626,7 +676,7 @@ an architecture with SIMD support to which |Gromacs| has not yet been
 ported, you may wish to try this option instead of the default
 ``GMX_SIMD=None``, as it can often out-perform this when the
 auto-vectorization in your compiler does a good job. And post on the
-|Gromacs| mailing lists, because |Gromacs| can probably be ported for new
+|Gromacs| `user discussion forum`_, because |Gromacs| can probably be ported for new
 SIMD architectures in a few days.
 
 CMake advanced options
@@ -770,7 +820,7 @@ is recommended.
 On Mac OS, an AMD GPU can be used only with OS version 10.10.4 and
 higher; earlier OS versions are known to run incorrectly.
 
-By default, any clFFT library on the system will be used with
+By default, on Linux, any clFFT library on the system will be used with
 |Gromacs|, but if none is found then the code will fall back on a
 version bundled with |Gromacs|. To require |Gromacs| to link with an
 external library, use
@@ -779,33 +829,54 @@ external library, use
 
     cmake .. -DGMX_GPU=OpenCL -DclFFT_ROOT_DIR=/path/to/your/clFFT -DGMX_EXTERNAL_CLFFT=TRUE
 
+On Windows with MSVC and on macOS,  `VkFFT <https://github.com/DTolm/VkFFT>`_
+is used instead of clFFT.
+
 SYCL GPU acceleration
 ~~~~~~~~~~~~~~~~~~~~~
 
 SYCL_ is a modern portable heterogeneous acceleration API, with multiple
 implementations targeting different hardware platforms (similar to OpenCL_).
 
-Currently, supported platforms in |Gromacs| are:
+|Gromacs| can be used with different SYCL compilers/runtimes and target the following hardware:
 
-* Intel GPUs using `Intel oneAPI DPC++`_ (both OpenCL and LevelZero backends), 
-* AMD GPUs with hipSYCL_: only discrete GPUs with GFX9 (RX Vega 64, Pro VII, 
-  Instinct MI25, Instinct MI50) and CDNA (Instinct MI100) architectures,
-* NVIDIA GPUs (experimental) using either hipSYCL_ or open-source 
-  `Intel LLVM <https://github.com/intel/llvm>`_.
+* Intel GPUs using `Intel oneAPI DPC++`_ (both OpenCL and LevelZero backends),
+* AMD GPUs with hipSYCL_ (only discrete GPUs),
 
-Feature support is broader than that of the OpenCL, but not yet on par with CUDA.
+There is also experimental support for:
+
+* AMD GPUs with open-source `Intel LLVM <https://github.com/intel/llvm>`_,
+* NVIDIA GPUs with either hipSYCL_ or open-source `Intel LLVM <https://github.com/intel/llvm>`_.
+
+In table form:
+
+==========  =============  =====================  =========================================================
+GPU vendor  hipSYCL_       `Intel oneAPI DPC++`_  open-source `Intel LLVM <https://github.com/intel/llvm>`_
+==========  =============  =====================  =========================================================
+Intel       not supported  supported              experimental (MKL installation required)
+AMD         supported      not supported          experimental (no GPU FFT)
+NVIDIA      experimental   not supported          experimental (no GPU FFT)
+==========  =============  =====================  =========================================================
+
+Here, "experimental support" means that the combination has
+received limited testing and is expected to work (with possible limitations), but is not recommended
+for production use.
 
 The SYCL_ support in |Gromacs| is intended to eventually replace
 OpenCL_ as an acceleration mechanism for AMD and Intel hardware.
 
-Note: SYCL_ support in |Gromacs| is less mature than either OpenCL or CUDA.
-Please, pay extra attention to simulation correctness when you are using it.
+For NVIDIA GPUs, we strongly advise using CUDA.
+Apple M1/M2 GPUs are not supported with SYCL but can be used with OpenCL_.
+
+Note: SYCL_ support in |Gromacs| and the underlying compilers and runtimes
+are less mature than either OpenCL or CUDA. Please, pay extra attention
+to simulation correctness when you are using it.
 
 SYCL GPU acceleration for Intel GPUs
 """"""""""""""""""""""""""""""""""""
 
 You should install the recent `Intel oneAPI DPC++`_ compiler toolkit.
-For |Gromacs| 2022, version 2021.4 is recommended.
+For |Gromacs| 2023, version 2022.3 is recommended.
 Using open-source `Intel LLVM <https://github.com/intel/llvm>`_ is possible,
 but not extensively tested. We also recommend installing the most recent
 `Neo driver <https://github.com/intel/compute-runtime/releases>`_.
@@ -819,6 +890,14 @@ must be set:
 
    cmake .. -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DGMX_GPU=SYCL
 
+When compiling for Intel Data Center GPU Max (also knows as Ponte Vecchio / PVC),
+we recommend passing additional flags for compatibility and improved performance:
+
+::
+
+   cmake .. -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DGMX_GPU=SYCL \
+            -DGMX_GPU_NB_NUM_CLUSTER_PER_CELL_X=1 -DGMX_GPU_NB_CLUSTER_SIZE=8
+
 SYCL GPU acceleration for AMD GPUs
 """"""""""""""""""""""""""""""""""
 
@@ -826,7 +905,7 @@ Using the most recent hipSYCL_ ``develop`` branch and the most recent ROCm
 release is recommended.
 
 Additionally, we strongly recommend using the ROCm-bundled LLVM for building
-both hipSYCL and |Gromacs|.
+both hipSYCL and |Gromacs|. Mainline Clang releases can also work.
 
 The following CMake command can be used **when configuring hipSYCL** to ensure
 that the proper Clang is used (assuming ``ROCM_PATH``
@@ -834,21 +913,39 @@ is set correctly, e.g. to ``/opt/rocm`` in the case of default installation):
 
 ::
 
-   cmake .. -DCMAKE_C_COMPILER=${ROCM_PATH}/llvm/bin/clang -DCMAKE_CXX_COMPILER=${ROCM_PATH}/llvm/bin/clang++ -DLLVM_DIR=${ROCM_PATH}/llvm/lib/cmake/llvm/
+   cmake .. -DCMAKE_C_COMPILER=${ROCM_PATH}/llvm/bin/clang \
+            -DCMAKE_CXX_COMPILER=${ROCM_PATH}/llvm/bin/clang++ \
+            -DLLVM_DIR=${ROCM_PATH}/llvm/lib/cmake/llvm/
 
 After compiling and installing hipSYCL, the following settings can be used for
 building |Gromacs| itself (set ``HIPSYCL_TARGETS`` to the target hardware):
 
 ::
 
-   cmake .. -DCMAKE_C_COMPILER=${ROCM_PATH}/llvm/bin/clang -DCMAKE_CXX_COMPILER=${ROCM_PATH}/llvm/bin/clang++ -DGMX_GPU=SYCL -DGMX_SYCL_HIPSYCL=ON -DHIPSYCL_TARGETS='hip:gfxXYZ'
+   cmake .. -DCMAKE_C_COMPILER=${ROCM_PATH}/llvm/bin/clang -DCMAKE_CXX_COMPILER=${ROCM_PATH}/llvm/bin/clang++ \
+            -DGMX_GPU=SYCL -DGMX_SYCL_HIPSYCL=ON -DHIPSYCL_TARGETS='hip:gfxXYZ'
+
+By default, `VkFFT <https://github.com/DTolm/VkFFT>`_ library is used to perform FFT on GPU.
+You can switch to rocFFT by passing ``-DGMX_GPU_FFT_LIBRARY=rocFFT`` CMake flag.
+
+AMD GPUs can also be used when compiling with the open-source
+`Intel LLVM <https://github.com/intel/llvm>`_, but this mode is experimental
+and does not support offloading FFTs to GPU. Make sure Intel LLVM is compiled
+with HIP and OpenMP support, then use the following CMake invocation
+(replacing ``gfxXYZ`` with the target architecture):
+
+::
+
+   cmake .. -DCMAKE_C_COMPILER=/path/to/intel/clang -DCMAKE_CXX_COMPILER=/path/to/intel/clang++ \
+            -DGMX_GPU=SYCL -DGMX_GPU_NB_CLUSTER_SIZE=8 -DGMX_GPU_FFT_LIBRARY=none \
+            -DSYCL_CXX_FLAGS_EXTRA='-fsycl-targets=amdgcn-amd-amdhsa;-Xsycl-target-backend;--offload-arch=gfxXYZ'
+
 
 SYCL GPU acceleration for NVIDIA GPUs
 """""""""""""""""""""""""""""""""""""
 
 SYCL support for NVIDIA GPUs is highly experimental. For production, please use CUDA_
-(`CUDA GPU acceleration`_). Note that FFT is not currently supported on NVIDIA devices 
-when using SYCL, PME offload is only possible in mixed mode (``-pme gpu -pmefft cpu``).
+(`CUDA GPU acceleration`_).
 
 NVIDIA GPUs can be used with either hipSYCL_ or the open-source
 `Intel LLVM <https://github.com/intel/llvm>`_.
@@ -862,7 +959,8 @@ the following CMake invocation:
 
 ::
 
-   cmake .. -DCMAKE_C_COMPILER=/path/to/intel/clang -DCMAKE_CXX_COMPILER=/path/to/intel/clang++ -DGMX_GPU=SYCL -DGMX_GPU_NB_CLUSTER_SIZE=8 -DSYCL_CXX_FLAGS_EXTRA=-fsycl-targets=nvptx64-nvidia-cuda
+   cmake .. -DCMAKE_C_COMPILER=/path/to/intel/clang -DCMAKE_CXX_COMPILER=/path/to/intel/clang++ \
+            -DGMX_GPU=SYCL -DGMX_GPU_NB_CLUSTER_SIZE=8 -DSYCL_CXX_FLAGS_EXTRA=-fsycl-targets=nvptx64-nvidia-cuda
 
 
 SYCL GPU compilation options
@@ -878,7 +976,7 @@ The following flags can be passed to CMake in order to tune |Gromacs|:
 
 ``-DGMX_GPU_NB_NUM_CLUSTER_PER_CELL_X``, ``-DGMX_GPU_NB_NUM_CLUSTER_PER_CELL_Y``, ``-DGMX_GPU_NB_NUM_CLUSTER_PER_CELL_Z``
       Sets the number of clusters along X, Y, or Z in a pair-search
-      grid cell, default 2. When targeting Intel PonteVecchio GPUs,
+      grid cell, default 2. When targeting Intel Ponte Vecchio GPUs,
       set ``-DGMX_GPU_NB_NUM_CLUSTER_PER_CELL_X=1`` and leave the
       other values as the default.
 
@@ -1129,7 +1227,7 @@ It is expected that this will always complete successfully, and
 give few or no warnings. The CMake-time tests |Gromacs| makes on the settings
 you choose are pretty extensive, but there are probably a few cases we
 have not thought of yet. Search the web first for solutions to
-problems, but if you need help, ask on gmx-users, being sure to
+problems, but if you need help, ask on the `user discussion forum`_, being sure to
 provide as much information as possible about what you did, the system
 you are building on, and what went wrong. This may mean scrolling back
 a long way through the output of ``make`` to find the first error
@@ -1286,21 +1384,23 @@ follow these steps to find the solution:
 1. Read the installation instructions again, taking note that you
    have followed each and every step correctly.
 
-2. Search the |Gromacs| webpage_ and users emailing list for information
+2. Search the |Gromacs| webpage_ and `user discussion forum`_ for information
    on the error. Adding
-   ``site:https://mailman-1.sys.kth.se/pipermail/gromacs.org_gmx-users``
+   ``site:https://gromacs.bioexcel.eu/c/gromacs-user-forum/5``
    to a Google search may help filter better results.
+   It is also a good idea to check the `gmx-users mailing list archive`_ at
+   ``https://mailman-1.sys.kth.se/pipermail/gromacs.org_gmx-users``
 
 3. Search the internet using a search engine such as Google.
 
-4. Post to the |Gromacs| users emailing list gmx-users for
-   assistance. Be sure to give a full description of what you have
+4. Ask for assistance on the |Gromacs| `user discussion forum`_.
+   Be sure to give a full description of what you have
    done and why you think it did not work. Give details about the
-   system on which you are installing.  Copy and paste your command
+   system on which you are installing. Copy and paste your command
    line and as much of the output as you think might be relevant -
    certainly from the first indication of a problem. In particular,
    please try to include at least the header from the mdrun logfile,
-   and preferably the entire file.  People who might volunteer to help
+   and preferably the entire file. People who might volunteer to help
    you do not have time to ask you interactive detailed follow-up
    questions, so you will get an answer faster if you provide as much
    information as you think could possibly help. High quality bug
