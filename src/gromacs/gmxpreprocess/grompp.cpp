@@ -265,10 +265,10 @@ static int rm_interactions(int ifunc, gmx::ArrayRef<MoleculeInformation> mols)
 }
 
 static int checkAtomNames(const char*          fn1,
-                            const char*          fn2,
-                            gmx_mtop_t*          mtop,
-                            const t_atoms*       at,
-                            const gmx::MDLogger& logger)
+                          const char*          fn2,
+                          gmx_mtop_t*          mtop,
+                          const t_atoms*       at,
+                          const gmx::MDLogger& logger)
 {
     int      m, i, j, nmismatch;
     t_atoms* tat;
