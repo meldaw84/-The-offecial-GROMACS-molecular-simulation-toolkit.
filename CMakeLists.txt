@@ -713,7 +713,7 @@ if(GMX_GPU)
         mark_as_advanced(GMX_GPU_NB_CLUSTER_SIZE)
     endif()
 
-    if ((${_gmx_gpu_uppercase} STREQUAL "OPENCL")  AND (GMX_GPU_NB_CLUSTER_SIZE AND NOT "${GMX_GPU_NB_CLUSTER_SIZE}" EQUAL 4) )
+    if ((${_gmx_gpu_uppercase} STREQUAL "OPENCL")  AND ("${GMX_GPU_NB_CLUSTER_SIZE}" EQUAL 4) )
         if (GMX_GPU_NB_NUM_CLUSTER_PER_CELL_X AND NOT "${GMX_GPU_NB_NUM_CLUSTER_PER_CELL_X}" EQUAL 2)
             message(FATAL_ERROR "Changing GMX_GPU_NB_NUM_CLUSTER_PER_CELL_X is not supported with OpenCL and GMX_GPU_NB_CLUSTER_SIZE=4 (use value 2)")
         endif()
