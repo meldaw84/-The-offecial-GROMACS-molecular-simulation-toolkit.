@@ -187,6 +187,7 @@
     - tar xzf gmx-regressiontests.tar.gz
     - source $INSTALL_DIR/bin/GMXRC
     - cd regressiontests
+    - sed 's/ -h > help 2>&1/ -h/' -i gmxtest.pl
     - perl gmxtest.pl $REGRESSIONTEST_PARALLEL $REGRESSIONTEST_TOTAL_RANK_NUMBER -ntomp $REGRESSIONTEST_OMP_RANK_NUMBER -npme $REGRESSIONTEST_PME_RANK_NUMBER $REGRESSIONTEST_DOUBLE $REGRESSIONTEST_MPI_RUN_COMMAND -xml all
   artifacts:
     paths:
