@@ -264,7 +264,7 @@ static int rm_interactions(int ifunc, gmx::ArrayRef<MoleculeInformation> mols)
     return n;
 }
 
-static int check_atom_names(const char*          fn1,
+static int checkAtomNames(const char*          fn1,
                             const char*          fn2,
                             gmx_mtop_t*          mtop,
                             const t_atoms*       at,
@@ -730,7 +730,7 @@ static void new_status(const char*                           topfile,
     /* This call fixes the box shape for runs with pressure scaling */
     set_box_rel(ir, state);
 
-    nmismatch = check_atom_names(topfile, confin, sys, &conftop->atoms, logger);
+    nmismatch = checkAtomNames(topfile, confin, sys, &conftop->atoms, logger);
     done_top(conftop);
     sfree(conftop);
 
