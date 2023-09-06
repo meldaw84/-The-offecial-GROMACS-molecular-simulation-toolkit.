@@ -59,8 +59,15 @@ struct FastFloat3
 
     struct __attribute__((packed))
     {
-        Native_float2_ xy_;
-        float          z_;
+        union
+        {
+            Native_float2_ xy_;
+            struct
+            {
+                float x_, y_;
+            };
+        };
+        float z_;
     };
 
     template<typename Index>
@@ -73,18 +80,16 @@ struct FastFloat3
             default: return z_;
         }
     }
-    /*
-        template<typename Index>
-        float& operator[](Index i)
+    template<typename Index>
+    float& operator[](Index i)
+    {
+        switch (i)
         {
-            switch (i)
-            {
-                case 0: return xy_.x;
-                case 1: return xy_.y;
-                default: return z_;
-            }
+            case 0: return x_;
+            case 1: return y_;
+            default: return z_;
         }
-    */
+    }
 
     float          x() const { return xy_.x; }
     float          y() const { return xy_.y; }
@@ -1446,7 +1451,7 @@ static auto nbnxmKernel(sycl::handler& cgh,
                             fCjBuf -= forceIJ;
                             /* accumulate i forces in registers */
 #if defined(__SYCL_DEVICE_ONLY__) && defined(__AMDGCN__) && defined(__gfx90a__)
-                            fCiBuf[i] += FastFloat3(forceIJ);
+                            fCiBuf_[i] += FastFloat3(forceIJ);
 #else
                             fCiBufX(i) += forceIJ[0];
                             fCiBufY(i) += forceIJ[1];
