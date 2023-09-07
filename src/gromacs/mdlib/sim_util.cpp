@@ -844,7 +844,7 @@ static void alternatePmeNbGpuWaitReduce(nonbonded_verlet_t* nbv,
             GpuTaskCompletion completionType =
                     (isPmeGpuDone) ? GpuTaskCompletion::Wait : GpuTaskCompletion::Check;
             isNbGpuDone = Nbnxm::gpu_try_finish_task(
-                    nbv->gpu_nbv,
+                    nbv->gpuNbv(),
                     stepWork,
                     AtomLocality::Local,
                     enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::LJSR].data(),
@@ -1056,7 +1056,7 @@ static void launchGpuEndOfStepTasks(nonbonded_verlet_t*               nbv,
         /* now clear the GPU outputs while we finish the step on the CPU */
         wallcycle_start_nocount(wcycle, WallCycleCounter::LaunchGpuPp);
         wallcycle_sub_start_nocount(wcycle, WallCycleSubCounter::LaunchGpuNonBonded);
-        Nbnxm::gpu_clear_outputs(nbv->gpu_nbv, runScheduleWork.stepWork.computeVirial);
+        Nbnxm::gpu_clear_outputs(nbv->gpuNbv(), runScheduleWork.stepWork.computeVirial);
         wallcycle_sub_stop(wcycle, WallCycleSubCounter::LaunchGpuNonBonded);
         wallcycle_stop(wcycle, WallCycleCounter::LaunchGpuPp);
     }
@@ -1256,7 +1256,7 @@ static void combineMtsForces(const int      numAtoms,
  * \param [in] dd                  Domain decomposition object
  */
 static void setupLocalGpuForceReduction(const gmx::MdrunScheduleWorkload* runScheduleWork,
-                                        const nonbonded_verlet_t*         nbv,
+                                        nonbonded_verlet_t*               nbv,
                                         gmx::StatePropagatorDataGpu*      stateGpu,
                                         gmx::GpuForceReduction*           gpuForceReduction,
                                         gmx::PmePpCommGpu*                pmePpCommGpu,
@@ -1278,7 +1278,7 @@ static void setupLocalGpuForceReduction(const gmx::MdrunScheduleWorkload* runSch
                               stateGpu->fReducedOnDevice(AtomLocality::Local));
 
     // register forces and add dependencies
-    gpuForceReduction->registerNbnxmForce(Nbnxm::gpu_get_f(nbv->gpu_nbv));
+    gpuForceReduction->registerNbnxmForce(Nbnxm::gpu_get_f(nbv->gpuNbv()));
 
     DeviceBuffer<gmx::RVec> pmeForcePtr;
     GpuEventSynchronizer*   pmeSynchronizer     = nullptr;
@@ -1339,7 +1339,7 @@ static void setupLocalGpuForceReduction(const gmx::MdrunScheduleWorkload* runSch
  * \param [in] dd                  Domain decomposition object
  */
 static void setupNonLocalGpuForceReduction(const gmx::MdrunScheduleWorkload* runScheduleWork,
-                                           const nonbonded_verlet_t*         nbv,
+                                           nonbonded_verlet_t*               nbv,
                                            gmx::StatePropagatorDataGpu*      stateGpu,
                                            gmx::GpuForceReduction*           gpuForceReduction,
                                            const gmx_domdec_t*               dd)
@@ -1355,7 +1355,7 @@ static void setupNonLocalGpuForceReduction(const gmx::MdrunScheduleWorkload* run
                               stateGpu->fReducedOnDevice(AtomLocality::NonLocal));
 
     // register forces and add dependencies
-    gpuForceReduction->registerNbnxmForce(Nbnxm::gpu_get_f(nbv->gpu_nbv));
+    gpuForceReduction->registerNbnxmForce(Nbnxm::gpu_get_f(nbv->gpuNbv()));
 
     if (runScheduleWork->domainWork.haveCpuNonLocalForceWork)
     {
@@ -1639,7 +1639,7 @@ void do_force(FILE*                               fplog,
             // Note: cycle counting only nononbondeds, GPU listed forces counts internally
             wallcycle_start_nocount(wcycle, WallCycleCounter::LaunchGpuPp);
             wallcycle_sub_start_nocount(wcycle, WallCycleSubCounter::LaunchGpuNonBonded);
-            Nbnxm::gpu_init_atomdata(nbv->gpu_nbv, nbv->nbat.get());
+            Nbnxm::gpu_init_atomdata(nbv->gpuNbv(), nbv->nbat.get());
             wallcycle_sub_stop(wcycle, WallCycleSubCounter::LaunchGpuNonBonded);
             wallcycle_stop(wcycle, WallCycleCounter::LaunchGpuPp);
 
@@ -1654,7 +1654,7 @@ void do_force(FILE*                               fplog,
                 // resources, so they should be maintained by a
                 // higher-level object than the nb module.
                 fr->listedForcesGpu->updateInteractionListsAndDeviceBuffers(
-                        nbv->getGridIndices(), top->idef, Nbnxm::gpuGetNBAtomData(nbv->gpu_nbv));
+                        nbv->getGridIndices(), top->idef, Nbnxm::gpuGetNBAtomData(nbv->gpuNbv()));
             }
         }
 
@@ -1722,10 +1722,10 @@ void do_force(FILE*                               fplog,
 
         wallcycle_start(wcycle, WallCycleCounter::LaunchGpuPp);
         wallcycle_sub_start(wcycle, WallCycleSubCounter::LaunchGpuNonBonded);
-        Nbnxm::gpu_upload_shiftvec(nbv->gpu_nbv, nbv->nbat.get());
+        Nbnxm::gpu_upload_shiftvec(nbv->gpuNbv(), nbv->nbat.get());
         if (!stepWork.useGpuXBufferOps)
         {
-            Nbnxm::gpu_copy_xq_to_gpu(nbv->gpu_nbv, nbv->nbat.get(), AtomLocality::Local);
+            Nbnxm::gpu_copy_xq_to_gpu(nbv->gpuNbv(), nbv->nbat.get(), AtomLocality::Local);
         }
         wallcycle_sub_stop(wcycle, WallCycleSubCounter::LaunchGpuNonBonded);
         wallcycle_stop(wcycle, WallCycleCounter::LaunchGpuPp);
@@ -1844,7 +1844,7 @@ void do_force(FILE*                               fplog,
             {
                 wallcycle_start(wcycle, WallCycleCounter::LaunchGpuPp);
                 wallcycle_sub_start(wcycle, WallCycleSubCounter::LaunchGpuNonBonded);
-                Nbnxm::gpu_copy_xq_to_gpu(nbv->gpu_nbv, nbv->nbat.get(), AtomLocality::NonLocal);
+                Nbnxm::gpu_copy_xq_to_gpu(nbv->gpuNbv(), nbv->nbat.get(), AtomLocality::NonLocal);
                 wallcycle_sub_stop(wcycle, WallCycleSubCounter::LaunchGpuNonBonded);
                 wallcycle_stop(wcycle, WallCycleCounter::LaunchGpuPp);
             }
@@ -1880,9 +1880,9 @@ void do_force(FILE*                               fplog,
 
         if (simulationWork.havePpDomainDecomposition)
         {
-            Nbnxm::gpu_launch_cpyback(nbv->gpu_nbv, nbv->nbat.get(), stepWork, AtomLocality::NonLocal);
+            Nbnxm::gpu_launch_cpyback(nbv->gpuNbv(), nbv->nbat.get(), stepWork, AtomLocality::NonLocal);
         }
-        Nbnxm::gpu_launch_cpyback(nbv->gpu_nbv, nbv->nbat.get(), stepWork, AtomLocality::Local);
+        Nbnxm::gpu_launch_cpyback(nbv->gpuNbv(), nbv->nbat.get(), stepWork, AtomLocality::Local);
         wallcycle_sub_stop(wcycle, WallCycleSubCounter::LaunchGpuNonBonded);
 
         if (domainWork.haveGpuBondedWork && stepWork.computeEnergy)
@@ -2257,7 +2257,7 @@ void do_force(FILE*                               fplog,
             if (simulationWork.useGpuNonbonded)
             {
                 cycles_wait_gpu += Nbnxm::gpu_wait_finish_task(
-                        nbv->gpu_nbv,
+                        nbv->gpuNbv(),
                         stepWork,
                         AtomLocality::NonLocal,
                         enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::LJSR].data(),
@@ -2416,7 +2416,7 @@ void do_force(FILE*                               fplog,
          */
         const float gpuWaitApiOverheadMargin = 2e6F; /* cycles */
         const float waitCycles               = Nbnxm::gpu_wait_finish_task(
-                nbv->gpu_nbv,
+                nbv->gpuNbv(),
                 stepWork,
                 AtomLocality::Local,
                 enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::LJSR].data(),

@@ -162,7 +162,7 @@ void nonbonded_verlet_t::convertCoordinatesGpu(const gmx::AtomLocality locality,
     wallcycle_start(wcycle_, WallCycleCounter::LaunchGpuPp);
     wallcycle_sub_start(wcycle_, WallCycleSubCounter::LaunchGpuNBXBufOps);
 
-    nbnxn_atomdata_x_to_nbat_x_gpu(pairSearch_->gridSet(), locality, gpu_nbv, d_x, xReadyOnDevice);
+    nbnxn_atomdata_x_to_nbat_x_gpu(pairSearch_->gridSet(), locality, gpuNbv_, d_x, xReadyOnDevice);
 
     wallcycle_sub_stop(wcycle_, WallCycleSubCounter::LaunchGpuNBXBufOps);
     wallcycle_stop(wcycle_, WallCycleCounter::LaunchGpuPp);
@@ -179,7 +179,7 @@ void nonbonded_verlet_t::atomdata_add_nbat_f_to_f(const gmx::AtomLocality  local
 
     /* Skip the reduction if there was no short-range GPU work to do
      * (either NB or both NB and bonded work). */
-    if (!pairlistIsSimple() && !Nbnxm::haveGpuShortRangeWork(gpu_nbv, atomToInteractionLocality(locality)))
+    if (!pairlistIsSimple() && !Nbnxm::haveGpuShortRangeWork(gpuNbv_, atomToInteractionLocality(locality)))
     {
         return;
     }
@@ -231,13 +231,13 @@ void nonbonded_verlet_t::setupGpuShortRangeWork(const gmx::ListedForcesGpu*    l
 {
     if (useGpu() && !emulateGpu())
     {
-        Nbnxm::setupGpuShortRangeWork(gpu_nbv, listedForcesGpu, iLocality);
+        Nbnxm::setupGpuShortRangeWork(gpuNbv_, listedForcesGpu, iLocality);
     }
 }
 
 void nonbonded_verlet_t::atomdata_init_copy_x_to_nbat_x_gpu() const
 {
-    Nbnxm::nbnxn_gpu_init_x_to_nbat_x(pairSearch_->gridSet(), gpu_nbv);
+    Nbnxm::nbnxn_gpu_init_x_to_nbat_x(pairSearch_->gridSet(), gpuNbv_);
 }
 
 bool buildSupportsNonbondedOnGpu(std::string* error)

@@ -482,6 +482,12 @@ public:
 
     void setupFepThreadedForceBuffer(int numAtomsForce);
 
+    //! return a pointer to the NbnxmGpu object, can return nullptr
+    const NbnxmGpu* gpuNbv() const { return gpuNbv_; }
+
+    //! return a pointer to the NbnxmGpu object, can return nullptr
+    NbnxmGpu* gpuNbv() { return gpuNbv_; }
+
 private:
     //! All data related to the pair lists
     std::unique_ptr<PairlistSets> pairlistSets_;
@@ -489,7 +495,7 @@ private:
     std::unique_ptr<PairSearch> pairSearch_;
 
 public:
-    // TODO: Make all data members private
+    // TODO: Make nbat private
     //! Atom data
     std::unique_ptr<nbnxn_atomdata_t> nbat;
 
@@ -506,9 +512,8 @@ private:
     //! \brief Pointer to wallcycle structure.
     gmx_wallcycle* wcycle_;
 
-public:
     //! GPU Nbnxm data, only used with a physical GPU (TODO: use unique_ptr)
-    NbnxmGpu* gpu_nbv;
+    NbnxmGpu* gpuNbv_;
 };
 
 namespace Nbnxm

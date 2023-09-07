@@ -506,7 +506,7 @@ nonbonded_verlet_t::nonbonded_verlet_t(std::unique_ptr<PairlistSets>     pairlis
     kernelSetup_(kernelSetup),
     exclusionChecker_(std::move(exclusionChecker)),
     wcycle_(wcycle),
-    gpu_nbv(gpu_nbv_ptr)
+    gpuNbv_(gpu_nbv_ptr)
 {
     GMX_RELEASE_ASSERT(pairlistSets_, "Need valid pairlistSets");
     GMX_RELEASE_ASSERT(pairSearch_, "Need valid search object");
@@ -529,7 +529,7 @@ nonbonded_verlet_t::nonbonded_verlet_t(std::unique_ptr<PairlistSets>     pairlis
     kernelSetup_(kernelSetup),
     exclusionChecker_(),
     wcycle_(nullptr),
-    gpu_nbv(gpu_nbv_ptr)
+    gpuNbv_(gpu_nbv_ptr)
 {
     GMX_RELEASE_ASSERT(pairlistSets_, "Need valid pairlistSets");
     GMX_RELEASE_ASSERT(pairSearch_, "Need valid search object");
@@ -543,5 +543,5 @@ nonbonded_verlet_t::nonbonded_verlet_t(std::unique_ptr<PairlistSets>     pairlis
 
 nonbonded_verlet_t::~nonbonded_verlet_t()
 {
-    Nbnxm::gpu_free(gpu_nbv);
+    Nbnxm::gpu_free(gpuNbv_);
 }
