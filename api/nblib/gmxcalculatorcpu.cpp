@@ -148,18 +148,17 @@ void GmxNBForceCalculatorCpu::CpuImpl::updatePairlist(gmx::ArrayRef<gmx::RVec> c
     put_atoms_in_box_omp(PbcType::Xyz, box.legacyMatrix(), coordinates, backend_.numThreads_);
 
     // Put particles on a grid based on bounds specified by the box
-    nbnxn_put_on_grid(backend_.nbv_.get(),
-                      legacyBox,
-                      0,
-                      lowerCorner,
-                      upperCorner,
-                      nullptr,
-                      { 0, int(coordinates.size()) },
-                      particleDensity,
-                      system_.particleInfo_,
-                      coordinates,
-                      0,
-                      nullptr);
+    backend_.nbv_->putAtomsOnGrid(legacyBox,
+                                  0,
+                                  lowerCorner,
+                                  upperCorner,
+                                  nullptr,
+                                  { 0, int(coordinates.size()) },
+                                  particleDensity,
+                                  system_.particleInfo_,
+                                  coordinates,
+                                  0,
+                                  nullptr);
 
     backend_.nbv_->constructPairlist(
             gmx::InteractionLocality::Local, backend_.exclusions_, 0, &backend_.nrnb_);
