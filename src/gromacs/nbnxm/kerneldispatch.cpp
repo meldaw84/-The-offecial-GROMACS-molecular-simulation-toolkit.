@@ -462,7 +462,7 @@ void nonbonded_verlet_t::dispatchNonbondedKernel(gmx::InteractionLocality       
         case Nbnxm::KernelType::Cpu4xN_Simd_2xNN:
             nbnxn_kernel_cpu(pairlistSet,
                              kernelSetup(),
-                             nbat.get(),
+                             nbat_.get(),
                              ic,
                              shiftvec,
                              stepWork,
@@ -478,13 +478,13 @@ void nonbonded_verlet_t::dispatchNonbondedKernel(gmx::InteractionLocality       
 
         case Nbnxm::KernelType::Cpu8x8x8_PlainC:
             nbnxn_kernel_gpu_ref(pairlistSet.gpuList(),
-                                 nbat.get(),
+                                 nbat_.get(),
                                  &ic,
                                  shiftvec,
                                  stepWork,
                                  clearF,
-                                 nbat->out[0].f,
-                                 nbat->out[0].fshift.data(),
+                                 nbat_->out[0].f,
+                                 nbat_->out[0].fshift.data(),
                                  CoulombSR.data(),
                                  repulsionDispersionSR.data());
             break;

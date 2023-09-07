@@ -78,7 +78,7 @@ void nonbonded_verlet_t::putAtomsOnGrid(const matrix                   box,
                            x,
                            numAtomsMoved,
                            move,
-                           nbat.get());
+                           nbat_.get());
 }
 
 /* Calls nbnxn_put_on_grid for all non-local domains */
@@ -139,7 +139,7 @@ void nonbonded_verlet_t::setAtomProperties(gmx::ArrayRef<const int>     atomType
                                            gmx::ArrayRef<const real>    atomCharges,
                                            gmx::ArrayRef<const int64_t> atomInfo) const
 {
-    nbnxn_atomdata_set(nbat.get(), pairSearch_->gridSet(), atomTypes, atomCharges, atomInfo);
+    nbnxn_atomdata_set(nbat_.get(), pairSearch_->gridSet(), atomTypes, atomCharges, atomInfo);
 }
 
 void nonbonded_verlet_t::convertCoordinates(const gmx::AtomLocality        locality,
@@ -149,7 +149,7 @@ void nonbonded_verlet_t::convertCoordinates(const gmx::AtomLocality        local
     wallcycle_sub_start(wcycle_, WallCycleSubCounter::NBXBufOps);
 
     nbnxn_atomdata_copy_x_to_nbat_x(
-            pairSearch_->gridSet(), locality, as_rvec_array(coordinates.data()), nbat.get());
+            pairSearch_->gridSet(), locality, as_rvec_array(coordinates.data()), nbat_.get());
 
     wallcycle_sub_stop(wcycle_, WallCycleSubCounter::NBXBufOps);
     wallcycle_stop(wcycle_, WallCycleCounter::NbXFBufOps);
@@ -187,7 +187,7 @@ void nonbonded_verlet_t::atomdata_add_nbat_f_to_f(const gmx::AtomLocality  local
     wallcycle_start(wcycle_, WallCycleCounter::NbXFBufOps);
     wallcycle_sub_start(wcycle_, WallCycleSubCounter::NBFBufOps);
 
-    reduceForces(nbat.get(), locality, pairSearch_->gridSet(), as_rvec_array(force.data()));
+    reduceForces(nbat_.get(), locality, pairSearch_->gridSet(), as_rvec_array(force.data()));
 
     wallcycle_sub_stop(wcycle_, WallCycleSubCounter::NBFBufOps);
     wallcycle_stop(wcycle_, WallCycleCounter::NbXFBufOps);

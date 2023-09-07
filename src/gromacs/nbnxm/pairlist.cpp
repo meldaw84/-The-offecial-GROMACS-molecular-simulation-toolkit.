@@ -4351,7 +4351,7 @@ void nonbonded_verlet_t::constructPairlist(const InteractionLocality iLocality,
                                            int64_t                   step,
                                            t_nrnb*                   nrnb) const
 {
-    pairlistSets_->construct(iLocality, pairSearch_.get(), nbat.get(), exclusions, step, nrnb);
+    pairlistSets_->construct(iLocality, pairSearch_.get(), nbat_.get(), exclusions, step, nrnb);
 
     if (useGpu())
     {

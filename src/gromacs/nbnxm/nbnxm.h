@@ -482,10 +482,13 @@ public:
 
     void setupFepThreadedForceBuffer(int numAtomsForce);
 
-    //! return a pointer to the NbnxmGpu object, can return nullptr
+    //! Returns a reference to the nbnxn_atomdata_t object
+    nbnxn_atomdata_t& nbat() { return *nbat_; }
+
+    //! Returns a pointer to the NbnxmGpu object, can return nullptr
     const NbnxmGpu* gpuNbv() const { return gpuNbv_; }
 
-    //! return a pointer to the NbnxmGpu object, can return nullptr
+    //! Returns a pointer to the NbnxmGpu object, can return nullptr
     NbnxmGpu* gpuNbv() { return gpuNbv_; }
 
 private:
@@ -493,13 +496,9 @@ private:
     std::unique_ptr<PairlistSets> pairlistSets_;
     //! Working data for constructing the pairlists
     std::unique_ptr<PairSearch> pairSearch_;
-
-public:
-    // TODO: Make nbat private
     //! Atom data
-    std::unique_ptr<nbnxn_atomdata_t> nbat;
+    std::unique_ptr<nbnxn_atomdata_t> nbat_;
 
-private:
     //! The non-bonded setup, also affects the pairlist construction kernel
     Nbnxm::KernelSetup kernelSetup_;
 

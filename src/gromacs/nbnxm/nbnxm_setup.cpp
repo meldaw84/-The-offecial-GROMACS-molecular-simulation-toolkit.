@@ -502,7 +502,7 @@ nonbonded_verlet_t::nonbonded_verlet_t(std::unique_ptr<PairlistSets>     pairlis
                                        gmx_wallcycle*                    wcycle) :
     pairlistSets_(std::move(pairlistSets)),
     pairSearch_(std::move(pairSearch)),
-    nbat(std::move(nbat_in)),
+    nbat_(std::move(nbat_in)),
     kernelSetup_(kernelSetup),
     exclusionChecker_(std::move(exclusionChecker)),
     wcycle_(wcycle),
@@ -510,11 +510,11 @@ nonbonded_verlet_t::nonbonded_verlet_t(std::unique_ptr<PairlistSets>     pairlis
 {
     GMX_RELEASE_ASSERT(pairlistSets_, "Need valid pairlistSets");
     GMX_RELEASE_ASSERT(pairSearch_, "Need valid search object");
-    GMX_RELEASE_ASSERT(nbat, "Need valid atomdata object");
+    GMX_RELEASE_ASSERT(nbat_, "Need valid atomdata object");
 
     if (pairlistSets_->params().haveFep_)
     {
-        freeEnergyDispatch_ = std::make_unique<FreeEnergyDispatch>(nbat->params().nenergrp);
+        freeEnergyDispatch_ = std::make_unique<FreeEnergyDispatch>(nbat_->params().nenergrp);
     }
 }
 
@@ -525,7 +525,7 @@ nonbonded_verlet_t::nonbonded_verlet_t(std::unique_ptr<PairlistSets>     pairlis
                                        NbnxmGpu*                         gpu_nbv_ptr) :
     pairlistSets_(std::move(pairlistSets)),
     pairSearch_(std::move(pairSearch)),
-    nbat(std::move(nbat_in)),
+    nbat_(std::move(nbat_in)),
     kernelSetup_(kernelSetup),
     exclusionChecker_(),
     wcycle_(nullptr),
@@ -533,11 +533,11 @@ nonbonded_verlet_t::nonbonded_verlet_t(std::unique_ptr<PairlistSets>     pairlis
 {
     GMX_RELEASE_ASSERT(pairlistSets_, "Need valid pairlistSets");
     GMX_RELEASE_ASSERT(pairSearch_, "Need valid search object");
-    GMX_RELEASE_ASSERT(nbat, "Need valid atomdata object");
+    GMX_RELEASE_ASSERT(nbat_, "Need valid atomdata object");
 
     if (pairlistSets_->params().haveFep_)
     {
-        freeEnergyDispatch_ = std::make_unique<FreeEnergyDispatch>(nbat->params().nenergrp);
+        freeEnergyDispatch_ = std::make_unique<FreeEnergyDispatch>(nbat_->params().nenergrp);
     }
 }
 
