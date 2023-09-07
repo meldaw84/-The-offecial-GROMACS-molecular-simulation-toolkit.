@@ -62,6 +62,9 @@
 #    include "gromacs/gpu_utils/gpuregiontimer_sycl.h"
 #endif
 
+static constexpr int c_sciHistogramSize =
+        8192; // TODO is it a problem to hard code this rather than using double the average cjPacked size as in the cpu version
+
 /*! \brief Macro definining default for the prune kernel's jPacked processing concurrency.
  *
  *  The GMX_NBNXN_PRUNE_KERNEL_JPACKED_CONCURRENCY macro allows compile-time override with the default value of 4.
@@ -259,6 +262,43 @@ struct gpu_plist
     int sci_nalloc;
     //! list of i-cluster ("super-clusters")
     DeviceBuffer<nbnxn_sci_t> sci;
+
+    int nscan_temporary;
+
+    int scan_temporary_nalloc;
+
+    // //! Temporary data of scan algorithm
+    DeviceBuffer<char> scan_temporary;
+
+    int nsci_histogram;
+
+    int sci_histogram_nalloc;
+
+    //! Histogram of sci nsp
+    DeviceBuffer<int> sci_histogram;
+
+    int nsci_offset;
+
+    int sci_offset_nalloc;
+
+    //! Sci offset
+    DeviceBuffer<int> sci_offset;
+
+    //! size of sci, # of i clusters in the list
+    int nsci_counted;
+    //! allocation size of sci
+    int sci_counted_nalloc;
+
+    //! list of imask counts of sorted i-cluster ("super-clusters")
+    DeviceBuffer<int> sci_count;
+
+    //! size of sci, # of i clusters in the list
+    int nsci_sorted;
+    //! allocation size of sci
+    int sci_sorted_nalloc;
+
+    //! list of sorted i-cluster ("super-clusters")
+    DeviceBuffer<nbnxn_sci_t> sci_sorted;
 
     //! total # of packed j clusters
     int ncjPacked;

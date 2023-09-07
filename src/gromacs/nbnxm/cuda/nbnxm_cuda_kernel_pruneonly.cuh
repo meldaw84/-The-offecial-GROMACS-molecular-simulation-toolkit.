@@ -135,7 +135,7 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
     }
 
     /* convenience variables */
-    const nbnxn_sci_t* pl_sci      = plist.sci;
+    const nbnxn_sci_t* pl_sci      = haveFreshList ? plist.sci : plist.sci_sorted;
     nbnxn_cj_packed_t* pl_cjPacked = plist.cjPacked;
     const float4*      xq          = atdat.xq;
     const float3*      shift_vec   = asFloat3(atdat.shiftVec);
@@ -146,13 +146,14 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
     /* thread/block/warp id-s */
     unsigned int tidxi = threadIdx.x;
     unsigned int tidxj = threadIdx.y;
-#    if NTHREAD_Z == 1
+#   if NTHREAD_Z == 1
     unsigned int tidxz = 0;
-#    else
+#   else
     unsigned int tidxz = threadIdx.z;
-#    endif
-    unsigned int bidx  = blockIdx.x;
-    unsigned int widx  = (threadIdx.y * c_clSize) / warp_size; /* warp index */
+#   endif
+    unsigned int tidx = tidxi + c_clSize * tidxj;
+    unsigned int bidx = blockIdx.x;
+    unsigned int widx = (threadIdx.y * c_clSize) / warp_size; /* warp index */
 
     // cj preload is off in the following cases:
     // - sm_70 (V100), sm_8x (A100, GA100), sm_75 (TU102)
@@ -207,6 +208,7 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
     }
     __syncthreads();
 
+    int count = 0;
     /* loop over the j clusters = seen by any of the atoms in the current super-cluster;
      * The loop stride NTHREAD_Z ensures that consecutive warps-pairs are assigned
      * consecutive jPacked's entries.
@@ -298,6 +300,7 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
             {
                 /* copy the list pruned to rlistOuter to a separate buffer */
                 plist.imask[jPacked * c_nbnxnGpuClusterpairSplit + widx] = imaskFull;
+                count += __popc(imaskNew);
             }
             /* update the imask with only the pairs up to rlistInner */
             plist.cjPacked[jPacked].imei[widx].imask = imaskNew;
@@ -306,6 +309,31 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
         {
             // avoid shared memory WAR hazards on sm_cjs between loop iterations
             __syncwarp(c_fullWarpMask);
+        }
+    }
+    if (haveFreshList && (tidx == 63))
+    {
+        if (NTHREAD_Z > 1)
+        {
+            __syncthreads();
+            char* sm_reuse = sm_dynamicShmem;
+            int*  count_sm = reinterpret_cast<int*>(sm_reuse);
+
+            count_sm[tidxz] = count;
+            __syncthreads();
+
+            for (unsigned int index_z = 1; index_z < NTHREAD_Z; index_z++)
+                count += count_sm[index_z];
+            //__syncthreads();
+        }
+
+        if (tidxz == 0)
+        {
+            int  index            = max(c_sciHistogramSize - (int)count - 1, 0);
+            int* pl_sci_histogram = plist.sci_histogram;
+            atomicAdd(pl_sci_histogram + index, 1);
+            int* pl_sci_count                    = plist.sci_count;
+            pl_sci_count[bidx * numParts + part] = index;
         }
     }
 }

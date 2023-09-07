@@ -43,6 +43,9 @@
 #include <cassert>
 #include <cstdlib>
 
+#include <cub/device/device_scan.cuh>
+
+#include "gromacs/nbnxm/gpu_types_common.h"
 #include "gromacs/nbnxm/nbnxm_gpu.h"
 
 #if defined(_MSVC)
@@ -645,12 +648,43 @@ void gpu_launch_kernel_pruneonly(NbnxmGpu* nb, const InteractionLocality iloc, c
                 config.sharedMemorySize);
     }
 
+    if (plist->haveFreshList)
+    {
+        clearDeviceBufferAsync(&plist->sci_histogram, 0, c_sciHistogramSize, deviceStream);
+    }
+
     auto*          timingEvent  = bDoTime ? timer->fetchNextEvent() : nullptr;
     constexpr char kernelName[] = "k_pruneonly";
     const auto     kernel =
             plist->haveFreshList ? nbnxn_kernel_prune_cuda<true> : nbnxn_kernel_prune_cuda<false>;
     const auto kernelArgs = prepareGpuKernelArguments(kernel, config, adat, nbp, plist, &numParts);
     launchGpuKernel(kernel, config, deviceStream, timingEvent, kernelName, kernelArgs);
+
+    if (plist->haveFreshList)
+    {
+        size_t scan_temporary_size = (size_t)plist->nscan_temporary;
+
+        cub::DeviceScan::ExclusiveSum(plist->scan_temporary,
+                                      scan_temporary_size,
+                                      plist->sci_histogram,
+                                      plist->sci_offset,
+                                      c_sciHistogramSize,
+                                      deviceStream.stream());
+
+        KernelLaunchConfig configSortSci;
+        const unsigned int items_per_block = 256 * 16;
+        configSortSci.blockSize[0]         = 256;
+        configSortSci.blockSize[1]         = 1;
+        configSortSci.blockSize[2]         = 1;
+        configSortSci.gridSize[0]          = (plist->nsci + items_per_block - 1) / items_per_block;
+        configSortSci.sharedMemorySize     = 0;
+
+        const auto kernelSciSort = nbnxn_kernel_bucket_sci_sort<256, 16>;
+
+        const auto kernelSciSortArgs = prepareGpuKernelArguments(kernelSciSort, configSortSci, plist);
+
+        launchGpuKernel(kernelSciSort, configSortSci, deviceStream, nullptr, "nbnxn_kernel_sci_sort", kernelSciSortArgs);
+    }
 
     /* TODO: consider a more elegant way to track which kernel has been called
        (combined or separate 1st pass prune, rolling prune). */
