@@ -326,7 +326,6 @@ public:
      * but have not been removed yet. This count is given by \p numAtomsMoved.
      * When \p move[i] < 0 particle i has migrated and will not be put on the grid.
      *
-     * \param[in,out] nb_verlet    The non-bonded object
      * \param[in]     box          Box used for periodic distance calculations
      * \param[in]     gridIndex    The index of the grid to spread to, always 0 except with test
      * particle insertion \param[in]     lowerCorner  Atom groups to be gridded should have

@@ -481,7 +481,7 @@ NbnxmGpu* gpu_init(const gmx::DeviceStreamManager& deviceStreamManager,
     return nb;
 }
 
-void gpu_pme_loadbal_update_param(const nonbonded_verlet_t* nbv, const interaction_const_t& ic)
+void gpu_pme_loadbal_update_param(nonbonded_verlet_t* nbv, const interaction_const_t& ic)
 {
     if (!nbv || !nbv->useGpu())
     {
