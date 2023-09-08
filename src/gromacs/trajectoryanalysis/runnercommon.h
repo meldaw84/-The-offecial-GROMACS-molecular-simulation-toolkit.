@@ -88,6 +88,8 @@ public:
     void initOptions(IOptionsContainer* options, TimeUnitBehavior* timeUnitBehavior);
     //! Processes common option values after they have been parsed.
     void optionsFinished();
+    //! Load inputrec & topology if required
+    void initInputrec();
     //! Load topology information if provided and/or required.
     void initTopology();
     /*! \brief

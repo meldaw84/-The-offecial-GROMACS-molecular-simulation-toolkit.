@@ -126,6 +126,13 @@ public:
          * \see setRmPBC()
          */
         efNoUserRmPBC = 1 << 5,
+        /*! \brief
+         * Forces loading of a TPR file (for inputrec).
+         *
+         * If this flag is not specified, the TPR file is loaded only
+         * if it is provided on the command line explicitly.
+         */
+        efRequireIR = 1 << 6,
     };
 
     //! Initializes default settings.

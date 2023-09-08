@@ -50,6 +50,7 @@
 #include "gromacs/math/vectypes.h"
 #include "gromacs/topology/atoms.h"
 #include "gromacs/topology/topology.h"
+#include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/utility/classhelpers.h"
 
 //! Forward declaration
@@ -123,8 +124,15 @@ public:
      * \todo This should throw upon error but currently does
      * not. */
     void fillFromInputFile(const std::string& filename);
+    /*
+     * Once you need connection to entire TPR including (for instance)
+     * force field parameters and MDP run parameters    
+     */
+    void fillFromTPR(const std::string& filename);    
     /*! \brief Returns the loaded topology, or nullptr if not loaded. */
     gmx_mtop_t* mtop() const { return mtop_.get(); }
+    /*! \brief Returns the loaded inputrec, or nullptr if not loaded. */
+    t_inputrec* mir() const { return mir_.get(); }
     //! Returns the loaded topology fully expanded, or nullptr if no topology is available.
     const gmx_localtop_t* expandedTopology() const;
     /*! \brief Returns a read-only handle to the fully expanded
@@ -172,6 +180,8 @@ public:
 private:
     //! The topology structure, or nullptr if no topology loaded.
     std::unique_ptr<gmx_mtop_t> mtop_;
+    //! The inputrec structure, or nullptr if no TPR is loaded.
+    std::unique_ptr<t_inputrec> mir_;
     //! Whether a topology has been loaded.
     bool hasLoadedMtop_;
     //! The fully expanded topology structure, nullptr if not yet constructed.

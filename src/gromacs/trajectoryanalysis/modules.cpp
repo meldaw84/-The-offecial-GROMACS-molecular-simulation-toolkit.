@@ -54,6 +54,7 @@
 #include "modules/sasa.h"
 #include "modules/select.h"
 #include "modules/trajectory.h"
+#include "modules/moduleMi.h"
 
 #include "gromacs/commandline/cmdlinemodulemanager.h"
 #include "gromacs/trajectoryanalysis/cmdlinerunner.h"
@@ -103,6 +104,7 @@ void registerTrajectoryAnalysisModules(CommandLineModuleManager* manager)
     registerModule<SasaInfo>(manager, group);
     registerModule<SelectInfo>(manager, group);
     registerModule<TrajectoryInfo>(manager, group);
+    registerModule<AnalysisMiInfo>(manager, group);
 }
 //! \endcond
 

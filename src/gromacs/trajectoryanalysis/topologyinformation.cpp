@@ -54,6 +54,9 @@
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/smalloc.h"
+#include "gromacs/fileio/tpxio.h"
+#include "gromacs/mdtypes/state.h"
+#include "gromacs/mdtypes/inputrec.h"
 
 namespace gmx
 {
@@ -65,6 +68,25 @@ TopologyInformation::TopologyInformation() :
 
 
 TopologyInformation::~TopologyInformation() {}
+
+void TopologyInformation::fillFromTPR(const std::string& filename)
+{
+    mir_ = std::make_unique<t_inputrec>();
+    t_state __state;
+
+    TpxFileHeader tpx = readTpxHeader(filename, true);
+
+    if (!tpx.bIr)
+    {
+        GMX_THROW(InconsistentInputError("TPR do not have input record but it's requested!"));
+    }
+
+    read_tpx_state(filename.c_str(), mir_.get(), &__state, nullptr);
+
+    // do reading again. Dirty solution but now let it be like this
+    // TODO: remove
+    fillFromInputFile(filename);
+}
 
 void TopologyInformation::fillFromInputFile(const std::string& filename)
 {

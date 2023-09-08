@@ -83,6 +83,7 @@ public:
     bool hasTrajectory() const { return !trjfile_.empty(); }
 
     void initTopology(bool required);
+    void initInputrec(bool required);
     void initFirstFrame();
     void initFrameIndexGroup();
     void finishTrajectory();
@@ -168,6 +169,31 @@ TrajectoryAnalysisRunnerCommon::Impl::~Impl()
     {
         output_env_done(oenv_);
     }
+}
+
+void TrajectoryAnalysisRunnerCommon::Impl::initInputrec(bool required)
+{
+
+    if (required && topfile_.empty())
+    {
+        // TODO: comp
+        GMX_THROW(InconsistentInputError("No TPR provided, but one is required for analysis"));
+    }
+
+    // Load the topology if requested.
+    if (required)
+    {
+        topInfo_.fillFromTPR(topfile_);
+        if (hasTrajectory() && !settings_.hasFlag(TrajectoryAnalysisSettings::efUseTopX))
+        {
+            topInfo_.xtop_.clear();
+        }
+        if (hasTrajectory() && !settings_.hasFlag(TrajectoryAnalysisSettings::efUseTopV))
+        {
+            topInfo_.vtop_.clear();
+        }
+    }
+    
 }
 
 void TrajectoryAnalysisRunnerCommon::Impl::initTopology(bool required)
@@ -418,10 +444,14 @@ void TrajectoryAnalysisRunnerCommon::optionsFinished()
 
 void TrajectoryAnalysisRunnerCommon::initTopology()
 {
-    const bool topologyRequired = impl_->settings_.hasFlag(TrajectoryAnalysisSettings::efRequireTop);
-    impl_->initTopology(topologyRequired);
+    const bool irRequired = impl_->settings_.hasFlag(TrajectoryAnalysisSettings::efRequireIR);
+    impl_->initInputrec(irRequired);
+    if (! irRequired)
+    {
+        const bool topologyRequired = impl_->settings_.hasFlag(TrajectoryAnalysisSettings::efRequireTop);
+        impl_->initTopology(topologyRequired);
+    }
 }
-
 
 void TrajectoryAnalysisRunnerCommon::initFirstFrame()
 {
