@@ -34,9 +34,9 @@
 #ifndef GMX_UTILITY_WATCHDOG_H
 #define GMX_UTILITY_WATCHDOG_H
 
-#include <thread>
 #include <atomic>
 #include <chrono>
+#include <thread>
 
 extern std::atomic<bool> stopWatchdog; // Declaration
 
