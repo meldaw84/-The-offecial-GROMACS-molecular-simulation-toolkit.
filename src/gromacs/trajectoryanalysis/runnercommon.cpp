@@ -193,7 +193,6 @@ void TrajectoryAnalysisRunnerCommon::Impl::initInputrec(bool required)
             topInfo_.vtop_.clear();
         }
     }
-    
 }
 
 void TrajectoryAnalysisRunnerCommon::Impl::initTopology(bool required)
@@ -446,7 +445,7 @@ void TrajectoryAnalysisRunnerCommon::initTopology()
 {
     const bool irRequired = impl_->settings_.hasFlag(TrajectoryAnalysisSettings::efRequireIR);
     impl_->initInputrec(irRequired);
-    if (! irRequired)
+    if (!irRequired)
     {
         const bool topologyRequired = impl_->settings_.hasFlag(TrajectoryAnalysisSettings::efRequireTop);
         impl_->initTopology(topologyRequired);

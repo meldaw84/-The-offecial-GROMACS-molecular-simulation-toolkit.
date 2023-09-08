@@ -45,7 +45,10 @@
 #include <memory>
 
 #include "gromacs/fileio/confio.h"
+#include "gromacs/fileio/tpxio.h"
 #include "gromacs/math/vec.h"
+#include "gromacs/mdtypes/inputrec.h"
+#include "gromacs/mdtypes/state.h"
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/pbcutil/rmpbc.h"
 #include "gromacs/topology/mtop_util.h"
@@ -54,9 +57,6 @@
 #include "gromacs/utility/exceptions.h"
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/smalloc.h"
-#include "gromacs/fileio/tpxio.h"
-#include "gromacs/mdtypes/state.h"
-#include "gromacs/mdtypes/inputrec.h"
 
 namespace gmx
 {

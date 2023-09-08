@@ -48,9 +48,9 @@
 #include <vector>
 
 #include "gromacs/math/vectypes.h"
+#include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/topology/atoms.h"
 #include "gromacs/topology/topology.h"
-#include "gromacs/mdtypes/inputrec.h"
 #include "gromacs/utility/classhelpers.h"
 
 //! Forward declaration
@@ -126,9 +126,9 @@ public:
     void fillFromInputFile(const std::string& filename);
     /*
      * Once you need connection to entire TPR including (for instance)
-     * force field parameters and MDP run parameters    
+     * force field parameters and MDP run parameters
      */
-    void fillFromTPR(const std::string& filename);    
+    void fillFromTPR(const std::string& filename);
     /*! \brief Returns the loaded topology, or nullptr if not loaded. */
     gmx_mtop_t* mtop() const { return mtop_.get(); }
     /*! \brief Returns the loaded inputrec, or nullptr if not loaded. */
