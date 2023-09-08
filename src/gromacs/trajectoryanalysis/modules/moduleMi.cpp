@@ -46,7 +46,7 @@ AnalysisMi::AnalysisMi() : cutoff_(0.0)
     ;
 }
 
-void AnalysisMi::initOptions(IOptionsContainer* options, TrajectoryAnalysisSettings* settings)
+void AnalysisMi::initOptions(IOptionsContainer* /*options*/, TrajectoryAnalysisSettings* settings)
 {
     static const char* const desc[] = { "This is the exercise doing by AMN (c1) for using the",
                                         "interface available in the modern GROMACS for writting",
@@ -58,7 +58,7 @@ void AnalysisMi::initOptions(IOptionsContainer* options, TrajectoryAnalysisSetti
 }
 
 
-void AnalysisMi::initAnalysis(const TrajectoryAnalysisSettings& settings, const TopologyInformation& top)
+void AnalysisMi::initAnalysis(const TrajectoryAnalysisSettings& /*settings*/, const TopologyInformation& top)
 {
     nb_.setCutoff(static_cast<real>(cutoff_));
 
@@ -66,7 +66,10 @@ void AnalysisMi::initAnalysis(const TrajectoryAnalysisSettings& settings, const 
 }
 
 
-void AnalysisMi::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* pbc, TrajectoryAnalysisModuleData* pdata)
+void AnalysisMi::analyzeFrame(int /*frnr*/,
+                              const t_trxframe& /*fr*/,
+                              t_pbc* /*pbc*/,
+                              TrajectoryAnalysisModuleData* /*pdata*/)
 {
     printf("-- frame -- \n"); //
 }
