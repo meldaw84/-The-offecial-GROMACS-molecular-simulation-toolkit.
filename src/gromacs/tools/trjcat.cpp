@@ -83,11 +83,12 @@ static void scan_trj_files(gmx::ArrayRef<const std::string> files,
 
     for (gmx::Index i = 0; i < files.ssize(); i++)
     {
-        ok = read_first_frame(oenv, &status, files[i].c_str(), &fr, FLAGS);
+        ok = read_first_frame(oenv, &status, files[i].c_str(), &fr, FLAGS, true);
 
         if (!ok)
         {
-            gmx_fatal(FARGS, "\nCouldn't read frame from file.");
+            /* gmx_fatal(FARGS, "\nCouldn't read frame from file."); */
+            continue;
         }
         if (fr.bTime)
         {
@@ -703,9 +704,9 @@ int gmx_trjcat(int argc, char* argv[])
         {
             t_fileio* stfio;
 
-            if (!read_first_frame(oenv, &status, out_file, &fr, FLAGS))
+            if (!read_first_frame(oenv, &status, out_file, &fr, FLAGS, true))
             {
-                gmx_fatal(FARGS, "Reading first frame from %s", out_file);
+                /* gmx_fatal(FARGS, "Reading first frame from %s", out_file); */
             }
 
             stfio = trx_get_fileio(status);
@@ -840,7 +841,7 @@ int gmx_trjcat(int argc, char* argv[])
             {
                 timestep = timest[i];
             }
-            read_first_frame(oenv, &status, inFilesEdited[i].c_str(), &fr, FLAGS);
+            read_first_frame(oenv, &status, inFilesEdited[i].c_str(), &fr, FLAGS, true);
             if (!fr.bTime)
             {
                 fr.time = 0;

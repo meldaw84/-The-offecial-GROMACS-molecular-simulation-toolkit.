@@ -939,7 +939,8 @@ bool read_first_frame(const gmx_output_env_t*      oenv,
                       t_trxstatus**                status,
                       const std::filesystem::path& fn,
                       t_trxframe*                  fr,
-                      int                          flags)
+                      int                          flags,
+                      bool                         skip_empty_file)
 {
     t_fileio* fio = nullptr;
     gmx_bool  bFirst, bOK;
@@ -997,6 +998,10 @@ bool read_first_frame(const gmx_output_env_t*      oenv,
         case efXTC:
             if (read_first_xtc(fio, &fr->natoms, &fr->step, &fr->time, fr->box, &fr->x, &fr->prec, &bOK) == 0)
             {
+                if (skip_empty_file)
+                {
+                    return false;
+                }
                 GMX_RELEASE_ASSERT(!bOK,
                                    "Inconsistent results - OK status from read_first_xtc, but 0 "
                                    "atom coords read");

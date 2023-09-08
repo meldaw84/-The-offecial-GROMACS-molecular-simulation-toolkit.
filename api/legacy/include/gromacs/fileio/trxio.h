@@ -232,7 +232,8 @@ bool read_first_frame(const gmx_output_env_t*      oenv,
                       t_trxstatus**                status,
                       const std::filesystem::path& fn,
                       struct t_trxframe*           fr,
-                      int                          flags);
+                      int                          flags,
+                      bool                         skip_empty_file = false);
 /* Read the first frame which is in accordance with flags, which are
  * defined further up in this file.
  * Memory will be allocated for flagged entries.
