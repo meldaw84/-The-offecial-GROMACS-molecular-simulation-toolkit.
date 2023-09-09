@@ -844,33 +844,29 @@ void gmx::LegacySimulator::do_md()
     {
         logInitialMultisimStatus(ms_, cr_, mdLog_, simulationsShareState, ir->nsteps, ir->init_step);
     }
-
+    
     // Watchdog function that checks for progress.
     // Define the watchdog as a lambda function
     auto watchdog = [&]() {
         int last_step_rel = step_rel;
-
         int stopPeriod = (checkpointPeriod == 0) ? 1 : ceil(checkpointPeriod);
-
-
-        while (!stopWatchdog.load())
-        {
-            std::this_thread::sleep_for(std::chrono::minutes(stopPeriod));
-            if (step_rel == last_step_rel)
-            {
-                gmx_fatal(FARGS, "No progress detected. Exiting."); // Exit with GROMACS error.
-            }
-            else
-            {
-                last_step_rel = step_rel;
+        
+        std::unique_lock<std::mutex> lock(mtx);
+        while (!stopWatchdog.load()) {
+            if(cv.wait_for(lock, std::chrono::minutes(stopPeriod)) == std::cv_status::timeout) {
+                if (step_rel == last_step_rel) {
+                    gmx_fatal(FARGS, "No progress detected. Exiting.");
+                } else {
+                    last_step_rel = step_rel;
+                }
             }
         }
     };
 
     // Launch the watchdog thread
     std::thread watchdog_thread(watchdog);
-
-
+    
+    
     bool usedMdGpuGraphLastStep = false;
     /* and stop now if we should */
     bLastStep = (bLastStep || (ir->nsteps >= 0 && step_rel > ir->nsteps));
@@ -2140,10 +2136,14 @@ void gmx::LegacySimulator::do_md()
             checkPendingDeviceErrorBetweenSteps();
         }
     }
-
+    
     // Once main task completes, signal the watchdog to stop and wait for it to join.
     stopWatchdog.store(true);
-    watchdog_thread.join();
+    cv.notify_all();
+    if (watchdog_thread.joinable()) {
+        watchdog_thread.join();
+    }
+
 
     /* End of main MD loop */
 
