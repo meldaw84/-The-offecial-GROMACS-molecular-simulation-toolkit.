@@ -87,6 +87,7 @@ endif()
 
 set(GMX_INSTALL_OCLDIR       ${GMX_INSTALL_GMXDATADIR}/opencl)
 
+# super-cluster size <8 is not supported (does not work with cluster size 4 on Intel, untested on NVIDIA)
 if (GMX_GPU_NB_NUM_CLUSTER_PER_CELL_X AND NOT "${GMX_GPU_NB_NUM_CLUSTER_PER_CELL_X}" EQUAL 2)
     message(FATAL_ERROR "Changing GMX_GPU_NB_NUM_CLUSTER_PER_CELL_X is not supported with OpenCL")
 endif()
