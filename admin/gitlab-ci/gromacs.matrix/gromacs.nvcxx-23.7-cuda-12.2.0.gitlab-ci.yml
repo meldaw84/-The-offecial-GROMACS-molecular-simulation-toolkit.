@@ -9,43 +9,43 @@
 # Test implementation choices (free to change as needed):
 #   OS: Ubuntu 20.04
 #   Build type: RelWithDebInfo
-#   Compiler: NVC++ 22.11
-#   GPU: CUDA 11.7.1
+#   Compiler: NVC++ 23.7
+#   GPU: CUDA 12.2
 #   SIMD: SSE 4.1
 #   FFT: FFTW3
 #   Parallelism np/ntomp: 4/1 (regression tests with dual GPU)
 
-gromacs:nvcxx-22.11-cuda-11.7.1:configureMPI:
+gromacs:nvcxx-23.7-cuda-12.2.0:configureMPI:
   extends:
     - .gromacs:base:configure
     - .use-cuda
     - .use-mpi
     - .rules:post-merge-acceptance
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-11-cuda-11.7.1
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-11-cuda-12.2-nvhpc-23-7
   variables:
     CMAKE: /usr/local/cmake-3.21.2/bin/cmake
     CMAKE_SIMD_OPTIONS: "-DGMX_SIMD=SSE4.1"
-    CMAKE_EXTRA_OPTIONS: "-DGMX_USE_CUFFTMP=ON -DcuFFTMp_ROOT=/opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs -DCMAKE_CXX_COMPILER=/opt/nvidia/hpc_sdk/Linux_x86_64/2022/compilers/bin/nvc++  -DCMAKE_C_COMPILER=/opt/nvidia/hpc_sdk/Linux_x86_64/2022/compilers/bin/nvc"
+    CMAKE_EXTRA_OPTIONS: "-DGMX_USE_CUFFTMP=ON -DcuFFTMp_ROOT=/opt/nvidia/hpc_sdk/Linux_x86_64/2023/math_libs -DCMAKE_CXX_COMPILER=/opt/nvidia/hpc_sdk/Linux_x86_64/2023/compilers/bin/nvc++  -DCMAKE_C_COMPILER=/opt/nvidia/hpc_sdk/Linux_x86_64/2023/compilers/bin/nvc"
     COMPILER_MAJOR_VERSION: 11
 
-gromacs:nvcxx-22.11-cuda-11.7.1:buildMPI:
+gromacs:nvcxx-23.7-cuda-12.2.0:buildMPI:
   extends:
     - .variables:default
     - .gromacs:base:build
     - .before_script:default
     - .use-ccache
     - .rules:post-merge-acceptance
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-11-cuda-11.7.1
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-11-cuda-12.2-nvhpc-23-7
   variables:
     CMAKE: /usr/local/cmake-3.21.2/bin/cmake
   needs:
-    - job: gromacs:nvcxx-22.11-cuda-11.7.1:configureMPI
+    - job: gromacs:nvcxx-23.7-cuda-12.2.0:configureMPI
 
-gromacs:nvcxx-22.11-cuda-11.7.1:testMPI:
+gromacs:nvcxx-23.7-cuda-12.2.0:testMPI:
   extends:
     - .gromacs:base:test
     - .rules:post-merge-acceptance
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-11-cuda-11.7.1
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-11-cuda-12.2-nvhpc-23-7
   variables:
     CMAKE: /usr/local/cmake-3.21.2/bin/cmake
     KUBERNETES_EXTENDED_RESOURCE_NAME: "nvidia.com/gpu"
@@ -55,7 +55,7 @@ gromacs:nvcxx-22.11-cuda-11.7.1:testMPI:
     # Flag that cuFFTMp should be disabled when running on incompatible devices
     GMX_CI_DISABLE_CUFFTMP_DECOMPOSITION_ON_INCOMPATIBLE_DEVICES: 1
     # Location of CUDA FFT library, required for preload to avoid cuFFTMp on incompatible devices 
-    CUFFTLIB: "/opt/nvidia/hpc_sdk/Linux_x86_64/2022/math_libs/11.7/lib64/libcufft.so"
+    CUFFTLIB: "/opt/nvidia/hpc_sdk/Linux_x86_64/2023/math_libs/11.7/lib64/libcufft.so"
     # cuFFTMp uses NVSHMEM, which in turn will use NCCL on single-node when available
     # But NCCL has extra restrictions (such as only 1 rank per GPU) so we disable for CI
     NVSHMEM_DISABLE_NCCL: 1
@@ -70,15 +70,15 @@ gromacs:nvcxx-22.11-cuda-11.7.1:testMPI:
   tags:
     - k8s-scilifelab
   needs:
-    - job: gromacs:nvcxx-22.11-cuda-11.7.1:buildMPI
+    - job: gromacs:nvcxx-23.7-cuda-12.2.0:buildMPI
 
-gromacs:nvcxx-22.11-cuda-11.7.1:regressiontest-gpucommupd-MPI:
+gromacs:nvcxx-23.7-cuda-12.2.0:regressiontest-gpucommupd-MPI:
   # Test parallelism np/ntomp: 4/1
   # Test parallelism GPU: direct communications, update
   extends:
     - .gromacs:base:regressiontest
     - .rules:post-merge-acceptance
-  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-11-cuda-11.7.1
+  image: ${CI_REGISTRY}/gromacs/gromacs/ci-ubuntu-20.04-gcc-11-cuda-12.2-nvhpc-23-7
   variables:
     CMAKE: /usr/local/cmake-3.21.2/bin/cmake
     KUBERNETES_EXTENDED_RESOURCE_NAME: "nvidia.com/gpu"
@@ -91,7 +91,7 @@ gromacs:nvcxx-22.11-cuda-11.7.1:regressiontest-gpucommupd-MPI:
   tags:
     - k8s-scilifelab
   needs:
-    - job: gromacs:nvcxx-22.11-cuda-11.7.1:buildMPI
+    - job: gromacs:nvcxx-23.7-cuda-12.2.0:buildMPI
     - job: regressiontests:prepare
   artifacts:
     paths:
