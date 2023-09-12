@@ -172,6 +172,8 @@ inline void reduce_atom_forces(__local float* __restrict__ sm_forces,
             }
         }
 
+        barrier(CLK_LOCAL_MEM_FENCE);
+
         const float n         = read_grid_size(realGridSizeFP, dimIndex);
         const int   atomIndex = sourceIndex / minStride;
         if (sourceIndex == minStride * atomIndex)
