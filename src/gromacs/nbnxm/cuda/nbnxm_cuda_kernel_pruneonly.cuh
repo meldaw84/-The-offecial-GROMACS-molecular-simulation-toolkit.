@@ -146,14 +146,14 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
     /* thread/block/warp id-s */
     unsigned int tidxi = threadIdx.x;
     unsigned int tidxj = threadIdx.y;
-#   if NTHREAD_Z == 1
+#    if NTHREAD_Z == 1
     unsigned int tidxz = 0;
-#   else
+#    else
     unsigned int tidxz = threadIdx.z;
-#   endif
-    unsigned int tidx = tidxi + c_clSize * tidxj;
-    unsigned int bidx = blockIdx.x;
-    unsigned int widx = (threadIdx.y * c_clSize) / warp_size; /* warp index */
+#    endif
+    unsigned int tidx  = tidxi + c_clSize * tidxj;
+    unsigned int bidx  = blockIdx.x;
+    unsigned int widx  = (threadIdx.y * c_clSize) / warp_size; /* warp index */
 
     // cj preload is off in the following cases:
     // - sm_70 (V100), sm_8x (A100, GA100), sm_75 (TU102)

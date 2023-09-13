@@ -3928,7 +3928,6 @@ static void sort_sci(NbnxnPairlistGpu* nbl)
     //
     //    /* Swap the sci pointers so we use the new, sorted list */
     //    std::swap(nbl->sci, work.sci_sort);
-
 }
 
 /* Returns the i-zone range for pairlist construction for the give locality */
