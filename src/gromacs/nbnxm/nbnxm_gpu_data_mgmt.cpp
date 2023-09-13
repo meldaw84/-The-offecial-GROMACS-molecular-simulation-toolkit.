@@ -587,6 +587,13 @@ void gpu_init_pairlist(NbnxmGpu* nb, const NbnxnPairlistGpu* h_plist, const Inte
                            &d_plist->nsci_sorted,
                            &d_plist->sci_sorted_nalloc,
                            deviceContext);
+    copyToDeviceBuffer(&d_plist->sci_sorted,
+                       h_plist->sci.data(),
+                       0,
+                       h_plist->sci.size(),
+                       deviceStream,
+                       GpuApiCallBehavior::Async,
+                       bDoTime ? iTimers.pl_h2d.fetchNextEvent() : nullptr);
     reallocateDeviceBuffer(&d_plist->sci_count,
                            h_plist->sci.size(),
                            &d_plist->nsci_counted,
