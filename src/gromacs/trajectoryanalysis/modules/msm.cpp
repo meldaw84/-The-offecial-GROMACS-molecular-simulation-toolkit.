@@ -137,8 +137,20 @@ void MarkovModelModule::finishAnalysis(int nframes)
 
 void MarkovModelModule::writeOutput()
 {
+    // TODO: This should not be here?
+    // TODO: More of this should be taken as input later on
     int nstates = 4;
+    int lag = 2;
+    std::vector<int> traj = {0, 0, 0, 0, 0, 3, 3, 2};
     MarkovModel msm = MarkovModel(nstates);
+    msm.countTransitions(traj, lag);
+    msm.computeTransitionProbabilities();
+    auto tpm = msm.transitionProbabilityMatrix;
+    msm.diagonalizeMatrix(tpm);
+
+    // 1. Extract eigenvectors from MSM
+    // 2. Run new MSM method to convert 1st eigenvector to free energies/SD
+    msm.convertEigenvectorToStationaryDistribution();
 
     // Write data relevant for microstates
     registerAnalysisDataset(&freeEnergies_, "Free Energies of Microstates");
@@ -158,7 +170,8 @@ void MarkovModelModule::writeOutput()
     for (int i = 0; i < nstates; ++i)
     {
         dh.startFrame(i, i + 1);
-        dh.setPoint(0, 1);
+        // TODO: set free energies here
+        dh.setPoint(0, 5);
         dh.finishFrame();
     }
     dh.finishData();

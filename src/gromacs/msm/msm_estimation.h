@@ -60,11 +60,14 @@ class MarkovModel
         MultiDimArray<std::vector<int>, extents<dynamic_extent, dynamic_extent>> transitionCountsMatrix;
         MultiDimArray<std::vector<real>, extents<dynamic_extent, dynamic_extent>> transitionProbabilityMatrix;
         std::vector<real> eigenvalues;
+        // TODO: should we keep eigenvectors in vector format? Currently it has
+        // size size(eigenvector)*n_eigenvectors
         std::vector<real> eigenvectors;
 
         // Methods
-        void countTransitions(gmx::ArrayRef<int> discretizedTraj, int lag);
         void computeTransitionProbabilities();
+        void convertEigenvectorToStationaryDistribution();
+        void countTransitions(gmx::ArrayRef<int> discretizedTraj, int lag);
         void diagonalizeMatrix(MultiDimArray<std::vector<real>, extents<dynamic_extent, dynamic_extent>> matrix);
         void WriteOutput();
 };

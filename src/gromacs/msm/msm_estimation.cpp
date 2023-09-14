@@ -43,7 +43,10 @@
 #include "gmxpre.h"
 #include "msm_estimation.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstring>
+#include <vector>
 
 #include "gromacs/linearalgebra/eigensolver.h"
 #include "gromacs/utility/exceptions.h"
@@ -66,6 +69,45 @@ MarkovModel::MarkovModel(int nstates)
     // Initialize eigenvalues and eigenvectors here?
     //eigenvalues.resize(nstates);
     //eigenvectors.resize(nstates * nstates);
+}
+
+void MarkovModel::convertEigenvectorToStationaryDistribution()
+{
+    // Converts the first MSM eigenvector to a stationary
+    // distribution or free energy.
+
+    // Find largest eigenvalue
+    int maxIndex = max_element(eigenvalues.begin(),eigenvalues.end()) - eigenvalues.begin();
+
+    // Find corresponding eigenvector
+    std::vector<float> stationaryDistribution = {eigenvectors.begin() + maxIndex * eigenvalues.size(), eigenvectors.begin() + (maxIndex + 1) * eigenvalues.size()};
+
+    float normalizationSum = 0;
+    for (int i = 0; i < stationaryDistribution.size(); i++) {
+        // Make sure all elements are non-negative
+        stationaryDistribution[i] = std::abs(stationaryDistribution[i]);
+        // Collect sum for normalization
+        normalizationSum += stationaryDistribution[i];
+    }
+
+    for (int i = 0; i < stationaryDistribution.size(); i++) {
+        // Make sure all elements are L1-normalized
+        stationaryDistribution[i] = stationaryDistribution[i]/normalizationSum;
+    }
+
+    float maxProb = *max_element(stationaryDistribution.begin(), stationaryDistribution.end());
+
+    // Calculate free energies
+    std::vector<float> freeEnergies(stationaryDistribution.size());
+    for (int i = 0; i < freeEnergies.size(); i++) {
+        // Convert all elements to free energies (unit: kT)
+        freeEnergies[i] = -log(stationaryDistribution[i]/maxProb);
+    }
+
+    printf("Free Energies:\n");
+    for (int i = 0; i < freeEnergies.size(); i++) {
+        printf("Element %lf\n", freeEnergies[i]);
+    }
 }
 
 void MarkovModel::countTransitions(gmx::ArrayRef<int> discretizedTraj, int lag)
