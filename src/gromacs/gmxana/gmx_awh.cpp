@@ -256,7 +256,7 @@ std::vector<std::string> makeLegend(const AwhBiasParams& awhBiasParams,
 
     std::vector<std::string> legend;
     /* Give legends to dimensions higher than the first */
-    for (int d = 1; d < awhBiasParams.ndim()+1; d++)
+    for (int d = 1; d < awhBiasParams.ndim() + 1; d++)
     {
         legend.push_back(gmx::formatString("dim%d", d));
     }
