@@ -46,13 +46,6 @@ dynamic load balancing support with GPU-resident simulations that use GPU halo e
 Fixes for ``gmx`` tools
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Fix legends in AWH data XVG extracted from AWH energy file 
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-Fixed legends in the AWH data file XVG extracted from the AWH energy file with ``gmx awh``.
-
-:issue:`4873`
-
 Correctly dump VSITE2FD virtual sites
 """""""""""""""""""""""""""""""""""""
 
