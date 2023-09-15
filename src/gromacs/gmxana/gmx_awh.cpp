@@ -39,7 +39,6 @@
  *  \author Viveca Lindahl
  *  \author Berk Hess
  */
-#include <cstdio>
 
 #include "gmxpre.h"
 
@@ -257,7 +256,7 @@ std::vector<std::string> makeLegend(const AwhBiasParams& awhBiasParams,
 
     std::vector<std::string> legend;
     /* Give legends to dimensions higher than the first */
-    for (int d = 1; d < awhBiasParams.ndim()+1; d++)
+    for (int d = 1; d < awhBiasParams.ndim(); d++)
     {
         legend.push_back(gmx::formatString("dim%d", d));
     }
@@ -334,7 +333,7 @@ void OutputFile::initializeAwhOutputFile(int                  subblockStart,
         /* The first two graphs are in units of energy, multiply by kT */
         std::fill(scaleFactor_.begin(), scaleFactor_.begin() + std::min(2, numGraph_), kTValue);
     }
-    int numLegend = numDim_ + numGraph_;
+    int numLegend = numDim_ - 1 + numGraph_;
     legend_       = makeLegend(awhBiasParams, OutputFileType::Awh, numLegend);
     /* We could have both length and angle coordinates in a single bias */
     xLabel_ = "(nm, deg or lambda state)";
@@ -372,7 +371,7 @@ void OutputFile::initializeFrictionOutputFile(int                  subBlockStart
     numGraph_           = numTensorElements;
     useKTForEnergy_     = (energyUnit == EnergyUnit::KT);
     scaleFactor_.resize(numGraph_, useKTForEnergy_ ? 1 : kTValue);
-    int numLegend = numDim_ + numGraph_;
+    int numLegend = numDim_ - 1 + numGraph_;
     legend_       = makeLegend(awhBiasParams, OutputFileType::Friction, numLegend);
     xLabel_       = "(nm, deg or lambda state)";
     if (useKTForEnergy_)
