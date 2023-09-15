@@ -44,6 +44,8 @@
 
 #include <array>
 
+#include <cstdint>
+
 #include "gromacs/mdtypes/md_enums.h"
 #include "gromacs/utility/enumerationhelpers.h"
 #include "gromacs/utility/real.h"
