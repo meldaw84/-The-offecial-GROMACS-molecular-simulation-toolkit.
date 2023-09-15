@@ -39,7 +39,6 @@
  *  \author Viveca Lindahl
  *  \author Berk Hess
  */
-#include <cstdio>
 
 #include "gmxpre.h"
 
