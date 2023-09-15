@@ -147,10 +147,12 @@ void MarkovModelModule::writeOutput()
     msm.computeTransitionProbabilities();
     auto tpm = msm.transitionProbabilityMatrix;
     msm.diagonalizeMatrix(tpm);
+    auto freeEnergies = msm.getStationaryDistributionFromEigenvector(TRUE);
 
-    // 1. Extract eigenvectors from MSM
-    // 2. Run new MSM method to convert 1st eigenvector to free energies/SD
-    msm.convertEigenvectorToStationaryDistribution();
+    printf("Free Energies:\n");
+    for (int i = 0; i < freeEnergies.size(); i++) {
+        printf("Element %lf\n", freeEnergies[i]);
+    }
 
     // Write data relevant for microstates
     registerAnalysisDataset(&freeEnergies_, "Free Energies of Microstates");

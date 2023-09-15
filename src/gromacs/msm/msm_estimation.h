@@ -66,7 +66,7 @@ class MarkovModel
 
         // Methods
         void computeTransitionProbabilities();
-        void convertEigenvectorToStationaryDistribution();
+        std::vector<real> getStationaryDistributionFromEigenvector(bool asFreeEnergies);
         void countTransitions(gmx::ArrayRef<int> discretizedTraj, int lag);
         void diagonalizeMatrix(MultiDimArray<std::vector<real>, extents<dynamic_extent, dynamic_extent>> matrix);
         void WriteOutput();

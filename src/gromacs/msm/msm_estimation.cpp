@@ -71,16 +71,17 @@ MarkovModel::MarkovModel(int nstates)
     //eigenvectors.resize(nstates * nstates);
 }
 
-void MarkovModel::convertEigenvectorToStationaryDistribution()
+std::vector<real> MarkovModel::getStationaryDistributionFromEigenvector(bool asFreeEnergies)
 {
     // Converts the first MSM eigenvector to a stationary
     // distribution or free energy.
+    // TODO: Perhaps there's a cleaner way to handle this function argument?
 
     // Find largest eigenvalue
     int maxIndex = max_element(eigenvalues.begin(),eigenvalues.end()) - eigenvalues.begin();
 
     // Find corresponding eigenvector
-    std::vector<float> stationaryDistribution = {eigenvectors.begin() + maxIndex * eigenvalues.size(), eigenvectors.begin() + (maxIndex + 1) * eigenvalues.size()};
+    std::vector<real> stationaryDistribution = {eigenvectors.begin() + maxIndex * eigenvalues.size(), eigenvectors.begin() + (maxIndex + 1) * eigenvalues.size()};
 
     float normalizationSum = 0;
     for (int i = 0; i < stationaryDistribution.size(); i++) {
@@ -95,18 +96,19 @@ void MarkovModel::convertEigenvectorToStationaryDistribution()
         stationaryDistribution[i] = stationaryDistribution[i]/normalizationSum;
     }
 
-    float maxProb = *max_element(stationaryDistribution.begin(), stationaryDistribution.end());
+    if (asFreeEnergies){
+        float maxProb = *max_element(stationaryDistribution.begin(), stationaryDistribution.end());
 
-    // Calculate free energies
-    std::vector<float> freeEnergies(stationaryDistribution.size());
-    for (int i = 0; i < freeEnergies.size(); i++) {
-        // Convert all elements to free energies (unit: kT)
-        freeEnergies[i] = -log(stationaryDistribution[i]/maxProb);
+        // Calculate free energies
+        std::vector<real> freeEnergies(stationaryDistribution.size());
+        for (int i = 0; i < freeEnergies.size(); i++) {
+            // Convert all elements to free energies (unit: kT)
+            freeEnergies[i] = -log(stationaryDistribution[i]/maxProb);
+        }
+        return freeEnergies;
     }
-
-    printf("Free Energies:\n");
-    for (int i = 0; i < freeEnergies.size(); i++) {
-        printf("Element %lf\n", freeEnergies[i]);
+    else{
+        return stationaryDistribution;
     }
 }
 
