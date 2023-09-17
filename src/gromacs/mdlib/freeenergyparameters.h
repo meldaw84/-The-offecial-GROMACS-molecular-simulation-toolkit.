@@ -42,9 +42,9 @@
 #ifndef GMX_MDLIB_FREEENERGYPARAMETERS_H
 #define GMX_MDLIB_FREEENERGYPARAMETERS_H
 
-#include <array>
-
 #include <cstdint>
+
+#include <array>
 
 #include "gromacs/mdtypes/md_enums.h"
 #include "gromacs/utility/enumerationhelpers.h"
