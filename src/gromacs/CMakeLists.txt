@@ -334,6 +334,8 @@ endif()
 
 gmx_setup_tng_for_libgromacs()
 
+gmx_manage_hdf5()
+
 # We apply the SYCL flag explicitly just for libgromacs, since bugs in the beta versions of
 # icpx/dpcpp leads to crashes if we try to link an library without any SYCL code with the
 # -fsycl flag enabled. Once that bug is fixed, we should change it to simply add

@@ -642,6 +642,8 @@ endif()
 
 include(gmxManageTNG)
 
+include(gmxManageHDF5)
+
 include(gmxManageLmfit)
 
 include(gmxManageMuparser)
