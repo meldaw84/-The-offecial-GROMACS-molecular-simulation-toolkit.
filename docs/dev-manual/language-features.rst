@@ -212,13 +212,13 @@ GPU API considerations
   is not well-supported.
 * Keep in mind that some combinations of CUDA and GCC do not handle the C++17 properly.
   This causes minor issues like the need to use ``std::is_same::value``
-  (supported in C++14) instead of ``std::is_same_v`` (added on C++17)
+  (supported in C++14) instead of ``std::is_same_v`` (added in C++17)
   in the glue code. This is caught by our CI.
 * Use SYCL 2020 standard. The vendor-specific extensions and backend-specific
   code can be used when needed for performance, but a reasonable fallback
   must be provided for all other supported targets.
 * Use USM and in-order queues in SYCL code instead of ``sycl::buffer``.
-  This make the code more uniform across all GPU backends. Besides, buffers
+  This makes the code more uniform across all GPU backends. Besides, buffers
   are more challenging for the compilers to optimize in kernels, leading
   to worse performance (as of 2022).
 
