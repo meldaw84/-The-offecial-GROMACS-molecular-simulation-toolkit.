@@ -360,9 +360,8 @@ void BiasState::updateTargetDistribution(const BiasParams&      params,
     }
 
     double sumTarget = 0;
-    for (size_t pointIndex = 0; pointIndex < points_.size(); pointIndex++)
+    for (PointState& ps : points_)
     {
-        PointState& ps = points_[pointIndex];
         sumTarget += ps.updateTargetWeight(params, freeEnergyCutoff);
     }
     GMX_RELEASE_ASSERT(sumTarget > 0, "We should have a non-zero distribution");
@@ -382,7 +381,7 @@ void BiasState::updateTargetDistribution(const BiasParams&      params,
 
             /* If there is no correlation tensor volume from this element use the average of valid
              * volumes from neighbors */
-            if (correlationTensorVolume <= 0)
+            if (correlationTensorVolume == 0)
             {
                 correlationTensorVolume = averageNeighborPositiveCorrelationTensorVolume(pointIndex, grid);
             }
