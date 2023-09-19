@@ -446,7 +446,7 @@ distributions mentioned above.
 
 Lastly, it is possible to automatically optimize the target distribution
 (:math:`\rho_0(\lambda)`) based on the AWH friction metric (see
-section :ref:`_awhfriction`). This implies scaling the target
+section :ref:`awhfriction`). This implies scaling the target
 distribution by the square root of the friction metric
 (see :eq:`Eq. %s <eqawhsqrtmetric>`),
 
