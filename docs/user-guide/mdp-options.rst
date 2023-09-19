@@ -2179,8 +2179,8 @@ AWH adaptive biasing
       Optimize the target distribution based on the AWH friction metric. Regions with
       high friction (long autocorrelation times) will be sampled more. This modification
       can be used with any :mdp:`awh1-target` types and is applied after user provided
-      target distribution modifications (:mdp:`awh1-user-data`), if any. If
-      :mdp-value:`awh1-growth=exp-linear` the target distribution optimization starts
+      target distribution modifications (:mdp:`awh1-user-data`), too, if any. If
+      :mdp-value:`awh1-growth=exp-linear`, the target distribution optimization starts
       after leaving the initial phase.
 
 .. mdp:: awh1-ndim
