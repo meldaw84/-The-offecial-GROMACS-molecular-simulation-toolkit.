@@ -2668,3 +2668,11 @@ structures into cryoelectron microscopy maps using biased molecular dynamics sim
 
    </div>
 
+   <div id="ref-Lundborg2023">
+
+.. _refLundborg2023:
+
+:sup:`192` Lundborg M., Lidmar J. and Hess B., "On the Path to Optimal Alchemistry", *Protein J.*, **42**, 477–489 (2023).
+
+   </div>
+

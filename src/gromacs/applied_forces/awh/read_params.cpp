@@ -816,19 +816,20 @@ AwhBiasParams::AwhBiasParams(std::vector<t_inpfile>* inp, const std::string& pre
 
     if (bComment)
     {
-        printStringNoNewline(inp,
-                             "Optimize the target distribution (applies to 'constant' target "
-                             "distribution as well) based on the AWH friction metric: no or yes");
-    }
-    opt                = prefix + "target-friction-optimize";
-    bFrictionOptimize_ = getEnum<Boolean>(inp, opt.c_str(), wi) != Boolean::No;
-
-    if (bComment)
-    {
         printStringNoNewline(inp, "Group index to share the bias with, 0 means not shared");
     }
     opt         = prefix + "-share-group";
     shareGroup_ = get_eint(inp, opt, 0, wi);
+
+    if (bComment)
+    {
+        printStringNoNewline(inp,
+                             "Optimize the target distribution (can be used to modify any target "
+                             "distribution type and can be combined with user data) based on "
+                             "the AWH friction metric: no or yes");
+    }
+    opt                = prefix + "target-friction-optimize";
+    bFrictionOptimize_ = getEnum<Boolean>(inp, opt.c_str(), wi) != Boolean::No;
 
     if (bComment)
     {

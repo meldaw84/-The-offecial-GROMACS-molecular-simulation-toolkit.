@@ -434,7 +434,7 @@ histogram applied in the initial stage is a global operation, which is
 incompatible :math:`\rho_{\mathrm{Boltz,loc}}` only depending locally on
 the sampling history.
 
-Lastly, the target distribution can be modulated by arbitrary
+The target distribution can also be modulated by arbitrary
 probability weights
 
 .. math:: \rho(\lambda) = \rho_0(\lambda) w_{\mathrm{user}}(\lambda).
@@ -443,6 +443,26 @@ probability weights
 where :math:`w_{\mathrm{user}}(\lambda)` is provided by user data and
 in principle :math:`\rho_0(\lambda)` can be any of the target
 distributions mentioned above.
+
+Lastly, it is possible to automatically optimize the target distribution
+(:math:`\rho_0(\lambda)`) based on the AWH friction metric (see
+section :ref:`_awhfriction`). This implies scaling the target
+distribution by the square root of the friction metric
+(see :eq:`Eq. %s <eqawhsqrtmetric>`),
+
+.. math:: \rho(\lambda) = \rho_0(\lambda) w_{\mathrm{user}}(\lambda) \sqrt{\det\eta_{\mu\nu}(\lambda)},
+          :label: eqnawhfrictionopt
+
+where :math:`w_{\mathrm{user}}(\lambda)` can be uniform and
+\sqrt{\det\eta_{\mu\nu}(\lambda)} is the square root of the friction metric.
+
+This modification is only applied
+after leaving the initial stage (section :ref:`awhinitialstage`), if
+applicable, and is performed when updating the target distribution, typically
+when also updating the free energy. If any histograms have not been sampled enough
+to have a friction metric their modification factor will be based on the average of
+neighboring histograms, with non-zero friction metric. More information can be found in
+:ref:`192 <reflundborg2023>`.
 
 Multiple independent or sharing biases
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

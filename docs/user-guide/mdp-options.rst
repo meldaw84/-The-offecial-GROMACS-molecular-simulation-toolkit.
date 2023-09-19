@@ -2168,6 +2168,21 @@ AWH adaptive biasing
       Sharing may increase convergence initially, although the starting configurations
       can be critical, especially when sharing between many biases.
 
+.. mdp:: awh1-target-friction-optimize
+
+   .. mdp-value:: no
+
+      Do not modify the target distribution based on the AWH friction metric.
+
+   .. mdp-value:: yes
+
+      Optimize the target distribution based on the AWH friction metric. Regions with
+      high friction (long autocorrelation times) will be sampled more. This modification
+      can be used with any :mdp:`awh1-target` types and is applied after user provided
+      target distribution modifications (:mdp:`awh1-user-data`), if any. If
+      :mdp-value:`awh1-growth=exp-linear` the target distribution optimization starts
+      after leaving the initial phase.
+
 .. mdp:: awh1-ndim
 
    (1) [integer]
