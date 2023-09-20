@@ -70,6 +70,9 @@ set_target_properties(nblib PROPERTIES
 if (GMX_GPU_CUDA)
     find_package(CUDAToolkit)
     target_link_libraries(nblib PRIVATE CUDA::cudart)
+    if(GMX_USE_cuFFTMp)
+        target_link_libraries(nblib PUBLIC nvidia-ml cuda)
+    endif()
 endif()
 
 target_sources(nblib
