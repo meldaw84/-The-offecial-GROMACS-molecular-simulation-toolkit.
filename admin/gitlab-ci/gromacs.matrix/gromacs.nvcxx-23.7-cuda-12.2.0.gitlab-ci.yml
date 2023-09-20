@@ -55,7 +55,7 @@ gromacs:nvcxx-23.7-cuda-12.2.0:testMPI:
     # Flag that cuFFTMp should be disabled when running on incompatible devices
     GMX_CI_DISABLE_CUFFTMP_DECOMPOSITION_ON_INCOMPATIBLE_DEVICES: 1
     # Location of CUDA FFT library, required for preload to avoid cuFFTMp on incompatible devices 
-    CUFFTLIB: "/opt/nvidia/hpc_sdk/Linux_x86_64/2023/math_libs/11.7/lib64/libcufft.so"
+    CUFFTLIB: "/opt/nvidia/hpc_sdk/Linux_x86_64/2023/math_libs/lib64/libcufft.so"
     # cuFFTMp uses NVSHMEM, which in turn will use NCCL on single-node when available
     # But NCCL has extra restrictions (such as only 1 rank per GPU) so we disable for CI
     NVSHMEM_DISABLE_NCCL: 1
