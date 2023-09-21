@@ -2241,6 +2241,12 @@ int Mdrunner::mdrunner()
         auto simulator = simulatorBuilder.build(useModularSimulator);
         simulator->run();
 
+        if (!hwinfo_->deviceInfoList.empty())
+        {
+            /* stop the GPU profiler (only CUDA) */
+            stopGpuProfiler();
+        }
+
         if (fr->pmePpCommGpu)
         {
             // destroy object since it is no longer required. (This needs to be done while the GPU context still exists.)
@@ -2307,12 +2313,6 @@ int Mdrunner::mdrunner()
 
     // Destroy streams after all the structures using them
     deviceStreamManager.reset(nullptr);
-
-    if (!hwinfo_->deviceInfoList.empty())
-    {
-        /* stop the GPU profiler (only CUDA) */
-        stopGpuProfiler();
-    }
 
     /* With tMPI we need to wait for all ranks to finish deallocation before
      * destroying the CUDA context as some tMPI ranks may be sharing
