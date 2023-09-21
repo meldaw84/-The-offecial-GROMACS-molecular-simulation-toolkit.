@@ -47,9 +47,7 @@
 #include "gromacs/utility/exceptions.h"
 
 
-static sycl::property_list makeQueuePropertyList(bool                            inOrder,
-                                                 bool                            enableProfiling,
-                                                 DeviceStreamPriority gmx_unused priority)
+static sycl::property_list makeQueuePropertyList(bool enableProfiling, DeviceStreamPriority priority)
 {
     // If hipSYCL priority extension is present, extract the priority range
     // and use the lowest or highest priority supported for DeviceStreamPriority::Low and
@@ -75,31 +73,47 @@ static sycl::property_list makeQueuePropertyList(bool                           
 
     const int priorityValue = (priority == DeviceStreamPriority::High) ? highPrioValue : defaultPrioValue;
 
-#    define HIPSYCL_PRIORITY_ATTRIBUTE \
-        sycl::property::queue::hipSYCL_priority { priorityValue }
+#    define HIPSYCL_PRIORITY_ATTRIBUTE_HIGH \
+        sycl::property::queue::hipSYCL_priority { highPrioValue }
+#    define HIPSYCL_PRIORITY_ATTRIBUTE_DEFAULT \
+        sycl::property::queue::hipSYCL_priority { defaultPrioValue }
+#elif defined(SYCL_EXT_ONEAPI_QUEUE_PRIORITY)
+#    define HIPSYCL_PRIORITY_ATTRIBUTE_HIGH \
+        sycl::ext::oneapi::property::queue::priority_high {}
+#    define HIPSYCL_PRIORITY_ATTRIBUTE_DEFAULT \
+        sycl::ext::oneapi::property::queue::priority_normal {}
 #else
 #    define HIPSYCL_PRIORITY_ATTRIBUTE
 #endif
 
-    if (enableProfiling && inOrder)
+    if (enableProfiling)
     {
-        return { sycl::property::queue::in_order(),
-                 sycl::property::queue::enable_profiling(),
-                 HIPSYCL_PRIORITY_ATTRIBUTE };
+        if (priority == DeviceStreamPriority::High)
+        {
+            return { sycl::property::queue::in_order(),
+                     sycl::property::queue::enable_profiling(),
+                     HIPSYCL_PRIORITY_ATTRIBUTE_HIGH };
+        }
+        else
+        {
+            return { sycl::property::queue::in_order(),
+                     sycl::property::queue::enable_profiling(),
+                     HIPSYCL_PRIORITY_ATTRIBUTE_DEFAULT };
+        }
     }
-    else if (enableProfiling && !inOrder)
+    else // !enableProfiling
     {
-        return { sycl::property::queue::enable_profiling(), HIPSYCL_PRIORITY_ATTRIBUTE };
+        if (priority == DeviceStreamPriority::High)
+        {
+            return { sycl::property::queue::in_order(), HIPSYCL_PRIORITY_ATTRIBUTE_HIGH };
+        }
+        else
+        {
+            return { sycl::property::queue::in_order(), HIPSYCL_PRIORITY_ATTRIBUTE_DEFAULT };
+        }
     }
-    else if (!enableProfiling && inOrder)
-    {
-        return { sycl::property::queue::in_order(), HIPSYCL_PRIORITY_ATTRIBUTE };
-    }
-    else
-    {
-        return { HIPSYCL_PRIORITY_ATTRIBUTE };
-    }
-#undef HIPSYCL_PRIORITY_ATTRIBUTE
+#undef HIPSYCL_PRIORITY_ATTRIBUTE_HIGH
+#undef HIPSYCL_PRIORITY_ATTRIBUTE_DEFAULT
 }
 
 DeviceStream::DeviceStream(const DeviceContext& deviceContext, DeviceStreamPriority priority, const bool useTiming)
@@ -114,9 +128,8 @@ DeviceStream::DeviceStream(const DeviceContext& deviceContext, DeviceStreamPrior
         const bool deviceSupportsTiming = device.has(sycl::aspect::queue_profiling);
         enableProfiling                 = deviceSupportsTiming;
     }
-    const bool inOrder = true;
-    stream_            = sycl::queue(
-            deviceContext.context(), device, makeQueuePropertyList(inOrder, enableProfiling, priority));
+    stream_ = sycl::queue(
+            deviceContext.context(), device, makeQueuePropertyList(enableProfiling, priority));
 }
 
 DeviceStream::~DeviceStream()
