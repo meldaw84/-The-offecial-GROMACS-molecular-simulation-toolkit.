@@ -185,7 +185,7 @@ if (GMX_GPU_CUDA)
     #we cannot link with both cufftmp and cufft
     if(GMX_USE_cuFFTMp)
         target_link_libraries(libgromacs PRIVATE ${cuFFTMp_LIBRARY})
-        target_link_libraries(libgromacs PUBLIC nvidia-ml cuda)
+        target_link_libraries(libgromacs PRIVATE nvidia-ml cuda)
     else()
         target_link_libraries(libgromacs PRIVATE ${CUDA_CUFFT_LIBRARIES})
     endif()
