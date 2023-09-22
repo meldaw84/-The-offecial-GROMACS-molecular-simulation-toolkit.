@@ -249,20 +249,11 @@ struct GpuTimers
     gmx::EnumerationArray<InteractionLocality, Nbnxm::GpuTimers::Interaction> interaction;
 };
 
+
 /*! \internal
- * \brief GPU pair list structure */
-struct gpu_plist
+ * \brief Sorted pair list on GPU and data required for performing the sorting */
+struct gpu_plistSorting
 {
-    //! number of atoms per cluster
-    int na_c;
-
-    //! size of sci, # of i clusters in the list
-    int nsci;
-    //! allocation size of sci
-    int sci_nalloc;
-    //! list of i-cluster ("super-clusters")
-    DeviceBuffer<nbnxn_sci_t> sci;
-
     int nscan_temporary;
 
     int scan_temporary_nalloc;
@@ -299,6 +290,24 @@ struct gpu_plist
 
     //! list of sorted i-cluster ("super-clusters")
     DeviceBuffer<nbnxn_sci_t> sci_sorted;
+};
+
+/*! \internal
+ * \brief GPU pair list structure */
+struct gpu_plist
+{
+    //! number of atoms per cluster
+    int na_c;
+
+    //! size of sci, # of i clusters in the list
+    int nsci;
+    //! allocation size of sci
+    int sci_nalloc;
+    //! list of i-cluster ("super-clusters")
+    DeviceBuffer<nbnxn_sci_t> sci;
+
+    //! sorted pair list and data used for sorting
+    gpu_plistSorting sorting;
 
     //! total # of packed j clusters
     int ncjPacked;

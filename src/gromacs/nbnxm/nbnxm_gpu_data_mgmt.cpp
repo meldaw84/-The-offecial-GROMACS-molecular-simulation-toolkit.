@@ -201,34 +201,42 @@ static inline void set_cutoff_parameters(NBParamGpu*                nbp,
     nbp->vdw_switch       = ic.vdw_switch;
 }
 
+static inline void init_plistSorting(gpu_plistSorting* sorting)
+{
+    /* initialize to nullptr pointers to data that is not allocated here and will
+       need reallocation in nbnxn_gpu_init_pairlist */
+    sorting->scan_temporary = nullptr;
+    sorting->sci_histogram  = nullptr;
+    sorting->sci_offset     = nullptr;
+    sorting->sci_count      = nullptr;
+    sorting->sci_sorted     = nullptr;
+
+    /* size -1 indicates that the respective array hasn't been initialized yet */
+    sorting->nscan_temporary       = -1;
+    sorting->scan_temporary_nalloc = -1;
+    sorting->nsci_histogram        = -1;
+    sorting->sci_histogram_nalloc  = -1;
+    sorting->nsci_offset           = -1;
+    sorting->sci_offset_nalloc     = -1;
+    sorting->nsci_counted          = -1;
+    sorting->sci_counted_nalloc    = -1;
+    sorting->nsci_sorted           = -1;
+    sorting->sci_sorted_nalloc     = -1;
+}
+
 static inline void init_plist(gpu_plist* pl)
 {
     /* initialize to nullptr pointers to data that is not allocated here and will
        need reallocation in nbnxn_gpu_init_pairlist */
-    pl->sci            = nullptr;
-    pl->scan_temporary = nullptr;
-    pl->sci_histogram  = nullptr;
-    pl->sci_offset     = nullptr;
-    pl->sci_count      = nullptr;
-    pl->sci_sorted     = nullptr;
-    pl->cjPacked       = nullptr;
-    pl->imask          = nullptr;
-    pl->excl           = nullptr;
+    pl->sci      = nullptr;
+    pl->cjPacked = nullptr;
+    pl->imask    = nullptr;
+    pl->excl     = nullptr;
 
     /* size -1 indicates that the respective array hasn't been initialized yet */
     pl->na_c                   = -1;
     pl->nsci                   = -1;
     pl->sci_nalloc             = -1;
-    pl->nscan_temporary        = -1;
-    pl->scan_temporary_nalloc  = -1;
-    pl->nsci_histogram         = -1;
-    pl->sci_histogram_nalloc   = -1;
-    pl->nsci_offset            = -1;
-    pl->sci_offset_nalloc      = -1;
-    pl->nsci_counted           = -1;
-    pl->sci_counted_nalloc     = -1;
-    pl->nsci_sorted            = -1;
-    pl->sci_sorted_nalloc      = -1;
     pl->ncjPacked              = -1;
     pl->cjPacked_nalloc        = -1;
     pl->nimask                 = -1;
@@ -238,6 +246,9 @@ static inline void init_plist(gpu_plist* pl)
     pl->haveFreshList          = false;
     pl->rollingPruningNumParts = 0;
     pl->rollingPruningPart     = 0;
+
+    /* initialise data structures used for sorting */
+    init_plistSorting(&(pl->sorting));
 }
 
 static inline void init_timings(gmx_wallclock_gpu_nbnxn_t* t)
@@ -582,50 +593,50 @@ void gpu_init_pairlist(NbnxmGpu* nb, const NbnxnPairlistGpu* h_plist, const Inte
                        GpuApiCallBehavior::Async,
                        bDoTime ? iTimers.pl_h2d.fetchNextEvent() : nullptr);
 
-    reallocateDeviceBuffer(&d_plist->sci_sorted,
+    reallocateDeviceBuffer(&d_plist->sorting.sci_sorted,
                            h_plist->sci.size(),
-                           &d_plist->nsci_sorted,
-                           &d_plist->sci_sorted_nalloc,
+                           &d_plist->sorting.nsci_sorted,
+                           &d_plist->sorting.sci_sorted_nalloc,
                            deviceContext);
-    copyToDeviceBuffer(&d_plist->sci_sorted,
+    copyToDeviceBuffer(&d_plist->sorting.sci_sorted,
                        h_plist->sci.data(),
                        0,
                        h_plist->sci.size(),
                        deviceStream,
                        GpuApiCallBehavior::Async,
                        bDoTime ? iTimers.pl_h2d.fetchNextEvent() : nullptr);
-    reallocateDeviceBuffer(&d_plist->sci_count,
+    reallocateDeviceBuffer(&d_plist->sorting.sci_count,
                            h_plist->sci.size(),
-                           &d_plist->nsci_counted,
-                           &d_plist->sci_counted_nalloc,
+                           &d_plist->sorting.nsci_counted,
+                           &d_plist->sorting.sci_counted_nalloc,
                            deviceContext);
 
-    if (d_plist->nscan_temporary == -1)
+    if (d_plist->sorting.nscan_temporary == -1)
     {
-        reallocateDeviceBuffer(&d_plist->sci_histogram,
+        reallocateDeviceBuffer(&d_plist->sorting.sci_histogram,
                                c_sciHistogramSize + 1,
-                               &d_plist->nsci_histogram,
-                               &d_plist->sci_histogram_nalloc,
+                               &d_plist->sorting.nsci_histogram,
+                               &d_plist->sorting.sci_histogram_nalloc,
                                deviceContext);
 
-        reallocateDeviceBuffer(&d_plist->sci_offset,
+        reallocateDeviceBuffer(&d_plist->sorting.sci_offset,
                                c_sciHistogramSize,
-                               &d_plist->nsci_offset,
-                               &d_plist->sci_offset_nalloc,
+                               &d_plist->sorting.nsci_offset,
+                               &d_plist->sorting.sci_offset_nalloc,
                                deviceContext);
 
         size_t scan_temporary_size = 0;
         cub::DeviceScan::ExclusiveSum(nullptr,
                                       scan_temporary_size,
-                                      d_plist->sci_histogram,
-                                      d_plist->sci_offset,
+                                      d_plist->sorting.sci_histogram,
+                                      d_plist->sorting.sci_offset,
                                       c_sciHistogramSize,
                                       deviceStream.stream());
 
-        reallocateDeviceBuffer(&d_plist->scan_temporary,
+        reallocateDeviceBuffer(&d_plist->sorting.scan_temporary,
                                (int)scan_temporary_size,
-                               &d_plist->nscan_temporary,
-                               &d_plist->scan_temporary_nalloc,
+                               &d_plist->sorting.nscan_temporary,
+                               &d_plist->sorting.scan_temporary_nalloc,
                                deviceContext);
     }
 

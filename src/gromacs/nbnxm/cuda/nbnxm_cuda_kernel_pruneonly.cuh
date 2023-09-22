@@ -135,7 +135,7 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
     }
 
     /* convenience variables */
-    const nbnxn_sci_t* pl_sci      = haveFreshList ? plist.sci : plist.sci_sorted;
+    const nbnxn_sci_t* pl_sci      = haveFreshList ? plist.sci : plist.sorting.sci_sorted;
     nbnxn_cj_packed_t* pl_cjPacked = plist.cjPacked;
     const float4*      xq          = atdat.xq;
     const float3*      shift_vec   = asFloat3(atdat.shiftVec);
@@ -330,9 +330,9 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
         if (tidxz == 0)
         {
             int  index            = max(c_sciHistogramSize - (int)count - 1, 0);
-            int* pl_sci_histogram = plist.sci_histogram;
+            int* pl_sci_histogram = plist.sorting.sci_histogram;
             atomicAdd(pl_sci_histogram + index, 1);
-            int* pl_sci_count                    = plist.sci_count;
+            int* pl_sci_count                    = plist.sorting.sci_count;
             pl_sci_count[bidx * numParts + part] = index;
         }
     }

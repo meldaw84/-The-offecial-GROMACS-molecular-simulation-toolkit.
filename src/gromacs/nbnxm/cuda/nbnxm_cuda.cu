@@ -650,7 +650,7 @@ void gpu_launch_kernel_pruneonly(NbnxmGpu* nb, const InteractionLocality iloc, c
 
     if (plist->haveFreshList)
     {
-        clearDeviceBufferAsync(&plist->sci_histogram, 0, c_sciHistogramSize, deviceStream);
+        clearDeviceBufferAsync(&plist->sorting.sci_histogram, 0, c_sciHistogramSize, deviceStream);
     }
 
     auto*          timingEvent  = bDoTime ? timer->fetchNextEvent() : nullptr;
@@ -662,12 +662,12 @@ void gpu_launch_kernel_pruneonly(NbnxmGpu* nb, const InteractionLocality iloc, c
 
     if (plist->haveFreshList)
     {
-        size_t scan_temporary_size = (size_t)plist->nscan_temporary;
+        size_t scan_temporary_size = (size_t)plist->sorting.nscan_temporary;
 
-        cub::DeviceScan::ExclusiveSum(plist->scan_temporary,
+        cub::DeviceScan::ExclusiveSum(plist->sorting.scan_temporary,
                                       scan_temporary_size,
-                                      plist->sci_histogram,
-                                      plist->sci_offset,
+                                      plist->sorting.sci_histogram,
+                                      plist->sorting.sci_offset,
                                       c_sciHistogramSize,
                                       deviceStream.stream());
 

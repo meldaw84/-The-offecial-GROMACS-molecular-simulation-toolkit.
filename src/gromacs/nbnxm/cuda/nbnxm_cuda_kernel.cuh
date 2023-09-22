@@ -161,7 +161,7 @@ __launch_bounds__(THREADS_PER_BLOCK)
 #else
 {
     /* convenience variables */
-    const nbnxn_sci_t* pl_sci = plist.sci_sorted == nullptr ? plist.sci : plist.sci_sorted;
+    const nbnxn_sci_t* pl_sci = plist.sorting.sci_sorted == nullptr ? plist.sci : plist.sorting.sci_sorted;
 #    ifndef PRUNE_NBL
     const
 #    endif

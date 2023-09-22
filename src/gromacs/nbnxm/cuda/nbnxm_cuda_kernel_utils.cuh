@@ -83,9 +83,9 @@ __launch_bounds__(BlockSize) __global__ void nbnxn_kernel_bucket_sci_sort(Nbnxm:
     const unsigned int block_offset = blockIdx.x * BlockSize * ItemsPerThread;
 
     const nbnxn_sci_t* pl_sci        = plist.sci;
-    nbnxn_sci_t*       pl_sci_sort   = plist.sci_sorted;
-    const int*         pl_sci_count  = plist.sci_count;
-    int*               pl_sci_offset = plist.sci_offset;
+    nbnxn_sci_t*       pl_sci_sort   = plist.sorting.sci_sorted;
+    const int*         pl_sci_count  = plist.sorting.sci_count;
+    int*               pl_sci_offset = plist.sorting.sci_offset;
 
     int         sci_count[ItemsPerThread];
     int         sci_offset[ItemsPerThread];
