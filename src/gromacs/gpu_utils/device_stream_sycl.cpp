@@ -83,7 +83,8 @@ static sycl::property_list makeQueuePropertyList(bool enableProfiling, DeviceStr
 #    define HIPSYCL_PRIORITY_ATTRIBUTE_DEFAULT \
         sycl::ext::oneapi::property::queue::priority_normal {}
 #else
-#    define HIPSYCL_PRIORITY_ATTRIBUTE
+#    define HIPSYCL_PRIORITY_ATTRIBUTE_HIGH
+#    define HIPSYCL_PRIORITY_ATTRIBUTE_DEFAULT
 #endif
 
     if (enableProfiling)
