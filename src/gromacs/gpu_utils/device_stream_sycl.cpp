@@ -53,7 +53,7 @@ static sycl::property_list makeQueuePropertyList(bool enableProfiling, DeviceStr
     // and use the lowest or highest priority supported for DeviceStreamPriority::Low and
     // DeviceStreamPriority::High, respectively.
 #ifdef HIPSYCL_EXT_QUEUE_PRIORITY
-    // for simplicity we assume 0 to be the default priority (verified for CUDA and HIP)
+    // For simplicity, we assume 0 to be the default priority (guaranteed for CUDA, verified for HIP)
     int defaultPrioValue = 0;
     int highPrioValue    = 0;
 
@@ -70,8 +70,6 @@ static sycl::property_list makeQueuePropertyList(bool enableProfiling, DeviceStr
         GMX_THROW(gmx::InternalError("[cuda|hip]DeviceGetStreamPriorityRange failed"));
     }
 #    endif
-
-    const int priorityValue = (priority == DeviceStreamPriority::High) ? highPrioValue : defaultPrioValue;
 
 #    define HIPSYCL_PRIORITY_ATTRIBUTE_HIGH \
         sycl::property::queue::hipSYCL_priority { highPrioValue }
