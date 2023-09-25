@@ -98,16 +98,16 @@ void ColvarsOptions::initMdpTransform(IKeyValueTreeTransformRules* rules)
 
 void ColvarsOptions::buildMdpOutput(KeyValueTreeObjectBuilder* builder) const
 {
-    //new empty line before writing colvars mdp values
-    builder->addValue<std::string>("comment-" + c_colvarsModuleName + "empty-line","");
+    // new empty line before writing colvars mdp values
+    builder->addValue<std::string>("comment-" + c_colvarsModuleName + "empty-line", "");
 
     builder->addValue<std::string>("comment-" + c_colvarsModuleName + "-module", "; Colvars bias");
     builder->addValue<bool>(c_colvarsModuleName + "-" + c_activeTag_, active_);
 
-    if(active_)
+    if (active_)
     {
         builder->addValue<std::string>("comment-" + c_colvarsModuleName + "-" + c_colvarsFileNameTag_,
-                                    "; colvars input file");
+                                       "; colvars input file");
         builder->addValue<std::string>(c_colvarsModuleName + "-" + c_colvarsFileNameTag_, colvarsFileName_);
     }
 }
@@ -223,7 +223,6 @@ void ColvarsOptions::readInternalParametersFromKvt(const KeyValueTreeObject& tre
 }
 
 
-
 void ColvarsOptions::processTopology(gmx_mtop_t* mtop)
 {
     gmx_atoms = gmx_mtop_global_atoms(*mtop);
@@ -310,6 +309,21 @@ const real& ColvarsOptions::colvarsEnsTemp() const
 const std::map<std::string, std::string>& ColvarsOptions::colvarsInputFiles() const
 {
     return inputFiles;
+}
+
+void ColvarsOptions::setParameters(const std::string&   colvarsfile,
+                                   t_atoms              topology,
+                                   ArrayRef<const RVec> coords,
+                                   PbcType              pbcType,
+                                   const matrix         boxValues,
+                                   real                 temperature)
+{
+    colvarsFileName_ = colvarsfile;
+    gmx_atoms        = topology;
+    x                = coords;
+    pbc              = pbcType;
+    copy_mat(boxValues, box);
+    ensembleTemperature = temperature;
 }
 
 

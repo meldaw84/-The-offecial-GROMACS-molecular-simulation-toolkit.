@@ -135,8 +135,26 @@ public:
     //! Return the ensemble temperature
     const real& colvarsEnsTemp() const;
 
-
+    //! Return the map of all others colvars input files
     const std::map<std::string, std::string>& colvarsInputFiles() const;
+
+    /*! \brief Function to set internal paramaters outside the way done
+     * through the MDModule notifiers and callbacks.
+     * Use exclusively in the test framework.
+     *
+     * \param[in] colvarsfile Name of the colvars input file.
+     * \param[in] topology Atoms topology
+     * \param[in] coords Coordinates of each atom in the system
+     * \param[in] pbcType Periodic boundary conditions
+     * \param[in] boxValues Matrix with full box of the system
+     * \param[in] temperature the constant ensemble temperature
+     */
+    void setParameters(const std::string&   colvarsfile,
+                       t_atoms              topology,
+                       ArrayRef<const RVec> coords,
+                       PbcType              pbcType,
+                       const matrix         boxValues,
+                       real                 temperature);
 
 
 private:

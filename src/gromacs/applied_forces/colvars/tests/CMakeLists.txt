@@ -1,7 +1,7 @@
 #
 # This file is part of the GROMACS molecular simulation package.
 #
-# Copyright 2023- The GROMACS Authors
+# Copyright 2021- The GROMACS Authors
 # and the project initiators Erik Lindahl, Berk Hess and David van der Spoel.
 # Consult the AUTHORS/COPYING files and https://www.gromacs.org for details.
 #
@@ -31,15 +31,14 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out https://www.gromacs.org.
 
-gmx_add_libgromacs_sources(
-    colvarsMDModule.cpp
-    colvarsoptions.cpp
-    colvarspreprocessor.cpp
-    colvarssimulationsparameters.cpp
-    colvarsforceprovider.cpp
-    colvarproxygromacs.cpp
-    )
+gmx_add_unit_test(ColvarsAppliedForcesUnitTest colvars_applied_forces-test
+    CPP_SOURCE_FILES
+        colvarspreprocessor.cpp
+        colvars.cpp
+        colvarsoptions.cpp
+        colvarsforceprovider.cpp
 
-if (BUILD_TESTING)
-    add_subdirectory(tests)
-endif()
+        )
+target_link_libraries(colvars_applied_forces-test PRIVATE applied_forces math topology mdlib
+    mdtypes)
+
