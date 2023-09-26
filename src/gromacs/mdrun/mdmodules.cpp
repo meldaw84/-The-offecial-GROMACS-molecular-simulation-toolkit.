@@ -33,11 +33,15 @@
  */
 #include "gmxpre.h"
 
+#include "config.h" // Allow conditional compilation of individual MDModules
+
 #include "mdmodules.h"
 
 #include <memory>
 
+#ifdef HAVE_COLVARS
 #include "gromacs/applied_forces/colvars/colvarsMDModule.h"
+#endif
 #include "gromacs/applied_forces/densityfitting/densityfitting.h"
 #include "gromacs/applied_forces/electricfield.h"
 #include "gromacs/applied_forces/qmmm/qmmm.h"
@@ -68,8 +72,12 @@ public:
         field_(createElectricFieldModule()),
         imd_(createInteractiveMolecularDynamicsModule()),
         qmmm_(QMMMModuleInfo::create()),
+#ifdef HAVE_COLVARS
         swapCoordinates_(createSwapCoordinatesModule()),
         colvars_(ColvarsModuleInfo::create())
+#else
+        swapCoordinates_(createSwapCoordinatesModule())
+#endif
     {
     }
 
@@ -80,7 +88,9 @@ public:
         field_->mdpOptionProvider()->initMdpOptions(&appliedForcesOptions);
         densityFitting_->mdpOptionProvider()->initMdpOptions(&appliedForcesOptions);
         qmmm_->mdpOptionProvider()->initMdpOptions(&appliedForcesOptions);
+#ifdef HAVE_COLVARS
         colvars_->mdpOptionProvider()->initMdpOptions(&appliedForcesOptions);
+#endif
         // In future, other sections would also go here.
     }
 
@@ -109,7 +119,9 @@ public:
     std::unique_ptr<IMDModule>      imd_;
     std::unique_ptr<IMDModule>      qmmm_;
     std::unique_ptr<IMDModule>      swapCoordinates_;
+#ifdef HAVE_COLVARS
     std::unique_ptr<IMDModule>      colvars_;
+#endif
 
     /*! \brief List of registered MDModules
      *
@@ -133,7 +145,9 @@ void MDModules::initMdpTransform(IKeyValueTreeTransformRules* rules)
     impl_->field_->mdpOptionProvider()->initMdpTransform(appliedForcesScope.rules());
     impl_->densityFitting_->mdpOptionProvider()->initMdpTransform(appliedForcesScope.rules());
     impl_->qmmm_->mdpOptionProvider()->initMdpTransform(appliedForcesScope.rules());
+#ifdef HAVE_COLVARS
     impl_->colvars_->mdpOptionProvider()->initMdpTransform(appliedForcesScope.rules());
+#endif
 }
 
 void MDModules::buildMdpOutput(KeyValueTreeObjectBuilder* builder)
@@ -141,7 +155,9 @@ void MDModules::buildMdpOutput(KeyValueTreeObjectBuilder* builder)
     impl_->field_->mdpOptionProvider()->buildMdpOutput(builder);
     impl_->densityFitting_->mdpOptionProvider()->buildMdpOutput(builder);
     impl_->qmmm_->mdpOptionProvider()->buildMdpOutput(builder);
+#ifdef HAVE_COLVARS
     impl_->colvars_->mdpOptionProvider()->buildMdpOutput(builder);
+#endif
 }
 
 void MDModules::assignOptionsToModules(const KeyValueTreeObject& params, IKeyValueTreeErrorHandler* errorHandler)
@@ -179,7 +195,9 @@ ForceProviders* MDModules::initForceProviders()
     impl_->field_->initForceProviders(impl_->forceProviders_.get());
     impl_->densityFitting_->initForceProviders(impl_->forceProviders_.get());
     impl_->qmmm_->initForceProviders(impl_->forceProviders_.get());
+#ifdef HAVE_COLVARS
     impl_->colvars_->initForceProviders(impl_->forceProviders_.get());
+#endif
     for (auto&& module : impl_->modules_)
     {
         module->initForceProviders(impl_->forceProviders_.get());
@@ -191,14 +209,18 @@ void MDModules::subscribeToPreProcessingNotifications()
 {
     impl_->densityFitting_->subscribeToPreProcessingNotifications(&impl_->notifiers_);
     impl_->qmmm_->subscribeToPreProcessingNotifications(&impl_->notifiers_);
+#ifdef HAVE_COLVARS
     impl_->colvars_->subscribeToPreProcessingNotifications(&impl_->notifiers_);
+#endif
 }
 
 void MDModules::subscribeToSimulationSetupNotifications()
 {
     impl_->densityFitting_->subscribeToSimulationSetupNotifications(&impl_->notifiers_);
     impl_->qmmm_->subscribeToSimulationSetupNotifications(&impl_->notifiers_);
+#ifdef HAVE_COLVARS
     impl_->colvars_->subscribeToSimulationSetupNotifications(&impl_->notifiers_);
+#endif
 }
 
 void MDModules::add(std::shared_ptr<gmx::IMDModule> module)
