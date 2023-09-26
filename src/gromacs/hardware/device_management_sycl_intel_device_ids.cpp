@@ -47,7 +47,7 @@
 #include <unordered_set>
 
 // Based on PRODUCT_CONFIG enum from
-// https://github.com/intel/compute-runtime/blob/d75eccc0269be71ebb359d93ca7fff36cb03b9d1/third_party/aot_config_headers/platforms.h
+// https://github.com/intel/compute-runtime/blob/eebf2bbd26c1684f40142a08d9295a5cbb74d706/third_party/aot_config_headers/platforms.h
 enum class IntelProductConfig : unsigned int
 {
     BDW        = 0x02000000, //! Broadwell (Gen8), 8.0.0
@@ -84,6 +84,10 @@ enum class IntelProductConfig : unsigned int
     PVC_XT_B0  = 0x030f0005,
     PVC_XT_B1  = 0x030f0006,
     PVC_XT_C0  = 0x030f0007,
+    MTL_M_A0   = 0x03118000,
+    MTL_M_B0   = 0x03118004,
+    MTL_P_A0   = 0x0311c000,
+    MTL_P_B0   = 0x0311c004,
 };
 
 // Map from IntelProductConfig to list of PCIE IDs
@@ -140,6 +144,7 @@ static const std::unordered_map<IntelProductConfig, std::unordered_set<unsigned 
               0x0bd9,
               0x0bda,
               0x0bdb,
+              0x0b69,
       } },
     { IntelProductConfig::PVC_XT_B0,
       {
@@ -150,6 +155,7 @@ static const std::unordered_map<IntelProductConfig, std::unordered_set<unsigned 
               0x0bd9,
               0x0bda,
               0x0bdb,
+              0x0b69,
       } },
     { IntelProductConfig::PVC_XT_B1,
       {
@@ -160,6 +166,7 @@ static const std::unordered_map<IntelProductConfig, std::unordered_set<unsigned 
               0x0bd9,
               0x0bda,
               0x0bdb,
+              0x0b69,
       } },
     { IntelProductConfig::PVC_XT_C0,
       {
@@ -170,6 +177,39 @@ static const std::unordered_map<IntelProductConfig, std::unordered_set<unsigned 
               0x0bd9,
               0x0bda,
               0x0bdb,
+              0x0b69,
+      } },
+    { IntelProductConfig::MTL_M_A0,
+      {
+              0x7d40,
+              0x7d55,
+              0x7dd5,
+              0x7d45,
+              0x7d60,
+      } },
+    { IntelProductConfig::MTL_M_B0,
+      {
+              0x7d40,
+              0x7d55,
+              0x7dd5,
+              0x7d45,
+              0x7d60,
+      } },
+    { IntelProductConfig::MTL_P_A0,
+      {
+              0x7d40,
+              0x7d55,
+              0x7dd5,
+              0x7d45,
+              0x7d60,
+      } },
+    { IntelProductConfig::MTL_P_B0,
+      {
+              0x7d40,
+              0x7d55,
+              0x7dd5,
+              0x7d45,
+              0x7d60,
       } },
     { IntelProductConfig::DG2_G10_A0,
       {
@@ -474,12 +514,12 @@ static const std::unordered_map<IntelProductConfig, std::unordered_set<unsigned 
 static constexpr std::tuple<int, int, int> getHardwareVersionFromIntelProductConfig(const IntelProductConfig productConfig)
 {
     // Convert IntelProductConfig value into (major, minor) tuple.
-    // PRODUCT_CONFIG layout is described in https://github.com/intel/compute-runtime/blob/d75eccc0269be71ebb359d93ca7fff36cb03b9d1/shared/source/helpers/product_config_helper.h#L31
-    const int major = ((static_cast<unsigned>(productConfig) & 0xffc00000) >> 22); // first 10 bits
-    const int minor = ((static_cast<unsigned>(productConfig) & 0x3fc000) >> 14);   // next 8 bits
+    // HardwareIpVersion layout is described in https://github.com/intel/compute-runtime/blob/eebf2bbd26c1684f40142a08d9295a5cbb74d706/shared/source/helpers/hw_ip_version.h
+    const int architecture = ((static_cast<unsigned>(productConfig) & 0xffc00000) >> 22); // first 10 bits
+    const int release = ((static_cast<unsigned>(productConfig) & 0x3fc000) >> 14); // next 8 bits
     // next 8 bits are reserved
     const int revision = (static_cast<unsigned>(productConfig) & 0x3f); // last 6 bits
-    return std::make_tuple(major, minor, revision);
+    return std::make_tuple(architecture, release, revision);
 }
 
 static std::optional<IntelProductConfig> getProductConfigFromPciExpressID(unsigned int pciExpressID)
