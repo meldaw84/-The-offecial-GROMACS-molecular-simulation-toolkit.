@@ -148,7 +148,9 @@ list(APPEND libgromacs_object_library_dependencies thread_mpi)
 
 
 gmx_manage_colvars()
-list(APPEND libgromacs_object_library_dependencies colvars)
+if(NOT GMX_USE_COLVARS STREQUAL "NONE")
+    list(APPEND libgromacs_object_library_dependencies colvars)
+endif()
 
 
 

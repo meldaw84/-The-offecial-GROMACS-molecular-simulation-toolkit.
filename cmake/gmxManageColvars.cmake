@@ -31,13 +31,27 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out https://www.gromacs.org.
 
+# Build Colvars library as bundled in a GROMACS worktree; not supporting external linkage yet
+gmx_option_multichoice(GMX_USE_COLVARS
+    "Build the collective variables (Colvars) library interfaced with GROMACS"
+    INTERNAL
+    INTERNAL NONE)
+mark_as_advanced(GMX_USE_COLVARS)
+
 function(gmx_manage_colvars)
-  file(GLOB COLVARS_SOURCES ${PROJECT_SOURCE_DIR}/src/external/colvars/*.cpp)
-  add_library(colvars OBJECT ${COLVARS_SOURCES})
-  # Colvars requires a correct definition of __cplusplus, which MSVC doesn't give by default
-  target_compile_options(colvars PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/Zc:__cplusplus>)
+    if(GMX_USE_COLVARS STREQUAL "INTERNAL")
+        file(GLOB COLVARS_SOURCES ${PROJECT_SOURCE_DIR}/src/external/colvars/*.cpp)
+        add_library(colvars OBJECT ${COLVARS_SOURCES})
+        # Set correctly the value of __cplusplus, which MSVC doesn't do by default
+        target_compile_options(colvars PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/Zc:__cplusplus>)
+        set(HAVE_COLVARS 1 CACHE INTERNAL "Is Colvars available?")
+    else()
+        set(HAVE_COLVARS 0 CACHE INTERNAL "Is Colvars available?")
+    endif()
 endfunction()
 
 function(gmx_include_colvars_headers)
-  target_include_directories(libgromacs PRIVATE ${PROJECT_SOURCE_DIR}/src/external/colvars)
+    if(GMX_USE_COLVARS STREQUAL "INTERNAL")
+        target_include_directories(libgromacs PRIVATE ${PROJECT_SOURCE_DIR}/src/external/colvars)
+    endif()
 endfunction()
