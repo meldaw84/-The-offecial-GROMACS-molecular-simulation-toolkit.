@@ -43,6 +43,8 @@
 
 #include <string>
 
+#include "external/colvars/colvars_memstream.h"
+
 #include "gromacs/domdec/localatomsetmanager.h"
 #include "gromacs/fileio/checkpoint.h"
 #include "gromacs/gmxlib/network.h"
@@ -66,6 +68,8 @@ const std::string ColvarsForceProviderState::xOldWholeName_ = "xOldWhole";
 
 const std::string ColvarsForceProviderState::colvarStateFileName_ = "colvarStateFile";
 
+const std::string ColvarsForceProviderState::colvarStateFileSizeName_ = "colvarStateFileSize";
+
 void ColvarsForceProviderState::writeState(KeyValueTreeObjectBuilder kvtBuilder,
                                            const std::string&        identifier) const
 {
@@ -82,7 +86,15 @@ void ColvarsForceProviderState::writeState(KeyValueTreeObjectBuilder kvtBuilder,
     }
 
 
-    writeKvtCheckpointValue(colvarStateFile_, colvarStateFileName_, identifier, kvtBuilder);
+    writeKvtCheckpointValue(
+            static_cast<int64_t>(colvarStateFile_.size()), colvarStateFileSizeName_, identifier, kvtBuilder);
+
+    // Write unformatted Colvars state file, one character at a time
+    auto charArrayAdder = kvtBuilder.addUniformArray<unsigned char>(colvarStateFileName_);
+    for (const unsigned char& c : colvarStateFile_)
+    {
+        charArrayAdder.addValue(c);
+    }
 }
 
 void ColvarsForceProviderState::readState(const KeyValueTreeObject& kvtData, const std::string& identifier)
@@ -113,8 +125,19 @@ void ColvarsForceProviderState::readState(const KeyValueTreeObject& kvtData, con
         }
     }
 
+    int64_t colvarStateFileSize_ = 0L;
     readKvtCheckpointValue(
-            compat::make_not_null(&colvarStateFile_), colvarStateFileName_, identifier, kvtData);
+            compat::make_not_null(&colvarStateFileSize_), colvarStateFileSizeName_, identifier, kvtData);
+
+    // Read Colvars state file; use explicit loop because kvt types don't support std::copy
+    auto charArray = kvtData[colvarStateFileName_].asArray().values();
+    colvarStateFile_.resize(colvarStateFileSize_);
+    auto it = colvarStateFile_.begin();
+    for (const auto& c : charArray)
+    {
+        *it = c.cast<unsigned char>();
+        it++;
+    }
 }
 
 
@@ -210,9 +233,15 @@ ColvarsForceProvider::ColvarsForceProvider(const std::string&       colvarsConfi
                 copy_rvec(stateToCheckpoint_.xOldWhole_[i], xa_old_whole[i]);
             }
 
+            int error_code = colvarproxy::setup();
             // Read input state file
-            input_buffer_ = stateToCheckpoint_.colvarStateFile_.c_str();
-            colvars->setup_input();
+            error_code |= colvars->set_input_state_buffer(stateToCheckpoint_.colvarStateFile_);
+            error_code |= colvars->setup_input();
+
+            if (error_code != COLVARS_OK)
+            {
+                error("Error when initializing Colvars module.");
+            }
         }
         else
         {
@@ -409,7 +438,7 @@ void ColvarsForceProvider::add_energy(cvm::real energy)
 void ColvarsForceProvider::writeCheckpointData(MDModulesWriteCheckpointData checkpointWriting,
                                                const std::string&           moduleName)
 {
-    colvars->write_restart_string(stateToCheckpoint_.colvarStateFile_);
+    colvars->write_state_buffer(stateToCheckpoint_.colvarStateFile_);
     stateToCheckpoint_.writeState(checkpointWriting.builder_, moduleName);
 }
 

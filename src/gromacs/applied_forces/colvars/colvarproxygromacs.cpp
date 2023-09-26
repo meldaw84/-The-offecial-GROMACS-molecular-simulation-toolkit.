@@ -41,6 +41,8 @@
 
 #include "colvarproxygromacs.h"
 
+#include <sstream>
+
 
 namespace gmx
 {
@@ -121,7 +123,7 @@ ColvarProxyGromacs::ColvarProxyGromacs(const std::string& colvarsConfigString,
         // }
 
         // colvars->it = colvars->it_restart = step;
-        colvars->it = 0;
+        colvars->set_initial_step(static_cast<cvm::step_number>(0L));
     }
 }
 
@@ -135,17 +137,16 @@ void ColvarProxyGromacs::log(std::string const& message)
 {
     if (logger_)
     {
-        GMX_LOG(logger_->info).appendText(message);
+        std::istringstream is(message);
+        std::string        line;
+        while (std::getline(is, line))
+        {
+            GMX_LOG(logger_->info).appendText("colvars: " + line + "\n");
+        }
     }
 }
 
 void ColvarProxyGromacs::error(std::string const& message)
-{
-    // In GROMACS, all errors are fatal.
-    fatal_error(message);
-}
-
-void ColvarProxyGromacs::fatal_error(std::string const& message)
 {
     log(message);
     GMX_THROW(InternalError("Error in collective variables module.\n"));

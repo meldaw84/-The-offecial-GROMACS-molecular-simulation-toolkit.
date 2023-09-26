@@ -81,7 +81,7 @@ public:
      *
      * \param[in] notifier allows the module to subscribe to notifications from MdModules.
      *
-     * The colvars code subscribes to these notifications:
+     * The Colvars MDModule subscribes to these notifications:
      *   - storing its internal parameters in a tpr file by writing to a
      *     key-value-tree during pre-processing by a function taking a
      *     KeyValueTreeObjectBuilder as parameter
@@ -131,7 +131,7 @@ public:
 
 
     /*! \brief Request to be notified.
-     * The colvars code subscribes to these notifications:
+     * The Colvars MDModule subscribes to these notifications:
      *   - the LocalAtomSetManager sets in the simulation parameter setup
      *     by taking a LocalAtomSetManager * as parameter
      *   - the type of periodic boundary conditions that are used

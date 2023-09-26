@@ -82,14 +82,19 @@ struct ColvarsForceProviderState
      */
     static const std::string xOldWholeName_;
 
-    /*! \brief Content of the colvars state file.
+    /*! \brief Content of the unformatted Colvars state file.
      */
-    std::string colvarStateFile_;
+    std::vector<unsigned char> colvarStateFile_;
 
-    /*! \brief String naming variable holding the content of the colvars state file.
+    /*! \brief String naming variable holding the content of the unformatted Colvars state file.
      * \note Changing this name will break backwards compability for checkpoint file writing.
      */
     static const std::string colvarStateFileName_;
+
+    /*! \brief String naming variable holding the size of the unformatted Colvars state file.
+     * \note Changing this name will break backwards compability for checkpoint file writing.
+     */
+    static const std::string colvarStateFileSizeName_;
 
     /*! \brief Write internal colvars data into a key value tree.
      * The entries to the kvt are identified with identifier, so that a variable
