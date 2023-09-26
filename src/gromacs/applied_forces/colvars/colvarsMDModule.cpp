@@ -231,7 +231,7 @@ public:
         {
 
             colvarsForceProvider_ = std::make_unique<ColvarsForceProvider>(
-                    colvarsOptions_.colvarsInputContent(),
+                    colvarsOptions_.colvarsConfigContent(),
                     ColvarsSimulationsParameters_.localAtomSetManager(),
                     ColvarsSimulationsParameters_.periodicBoundaryConditionType(),
                     ColvarsSimulationsParameters_.simulationTimeStep(),

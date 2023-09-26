@@ -75,7 +75,7 @@
 namespace gmx
 {
 
-static const std::string colvarsInput = "colvars_sample.dat";
+static const std::string colvarsConfig = "colvars_sample.dat";
 
 class ColvarsOptionsTest : public ::testing::Test
 {
@@ -110,7 +110,7 @@ public:
         // Prepare MDP inputs
         KeyValueTreeBuilder mdpValueBuilder;
         mdpValueBuilder.rootObject().addValue(c_colvarsModuleName + "-active", std::string("true"));
-        mdpValueBuilder.rootObject().addValue(c_colvarsModuleName + "-filename", colvarsInput);
+        mdpValueBuilder.rootObject().addValue(c_colvarsModuleName + "-configfile", colvarsConfig);
         return mdpValueBuilder.build();
     }
 
@@ -118,7 +118,7 @@ public:
     {
 
         // Path to the sample colvars input file
-        std::string colvarsInputFile =
+        std::string colvarsConfigFile =
                 gmx::test::TestFileManager::getInputFilePath("colvars_sample.dat").u8string();
 
         gmx::test::TestFileManager fileManager_;
@@ -159,7 +159,7 @@ public:
         x             = gmx::constArrayRefFromArray(reinterpret_cast<gmx::RVec*>(coords), atoms.nr);
 
         // Populate attributes outside the use of the defined callbacks.
-        colvarsOptions_.setParameters(colvarsInputFile, atoms, x, pbcType, box, 300);
+        colvarsOptions_.setParameters(colvarsConfigFile, atoms, x, pbcType, box, 300);
     }
 
 
@@ -258,7 +258,7 @@ TEST_F(ColvarsOptionsTest, InternalsToKvtAndBack)
     const auto inputTree = builder.build();
 
     // Copy internal parameters
-    auto refColvarsInputContent = colvarsOptions_.colvarsInputContent();
+    auto refColvarsInputContent = colvarsOptions_.colvarsConfigContent();
     auto refColvarsCoordinates  = colvarsOptions_.colvarsAtomCoords();
     auto refTemperature         = colvarsOptions_.colvarsEnsTemp();
 
@@ -266,7 +266,7 @@ TEST_F(ColvarsOptionsTest, InternalsToKvtAndBack)
     colvarsOptions_.readInternalParametersFromKvt(inputTree);
 
     // Check parameters taken back from KVT
-    EXPECT_EQ(refColvarsInputContent, colvarsOptions_.colvarsInputContent());
+    EXPECT_EQ(refColvarsInputContent, colvarsOptions_.colvarsConfigContent());
 
     auto actualColvarsCoordinates = colvarsOptions_.colvarsAtomCoords();
     EXPECT_REAL_EQ(refColvarsCoordinates[0][XX], actualColvarsCoordinates[0][XX]);

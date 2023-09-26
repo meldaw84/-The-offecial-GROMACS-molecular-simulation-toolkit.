@@ -4,7 +4,7 @@
   <String Name="Mdp output">
 ; Colvars bias
 colvars-active           = true
-; colvars input file
-colvars-filename         = colvars.dat
+; colvars config file
+colvars-configfile       = colvars.dat
 </String>
 </ReferenceData>

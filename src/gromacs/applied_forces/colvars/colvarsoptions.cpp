@@ -107,7 +107,7 @@ void ColvarsOptions::buildMdpOutput(KeyValueTreeObjectBuilder* builder) const
     if (active_)
     {
         builder->addValue<std::string>("comment-" + c_colvarsModuleName + "-" + c_colvarsFileNameTag_,
-                                       "; colvars input file");
+                                       "; colvars config file");
         builder->addValue<std::string>(c_colvarsModuleName + "-" + c_colvarsFileNameTag_, colvarsFileName_);
     }
 }
@@ -286,7 +286,7 @@ const std::string& ColvarsOptions::colvarsFileName() const
 }
 
 
-const std::string& ColvarsOptions::colvarsInputContent() const
+const std::string& ColvarsOptions::colvarsConfigContent() const
 {
     return colvarsConfigString;
 }

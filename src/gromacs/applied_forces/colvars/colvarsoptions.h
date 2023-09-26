@@ -120,11 +120,11 @@ public:
     //! Report if this colvars module is active
     bool isActive() const;
 
-    //! Return the file name of the colvars input
+    //! Return the file name of the colvars config
     const std::string& colvarsFileName() const;
 
-    //! Return the content of the colvars input file
-    const std::string& colvarsInputContent() const;
+    //! Return the content of the colvars config file
+    const std::string& colvarsConfigContent() const;
 
     //! Return the colvars atoms coordinates
     const std::vector<RVec>& colvarsAtomCoords() const;
@@ -166,7 +166,7 @@ private:
      */
     //! \{
     const std::string c_activeTag_          = "active";
-    const std::string c_colvarsFileNameTag_ = "filename";
+    const std::string c_colvarsFileNameTag_ = "configfile";
     //! \}
 
 
@@ -181,11 +181,11 @@ private:
 
     //! \}
 
-    //! Colvars input filename, default colvars.dat
+    //! Colvars config filename, default colvars.dat
     std::string colvarsFileName_ = "colvars.dat";
 
 
-    //! Content of the colvars input file
+    //! Content of the colvars config file
     std::string colvarsConfigString;
     //! Topology of the system
     t_atoms gmx_atoms;
