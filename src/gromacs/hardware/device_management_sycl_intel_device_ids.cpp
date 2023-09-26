@@ -78,13 +78,13 @@ enum class IntelProductConfig : unsigned int
     DG2_G11_B0 = 0x030e0004,
     DG2_G11_B1 = 0x030e0005,
     DG2_G12_A0 = 0x030e4000, //! DG2 G12(Arc, Xe-HPG), 12.57.0
-    PVC_XL_A0  = 0x030f0000, //! Ponte Veccio (Xe-HPC), 12.60.0
+    PVC_XL_A0  = 0x030f0000, //! Ponte Vecchio (Xe-HPC), 12.60.0
     PVC_XL_A0P = 0x030f0001,
     PVC_XT_A0  = 0x030f0003,
     PVC_XT_B0  = 0x030f0005,
     PVC_XT_B1  = 0x030f0006,
     PVC_XT_C0  = 0x030f0007,
-    MTL_M_A0   = 0x03118000,
+    MTL_M_A0   = 0x03118000, //! Meteor Lake (Xe-LPG), 12.70.0
     MTL_M_B0   = 0x03118004,
     MTL_P_A0   = 0x0311c000,
     MTL_P_B0   = 0x0311c004,
