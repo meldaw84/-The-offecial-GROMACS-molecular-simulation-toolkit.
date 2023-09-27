@@ -33,14 +33,14 @@
  */
 #include "gmxpre.h"
 
-#include "config.h" // Allow conditional compilation of individual MDModules
-
 #include "mdmodules.h"
+
+#include "config.h" // Allow conditional compilation of individual MDModules
 
 #include <memory>
 
 #ifdef HAVE_COLVARS
-#include "gromacs/applied_forces/colvars/colvarsMDModule.h"
+#    include "gromacs/applied_forces/colvars/colvarsMDModule.h"
 #endif
 #include "gromacs/applied_forces/densityfitting/densityfitting.h"
 #include "gromacs/applied_forces/electricfield.h"
@@ -120,7 +120,7 @@ public:
     std::unique_ptr<IMDModule>      qmmm_;
     std::unique_ptr<IMDModule>      swapCoordinates_;
 #ifdef HAVE_COLVARS
-    std::unique_ptr<IMDModule>      colvars_;
+    std::unique_ptr<IMDModule> colvars_;
 #endif
 
     /*! \brief List of registered MDModules
