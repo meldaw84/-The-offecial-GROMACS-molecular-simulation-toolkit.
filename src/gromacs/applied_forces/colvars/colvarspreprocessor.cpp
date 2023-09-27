@@ -59,7 +59,7 @@ ColvarsPreProcessor::ColvarsPreProcessor(const std::string&   colvarsConfigStrin
 {
 
     // Initialize t_pbc struct
-    set_pbc(&gmx_pbc, pbcType, box);
+    set_pbc(&gmxPbc_, pbcType, box);
 
     cvm::log(cvm::line_marker);
     cvm::log("End colvars Initialization.\n\n");
@@ -81,12 +81,12 @@ bool ColvarsPreProcessor::inputStreamsToKVT(KeyValueTreeObjectBuilder treeBuilde
 {
 
     // Save full copy of the content of the input streams (aka input files) into the KVT.
-    for (const auto& input_name : list_input_stream_names())
+    for (const auto& inputName : list_input_stream_names())
     {
-        std::istream&      stream = input_stream(input_name);
+        std::istream&      stream = input_stream(inputName);
         std::ostringstream os;
         os << stream.rdbuf();
-        treeBuilder.addValue<std::string>(tag + "-" + input_name, os.str());
+        treeBuilder.addValue<std::string>(tag + "-" + inputName, os.str());
     }
     return true;
 }

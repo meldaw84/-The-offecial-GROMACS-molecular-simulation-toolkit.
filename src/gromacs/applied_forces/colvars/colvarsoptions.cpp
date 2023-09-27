@@ -125,14 +125,14 @@ void ColvarsOptions::writeInternalParametersToKvt(KeyValueTreeObjectBuilder tree
 {
 
     // Copy the content of the colvars input file into a string for latter save in KVT
-    colvarsConfigString = TextReader::readFileToString(colvarsFileName_);
+    colvarsConfigString_ = TextReader::readFileToString(colvarsFileName_);
 
     // Write colvars input file as a string
-    treeBuilder.addValue<std::string>(c_colvarsModuleName + "-" + c_configStringTag_, colvarsConfigString);
+    treeBuilder.addValue<std::string>(c_colvarsModuleName + "-" + c_configStringTag_, colvarsConfigString_);
 
 
     ColvarsPreProcessor colvarsPreProcess(
-            colvarsConfigString, gmx_atoms, pbc, logger_, box, x, ensembleTemperature);
+            colvarsConfigString_, gmxAtoms_, pbc_, logger_, box_, x_, ensembleTemperature_);
     //! Vector with colvars atoms coordinates
     colvarsAtomCoords_ = colvarsPreProcess.getColvarsCoords();
 
@@ -154,7 +154,7 @@ void ColvarsOptions::writeInternalParametersToKvt(KeyValueTreeObjectBuilder tree
     }
 
     // Write ensemble temperature
-    treeBuilder.addValue<real>(c_colvarsModuleName + "-" + c_ensTempTag_, ensembleTemperature);
+    treeBuilder.addValue<real>(c_colvarsModuleName + "-" + c_ensTempTag_, ensembleTemperature_);
 }
 
 
@@ -176,7 +176,7 @@ void ColvarsOptions::readInternalParametersFromKvt(const KeyValueTreeObject& tre
             std::string filename = a.key().substr(
                     pos + std::string(c_colvarsModuleName + "-" + c_inputStreamsTag_).size() + 1);
 
-            inputFiles[filename] = tree[a.key()].cast<std::string>();
+            inputFiles_[filename] = tree[a.key()].cast<std::string>();
         }
     }
 
@@ -185,7 +185,7 @@ void ColvarsOptions::readInternalParametersFromKvt(const KeyValueTreeObject& tre
         GMX_THROW(InconsistentInputError(
                 "Cannot find colvars-configString required for colvars simulation."));
     }
-    colvarsConfigString = tree[c_colvarsModuleName + "-" + c_configStringTag_].cast<std::string>();
+    colvarsConfigString_ = tree[c_colvarsModuleName + "-" + c_configStringTag_].cast<std::string>();
 
 
     if (!tree.keyExists(c_colvarsModuleName + "-" + c_startingCoordsTag_))
@@ -219,22 +219,22 @@ void ColvarsOptions::readInternalParametersFromKvt(const KeyValueTreeObject& tre
         GMX_THROW(InconsistentInputError(
                 "Cannot find ensemble temperature required for colvars simulation."));
     }
-    ensembleTemperature = tree[c_colvarsModuleName + "-" + c_ensTempTag_].cast<real>();
+    ensembleTemperature_ = tree[c_colvarsModuleName + "-" + c_ensTempTag_].cast<real>();
 }
 
 
 void ColvarsOptions::processTopology(gmx_mtop_t* mtop)
 {
-    gmx_atoms = gmx_mtop_global_atoms(*mtop);
+    gmxAtoms_ = gmx_mtop_global_atoms(*mtop);
 }
 
 
 void ColvarsOptions::processCoordinates(const CoordinatesAndBoxPreprocessed& coord)
 {
 
-    x   = coord.coordinates_.unpaddedConstArrayRef();
-    pbc = coord.pbc_;
-    copy_mat(coord.box_, box);
+    x_   = coord.coordinates_.unpaddedConstArrayRef();
+    pbc_ = coord.pbc_;
+    copy_mat(coord.box_, box_);
 }
 
 void ColvarsOptions::setLogger(const MDLogger& logger)
@@ -254,12 +254,12 @@ void ColvarsOptions::processTprFilename(const MdRunInputFilename& tprFilename)
     GMX_RELEASE_ASSERT(!tprFilename.mdRunFilename_.empty(),
                        "Filename of the *.tpr simulation file is empty");
 
-    if (!output_prefix_.empty())
+    if (!outputPrefix_.empty())
     {
         return;
     }
 
-    output_prefix_ = stripExtension(std::filesystem::path(tprFilename.mdRunFilename_).filename());
+    outputPrefix_ = stripExtension(std::filesystem::path(tprFilename.mdRunFilename_).filename());
 }
 
 
@@ -267,11 +267,11 @@ void ColvarsOptions::processTemperature(const EnsembleTemperature& temp)
 {
     if (temp.constantEnsembleTemperature_)
     {
-        ensembleTemperature = temp.constantEnsembleTemperature_.value();
+        ensembleTemperature_ = temp.constantEnsembleTemperature_.value();
     }
     else
     {
-        ensembleTemperature = -1;
+        ensembleTemperature_ = -1;
     }
 }
 
@@ -288,7 +288,7 @@ const std::string& ColvarsOptions::colvarsFileName() const
 
 const std::string& ColvarsOptions::colvarsConfigContent() const
 {
-    return colvarsConfigString;
+    return colvarsConfigString_;
 }
 
 const std::vector<RVec>& ColvarsOptions::colvarsAtomCoords() const
@@ -298,17 +298,17 @@ const std::vector<RVec>& ColvarsOptions::colvarsAtomCoords() const
 
 const std::string& ColvarsOptions::colvarsOutputPrefix() const
 {
-    return output_prefix_;
+    return outputPrefix_;
 }
 
 const real& ColvarsOptions::colvarsEnsTemp() const
 {
-    return ensembleTemperature;
+    return ensembleTemperature_;
 }
 
 const std::map<std::string, std::string>& ColvarsOptions::colvarsInputFiles() const
 {
-    return inputFiles;
+    return inputFiles_;
 }
 
 void ColvarsOptions::setParameters(const std::string&   colvarsfile,
@@ -319,11 +319,11 @@ void ColvarsOptions::setParameters(const std::string&   colvarsfile,
                                    real                 temperature)
 {
     colvarsFileName_ = colvarsfile;
-    gmx_atoms        = topology;
-    x                = coords;
-    pbc              = pbcType;
-    copy_mat(boxValues, box);
-    ensembleTemperature = temperature;
+    gmxAtoms_        = topology;
+    x_               = coords;
+    pbc_             = pbcType;
+    copy_mat(boxValues, box_);
+    ensembleTemperature_ = temperature;
 }
 
 

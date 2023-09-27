@@ -81,7 +81,7 @@ public:
     //! Return a vector of the colvars atoms coordinates
     std::vector<RVec> getColvarsCoords();
 
-    //! Save all input files of colvars into the KVT
+    //! Save all input files of colvars (outside the config file) in the tpr file through the key-value-tree
     bool inputStreamsToKVT(KeyValueTreeObjectBuilder treeBuilder, const std::string& tag);
 
 private:

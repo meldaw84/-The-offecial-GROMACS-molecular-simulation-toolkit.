@@ -124,30 +124,29 @@ class ColvarsForceProvider final : public ColvarProxyGromacs, public IForceProvi
 
 private:
     //! The total bias energy on all colvars atoms.
-    double bias_energy;
+    double biasEnergy;
 
     //! Is this a neighbor-search step?
-    bool gmx_bNS;
+    bool gmxBNS;
 
 
     // Node-local bookkepping data
     //! The colvars atom indices
-    std::unique_ptr<gmx::LocalAtomSet> colvars_atoms;
+    std::unique_ptr<gmx::LocalAtomSet> colvarsAtoms;
     //! Total number of Colvars atoms
-    int n_colvars_atoms = 0;
+    int nColvarsAtoms = 0;
     //! Unwrapped positions for all Colvars atoms, communicated to all nodes.
-    rvec* x_colvars_unwrapped = nullptr;
+    rvec* xColvars = nullptr;
     //! Shifts for all Colvars atoms, to make molecule(s) whole.
-    ivec* xa_shifts = nullptr;
+    ivec* xColvarsShifts = nullptr;
     //! Extra shifts since last DD step.
-    ivec* xa_eshifts = nullptr;
+    ivec* xColvarsEshifts = nullptr;
     //! Old positions for all Colvars atoms on master.
-    rvec* xa_old_whole = nullptr;
-    //! Position of each local atom in the collective array.
-    int* xa_ind = nullptr;
+    rvec* xColvarsOldWhole = nullptr;
     //! Bias forces on all Colvars atoms
-    rvec* f_colvars = nullptr;
+    rvec* fColvars = nullptr;
 
+    //! Struct holding the information stored in the checkpoint file
     ColvarsForceProviderState stateToCheckpoint_;
 
 
@@ -176,8 +175,8 @@ public:
     void calculateForces(const ForceProviderInput& forceProviderInput,
                          ForceProviderOutput*      forceProviderOutput) override;
 
-    // Compute virial tensor for position r and force f, and add to matrix vir
-    void add_virial_term(matrix vir, const rvec& f, const gmx::RVec& x);
+    //! Compute virial tensor for position r and force f, and add to matrix vir
+    void addVirialTerm(matrix vir, const rvec& f, const gmx::RVec& x);
 
     /*! \brief Write internal colvars data to checkpoint file.
      * \param[in] checkpointWriting enables writing to the Key-Value-Tree
@@ -198,7 +197,7 @@ public:
 
     //! From colvarproxy
 
-    /*! \brief add energy to the total count of bias energy bias_energy
+    /*! \brief add energy to the total count of bias energy biasEnergy
      * \param[in] energy the value of energy to add
      *
      */

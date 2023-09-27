@@ -155,8 +155,9 @@ public:
         // Load topology
         readConfAndTopology(tprName.c_str(), &fullTopology, &mtop, &pbcType, &coords, nullptr, box);
 
-        t_atoms atoms = gmx_mtop_global_atoms(mtop);
-        x             = gmx::constArrayRefFromArray(reinterpret_cast<gmx::RVec*>(coords), atoms.nr);
+        t_atoms              atoms = gmx_mtop_global_atoms(mtop);
+        ArrayRef<const RVec> x =
+                gmx::constArrayRefFromArray(reinterpret_cast<gmx::RVec*>(coords), atoms.nr);
 
         // Populate attributes outside the use of the defined callbacks.
         colvarsOptions_.setParameters(colvarsConfigFile, atoms, x, pbcType, box, 300);
@@ -164,8 +165,7 @@ public:
 
 
 protected:
-    ColvarsOptions       colvarsOptions_;
-    ArrayRef<const RVec> x;
+    ColvarsOptions colvarsOptions_;
 };
 
 

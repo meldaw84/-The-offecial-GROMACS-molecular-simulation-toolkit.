@@ -221,14 +221,14 @@ TEST_F(ColvarsForceProviderTest, SimpleInputs)
     checker.setDefaultTolerance(gmx::test::absoluteTolerance(0.001));
     checker.checkVector(atomCoords_[1], "Coords Atom 4");
 
-    const auto* const atom_ids = forceProvider.get_atom_ids();
-    checker.checkSequence(atom_ids->begin(), atom_ids->end(), "Index of colvars atoms");
+    const auto* const atomIds = forceProvider.get_atom_ids();
+    checker.checkSequence(atomIds->begin(), atomIds->end(), "Index of colvars atoms");
 
-    const auto* const atom_masses = forceProvider.get_atom_masses();
-    checker.checkSequence(atom_masses->begin(), atom_masses->end(), "Masses of colvars atoms");
+    const auto* const atomMasses = forceProvider.get_atom_masses();
+    checker.checkSequence(atomMasses->begin(), atomMasses->end(), "Masses of colvars atoms");
 
-    const auto* const atom_charges = forceProvider.get_atom_charges();
-    checker.checkSequence(atom_charges->begin(), atom_charges->end(), "Charges of colvars atoms");
+    const auto* const atomCharges = forceProvider.get_atom_charges();
+    checker.checkSequence(atomCharges->begin(), atomCharges->end(), "Charges of colvars atoms");
 }
 
 TEST_F(ColvarsForceProviderTest, WrongColvarsInput)

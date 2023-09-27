@@ -186,21 +186,21 @@ private:
 
 
     //! Content of the colvars config file
-    std::string colvarsConfigString;
+    std::string colvarsConfigString_;
     //! Topology of the system
-    t_atoms gmx_atoms;
+    t_atoms gmxAtoms_;
     //! Coordinates
-    ArrayRef<const RVec> x;
+    ArrayRef<const RVec> x_;
     //! PBC Type
-    PbcType pbc;
+    PbcType pbc_;
     //! Box
-    matrix box;
+    matrix box_;
     //! Vector with colvars atoms coordinates
     std::vector<RVec> colvarsAtomCoords_;
     //! Inputs files saved as strings inside KVT
-    std::map<std::string, std::string> inputFiles;
+    std::map<std::string, std::string> inputFiles_;
 
-    real ensembleTemperature;
+    real ensembleTemperature_;
 
 
     //! Logger instance
@@ -209,7 +209,7 @@ private:
     /*! \brief String containing the prefix for output colvars files
      * default value empty, means will be deduced from *.tpr name during mdrun
      */
-    std::string output_prefix_;
+    std::string outputPrefix_;
 };
 
 } // namespace gmx

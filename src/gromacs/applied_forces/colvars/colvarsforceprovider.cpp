@@ -162,15 +162,17 @@ ColvarsForceProvider::ColvarsForceProvider(const std::string&       colvarsConfi
 {
 
 
+    // From colvarproxy_system class
     // Total forces on each atom is not available in GROMACS
     total_force_requested = false;
 
     // Neighbor Search boolean activated during initialization
-    gmx_bNS = true;
+    gmxBNS = true;
 
     // Get GROMACS timestep (picosecond to femtosecond)
     set_integration_timestep(simulationTimeStep * 1000.0);
 
+    // From colvaproxy_io
     output_prefix_str = outputPrefix;
 
 
@@ -186,33 +188,33 @@ ColvarsForceProvider::ColvarsForceProvider(const std::string&       colvarsConfi
     if (MAIN(cr))
     {
         // Retrieve the number of colvar atoms
-        n_colvars_atoms = atoms_ids.size();
+        nColvarsAtoms = atoms_ids.size();
     }
 
     if (PAR(cr))
     {
         // Let the other nodes know the number of colvar atoms and their ids to construct a gmx::LocalAtomSet
-        block_bc(cr->mpi_comm_mygroup, n_colvars_atoms);
-        atoms_ids.resize(n_colvars_atoms);
-        nblock_bc(cr->mpi_comm_mygroup, n_colvars_atoms, atoms_ids.data());
+        block_bc(cr->mpi_comm_mygroup, nColvarsAtoms);
+        atoms_ids.resize(nColvarsAtoms);
+        nblock_bc(cr->mpi_comm_mygroup, nColvarsAtoms, atoms_ids.data());
 
         // Initialise atoms_new_colvar_forces on non-MAIN nodes
         if (!MAIN(cr))
         {
-            atoms_new_colvar_forces.resize(n_colvars_atoms);
+            atoms_new_colvar_forces.resize(nColvarsAtoms);
         }
     }
 
     // Cast int into Index of the indices for the localAtomSetManager->add() function
-    std::vector<Index> index_atoms(atoms_ids.begin(), atoms_ids.end());
-    colvars_atoms = std::make_unique<LocalAtomSet>(localAtomSetManager->add(index_atoms));
+    std::vector<Index> indexAtoms(atoms_ids.begin(), atoms_ids.end());
+    colvarsAtoms = std::make_unique<LocalAtomSet>(localAtomSetManager->add(indexAtoms));
 
 
-    snew(x_colvars_unwrapped, n_colvars_atoms);
-    snew(xa_shifts, n_colvars_atoms);
-    snew(xa_eshifts, n_colvars_atoms);
-    snew(f_colvars, n_colvars_atoms);
-    snew(xa_old_whole, n_colvars_atoms);
+    snew(xColvars, nColvarsAtoms);
+    snew(xColvarsShifts, nColvarsAtoms);
+    snew(xColvarsEshifts, nColvarsAtoms);
+    snew(fColvars, nColvarsAtoms);
+    snew(xColvarsOldWhole, nColvarsAtoms);
 
 
     // Check state status (did we read a cpt file?)
@@ -220,7 +222,7 @@ ColvarsForceProvider::ColvarsForceProvider(const std::string&       colvarsConfi
     {
         if (stateToCheckpoint_.stateRead_)
         {
-            if (stateToCheckpoint_.nColvarsAtoms_ != n_colvars_atoms)
+            if (stateToCheckpoint_.nColvarsAtoms_ != nColvarsAtoms)
             {
                 cvm::error(
                         "Number of colvars atoms in the .cpt file differs from the one in .tpr "
@@ -228,17 +230,17 @@ ColvarsForceProvider::ColvarsForceProvider(const std::string&       colvarsConfi
             }
 
             // Copy back the last whole positions from the .cpt file
-            for (int i = 0; i < n_colvars_atoms; i++)
+            for (int i = 0; i < nColvarsAtoms; i++)
             {
-                copy_rvec(stateToCheckpoint_.xOldWhole_[i], xa_old_whole[i]);
+                copy_rvec(stateToCheckpoint_.xOldWhole_[i], xColvarsOldWhole[i]);
             }
 
-            int error_code = colvarproxy::setup();
+            int errorCode = colvarproxy::setup();
             // Read input state file
-            error_code |= colvars->set_input_state_buffer(stateToCheckpoint_.colvarStateFile_);
-            error_code |= colvars->setup_input();
+            errorCode |= colvars->set_input_state_buffer(stateToCheckpoint_.colvarStateFile_);
+            errorCode |= colvars->setup_input();
 
-            if (error_code != COLVARS_OK)
+            if (errorCode != COLVARS_OK)
             {
                 error("Error when initializing Colvars module.");
             }
@@ -246,13 +248,13 @@ ColvarsForceProvider::ColvarsForceProvider(const std::string&       colvarsConfi
         else
         {
             // Initialize state variables
-            stateToCheckpoint_.nColvarsAtoms_ = n_colvars_atoms;
-            snew(stateToCheckpoint_.xOldWhole_, n_colvars_atoms);
+            stateToCheckpoint_.nColvarsAtoms_ = nColvarsAtoms;
+            snew(stateToCheckpoint_.xOldWhole_, nColvarsAtoms);
 
             // Use input coords for the last whole positions.
-            for (int i = 0; i < n_colvars_atoms; i++)
+            for (int i = 0; i < nColvarsAtoms; i++)
             {
-                copy_rvec(colvarsCoords[i], xa_old_whole[i]);
+                copy_rvec(colvarsCoords[i], xColvarsOldWhole[i]);
             }
         }
     }
@@ -261,7 +263,7 @@ ColvarsForceProvider::ColvarsForceProvider(const std::string&       colvarsConfi
     // // Communicate initial coordinates to all processes
     if (PAR(cr))
     {
-        nblock_bc(cr->mpi_comm_mygroup, n_colvars_atoms, xa_old_whole);
+        nblock_bc(cr->mpi_comm_mygroup, nColvarsAtoms, xColvarsOldWhole);
     }
 
 
@@ -290,11 +292,11 @@ ColvarsForceProvider::~ColvarsForceProvider()
         post_run();
         sfree(stateToCheckpoint_.xOldWhole_);
     }
-    sfree(x_colvars_unwrapped);
-    sfree(xa_shifts);
-    sfree(xa_eshifts);
-    sfree(f_colvars);
-    sfree(xa_old_whole);
+    sfree(xColvars);
+    sfree(xColvarsShifts);
+    sfree(xColvarsEshifts);
+    sfree(fColvars);
+    sfree(xColvarsOldWhole);
 }
 
 void ColvarsForceProvider::calculateForces(const ForceProviderInput& forceProviderInput,
@@ -302,14 +304,14 @@ void ColvarsForceProvider::calculateForces(const ForceProviderInput& forceProvid
 {
 
     // Construct t_pbc struct
-    set_pbc(&gmx_pbc, pbcType_, forceProviderInput.box_);
+    set_pbc(&gmxPbc_, pbcType_, forceProviderInput.box_);
 
     const t_commrec* cr = &(forceProviderInput.cr_);
     // Local atom coords
     const gmx::ArrayRef<const gmx::RVec> x = forceProviderInput.x_;
     // Local atom coords (coerced into into old gmx type)
-    const rvec* x_pointer = &(x.data()->as_vec());
-    const auto& box       = forceProviderInput.box_;
+    const rvec* xPointer = &(x.data()->as_vec());
+    const auto& box      = forceProviderInput.box_;
 
     colvars->it = forceProviderInput.step_;
 
@@ -317,16 +319,16 @@ void ColvarsForceProvider::calculateForces(const ForceProviderInput& forceProvid
     // Eventually there needs to be an interface to update local data upon neighbor search
     // We could check if by chance all atoms are in one node, and skip communication
     communicate_group_positions(cr,
-                                x_colvars_unwrapped,
-                                xa_shifts,
-                                xa_eshifts,
-                                gmx_bNS,
-                                x_pointer,
-                                colvars_atoms->numAtomsGlobal(),
-                                colvars_atoms->numAtomsLocal(),
-                                colvars_atoms->localIndex().data(),
-                                colvars_atoms->collectiveIndex().data(),
-                                xa_old_whole,
+                                xColvars,
+                                xColvarsShifts,
+                                xColvarsEshifts,
+                                gmxBNS,
+                                xPointer,
+                                colvarsAtoms->numAtomsGlobal(),
+                                colvarsAtoms->numAtomsLocal(),
+                                colvarsAtoms->localIndex().data(),
+                                colvarsAtoms->collectiveIndex().data(),
+                                xColvarsOldWhole,
                                 box);
 
 
@@ -351,19 +353,10 @@ void ColvarsForceProvider::calculateForces(const ForceProviderInput& forceProvid
         // Get the atom positions from the Gromacs array.
         for (size_t i = 0; i < atoms_ids.size(); i++)
         {
-            atoms_positions[i] = cvm::rvector(
-                    x_colvars_unwrapped[i][0], x_colvars_unwrapped[i][1], x_colvars_unwrapped[i][2]);
+            atoms_positions[i] = cvm::rvector(xColvars[i][0], xColvars[i][1], xColvars[i][2]);
         }
 
-        // // Get total forces if required (if available in future version of Gromacs)
-        // if (total_force_requested && cvm::step_relative() > 0) {
-        //   for (size_t i = 0; i < atoms_ids.size(); i++) {
-        //     size_t aid = atoms_ids[i];
-        //     atoms_total_forces[i] = cvm::rvector(f[aid][0], f[aid][1], f[aid][2]);
-        //   }
-        // }
-
-        bias_energy = 0.0;
+        biasEnergy = 0.0;
         // Call the collective variable module to fill atoms_new_colvar_forces
         if (colvars->calc() != COLVARS_OK)
         {
@@ -371,19 +364,19 @@ void ColvarsForceProvider::calculateForces(const ForceProviderInput& forceProvid
         }
 
         // Copy the forces to C array for broadcasting
-        for (int i = 0; i < n_colvars_atoms; i++)
+        for (int i = 0; i < nColvarsAtoms; i++)
         {
-            f_colvars[i][0] = atoms_new_colvar_forces[i].x;
-            f_colvars[i][1] = atoms_new_colvar_forces[i].y;
-            f_colvars[i][2] = atoms_new_colvar_forces[i].z;
+            fColvars[i][0] = atoms_new_colvar_forces[i].x;
+            fColvars[i][1] = atoms_new_colvar_forces[i].y;
+            fColvars[i][2] = atoms_new_colvar_forces[i].z;
         }
 
-        forceProviderOutput->enerd_.term[F_COM_PULL] += bias_energy;
+        forceProviderOutput->enerd_.term[F_COM_PULL] += biasEnergy;
 
         // Copy last whole positions into State struct.
-        for (int i = 0; i < n_colvars_atoms; i++)
+        for (int i = 0; i < nColvarsAtoms; i++)
         {
-            copy_rvec(xa_old_whole[i], stateToCheckpoint_.xOldWhole_[i]);
+            copy_rvec(xColvarsOldWhole[i], stateToCheckpoint_.xOldWhole_[i]);
         }
     } // MAIN node
 
@@ -391,33 +384,33 @@ void ColvarsForceProvider::calculateForces(const ForceProviderInput& forceProvid
     // Broadcast the forces to all the nodes
     if (PAR(cr))
     {
-        nblock_bc(cr->mpi_comm_mygroup, n_colvars_atoms, f_colvars);
+        nblock_bc(cr->mpi_comm_mygroup, nColvarsAtoms, fColvars);
     }
 
 
-    const gmx::ArrayRef<gmx::RVec>& f_out = forceProviderOutput->forceWithVirial_.force_;
-    matrix                          local_colvars_virial   = { { 0 } };
-    const auto&                     localcolvarsIndex      = colvars_atoms->localIndex();
-    const auto&                     collectivecolvarsIndex = colvars_atoms->collectiveIndex();
+    const gmx::ArrayRef<gmx::RVec>& fOut = forceProviderOutput->forceWithVirial_.force_;
+    matrix                          localColvarsVirial     = { { 0 } };
+    const auto&                     localcolvarsIndex      = colvarsAtoms->localIndex();
+    const auto&                     collectivecolvarsIndex = colvarsAtoms->collectiveIndex();
     // Loop through local atoms to aply the colvars forces
     for (gmx::Index l = 0; l < localcolvarsIndex.ssize(); l++)
     {
         /* Get the right index of the local colvars atoms */
-        int i_local = localcolvarsIndex[l];
+        int iLocal = localcolvarsIndex[l];
         /* Index of this local atom in the collective colvars atom arrays */
-        int i_colvars = collectivecolvarsIndex[l];
+        int iColvars = collectivecolvarsIndex[l];
         /* Add */
-        rvec_inc(f_out[i_local], f_colvars[i_colvars]);
-        add_virial_term(local_colvars_virial, f_colvars[i_colvars], x_colvars_unwrapped[i_colvars]);
+        rvec_inc(fOut[iLocal], fColvars[iColvars]);
+        addVirialTerm(localColvarsVirial, fColvars[iColvars], xColvars[iColvars]);
     }
 
-    forceProviderOutput->forceWithVirial_.addVirialContribution(local_colvars_virial);
+    forceProviderOutput->forceWithVirial_.addVirialContribution(localColvarsVirial);
 
     // Re-set the flag for proper update
-    gmx_bNS = false;
+    gmxBNS = false;
 }
 
-void ColvarsForceProvider::add_virial_term(matrix vir, const rvec& f, const gmx::RVec& x)
+void ColvarsForceProvider::addVirialTerm(matrix vir, const rvec& f, const gmx::RVec& x)
 {
     for (int j = 0; j < DIM; j++)
     {
@@ -428,10 +421,10 @@ void ColvarsForceProvider::add_virial_term(matrix vir, const rvec& f, const gmx:
     }
 }
 
-// Pass restraint energy value for current timestep to MD engine
+
 void ColvarsForceProvider::add_energy(cvm::real energy)
 {
-    bias_energy += energy;
+    biasEnergy += energy;
 }
 
 
@@ -445,7 +438,7 @@ void ColvarsForceProvider::writeCheckpointData(MDModulesWriteCheckpointData chec
 void ColvarsForceProvider::processAtomsRedistributedSignal(const MDModulesAtomsRedistributedSignal& /*signal*/)
 {
     // So far, just update the Neighbor Search boolean for the communicate_group_positions() in calculateForces()
-    gmx_bNS = true;
+    gmxBNS = true;
 }
 
 
