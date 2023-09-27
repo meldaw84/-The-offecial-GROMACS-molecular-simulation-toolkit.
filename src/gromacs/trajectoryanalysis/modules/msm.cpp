@@ -88,6 +88,7 @@ private:
     AnalysisDataPlotSettings  plotSettings_;
 
     std::string freeEnergyDataFileName_;
+    std::string clusterIndexFileName_;
 
     AnalysisData freeEnergies_;
 };
@@ -109,12 +110,29 @@ void MarkovModelModule::initOptions(IOptionsContainer* options, TrajectoryAnalys
 
     settings->setHelpText(desc);
 
-    options->addOption(FileNameOption("microfe")
+    // Same as in Paul's extract-clusters
+    options->addOption(FileNameOption("clusters")
+    // TODO: change Index to AtomIndex to avoid shadowing (see extract-clusters)
+                               .filetype(OptionFileType::Index)
+                               .inputFile()
+                               .required()
+                               .store(&clusterIndexFileName_)
+                               .defaultBasename("cluster")
+                               .description("Name of index file containing frame indices for each "
+                                            "cluster, obtained from gmx cluster -clndx."));
+
+    // TODO: add option to return stationary distribution?
+    options->addOption(FileNameOption("energy")
                                .filetype(OptionFileType::Plot)
                                .outputFile()
                                .store(&freeEnergyDataFileName_)
-                               .defaultBasename("microfe")
+                               .defaultBasename("energy")
                                .description("Free energies for each microstate"));
+
+    // TODO: implement option to output TPM/TCM
+    // TODO: implement option to output transition rates
+    // TODO: implement option to output timescales
+    // TODO: implement option to output ITS test
 }
 
 void MarkovModelModule::optionsFinished(TrajectoryAnalysisSettings* settings)
@@ -137,22 +155,17 @@ void MarkovModelModule::finishAnalysis(int nframes)
 
 void MarkovModelModule::writeOutput()
 {
-    // TODO: This should not be here?
     // TODO: More of this should be taken as input later on
     int nstates = 4;
     int lag = 2;
     std::vector<int> traj = {0, 0, 0, 0, 0, 3, 3, 2};
     MarkovModel msm = MarkovModel(nstates);
+    msm.assignStatesToFrames();
     msm.countTransitions(traj, lag);
     msm.computeTransitionProbabilities();
     auto tpm = msm.transitionProbabilityMatrix;
     msm.diagonalizeMatrix(tpm);
     auto freeEnergies = msm.getStationaryDistributionFromEigenvector(TRUE);
-
-    printf("Free Energies:\n");
-    for (int i = 0; i < freeEnergies.size(); i++) {
-        printf("Element %lf\n", freeEnergies[i]);
-    }
 
     // Write data relevant for microstates
     registerAnalysisDataset(&freeEnergies_, "Free Energies of Microstates");
@@ -160,6 +173,9 @@ void MarkovModelModule::writeOutput()
     AnalysisDataPlotModulePointer plotm(new AnalysisDataPlotModule(plotSettings_));
     plotm->setFileName(freeEnergyDataFileName_);
     plotm->setTitle("Free Energies");
+    plotm->setXLabel("Microstate index");
+    // TODO: Fix Delta G here
+    plotm->setYLabel("D G (kT)");
 
     freeEnergies_.addModule(plotm);
     freeEnergies_.setDataSetCount(1);
@@ -169,11 +185,12 @@ void MarkovModelModule::writeOutput()
 
     // TODO: decide whether to have zero or one indexing for states
     // 1-indexing agrees with Paul's clustering method
+
+    // TODO: how to handle infinite free energies?
     for (int i = 0; i < nstates; ++i)
     {
         dh.startFrame(i, i + 1);
-        // TODO: set free energies here
-        dh.setPoint(0, 5);
+        dh.setPoint(0, freeEnergies[i]);
         dh.finishFrame();
     }
     dh.finishData();

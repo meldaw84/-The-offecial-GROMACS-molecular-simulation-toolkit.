@@ -71,45 +71,8 @@ MarkovModel::MarkovModel(int nstates)
     //eigenvectors.resize(nstates * nstates);
 }
 
-std::vector<real> MarkovModel::getStationaryDistributionFromEigenvector(bool asFreeEnergies)
-{
-    // Converts the first MSM eigenvector to a stationary
-    // distribution or free energy.
-    // TODO: Perhaps there's a cleaner way to handle this function argument?
-
-    // Find largest eigenvalue
-    int maxIndex = max_element(eigenvalues.begin(),eigenvalues.end()) - eigenvalues.begin();
-
-    // Find corresponding eigenvector
-    std::vector<real> stationaryDistribution = {eigenvectors.begin() + maxIndex * eigenvalues.size(), eigenvectors.begin() + (maxIndex + 1) * eigenvalues.size()};
-
-    float normalizationSum = 0;
-    for (int i = 0; i < stationaryDistribution.size(); i++) {
-        // Make sure all elements are non-negative
-        stationaryDistribution[i] = std::abs(stationaryDistribution[i]);
-        // Collect sum for normalization
-        normalizationSum += stationaryDistribution[i];
-    }
-
-    for (int i = 0; i < stationaryDistribution.size(); i++) {
-        // Make sure all elements are L1-normalized
-        stationaryDistribution[i] = stationaryDistribution[i]/normalizationSum;
-    }
-
-    if (asFreeEnergies){
-        float maxProb = *max_element(stationaryDistribution.begin(), stationaryDistribution.end());
-
-        // Calculate free energies
-        std::vector<real> freeEnergies(stationaryDistribution.size());
-        for (int i = 0; i < freeEnergies.size(); i++) {
-            // Convert all elements to free energies (unit: kT)
-            freeEnergies[i] = -log(stationaryDistribution[i]/maxProb);
-        }
-        return freeEnergies;
-    }
-    else{
-        return stationaryDistribution;
-    }
+void MarkovModel::assignStatesToFrames(){
+    printf("Assign here!\n");
 }
 
 void MarkovModel::countTransitions(gmx::ArrayRef<int> discretizedTraj, int lag)
@@ -170,6 +133,47 @@ void MarkovModel::diagonalizeMatrix(MultiDimArray<std::vector<real>, extents<dyn
     // TODO: the eigensolver only works for symmetric matrices, we need to implement
     // a version that handles general matrices.
     eigensolver(transitionProbabilityMatrix.asView().data(), dim, 0, dim, eigenvalues.data(), eigenvectors.data());
+}
+
+std::vector<real> MarkovModel::getStationaryDistributionFromEigenvector(bool asFreeEnergies)
+{
+    // Converts the first MSM eigenvector to a stationary
+    // distribution or free energy.
+    // TODO: Perhaps there's a cleaner way to handle this function argument?
+
+    // Find largest eigenvalue
+    int maxIndex = max_element(eigenvalues.begin(),eigenvalues.end()) - eigenvalues.begin();
+
+    // Find corresponding eigenvector
+    std::vector<real> stationaryDistribution = {eigenvectors.begin() + maxIndex * eigenvalues.size(), eigenvectors.begin() + (maxIndex + 1) * eigenvalues.size()};
+
+    float normalizationSum = 0;
+    for (int i = 0; i < stationaryDistribution.size(); i++) {
+        // Make sure all elements are non-negative
+        stationaryDistribution[i] = std::abs(stationaryDistribution[i]);
+        // Collect sum for normalization
+        normalizationSum += stationaryDistribution[i];
+    }
+
+    for (int i = 0; i < stationaryDistribution.size(); i++) {
+        // Make sure all elements are L1-normalized
+        stationaryDistribution[i] = stationaryDistribution[i]/normalizationSum;
+    }
+
+    if (asFreeEnergies){
+        float maxProb = *max_element(stationaryDistribution.begin(), stationaryDistribution.end());
+
+        // Calculate free energies
+        std::vector<real> freeEnergies(stationaryDistribution.size());
+        for (int i = 0; i < freeEnergies.size(); i++) {
+            // Convert all elements to free energies (unit: kT)
+            freeEnergies[i] = -log(stationaryDistribution[i]/maxProb);
+        }
+        return freeEnergies;
+    }
+    else{
+        return stationaryDistribution;
+    }
 }
 
 // TODO: Let trajectoryanalysis handle this...
