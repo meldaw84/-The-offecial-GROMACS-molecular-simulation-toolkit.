@@ -241,9 +241,13 @@ struct PmeGpuKernelParamsBase
     int pipelineAtomEnd;
 
 #if GMX_NVSHMEM
+    /*! \brief PpRanksSendFInfo struct total size */
     int                            ppRanksInfoSize;
+    /*! \brief PpRanksSendFInfo struct containing each PP rank forces buffer offsets */
     DeviceBuffer<PpRanksSendFInfo> ppRanksInfo;
+    /*! \brief atomic counter used for tracking last processed block in pme gather kernel for each PP rank */
     DeviceBuffer<unsigned int>     perPpNumBlocksCnt;
+    /*! \brief sync object used for nvshmem pme-pp force comm */
     DeviceBuffer<uint64_t>         forcesSyncObj;
 #endif
 
