@@ -683,7 +683,7 @@ int gmx_pmeonly(struct gmx_pme_t**              pmeFromRunnerPtr,
                     deviceStreamManager->context(),
                     pme_pp->ppRanks);
 #if GMX_NVSHMEM
-            pmeFromRunner->gpu->ppRanksRef  = pme_pp->ppRanks;
+            pmeFromRunner->gpu->ppRanksRef = pme_pp->ppRanks;
 #endif
         }
         // TODO: Special PME-only constructor is used here. There is no mechanism to prevent from using the other constructor here.

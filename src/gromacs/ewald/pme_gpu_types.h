@@ -241,10 +241,10 @@ struct PmeGpuKernelParamsBase
     int pipelineAtomEnd;
 
 #if GMX_NVSHMEM
-    int ppRanksInfoSize;
+    int                            ppRanksInfoSize;
     DeviceBuffer<PpRanksSendFInfo> ppRanksInfo;
-    DeviceBuffer<unsigned int> perPpNumBlocksCnt;
-    DeviceBuffer<uint64_t> forcesSyncObj;
+    DeviceBuffer<unsigned int>     perPpNumBlocksCnt;
+    DeviceBuffer<uint64_t>         forcesSyncObj;
 #endif
 
     /* These texture objects are only used in CUDA and are related to the grid size. */

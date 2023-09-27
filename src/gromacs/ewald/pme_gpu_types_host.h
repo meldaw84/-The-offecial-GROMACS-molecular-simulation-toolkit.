@@ -59,9 +59,9 @@
 #include "gromacs/math/vectypes.h"
 #include "gromacs/utility/gmxmpi.h"
 
+#include "pme_force_sender_gpu.h"
 #include "pme_gpu_settings.h"
 #include "pme_gpu_staging.h"
-#include "pme_force_sender_gpu.h"
 
 
 #if GMX_GPU
@@ -89,7 +89,7 @@ typedef int PmeGpuKernelParams;
 struct DeviceInformation;
 
 /*! \libinternal
- * \brief Contains information about the PP ranks that partners this PME rank. 
+ * \brief Contains information about the PP ranks that partners this PME rank.
  * used in the pme gather kernel for nvshmem purpose*/
 struct PpRanksSendFInfo
 {
@@ -242,17 +242,16 @@ struct PmeGpu
     std::unique_ptr<PmeGpuHaloExchange> haloExchange;
 
 #if GMX_NVSHMEM
-    int nAtomsAlloc_symmetric;
-    gmx::ArrayRef<PpRanks> ppRanksRef;
+    int                           nAtomsAlloc_symmetric;
+    gmx::ArrayRef<PpRanks>        ppRanksRef;
     std::vector<PpRanksSendFInfo> ppRanksFInfo;
-    int ppRanksFInfoSize           = 0;
-    int ppRanksFInfoSizeAlloc      = 0;
-    int perPpNumBlocksCntSize      = 0;
-    int perPpNumBlocksCntSizeAlloc = 0;
-    int forcesSyncObjSize          = 0;
-    int forcesSyncObjSizeAlloc     = 0;
+    int                           ppRanksFInfoSize           = 0;
+    int                           ppRanksFInfoSizeAlloc      = 0;
+    int                           perPpNumBlocksCntSize      = 0;
+    int                           perPpNumBlocksCntSizeAlloc = 0;
+    int                           forcesSyncObjSize          = 0;
+    int                           forcesSyncObjSizeAlloc     = 0;
 #endif
-
 };
 
 #endif

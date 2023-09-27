@@ -54,7 +54,7 @@
 #include <memory>
 #include <optional>
 #if GMX_NVSHMEM
-#include <nvshmem.h>
+#    include <nvshmem.h>
 #endif
 
 #include "gromacs/commandline/filenm.h"

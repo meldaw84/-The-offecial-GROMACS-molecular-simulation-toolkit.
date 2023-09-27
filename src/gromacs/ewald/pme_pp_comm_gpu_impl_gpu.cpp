@@ -91,11 +91,13 @@ void PmePpCommGpu::Impl::reinit(int size)
     int numPpRanks = 0;
     MPI_Bcast(&numPpRanks, 1, MPI_INT, pmeRank_, comm_);
     // symmetric d_pmeForces_ allocation involving PME + PP ranks, this a collective call.
-    reallocateDeviceBufferNvShmem(&d_pmeForces_, size_all_reduce, &d_pmeForcesSize_, &d_pmeForcesSizeAlloc_, deviceContext_);
+    reallocateDeviceBufferNvShmem(
+            &d_pmeForces_, size_all_reduce, &d_pmeForcesSize_, &d_pmeForcesSizeAlloc_, deviceContext_);
     // symmetric buffer used for synchronization purpose 1 to be used to signal PME to PP rank of put,
     // and numPpRanks is intended to be used for each PP rank buffer consumption completion
     // signal to PME to allow to produce it again. this a collective call.
-    reallocateDeviceBufferNvShmem(&pmeForcesSyncObj, 1 + numPpRanks, &pmeForcesSyncObjSize_, &pmeForcesSyncObjSizeAlloc_, deviceContext_);
+    reallocateDeviceBufferNvShmem(
+            &pmeForcesSyncObj, 1 + numPpRanks, &pmeForcesSyncObjSize_, &pmeForcesSyncObjSizeAlloc_, deviceContext_);
 #else
     // Reallocate device buffer used for staging PME force
     reallocateDeviceBuffer(&d_pmeForces_, size, &d_pmeForcesSize_, &d_pmeForcesSizeAlloc_, deviceContext_);

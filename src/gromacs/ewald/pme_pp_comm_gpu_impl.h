@@ -186,8 +186,8 @@ private:
     int d_pmeForcesSizeAlloc_ = -1;
 #if GMX_NVSHMEM
     DeviceBuffer<uint64_t> pmeForcesSyncObj;
-    int  pmeForcesSyncObjSize_      = -1;
-    int  pmeForcesSyncObjSizeAlloc_ = -1;
+    int                    pmeForcesSyncObjSize_      = -1;
+    int                    pmeForcesSyncObjSizeAlloc_ = -1;
 #endif
     //! Event recorded when PME forces are ready on PME task
     GpuEventSynchronizer forcesReadySynchronizer_;
