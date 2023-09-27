@@ -242,13 +242,13 @@ struct PmeGpuKernelParamsBase
 
 #if GMX_NVSHMEM
     /*! \brief PpRanksSendFInfo struct total size */
-    int                            ppRanksInfoSize;
+    int ppRanksInfoSize;
     /*! \brief PpRanksSendFInfo struct containing each PP rank forces buffer offsets */
     DeviceBuffer<PpRanksSendFInfo> ppRanksInfo;
     /*! \brief atomic counter used for tracking last processed block in pme gather kernel for each PP rank */
-    DeviceBuffer<unsigned int>     perPpNumBlocksCnt;
+    DeviceBuffer<unsigned int> perPpNumBlocksCnt;
     /*! \brief sync object used for nvshmem pme-pp force comm */
-    DeviceBuffer<uint64_t>         forcesSyncObj;
+    DeviceBuffer<uint64_t> forcesSyncObj;
 #endif
 
     /* These texture objects are only used in CUDA and are related to the grid size. */

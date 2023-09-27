@@ -243,23 +243,23 @@ struct PmeGpu
 
 #if GMX_NVSHMEM
     /*! \brief symmetric value across PME+PP ranks of max num atoms to allocate */
-    int                           nAtomsAlloc_symmetric;
+    int nAtomsAlloc_symmetric;
     /*! \brief PpRanks struct reference */
-    gmx::ArrayRef<PpRanks>        ppRanksRef;
+    gmx::ArrayRef<PpRanks> ppRanksRef;
     /*! \brief PpRanksSendFInfo struct containing info about each PP rank offsets */
     std::vector<PpRanksSendFInfo> ppRanksFInfo;
     /*! \brief PpRanksSendFInfo struct allocation size tracker */
-    int                           ppRanksFInfoSize           = 0;
+    int ppRanksFInfoSize = 0;
     /*! \brief PpRanksSendFInfo struct allocation size tracker */
-    int                           ppRanksFInfoSizeAlloc      = 0;
+    int ppRanksFInfoSizeAlloc = 0;
     /*! \brief per pp rank atomic counter allocation size tracker */
-    int                           perPpNumBlocksCntSize      = 0;
+    int perPpNumBlocksCntSize = 0;
     /*! \brief per pp rank atomic counter allocation size tracker */
-    int                           perPpNumBlocksCntSizeAlloc = 0;
+    int perPpNumBlocksCntSizeAlloc = 0;
     /*! \brief sync object for nvshmem based pme-pp force comm allocation size tracker */
-    int                           forcesSyncObjSize          = 0;
+    int forcesSyncObjSize = 0;
     /*! \brief sync object for nvshmem based pme-pp force comm allocation size tracker */
-    int                           forcesSyncObjSizeAlloc     = 0;
+    int forcesSyncObjSizeAlloc = 0;
 #endif
 };
 
