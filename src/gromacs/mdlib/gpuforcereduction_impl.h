@@ -91,6 +91,10 @@ public:
      */
     void registerRvecForce(DeviceBuffer<Float3> forcePtr);
 
+#if GMX_NVSHMEM
+    void registerForceSyncObj(DeviceBuffer<uint64_t> syncObj);
+#endif
+
     /*! \brief Add a dependency for this force reduction
      *
      * \param [in] dependency   Dependency for this reduction
@@ -137,6 +141,10 @@ private:
     DeviceBuffer<RVec> nbnxmForceToAdd_;
     //! Rvec-format force to be added in this reduction
     DeviceBuffer<RVec> rvecForceToAdd_;
+#if GMX_NVSHMEM
+    //! nvshmem sync object used in forces reduction kernel
+    DeviceBuffer<uint64_t> forcesSyncObj;
+#endif
     //! event to be marked when reduction launch has been completed
     GpuEventSynchronizer* completionMarker_ = nullptr;
     //! The wallclock counter

@@ -61,6 +61,8 @@
 
 #include "pme_gpu_settings.h"
 #include "pme_gpu_staging.h"
+#include "pme_force_sender_gpu.h"
+
 
 #if GMX_GPU
 struct PmeGpuSpecific;
@@ -85,6 +87,21 @@ typedef int PmeGpuKernelParams;
 #endif
 
 struct DeviceInformation;
+
+/*! \libinternal
+ * \brief Contains information about the PP ranks that partners this PME rank. 
+ * used in the pme gather kernel for nvshmem purpose*/
+struct PpRanksSendFInfo
+{
+    //! The MPI rank ID of this partner PP rank.
+    int rankId = -1;
+    //! The number of atoms to communicate with this partner PP rank.
+    int numAtoms = -1;
+    //! starting offset of this PP rank in the larger force buffer
+    int startAtoms = -1;
+    //! end offset of this PP rank in the larger force buffer
+    int endAtoms = -1;
+};
 
 /*! \internal \brief
  * The PME GPU structure for all the data copied directly from the CPU PME structure.
@@ -223,6 +240,19 @@ struct PmeGpu
 
     /*! \brief The pointer to PME halo-exchange specific host-side data */
     std::unique_ptr<PmeGpuHaloExchange> haloExchange;
+
+#if GMX_NVSHMEM
+    int nAtomsAlloc_symmetric;
+    gmx::ArrayRef<PpRanks> ppRanksRef;
+    std::vector<PpRanksSendFInfo> ppRanksFInfo;
+    int ppRanksFInfoSize           = 0;
+    int ppRanksFInfoSizeAlloc      = 0;
+    int perPpNumBlocksCntSize      = 0;
+    int perPpNumBlocksCntSizeAlloc = 0;
+    int forcesSyncObjSize          = 0;
+    int forcesSyncObjSizeAlloc     = 0;
+#endif
+
 };
 
 #endif

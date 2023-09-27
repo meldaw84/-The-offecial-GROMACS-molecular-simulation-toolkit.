@@ -1283,6 +1283,9 @@ static void setupLocalGpuForceReduction(const gmx::MdrunScheduleWorkload* runSch
     DeviceBuffer<gmx::RVec> pmeForcePtr;
     GpuEventSynchronizer*   pmeSynchronizer     = nullptr;
     bool                    havePmeContribution = false;
+#if GMX_NVSHMEM
+    DeviceBuffer<uint64_t> pmeForceSyncObj;
+#endif
 
     if (runScheduleWork->simulationWork.haveGpuPmeOnPpRank())
     {
@@ -1292,6 +1295,9 @@ static void setupLocalGpuForceReduction(const gmx::MdrunScheduleWorkload* runSch
             pmeSynchronizer     = pme_gpu_get_f_ready_synchronizer(pmedata);
             havePmeContribution = true;
         }
+#if GMX_NVSHMEM
+        pmeForceSyncObj = pmePpCommGpu->getGpuForceSyncObj();
+#endif
     }
     else if (runScheduleWork->simulationWork.useGpuPmePpCommunication)
     {
@@ -1309,6 +1315,9 @@ static void setupLocalGpuForceReduction(const gmx::MdrunScheduleWorkload* runSch
     if (havePmeContribution)
     {
         gpuForceReduction->registerRvecForce(pmeForcePtr);
+#if GMX_NVSHMEM
+        gpuForceReduction->registerForceSyncObj(pmeForceSyncObj);
+#endif
         if (!runScheduleWork->simulationWork.useGpuPmePpCommunication || GMX_THREAD_MPI)
         {
             GMX_ASSERT(pmeSynchronizer != nullptr, "PME force ready cuda event should not be NULL");

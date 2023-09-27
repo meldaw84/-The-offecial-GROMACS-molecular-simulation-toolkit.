@@ -240,6 +240,13 @@ struct PmeGpuKernelParamsBase
     /*! \brief End atom for this stage of pipeline */
     int pipelineAtomEnd;
 
+#if GMX_NVSHMEM
+    int ppRanksInfoSize;
+    DeviceBuffer<PpRanksSendFInfo> ppRanksInfo;
+    DeviceBuffer<unsigned int> perPpNumBlocksCnt;
+    DeviceBuffer<uint64_t> forcesSyncObj;
+#endif
+
     /* These texture objects are only used in CUDA and are related to the grid size. */
     /*! \brief Texture object for accessing grid.d_fractShiftsTable */
     HIDE_FROM_OPENCL_COMPILER(DeviceTexture) fractShiftsTableTexture;

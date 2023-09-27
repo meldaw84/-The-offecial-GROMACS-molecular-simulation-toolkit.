@@ -119,6 +119,13 @@ public:
      */
     GpuEventSynchronizer* getForcesReadySynchronizer();
 
+#if GMX_NVSHMEM
+    /*! \brief
+     * Return pointer to NVSHMEM sync object used for staging PME force on GPU
+     */
+    DeviceBuffer<uint64_t> getGpuForceSyncObj();
+#endif
+
 private:
     /*! \brief Receive buffer from GPU memory on PME rank to either
      * GPU or CPU memory on PP rank. Data is pushed from PME force
@@ -177,6 +184,11 @@ private:
     int d_pmeForcesSize_ = -1;
     //! number of atoms allocated in recvbuf array
     int d_pmeForcesSizeAlloc_ = -1;
+#if GMX_NVSHMEM
+    DeviceBuffer<uint64_t> pmeForcesSyncObj;
+    int  pmeForcesSyncObjSize_      = -1;
+    int  pmeForcesSyncObjSizeAlloc_ = -1;
+#endif
     //! Event recorded when PME forces are ready on PME task
     GpuEventSynchronizer forcesReadySynchronizer_;
     //! Event recorded when coordinates have been transferred to PME task

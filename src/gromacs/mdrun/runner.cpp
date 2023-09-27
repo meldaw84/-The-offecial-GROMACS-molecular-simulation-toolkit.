@@ -53,6 +53,9 @@
 #include <algorithm>
 #include <memory>
 #include <optional>
+#if GMX_NVSHMEM
+#include <nvshmem.h>
+#endif
 
 #include "gromacs/commandline/filenm.h"
 #include "gromacs/domdec/builder.h"
@@ -2008,6 +2011,14 @@ int Mdrunner::mdrunner()
             GMX_CATCH_ALL_AND_EXIT_WITH_FATAL_ERROR
         }
     }
+#if GMX_NVSHMEM
+    nvshmemx_init_attr_t attr;
+    attr.mpi_comm = (void*)&cr->mpiDefaultCommunicator;
+
+    int ret = nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
+
+    GMX_RELEASE_ASSERT(ret == 0, "NVSHMEM init failed");
+#endif
 
     /* Set thread affinity after gmx_pme_init(), otherwise with cuFFTMp the NVSHMEM helper thread
      * can be pinned to the same core as the PME thread, causing performance degradation.

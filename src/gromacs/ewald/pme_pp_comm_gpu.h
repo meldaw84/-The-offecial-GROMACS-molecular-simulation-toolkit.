@@ -118,6 +118,10 @@ public:
      */
     GpuEventSynchronizer* getForcesReadySynchronizer();
 
+#if GMX_NVSHMEM
+    DeviceBuffer<uint64_t> getGpuForceSyncObj();
+#endif
+
 private:
     class Impl;
     std::unique_ptr<Impl> impl_;

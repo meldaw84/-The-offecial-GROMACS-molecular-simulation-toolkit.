@@ -85,9 +85,21 @@ PmePpCommGpu::Impl::~Impl()
 
 void PmePpCommGpu::Impl::reinit(int size)
 {
+#if GMX_NVSHMEM
+    int size_all_reduce = 0;
+    MPI_Allreduce(&size, &size_all_reduce, 1, MPI_INT, MPI_MAX, comm_);
+    int numPpRanks = 0;
+    MPI_Bcast(&numPpRanks, 1, MPI_INT, pmeRank_, comm_);
+    // symmetric d_pmeForces_ allocation involving PME + PP ranks, this a collective call.
+    reallocateDeviceBufferNvShmem(&d_pmeForces_, size_all_reduce, &d_pmeForcesSize_, &d_pmeForcesSizeAlloc_, deviceContext_);
+    // symmetric buffer used for synchronization purpose 1 to be used to signal PME to PP rank of put,
+    // and numPpRanks is intended to be used for each PP rank buffer consumption completion
+    // signal to PME to allow to produce it again. this a collective call.
+    reallocateDeviceBufferNvShmem(&pmeForcesSyncObj, 1 + numPpRanks, &pmeForcesSyncObjSize_, &pmeForcesSyncObjSizeAlloc_, deviceContext_);
+#else
     // Reallocate device buffer used for staging PME force
     reallocateDeviceBuffer(&d_pmeForces_, size, &d_pmeForcesSize_, &d_pmeForcesSizeAlloc_, deviceContext_);
-
+#endif
     // This rank will access PME rank memory directly, so needs to receive the remote PME buffer addresses.
 #if GMX_THREAD_MPI
     if (GMX_THREAD_MPI)
@@ -246,6 +258,13 @@ GpuEventSynchronizer* PmePpCommGpu::Impl::getForcesReadySynchronizer()
     }
 }
 
+#if GMX_NVSHMEM
+DeviceBuffer<uint64_t> PmePpCommGpu::Impl::getGpuForceSyncObj()
+{
+    return pmeForcesSyncObj;
+}
+#endif
+
 PmePpCommGpu::PmePpCommGpu(MPI_Comm                    comm,
                            int                         pmeRank,
                            gmx::HostVector<gmx::RVec>* pmeCpuForceBuffer,
@@ -288,5 +307,12 @@ GpuEventSynchronizer* PmePpCommGpu::getForcesReadySynchronizer()
 {
     return impl_->getForcesReadySynchronizer();
 }
+
+#if GMX_NVSHMEM
+DeviceBuffer<uint64_t> PmePpCommGpu::getGpuForceSyncObj()
+{
+    return impl_->getGpuForceSyncObj();
+}
+#endif
 
 } // namespace gmx

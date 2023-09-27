@@ -238,6 +238,12 @@ void pme_gpu_free_bspline_values(const PmeGpu* pmeGpu)
 
 void pme_gpu_realloc_forces(PmeGpu* pmeGpu)
 {
+#if GMX_NVSHMEM
+    // symmetric d_forces allocation involving PME + PP ranks, this a collective call.
+    reallocateDeviceBufferNvShmem(&pmeGpu->kernelParams->atoms.d_forces, pmeGpu->nAtomsAlloc_symmetric,
+                             &pmeGpu->archSpecific->forcesSize, &pmeGpu->archSpecific->forcesSizeAlloc,
+                              pmeGpu->archSpecific->deviceContext_);
+#else
     const size_t newForcesSize = pmeGpu->nAtomsAlloc;
     GMX_ASSERT(newForcesSize > 0, "Bad number of atoms in PME GPU");
     reallocateDeviceBuffer(&pmeGpu->kernelParams->atoms.d_forces,
@@ -245,6 +251,7 @@ void pme_gpu_realloc_forces(PmeGpu* pmeGpu)
                            &pmeGpu->archSpecific->forcesSize,
                            &pmeGpu->archSpecific->forcesSizeAlloc,
                            pmeGpu->archSpecific->deviceContext_);
+#endif
     pmeGpu->staging.h_forces.reserveWithPadding(pmeGpu->nAtomsAlloc);
     pmeGpu->staging.h_forces.resizeWithPadding(pmeGpu->kernelParams->atoms.nAtoms);
 }
@@ -1414,6 +1421,59 @@ void pme_gpu_reinit_atoms(PmeGpu* pmeGpu, const int nAtoms, const real* chargesA
     const auto atomsPerWarp                 = pme_gpu_get_atoms_per_warp(pmeGpu);
     const int  nWarps                       = ((nAtoms + atomsPerWarp - 1) / atomsPerWarp);
     pmeGpu->archSpecific->splineCountActive = DIM * nWarps * atomsPerWarp * pmeGpu->common->pme_order;
+
+#if GMX_NVSHMEM
+    // find the max nAtomsAlloc among all the ranks for symmetric forces buffer allocation.
+    MPI_Allreduce(&pmeGpu->nAtomsAlloc, &pmeGpu->nAtomsAlloc_symmetric, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+    int myRank = -1;
+    int numPpRanks = pmeGpu->ppRanksRef.size();
+    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+    MPI_Bcast(&numPpRanks, 1, MPI_INT, myRank, MPI_COMM_WORLD);
+
+    pme_gpu_realloc_forces(pmeGpu);
+    // symmetric buffer allocation used for synchronization purpose
+    // 1 to be used to signal PME to PP rank of put, and 
+    // numPpRanks is intended to be used for each PP rank buffer consumption completion
+    // signal to PME to allow to produce it again.
+    reallocateDeviceBufferNvShmem(&pmeGpu->kernelParams->forcesSyncObj, 1 + numPpRanks,
+                             &pmeGpu->forcesSyncObjSize, &pmeGpu->forcesSyncObjSizeAlloc,
+                              pmeGpu->archSpecific->deviceContext_);
+    int ind_start = 0, ind_end = 0;
+
+    pmeGpu->ppRanksFInfo.resize(pmeGpu->ppRanksRef.size());
+
+    // prepare the ppRanksFInfo struct for sending it to gpu.
+    int temp_idx = 0;
+    for (const auto& receiver : pmeGpu->ppRanksRef)
+    {
+        ind_start = ind_end;
+        ind_end   = ind_start + receiver.numAtoms;
+        pmeGpu->ppRanksFInfo[temp_idx] = {receiver.rankId, receiver.numAtoms, ind_start, ind_end};
+        temp_idx++;
+    }
+    reallocateDeviceBuffer(&kernelParamsPtr->ppRanksInfo,
+                        pmeGpu->ppRanksFInfo.size(),
+                        &pmeGpu->ppRanksFInfoSize,
+                        &pmeGpu->ppRanksFInfoSizeAlloc,
+                        pmeGpu->archSpecific->deviceContext_);
+    copyToDeviceBuffer(&kernelParamsPtr->ppRanksInfo,
+                        pmeGpu->ppRanksFInfo.data(),
+                        0,
+                        pmeGpu->ppRanksFInfo.size(),
+                        pmeGpu->archSpecific->pmeStream_,
+                        GpuApiCallBehavior::Async,
+                        nullptr);
+    reallocateDeviceBuffer(&kernelParamsPtr->perPpNumBlocksCnt,
+                        pmeGpu->ppRanksFInfo.size(),
+                        &pmeGpu->perPpNumBlocksCntSize,
+                        &pmeGpu->perPpNumBlocksCntSizeAlloc,
+                        pmeGpu->archSpecific->deviceContext_);
+    clearDeviceBufferAsync(&kernelParamsPtr->perPpNumBlocksCnt,
+                            0,
+                            pmeGpu->ppRanksFInfo.size(),
+                            pmeGpu->archSpecific->pmeStream_);
+    kernelParamsPtr->ppRanksInfoSize = pmeGpu->ppRanksFInfo.size();
+#endif
 
 #if GMX_DOUBLE
     GMX_RELEASE_ASSERT(false, "Only single precision supported");
