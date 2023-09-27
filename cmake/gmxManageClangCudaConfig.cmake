@@ -53,14 +53,14 @@ endif()
 # Clang 16 supports CUDA SDK 7.0-11.8; Clang 17 supports CUDA SDK 12.1;
 # GROMACS requires CUDA 11.0, so no need to check for earlier versions
 set(_cuda_version_warning "")
-if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS_EQUAL 13.0)
+if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 14.0)
     set(_cuda_version_warning "officially incompatible")
 elseif ((CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 17.0) OR (CUDA_VERSION VERSION_GREATER 12.1))
     # We don't know the future; so far Clang, 17 state that CUDA 7.0-12.1 are supported.
     set(_cuda_version_warning "possibly incompatible")
-elseif ((CMAKE_CXX_COMPILER_VERSION VERSION_LESS_EQUAL 15.0) AND (CUDA_VERSION VERSION_GREATER 11.5))
+elseif ((CMAKE_CXX_COMPILER_VERSION VERSION_LESS 16.0) AND (CUDA_VERSION VERSION_GREATER 11.5))
     set(_cuda_version_warning "officially incompatible (but likely working)")
-elseif ((CMAKE_CXX_COMPILER_VERSION VERSION_LESS_EQUAL 16.0) AND (CUDA_VERSION VERSION_GREATER 11.8))
+elseif ((CMAKE_CXX_COMPILER_VERSION VERSION_LESS 17.0) AND (CUDA_VERSION VERSION_GREATER 11.8))
     set(_cuda_version_warning "officially incompatible (but likely working)")
 endif()
 if(NOT CUDA_CLANG_WARNING_DISPLAYED STREQUAL _cuda_version_warning)
