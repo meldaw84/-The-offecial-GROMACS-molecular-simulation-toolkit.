@@ -154,7 +154,7 @@ void MarkovModelModule::optionsFinished(TrajectoryAnalysisSettings* settings)
     // TODO: More of this should be taken as input later on
     //int nstates = 4;
     //int lag = 2;
-    MarkovModel msm = MarkovModel(4);
+    //MarkovModel msm = MarkovModel();
 }
 
 // Initialize analysis
@@ -180,7 +180,9 @@ void MarkovModelModule::writeOutput()
     int nstates = 4;
     int lag = 2;
     std::vector<int> traj = {0, 0, 0, 0, 0, 3, 3, 2};
-    MarkovModel msm = MarkovModel(nstates);
+    //MarkovModel msm = MarkovModel(nstates);
+    MarkovModel msm = MarkovModel();
+    msm.initializeMarkovModel(nstates);
     msm.assignStatesToFrames();
     msm.countTransitions(traj, lag);
     msm.computeTransitionProbabilities();

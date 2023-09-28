@@ -56,19 +56,13 @@
 namespace gmx
 {
 
-// Constructor
-MarkovModel::MarkovModel(int nstates)
+MarkovModel::MarkovModel()
 {
-    // TODO: scan clustered trajectory of highest state value?
-    // TODO: use brace initialization?
+}
 
-    // Initialize the TCM and TPM and set the size
+void MarkovModel::initializeMarkovModel(int nstates){
     transitionCountsMatrix.resize(nstates, nstates);
     transitionProbabilityMatrix.resize(nstates, nstates);
-
-    // Initialize eigenvalues and eigenvectors here?
-    //eigenvalues.resize(nstates);
-    //eigenvectors.resize(nstates * nstates);
 }
 
 void MarkovModel::assignStatesToFrames(){

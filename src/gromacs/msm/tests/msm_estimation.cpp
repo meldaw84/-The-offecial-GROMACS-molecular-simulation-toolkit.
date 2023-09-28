@@ -68,7 +68,9 @@ TEST_F(MsmTest, TransitionCountingTest)
     std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
     //std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
 
-    MarkovModel countTestMsm = MarkovModel(4);
+    //MarkovModel countTestMsm = MarkovModel(4);
+    MarkovModel countTestMsm = MarkovModel();
+    countTestMsm.initializeMarkovModel(4);
 
     countTestMsm.countTransitions(discretizedTraj, 1);
     auto& transitions = countTestMsm.transitionCountsMatrix;
@@ -92,7 +94,9 @@ TEST_F(MsmTest, TransitionProbabilityTest)
 {
     std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2};
     //std::vector<int> discretizedTraj = {0, 1, 3, 2, 3, 3, 3, 2};
-    MarkovModel tpmTestMsm = MarkovModel(4);
+    //MarkovModel tpmTestMsm = MarkovModel(4);
+    MarkovModel tpmTestMsm = MarkovModel();
+    tpmTestMsm.initializeMarkovModel(4);
     tpmTestMsm.countTransitions(discretizedTraj, 1);
 
     tpmTestMsm.computeTransitionProbabilities();
@@ -118,7 +122,9 @@ TEST_F(MsmTest, DiagonalizationTest)
     std::vector<int> discretizedTraj = {0, 0, 0, 0, 0, 3, 3, 2}; //runs, should get eigenvalues (0.8, 0.5, 0, 0)
     //std::vector<int> discretizedTraj = {2, 2, 0, 0, 0, 3, 3, 2}; //runs
     //std::vector<int> discretizedTraj = {0, 1, 1, 2, 3, 3, 3, 2}; // previous floating point exception
-    MarkovModel diagTestMsm = MarkovModel(4);
+    //MarkovModel diagTestMsm = MarkovModel(4);
+    MarkovModel diagTestMsm = MarkovModel();
+    diagTestMsm.initializeMarkovModel(4);
     diagTestMsm.countTransitions(discretizedTraj, 1);
     diagTestMsm.computeTransitionProbabilities();
 

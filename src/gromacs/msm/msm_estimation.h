@@ -56,7 +56,8 @@ class MarkovModel
         // TODO: make class members private?
     public:
         // Attributes
-        MarkovModel(int nstates);
+        //MarkovModel(int nstates);
+        MarkovModel();
         MultiDimArray<std::vector<int>, extents<dynamic_extent, dynamic_extent>> transitionCountsMatrix;
         MultiDimArray<std::vector<real>, extents<dynamic_extent, dynamic_extent>> transitionProbabilityMatrix;
         std::vector<real> eigenvalues;
@@ -65,6 +66,7 @@ class MarkovModel
         std::vector<real> eigenvectors;
 
         // Methods
+        void initializeMarkovModel(int nstates);
         void assignStatesToFrames();
         void computeTransitionProbabilities();
         std::vector<real> getStationaryDistributionFromEigenvector(bool asFreeEnergies);
