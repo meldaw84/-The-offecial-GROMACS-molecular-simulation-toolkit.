@@ -176,14 +176,4 @@ std::vector<real> MarkovModel::getStationaryDistributionFromEigenvector(bool asF
     }
 }
 
-// TODO: Let trajectoryanalysis handle this...
-void MarkovModel::WriteOutput()
-{
-    // Output to be generated:
-    //      * Eigenvalues/timescales in a list (XVG) [Process ID, ITS, eigenvalue]
-    //      * Eigenvectors (XVG), what format?
-    //      * Free energies (XVG) [state, free energy]
-    //      * Log file
-}
-
 } // namespace gmx

@@ -56,6 +56,10 @@
 #include "gromacs/utility/filestream.h"
 #include "gromacs/utility/loggerbuilder.h"
 
+// For clustering, move later?
+#include "gromacs/topology/index.h"
+
+
 namespace gmx
 {
 
@@ -79,18 +83,22 @@ public:
     void optionsFinished(TrajectoryAnalysisSettings* settings) override;
     void initAnalysis(const TrajectoryAnalysisSettings& settings, const TopologyInformation& top) override;
     void analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* pbc, TrajectoryAnalysisModuleData* pdata) override;
-
     void finishAnalysis(int nframes) override;
     void writeOutput() override;
 
 private:
-    std::unique_ptr<LoggerOwner>    loggerOwner_;
-    AnalysisDataPlotSettings  plotSettings_;
+    std::unique_ptr<LoggerOwner> loggerOwner_;
+    AnalysisDataPlotSettings plotSettings_;
 
     std::string freeEnergyDataFileName_;
     std::string clusterIndexFileName_;
 
+    std::optional<t_cluster_ndx> clusterIndex_;
     AnalysisData freeEnergies_;
+
+    // TODO: take nstates as input
+    // TODO: we want to instantiate MSM after parsing the clustering data
+    //MarkovModel* msmCallback;
 };
 
 MarkovModelModule::MarkovModelModule()
@@ -101,6 +109,7 @@ MarkovModelModule::MarkovModelModule()
     loggerOwner_ = std::make_unique<LoggerOwner>(builder.build());
 }
 
+// Create selelction variables here and they will be parsed
 void MarkovModelModule::initOptions(IOptionsContainer* options, TrajectoryAnalysisSettings* settings)
 {
     // TODO: Write documentation!
@@ -135,15 +144,28 @@ void MarkovModelModule::initOptions(IOptionsContainer* options, TrajectoryAnalys
     // TODO: implement option to output ITS test
 }
 
+// After parsing (command-line or files but not interactive), adjust selections
+// The interactive prompt will be shown after this function returns
 void MarkovModelModule::optionsFinished(TrajectoryAnalysisSettings* settings)
 {
+    clusterIndex_ = cluster_index(nullptr, clusterIndexFileName_.c_str());
+    // TODO: parse out nstates from data
+
+    // TODO: More of this should be taken as input later on
+    //int nstates = 4;
+    //int lag = 2;
+    MarkovModel msm = MarkovModel(4);
 }
 
+// Initialize analysis
+// TODO: create MSM here?
 void MarkovModelModule::initAnalysis(const TrajectoryAnalysisSettings& settings, const TopologyInformation& top)
 {
     plotSettings_ = settings.plotSettings();
 }
 
+// TODO: Call the state assignment here?
+// TODO: Call transition counting here?
 void MarkovModelModule::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* /* pbc */, TrajectoryAnalysisModuleData* /*pdata*/)
 {
     printf("Doing stuff for every frame!\n");
@@ -155,7 +177,6 @@ void MarkovModelModule::finishAnalysis(int nframes)
 
 void MarkovModelModule::writeOutput()
 {
-    // TODO: More of this should be taken as input later on
     int nstates = 4;
     int lag = 2;
     std::vector<int> traj = {0, 0, 0, 0, 0, 3, 3, 2};
