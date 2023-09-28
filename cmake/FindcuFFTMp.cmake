@@ -73,11 +73,6 @@ find_library(cuFFTMp_LIBRARY
     ${PC_cuFFTMp_LIBRARY_DIRS}
     )
 
-# Due to the non-standard behavior of ld.bfd linker we make use of
-# gold linker, more details about this issue on this link -
-# https://gitlab.com/gromacs/gromacs/-/merge_requests/3779#note_1571423688
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-ld=gold")
-
 # handle the QUIETLY and REQUIRED arguments and set cuFFTMp_FOUND to TRUE if
 # all listed variables are TRUE
 include(FindPackageHandleStandardArgs)
