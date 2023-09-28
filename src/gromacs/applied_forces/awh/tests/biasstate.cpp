@@ -49,6 +49,8 @@
 #include "gromacs/math/functions.h"
 #include "gromacs/mdtypes/awh_params.h"
 #include "gromacs/utility/arrayref.h"
+#include "gromacs/fileio/xvgr.h"
+#include "gromacs/utility/stringutil.h"
 
 #include "testutils/testasserts.h"
 #include "testutils/testfilemanager.h"
@@ -109,6 +111,71 @@ public:
     }
 };
 
+/*! \brief Test user input data reading
+ */
+class UserInputTest : public ::testing::TestWithParam<const char*>
+{
+private:
+    std::unique_ptr<AwhTestParameters> params_;
+
+public:
+    std::unique_ptr<BiasGrid>  grid_;
+    std::vector<int> gridIndexToDataIndex_;
+    gmx::MultiDimArray<std::vector<double>, gmx::dynamicExtents2D> data_;
+    int                     numColumns_;
+    int                     numRows_;
+    std::string             filename_;
+
+    UserInputTest()
+    {
+        std::vector<std::vector<char>> awhDimParameters;
+        AwhCoordinateProviderType      coordinateProvider = AwhCoordinateProviderType::Pull;
+        double                         diffusion          = 0.1;
+        {
+            int    coordIndex = 0;
+            double origin     = 0.5;
+            double end        = 1.5;
+            double period     = 0;
+            awhDimParameters.emplace_back(awhDimParamSerialized(
+                    coordinateProvider, coordIndex, origin, end, period, diffusion));
+        }
+        {
+            int    coordIndex = 1;
+            double origin     = 0.8;
+            double end        = 1.3;
+            double period     = 0;
+            awhDimParameters.emplace_back(awhDimParamSerialized(
+                    coordinateProvider, coordIndex, origin, end, period, diffusion));
+        }
+        {
+            int    coordIndex = 2;
+            double origin     = 0.5;
+            double end        = 1.0;
+            double period     = 0;
+            awhDimParameters.emplace_back(awhDimParamSerialized(
+                    coordinateProvider, coordIndex, origin, end, period, diffusion));
+        }
+        params_                          = std::make_unique<AwhTestParameters>(getAwhTestParameters(
+                AwhHistogramGrowthType::Linear, AwhPotentialType::Convolved, awhDimParameters, true, 1.0, false, 0.5, 0));
+        const AwhParams&       awhParams = params_->awhParams;
+        const AwhBiasParams&   awhBiasParams = awhParams.awhBiasParams()[0];
+        std::vector<DimParams> dimParams;
+        dimParams.push_back(DimParams::pullDimParams(1.0, 15.0, params_->beta));
+        dimParams.push_back(DimParams::pullDimParams(1.0, 15.0, params_->beta));
+        dimParams.push_back(DimParams::pullDimParams(1.0, 15.0, params_->beta));
+        BiasGrid grid_(dimParams, awhBiasParams.dimParams());
+        std::vector<int> gridIndexToDataIndex_(grid_.numPoints());
+
+        // Here we initialize the grid point state using the input file
+        std::string filename_ = gmx::test::TestFileManager::getInputFilePath(GetParam()).u8string();
+    
+        data_ = readXvgData(filename_);
+        numColumns_ = data_.extent(0);
+        numRows_    = data_.extent(1);
+
+    }
+};
+
 TEST_P(BiasStateTest, InitializesFromFile)
 {
     gmx::ArrayRef<const PointState> points = biasState_->points();
@@ -127,11 +194,38 @@ TEST_P(BiasStateTest, InitializesFromFile)
     EXPECT_NEAR(0.0, msdPmf, 1e-31);
 }
 
+TEST_P(UserInputTest, UserInputData)
+{
+    const BiasGrid& grid = *grid_;
+    std::string correctFormatMessage = gmx::formatString(
+        "%s is expected in the following format. "
+        "The first ndim column(s) should contain the coordinate values for each point, "
+        "each column containing values of one dimension (in ascending order). "
+        "For a multidimensional coordinate, points should be listed "
+        "in the order obtained by traversing lower dimensions first. "
+        "E.g. for two-dimensional grid of size nxn: "
+        "(1, 1), (1, 2),..., (1, n), (2, 1), (2, 2), ..., , (n, n - 1), (n, n). "
+        "Column ndim +  1 should contain the PMF value for each coordinate value. "
+        "The target distribution values should be in column ndim + 2  or column ndim + 5. "
+        "Make sure the input file ends with a new line but has no trailing new lines. ",
+        filename_.c_str());
+    /* Get a data point for each AWH grid point so that they all get data. */
+    //EXPECT_NO_THROW(mapGridToDataGrid(&gridIndexToDataIndex_, data_, numRows_, filename_, grid, correctFormatMessage));
+    EXPECT_EQ(numRows_, 30);
+    EXPECT_EQ(numColumns_, 8);
+
+}
+
+
 // Test that Bias initialization open and reads the correct initialization
 // files and the correct PMF and target distribution is set.
 INSTANTIATE_TEST_SUITE_P(WithParameters,
                          BiasStateTest,
                          ::testing::Values("pmf_target_format0.xvg", "pmf_target_format1.xvg"));
+
+INSTANTIATE_TEST_SUITE_P(WithParameters,
+                         UserInputTest,
+                         ::testing::Values("pmf_target_format2.xvg"));
 
 } // namespace test
 } // namespace gmx
