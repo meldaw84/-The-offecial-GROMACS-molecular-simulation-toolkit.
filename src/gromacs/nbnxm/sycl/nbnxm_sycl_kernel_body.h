@@ -53,7 +53,21 @@
 template<bool doPruneNBL, bool doCalcEnergies, enum Nbnxm::ElecType elecType, enum Nbnxm::VdwType vdwType, int subGroupSize>
 class NbnxmKernel;
 
-struct FastFloat3
+/*! \brief Special packed Float3 flavor to help compiler optimizations on AMD CDNA2 devices.
+ *
+ * Full FP32 performance of AMD CDNA2 devices, like MI200-series, can only be achieved
+ * when operating on float2, in a SIMD2-fashion. Compiler (at least up to ROCm 5.6)
+ * can use packed math automatically for normal Float3, but generates a lot of
+ * data movement between normal and packed registers. Using this class helps avoid
+ * this problem.
+ *
+ * The approach is based on the similar solution used by AMD and StreamHPC in their port.
+ *
+ * \todo This class shall be removed as soon as the compiler is improved.
+ *
+ * See issue #4854 for more details.
+ */
+struct AmdPackedFloat3
 {
     typedef float __attribute__((ext_vector_type(2))) Native_float2_;
 
@@ -96,39 +110,39 @@ struct FastFloat3
     Native_float2_ xy() const { return xy_; }
     float          z() const { return z_; }
 
-    FastFloat3() = default;
+    AmdPackedFloat3() = default;
 
-    FastFloat3(float x, float y, float z) : xy_{ x, y }, z_{ z } {}
+    AmdPackedFloat3(float x, float y, float z) : xy_{ x, y }, z_{ z } {}
 
-    FastFloat3(Native_float2_ xy, float z) : xy_{ xy }, z_{ z } {}
+    AmdPackedFloat3(Native_float2_ xy, float z) : xy_{ xy }, z_{ z } {}
 
-    FastFloat3(Float3 r) : xy_{ r[0], r[1] }, z_{ r[2] } {}
+    AmdPackedFloat3(Float3 r) : xy_{ r[0], r[1] }, z_{ r[2] } {}
 
     explicit operator Float3() const { return Float3{ xy_.x, xy_.y, z_ }; }
 
-    FastFloat3& operator=(const FastFloat3& x)
+    AmdPackedFloat3& operator=(const AmdPackedFloat3& x)
     {
         xy_ = x.xy_;
         z_  = x.z_;
         return *this;
     }
 
-    //! Allow inplace addition for FastFloat3
-    FastFloat3& operator+=(const FastFloat3& right) { return *this = *this + right; }
-    //! Allow inplace subtraction for FastFloat3
-    FastFloat3& operator-=(const FastFloat3& right) { return *this = *this - right; }
+    //! Allow inplace addition for AmdPackedFloat3
+    AmdPackedFloat3& operator+=(const AmdPackedFloat3& right) { return *this = *this + right; }
+    //! Allow inplace subtraction for AmdPackedFloat3
+    AmdPackedFloat3& operator-=(const AmdPackedFloat3& right) { return *this = *this - right; }
     //! Allow vector addition
-    FastFloat3 operator+(const FastFloat3& right) const
+    AmdPackedFloat3 operator+(const AmdPackedFloat3& right) const
     {
         return { xy_ + right.xy(), z_ + right.z() };
     }
     //! Allow vector subtraction
-    FastFloat3 operator-(const FastFloat3& right) const
+    AmdPackedFloat3 operator-(const AmdPackedFloat3& right) const
     {
         return { xy_ - right.xy(), z_ - right.z() };
     }
     //! Scale vector by a scalar
-    FastFloat3& operator*=(const float& right)
+    AmdPackedFloat3& operator*=(const float& right)
     {
         xy_ *= right;
         z_ *= right;
@@ -139,18 +153,18 @@ struct FastFloat3
     float norm2() const { return dot(*this); }
 
     //! Return dot product
-    float dot(const FastFloat3& right) const
+    float dot(const AmdPackedFloat3& right) const
     {
         return x() * right.x() + y() * right.y() + z() * right.z();
     }
 };
-static_assert(sizeof(FastFloat3) == 12);
+static_assert(sizeof(AmdPackedFloat3) == 12);
 
-static FastFloat3 operator*(const FastFloat3& v, const float& s)
+static AmdPackedFloat3 operator*(const AmdPackedFloat3& v, const float& s)
 {
     return { v.xy() * s, v.z() * s };
 }
-static FastFloat3 operator*(const float& s, const FastFloat3& v)
+static AmdPackedFloat3 operator*(const float& s, const AmdPackedFloat3& v)
 {
     return { v.xy() * s, v.z() * s };
 }
@@ -1086,7 +1100,7 @@ static auto nbnxmKernel(sycl::handler& cgh,
         const unsigned imeiIdx = tidx / prunedClusterPairSize;
 
 #if defined(__SYCL_DEVICE_ONLY__) && defined(__AMDGCN__)
-        FastFloat3 fCiBuf_[c_nbnxnGpuNumClusterPerSupercluster]; // i force buffer
+        AmdPackedFloat3 fCiBuf_[c_nbnxnGpuNumClusterPerSupercluster]; // i force buffer
         for (int i = 0; i < c_nbnxnGpuNumClusterPerSupercluster; i++)
         {
             fCiBuf_[i] = { 0.0F, 0.0F, 0.0F };
@@ -1451,7 +1465,7 @@ static auto nbnxmKernel(sycl::handler& cgh,
                             fCjBuf -= forceIJ;
                             /* accumulate i forces in registers */
 #if defined(__SYCL_DEVICE_ONLY__) && defined(__AMDGCN__) && defined(__gfx90a__)
-                            fCiBuf_[i] += FastFloat3(forceIJ);
+                            fCiBuf_[i] += AmdPackedFloat3(forceIJ);
 #else
                             fCiBufX(i) += forceIJ[0];
                             fCiBufY(i) += forceIJ[1];
