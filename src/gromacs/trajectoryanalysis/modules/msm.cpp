@@ -93,12 +93,11 @@ private:
     std::string freeEnergyDataFileName_;
     std::string clusterIndexFileName_;
 
+    int nstates_;
     std::optional<t_cluster_ndx> clusterIndex_;
     AnalysisData freeEnergies_;
 
-    // TODO: take nstates as input
-    // TODO: we want to instantiate MSM after parsing the clustering data
-    //MarkovModel* msmCallback;
+    MarkovModel msm;
 };
 
 MarkovModelModule::MarkovModelModule()
@@ -149,16 +148,21 @@ void MarkovModelModule::initOptions(IOptionsContainer* options, TrajectoryAnalys
 void MarkovModelModule::optionsFinished(TrajectoryAnalysisSettings* settings)
 {
     clusterIndex_ = cluster_index(nullptr, clusterIndexFileName_.c_str());
-    // TODO: parse out nstates from data
+    // TODO: we need to return an error each time we try to count transitions
+    // between states not between 0 and nstates (-1 in particular, which
+    // show up if we use the skip flag).
 
-    // TODO: More of this should be taken as input later on
-    //int nstates = 4;
-    //int lag = 2;
-    //MarkovModel msm = MarkovModel();
+    nstates_ = gmx::ssize(clusterIndex_->clusters);
+
+    for (int i = 0; i < gmx::ssize(clusterIndex_->inv_clust); ++i)
+    {
+        printf("Val: %d\n", clusterIndex_->inv_clust[i]);
+    }
+
+    msm.initializeMarkovModel(nstates_);
 }
 
 // Initialize analysis
-// TODO: create MSM here?
 void MarkovModelModule::initAnalysis(const TrajectoryAnalysisSettings& settings, const TopologyInformation& top)
 {
     plotSettings_ = settings.plotSettings();
@@ -168,7 +172,11 @@ void MarkovModelModule::initAnalysis(const TrajectoryAnalysisSettings& settings,
 // TODO: Call transition counting here?
 void MarkovModelModule::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* /* pbc */, TrajectoryAnalysisModuleData* /*pdata*/)
 {
-    printf("Doing stuff for every frame!\n");
+    //printf("Doing stuff for every frame!\n");
+
+    // TODO: Do we really need anything here?
+    // * We need frames to project onto free energy landscape
+    // * XTC files shouldn't be mandatory, though...
 }
 
 void MarkovModelModule::finishAnalysis(int nframes)
@@ -177,14 +185,11 @@ void MarkovModelModule::finishAnalysis(int nframes)
 
 void MarkovModelModule::writeOutput()
 {
-    int nstates = 4;
-    int lag = 2;
-    std::vector<int> traj = {0, 0, 0, 0, 0, 3, 3, 2};
-    //MarkovModel msm = MarkovModel(nstates);
-    MarkovModel msm = MarkovModel();
-    msm.initializeMarkovModel(nstates);
-    msm.assignStatesToFrames();
-    msm.countTransitions(traj, lag);
+    // TODO: lag time must be larger than skips
+    int lag = 50;
+    //std::vector<int> traj = {0, 0, 0, 0, 0, 3, 3, 2};
+    //std::vector<int> traj = {0, 2, 0, 0, 0, 1, 1, 2};
+    msm.countTransitions(clusterIndex_->inv_clust, lag);
     msm.computeTransitionProbabilities();
     auto tpm = msm.transitionProbabilityMatrix;
     msm.diagonalizeMatrix(tpm);
@@ -210,7 +215,7 @@ void MarkovModelModule::writeOutput()
     // 1-indexing agrees with Paul's clustering method
 
     // TODO: how to handle infinite free energies?
-    for (int i = 0; i < nstates; ++i)
+    for (int i = 0; i < nstates_; ++i)
     {
         dh.startFrame(i, i + 1);
         dh.setPoint(0, freeEnergies[i]);

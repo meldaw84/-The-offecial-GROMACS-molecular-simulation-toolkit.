@@ -67,7 +67,6 @@ class MarkovModel
 
         // Methods
         void initializeMarkovModel(int nstates);
-        void assignStatesToFrames();
         void computeTransitionProbabilities();
         std::vector<real> getStationaryDistributionFromEigenvector(bool asFreeEnergies);
         void countTransitions(gmx::ArrayRef<int> discretizedTraj, int lag);

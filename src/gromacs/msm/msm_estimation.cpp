@@ -65,10 +65,6 @@ void MarkovModel::initializeMarkovModel(int nstates){
     transitionProbabilityMatrix.resize(nstates, nstates);
 }
 
-void MarkovModel::assignStatesToFrames(){
-    printf("Assign here!\n");
-}
-
 void MarkovModel::countTransitions(gmx::ArrayRef<int> discretizedTraj, int lag)
 {
     // Extract time-lagged trajectories
