@@ -71,6 +71,16 @@ struct AmdPackedFloat3
 {
     typedef float __attribute__((ext_vector_type(2))) Native_float2_;
 
+    /* According to C++ standard, we should give names to all
+     * the types and fields declared below. This, however, makes
+     * this code very verbose, and harms readability in a major
+     * way while this code is aimed to be used in a pretty niche
+     * case with relatively small selection of compilers
+     * (flavors of Clang 14-18, maybe later). So, we prefer
+     * to disable the warnings. */
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnested-anon-types"
+#pragma clang diagnostic ignored "-Wgnu-anonymous-struct"
     struct __attribute__((packed))
     {
         union
@@ -83,7 +93,7 @@ struct AmdPackedFloat3
         };
         float z_;
     };
-
+#pragma clang diagnostic pop
     template<typename Index>
     float operator[](Index i) const
     {
