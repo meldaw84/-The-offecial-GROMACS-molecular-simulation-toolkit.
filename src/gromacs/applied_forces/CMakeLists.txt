@@ -67,10 +67,7 @@ gmx_add_libgromacs_sources(
 add_subdirectory(awh)
 add_subdirectory(densityfitting)
 add_subdirectory(qmmm)
-if(NOT GMX_USE_COLVARS STREQUAL "NONE")
-    # Build Colvars interface files if the library is available (default)
-    add_subdirectory(colvars)
-endif()
+add_subdirectory(colvars)
 
 if (BUILD_TESTING)
     add_subdirectory(tests)

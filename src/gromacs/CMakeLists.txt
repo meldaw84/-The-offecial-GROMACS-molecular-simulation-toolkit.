@@ -147,10 +147,7 @@ endif()
 list(APPEND libgromacs_object_library_dependencies thread_mpi)
 
 
-gmx_manage_colvars()
-if(NOT GMX_USE_COLVARS STREQUAL "NONE")
-    list(APPEND libgromacs_object_library_dependencies colvars)
-endif()
+
 
 
 
@@ -198,8 +195,8 @@ if (GMX_GPU_CUDA)
     endif()
     if (GMX_NVSHMEM)
         set_target_properties(libgromacs PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-        # -fvisibility=hidden is required to be passed during device link phase to hide the 
-        # libnvshmem_device.a symbols in libgromacs in order to allow application/tests to link 
+        # -fvisibility=hidden is required to be passed during device link phase to hide the
+        # libnvshmem_device.a symbols in libgromacs in order to allow application/tests to link
         # libnvshmem_device.a for their nvshmem kernel as well while linking with libgromacs.
         # not setting this causes runtime failure.
         target_link_options(libgromacs PRIVATE $<DEVICE_LINK:-fvisibility=hidden>)
@@ -218,7 +215,6 @@ if(GMX_GPU_FFT_ROCFFT)
     target_link_libraries(libgromacs PRIVATE roc::rocfft)
 endif()
 
-gmx_include_colvars_headers()
 
 target_link_libraries(libgromacs PRIVATE $<BUILD_INTERFACE:common>)
 # As long as the libgromacs target has source files that reference headers from
@@ -427,6 +423,9 @@ set_target_properties(libgromacs PROPERTIES
 gmx_manage_lmfit()
 target_link_libraries(libgromacs PRIVATE lmfit)
 target_link_libraries(libgromacs PRIVATE muparser::muparser)
+gmx_manage_colvars()
+target_link_libraries(libgromacs PRIVATE colvars)
+
 
 # Make sure we fix "everything" found by compilers that support that
 gmx_warn_on_everything(libgromacs)
