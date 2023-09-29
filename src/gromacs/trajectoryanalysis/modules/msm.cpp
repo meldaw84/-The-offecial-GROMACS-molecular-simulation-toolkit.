@@ -46,6 +46,7 @@
 #include <numeric>
 
 #include "gromacs/analysisdata/analysisdata.h"
+#include "gromacs/options/basicoptions.h"
 #include "gromacs/analysisdata/modules/plot.h"
 #include "gromacs/analysisdata/paralleloptions.h"
 #include "gromacs/math/multidimarray.h"
@@ -55,8 +56,6 @@
 #include "gromacs/trajectoryanalysis/analysissettings.h"
 #include "gromacs/utility/filestream.h"
 #include "gromacs/utility/loggerbuilder.h"
-
-// For clustering, move later?
 #include "gromacs/topology/index.h"
 
 
@@ -94,6 +93,8 @@ private:
     std::string clusterIndexFileName_;
 
     int nstates_;
+    int lag_;
+    bool bLagSet_;
     std::optional<t_cluster_ndx> clusterIndex_;
     AnalysisData freeEnergies_;
 
@@ -118,7 +119,6 @@ void MarkovModelModule::initOptions(IOptionsContainer* options, TrajectoryAnalys
 
     settings->setHelpText(desc);
 
-    // Same as in Paul's extract-clusters
     options->addOption(FileNameOption("clusters")
     // TODO: change Index to AtomIndex to avoid shadowing (see extract-clusters)
                                .filetype(OptionFileType::Index)
@@ -128,6 +128,14 @@ void MarkovModelModule::initOptions(IOptionsContainer* options, TrajectoryAnalys
                                .defaultBasename("cluster")
                                .description("Name of index file containing frame indices for each "
                                             "cluster, obtained from gmx cluster -clndx."));
+
+    // TODO: lag time should be set as time-based and not index-based later on
+    options->addOption(IntegerOption("lag")
+                                .store(&lag_)
+                                .storeIsSet(&bLagSet_)
+                                .required()
+                                .defaultValue(1)
+                                .description("Lag time (index-based)"));
 
     // TODO: add option to return stationary distribution?
     options->addOption(FileNameOption("energy")
@@ -169,7 +177,7 @@ void MarkovModelModule::initAnalysis(const TrajectoryAnalysisSettings& settings,
 }
 
 // TODO: Call the state assignment here?
-// TODO: Call transition counting here?
+// TODO: Call transition counting here? Might be more efficient...
 void MarkovModelModule::analyzeFrame(int frnr, const t_trxframe& fr, t_pbc* /* pbc */, TrajectoryAnalysisModuleData* /*pdata*/)
 {
     //printf("Doing stuff for every frame!\n");
@@ -185,15 +193,43 @@ void MarkovModelModule::finishAnalysis(int nframes)
 
 void MarkovModelModule::writeOutput()
 {
-    // TODO: lag time must be larger than skips
-    int lag = 50;
     //std::vector<int> traj = {0, 0, 0, 0, 0, 3, 3, 2};
     //std::vector<int> traj = {0, 2, 0, 0, 0, 1, 1, 2};
-    msm.countTransitions(clusterIndex_->inv_clust, lag);
+    // TODO: check that this works with skip!
+    msm.countTransitions(clusterIndex_->inv_clust, lag_);
     msm.computeTransitionProbabilities();
     auto tpm = msm.transitionProbabilityMatrix;
     msm.diagonalizeMatrix(tpm);
     auto freeEnergies = msm.getStationaryDistributionFromEigenvector(TRUE);
+
+    // ONLY FOR DEBUG
+    auto tcm = msm.transitionCountsMatrix;
+    const auto& dataView = tcm.asConstView();
+    const int numRows = tcm.extent(0);
+    const int numCols = tcm.extent(1);
+
+    printf("Transition Counts Matrix: \n");
+    for (int i = 0; i < numRows; i++)
+    {
+        printf("\n");
+        for (int j=0; j < numCols; j++)
+        {
+            printf("%d ", dataView[i][j]);
+        }
+    }
+    printf("\n");
+
+    const auto& dataView2 = tpm.asConstView();
+    printf("Transition Probability Matrix: \n");
+    for (int i = 0; i < numRows; i++)
+    {
+        printf("\n");
+        for (int j=0; j < numCols; j++)
+        {
+            printf("%f ", dataView2[i][j]);
+        }
+    }
+    printf("\n");
 
     // Write data relevant for microstates
     registerAnalysisDataset(&freeEnergies_, "Free Energies of Microstates");
@@ -222,7 +258,6 @@ void MarkovModelModule::writeOutput()
         dh.finishFrame();
     }
     dh.finishData();
-
 
 }
 
