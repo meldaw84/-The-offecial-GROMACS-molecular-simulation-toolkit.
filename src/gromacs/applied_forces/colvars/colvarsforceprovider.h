@@ -164,7 +164,8 @@ public:
                          const std::string&                        outputPrefix,
                          const std::map<std::string, std::string>& KVTInputs,
                          const ColvarsForceProviderState&          state,
-                         real                                      ensTemp);
+                         real                                      ensTemp,
+                         int                                       seed);
 
     ~ColvarsForceProvider() override;
 

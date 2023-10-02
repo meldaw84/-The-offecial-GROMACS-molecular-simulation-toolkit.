@@ -97,6 +97,7 @@ public:
      * \param[in] doParsing Wether the input file should be parsed.
      * \param[in] inputStrings Input files stored as string in the KVT
      * \param[in] ensTemp the constant ensemble temperature
+     * \param[in] seed the colvars seed for random number genrator
      */
     ColvarProxyGromacs(const std::string&                        colvarsConfigString,
                        t_atoms                                   atoms,
@@ -104,7 +105,8 @@ public:
                        const MDLogger*                           logger,
                        bool                                      doParsing,
                        const std::map<std::string, std::string>& inputStrings,
-                       real                                      ensTemp);
+                       real                                      ensTemp,
+                       int                                       seed);
     ~ColvarProxyGromacs() override;
 
     //! Update colvars topology of one atom mass and charge from the GROMACS topology

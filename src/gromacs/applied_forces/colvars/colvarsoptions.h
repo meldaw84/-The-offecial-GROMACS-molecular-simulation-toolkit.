@@ -138,6 +138,9 @@ public:
     //! Return the map of all others colvars input files
     const std::map<std::string, std::string>& colvarsInputFiles() const;
 
+    //! Return the colvars seed
+    int colvarsSeed() const;
+
     /*! \brief Function to set internal paramaters outside the way done
      * through the MDModule notifiers and callbacks.
      * Use exclusively in the test framework.
@@ -167,6 +170,7 @@ private:
     //! \{
     const std::string c_activeTag_          = "active";
     const std::string c_colvarsFileNameTag_ = "configfile";
+    const std::string c_colvarsSeedTag_     = "seed";
     //! \}
 
 
@@ -184,6 +188,9 @@ private:
     //! Colvars config filename, default colvars.dat
     std::string colvarsFileName_ = "colvars.dat";
 
+
+    //! Colvars seed for Langevin integrator
+    int colvarsSeed_ = -1;
 
     //! Content of the colvars config file
     std::string colvarsConfigString_;

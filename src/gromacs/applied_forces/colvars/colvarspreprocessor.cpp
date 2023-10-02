@@ -53,8 +53,16 @@ ColvarsPreProcessor::ColvarsPreProcessor(const std::string&   colvarsConfigStrin
                                          const MDLogger*      logger,
                                          const matrix         box,
                                          ArrayRef<const RVec> x,
-                                         real                 ensTemp) :
-    ColvarProxyGromacs(colvarsConfigString, atoms, pbcType, logger, true, std::map<std::string, std::string>(), ensTemp),
+                                         real                 ensTemp,
+                                         int                  seed) :
+    ColvarProxyGromacs(colvarsConfigString,
+                       atoms,
+                       pbcType,
+                       logger,
+                       true,
+                       std::map<std::string, std::string>(),
+                       ensTemp,
+                       seed),
     x_(x)
 {
 

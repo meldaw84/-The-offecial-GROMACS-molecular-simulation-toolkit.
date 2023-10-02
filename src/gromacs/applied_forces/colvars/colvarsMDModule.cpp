@@ -242,7 +242,8 @@ public:
                     colvarsOptions_.colvarsOutputPrefix(),
                     colvarsOptions_.colvarsInputFiles(),
                     colvarsState_,
-                    colvarsOptions_.colvarsEnsTemp());
+                    colvarsOptions_.colvarsEnsTemp(),
+                    colvarsOptions_.colvarsSeed());
             forceProviders->addForceProvider(colvarsForceProvider_.get());
         }
     }

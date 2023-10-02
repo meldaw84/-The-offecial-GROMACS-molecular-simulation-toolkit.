@@ -156,8 +156,9 @@ ColvarsForceProvider::ColvarsForceProvider(const std::string&       colvarsConfi
                                            const std::string&       outputPrefix,
                                            const std::map<std::string, std::string>& KVTInputs,
                                            const ColvarsForceProviderState&          state,
-                                           real                                      ensTemp) :
-    ColvarProxyGromacs(colvarsConfigString, atoms, pbcType, logger, MAIN(cr), KVTInputs, ensTemp),
+                                           real                                      ensTemp,
+                                           int                                       seed) :
+    ColvarProxyGromacs(colvarsConfigString, atoms, pbcType, logger, MAIN(cr), KVTInputs, ensTemp, seed),
     stateToCheckpoint_(state)
 {
 

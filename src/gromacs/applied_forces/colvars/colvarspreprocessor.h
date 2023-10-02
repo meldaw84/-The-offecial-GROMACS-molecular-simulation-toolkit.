@@ -68,6 +68,7 @@ public:
      * \param[in] box Matrix with full box of the system
      * \param[in] x Coordinates of each atom in the system
      * \param[in] ensTemp the constant ensemble temperature
+     * \param[in] seed the colvars seed for random number genrator
      */
     ColvarsPreProcessor(const std::string&   colvarsConfigString,
                         t_atoms              atoms,
@@ -75,7 +76,8 @@ public:
                         const MDLogger*      logger,
                         const matrix         box,
                         ArrayRef<const RVec> x,
-                        real                 ensTemp);
+                        real                 ensTemp,
+                        int                  seed);
 
 
     //! Return a vector of the colvars atoms coordinates

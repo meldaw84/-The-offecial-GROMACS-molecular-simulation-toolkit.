@@ -53,7 +53,8 @@ ColvarProxyGromacs::ColvarProxyGromacs(const std::string& colvarsConfigString,
                                        const MDLogger*    logger,
                                        bool               doParsing,
                                        const std::map<std::string, std::string>& inputStrings,
-                                       real                                      ensTemp) :
+                                       real                                      ensTemp,
+                                       int                                       seed) :
     gmxAtoms_(atoms), pbcType_(pbcType), logger_(logger), doParsing_(doParsing)
 {
 
@@ -76,7 +77,16 @@ ColvarProxyGromacs::ColvarProxyGromacs(const std::string& colvarsConfigString,
     set_target_temperature(ensTemp);
 
     // GROMACS random number generation.
-    rng_.seed(makeRandomSeed());
+    // Used the number defined in the mdp options for the seed.
+    // -1 (default value) stands for random
+    if (seed == -1)
+    {
+        rng_.seed(makeRandomSeed());
+    }
+    else
+    {
+        rng_.seed(seed);
+    }
 
 
     // Read configuration file and set up the proxy during pre-processing

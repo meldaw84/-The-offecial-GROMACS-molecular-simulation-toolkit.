@@ -167,6 +167,7 @@ protected:
 
     double      simulationTimeStep_ = 0.002;
     real        temperature_        = 300;
+    int         seed_               = 123456;
     std::string prefixOutput_;
 
     ArrayRef<const RVec> x_;
@@ -187,7 +188,8 @@ TEST_F(ColvarsForceProviderTest, CanConstructOrNot)
                                                        prefixOutput_,
                                                        KVTInputs,
                                                        colvarsState_,
-                                                       temperature_));
+                                                       temperature_,
+                                                       seed_));
 }
 
 TEST_F(ColvarsForceProviderTest, SimpleInputs)
@@ -210,7 +212,8 @@ TEST_F(ColvarsForceProviderTest, SimpleInputs)
                                        prefixOutput_,
                                        KVTInputs,
                                        colvarsState_,
-                                       temperature_);
+                                       temperature_,
+                                       seed_);
 
 
     // Re-use the PreProcessorTest since the ForceProvider recalls colvars initilization and the input are identicals.
@@ -265,7 +268,8 @@ TEST_F(ColvarsForceProviderTest, WrongColvarsInput)
                                                         prefixOutput_,
                                                         KVTInputs,
                                                         colvarsState_,
-                                                        temperature_));
+                                                        temperature_,
+                                                        seed_));
 }
 
 TEST_F(ColvarsForceProviderTest, CalculateForces4water)
@@ -299,7 +303,8 @@ TEST_F(ColvarsForceProviderTest, CalculateForces4water)
                                        prefixOutput_,
                                        KVTInputs,
                                        colvarsState_,
-                                       temperature_);
+                                       temperature_,
+                                       seed_);
 
     forceProvider.calculateForces(forceProviderInput, &forceProviderOutput);
 
@@ -339,7 +344,8 @@ TEST_F(ColvarsForceProviderTest, CalculateForcesAlanine)
                                        prefixOutput_,
                                        KVTInputs,
                                        colvarsState_,
-                                       temperature_);
+                                       temperature_,
+                                       seed_);
 
     forceProvider.calculateForces(forceProviderInput, &forceProviderOutput);
 
