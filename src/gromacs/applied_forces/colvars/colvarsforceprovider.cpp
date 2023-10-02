@@ -275,7 +275,7 @@ ColvarsForceProvider::ColvarsForceProvider(const std::string&       colvarsConfi
         cvm::log("total_forces = " + cvm::to_str(atoms_total_forces) + "\n");
         cvm::log("atoms_new_colvar_forces = " + cvm::to_str(atoms_new_colvar_forces) + "\n");
         cvm::log(cvm::line_marker);
-        log("done initializing the colvars proxy object.\n");
+        log("Done initializing the colvars proxy object.\n");
     }
 
     if (MAIN(cr))
@@ -339,10 +339,6 @@ void ColvarsForceProvider::calculateForces(const ForceProviderInput& forceProvid
     {
         // On non-MAIN nodes, jump directly to applying the forces
 
-        // backup applied forces if necessary to calculate total forces (if available in future
-        // version of Gromacs) if (total_force_requested)
-        //  previous_atoms_new_colvar_forces = atoms_new_colvar_forces;
-
         // Zero the forces on the atoms, so that they can be accumulated by the colvars.
         for (size_t i = 0; i < atoms_new_colvar_forces.size(); i++)
         {
@@ -350,7 +346,8 @@ void ColvarsForceProvider::calculateForces(const ForceProviderInput& forceProvid
                     atoms_new_colvar_forces[i].z = 0.0;
         }
 
-        // Get the atom positions from the Gromacs array.
+        // Copy the global Colvars atoms coordinates gathered in xColvars to atom_positions array
+        // for later used in the calc() function.
         for (size_t i = 0; i < atoms_ids.size(); i++)
         {
             atoms_positions[i] = cvm::rvector(xColvars[i][0], xColvars[i][1], xColvars[i][2]);
@@ -390,15 +387,15 @@ void ColvarsForceProvider::calculateForces(const ForceProviderInput& forceProvid
 
     const gmx::ArrayRef<gmx::RVec>& fOut = forceProviderOutput->forceWithVirial_.force_;
     matrix                          localColvarsVirial     = { { 0 } };
-    const auto&                     localcolvarsIndex      = colvarsAtoms->localIndex();
-    const auto&                     collectivecolvarsIndex = colvarsAtoms->collectiveIndex();
+    const auto&                     localColvarsIndex      = colvarsAtoms->localIndex();
+    const auto&                     collectiveColvarsIndex = colvarsAtoms->collectiveIndex();
     // Loop through local atoms to aply the colvars forces
-    for (gmx::Index l = 0; l < localcolvarsIndex.ssize(); l++)
+    for (gmx::Index l = 0; l < localColvarsIndex.ssize(); l++)
     {
         /* Get the right index of the local colvars atoms */
-        int iLocal = localcolvarsIndex[l];
+        int iLocal = localColvarsIndex[l];
         /* Index of this local atom in the collective colvars atom arrays */
-        int iColvars = collectivecolvarsIndex[l];
+        int iColvars = collectiveColvarsIndex[l];
         /* Add */
         rvec_inc(fOut[iLocal], fColvars[iColvars]);
         addVirialTerm(localColvarsVirial, fColvars[iColvars], xColvars[iColvars]);

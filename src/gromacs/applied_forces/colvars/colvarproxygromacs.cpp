@@ -118,12 +118,6 @@ ColvarProxyGromacs::ColvarProxyGromacs(const std::string& colvarsConfigString,
         // Citation Reporter
         cvm::log(std::string("\n") + colvars->feature_report(0) + std::string("\n"));
 
-        // TODO: Retrieve step
-        // if (step != 0) {
-        //     cvm::log("Initializing step number to "+cvm::to_str(step)+".\n");
-        // }
-
-        // colvars->it = colvars->it_restart = step;
         colvars->set_initial_step(static_cast<cvm::step_number>(0L));
     }
 }
