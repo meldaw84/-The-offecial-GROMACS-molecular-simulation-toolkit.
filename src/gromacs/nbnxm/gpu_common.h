@@ -325,7 +325,7 @@ bool gpu_try_finish_task(NbnxmGpu*                nb,
  * transfers to finish.
  *
  * Also does timing accounting and reduction of the internal staging buffers.
- * As this is called at the end of the step, it also resets the pair list and
+ * As this is called at the end of the step, it also resets timing-related pair list and
  * pruning flags.
  *
  * \param[in] nb The nonbonded data GPU structure
@@ -346,6 +346,17 @@ float gpu_wait_finish_task(NbnxmGpu*                nb,
                            gmx::ArrayRef<gmx::RVec> shiftForces,
                            gmx_wallcycle*           wcycle)
 {
+    const bool haveResultToWaitFor =
+            (!stepWork.useGpuFBufferOps
+             || (aloc == AtomLocality::Local && (stepWork.computeEnergy || stepWork.computeVirial)));
+
+    // return early if we have nothing to wait for (nor timers to reset);
+    // mainly avoid spurious cycle counting.
+    if (!haveResultToWaitFor && !nb->bDoTime)
+    {
+        return 0;
+    }
+
     auto cycleCounter = (atomToInteractionLocality(aloc) == InteractionLocality::Local)
                                 ? WallCycleCounter::WaitGpuNbL
                                 : WallCycleCounter::WaitGpuNbNL;

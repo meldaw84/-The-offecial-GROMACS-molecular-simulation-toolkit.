@@ -2267,19 +2267,14 @@ void do_force(FILE*                               fplog,
         {
             if (simulationWork.useGpuNonbonded)
             {
-                const bool haveResultToWaitFor = !stepWork.useGpuFBufferOps;
-                if (haveResultToWaitFor)
-                {
-                    // TODO: check if nonlocal wait can be removed with resident mode
-                    cycles_wait_gpu += Nbnxm::gpu_wait_finish_task(
-                            nbv->gpu_nbv,
-                            stepWork,
-                            AtomLocality::NonLocal,
-                            enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::LJSR].data(),
-                            enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::CoulombSR].data(),
-                            forceWithShiftForces.shiftForces(),
-                            wcycle);
-                }
+                cycles_wait_gpu += Nbnxm::gpu_wait_finish_task(
+                        nbv->gpu_nbv,
+                        stepWork,
+                        AtomLocality::NonLocal,
+                        enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::LJSR].data(),
+                        enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::CoulombSR].data(),
+                        forceWithShiftForces.shiftForces(),
+                        wcycle);
             }
             else
             {
@@ -2430,28 +2425,20 @@ void do_force(FILE*                               fplog,
     /* Wait for local GPU NB outputs on the non-alternating wait path */
     if (!alternateGpuWait && stepWork.computeNonbondedForces && simulationWork.useGpuNonbonded)
     {
-        const bool haveResultToWaitFor =
-                (!stepWork.useGpuFBufferOps || stepWork.computeEnergy || stepWork.computeVirial);
-
         /* Measured overhead on CUDA and OpenCL with(out) GPU sharing
          * is between 0.5 and 1.5 Mcycles. So 2 MCycles is an overestimate,
          * but even with a step of 0.1 ms the difference is less than 1%
          * of the step time.
          */
         const float gpuWaitApiOverheadMargin = 2e6F; /* cycles */
-        float       waitCycles               = 0;
-        if (haveResultToWaitFor)
-        {
-
-            waitCycles = Nbnxm::gpu_wait_finish_task(
-                    nbv->gpu_nbv,
-                    stepWork,
-                    AtomLocality::Local,
-                    enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::LJSR].data(),
-                    enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::CoulombSR].data(),
-                    forceOutNonbonded->forceWithShiftForces().shiftForces(),
-                    wcycle);
-        }
+        const float waitCycles               = Nbnxm::gpu_wait_finish_task(
+                nbv->gpu_nbv,
+                stepWork,
+                AtomLocality::Local,
+                enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::LJSR].data(),
+                enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::CoulombSR].data(),
+                forceOutNonbonded->forceWithShiftForces().shiftForces(),
+                wcycle);
 
         if (ddBalanceRegionHandler.useBalancingRegion())
         {
