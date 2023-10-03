@@ -392,15 +392,20 @@ PmeOutput pme_gpu_wait_finish_task(gmx_pme_t*     pme,
 {
     GMX_ASSERT(pme_gpu_active(pme), "This should be a GPU run of PME but it is not enabled.");
 
+    const bool haveResultToWaitFor = !pme->gpu->settings.useGpuForceReduction || computeEnergyAndVirial;
+
+    if (!haveResultToWaitFor)
+    {
+        PmeOutput emptyOutput;
+        return emptyOutput;
+    }
+
     wallcycle_start(wcycle, WallCycleCounter::WaitGpuPmeGather);
 
     // Synchronize the whole PME stream at once, including D2H result transfers
     // if there are outputs we need to wait for at this step; we still call getOutputs
     // for uniformity and because it sets the PmeOutput.haveForceOutput_.
-    if (!pme->gpu->settings.useGpuForceReduction || computeEnergyAndVirial)
-    {
-        pme_gpu_synchronize(pme->gpu);
-    }
+    pme_gpu_synchronize(pme->gpu);
 
     PmeOutput output = pme_gpu_getOutput(
             *pme, computeEnergyAndVirial, pme->gpu->common->ngrids > 1 ? lambdaQ : 1.0);
@@ -418,11 +423,20 @@ void pme_gpu_wait_and_reduce(gmx_pme_t*               pme,
 {
     // There's no support for computing energy without virial, or vice versa
     const bool computeEnergyAndVirial = stepWork.computeEnergy || stepWork.computeVirial;
-    PmeOutput  output                 = pme_gpu_wait_finish_task(
+
+    const bool haveResultToWaitFor = !stepWork.useGpuPmeFReduction || computeEnergyAndVirial;
+    if (!haveResultToWaitFor)
+    {
+        return;
+    }
+
+    wallcycle_start_nocount(wcycle, WallCycleCounter::PmeGpuMesh);
+    PmeOutput output = pme_gpu_wait_finish_task(
             pme, computeEnergyAndVirial, pme->gpu->common->ngrids > 1 ? lambdaQ : 1.0, wcycle);
     GMX_ASSERT(pme->gpu->settings.useGpuForceReduction == !output.haveForceOutput_,
                "When forces are reduced on the CPU, there needs to be force output");
     pme_gpu_reduce_outputs(computeEnergyAndVirial, output, wcycle, forceWithVirial, enerd);
+    wallcycle_stop(wcycle, WallCycleCounter::PmeGpuMesh);
 }
 
 void pme_gpu_reinit_computation(const gmx_pme_t* pme, const bool useMdGpuGraph, gmx_wallcycle* wcycle)
