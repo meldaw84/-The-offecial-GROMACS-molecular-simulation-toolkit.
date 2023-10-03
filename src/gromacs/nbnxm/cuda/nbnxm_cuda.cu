@@ -663,8 +663,6 @@ void gpu_launch_kernel_pruneonly(NbnxmGpu* nb, const InteractionLocality iloc, c
     const auto kernelArgs = prepareGpuKernelArguments(kernel, config, adat, nbp, plist, &numParts);
     launchGpuKernel(kernel, config, deviceStream, timingEvent, kernelName, kernelArgs);
 
-    plist->haveFreshList = false;
-
     if (bDoTime)
     {
         if (plist->haveFreshList)
@@ -680,6 +678,8 @@ void gpu_launch_kernel_pruneonly(NbnxmGpu* nb, const InteractionLocality iloc, c
 
         timer->closeTimingRegion(deviceStream);
     }
+
+    plist->haveFreshList = false;
 
     if (GMX_NATIVE_WINDOWS)
     {

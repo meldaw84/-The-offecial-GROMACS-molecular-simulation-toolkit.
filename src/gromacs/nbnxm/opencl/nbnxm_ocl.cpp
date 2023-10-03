@@ -799,8 +799,6 @@ void gpu_launch_kernel_pruneonly(NbnxmGpu* nb, const InteractionLocality iloc, c
                                                       &part);
     launchGpuKernel(pruneKernel, config, deviceStream, timingEvent, kernelName, kernelArgs);
 
-    plist->haveFreshList = false;
-
     if (bDoTime)
     {
         if (plist->haveFreshList)
@@ -816,6 +814,8 @@ void gpu_launch_kernel_pruneonly(NbnxmGpu* nb, const InteractionLocality iloc, c
 
         timer->closeTimingRegion(deviceStream);
     }
+
+    plist->haveFreshList = false;
 }
 
 } // namespace Nbnxm
