@@ -666,6 +666,6 @@ void printNbnxmPressureError(const gmx::MDLogger&  mdlog,
                     "interactions close to the cut-off. This can lead to a systematic "
                     "overestimation of the pressure due to missing LJ interactions. "
                     "The error in the average pressure due to missing LJ interactions is at most "
-                    "%.3f bar",
+                    "%.2f bar",
                     pressureError));
 }
