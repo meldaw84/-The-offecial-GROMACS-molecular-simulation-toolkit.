@@ -343,7 +343,7 @@ can lead to an underestimate of the energy drift. To avoid that,
 an effective density is used. This is computed by putting all atoms
 on a grid where the cells are approximately the size of the cut-off.
 The densities are then averaged over the cells weighted by the density
-of each cell. This provides acurate estimates for inohomogeneous systems,
+of each cell. This provides accurate estimates for inhomogeneous systems,
 e.g. the effective density for a molecule or a droplet in an otherwise
 empty box does not depend on the size of the box.
 
@@ -461,7 +461,7 @@ interactions are present, as there will be a sufficient buffer to keep
 the electrostatic energy drift below the tolerance. The only case where
 there can be significant errors in the pressure is when there are no
 electrostatic interactions at all or the Ewald relative tolerance
-parameter is very small, leading to no or a very small pair-list buffer.
+parameter is very small, leading to no, or a very small, pair-list buffer.
 The most common case is coarse-grained systems.
 In the log file from :ref:`mdrun <gmx mdrun>` one can find an (over)esimate
 of the error in the average pressure due to missing Lennard-Jones interactions.
