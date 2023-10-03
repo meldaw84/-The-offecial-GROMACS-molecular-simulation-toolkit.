@@ -1179,6 +1179,7 @@ static real pressureError(gmx::ArrayRef<const VerletbufAtomtype> atomTypes,
 real calcVerletBufferSize(const gmx_mtop_t&         mtop,
                           const real                effectiveAtomDensity,
                           const t_inputrec&         ir,
+                          const real                pressureTolerance,
                           const int                 nstlist,
                           const int                 listLifetime,
                           real                      ensembleTemperature,
@@ -1214,6 +1215,8 @@ real calcVerletBufferSize(const gmx_mtop_t&         mtop,
 
         GMX_RELEASE_ASSERT(ensembleTemperature >= 0, "Without T-coupling we should not end up here");
     }
+
+    const bool limitPressureError = (pressureTolerance > 0);
 
     /* Resolution of the buffer size */
     resolution = 0.001;
@@ -1317,6 +1320,20 @@ real calcVerletBufferSize(const gmx_mtop_t&         mtop,
         /* Convert the drift to drift per unit time per atom */
         drift /= nstlist * ir.delta_t * mtop.natoms;
 
+        // const real presErr = verletBufferPressureError(mtop, effectiveAtomDensity, ir, nstlist, false, rl, listSetup);
+        const bool listIsDynamicallyPruned = false;
+        const real presErr                 = pressureError(att,
+                                           mtop.ffparams,
+                                           ir,
+                                           ensembleTemperature,
+                                           { ljDisp, ljRep },
+                                           listIsDynamicallyPruned,
+                                           nstlist,
+                                           rl,
+                                           listSetup,
+                                           mtop.natoms,
+                                           effectiveAtomDensity);
+
         if (debug)
         {
             fprintf(debug,
@@ -1331,7 +1348,7 @@ real calcVerletBufferSize(const gmx_mtop_t&         mtop,
                     drift);
         }
 
-        if (std::abs(drift) > ir.verletbuf_tol)
+        if (std::abs(drift) > ir.verletbuf_tol || (limitPressureError && presErr > pressureTolerance))
         {
             ib0 = ib;
         }
