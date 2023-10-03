@@ -806,7 +806,7 @@ void gpu_launch_kernel_pruneonly(NbnxmGpu* nb, const InteractionLocality iloc, c
         if (plist->haveFreshList)
         {
             /* Mark that pruning has been done */
-            nb->timers->interaction[iloc].didPrune = true;
+            nb->timers->interaction[iloc].didSeparateOuterPrune = true;
         }
         else
         {
