@@ -135,8 +135,6 @@ struct NbnxmGpu
     Nbnxm::GpuTimers* timers = nullptr;
     /*! \brief Timing data. TODO: deprecate this and query timers for accumulated data instead */
     gmx_wallclock_gpu_nbnxn_t* timings = nullptr;
-    //! \brief true if dual pair list setup is used
-    bool useDualPairList = true;
 };
 
 #endif /* NBNXN_CUDA_TYPES_H */
