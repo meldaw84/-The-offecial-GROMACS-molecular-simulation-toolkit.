@@ -86,8 +86,8 @@ namespace Nbnxm
  *   - 1st pass prune: ran during the current step (prior to the force kernel);
  *   - rolling prune:  ran at the end of the previous step (prior to the current step H2D xq);
  *
- * Note that the resetting of Nbnxm::GpuTimers::didPrune and Nbnxm::GpuTimers::didRollingPrune
- * should happen after calling this function.
+ * Note that the resetting of Nbnxm::GpuTimers::didSeparateOuterPrune and
+ * Nbnxm::GpuTimers::didRollingPrune should happen after calling this function.
  *
  * \param[in] timers   structs with GPU timer objects
  * \param[inout] timings  GPU task timing data
@@ -100,12 +100,12 @@ static void countPruneKernelTime(Nbnxm::GpuTimers*          timers,
     GpuTimers::Interaction& iTimers = timers->interaction[iloc];
 
     // We might have not done any pruning (e.g. if we skipped with empty domains).
-    if (!iTimers.didPrune && !iTimers.didRollingPrune)
+    if (!iTimers.didSeparateOuterPrune && !iTimers.didRollingPrune)
     {
         return;
     }
 
-    if (iTimers.didPrune)
+    if (iTimers.didSeparateOuterPrune)
     {
         timings->pruneTime.c++;
         timings->pruneTime.t += iTimers.prune_k.getLastRangeTime();
@@ -173,19 +173,15 @@ static inline void gpu_reduce_staged_outputs(const NBStagingData&      nbst,
  *      counters could end up being inconsistent due to not being incremented
  *      on some of the node when this is skipped on empty local domains!
  *
- * \tparam     GpuPairlist       Pair list type
  * \param[out] timings           Pointer to the NB GPU timings data
  * \param[in]  timers            Pointer to GPU timers data
- * \param[in]  plist             Pointer to the pair list data
  * \param[in]  atomLocality      Atom locality specifier
  * \param[in]  stepWork          Force schedule flags
  * \param[in]  doTiming          True if timing is enabled.
  *
  */
-template<typename GpuPairlist>
 static inline void gpu_accumulate_timings(gmx_wallclock_gpu_nbnxn_t* timings,
                                           Nbnxm::GpuTimers*          timers,
-                                          const GpuPairlist*         plist,
                                           AtomLocality               atomLocality,
                                           const gmx::StepWorkload&   stepWork,
                                           bool                       doTiming)
@@ -200,15 +196,18 @@ static inline void gpu_accumulate_timings(gmx_wallclock_gpu_nbnxn_t* timings,
     const InteractionLocality iLocality        = atomToInteractionLocality(atomLocality);
     const bool                didEnergyKernels = stepWork.computeEnergy;
 
+    const bool combinedInteractionPruneKernel =
+            stepWork.doNeighborSearch && timers->interaction[iLocality].didSeparateOuterPrune;
+
     /* only increase counter once (at local F wait) */
     if (iLocality == InteractionLocality::Local)
     {
         timings->nb_c++;
-        timings->ktime[plist->haveFreshList ? 1 : 0][didEnergyKernels ? 1 : 0].c += 1;
+        timings->ktime[combinedInteractionPruneKernel ? 1 : 0][didEnergyKernels ? 1 : 0].c += 1;
     }
 
     /* kernel timings */
-    timings->ktime[plist->haveFreshList ? 1 : 0][didEnergyKernels ? 1 : 0].t +=
+    timings->ktime[combinedInteractionPruneKernel ? 1 : 0][didEnergyKernels ? 1 : 0].t +=
             timers->interaction[iLocality].nb_k.getLastRangeTime();
 
     /* X/q H2D and F D2H timings */
@@ -297,7 +296,7 @@ bool gpu_try_finish_task(NbnxmGpu*                nb,
         // TODO: this needs to be moved later because conditional wait could brake timing
         // with a future OpenCL implementation, but with CUDA timing is anyway disabled
         // in all cases where we skip the wait.
-        gpu_accumulate_timings(nb->timings, nb->timers, nb->plist[iLocality], aloc, stepWork, nb->bDoTime);
+        gpu_accumulate_timings(nb->timings, nb->timers, aloc, stepWork, nb->bDoTime);
 
         if (stepWork.computeEnergy || stepWork.computeVirial)
         {
@@ -314,12 +313,9 @@ bool gpu_try_finish_task(NbnxmGpu*                nb,
     /* Reset both pruning flags. */
     if (nb->bDoTime)
     {
-        nb->timers->interaction[iLocality].didPrune =
+        nb->timers->interaction[iLocality].didSeparateOuterPrune =
                 nb->timers->interaction[iLocality].didRollingPrune = false;
     }
-
-    /* Turn off initial list pruning (doesn't hurt if this is not pair-search step). */
-    nb->plist[iLocality]->haveFreshList = false;
 
     return true;
 }

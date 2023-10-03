@@ -532,12 +532,12 @@ void gpu_launch_kernel(NbnxmGpu* nb, const gmx::StepWorkload& stepWork, const Nb
         return;
     }
 
+    // with dynamic pruning we run separate outer list pruning, without we run combined
+    // with the interaction kernel
+    const bool combinedInteractionPruneKernel = !nbp->useDynamicPruning;
     if (nbp->useDynamicPruning && plist->haveFreshList)
     {
-        /* Prunes for rlistOuter and rlistInner, sets plist->haveFreshList=false
-           (that's the way the timing accounting can distinguish between
-           separate prune kernel and combined force+prune).
-         */
+        /* Prunes for rlistOuter and rlistInner, sets plist->haveFreshList=false */
         Nbnxm::gpu_launch_kernel_pruneonly(nb, iloc, 1);
     }
 
@@ -581,14 +581,17 @@ void gpu_launch_kernel(NbnxmGpu* nb, const gmx::StepWorkload& stepWork, const Nb
 
     fillin_ocl_structures(nbp, &nbparams_params);
 
+    if (stepWork.doNeighborSearch)
+    {
+        GMX_ASSERT((plist->haveFreshList == combinedInteractionPruneKernel),
+                   "On search steps without dynamic pruning we expect to need to do combined "
+                   "interaction+pruning kernel");
+    }
+
     auto* timingEvent = bDoTime ? timers->interaction[iloc].nb_k.fetchNextEvent() : nullptr;
     constexpr char kernelName[] = "k_calc_nb";
-    const auto     kernel =
-            select_nbnxn_kernel(nb,
-                                nbp->elecType,
-                                nbp->vdwType,
-                                stepWork.computeEnergy,
-                                (plist->haveFreshList && !nb->timers->interaction[iloc].didPrune));
+    const auto     kernel       = select_nbnxn_kernel(
+            nb, nbp->elecType, nbp->vdwType, stepWork.computeEnergy, combinedInteractionPruneKernel);
 
 
     // The OpenCL kernel takes int as second to last argument because bool is
@@ -637,6 +640,11 @@ void gpu_launch_kernel(NbnxmGpu* nb, const gmx::StepWorkload& stepWork, const Nb
                                                           &plist->excl,
                                                           &computeFshift);
         launchGpuKernel(kernel, config, deviceStream, timingEvent, kernelName, kernelArgs);
+    }
+
+    if (stepWork.doNeighborSearch)
+    {
+        plist->haveFreshList = false;
     }
 
     if (bDoTime)
@@ -791,20 +799,21 @@ void gpu_launch_kernel_pruneonly(NbnxmGpu* nb, const InteractionLocality iloc, c
                                                       &part);
     launchGpuKernel(pruneKernel, config, deviceStream, timingEvent, kernelName, kernelArgs);
 
-    if (plist->haveFreshList)
-    {
-        plist->haveFreshList = false;
-        /* Mark that pruning has been done */
-        nb->timers->interaction[iloc].didPrune = true;
-    }
-    else
-    {
-        /* Mark that rolling pruning has been done */
-        nb->timers->interaction[iloc].didRollingPrune = true;
-    }
+    plist->haveFreshList = false;
 
     if (bDoTime)
     {
+        if (plist->haveFreshList)
+        {
+            /* Mark that pruning has been done */
+            nb->timers->interaction[iloc].didPrune = true;
+        }
+        else
+        {
+            /* Mark that rolling pruning has been done */
+            nb->timers->interaction[iloc].didRollingPrune = true;
+        }
+
         timer->closeTimingRegion(deviceStream);
     }
 }

@@ -460,12 +460,12 @@ void gpu_launch_kernel(NbnxmGpu* nb, const gmx::StepWorkload& stepWork, const In
         return;
     }
 
+    // with dynamic pruning we run separate outer list pruning, without we run combined
+    // with the interaction kernel
+    const bool combinedInteractionPruneKernel = !nbp->useDynamicPruning;
     if (nbp->useDynamicPruning && plist->haveFreshList)
     {
-        /* Prunes for rlistOuter and rlistInner, sets plist->haveFreshList=false
-           (TODO: ATM that's the way the timing accounting can distinguish between
-           separate prune kernel and combined force+prune, maybe we need a better way?).
-         */
+        /* Prunes for rlistOuter and rlistInner, sets plist->haveFreshList=false */
         gpu_launch_kernel_pruneonly(nb, iloc, 1);
     }
 
@@ -519,16 +519,27 @@ void gpu_launch_kernel(NbnxmGpu* nb, const gmx::StepWorkload& stepWork, const In
                 config.sharedMemorySize);
     }
 
+    if (stepWork.doNeighborSearch)
+    {
+        GMX_ASSERT((plist->haveFreshList == combinedInteractionPruneKernel),
+                   "On search steps without dynamic pruning we expect to need to do combined "
+                   "interaction+pruning kernel");
+    }
+
     auto*      timingEvent = bDoTime ? timers->interaction[iloc].nb_k.fetchNextEvent() : nullptr;
-    const auto kernel =
-            select_nbnxn_kernel(nbp->elecType,
-                                nbp->vdwType,
-                                stepWork.computeEnergy,
-                                (plist->haveFreshList && !nb->timers->interaction[iloc].didPrune),
-                                &nb->deviceContext_->deviceInfo());
+    const auto kernel      = select_nbnxn_kernel(nbp->elecType,
+                                            nbp->vdwType,
+                                            stepWork.computeEnergy,
+                                            combinedInteractionPruneKernel,
+                                            &nb->deviceContext_->deviceInfo());
     const auto kernelArgs =
             prepareGpuKernelArguments(kernel, config, adat, nbp, plist, &stepWork.computeVirial);
     launchGpuKernel(kernel, config, deviceStream, timingEvent, "k_calc_nb", kernelArgs);
+
+    if (stepWork.doNeighborSearch)
+    {
+        plist->haveFreshList = false;
+    }
 
     if (bDoTime)
     {
@@ -652,22 +663,21 @@ void gpu_launch_kernel_pruneonly(NbnxmGpu* nb, const InteractionLocality iloc, c
     const auto kernelArgs = prepareGpuKernelArguments(kernel, config, adat, nbp, plist, &numParts);
     launchGpuKernel(kernel, config, deviceStream, timingEvent, kernelName, kernelArgs);
 
-    /* TODO: consider a more elegant way to track which kernel has been called
-       (combined or separate 1st pass prune, rolling prune). */
-    if (plist->haveFreshList)
-    {
-        plist->haveFreshList = false;
-        /* Mark that pruning has been done */
-        nb->timers->interaction[iloc].didPrune = true;
-    }
-    else
-    {
-        /* Mark that rolling pruning has been done */
-        nb->timers->interaction[iloc].didRollingPrune = true;
-    }
+    plist->haveFreshList = false;
 
     if (bDoTime)
     {
+        if (plist->haveFreshList)
+        {
+            /* Mark that pruning has been done */
+            nb->timers->interaction[iloc].didSeparateOuterPrune = true;
+        }
+        else
+        {
+            /* Mark that rolling pruning has been done */
+            nb->timers->interaction[iloc].didRollingPrune = true;
+        }
+
         timer->closeTimingRegion(deviceStream);
     }
 

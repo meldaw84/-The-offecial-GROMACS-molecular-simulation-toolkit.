@@ -2267,14 +2267,19 @@ void do_force(FILE*                               fplog,
         {
             if (simulationWork.useGpuNonbonded)
             {
-                cycles_wait_gpu += Nbnxm::gpu_wait_finish_task(
-                        nbv->gpu_nbv,
-                        stepWork,
-                        AtomLocality::NonLocal,
-                        enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::LJSR].data(),
-                        enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::CoulombSR].data(),
-                        forceWithShiftForces.shiftForces(),
-                        wcycle);
+                const bool haveResultToWaitFor = !stepWork.useGpuFBufferOps;
+                if (haveResultToWaitFor)
+                {
+                    // TODO: check if nonlocal wait can be removed with resident mode
+                    cycles_wait_gpu += Nbnxm::gpu_wait_finish_task(
+                            nbv->gpu_nbv,
+                            stepWork,
+                            AtomLocality::NonLocal,
+                            enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::LJSR].data(),
+                            enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::CoulombSR].data(),
+                            forceWithShiftForces.shiftForces(),
+                            wcycle);
+                }
             }
             else
             {
@@ -2409,31 +2414,44 @@ void do_force(FILE*                               fplog,
 
     if (!alternateGpuWait && stepWork.haveGpuPmeOnThisRank && !needEarlyPmeResults)
     {
-        pmeGpuWaitAndReduce(fr->pmedata,
-                            stepWork,
-                            wcycle,
-                            &forceOutMtsLevel1->forceWithVirial(),
-                            enerd,
-                            lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Coul)]);
+        const bool haveResultToWaitFor =
+                !stepWork.useGpuPmeFReduction || stepWork.computeEnergy || stepWork.computeVirial;
+        if (haveResultToWaitFor)
+        {
+            pmeGpuWaitAndReduce(fr->pmedata,
+                                stepWork,
+                                wcycle,
+                                &forceOutMtsLevel1->forceWithVirial(),
+                                enerd,
+                                lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Coul)]);
+        }
     }
 
     /* Wait for local GPU NB outputs on the non-alternating wait path */
     if (!alternateGpuWait && stepWork.computeNonbondedForces && simulationWork.useGpuNonbonded)
     {
+        const bool haveResultToWaitFor =
+                (!stepWork.useGpuFBufferOps || stepWork.computeEnergy || stepWork.computeVirial);
+
         /* Measured overhead on CUDA and OpenCL with(out) GPU sharing
          * is between 0.5 and 1.5 Mcycles. So 2 MCycles is an overestimate,
          * but even with a step of 0.1 ms the difference is less than 1%
          * of the step time.
          */
         const float gpuWaitApiOverheadMargin = 2e6F; /* cycles */
-        const float waitCycles               = Nbnxm::gpu_wait_finish_task(
-                nbv->gpu_nbv,
-                stepWork,
-                AtomLocality::Local,
-                enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::LJSR].data(),
-                enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::CoulombSR].data(),
-                forceOutNonbonded->forceWithShiftForces().shiftForces(),
-                wcycle);
+        float       waitCycles               = 0;
+        if (haveResultToWaitFor)
+        {
+
+            waitCycles = Nbnxm::gpu_wait_finish_task(
+                    nbv->gpu_nbv,
+                    stepWork,
+                    AtomLocality::Local,
+                    enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::LJSR].data(),
+                    enerd->grpp.energyGroupPairTerms[NonBondedEnergyTerms::CoulombSR].data(),
+                    forceOutNonbonded->forceWithShiftForces().shiftForces(),
+                    wcycle);
+        }
 
         if (ddBalanceRegionHandler.useBalancingRegion())
         {

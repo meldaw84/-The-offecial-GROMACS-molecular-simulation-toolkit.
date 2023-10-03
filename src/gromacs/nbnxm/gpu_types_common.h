@@ -231,7 +231,7 @@ struct GpuTimers
         //! timer for the 1st pass list pruning kernel (l/nl, every PS step)
         GpuRegionTimer prune_k;
         //! true when we timed pruning and the timings need to be accounted for
-        bool didPrune = false;
+        bool didSeparateOuterPrune = false;
         //! timer for rolling pruning kernels (l/nl, frequency depends on chunk size)
         GpuRegionTimer rollingPrune_k;
         //! true when we timed rolling pruning (at the previous step) and the timings need to be accounted for
