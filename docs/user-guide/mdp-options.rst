@@ -3517,6 +3517,28 @@ For further details about QM/MM interface implementation follow :ref:`qmmm`.
    When using the default, empty, value the name of the simulation input file will be used 
    with an additional ``_cp2k`` suffix.
 
+
+Colvars Simulations
+^^^^^^^^^^^^^^^^^^^
+
+These options enable and control the calculation of sampling algorithms defined
+on a reduced space of continuously differentiable functions (aka collective variables).
+For further details about Colvars interface implementation follow :ref:`colvars`.
+
+.. mdp:: colvars-active
+
+   (false) Activate Colvars simulations. Requires Colvars library to be compiled with |Gromacs|.
+
+.. mdp:: colvars-configfile
+
+   (colvars.dat) Colvars configuration file using an absolute path or a path
+   relative to the to the folder from which :ref:`gmx mdrun` is called.
+
+.. mdp:: colvars-seed
+
+   (-1) Random seed used in some Colvars biases (i.e Extended Lagrangian)
+
+
 User defined thingies
 ^^^^^^^^^^^^^^^^^^^^^
 

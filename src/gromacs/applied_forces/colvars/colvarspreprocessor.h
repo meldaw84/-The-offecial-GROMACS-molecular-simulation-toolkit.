@@ -68,7 +68,7 @@ public:
      * \param[in] box Matrix with full box of the system
      * \param[in] x Coordinates of each atom in the system
      * \param[in] ensTemp the constant ensemble temperature
-     * \param[in] seed the colvars seed for random number genrator
+     * \param[in] seed the colvars seed for random number generator
      */
     ColvarsPreProcessor(const std::string&   colvarsConfigString,
                         t_atoms              atoms,

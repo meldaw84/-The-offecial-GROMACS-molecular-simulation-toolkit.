@@ -1256,6 +1256,17 @@ Use the following flags to do so:
     or quotes. For CP2K versions 9.1 or newer, CP2K_LINKER_FLAGS is not required
     but still might be used in very specific situations.
 
+.. _installing with Colvars:
+
+Building with Colvars support
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+|Gromacs| bundles Colvars with its source code and the
+Colvars interface integration is enabled by default when building |Gromacs|.
+That default may be explicitly enabled with ``-DGMX_USE_COLVARS=internal``.
+Colvars support can be disabled with ``-DGMX_USE_COLVARS=none``.
+For further details about Colvars and its interface implementation follow :ref:`colvars`.
+
 .. _suffixes:
 
 Changing the names of |Gromacs| binaries and libraries

@@ -97,7 +97,7 @@ public:
      * \param[in] doParsing Wether the input file should be parsed.
      * \param[in] inputStrings Input files stored as string in the KVT
      * \param[in] ensTemp the constant ensemble temperature
-     * \param[in] seed the colvars seed for random number genrator
+     * \param[in] seed the colvars seed for random number generator
      */
     ColvarProxyGromacs(const std::string&                        colvarsConfigString,
                        t_atoms                                   atoms,
