@@ -2409,17 +2409,12 @@ void do_force(FILE*                               fplog,
 
     if (!alternateGpuWait && stepWork.haveGpuPmeOnThisRank && !needEarlyPmeResults)
     {
-        const bool haveResultToWaitFor =
-                !stepWork.useGpuPmeFReduction || stepWork.computeEnergy || stepWork.computeVirial;
-        if (haveResultToWaitFor)
-        {
-            pmeGpuWaitAndReduce(fr->pmedata,
-                                stepWork,
-                                wcycle,
-                                &forceOutMtsLevel1->forceWithVirial(),
-                                enerd,
-                                lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Coul)]);
-        }
+        pmeGpuWaitAndReduce(fr->pmedata,
+                            stepWork,
+                            wcycle,
+                            &forceOutMtsLevel1->forceWithVirial(),
+                            enerd,
+                            lambda[static_cast<int>(FreeEnergyPerturbationCouplingType::Coul)]);
     }
 
     /* Wait for local GPU NB outputs on the non-alternating wait path */
