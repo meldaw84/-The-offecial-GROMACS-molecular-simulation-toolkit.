@@ -43,6 +43,15 @@ dynamic load balancing support with GPU-resident simulations that use GPU halo e
 
 :issue:`4858`
 
+Update virtual site velocities to avoid constraint instabilities
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+Virtual site velocities were only updated when writing velocities, but they were
+used for integration. This could make simulations crash. Now the velocities are updated
+at regular intervals in order to avoid instabilities (LINCS errors).
+
+:issue:`4879`
+
 Fixes for ``gmx`` tools
 ^^^^^^^^^^^^^^^^^^^^^^^
 

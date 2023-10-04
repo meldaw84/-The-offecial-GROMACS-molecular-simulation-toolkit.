@@ -944,7 +944,7 @@ void gmx::LegacySimulator::do_md()
 
         // We need to calculate virtual velocities if we are writing them in the current step.
         // They also need to be periodically updated. Every 1000 steps is arbitrary, but a reasonable number.
-        const int  virtualSiteVelocityUpdateInterval = 1000;
+        const int  c_virtualSiteVelocityUpdateInterval = 1000;
         const bool needVirtualVelocitiesThisStep =
                 (vsite != nullptr)
                 && (do_per_step(step, ir->nstvout) || checkpointHandler->isCheckpointingStep()
