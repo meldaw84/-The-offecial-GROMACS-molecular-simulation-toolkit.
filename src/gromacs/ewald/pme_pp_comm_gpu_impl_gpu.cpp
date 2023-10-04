@@ -260,12 +260,17 @@ GpuEventSynchronizer* PmePpCommGpu::Impl::getForcesReadySynchronizer()
     }
 }
 
-#if GMX_NVSHMEM
 DeviceBuffer<uint64_t> PmePpCommGpu::Impl::getGpuForceSyncObj()
 {
-    return pmeForcesSyncObj;
+    if (GMX_NVSHMEM)
+    {
+        return pmeForcesSyncObj;
+    }
+    else
+    {
+        return nullptr;
+    }
 }
-#endif
 
 PmePpCommGpu::PmePpCommGpu(MPI_Comm                    comm,
                            int                         pmeRank,
@@ -310,11 +315,9 @@ GpuEventSynchronizer* PmePpCommGpu::getForcesReadySynchronizer()
     return impl_->getForcesReadySynchronizer();
 }
 
-#if GMX_NVSHMEM
 DeviceBuffer<uint64_t> PmePpCommGpu::getGpuForceSyncObj()
 {
     return impl_->getGpuForceSyncObj();
 }
-#endif
 
 } // namespace gmx

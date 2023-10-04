@@ -122,9 +122,7 @@ public:
     /*! \brief Execute the force reduction */
     void execute();
 
-#if GMX_NVSHMEM
     void registerForceSyncObj(DeviceBuffer<uint64_t> syncObj);
-#endif
 
 private:
     class Impl;

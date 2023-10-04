@@ -91,9 +91,12 @@ public:
      */
     void registerRvecForce(DeviceBuffer<Float3> forcePtr);
 
-#if GMX_NVSHMEM
+    /*! \brief Register a force synchronization NVSHMEM object
+     *
+     * \param [in] syncObj  Pointer to force sync object
+     */
     void registerForceSyncObj(DeviceBuffer<uint64_t> syncObj);
-#endif
+
 
     /*! \brief Add a dependency for this force reduction
      *

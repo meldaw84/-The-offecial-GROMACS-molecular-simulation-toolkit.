@@ -118,9 +118,10 @@ public:
      */
     GpuEventSynchronizer* getForcesReadySynchronizer();
 
-#if GMX_NVSHMEM
+    /*! \brief
+     * Return pointer to force synchronization NVSHMEM object
+     */
     DeviceBuffer<uint64_t> getGpuForceSyncObj();
-#endif
 
 private:
     class Impl;

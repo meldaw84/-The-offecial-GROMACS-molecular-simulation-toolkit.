@@ -128,6 +128,15 @@ GpuEventSynchronizer* PmePpCommGpu::getForcesReadySynchronizer()
     return nullptr;
 }
 
+DeviceBuffer<uint64_t> PmePpCommGpu::getGpuForceSyncObj()
+{
+    GMX_ASSERT(!impl_,
+               "A CPU stub for PME-PP GPU communication was called instead of the correct "
+               "implementation.");
+    return nullptr;
+}
+
+
 } // namespace gmx
 
 #endif // !GMX_GPU_CUDA && !GMX_GPU_SYCL

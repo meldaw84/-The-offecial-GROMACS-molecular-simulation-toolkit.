@@ -108,13 +108,15 @@ void GpuForceReduction::Impl::registerRvecForce(DeviceBuffer<RVec> forcePtr)
     rvecForceToAdd_ = forcePtr;
 };
 
-#if GMX_NVSHMEM
 void GpuForceReduction::Impl::registerForceSyncObj(DeviceBuffer<uint64_t> syncObj)
 {
+#if GMX_NVSHMEM
     GMX_ASSERT(syncObj, "Input force for reduction has no data");
     forcesSyncObj = syncObj;
-}
+#else
+    GMX_UNUSED_VALUE(syncObj);
 #endif
+}
 
 void GpuForceReduction::Impl::addDependency(GpuEventSynchronizer* dependency)
 {
@@ -209,18 +211,21 @@ void GpuForceReduction::reinit(DeviceBuffer<RVec>    baseForcePtr,
 {
     impl_->reinit(baseForcePtr, numAtoms, cell, atomStart, accumulate, completionMarker);
 }
+
 void GpuForceReduction::execute()
 {
     impl_->execute();
 }
 
-#if GMX_NVSHMEM
 void GpuForceReduction::registerForceSyncObj(DeviceBuffer<uint64_t> syncObj)
 {
-    GMX_ASSERT(syncObj, "Input force for reduction has no data");
+#if GMX_NVSHMEM
+    GMX_ASSERT(syncObj, "force sync object is NULL");
     impl_->registerForceSyncObj(syncObj);
-}
+#else
+    GMX_UNUSED_VALUE(syncObj);
 #endif
+}
 
 GpuForceReduction::~GpuForceReduction() = default;
 

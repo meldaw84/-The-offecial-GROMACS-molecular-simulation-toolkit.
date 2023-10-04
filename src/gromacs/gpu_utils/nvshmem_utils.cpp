@@ -44,7 +44,12 @@
 
 #include "nvshmem_utils.h"
 
-gmxNvshmemHandle::gmxNvshmemHandle() : nvshmem_mpi_comm_(MPI_COMM_NULL) {}
+gmxNvshmemHandle::gmxNvshmemHandle() : nvshmem_mpi_comm_(MPI_COMM_NULL)
+{
+#if !GMX_NVSHMEM
+    GMX_UNUSED_VALUE(nvshmem_mpi_comm_);
+#endif
+}
 
 void gmxNvshmemHandle::init(MPI_Comm comm)
 {
