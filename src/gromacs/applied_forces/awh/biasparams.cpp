@@ -84,8 +84,9 @@ int64_t calcTargetUpdateInterval(const AwhParams& awhParams, const AwhBiasParams
     switch (awhBiasParams.targetDistribution())
     {
         case AwhTargetType::Constant:
-            /* If the target distribution should be friction optimized set numStepsUpdateTarget below */
-            if (!awhBiasParams.frictionOptimize())
+            /* If the target distribution should be scaled by the friction metric,
+             * set numStepsUpdateTarget below */
+            if (!awhBiasParams.scaleByMetric())
             {
                 numStepsUpdateTarget = 0;
                 break;
@@ -244,7 +245,7 @@ BiasParams::BiasParams(const AwhParams&          awhParams,
     numStepsUpdateTarget_(calcTargetUpdateInterval(awhParams, awhBiasParams)),
     numStepsCheckCovering_(calcCheckCoveringInterval(awhParams, dimParams, gridAxis)),
     eTarget(awhBiasParams.targetDistribution()),
-    frictionOptimize(awhBiasParams.frictionOptimize()),
+    scaleByMetric(awhBiasParams.scaleByMetric()),
     freeEnergyCutoffInKT(beta * awhBiasParams.targetCutoff()),
     temperatureScaleFactor(awhBiasParams.targetBetaScaling()),
     idealWeighthistUpdate(eTarget != AwhTargetType::LocalBoltzmann),

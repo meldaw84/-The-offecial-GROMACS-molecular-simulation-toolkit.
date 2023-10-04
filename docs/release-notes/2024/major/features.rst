@@ -18,11 +18,11 @@ It is set to 2 by default for increased stability.
 If the TPR was generated with an earlier |Gromacs| version,
 the old default value of 3 will be used.
 
-Automatic friction optimized AWH target distribution
-""""""""""""""""""""""""""""""""""""""""""""""""""""
+Automatic metric scaled AWH target distribution
+"""""""""""""""""""""""""""""""""""""""""""""""
 
-The AWH target distribution can now be automatically modified based on
+The AWH target distribution can now be automatically scaled by
 sqrt(AWH friction metric). Regions with higher friction (slower diffusion)
 will get a higher target distribution. This can be applied to further modify
 all AWH target distributions and/or AWH user input. The new option is called
-'awh1-target-friction-optimize'.
+'awh1-target-metric-scaling'.

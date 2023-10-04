@@ -133,7 +133,7 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
 
     const std::vector<char> serializedAwhParametersPerDim = awhDimParamSerialized();
     auto                awhDimArrayRef = gmx::arrayRefFromArray(&serializedAwhParametersPerDim, 1);
-    const bool          frictionOptimize = true;
+    const bool          scaleByMetric  = true;
     AwhTestParameters   params = getAwhTestParameters(AwhHistogramGrowthType::ExponentialLinear,
                                                     AwhPotentialType::Convolved,
                                                     awhDimArrayRef,
@@ -144,7 +144,7 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
                                                     0,
                                                     shareGroup,
                                                     AwhTargetType::Constant,
-                                                    frictionOptimize);
+                                                    scaleByMetric);
     const AwhDimParams& awhDimParams = params.awhParams.awhBiasParams()[0].dimParams()[0];
 
     BiasSharing biasSharing(params.awhParams, commRecord, MPI_COMM_WORLD);
@@ -269,7 +269,7 @@ TEST(BiasSharingTest, SharingWorks)
     }
 }
 
-TEST(BiasSharingTest, SharingFrictionOptimizationWorks)
+TEST(BiasSharingTest, SharingScalingByMetricWorks)
 {
     /* Use nSteps % updateStep > 0 in order to test weightSumIteration, which is the accumulated
      * weightSum since last sharing. After 302 steps, one of the two biases (two of the four ranks)

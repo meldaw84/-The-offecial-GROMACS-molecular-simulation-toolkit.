@@ -138,16 +138,16 @@ static bool anyDimUsesProvider(const AwhParams& awhParams, const AwhCoordinatePr
                        });
 }
 
-/*! \brief Checks whether any bias optimizes the target distribution based on the AWH friction metric.
+/*! \brief Checks whether any bias scales the target distribution based on the AWH friction metric.
  *
  * \param[in] awhParams The AWH params to check.
- * \returns true if any of the biases use friction optimization of the target distribution.
+ * \returns true if any of the biases scale the target distribution by the friction metric.
  */
-static bool anyBiasUsesFrictionOptimization(const AwhParams& awhParams)
+static bool anyBiasIsScaledByMetric(const AwhParams& awhParams)
 {
     return std::any_of(awhParams.awhBiasParams().begin(),
                        awhParams.awhBiasParams().end(),
-                       [](const auto& awhBiasParam) { return awhBiasParam.frictionOptimize(); });
+                       [](const auto& awhBiasParam) { return awhBiasParam.scaleByMetric(); });
 }
 
 BiasCoupledToSystem::BiasCoupledToSystem(Bias bias, const std::vector<int>& pullCoordIndex) :
@@ -192,7 +192,7 @@ Awh::Awh(FILE*                 fplog,
             please_cite(fplog, "Lundborg2021");
         }
 
-        if (anyBiasUsesFrictionOptimization(awhParams))
+        if (anyBiasIsScaledByMetric(awhParams))
         {
             please_cite(fplog, "Lundborg2023");
         }

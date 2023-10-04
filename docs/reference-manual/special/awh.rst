@@ -444,14 +444,14 @@ where :math:`w_{\mathrm{user}}(\lambda)` is provided by user data and
 in principle :math:`\rho_0(\lambda)` can be any of the target
 distributions mentioned above.
 
-Lastly, it is possible to automatically optimize the target distribution
+Lastly, it is possible to automatically scale the target distribution
 (:math:`\rho_0(\lambda)`) based on the AWH friction metric (see
 section :ref:`awhfriction`). This implies scaling the target
 distribution by the square root of the friction metric
 (see :eq:`Eq. %s <eqawhsqrtmetric>`),
 
 .. math:: \rho(\lambda) = \rho_0(\lambda) w_{\mathrm{user}}(\lambda) \sqrt{\det\eta_{\mu\nu}(\lambda)},
-          :label: eqnawhfrictionopt
+          :label: eqnawhmetricopt
 
 where :math:`w_{\mathrm{user}}(\lambda)` can be uniform and
 \sqrt{\det\eta_{\mu\nu}(\lambda)} is the square root of the friction metric.

@@ -366,8 +366,8 @@ void BiasState::updateTargetDistribution(const BiasParams&      params,
     }
     GMX_RELEASE_ASSERT(sumTarget > 0, "We should have a non-zero distribution");
 
-    /* Perform friction optimization of the target distribution after it has been set - normalize afterwards */
-    if (params.frictionOptimize && !inInitialStage())
+    /* Scale the target distribution, by the friction metric - normalize afterwards */
+    if (params.scaleByMetric && !inInitialStage())
     {
         sumTarget = 0;
         updateSharedCorrelationTensorTimeIntegral(params, forceCorrelation);
@@ -385,9 +385,9 @@ void BiasState::updateTargetDistribution(const BiasParams&      params,
             {
                 correlationTensorVolume = averageNeighborPositiveCorrelationTensorVolume(pointIndex, grid);
             }
-            /* Do not modify the target distribution, based on the friction, if the friction is
-             * still 0. N.b., this means that the normalized target of this point can still change
-             * based on the scaling of all other points. */
+            /* Do not modify the target distribution, based on the friction metric, if the friction
+             * metric is still 0. N.b., this means that the normalized target of this point can
+             * still change based on the scaling of all other points. */
             if (correlationTensorVolume > 0)
             {
                 double scaleFactor = correlationTensorVolume;
@@ -1170,10 +1170,9 @@ void BiasState::updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParam
     }
 
     /* Update target distribution? */
-    bool doFrictionOptimization = params.frictionOptimize && !inInitialStage();
-    bool needToUpdateTargetDistribution =
-            ((params.eTarget != AwhTargetType::Constant || doFrictionOptimization)
-             && params.isUpdateTargetStep(step));
+    bool doScaleByMetric                = params.scaleByMetric && !inInitialStage();
+    bool needToUpdateTargetDistribution = ((params.eTarget != AwhTargetType::Constant || doScaleByMetric)
+                                           && params.isUpdateTargetStep(step));
 
     /* In the initial stage, the histogram grows dynamically as a function of the number of coverings. */
     bool detectedCovering = false;

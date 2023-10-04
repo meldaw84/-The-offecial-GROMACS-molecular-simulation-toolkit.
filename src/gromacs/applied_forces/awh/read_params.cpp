@@ -824,12 +824,12 @@ AwhBiasParams::AwhBiasParams(std::vector<t_inpfile>* inp, const std::string& pre
     if (bComment)
     {
         printStringNoNewline(inp,
-                             "Optimize the target distribution (can be used to modify any target "
+                             "Scale the target distribution (can be used to modify any target "
                              "distribution type and can be combined with user data) based on "
                              "the AWH friction metric: no or yes");
     }
-    opt                = prefix + "target-friction-optimize";
-    bFrictionOptimize_ = getEnum<Boolean>(inp, opt.c_str(), wi) != Boolean::No;
+    opt            = prefix + "target-metric-scaling";
+    scaleByMetric_ = getEnum<Boolean>(inp, opt.c_str(), wi) != Boolean::No;
 
     if (bComment)
     {
@@ -853,7 +853,7 @@ AwhBiasParams::AwhBiasParams(std::vector<t_inpfile>* inp, const std::string& pre
 
 AwhBiasParams::AwhBiasParams(ISerializer* serializer,
                              const bool   tprWithoutGrowthFactor,
-                             const bool   tprWithoutTargetOptimization)
+                             const bool   tprWithoutTargetMetricScaling)
 {
     GMX_RELEASE_ASSERT(serializer->reading(),
                        "Can not use writing serializer to create datastructure");
@@ -873,13 +873,13 @@ AwhBiasParams::AwhBiasParams(ISerializer* serializer,
     int temp = 0;
     serializer->doInt(&temp);
     bUserData_ = static_cast<bool>(temp);
-    if (tprWithoutTargetOptimization)
+    if (tprWithoutTargetMetricScaling)
     {
-        bFrictionOptimize_ = false;
+        scaleByMetric_ = false;
     }
     else
     {
-        serializer->doBool(&bFrictionOptimize_);
+        serializer->doBool(&scaleByMetric_);
     }
     serializer->doDouble(&errorInitial_);
     int numDimensions = dimParams_.size();
@@ -904,7 +904,7 @@ void AwhBiasParams::serialize(ISerializer* serializer)
     serializer->doDouble(&growthFactor_);
     int temp = static_cast<int>(bUserData_);
     serializer->doInt(&temp);
-    serializer->doBool(&bFrictionOptimize_);
+    serializer->doBool(&scaleByMetric_);
     serializer->doDouble(&errorInitial_);
     int numDimensions = ndim();
     serializer->doInt(&numDimensions);
@@ -975,7 +975,7 @@ AwhParams::AwhParams(std::vector<t_inpfile>* inp, WarningHandler* wi)
     checkInputConsistencyAwh(*this, wi);
 }
 
-AwhParams::AwhParams(ISerializer* serializer, const bool tprWithoutGrowthFactor, const bool tprWithoutTargetOptimization)
+AwhParams::AwhParams(ISerializer* serializer, const bool tprWithoutGrowthFactor, const bool tprWithoutTargetMetricScaling)
 {
     GMX_RELEASE_ASSERT(serializer->reading(),
                        "Can not use writing serializer to read AWH parameters");
@@ -992,7 +992,7 @@ AwhParams::AwhParams(ISerializer* serializer, const bool tprWithoutGrowthFactor,
     {
         for (int k = 0; k < numberOfBiases; k++)
         {
-            awhBiasParams_.emplace_back(serializer, tprWithoutGrowthFactor, tprWithoutTargetOptimization);
+            awhBiasParams_.emplace_back(serializer, tprWithoutGrowthFactor, tprWithoutTargetMetricScaling);
         }
     }
 }
