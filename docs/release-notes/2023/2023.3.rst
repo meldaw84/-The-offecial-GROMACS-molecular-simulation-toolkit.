@@ -46,9 +46,10 @@ dynamic load balancing support with GPU-resident simulations that use GPU halo e
 Update virtual site velocities to avoid constraint instabilities
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-Virtual site velocities were only updated when writing velocities, but they were
-used for integration. This could make simulations crash. Now the velocities are updated
-at regular intervals in order to avoid instabilities (LINCS errors).
+Virtual site velocities were only re-computed when writing velocities, but they are
+still integrated. This causes errors to accumulate. Now the velocities are updated
+at regular intervals in order to avoid (too) large velocities. Note that virtual
+site velocities are only used for output, they do not affect the positions.
 
 :issue:`4879`
 
