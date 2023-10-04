@@ -66,7 +66,8 @@ void gmxNvshmemHandle::init(MPI_Comm comm)
 gmxNvshmemHandle::~gmxNvshmemHandle()
 {
 #if GMX_NVSHMEM
-    MPI_Comm_free(&nvshmem_mpi_comm_);
+    // Call nvshmem_finalize before destroying the MPI Comm.
     nvshmem_finalize();
+    MPI_Comm_free(&nvshmem_mpi_comm_);
 #endif
 }

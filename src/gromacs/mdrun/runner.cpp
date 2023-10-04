@@ -2010,10 +2010,11 @@ int Mdrunner::mdrunner()
         }
     }
 
-    gmxNvshmemHandle nvshmemObj;
+    std::unique_ptr<gmxNvshmemHandle> nvshmemHandlePtr;
     if (runScheduleWork.simulationWork.useNvshmem)
     {
-        nvshmemObj.init(cr->mpiDefaultCommunicator);
+        nvshmemHandlePtr = std::make_unique<gmxNvshmemHandle>();
+        nvshmemHandlePtr->init(cr->mpiDefaultCommunicator);
     }
 
     /* Set thread affinity after gmx_pme_init(), otherwise with cuFFTMp the NVSHMEM helper thread
