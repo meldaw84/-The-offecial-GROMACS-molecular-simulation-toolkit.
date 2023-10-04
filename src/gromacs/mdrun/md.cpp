@@ -948,7 +948,7 @@ void gmx::LegacySimulator::do_md()
         const bool needVirtualVelocitiesThisStep =
                 (vsite != nullptr)
                 && (do_per_step(step, ir->nstvout) || checkpointHandler->isCheckpointingStep()
-                    || do_per_step(step, virtualSiteVelocityUpdateInterval));
+                    || do_per_step(step, c_virtualSiteVelocityUpdateInterval));
 
         if (vsite != nullptr)
         {
