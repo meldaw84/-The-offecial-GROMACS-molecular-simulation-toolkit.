@@ -1071,7 +1071,6 @@ static real pressureError(gmx::ArrayRef<const VerletbufAtomtype> atomTypes,
                           const t_inputrec&                      ir,
                           const real                             ensembleTemperature,
                           const std::pair<pot_derivatives_t, pot_derivatives_t>& ljPotentials,
-                          const pot_derivatives_t&                               elecPotential,
                           const bool                listIsDynamicallyPruned,
                           const int                 nstlist,
                           const real                rlist,
@@ -1086,24 +1085,15 @@ static real pressureError(gmx::ArrayRef<const VerletbufAtomtype> atomTypes,
     const pot_derivatives_t ljDispForce = getForceDerivatives(ljPotentials.first);
     const pot_derivatives_t ljRepForce  = getForceDerivatives(ljPotentials.second);
 
-    // The electrostatic contribution is ignored, unless an env.var. is set.
-    // This is because the electrostatic force errors have a cancellation
-    // of errors due to (local) charge neutrality. The net error in the
-    // pressure is about two orders of magnitude smaller than what a sum
-    // of unsigned force errors would give. In practice the electrostatic
-    // error is nearly always negligible, so we can ignore it here.
-    pot_derivatives_t elecForce = { 0, 0, 0, 0 };
-    if (getenv("GMX_ADD_COULOMB_PRESSURE_ERROR") != nullptr)
-    {
-        if (ir.rcoulomb != ir.rvdw)
-        {
-            GMX_THROW(gmx::InvalidInputError(
-                    "Can only take Coulomb interactions into account for the NBNxM pressure error "
-                    "calculation when rcoulomb=rvdw"));
-        }
-
-        elecForce = getForceDerivatives(elecPotential);
-    }
+    // The electrostatic contribution is ignored. This is because there
+    // is a large cancellation of errors of missing electrostatic forces
+    // due to (local) charge neutrality. The net error in the pressure
+    // is about two orders of magnitude smaller than what a sum
+    // of unsigned force errors would give. This cancellation of errors
+    // can not reliably be accounted for with simple estimates.
+    // In practice the electrostatic error is nearly always negligible
+    // (e.g. max 0.1 bar for water), so we can ignore it here.
+    const pot_derivatives_t elecForce = { 0, 0, 0, 0 };
 
     // The list life time, counted in "non-bonded" time steps
     const int listLifetime = nstlist / gmx::nonbondedMtsFactor(ir) - 1;
@@ -1396,15 +1386,12 @@ real verletBufferPressureError(const gmx_mtop_t&         mtop,
 
     // Get the derivatives of the Lennard-Jones potential
     const auto ljDerivatives = getVdwDerivatives(ir, mtop.ffparams.reppow);
-    // Get the derivatives of the electrostatic potential, might be ignored
-    const pot_derivatives_t elecDerivatives = getElecDerivatives(ir);
 
     return pressureError(att,
                          mtop.ffparams,
                          ir,
                          ensembleTemperature,
                          ljDerivatives,
-                         elecDerivatives,
                          listIsDynamicallyPruned,
                          nstlist,
                          rlist,
