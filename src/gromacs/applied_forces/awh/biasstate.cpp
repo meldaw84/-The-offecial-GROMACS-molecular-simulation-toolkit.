@@ -326,32 +326,8 @@ std::string gridPointValueString(const BiasGrid& grid, int point)
 
 } // namespace
 
-double BiasState::averageNeighborPositiveCorrelationTensorVolume(const size_t    pointIndex,
-                                                                 const BiasGrid& grid) const
-{
-    const GridPoint& gridPoint       = grid.point(pointIndex);
-    double           tensorVolumeSum = 0;
-    int              elementCount    = 0;
-    for (int neighbor : gridPoint.neighbor)
-    {
-        std::vector<double> neighborCorrelationIntegral = getSharedPointCorrelationIntegral(neighbor);
-        double neighborCorrelationTensorVolume = getSqrtDeterminant(neighborCorrelationIntegral);
-        if (neighborCorrelationTensorVolume > 0)
-        {
-            tensorVolumeSum += neighborCorrelationTensorVolume;
-            ++elementCount;
-        }
-    }
-    if (elementCount > 0)
-    {
-        return (tensorVolumeSum / elementCount);
-    }
-    return 0.0;
-}
 
-void BiasState::updateTargetDistribution(const BiasParams&      params,
-                                         const CorrelationGrid& forceCorrelation,
-                                         const BiasGrid&        grid)
+void BiasState::updateTargetDistribution(const BiasParams& params, const CorrelationGrid& forceCorrelation)
 {
     double freeEnergyCutoff = 0;
     if (params.eTarget == AwhTargetType::Cutoff)
@@ -369,30 +345,41 @@ void BiasState::updateTargetDistribution(const BiasParams&      params,
     /* Scale the target distribution, by the friction metric - normalize afterwards */
     if (params.scaleByMetric && !inInitialStage())
     {
-        sumTarget = 0;
         updateSharedCorrelationTensorTimeIntegral(params, forceCorrelation);
+
+        /* Calculate the average of non-zero correlation tensor volume elements. */
+        int    elementCount = 0;
+        double sumVolume    = 0;
         for (size_t pointIndex = 0; pointIndex < points_.size(); pointIndex++)
         {
-            PointState& ps                      = points_[pointIndex];
-            double      correlationTensorVolume = 0;
-
             std::vector<double> correlationIntegral = getSharedPointCorrelationIntegral(pointIndex);
-            correlationTensorVolume                 = getSqrtDeterminant(correlationIntegral);
+            double              correlationTensorVolume = getSqrtDeterminant(correlationIntegral);
 
-            /* If there is no correlation tensor volume from this element use the average of valid
-             * volumes from neighbors */
-            if (correlationTensorVolume == 0)
-            {
-                correlationTensorVolume = averageNeighborPositiveCorrelationTensorVolume(pointIndex, grid);
-            }
-            /* Do not modify the target distribution, based on the friction metric, if the friction
-             * metric is still 0. N.b., this means that the normalized target of this point can
-             * still change based on the scaling of all other points. */
             if (correlationTensorVolume > 0)
             {
-                double scaleFactor = correlationTensorVolume;
-                ps.scaleTarget(scaleFactor);
+                sumVolume += correlationTensorVolume;
+                elementCount++;
             }
+        }
+        double averageVolume = sumVolume / elementCount;
+
+        sumTarget = 0;
+        for (size_t pointIndex = 0; pointIndex < points_.size(); pointIndex++)
+        {
+            PointState& ps = points_[pointIndex];
+
+            std::vector<double> correlationIntegral = getSharedPointCorrelationIntegral(pointIndex);
+            double              correlationTensorVolume = getSqrtDeterminant(correlationIntegral);
+
+            /* If there is no correlation tensor volume from this element use the average volume. This will
+             * result in no friction tensor scaling for the target distribution of this point. */
+            if (correlationTensorVolume == 0)
+            {
+                correlationTensorVolume = averageVolume;
+            }
+            double scaleFactor = correlationTensorVolume / averageVolume;
+            ps.scaleTarget(scaleFactor);
+
             sumTarget += ps.target();
         }
     }
@@ -1251,7 +1238,7 @@ void BiasState::updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParam
     if (needToUpdateTargetDistribution)
     {
         /* The target distribution is always updated for all points at once. */
-        updateTargetDistribution(params, forceCorrelation, grid);
+        updateTargetDistribution(params, forceCorrelation);
     }
 
     /* Update the bias. The bias is updated separately and last since it simply a function of
@@ -1969,7 +1956,7 @@ void BiasState::initGridPointState(const AwhBiasParams&      awhBiasParams,
                        "AWH reference weight histogram not initialized properly with local "
                        "Boltzmann target distribution.");
 
-    updateTargetDistribution(params, forceCorrelation, grid);
+    updateTargetDistribution(params, forceCorrelation);
 
     for (PointState& pointState : points_)
     {

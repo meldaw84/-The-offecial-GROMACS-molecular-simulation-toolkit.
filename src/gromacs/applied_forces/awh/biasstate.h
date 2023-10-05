@@ -360,11 +360,8 @@ private:
      *
      * \param[in] params           The bias parameters.
      * \param[in] forceCorrelation The force correlation statistics for every grid point.
-     * \param[in] grid             The bias grid.
      */
-    void updateTargetDistribution(const BiasParams&      params,
-                                  const CorrelationGrid& forceCorrelation,
-                                  const BiasGrid&        grid);
+    void updateTargetDistribution(const BiasParams& params, const CorrelationGrid& forceCorrelation);
 
     /*! \brief Returns the average of nonzero (valid) correlation tensor volumes in neighboring points.
      *
