@@ -185,7 +185,15 @@ if (GMX_GPU_CUDA)
     #we cannot link with both cufftmp and cufft
     if(GMX_USE_cuFFTMp)
         target_link_libraries(libgromacs PRIVATE ${cuFFTMp_LIBRARY})
-        target_link_libraries(libgromacs PRIVATE nvidia-ml cuda)
+        # We need to PUBLIC link to the stub libraries nvml/cuda to WAR an issue
+        # with `bfd` linker which expects you always have dependencies on the link line.
+        # Also leaking path via the -rpath does not work with a stub library as the SONAME
+        # present inside these stub library (used by runtime) is *.so.1 instead of *.so as these
+        # stub library are meant only for compile time and the runtime version is a driver provided
+        # version which is not present on the system where driver is not installed.
+        # At some future release cmake will provide a workaround for this under the hood at which
+        # point we can use PRIVATE linking for these libs until then we stick with PUBLIC linking.
+        target_link_libraries(libgromacs PUBLIC nvidia-ml cuda)
     else()
         target_link_libraries(libgromacs PRIVATE ${CUDA_CUFFT_LIBRARIES})
     endif()
