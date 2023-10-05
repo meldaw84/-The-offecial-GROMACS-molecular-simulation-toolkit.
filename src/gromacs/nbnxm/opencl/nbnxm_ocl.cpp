@@ -534,7 +534,7 @@ void gpu_launch_kernel(NbnxmGpu* nb, const gmx::StepWorkload& stepWork, const Nb
 
     // with dynamic pruning we run separate outer list pruning, without we run combined
     // with the interaction kernel
-    const bool combinedInteractionPruneKernel = !nbp->useDynamicPruning;
+    const bool useCombinedInteractionPruneKernel = !nbp->useDynamicPruning;
     if (nbp->useDynamicPruning && plist->haveFreshList)
     {
         /* Prunes for rlistOuter and rlistInner, sets plist->haveFreshList=false */
@@ -583,7 +583,7 @@ void gpu_launch_kernel(NbnxmGpu* nb, const gmx::StepWorkload& stepWork, const Nb
 
     if (stepWork.doNeighborSearch)
     {
-        GMX_ASSERT((plist->haveFreshList == combinedInteractionPruneKernel),
+        GMX_ASSERT((plist->haveFreshList == useCombinedInteractionPruneKernel),
                    "On search steps without dynamic pruning we expect to need to do combined "
                    "interaction+pruning kernel");
     }
@@ -591,7 +591,7 @@ void gpu_launch_kernel(NbnxmGpu* nb, const gmx::StepWorkload& stepWork, const Nb
     auto* timingEvent = bDoTime ? timers->interaction[iloc].nb_k.fetchNextEvent() : nullptr;
     constexpr char kernelName[] = "k_calc_nb";
     const auto     kernel       = select_nbnxn_kernel(
-            nb, nbp->elecType, nbp->vdwType, stepWork.computeEnergy, combinedInteractionPruneKernel);
+            nb, nbp->elecType, nbp->vdwType, stepWork.computeEnergy, useCombinedInteractionPruneKernel);
 
 
     // The OpenCL kernel takes int as second to last argument because bool is

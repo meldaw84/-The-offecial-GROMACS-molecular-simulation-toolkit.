@@ -462,7 +462,7 @@ void gpu_launch_kernel(NbnxmGpu* nb, const gmx::StepWorkload& stepWork, const In
 
     // with dynamic pruning we run separate outer list pruning, without we run combined
     // with the interaction kernel
-    const bool combinedInteractionPruneKernel = !nbp->useDynamicPruning;
+    const bool useCombinedInteractionPruneKernel = !nbp->useDynamicPruning;
     if (nbp->useDynamicPruning && plist->haveFreshList)
     {
         /* Prunes for rlistOuter and rlistInner, sets plist->haveFreshList=false */
@@ -521,7 +521,7 @@ void gpu_launch_kernel(NbnxmGpu* nb, const gmx::StepWorkload& stepWork, const In
 
     if (stepWork.doNeighborSearch)
     {
-        GMX_ASSERT((plist->haveFreshList == combinedInteractionPruneKernel),
+        GMX_ASSERT((plist->haveFreshList == useCombinedInteractionPruneKernel),
                    "On search steps without dynamic pruning we expect to need to do combined "
                    "interaction+pruning kernel");
     }
@@ -530,7 +530,7 @@ void gpu_launch_kernel(NbnxmGpu* nb, const gmx::StepWorkload& stepWork, const In
     const auto kernel      = select_nbnxn_kernel(nbp->elecType,
                                             nbp->vdwType,
                                             stepWork.computeEnergy,
-                                            combinedInteractionPruneKernel,
+                                            useCombinedInteractionPruneKernel,
                                             &nb->deviceContext_->deviceInfo());
     const auto kernelArgs =
             prepareGpuKernelArguments(kernel, config, adat, nbp, plist, &stepWork.computeVirial);
