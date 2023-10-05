@@ -73,51 +73,6 @@ static const unsigned __device__ superClInteractionMask =
 static const float __device__ c_oneSixth    = 0.16666667F;
 static const float __device__ c_oneTwelveth = 0.08333333F;
 
-template<unsigned int BlockSize, unsigned int ItemsPerThread>
-__launch_bounds__(BlockSize) __global__ void nbnxn_kernel_bucket_sci_sort(Nbnxm::gpu_plist plist)
-{
-    int size = plist.nsci;
-
-    const unsigned int flat_id      = threadIdx.x;
-    const unsigned int block_id     = blockIdx.x;
-    const unsigned int block_offset = blockIdx.x * BlockSize * ItemsPerThread;
-
-    const nbnxn_sci_t* pl_sci        = plist.sci;
-    nbnxn_sci_t*       pl_sci_sort   = plist.sorting.sci_sorted;
-    const int*         pl_sci_count  = plist.sorting.sci_count;
-    int*               pl_sci_offset = plist.sorting.sci_offset;
-
-    int         sci_count[ItemsPerThread];
-    int         sci_offset[ItemsPerThread];
-    nbnxn_sci_t sci[ItemsPerThread];
-
-#    pragma unroll
-    for (unsigned int i = 0; i < ItemsPerThread; i++)
-    {
-        if (size > (block_offset + ItemsPerThread * flat_id + i))
-        {
-            sci[i]       = pl_sci[block_offset + ItemsPerThread * flat_id + i];
-            sci_count[i] = pl_sci_count[block_offset + ItemsPerThread * flat_id + i];
-        }
-    }
-
-#    pragma unroll
-    for (unsigned int i = 0; i < ItemsPerThread; i++)
-    {
-        if (size > (block_offset + ItemsPerThread * flat_id + i))
-            sci_offset[i] = atomicAdd(&pl_sci_offset[sci_count[i]], 1);
-    }
-
-#    pragma unroll
-    for (unsigned int i = 0; i < ItemsPerThread; i++)
-    {
-        if (size > (block_offset + ItemsPerThread * flat_id + i))
-        {
-            pl_sci_sort[sci_offset[i]] = sci[i];
-        }
-    }
-}
-
 /*! Convert LJ sigma,epsilon parameters to C6,C12. */
 static __forceinline__ __device__ void
 convert_sigma_epsilon_to_c6_c12(const float sigma, const float epsilon, float* c6, float* c12)

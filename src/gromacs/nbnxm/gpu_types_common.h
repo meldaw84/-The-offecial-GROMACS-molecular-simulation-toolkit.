@@ -65,6 +65,9 @@
 static constexpr int c_sciHistogramSize =
         8192; // TODO is it a problem to hard code this rather than using double the average cjPacked size as in the cpu version
 
+static constexpr int c_sciSortingThreadsPerBlock = 256;
+static constexpr int c_sciSortingItemsPerThread  = 16;
+
 /*! \brief Macro definining default for the prune kernel's jPacked processing concurrency.
  *
  *  The GMX_NBNXN_PRUNE_KERNEL_JPACKED_CONCURRENCY macro allows compile-time override with the default value of 4.
