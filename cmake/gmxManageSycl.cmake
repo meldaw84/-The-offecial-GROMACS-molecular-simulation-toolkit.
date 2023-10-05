@@ -39,8 +39,6 @@ if(GMX_DOUBLE)
     message(FATAL_ERROR "SYCL acceleration is not available in double precision")
 endif()
 
-include(gmxFindFlagsForSource)
-
 set(_sycl_has_valid_fft FALSE)
 
 if(GMX_SYCL_HIPSYCL)

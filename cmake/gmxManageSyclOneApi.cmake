@@ -34,6 +34,8 @@
 # CMake issue tracking the efforts to make a universal upstream module:
 # https://gitlab.kitware.com/cmake/cmake/-/issues/21711
 
+include(gmxFindFlagsForSource)
+
 if(NOT GMX_GPU_SYCL OR GMX_SYCL_HIPSYCL)
     message(FATAL_ERROR "Internal error: OneAPI configuration script was included when it should not")
 endif()

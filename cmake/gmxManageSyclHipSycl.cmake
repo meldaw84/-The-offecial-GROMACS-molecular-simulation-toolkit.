@@ -31,7 +31,6 @@
 # To help us fund GROMACS development, we humbly ask that you cite
 # the research papers on the package. Check out https://www.gromacs.org.
 
-
 include(gmxFindFlagsForSource)
 
 # Return all current CMake variables with name starting with "hipsycl" (case-insensitive).
