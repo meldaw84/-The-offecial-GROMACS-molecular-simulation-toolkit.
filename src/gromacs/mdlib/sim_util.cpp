@@ -1311,7 +1311,8 @@ static void setupLocalGpuForceReduction(const gmx::MdrunScheduleWorkload* runSch
         gpuForceReduction->registerRvecForce(pmeForcePtr);
         if (runScheduleWork->simulationWork.useNvshmem)
         {
-            gpuForceReduction->registerForceSyncObj(pmePpCommGpu->getGpuForceSyncObj());
+            auto forceSyncPtr = pmePpCommGpu->getGpuForceSyncObj();
+            gpuForceReduction->registerForceSyncObj(forceSyncPtr);
         }
 
         if (!runScheduleWork->simulationWork.useGpuPmePpCommunication || GMX_THREAD_MPI)

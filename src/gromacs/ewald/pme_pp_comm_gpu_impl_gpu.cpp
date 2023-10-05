@@ -73,7 +73,8 @@ PmePpCommGpu::Impl::Impl(MPI_Comm                    comm,
     comm_(comm),
     pmeRank_(pmeRank),
     pmeCpuForceBuffer_(pmeCpuForceBuffer),
-    d_pmeForces_(nullptr)
+    d_pmeForces_(nullptr),
+    pmeForcesSyncObj(nullptr)
 {
     stageLibMpiGpuCpuComm_ = (getenv("GMX_DISABLE_STAGED_GPU_TO_CPU_PMEPP_COMM") == nullptr);
 }
@@ -262,14 +263,7 @@ GpuEventSynchronizer* PmePpCommGpu::Impl::getForcesReadySynchronizer()
 
 DeviceBuffer<uint64_t> PmePpCommGpu::Impl::getGpuForceSyncObj()
 {
-    if (GMX_NVSHMEM)
-    {
-        return pmeForcesSyncObj;
-    }
-    else
-    {
-        return nullptr;
-    }
+    return pmeForcesSyncObj;
 }
 
 PmePpCommGpu::PmePpCommGpu(MPI_Comm                    comm,
