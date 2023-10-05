@@ -363,14 +363,6 @@ private:
      */
     void updateTargetDistribution(const BiasParams& params, const CorrelationGrid& forceCorrelation);
 
-    /*! \brief Returns the average of nonzero (valid) correlation tensor volumes in neighboring points.
-     *
-     * \param[in] pointIndex The index of the point of interest.
-     * \param[in] grid       The bias grid.
-     * \returns the average of valid tensor volumes from neighboring points or 0.0 if there are no valid volumes.
-     */
-    double averageNeighborPositiveCorrelationTensorVolume(size_t pointIndex, const BiasGrid& grid) const;
-
 public:
     /*! \brief
      * Update the reaction coordinate value.

@@ -116,7 +116,7 @@ public:
                                                                awhParams.nstSampleCoord() * mdTimeStep);
 
         // Here we initialize the grid point state using the input file
-        std::string filename = gmx::test::TestFileManager::getInputFilePath(GetParam());
+        std::string filename = gmx::test::TestFileManager::getInputFilePath(GetParam()).u8string();
         biasState_->initGridPointState(awhBiasParams,
                                        dimParams,
                                        grid,
