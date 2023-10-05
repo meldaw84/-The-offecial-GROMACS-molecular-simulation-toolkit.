@@ -347,7 +347,8 @@ void BiasState::updateTargetDistribution(const BiasParams& params, const Correla
     {
         updateSharedCorrelationTensorTimeIntegral(params, forceCorrelation);
 
-        /* Calculate the average of non-zero correlation tensor volume elements. */
+        /* Calculate the average of non-zero correlation tensor volume elements before
+         * scaling by the friction tensor. */
         int    elementCount = 0;
         double sumVolume    = 0;
         for (size_t pointIndex = 0; pointIndex < points_.size(); pointIndex++)
@@ -361,7 +362,15 @@ void BiasState::updateTargetDistribution(const BiasParams& params, const Correla
                 elementCount++;
             }
         }
-        double averageVolume = sumVolume / elementCount;
+        double averageVolume = 0;
+        if (elementCount != 0)
+        {
+            averageVolume = sumVolume / elementCount;
+        }
+        if (averageVolume == 0)
+        {
+            averageVolume = 1;
+        }
 
         sumTarget = 0;
         for (size_t pointIndex = 0; pointIndex < points_.size(); pointIndex++)
