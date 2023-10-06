@@ -46,10 +46,10 @@
 #include "gromacs/applied_forces/awh/biasgrid.h"
 #include "gromacs/applied_forces/awh/pointstate.h"
 #include "gromacs/applied_forces/awh/tests/awh_setup.h"
+#include "gromacs/fileio/xvgr.h"
 #include "gromacs/math/functions.h"
 #include "gromacs/mdtypes/awh_params.h"
 #include "gromacs/utility/arrayref.h"
-#include "gromacs/fileio/xvgr.h"
 #include "gromacs/utility/stringutil.h"
 
 #include "testutils/testasserts.h"
@@ -119,12 +119,12 @@ private:
     std::unique_ptr<AwhTestParameters> params_;
 
 public:
-    std::unique_ptr<BiasGrid>  grid_;
-    std::vector<int> gridIndexToDataIndex_;
+    std::unique_ptr<BiasGrid>                                      grid_;
+    std::vector<int>                                               gridIndexToDataIndex_;
     gmx::MultiDimArray<std::vector<double>, gmx::dynamicExtents2D> data_;
-    int                     numColumns_;
-    int                     numRows_;
-    std::string             filename_;
+    int                                                            numColumns_;
+    int                                                            numRows_;
+    std::string                                                    filename_;
 
     UserInputTest()
     {
@@ -163,16 +163,15 @@ public:
         dimParams.push_back(DimParams::pullDimParams(1.0, 15.0, params_->beta));
         dimParams.push_back(DimParams::pullDimParams(1.0, 15.0, params_->beta));
         dimParams.push_back(DimParams::pullDimParams(1.0, 15.0, params_->beta));
-        grid_ = std::make_unique<BiasGrid> (dimParams, awhBiasParams.dimParams());
+        grid_                 = std::make_unique<BiasGrid>(dimParams, awhBiasParams.dimParams());
         gridIndexToDataIndex_ = std::vector<int>(grid_->numPoints());
 
         // Here we read the input file
         std::string filename_ = gmx::test::TestFileManager::getInputFilePath(GetParam()).u8string();
-    
-        data_ = readXvgData(filename_);
+
+        data_       = readXvgData(filename_);
         numColumns_ = data_.extent(0);
         numRows_    = data_.extent(1);
-
     }
 };
 
@@ -196,24 +195,24 @@ TEST_P(BiasStateTest, InitializesFromFile)
 
 TEST_P(UserInputTest, UserInputData)
 {
-    const BiasGrid& grid = *grid_;
-    std::string correctFormatMessage = gmx::formatString(
-        "%s is expected in the following format. "
-        "The first ndim column(s) should contain the coordinate values for each point, "
-        "each column containing values of one dimension (in ascending order). "
-        "For a multidimensional coordinate, points should be listed "
-        "in the order obtained by traversing lower dimensions first. "
-        "E.g. for two-dimensional grid of size nxn: "
-        "(1, 1), (1, 2),..., (1, n), (2, 1), (2, 2), ..., , (n, n - 1), (n, n). "
-        "Column ndim +  1 should contain the PMF value for each coordinate value. "
-        "The target distribution values should be in column ndim + 2  or column ndim + 5. "
-        "Make sure the input file ends with a new line but has no trailing new lines. ",
-        filename_.c_str());
+    const BiasGrid& grid                 = *grid_;
+    std::string     correctFormatMessage = gmx::formatString(
+            "%s is expected in the following format. "
+            "The first ndim column(s) should contain the coordinate values for each point, "
+            "each column containing values of one dimension (in ascending order). "
+            "For a multidimensional coordinate, points should be listed "
+            "in the order obtained by traversing lower dimensions first. "
+            "E.g. for two-dimensional grid of size nxn: "
+            "(1, 1), (1, 2),..., (1, n), (2, 1), (2, 2), ..., , (n, n - 1), (n, n). "
+            "Column ndim +  1 should contain the PMF value for each coordinate value. "
+            "The target distribution values should be in column ndim + 2  or column ndim + 5. "
+            "Make sure the input file ends with a new line but has no trailing new lines. ",
+            filename_.c_str());
     /* Get a data point for each AWH grid point so that they all get data. */
-    EXPECT_NO_THROW(mapGridToDataGrid(&gridIndexToDataIndex_, data_, numRows_, filename_, grid, correctFormatMessage));
+    EXPECT_NO_THROW(mapGridToDataGrid(
+            &gridIndexToDataIndex_, data_, numRows_, filename_, grid, correctFormatMessage));
     EXPECT_EQ(numRows_, 30);
     EXPECT_EQ(numColumns_, 8);
-
 }
 
 
@@ -223,9 +222,7 @@ INSTANTIATE_TEST_SUITE_P(WithParameters,
                          BiasStateTest,
                          ::testing::Values("pmf_target_format0.xvg", "pmf_target_format1.xvg"));
 
-INSTANTIATE_TEST_SUITE_P(WithParameters,
-                         UserInputTest,
-                         ::testing::Values("pmf_target_format2.xvg"));
+INSTANTIATE_TEST_SUITE_P(WithParameters, UserInputTest, ::testing::Values("pmf_target_format2.xvg"));
 
 } // namespace test
 } // namespace gmx
