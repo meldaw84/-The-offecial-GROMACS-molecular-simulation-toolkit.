@@ -828,8 +828,16 @@ AwhBiasParams::AwhBiasParams(std::vector<t_inpfile>* inp, const std::string& pre
                              "distribution type and can be combined with user data) based on "
                              "the AWH friction metric: no or yes");
     }
-    opt            = prefix + "target-metric-scaling";
+    opt            = prefix + "-target-metric-scaling";
     scaleByMetric_ = getEnum<Boolean>(inp, opt.c_str(), wi) != Boolean::No;
+
+    if (scaleByMetric_ && (eTarget_ == AwhTargetType::Boltzmann || eTarget_ == AwhTargetType::LocalBoltzmann))
+    {
+        auto message = formatString("Combining a '%s' target distribution with scaling the target distribution "
+                                    "by the friction metric (%s) might result in a feedback between the two "
+                                    "adaptive update methods.", enumValueToString(eTarget_), opt.c_str());
+        wi->addWarning(message);
+    }
 
     if (bComment)
     {
