@@ -164,7 +164,7 @@ public:
         dimParams.push_back(DimParams::pullDimParams(1.0, 15.0, params_->beta));
         dimParams.push_back(DimParams::pullDimParams(1.0, 15.0, params_->beta));
         grid_ = std::make_unique<BiasGrid> (dimParams, awhBiasParams.dimParams());
-        std::vector<int> gridIndexToDataIndex_(grid_->numPoints());
+        gridIndexToDataIndex_ = std::vector<int>(grid_->numPoints());
 
         // Here we read the input file
         std::string filename_ = gmx::test::TestFileManager::getInputFilePath(GetParam()).u8string();
