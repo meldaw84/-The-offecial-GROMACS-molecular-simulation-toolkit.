@@ -293,7 +293,7 @@ void BiasState::calcConvolvedPmf(ArrayRef<const DimParams> dimParams,
     }
 }
 
-double BiasState::calculateAverageNonZeroMetric(const CorrelationGrid& forceCorrelation)
+double BiasState::calculateAverageNonZeroMetric()
 {
     int    elementCount = 0;
     double sumVolume    = 0;
@@ -316,15 +316,13 @@ double BiasState::calculateAverageNonZeroMetric(const CorrelationGrid& forceCorr
     return averageVolume;
 }
 
-double BiasState::scaleTargetByMetric(const BiasParams& params, const CorrelationGrid& forceCorrelation)
+double BiasState::scaleTargetByMetric()
 {
-    updateSharedCorrelationTensorTimeIntegral(params, forceCorrelation);
-
     /* Calculate the average of non-zero correlation tensor volume elements before
      * scaling by the friction tensor. The average will be used to scale the target
      * relatively and to avoid scaling (scaleFactor = 1) where there is not enough
      * data (no valid correlationTensorVolume) to use for scaling. */
-    double averageVolume = calculateAverageNonZeroMetric(forceCorrelation);
+    double averageVolume = calculateAverageNonZeroMetric();
     if (averageVolume == 0)
     {
         averageVolume = 1;
@@ -400,10 +398,11 @@ void BiasState::updateTargetDistribution(const BiasParams& params, const Correla
     }
     GMX_RELEASE_ASSERT(sumTarget > 0, "We should have a non-zero distribution");
 
-    /* Scale the target distribution, by the friction metric - normalize afterwards */
+    /* Scale the target distribution by the friction metric - normalize afterwards */
     if (params.scaleByMetric && !inInitialStage())
     {
-        sumTarget = scaleTargetByMetric(params, forceCorrelation);
+        updateSharedCorrelationTensorTimeIntegral(params, forceCorrelation);
+        sumTarget = scaleTargetByMetric();
     }
 
     /* Normalize to 1 */
