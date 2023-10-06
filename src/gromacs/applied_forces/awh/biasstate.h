@@ -163,6 +163,26 @@ private:
                           std::vector<float>*       convolvedPmf) const;
 
     /*! \brief
+     * Calculates the average correlation tensor volume (square root determinant of the
+     * correlationIntegral) of non-zero values.
+     *
+     * \param[in] forceCorrelation The force correlation statistics for every grid point.
+     * \returns the average of non-zero AWH metric values
+     */
+    double calculateAverageNonZeroMetric(const CorrelationGrid& forceCorrelation);
+
+    /*! \brief
+     * Scales the target distribution by their relative sqrt(friction metric). Points without a
+     * valid friction metric are not affected.
+     *
+     * \param[in] params           The bias parameters
+     * \param[in] forceCorrelation The force correlation statistics for every grid point.
+     * \returns the sum of all target distribution values after scaling.
+     */
+    double scaleTargetByMetric(const BiasParams& params, const CorrelationGrid& forceCorrelation);
+
+
+    /*! \brief
      * Convolves the PMF and sets the initial free energy to its convolution.
      *
      * \param[in] dimParams  The bias dimensions parameters

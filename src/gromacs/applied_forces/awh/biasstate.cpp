@@ -293,6 +293,65 @@ void BiasState::calcConvolvedPmf(ArrayRef<const DimParams> dimParams,
     }
 }
 
+double BiasState::calculateAverageNonZeroMetric(const CorrelationGrid& forceCorrelation)
+{
+    int    elementCount = 0;
+    double sumVolume    = 0;
+    for (size_t pointIndex = 0; pointIndex < points_.size(); pointIndex++)
+    {
+        std::vector<double> correlationIntegral     = getSharedPointCorrelationIntegral(pointIndex);
+        double              correlationTensorVolume = getSqrtDeterminant(correlationIntegral);
+
+        if (correlationTensorVolume > 0)
+        {
+            sumVolume += correlationTensorVolume;
+            elementCount++;
+        }
+    }
+    double averageVolume = 0;
+    if (elementCount != 0)
+    {
+        averageVolume = sumVolume / elementCount;
+    }
+    return averageVolume;
+}
+
+double BiasState::scaleTargetByMetric(const BiasParams& params, const CorrelationGrid& forceCorrelation)
+{
+    updateSharedCorrelationTensorTimeIntegral(params, forceCorrelation);
+
+    /* Calculate the average of non-zero correlation tensor volume elements before
+     * scaling by the friction tensor. The average will be used to scale the target
+     * relatively and to avoid scaling (scaleFactor = 1) where there is not enough
+     * data (no valid correlationTensorVolume) to use for scaling. */
+    double averageVolume = calculateAverageNonZeroMetric(forceCorrelation);
+    if (averageVolume == 0)
+    {
+        averageVolume = 1;
+    }
+
+    double sumTarget = 0;
+    for (size_t pointIndex = 0; pointIndex < points_.size(); pointIndex++)
+    {
+        PointState& ps = points_[pointIndex];
+
+        std::vector<double> correlationIntegral     = getSharedPointCorrelationIntegral(pointIndex);
+        double              correlationTensorVolume = getSqrtDeterminant(correlationIntegral);
+
+        /* If there is no correlation tensor volume from this point use the average volume. This
+         * will result in no friction tensor scaling for the target distribution of this point. */
+        if (correlationTensorVolume == 0)
+        {
+            correlationTensorVolume = averageVolume;
+        }
+        double scaleFactor = correlationTensorVolume / averageVolume;
+        ps.scaleTarget(scaleFactor);
+
+        sumTarget += ps.target();
+    }
+    return sumTarget;
+}
+
 namespace
 {
 /*! \brief
@@ -326,7 +385,6 @@ std::string gridPointValueString(const BiasGrid& grid, int point)
 
 } // namespace
 
-
 void BiasState::updateTargetDistribution(const BiasParams& params, const CorrelationGrid& forceCorrelation)
 {
     double freeEnergyCutoff = 0;
@@ -345,52 +403,7 @@ void BiasState::updateTargetDistribution(const BiasParams& params, const Correla
     /* Scale the target distribution, by the friction metric - normalize afterwards */
     if (params.scaleByMetric && !inInitialStage())
     {
-        updateSharedCorrelationTensorTimeIntegral(params, forceCorrelation);
-
-        /* Calculate the average of non-zero correlation tensor volume elements before
-         * scaling by the friction tensor. */
-        int    elementCount = 0;
-        double sumVolume    = 0;
-        for (size_t pointIndex = 0; pointIndex < points_.size(); pointIndex++)
-        {
-            std::vector<double> correlationIntegral = getSharedPointCorrelationIntegral(pointIndex);
-            double              correlationTensorVolume = getSqrtDeterminant(correlationIntegral);
-
-            if (correlationTensorVolume > 0)
-            {
-                sumVolume += correlationTensorVolume;
-                elementCount++;
-            }
-        }
-        double averageVolume = 0;
-        if (elementCount != 0)
-        {
-            averageVolume = sumVolume / elementCount;
-        }
-        if (averageVolume == 0)
-        {
-            averageVolume = 1;
-        }
-
-        sumTarget = 0;
-        for (size_t pointIndex = 0; pointIndex < points_.size(); pointIndex++)
-        {
-            PointState& ps = points_[pointIndex];
-
-            std::vector<double> correlationIntegral = getSharedPointCorrelationIntegral(pointIndex);
-            double              correlationTensorVolume = getSqrtDeterminant(correlationIntegral);
-
-            /* If there is no correlation tensor volume from this element use the average volume. This will
-             * result in no friction tensor scaling for the target distribution of this point. */
-            if (correlationTensorVolume == 0)
-            {
-                correlationTensorVolume = averageVolume;
-            }
-            double scaleFactor = correlationTensorVolume / averageVolume;
-            ps.scaleTarget(scaleFactor);
-
-            sumTarget += ps.target();
-        }
+        sumTarget = scaleTargetByMetric(params, forceCorrelation);
     }
 
     /* Normalize to 1 */
