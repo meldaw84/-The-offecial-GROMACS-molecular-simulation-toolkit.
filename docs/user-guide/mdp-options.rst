@@ -2172,16 +2172,16 @@ AWH adaptive biasing
 
    .. mdp-value:: no
 
-      Do not modify the target distribution based on the AWH diffusion metric.
+      Do not scale the target distribution based on the AWH friction metric.
 
    .. mdp-value:: yes
 
-      Scale the target distribution based on the AWH diffusion metric. Regions with
-      low diffusion (long autocorrelation times) will be sampled more. This modification
-      can be used with any :mdp:`awh1-target` types and is applied after user provided
-      target distribution modifications (:mdp:`awh1-user-data`), too, if any. If
-      :mdp-value:`awh1-growth=exp-linear`, the target distribution scaling starts
-      after leaving the initial phase.
+      Scale the target distribution based on the AWH friction metric. Regions with
+      high friction (long autocorrelation times) will be sampled more. The diffusion metric
+      is the inverse of the friction metric. This scaling can be used with any
+      :mdp:`awh1-target` type and is applied after user provided target distribution
+      modifications (:mdp:`awh1-user-data`), if any. If :mdp-value:`awh1-growth=exp-linear`,
+      the target distribution scaling starts after leaving the initial phase.
 
 .. mdp:: awh1-ndim
 
