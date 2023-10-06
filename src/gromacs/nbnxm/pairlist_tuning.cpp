@@ -433,6 +433,17 @@ static void setDynamicPairlistPruningParameters(const t_inputrec&          input
                                                 const interaction_const_t& interactionConst,
                                                 PairlistParams*            listParams)
 {
+    /* Note that we do not treat the energy drift and pressure error consistently here.
+     * The contributions to the pressure errors are added up for the outer and inner lists.
+     * The energy drift of the outer and inner list are required to independently obey
+     * the tolerance. This can lead to a slight underestimate of the drift, but the effect
+     * is very small as the energy increases linearly with the distance from the cut-off.
+     * Summing the drift estimates from the outer and inner list would lead to significant
+     * double counting. This is different for the LJ pressure error, as the LJ force is
+     * usually a delta function at the cut-off and thus outer and inner list contributions
+     * do add up in practice, although not completely.
+     */
+
     real pressureTolerance = getPressureTolerance();
     if (pressureTolerance > 0)
     {

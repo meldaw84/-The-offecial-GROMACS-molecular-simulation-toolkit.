@@ -1309,7 +1309,7 @@ real calcVerletBufferSize(const gmx_mtop_t&         mtop,
                 att, &mtop.ffparams, kT_fac, ljDisp, ljRep, elec, ir.rvdw, ir.rcoulomb, rl, mtop.natoms, effectiveAtomDensity);
 
         /* Correct for the fact that we are using a Ni x Nj particle pair list
-         * and not a 1 x 1 particle pair list. This reduces the drift.
+         * and not a 1 x 1 particle pair list. This reduces the missing interactions.
          */
         /* We don't have a formula for 8 (yet), use 4 which is conservative */
         nb_clust_frac_pairs_not_in_list_at_cutoff =
@@ -1320,7 +1320,6 @@ real calcVerletBufferSize(const gmx_mtop_t&         mtop,
         /* Convert the drift to drift per unit time per atom */
         drift /= nstlist * ir.delta_t * mtop.natoms;
 
-        // const real presErr = verletBufferPressureError(mtop, effectiveAtomDensity, ir, nstlist, false, rl, listSetup);
         const bool listIsDynamicallyPruned = false;
         const real presErr                 = pressureError(att,
                                            mtop.ffparams,
