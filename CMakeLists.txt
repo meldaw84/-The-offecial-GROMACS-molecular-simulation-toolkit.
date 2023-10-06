@@ -241,7 +241,7 @@ if(GMX_GPU STREQUAL SYCL)
     if (GMX_SYCL STREQUAL "AUTO")
         if(GMX_SYCL_HIPSYCL) # Check legacy flag
             message(WARNING "GMX_SYCL_HIPSYCL option is deprecated; please use -DGMX_SYCL=ACPP")
-            set(GMX_SYCL "ACPP" FORCE)
+            set(GMX_SYCL "ACPP")
         else()
             # Check direct compiler support (DPC++)
             include(CheckCXXCompilerFlag)
