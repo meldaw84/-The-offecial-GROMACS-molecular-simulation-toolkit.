@@ -163,10 +163,10 @@ public:
         dimParams.push_back(DimParams::pullDimParams(1.0, 15.0, params_->beta));
         dimParams.push_back(DimParams::pullDimParams(1.0, 15.0, params_->beta));
         dimParams.push_back(DimParams::pullDimParams(1.0, 15.0, params_->beta));
-        BiasGrid grid_(dimParams, awhBiasParams.dimParams());
-        std::vector<int> gridIndexToDataIndex_(grid_.numPoints());
+        grid_ = std::make_unique<BiasGrid> (dimParams, awhBiasParams.dimParams());
+        std::vector<int> gridIndexToDataIndex_(grid_->numPoints());
 
-        // Here we initialize the grid point state using the input file
+        // Here we read the input file
         std::string filename_ = gmx::test::TestFileManager::getInputFilePath(GetParam()).u8string();
     
         data_ = readXvgData(filename_);
@@ -210,7 +210,7 @@ TEST_P(UserInputTest, UserInputData)
         "Make sure the input file ends with a new line but has no trailing new lines. ",
         filename_.c_str());
     /* Get a data point for each AWH grid point so that they all get data. */
-    //EXPECT_NO_THROW(mapGridToDataGrid(&gridIndexToDataIndex_, data_, numRows_, filename_, grid, correctFormatMessage));
+    EXPECT_NO_THROW(mapGridToDataGrid(&gridIndexToDataIndex_, data_, numRows_, filename_, grid, correctFormatMessage));
     EXPECT_EQ(numRows_, 30);
     EXPECT_EQ(numColumns_, 8);
 
