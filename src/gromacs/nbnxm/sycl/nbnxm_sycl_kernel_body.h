@@ -95,30 +95,30 @@ struct AmdPackedFloat3
     };
 #pragma clang diagnostic pop
     template<typename Index>
-    float operator[](Index i) const
+    __attribute__((always_inline)) float operator[](Index i) const
     {
         switch (i)
         {
             case 0: return xy_.x;
             case 1: return xy_.y;
-            default: return z_;
+            default: SYCL_ASSERT(i == 2); return z_;
         }
     }
     template<typename Index>
-    float& operator[](Index i)
+    __attribute__((always_inline)) float& operator[](Index i)
     {
         switch (i)
         {
             case 0: return x_;
             case 1: return y_;
-            default: return z_;
+            default: SYCL_ASSERT(i == 2); return z_;
         }
     }
 
-    float          x() const { return xy_.x; }
-    float          y() const { return xy_.y; }
-    Native_float2_ xy() const { return xy_; }
-    float          z() const { return z_; }
+    __attribute__((always_inline)) float          x() const { return xy_.x; }
+    __attribute__((always_inline)) float          y() const { return xy_.y; }
+    __attribute__((always_inline)) Native_float2_ xy() const { return xy_; }
+    __attribute__((always_inline)) float          z() const { return z_; }
 
     AmdPackedFloat3() = default;
 
@@ -130,7 +130,7 @@ struct AmdPackedFloat3
 
     explicit operator Float3() const { return Float3{ xy_.x, xy_.y, z_ }; }
 
-    AmdPackedFloat3& operator=(const AmdPackedFloat3& x)
+    __attribute__((always_inline)) AmdPackedFloat3& operator=(const AmdPackedFloat3& x)
     {
         xy_ = x.xy_;
         z_  = x.z_;
@@ -138,21 +138,27 @@ struct AmdPackedFloat3
     }
 
     //! Allow inplace addition for AmdPackedFloat3
-    AmdPackedFloat3& operator+=(const AmdPackedFloat3& right) { return *this = *this + right; }
+    __attribute__((always_inline)) AmdPackedFloat3& operator+=(const AmdPackedFloat3& right)
+    {
+        return *this = *this + right;
+    }
     //! Allow inplace subtraction for AmdPackedFloat3
-    AmdPackedFloat3& operator-=(const AmdPackedFloat3& right) { return *this = *this - right; }
+    __attribute__((always_inline)) AmdPackedFloat3& operator-=(const AmdPackedFloat3& right)
+    {
+        return *this = *this - right;
+    }
     //! Allow vector addition
-    AmdPackedFloat3 operator+(const AmdPackedFloat3& right) const
+    __attribute__((always_inline)) AmdPackedFloat3 operator+(const AmdPackedFloat3& right) const
     {
         return { xy_ + right.xy(), z_ + right.z() };
     }
     //! Allow vector subtraction
-    AmdPackedFloat3 operator-(const AmdPackedFloat3& right) const
+    __attribute__((always_inline)) AmdPackedFloat3 operator-(const AmdPackedFloat3& right) const
     {
         return { xy_ - right.xy(), z_ - right.z() };
     }
     //! Scale vector by a scalar
-    AmdPackedFloat3& operator*=(const float& right)
+    __attribute__((always_inline)) AmdPackedFloat3& operator*=(const float& right)
     {
         xy_ *= right;
         z_ *= right;
@@ -160,21 +166,21 @@ struct AmdPackedFloat3
     }
 
     //! Length^2 of vector
-    float norm2() const { return dot(*this); }
+    __attribute__((always_inline)) float norm2() const { return dot(*this); }
 
     //! Return dot product
-    float dot(const AmdPackedFloat3& right) const
+    __attribute__((always_inline)) float dot(const AmdPackedFloat3& right) const
     {
         return x() * right.x() + y() * right.y() + z() * right.z();
     }
 };
 static_assert(sizeof(AmdPackedFloat3) == 12);
 
-static AmdPackedFloat3 operator*(const AmdPackedFloat3& v, const float& s)
+__attribute__((always_inline)) static AmdPackedFloat3 operator*(const AmdPackedFloat3& v, const float& s)
 {
     return { v.xy() * s, v.z() * s };
 }
-static AmdPackedFloat3 operator*(const float& s, const AmdPackedFloat3& v)
+__attribute__((always_inline)) static AmdPackedFloat3 operator*(const float& s, const AmdPackedFloat3& v)
 {
     return { v.xy() * s, v.z() * s };
 }
