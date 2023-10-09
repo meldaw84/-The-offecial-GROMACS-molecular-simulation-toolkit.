@@ -186,8 +186,6 @@ void MdGpuGraph::Impl::endRecord()
 
 
     graph_->end_recording();
-    const auto instance = graph_->finalize();
-    instance_ = std::make_unique<syclex::command_graph<syclex::graph_state::executable>>(std::move(instance));
 
     graphState_ = GraphState::Recorded;
 
@@ -208,21 +206,18 @@ void MdGpuGraph::Impl::createExecutableGraph(bool forceGraphReinstantiation)
     GMX_ASSERT(graphState_ == GraphState::Recorded,
                "Graph should be in a recorded state before instantiation");
 
+    // graph::update  API exists, but it is not supported, so we always re-instantiate
+    GMX_UNUSED_VALUE(forceGraphReinstantiation);
+
     wallcycle_start(wcycle_, WallCycleCounter::MdGpuGraph);
     wallcycle_sub_start(wcycle_, WallCycleSubCounter::MdGpuGraphInstantiateOrUpdate);
 
     // Instantiate graph
-    // Update existing graph (which is cheaper than re-instantiation) if possible.
-    if (graphInstanceAllocated_ && !forceGraphReinstantiation)
-    {
-        instance_->update(*graph_);
-    }
-    else
-    {
-        graphInstanceAllocated_ = true;
-    }
+    const auto instance = graph_->finalize();
+    instance_ = std::make_unique<syclex::command_graph<syclex::graph_state::executable>>(std::move(instance));
 
-    graphState_ = GraphState::Instantiated;
+    graphInstanceAllocated_ = true;
+    graphState_             = GraphState::Instantiated;
 
     wallcycle_sub_stop(wcycle_, WallCycleSubCounter::MdGpuGraphInstantiateOrUpdate);
     wallcycle_stop(wcycle_, WallCycleCounter::MdGpuGraph);
