@@ -557,10 +557,9 @@ std::vector<std::unique_ptr<DeviceInformation>> findDevices()
         }
 
 #if GMX_HAVE_GPU_GRAPH_SUPPORT
-        using graph_support       = sycl::ext::oneapi::experimental::info::device::graph_support;
-        using graph_support_level = sycl::ext::oneapi::experimental::graph_support_level;
-        deviceInfos[i]->supportsSyclGraph =
-                (syclDevice.get_info<graph_support>() != graph_support_level::unsupported);
+        namespace syclex                  = sycl::ext::oneapi::experimental;
+        deviceInfos[i]->supportsSyclGraph = (syclDevice.get_info<syclex::info::device::graph_support>()
+                                             != syclex::graph_support_level::unsupported);
 #else
         deviceInfos[i]->supportsSyclGraph = false;
 #endif
