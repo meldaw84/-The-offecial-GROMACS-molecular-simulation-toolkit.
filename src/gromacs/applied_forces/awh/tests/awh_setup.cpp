@@ -105,7 +105,7 @@ std::vector<char> awhDimParamSerialized(AwhCoordinateProviderType inputCoordinat
  * \param[in] shareGroup share group for, potentially, sharing the bias between simulations
  * \param[in] inputUserData If there is a user provided PMF estimate.
  * \param[in] eTargetType Target distribution type.
- * \param[in] scaleByMetric Whether to scale the target distribution based on the friction metric.
+ * \param[in] scaleTargetByMetric Whether to scale the target distribution based on the friction metric.
  */
 static std::vector<char> awhBiasParamSerialized(AwhHistogramGrowthType            eawhgrowth,
                                                 double                            beta,
@@ -114,7 +114,7 @@ static std::vector<char> awhBiasParamSerialized(AwhHistogramGrowthType          
                                                 int                               shareGroup,
                                                 bool                              inputUserData,
                                                 AwhTargetType                     eTargetType,
-                                                bool                              scaleByMetric)
+                                                bool scaleTargetByMetric)
 {
     int                    ndim                 = dimensionParameterBuffers.size();
     double                 targetBetaScaling    = 0;
@@ -133,7 +133,7 @@ static std::vector<char> awhBiasParamSerialized(AwhHistogramGrowthType          
     serializer.doDouble(&growthFactor);
     int temp = static_cast<int>(bUserData);
     serializer.doInt(&temp);
-    serializer.doBool(&scaleByMetric);
+    serializer.doBool(&scaleTargetByMetric);
     serializer.doDouble(&errorInitial);
     serializer.doInt(&ndim);
     serializer.doInt(&shareGroup);
@@ -160,7 +160,7 @@ static std::vector<char> awhBiasParamSerialized(AwhHistogramGrowthType          
  * \param[in] biasShareGroup share group for, potentially, sharing the bias over simulations
  * \param[in] inputUserData If there is a user provided PMF estimate.
  * \param[in] eTargetType Target distribution type.
- * \param[in] scaleByMetric Whether to scale the target distribution based on the friction metric.
+ * \param[in] scaleTargetByMetric Whether to scale the target distribution based on the friction metric.
  */
 static std::vector<char> awhParamSerialized(AwhHistogramGrowthType            eawhgrowth,
                                             AwhPotentialType                  eawhpotential,
@@ -171,7 +171,7 @@ static std::vector<char> awhParamSerialized(AwhHistogramGrowthType            ea
                                             int                               biasShareGroup,
                                             bool                              inputUserData,
                                             AwhTargetType                     eTargetType,
-                                            bool                              scaleByMetric)
+                                            bool                              scaleTargetByMetric)
 {
     int              numBias                    = 1;
     int64_t          seed                       = inputSeed;
@@ -198,7 +198,7 @@ static std::vector<char> awhParamSerialized(AwhHistogramGrowthType            ea
                                                 biasShareGroup,
                                                 inputUserData,
                                                 eTargetType,
-                                                scaleByMetric);
+                                                scaleTargetByMetric);
 
     awhParamBuffer.insert(awhParamBuffer.end(), awhBiasBuffer.begin(), awhBiasBuffer.end());
 
@@ -223,7 +223,7 @@ AwhTestParameters getAwhTestParameters(AwhHistogramGrowthType            eawhgro
                                        int                               numFepLambdaStates,
                                        int                               biasShareGroup,
                                        AwhTargetType                     eTargetType,
-                                       bool                              scaleByMetric)
+                                       bool                              scaleTargetByMetric)
 {
     double  convFactor = 1;
     double  k          = 1000;
@@ -238,7 +238,7 @@ AwhTestParameters getAwhTestParameters(AwhHistogramGrowthType            eawhgro
                                              biasShareGroup,
                                              inputUserData,
                                              eTargetType,
-                                             scaleByMetric);
+                                             scaleTargetByMetric);
     gmx::InMemoryDeserializer deserializer(awhParamBuffer, false);
     AwhTestParameters         params(&deserializer);
 
@@ -288,7 +288,7 @@ TEST(SerializationTest, CanSerializeBiasParams)
     EXPECT_FLOAT_EQ(awhBiasParams.targetBetaScaling(), 0);
     EXPECT_FLOAT_EQ(awhBiasParams.targetCutoff(), 0);
     EXPECT_EQ(awhBiasParams.growthType(), AwhHistogramGrowthType::ExponentialLinear);
-    EXPECT_EQ(awhBiasParams.scaleByMetric(), false);
+    EXPECT_EQ(awhBiasParams.scaleTargetByMetric(), false);
     EXPECT_EQ(awhBiasParams.userPMFEstimate(), 0);
     EXPECT_FLOAT_EQ(awhBiasParams.initialErrorEstimate(), 0.5 / 0.4);
     EXPECT_EQ(awhBiasParams.shareGroup(), 0);

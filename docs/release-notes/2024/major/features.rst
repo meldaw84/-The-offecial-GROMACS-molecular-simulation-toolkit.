@@ -23,6 +23,9 @@ Automatic metric scaled AWH target distribution
 
 The AWH target distribution can now be automatically scaled by
 sqrt(AWH friction metric). Regions with higher friction (slower diffusion)
-will get a higher target distribution. This can be applied to further modify
-all AWH target distributions and/or AWH user input. The new option is called
-'awh1-target-metric-scaling'.
+will get a higher target distribution. This should generally lower the
+statistical error of the estimated free energy landscape. The new option is
+called 'awh1-target-metric-scaling' and can be applied to further modify all
+AWH target distributions and/or AWH user input, but is not recommended in
+general in combination with Boltzmann or Local-Boltzmann target distributions,
+due to the risk of feedback loops between the two adaptive update mechanisms.

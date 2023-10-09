@@ -210,8 +210,8 @@ private:
     const int64_t numStepsUpdateTarget_; /**< Number of steps per updating the target distribution. */
     const int64_t numStepsCheckCovering_; /**< Number of steps per checking for covering. */
 public:
-    const AwhTargetType eTarget; /**< Type of target distribution. */
-    const bool scaleByMetric;    /**< Scale the target distribution based on the friction metric? */
+    const AwhTargetType eTarget;    /**< Type of target distribution. */
+    const bool scaleTargetByMetric; /**< Scale the target distribution based on the friction metric? */
     const double freeEnergyCutoffInKT; /**< Free energy cut-off in kT for cut-off target distribution. */
     const double temperatureScaleFactor; /**< Temperature scaling factor for temperature scaled targed distributions. */
     const bool   idealWeighthistUpdate; /**< Update reference weighthistogram using the target distribution? Otherwise use the realized distribution. */

@@ -297,7 +297,7 @@ double BiasState::calculateAverageNonZeroMetric()
 {
     int    elementCount = 0;
     double sumVolume    = 0;
-    for (size_t pointIndex = 0; pointIndex < points_.size(); pointIndex++)
+    for (gmx::Index pointIndex = 0; pointIndex < ssize(points_); pointIndex++)
     {
         std::vector<double> correlationIntegral     = getSharedPointCorrelationIntegral(pointIndex);
         double              correlationTensorVolume = getSqrtDeterminant(correlationIntegral);
@@ -329,7 +329,7 @@ double BiasState::scaleTargetByMetric()
     }
 
     double sumTarget = 0;
-    for (size_t pointIndex = 0; pointIndex < points_.size(); pointIndex++)
+    for (gmx::Index pointIndex = 0; pointIndex < ssize(points_); pointIndex++)
     {
         PointState& ps = points_[pointIndex];
 
@@ -399,7 +399,7 @@ void BiasState::updateTargetDistribution(const BiasParams& params, const Correla
     GMX_RELEASE_ASSERT(sumTarget > 0, "We should have a non-zero distribution");
 
     /* Scale the target distribution by the friction metric - normalize afterwards */
-    if (params.scaleByMetric && !inInitialStage())
+    if (params.scaleTargetByMetric && !inInitialStage())
     {
         updateSharedCorrelationTensorTimeIntegral(params, forceCorrelation);
         sumTarget = scaleTargetByMetric();
@@ -1178,9 +1178,10 @@ void BiasState::updateFreeEnergyAndAddSamplesToHistogram(ArrayRef<const DimParam
     }
 
     /* Update target distribution? */
-    bool doScaleByMetric                = params.scaleByMetric && !inInitialStage();
-    bool needToUpdateTargetDistribution = ((params.eTarget != AwhTargetType::Constant || doScaleByMetric)
-                                           && params.isUpdateTargetStep(step));
+    bool doScaleTargetByMetric = params.scaleTargetByMetric && !inInitialStage();
+    bool needToUpdateTargetDistribution =
+            ((params.eTarget != AwhTargetType::Constant || doScaleTargetByMetric)
+             && params.isUpdateTargetStep(step));
 
     /* In the initial stage, the histogram grows dynamically as a function of the number of coverings. */
     bool detectedCovering = false;

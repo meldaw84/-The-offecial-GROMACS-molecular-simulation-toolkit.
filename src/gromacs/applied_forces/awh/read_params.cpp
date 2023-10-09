@@ -828,15 +828,16 @@ AwhBiasParams::AwhBiasParams(std::vector<t_inpfile>* inp, const std::string& pre
                              "distribution type and can be combined with user data) based on "
                              "the AWH friction metric: no or yes");
     }
-    opt            = prefix + "-target-metric-scaling";
-    scaleByMetric_ = getEnum<Boolean>(inp, opt.c_str(), wi) != Boolean::No;
+    opt                  = prefix + "-target-metric-scaling";
+    scaleTargetByMetric_ = getEnum<Boolean>(inp, opt.c_str(), wi) != Boolean::No;
 
-    if (scaleByMetric_ && (eTarget_ == AwhTargetType::Boltzmann || eTarget_ == AwhTargetType::LocalBoltzmann))
+    if (scaleTargetByMetric_
+        && (eTarget_ == AwhTargetType::Boltzmann || eTarget_ == AwhTargetType::LocalBoltzmann))
     {
         auto message = formatString(
-                "Combining a '%s' target distribution with scaling the target distribution "
-                "by the friction metric (%s) might result in a feedback between the two "
-                "adaptive update methods.",
+                "Combining a %s target distribution with scaling the target distribution "
+                "by the friction metric (%s) might result in a feedback loop between the two "
+                "adaptive update mechanisms.",
                 enumValueToString(eTarget_),
                 opt.c_str());
         wi->addWarning(message);
@@ -886,11 +887,11 @@ AwhBiasParams::AwhBiasParams(ISerializer* serializer,
     bUserData_ = static_cast<bool>(temp);
     if (tprWithoutTargetMetricScaling)
     {
-        scaleByMetric_ = false;
+        scaleTargetByMetric_ = false;
     }
     else
     {
-        serializer->doBool(&scaleByMetric_);
+        serializer->doBool(&scaleTargetByMetric_);
     }
     serializer->doDouble(&errorInitial_);
     int numDimensions = dimParams_.size();
@@ -915,7 +916,7 @@ void AwhBiasParams::serialize(ISerializer* serializer)
     serializer->doDouble(&growthFactor_);
     int temp = static_cast<int>(bUserData_);
     serializer->doInt(&temp);
-    serializer->doBool(&scaleByMetric_);
+    serializer->doBool(&scaleTargetByMetric_);
     serializer->doDouble(&errorInitial_);
     int numDimensions = ndim();
     serializer->doInt(&numDimensions);

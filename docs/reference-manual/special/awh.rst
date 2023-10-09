@@ -454,14 +454,20 @@ distribution by the square root of the friction metric
           :label: eqnawhmetricopt
 
 where :math:`w_{\mathrm{user}}(\lambda)` can be uniform and
-\sqrt{\det\eta_{\mu\nu}(\lambda)} is the square root of the friction metric. The
-diffusion metric (see :ref:`192 <reflundborg2023>`) is the inverse of the friction metric.
+\sqrt{\det\eta_{\mu\nu}(\lambda)} is the square root of the friction metric.
+The diffusion metric (see :ref:`192 <reflundborg2023>`) is the inverse of
+the friction metric.
 
 This modification is only applied after leaving the initial stage
 (section :ref:`awhinitialstage`), if applicable, and is performed when updating
 the target distribution, typically when also updating the free energy.
 If any histograms have not been sampled enough to have a friction metric they
 will not be scaled. More information can be found in :ref:`192 <reflundborg2023>`.
+
+Scaling the target distribution based on the friction metric
+can be combined with Boltzmann or Local-Boltzmann target distributions.
+However, this is generally not recommended, due to the risk of feedback loops
+between the two adaptive update mechanisms.
 
 Multiple independent or sharing biases
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

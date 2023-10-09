@@ -210,7 +210,7 @@ public:
     //! Number of groups to share this bias with.
     int shareGroup() const { return shareGroup_; }
     //! Whether we should scale the target distribution by the AWH friction metric.
-    bool scaleByMetric() const { return scaleByMetric_; }
+    bool scaleTargetByMetric() const { return scaleTargetByMetric_; }
     //! If the simulation starts with equilibrating histogram.
     bool equilibrateHistogram() const { return equilibrateHistogram_; }
     //! Access to dimension parameters.
@@ -236,7 +236,7 @@ private:
     //! Is there a user-defined initial PMF estimate and target estimate?
     bool bUserData_;
     //! Should the target distribution be scaled by the friction metric?
-    bool scaleByMetric_;
+    bool scaleTargetByMetric_;
     //! Estimated initial free energy error in kJ/mol.
     double errorInitial_;
     //! When >0, the bias is shared with biases of the same group and across multiple simulations when shareBiasMultisim=true

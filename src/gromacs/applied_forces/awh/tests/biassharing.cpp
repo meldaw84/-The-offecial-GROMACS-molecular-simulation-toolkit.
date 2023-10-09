@@ -133,7 +133,7 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
 
     const std::vector<char> serializedAwhParametersPerDim = awhDimParamSerialized();
     auto                awhDimArrayRef = gmx::arrayRefFromArray(&serializedAwhParametersPerDim, 1);
-    const bool          scaleByMetric  = true;
+    const bool          scaleTargetByMetric = true;
     AwhTestParameters   params = getAwhTestParameters(AwhHistogramGrowthType::ExponentialLinear,
                                                     AwhPotentialType::Convolved,
                                                     awhDimArrayRef,
@@ -144,7 +144,7 @@ void sharingSamplesFrictionTest(const void* nStepsArg)
                                                     0,
                                                     shareGroup,
                                                     AwhTargetType::Constant,
-                                                    scaleByMetric);
+                                                    scaleTargetByMetric);
     const AwhDimParams& awhDimParams = params.awhParams.awhBiasParams()[0].dimParams()[0];
 
     BiasSharing biasSharing(params.awhParams, commRecord, MPI_COMM_WORLD);

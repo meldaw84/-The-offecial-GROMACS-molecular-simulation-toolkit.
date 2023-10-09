@@ -147,7 +147,7 @@ static bool anyBiasIsScaledByMetric(const AwhParams& awhParams)
 {
     return std::any_of(awhParams.awhBiasParams().begin(),
                        awhParams.awhBiasParams().end(),
-                       [](const auto& awhBiasParam) { return awhBiasParam.scaleByMetric(); });
+                       [](const auto& awhBiasParam) { return awhBiasParam.scaleTargetByMetric(); });
 }
 
 BiasCoupledToSystem::BiasCoupledToSystem(Bias bias, const std::vector<int>& pullCoordIndex) :

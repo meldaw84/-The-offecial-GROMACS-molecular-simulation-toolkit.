@@ -97,8 +97,8 @@ AwhTestParameters getAwhTestParameters(AwhHistogramGrowthType            eawhgro
                                        double                            inputErrorScaling,
                                        int                               numFepLambdaStates,
                                        int                               biasShareGroup = 0,
-                                       AwhTargetType eTargetType   = AwhTargetType::Constant,
-                                       bool          scaleByMetric = false);
+                                       AwhTargetType eTargetType         = AwhTargetType::Constant,
+                                       bool          scaleTargetByMetric = false);
 
 } // namespace test
 } // namespace gmx
