@@ -163,7 +163,7 @@ void MdGpuGraph::Impl::startRecord(GpuEventSynchronizer* xReadyOnDeviceEvent)
     GMX_RELEASE_ASSERT(result, "Failed to start graph recording");
 
     // Re-mark xReadyOnDeviceEvent to allow full isolation within graph capture
-    // xReadyOnDeviceEvent->markEvent(deviceStreamManager_.stream(gmx::DeviceStreamType::UpdateAndConstraints));
+    xReadyOnDeviceEvent->markEvent(deviceStreamManager_.stream(gmx::DeviceStreamType::UpdateAndConstraints));
 
     graphState_ = GraphState::Recording;
 };
