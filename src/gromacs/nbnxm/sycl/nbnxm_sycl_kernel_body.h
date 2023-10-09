@@ -53,6 +53,19 @@
 template<bool doPruneNBL, bool doCalcEnergies, enum Nbnxm::ElecType elecType, enum Nbnxm::VdwType vdwType, int subGroupSize>
 class NbnxmKernel;
 
+/*! \brief Macro to control the enablement of manually-packed Float3 structure.
+ *
+ * If enabled (default), the explicit packed math will be used on devices where
+ * it is known to be beneficial (currently, AMD MI250X / gfx90a).
+ * If disabled, packed math will never be explicitly  used.
+ *
+ * This only controls the use of AmdPackedFloat3 datastructure, no the layout
+ * of fCi buffer.
+ *
+ * See issue #4854 */
+#define GMX_NBNXM_USE_PACKED_FLOAT3 1
+
+#if GMX_NBNXM_USE_PACKED_FLOAT3
 /*! \brief Special packed Float3 flavor to help compiler optimizations on AMD CDNA2 devices.
  *
  * Full FP32 performance of AMD CDNA2 devices, like MI200-series, can only be achieved
@@ -78,9 +91,9 @@ struct AmdPackedFloat3
      * case with relatively small selection of compilers
      * (flavors of Clang 14-18, maybe later). So, we prefer
      * to disable the warnings. */
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wnested-anon-types"
-#pragma clang diagnostic ignored "-Wgnu-anonymous-struct"
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wnested-anon-types"
+#    pragma clang diagnostic ignored "-Wgnu-anonymous-struct"
     struct __attribute__((packed))
     {
         union
@@ -93,7 +106,7 @@ struct AmdPackedFloat3
         };
         float z_;
     };
-#pragma clang diagnostic pop
+#    pragma clang diagnostic pop
     template<typename Index>
     __attribute__((always_inline)) float operator[](Index i) const
     {
@@ -184,7 +197,9 @@ __attribute__((always_inline)) static AmdPackedFloat3 operator*(const float& s, 
 {
     return { v.xy() * s, v.z() * s };
 }
-
+#else
+using AmdPackedFloat3 = Float3;
+#endif
 
 namespace Nbnxm
 {
