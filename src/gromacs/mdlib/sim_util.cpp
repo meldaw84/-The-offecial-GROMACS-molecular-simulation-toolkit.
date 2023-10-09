@@ -1281,6 +1281,7 @@ static void setupLocalGpuForceReduction(const gmx::MdrunScheduleWorkload* runSch
     gpuForceReduction->registerNbnxmForce(Nbnxm::gpu_get_f(nbv->gpu_nbv));
 
     DeviceBuffer<gmx::RVec> pmeForcePtr;
+    DeviceBuffer<uint64_t>  forceSyncPtr;
     GpuEventSynchronizer*   pmeSynchronizer     = nullptr;
     bool                    havePmeContribution = false;
 
@@ -1311,7 +1312,7 @@ static void setupLocalGpuForceReduction(const gmx::MdrunScheduleWorkload* runSch
         gpuForceReduction->registerRvecForce(pmeForcePtr);
         if (runScheduleWork->simulationWork.useNvshmem)
         {
-            auto forceSyncPtr = pmePpCommGpu->getGpuForceSyncObj();
+            forceSyncPtr = pmePpCommGpu->getGpuForceSyncObj();
             gpuForceReduction->registerForceSyncObj(forceSyncPtr);
         }
 
