@@ -48,8 +48,9 @@ Update virtual site velocities to avoid constraint instabilities
 
 Virtual site velocities were only re-computed when writing velocities, but they are
 still integrated. This causes errors to accumulate. Now the velocities are updated
-at regular intervals in order to avoid (too) large velocities. Note that virtual
-site velocities are only used for output, they do not affect the positions.
+at regular intervals in order to avoid (too) large velocities. This could cause
+runs to crash with a segmentation fault or domain decomposition error. Note that
+virtual site velocities are only used for output, they do not affect the positions.
 
 :issue:`4879`
 
