@@ -167,7 +167,7 @@ public:
         gridIndexToDataIndex_ = std::vector<int>(grid_->numPoints());
 
         // Here we read the input file
-        std::string filename_ = gmx::test::TestFileManager::getInputFilePath(GetParam()).u8string();
+        filename_ = gmx::test::TestFileManager::getInputFilePath(GetParam()).u8string();
 
         data_       = readXvgData(filename_);
         numColumns_ = data_.extent(0);
