@@ -236,22 +236,24 @@ void MdGpuGraph::Impl::launchGraphMdStep(GpuEventSynchronizer* xUpdatedOnDeviceE
 
     const DeviceStream* thisLaunchStream = launchStream_.get();
 
-    /* We cannot have the same graph instance enqueued twice in SYCL Graphs, so we have to wait
-     * if we used the graph on the previous step. */
-    if (usedGraphLastStep_)
+    /* We cannot have the same graph instance enqueued twice in SYCL Graphs, so we use
+     * helperEvent_ to prevent enqueueing the same graph twice.
+     * This partially negates the benefits of using graph scheduling in the first place,
+     * but, hopefully, the limitation will be lifted in the future. */
+    if (helperEvent_->isMarked())
     {
-        /* In tests, we sometimes pretend that we sometimes set usedGraphLastStep to true
-         * even if it is not true, so we add this additional isMarked check here. It should
-         * not have any impact on the reals MD runs, only in MdGraphTest */
-        if (helperEvent_->isMarked())
-        {
-            helperEvent_->waitForEvent();
-        }
+        helperEvent_->waitForEvent();
     }
 
     thisLaunchStream->stream().ext_oneapi_graph(*instance_);
 
     helperEvent_->markEvent(*thisLaunchStream);
+
+    if (xUpdatedOnDeviceEvent->isMarked())
+    {
+        // This reset should not be needed, dirty hack!
+        xUpdatedOnDeviceEvent->reset();
+    }
     xUpdatedOnDeviceEvent->markEvent(*thisLaunchStream);
 
     wallcycle_sub_stop(wcycle_, WallCycleSubCounter::MdGpuGraphLaunch);
