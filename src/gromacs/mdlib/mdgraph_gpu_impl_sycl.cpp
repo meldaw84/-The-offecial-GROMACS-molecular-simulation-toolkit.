@@ -163,6 +163,11 @@ void MdGpuGraph::Impl::startRecord(GpuEventSynchronizer* xReadyOnDeviceEvent)
     GMX_RELEASE_ASSERT(result, "Failed to start graph recording");
 
     // Re-mark xReadyOnDeviceEvent to allow full isolation within graph capture
+    // We explicitly want to replace an existing event, so we call the reset here
+    if (xReadyOnDeviceEvent->isMarked())
+    {
+        xReadyOnDeviceEvent->reset();
+    }
     xReadyOnDeviceEvent->markEvent(deviceStreamManager_.stream(gmx::DeviceStreamType::UpdateAndConstraints));
 
     graphState_ = GraphState::Recording;
@@ -236,10 +241,17 @@ void MdGpuGraph::Impl::launchGraphMdStep(GpuEventSynchronizer* xUpdatedOnDeviceE
 
     const DeviceStream* thisLaunchStream = launchStream_.get();
 
+    /* We cannot have the same graph instance enqueued twice in SYCL Graphs, so we have to wait
+     * if we used the graph on the previous step. */
     if (usedGraphLastStep_)
     {
-        // We cannot have the same graph instance enqueued twice :(
-        helperEvent_->enqueueWaitEvent(*thisLaunchStream);
+        /* In tests, we sometimes pretend that we sometimes set usedGraphLastStep to true
+         * even if it is not true, so we add this additional isMarked check here. It should
+         * not have any impact on the reals MD runs, only in MdGraphTest */
+        if (helperEvent_->isMarked())
+        {
+            helperEvent_->waitForEvent();
+        }
     }
 
     thisLaunchStream->stream().ext_oneapi_graph(*instance_);
