@@ -195,7 +195,7 @@ TEST_P(BiasStateTest, InitializesFromFile)
 
 TEST_P(UserInputTest, UserInputData)
 {
-    const BiasGrid& grid                 = *grid_;
+    const BiasGrid& grid = *grid_;
     std::string     correctFormatMessage;
     /* Get a data point for each AWH grid point so that they all get data. */
     EXPECT_NO_THROW(mapGridToDataGrid(
