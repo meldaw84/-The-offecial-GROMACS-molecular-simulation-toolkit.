@@ -2010,12 +2010,14 @@ int Mdrunner::mdrunner()
         }
     }
 
+#if GMX_NVSHMEM
     std::unique_ptr<gmxNvshmemHandle> nvshmemHandlePtr;
     if (runScheduleWork.simulationWork.useNvshmem)
     {
         nvshmemHandlePtr = std::make_unique<gmxNvshmemHandle>();
         nvshmemHandlePtr->init(cr->mpiDefaultCommunicator);
     }
+#endif
 
     /* Set thread affinity after gmx_pme_init(), otherwise with cuFFTMp the NVSHMEM helper thread
      * can be pinned to the same core as the PME thread, causing performance degradation.
