@@ -196,18 +196,7 @@ TEST_P(BiasStateTest, InitializesFromFile)
 TEST_P(UserInputTest, UserInputData)
 {
     const BiasGrid& grid                 = *grid_;
-    std::string     correctFormatMessage = gmx::formatString(
-            "%s is expected in the following format. "
-            "The first ndim column(s) should contain the coordinate values for each point, "
-            "each column containing values of one dimension (in ascending order). "
-            "For a multidimensional coordinate, points should be listed "
-            "in the order obtained by traversing lower dimensions first. "
-            "E.g. for two-dimensional grid of size nxn: "
-            "(1, 1), (1, 2),..., (1, n), (2, 1), (2, 2), ..., , (n, n - 1), (n, n). "
-            "Column ndim +  1 should contain the PMF value for each coordinate value. "
-            "The target distribution values should be in column ndim + 2  or column ndim + 5. "
-            "Make sure the input file ends with a new line but has no trailing new lines. ",
-            filename_.c_str());
+    std::string     correctFormatMessage = "";
     /* Get a data point for each AWH grid point so that they all get data. */
     EXPECT_NO_THROW(mapGridToDataGrid(
             &gridIndexToDataIndex_, data_, numRows_, filename_, grid, correctFormatMessage));
