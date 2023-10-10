@@ -121,7 +121,7 @@ public:
     /*! \brief
      * Return pointer to force synchronization NVSHMEM object
      */
-    DeviceBuffer<uint64_t> getGpuForceSyncObj();
+    uint64_t* getGpuForceSyncObj();
 
 private:
     class Impl;
