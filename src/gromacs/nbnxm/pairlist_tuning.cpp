@@ -116,7 +116,7 @@ static const float c_nbnxnListSizeFactorCpu = 1.25;
 static const float c_nbnxnListSizeFactorIntelXeonPhi = 1.4;
 // GPU: pair-search is a factor 1.5-3 slower than the non-bonded kernel.
 //! Target pair-list size increase ratio for GPU
-static const float c_nbnxnListSizeFactorGPU = 1.4;
+static const float c_nbnxnListSizeFactorGPU = 1.5;
 //! Never increase the size of the pair-list more than the factor above plus this margin
 static const float c_nbnxnListSizeFactorMargin = 0.1;
 
@@ -377,12 +377,19 @@ void increaseNstlist(FILE*               fp,
  */
 static const int c_nbnxnGpuRollingListPruningInterval = 2;
 
-/*! \brief The minimum nstlist for dynamic pair list pruning.
+/*! \brief The minimum nstlist for dynamic pair list pruning on CPUs.
+ *
+ * In most cases going lower than 10 will lead to a too high pruning cost.
+ * This value should be a multiple of \p c_nbnxnGpuRollingListPruningInterval
+ */
+static const int c_nbnxnCpuDynamicListPruningMinLifetime = 10;
+
+/*! \brief The minimum nstlist for dynamic pair list pruning om GPUs.
  *
  * In most cases going lower than 4 will lead to a too high pruning cost.
  * This value should be a multiple of \p c_nbnxnGpuRollingListPruningInterval
  */
-static const int c_nbnxnDynamicListPruningMinLifetime = 4;
+static const int c_nbnxnGpuDynamicListPruningMinLifetime = 4;
 
 /*! \brief Set the dynamic pairlist pruning parameters in \p ic
  *
@@ -546,13 +553,14 @@ void setupDynamicPairlistPruning(const gmx::MDLogger&       mdlog,
         }
         else
         {
-            static_assert(c_nbnxnDynamicListPruningMinLifetime % c_nbnxnGpuRollingListPruningInterval == 0,
-                          "c_nbnxnDynamicListPruningMinLifetime sets the starting value for "
+            static_assert(c_nbnxnGpuDynamicListPruningMinLifetime % c_nbnxnGpuRollingListPruningInterval == 0,
+                          "c_nbnxnGpuDynamicListPruningMinLifetime sets the starting value for "
                           "nstlistPrune, which should be divisible by the rolling pruning interval "
                           "for efficiency reasons.");
 
             // TODO: Use auto-tuning to determine nstlistPrune
-            listParams->nstlistPrune = c_nbnxnDynamicListPruningMinLifetime;
+            listParams->nstlistPrune = (useGpuList ? c_nbnxnGpuDynamicListPruningMinLifetime
+                                                   : c_nbnxnCpuDynamicListPruningMinLifetime);
         }
 
         setDynamicPairlistPruningParameters(
