@@ -108,6 +108,7 @@ void GpuForceReduction::Impl::registerRvecForce(DeviceBuffer<RVec> forcePtr)
     rvecForceToAdd_ = forcePtr;
 };
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static, readability-non-const-parameter)
 void GpuForceReduction::Impl::registerForceSyncObj(DeviceBuffer<uint64_t> syncObj)
 {
 #if GMX_NVSHMEM
@@ -217,6 +218,7 @@ void GpuForceReduction::execute()
     impl_->execute();
 }
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static, readability-non-const-parameter)
 void GpuForceReduction::registerForceSyncObj(DeviceBuffer<uint64_t> syncObj)
 {
 #if GMX_NVSHMEM
