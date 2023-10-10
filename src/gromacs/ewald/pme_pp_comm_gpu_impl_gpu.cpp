@@ -261,7 +261,7 @@ GpuEventSynchronizer* PmePpCommGpu::Impl::getForcesReadySynchronizer()
     }
 }
 
-uint64_t* PmePpCommGpu::Impl::getGpuForceSyncObj()
+DeviceBuffer<uint64_t> PmePpCommGpu::Impl::getGpuForceSyncObj()
 {
     return pmeForcesSyncObj;
 }
@@ -309,7 +309,7 @@ GpuEventSynchronizer* PmePpCommGpu::getForcesReadySynchronizer()
     return impl_->getForcesReadySynchronizer();
 }
 
-uint64_t* PmePpCommGpu::getGpuForceSyncObj()
+DeviceBuffer<uint64_t> PmePpCommGpu::getGpuForceSyncObj()
 {
     return impl_->getGpuForceSyncObj();
 }

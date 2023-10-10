@@ -122,7 +122,7 @@ public:
     /*! \brief
      * Return pointer to NVSHMEM sync object used for staging PME force on GPU
      */
-    uint64_t* getGpuForceSyncObj();
+    DeviceBuffer<uint64_t> getGpuForceSyncObj();
 
 private:
     /*! \brief Receive buffer from GPU memory on PME rank to either

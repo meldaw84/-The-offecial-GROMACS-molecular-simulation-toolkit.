@@ -128,7 +128,7 @@ GpuEventSynchronizer* PmePpCommGpu::getForcesReadySynchronizer()
     return nullptr;
 }
 
-uint64_t* PmePpCommGpu::getGpuForceSyncObj()
+DeviceBuffer<uint64_t> PmePpCommGpu::getGpuForceSyncObj()
 {
     GMX_ASSERT(!impl_,
                "A CPU stub for PME-PP GPU communication was called instead of the correct "
