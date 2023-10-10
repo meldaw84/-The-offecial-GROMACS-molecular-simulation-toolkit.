@@ -456,7 +456,9 @@ distribution by the square root of the friction metric
 where :math:`w_{\mathrm{user}}(\lambda)` can be uniform and
 \sqrt{\det\eta_{\mu\nu}(\lambda)} is the square root of the friction metric.
 The diffusion metric (see :ref:`192 <reflundborg2023>`) is the inverse of
-the friction metric.
+the friction metric. This scaling of the target distribution, increasing the
+relative sampling of regions with slower diffusion, should generally lower the
+statistical error of the estimated free energy landscape.
 
 This modification is only applied after leaving the initial stage
 (section :ref:`awhinitialstage`), if applicable, and is performed when updating
