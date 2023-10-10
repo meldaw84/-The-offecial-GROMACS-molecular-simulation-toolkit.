@@ -675,12 +675,12 @@ void gpu_launch_kernel_pruneonly(NbnxmGpu* nb, const InteractionLocality iloc, c
                                       deviceStream.stream());
 
         KernelLaunchConfig configSortSci;
-        const unsigned int items_per_block = c_sciSortingThreadsPerBlock * c_sciSortingItemsPerThread;
-        configSortSci.blockSize[0]         = c_sciSortingThreadsPerBlock;
-        configSortSci.blockSize[1]         = 1;
-        configSortSci.blockSize[2]         = 1;
-        configSortSci.gridSize[0]          = (plist->nsci + items_per_block - 1) / items_per_block;
-        configSortSci.sharedMemorySize     = 0;
+        const int items_per_block      = c_sciSortingThreadsPerBlock * c_sciSortingItemsPerThread;
+        configSortSci.blockSize[0]     = c_sciSortingThreadsPerBlock;
+        configSortSci.blockSize[1]     = 1;
+        configSortSci.blockSize[2]     = 1;
+        configSortSci.gridSize[0]      = (plist->nsci + items_per_block - 1) / items_per_block;
+        configSortSci.sharedMemorySize = 0;
 
         const auto kernelSciSort = nbnxn_kernel_bucket_sci_sort;
 

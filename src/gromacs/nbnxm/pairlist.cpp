@@ -3882,52 +3882,54 @@ static bool checkRebalanceSimpleLists(gmx::ArrayRef<const NbnxnPairlistCpu> list
  */
 static void sort_sci(NbnxnPairlistGpu* nbl)
 {
-    return; // TODO don't call sort_sci at all when not using cpu path
+    /* For CUDA version, sorting is done on the GPU */
+    if (GMX_GPU_CUDA)
+        return;
 
-    //    if (nbl->cjPacked.size() <= gmx::Index(nbl->sci.size()))
-    //    {
-    //        /* nsci = 0 or all sci have size 1, sorting won't change the order */
-    //        return;
-    //    }
-    //
-    //    NbnxnPairlistGpuWork& work = *nbl->work;
-    //
-    //    /* We will distinguish differences up to double the average */
-    //    const int m = static_cast<int>((2 * ssize(nbl->cjPacked)) / ssize(nbl->sci));
-    //
-    //    /* Resize work.sci_sort so we can sort into it */
-    //    work.sci_sort.resize(nbl->sci.size());
-    //
-    //    std::vector<int>& sort = work.sortBuffer;
-    //    /* Set up m + 1 entries in sort, initialized at 0 */
-    //    sort.clear();
-    //    sort.resize(m + 1, 0);
-    //    /* Count the entries of each size */
-    //    for (const nbnxn_sci_t& sci : nbl->sci)
-    //    {
-    //        int i = std::min(m, sci.numJClusterGroups());
-    //        sort[i]++;
-    //    }
-    //    /* Calculate the offset for each count */
-    //    int s0  = sort[m];
-    //    sort[m] = 0;
-    //    for (gmx::Index i = m - 1; i >= 0; i--)
-    //    {
-    //        int s1  = sort[i];
-    //        sort[i] = sort[i + 1] + s0;
-    //        s0      = s1;
-    //    }
-    //
-    //    /* Sort entries directly into place */
-    //    gmx::ArrayRef<nbnxn_sci_t> sci_sort = work.sci_sort;
-    //    for (const nbnxn_sci_t& sci : nbl->sci)
-    //    {
-    //        int i               = std::min(m, sci.numJClusterGroups());
-    //        sci_sort[sort[i]++] = sci;
-    //    }
-    //
-    //    /* Swap the sci pointers so we use the new, sorted list */
-    //    std::swap(nbl->sci, work.sci_sort);
+    if (nbl->cjPacked.size() <= gmx::Index(nbl->sci.size()))
+    {
+        /* nsci = 0 or all sci have size 1, sorting won't change the order */
+        return;
+    }
+
+    NbnxnPairlistGpuWork& work = *nbl->work;
+
+    /* We will distinguish differences up to double the average */
+    const int m = static_cast<int>((2 * ssize(nbl->cjPacked)) / ssize(nbl->sci));
+
+    /* Resize work.sci_sort so we can sort into it */
+    work.sci_sort.resize(nbl->sci.size());
+
+    std::vector<int>& sort = work.sortBuffer;
+    /* Set up m + 1 entries in sort, initialized at 0 */
+    sort.clear();
+    sort.resize(m + 1, 0);
+    /* Count the entries of each size */
+    for (const nbnxn_sci_t& sci : nbl->sci)
+    {
+        int i = std::min(m, sci.numJClusterGroups());
+        sort[i]++;
+    }
+    /* Calculate the offset for each count */
+    int s0  = sort[m];
+    sort[m] = 0;
+    for (gmx::Index i = m - 1; i >= 0; i--)
+    {
+        int s1  = sort[i];
+        sort[i] = sort[i + 1] + s0;
+        s0      = s1;
+    }
+
+    /* Sort entries directly into place */
+    gmx::ArrayRef<nbnxn_sci_t> sci_sort = work.sci_sort;
+    for (const nbnxn_sci_t& sci : nbl->sci)
+    {
+        int i               = std::min(m, sci.numJClusterGroups());
+        sci_sort[sort[i]++] = sci;
+    }
+
+    /* Swap the sci pointers so we use the new, sorted list */
+    std::swap(nbl->sci, work.sci_sort);
 }
 
 /* Returns the i-zone range for pairlist construction for the give locality */
