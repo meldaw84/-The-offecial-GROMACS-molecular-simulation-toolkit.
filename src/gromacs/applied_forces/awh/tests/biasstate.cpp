@@ -124,7 +124,7 @@ public:
     gmx::MultiDimArray<std::vector<double>, gmx::dynamicExtents2D> data_;
     int                                                            numColumns_;
     int                                                            numRows_;
-    std::string                                                    filename_;
+    std::filesystem::path                                          filename_;
 
     UserInputTest()
     {
