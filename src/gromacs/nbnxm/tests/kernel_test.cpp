@@ -117,13 +117,13 @@ struct KernelOptions
     //! Whether we are using PME for LJ
     bool useLJPme = false;
     //! Ewald relative tolerance for LJ
-    real ewald_rtol_lj = 1e-4;
+    real ewaldRTolLJ = 1e-4;
     //! LJ combination rule for the LJ PME mesh part
-    LongRangeVdW ljpme_comb_rule = LongRangeVdW::Geom;
+    LongRangeVdW ljPmeCombinationRule = LongRangeVdW::Geom;
     //! The pairlist and interaction cut-off
     real pairlistCutoff = 0.9;
     //! The Coulomb Ewald coefficient
-    real ewald_rtol = 1e-6;
+    real ewaldRTol = 1e-6;
     //! The Coulomb interaction function
     CoulombKernelType coulombType = CoulombKernelType::Ewald;
 };
@@ -406,18 +406,18 @@ interaction_const_t setupInteractionConst(const KernelOptions& options)
     ir.rvdw_switch = ir.rvdw - 0.2;
     if (ir.vdwtype == VanDerWaalsType::Pme)
     {
-        GMX_RELEASE_ASSERT(options.ljpme_comb_rule == LongRangeVdW::Geom,
+        GMX_RELEASE_ASSERT(options.ljPmeCombinationRule == LongRangeVdW::Geom,
                            "The SIMD kernels, used to generate the reference data, only support "
                            "geometric LJ-PME");
 
-        ir.ljpme_combination_rule = options.ljpme_comb_rule;
-        ir.ewald_rtol_lj          = options.ewald_rtol_lj;
+        ir.ljpme_combination_rule = options.ljPmeCombinationRule;
+        ir.ewald_rtol_lj          = options.ewaldRTolLJ;
     }
 
     ir.coulombtype      = coulombInteractionType(options.coulombType);
     ir.coulomb_modifier = InteractionModifiers::PotShift;
     ir.rcoulomb         = options.pairlistCutoff;
-    ir.ewald_rtol       = options.ewald_rtol;
+    ir.ewald_rtol       = options.ewaldRTol;
     ir.epsilon_r        = 1;
     ir.epsilon_rf       = 0;
 
@@ -658,7 +658,7 @@ public:
             {
                 // The relative energy error for tables is 0.1 times the value at the cut-off.
                 // We assume that for the force this factor is 1.
-                ewaldRelError = options_.ewald_rtol;
+                ewaldRelError = options_.ewaldRTol;
             }
             else
             {
