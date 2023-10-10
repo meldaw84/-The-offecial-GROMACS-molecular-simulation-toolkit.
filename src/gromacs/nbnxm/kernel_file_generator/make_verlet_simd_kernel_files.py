@@ -35,24 +35,24 @@
 # This script is used by the GROMACS developers to generate the .cpp
 # files that instiantiate all the template specializations of the kernel.
 # This script also generates .h files with a list of external template
-# declarations and a table of function points. Thus script is not called
+# declarations and a table of function points. This script is not called
 # at CMake time, and users should never need to use it. The generated
 # files are versions of the *.pre files in this directory, customized
 # for the kernel structure type and/or the detailed kernel type. These
 # are:
 #
-#   A single header file that declares all the kernel functions for
-#   this NBNxM kernel structure type and a function pointer table.
+#   A single header file that declares all the kernel function template
+#   specializations for this NBNxM kernel layout and a function pointer table.
 #
 #   Many C++ kernel files, each defining a single kernel function template
 #   specialization. These functions can take a noticeable time to compile,
 #   and should be in separate files to take advantage of make-time parallelism.
 #
 # These files are written to two separate directories for the two kernel
-# structures 2xMM and 4xM.
+# layouts 2xMM and 4xM.
 #
-# Note that while functions for both NBNxM kernel structures are
-# compiled and built into an mdrun executable, because that executable
+# Note that while functions for both NBNxM kernel layouts are compiled
+# and built into an mdrun executable, because that executable
 # is not portable, only the functions for the useful NBNxM kernel
 # structure for the hardware selected at CMake time contain real
 # kernel logic. A run-time error occurs if an inappropriate kernel
