@@ -44,10 +44,9 @@
 #   A single header file that declares all the kernel functions for
 #   this NBNxM kernel structure type and a function pointer table.
 #
-#   Many C++ kernel files, each defining a single kernel function template.
+#   Many C++ kernel files, each defining a single kernel function template
 #   specialization. These functions can take a noticeable time to compile,
-#   and should tend to be in separate files to take advantage of make-time
-#   parallelism.
+#   and should be in separate files to take advantage of make-time parallelism.
 #
 # These files are written to two separate directories for the two kernel
 # structures 2xMM and 4xM.
