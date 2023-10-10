@@ -128,7 +128,10 @@ gcc.
 
 The xlc compiler is not supported and version 16.1 does not compile on
 POWER architectures for |Gromacs|\ -\ |version|. We recommend to use
-the gcc compiler instead, as it is being extensively tested.
+the gcc compiler instead, as it is being extensively tested. N.b., it
+has been reported that binaries compiled with gcc version 12.2 and 12.3
+on POWER9 architectures fail unit tests. See :issue:`4823` for more
+information.
 
 You may also need the most recent version of other compiler toolchain
 components beside the compiler itself (e.g. assembler or linker);
