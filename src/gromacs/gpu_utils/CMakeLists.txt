@@ -43,6 +43,7 @@ gmx_add_libgromacs_sources(
         hostallocator.cpp
         gpu_utils.cpp
         gpueventsynchronizer_helpers.cpp
+        nvshmem_utils.cpp
         )
 if(GMX_GPU_OPENCL)
     gmx_add_libgromacs_sources(
@@ -59,7 +60,6 @@ elseif(GMX_GPU_CUDA)
         device_stream.cu
         gpu_utils.cu
         pmalloc.cu
-        nvshmem_utils.cpp
         )
     _gmx_add_files_to_property(CUDA_SOURCES
         device_stream_manager.cpp

@@ -471,6 +471,9 @@ void reallocateDeviceBufferNvShmem(DeviceBuffer<ValueType>* buffer,
     GMX_ASSERT(currentNumValues, "needs a size pointer");
     GMX_ASSERT(currentMaxNumValues, "needs a capacity pointer");
 
+    // Check if NVSHMEM is initialized to exit if it isn't and avoid nvshmem_malloc.
+    GMX_RELEASE_ASSERT(nvshmemx_init_status(), "NVSHMEM is not initialized.");
+
     /* reallocate only if the data does not fit */
     if (static_cast<int>(numValues) > *currentMaxNumValues)
     {
