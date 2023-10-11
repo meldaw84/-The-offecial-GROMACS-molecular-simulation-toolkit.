@@ -3536,7 +3536,7 @@ are used.
 
 .. mdp:: colvars-configfile
 
-   (`colvars.dat`) Name of the Colvars configuration file, using options
+   (colvars.dat) Name of the Colvars configuration file, using options
    specific to Colvars that are documented at:
    `https://colvars.github.io/colvars-refman-gromacs/colvars-refman-gromacs.html
    <https://colvars.github.io/colvars-refman-gromacs/colvars-refman-gromacs.html>`_.
