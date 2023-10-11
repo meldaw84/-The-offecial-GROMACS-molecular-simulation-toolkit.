@@ -58,8 +58,7 @@ __launch_bounds__(c_sciSortingThreadsPerBlock) __global__
 {
     int size = plist.nsci;
 
-    const unsigned int flat_id  = threadIdx.x;
-    const unsigned int block_id = blockIdx.x;
+    const unsigned int flat_id = threadIdx.x;
     const unsigned int block_offset = blockIdx.x * c_sciSortingThreadsPerBlock * c_sciSortingItemsPerThread;
 
     const nbnxn_sci_t* pl_sci        = plist.sci;
@@ -85,14 +84,8 @@ __launch_bounds__(c_sciSortingThreadsPerBlock) __global__
     for (unsigned int i = 0; i < c_sciSortingItemsPerThread; i++)
     {
         if (size > (block_offset + c_sciSortingItemsPerThread * flat_id + i))
-            sci_offset[i] = atomicAdd(&pl_sci_offset[sci_count[i]], 1);
-    }
-
-#pragma unroll
-    for (unsigned int i = 0; i < c_sciSortingItemsPerThread; i++)
-    {
-        if (size > (block_offset + c_sciSortingItemsPerThread * flat_id + i))
         {
+            sci_offset[i]              = atomicAdd(&pl_sci_offset[sci_count[i]], 1);
             pl_sci_sort[sci_offset[i]] = sci[i];
         }
     }
