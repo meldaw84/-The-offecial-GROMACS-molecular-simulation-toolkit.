@@ -3468,7 +3468,7 @@ electron-microscopy experiments. (See the `reference manual`_ for details)
    and energies. Corresponds to a transformation of the input density by the
    inverse of this matrix. The matrix is given in row-major order.
    This option allows, e.g., rotation of the density-guided atom group around the
-   z-axis by :math:`\theta` degress by using following input:
+   z-axis by :math:`\theta` degrees by using the following input:
    :math:`(\cos \theta , -\sin \theta , 0 , \sin \theta , \cos \theta , 0 , 0 , 0 , 1)` .
 
 QM/MM simulations with CP2K Interface 
