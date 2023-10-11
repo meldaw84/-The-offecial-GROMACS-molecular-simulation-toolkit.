@@ -314,18 +314,17 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
     }
 
     // Aggregate neighbour counts, to be used in bucket sci sort
-    __syncthreads();
     if (haveFreshList && NTHREAD_Z > 1)
     {
-        int*  sm_prunedPairCount = reinterpret_cast<int*>(sm_dynamicShmem);
-        *sm_prunedPairCount      = 0;
+        __shared__ int sm_prunedPairCount;
+        sm_prunedPairCount = 0;
         __syncthreads();
-        if (tidx == c_clSize * c_clSize - 1)
+        if ((tidx == c_clSize * c_clSize - 1) || (tidx == warp_size - 1))
         {
-            atomicAdd(sm_prunedPairCount, prunedPairCount);
+            atomicAdd(&sm_prunedPairCount, prunedPairCount);
         }
         __syncthreads();
-        prunedPairCount = *sm_prunedPairCount;
+        prunedPairCount = sm_prunedPairCount;
     }
     if (haveFreshList && (tidx == c_clSize * c_clSize - 1))
     {
