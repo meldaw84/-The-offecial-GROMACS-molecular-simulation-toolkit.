@@ -250,28 +250,13 @@ gmx_add_nvcc_flag_if_supported(GMX_CUDA_NVCC_FLAGS NVCC_HAS_PTXAS_WERROR -Xptxas
 # assemble the CUDA host compiler flags
 list(APPEND GMX_CUDA_NVCC_FLAGS "${CUDA_HOST_COMPILER_OPTIONS}")
 
-# Set relevant host compilation flags that are not set automatically.
-# Also harmonize the compilation flags in the logs with what was used when
-# compiling. There can still be duplicate entries in both the log file and
-# the used compiler flags.
+# Set the openmp host compilation flag if it has not been set automatically.
+# Some other compilation flags, mostly warnings are not automatically
+# propagated, but we do not set them all manually. See issue #4757 and the
+# MR discussion in !3780 for more information.
 if(GMX_OPENMP AND NOT "${OpenMP_CXX_FLAGS}" STREQUAL "")
     if(NOT ${OpenMP_CXX_FLAGS} IN_LIST GMX_CUDA_NVCC_FLAGS)
         list(APPEND GMX_CUDA_NVCC_FLAGS -Xcompiler ${OpenMP_CXX_FLAGS})
-    endif()
-endif()
-if(HAS_WARNING_NO_CAST_FUNCTION_TYPE_STRICT)
-    if(NOT "-Wno-cast-function-type-strict" IN_LIST GMX_CUDA_NVCC_FLAGS)
-        list(APPEND GMX_CUDA_NVCC_FLAGS -Xcompiler "-Wno-cast-function-type-strict")
-    endif()
-endif()
-foreach(flag ${CMAKE_SHARED_LIBRARY_CXX_FLAGS})
-    if(NOT ${flag} IN_LIST GMX_CUDA_NVCC_FLAGS)
-        list(APPEND GMX_CUDA_NVCC_FLAGS -Xcompiler "${flag}")
-    endif()
-endforeach()
-if(CXXFLAGS_WARN_NOUNDEF)
-    if(NOT "-Wno-undef" IN_LIST GMX_CUDA_NVCC_FLAGS)
-        list(APPEND GMX_CUDA_NVCC_FLAGS -Xcompiler "-Wno-undef")
     endif()
 endif()
 
