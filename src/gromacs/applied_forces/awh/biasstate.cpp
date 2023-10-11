@@ -328,9 +328,9 @@ double BiasState::scaleTargetByMetric()
         averageVolume = 1;
     }
     /* Points may have a very low correlation tensor from not being sampled enough.
-     * This threshold avoids scaling the target distribution of those points to a very
+     * This limit avoids scaling the target distribution of those points to a very
      * low value. */
-    double scalingThreshold = averageVolume / 1e2;
+    const double lowerScalingLimit = averageVolume / 1e2;
 
     double sumTarget = 0;
     for (gmx::Index pointIndex = 0; pointIndex < ssize(points_); pointIndex++)
@@ -340,12 +340,18 @@ double BiasState::scaleTargetByMetric()
         std::vector<double> correlationIntegral     = getSharedPointCorrelationIntegral(pointIndex);
         double              correlationTensorVolume = getSqrtDeterminant(correlationIntegral);
 
-        /* If there is no (or extremely low) correlation tensor volume from this point use the
-         * average volume. This will result in no friction tensor scaling for the target
+        /* If there is no correlation tensor volume from this point use the average
+         * volume. This will result in no friction tensor scaling for the target
          * distribution of this point. */
-        if (correlationTensorVolume < scalingThreshold)
+        if (correlationTensorVolume == 0)
         {
             correlationTensorVolume = averageVolume;
+        }
+        /* If the correlation tensor volume is very small limit the scaling to the
+         * lower scaling limit to avoid extremely low target distribution. */
+        else if (correlationTensorVolume < lowerScalingLimit)
+        {
+            correlationTensorVolume = lowerScalingLimit;
         }
         double scaleFactor = correlationTensorVolume / averageVolume;
         ps.scaleTarget(scaleFactor);

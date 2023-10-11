@@ -465,9 +465,8 @@ This modification is only applied after leaving the initial stage
 the target distribution, typically when also updating the free energy.
 If any histograms have not been sampled enough to have a friction metric they
 will be scaled by the average from points with non-zero friction metric, i.e.,
-practically unscaled. The same applies to points with a friction metric significantly
-lower (1/100) than the average non-zero friction metric. More information can be found
-in :ref:`192 <reflundborg2023>`.
+practically unscaled. The lower limit to the scaling (by the friction metric)
+is 1/100. More information can be found in :ref:`192 <reflundborg2023>`.
 
 Scaling the target distribution based on the friction metric
 can be combined with Boltzmann or Local-Boltzmann target distributions.
