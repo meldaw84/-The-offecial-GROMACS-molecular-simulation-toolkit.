@@ -3518,25 +3518,41 @@ For further details about QM/MM interface implementation follow :ref:`qmmm`.
    with an additional ``_cp2k`` suffix.
 
 
-Colvars Simulations
-^^^^^^^^^^^^^^^^^^^
+Collective variables (Colvars) module
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-These options enable and control the calculation of sampling algorithms defined
-on a reduced space of continuously differentiable functions (aka collective variables).
-For further details about Colvars interface implementation follow :ref:`colvars`.
+These options enable and control the features provided by the collective
+variables (Colvars) module (`link <https://colvars.github.io/>`_), a software
+library for enhanced sampling methods in molecular simulations.  The Colvars
+module is described in ref. \ :ref:`192 <refFiorin13>` as well as other
+references that are reported in the log file when the corresponding features
+are used.
 
 .. mdp:: colvars-active
 
-   (false) Activate Colvars simulations. Requires Colvars library to be compiled with |Gromacs|.
+   (false) Activate Colvars computation in the current run. Requires that the
+   Colvars library was compiled with |Gromacs|, which is the default in a
+   typical installation.
 
 .. mdp:: colvars-configfile
 
-   (colvars.dat) Colvars configuration file using an absolute path or a path
-   relative to the to the folder from which :ref:`gmx mdrun` is called.
+   (`colvars.dat`) Name of the Colvars configuration file, using options
+   specific to Colvars that are documented at:
+   `https://colvars.github.io/colvars-refman-gromacs/colvars-refman-gromacs.html
+   <https://colvars.github.io/colvars-refman-gromacs/colvars-refman-gromacs.html>`_.
+   The file name can be either an absolute path, or a path relative to the
+   folder from which :ref:`gmx mdrun` is called.
 
 .. mdp:: colvars-seed
 
-   (-1) Random seed used in some Colvars biases (i.e Extended Lagrangian)
+   (-1) [integer] Seed used to initialize the random generator associated
+   with certain stochastic methods implemented within Colvars.  The default
+   value of -1 generates a random seed.
+
+The current implementation of the Colvars-GROMACS interface gathers the
+relevant atomic coordinates on one MPI rank, where all collective variables
+and their forces are computed.  Take this fact into account when choosing how
+many atoms to include in selections.
 
 
 User defined thingies
