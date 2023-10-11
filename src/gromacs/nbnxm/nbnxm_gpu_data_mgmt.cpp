@@ -201,27 +201,27 @@ static inline void set_cutoff_parameters(NBParamGpu*                nbp,
     nbp->vdw_switch       = ic.vdw_switch;
 }
 
-static inline void init_plistSorting(gpu_plistSorting* sorting)
+static inline void initPlistSorting(gpuPlistSorting* sorting)
 {
     /* initialize to nullptr pointers to data that is not allocated here and will
        need reallocation in nbnxn_gpu_init_pairlist */
-    sorting->scan_temporary = nullptr;
-    sorting->sci_histogram  = nullptr;
-    sorting->sci_offset     = nullptr;
-    sorting->sci_count      = nullptr;
-    sorting->sci_sorted     = nullptr;
+    sorting->scanTemporary = nullptr;
+    sorting->sciHistogram  = nullptr;
+    sorting->sciOffset     = nullptr;
+    sorting->sciCount      = nullptr;
+    sorting->sciSorted     = nullptr;
 
     /* size -1 indicates that the respective array hasn't been initialized yet */
-    sorting->nscan_temporary       = -1;
-    sorting->scan_temporary_nalloc = -1;
-    sorting->nsci_histogram        = -1;
-    sorting->sci_histogram_nalloc  = -1;
-    sorting->nsci_offset           = -1;
-    sorting->sci_offset_nalloc     = -1;
-    sorting->nsci_counted          = -1;
-    sorting->sci_counted_nalloc    = -1;
-    sorting->nsci_sorted           = -1;
-    sorting->sci_sorted_nalloc     = -1;
+    sorting->nscanTemporary      = -1;
+    sorting->scanTemporaryNalloc = -1;
+    sorting->nsciHistogram       = -1;
+    sorting->sciHistogramNalloc  = -1;
+    sorting->nsciOffset          = -1;
+    sorting->sciOffsetNalloc     = -1;
+    sorting->nsciCounted         = -1;
+    sorting->sciCountedNalloc    = -1;
+    sorting->nsciSorted          = -1;
+    sorting->sciSortedNalloc     = -1;
 }
 
 static inline void init_plist(gpu_plist* pl)
@@ -248,7 +248,7 @@ static inline void init_plist(gpu_plist* pl)
     pl->rollingPruningPart     = 0;
 
     /* initialise data structures used for sorting */
-    init_plistSorting(&(pl->sorting));
+    initPlistSorting(&(pl->sorting));
 }
 
 static inline void init_timings(gmx_wallclock_gpu_nbnxn_t* t)
@@ -593,50 +593,50 @@ void gpu_init_pairlist(NbnxmGpu* nb, const NbnxnPairlistGpu* h_plist, const Inte
                        GpuApiCallBehavior::Async,
                        bDoTime ? iTimers.pl_h2d.fetchNextEvent() : nullptr);
 
-    reallocateDeviceBuffer(&d_plist->sorting.sci_sorted,
+    reallocateDeviceBuffer(&d_plist->sorting.sciSorted,
                            h_plist->sci.size(),
-                           &d_plist->sorting.nsci_sorted,
-                           &d_plist->sorting.sci_sorted_nalloc,
+                           &d_plist->sorting.nsciSorted,
+                           &d_plist->sorting.sciSortedNalloc,
                            deviceContext);
-    copyToDeviceBuffer(&d_plist->sorting.sci_sorted,
+    copyToDeviceBuffer(&d_plist->sorting.sciSorted,
                        h_plist->sci.data(),
                        0,
                        h_plist->sci.size(),
                        deviceStream,
                        GpuApiCallBehavior::Async,
                        bDoTime ? iTimers.pl_h2d.fetchNextEvent() : nullptr);
-    reallocateDeviceBuffer(&d_plist->sorting.sci_count,
+    reallocateDeviceBuffer(&d_plist->sorting.sciCount,
                            h_plist->sci.size(),
-                           &d_plist->sorting.nsci_counted,
-                           &d_plist->sorting.sci_counted_nalloc,
+                           &d_plist->sorting.nsciCounted,
+                           &d_plist->sorting.sciCountedNalloc,
                            deviceContext);
 
-    if (d_plist->sorting.nscan_temporary == -1)
+    if (d_plist->sorting.nscanTemporary == -1)
     {
-        reallocateDeviceBuffer(&d_plist->sorting.sci_histogram,
+        reallocateDeviceBuffer(&d_plist->sorting.sciHistogram,
                                c_sciHistogramSize + 1,
-                               &d_plist->sorting.nsci_histogram,
-                               &d_plist->sorting.sci_histogram_nalloc,
+                               &d_plist->sorting.nsciHistogram,
+                               &d_plist->sorting.sciHistogramNalloc,
                                deviceContext);
 
-        reallocateDeviceBuffer(&d_plist->sorting.sci_offset,
+        reallocateDeviceBuffer(&d_plist->sorting.sciOffset,
                                c_sciHistogramSize,
-                               &d_plist->sorting.nsci_offset,
-                               &d_plist->sorting.sci_offset_nalloc,
+                               &d_plist->sorting.nsciOffset,
+                               &d_plist->sorting.sciOffsetNalloc,
                                deviceContext);
 
         size_t scan_temporary_size = 0;
         cub::DeviceScan::ExclusiveSum(nullptr,
                                       scan_temporary_size,
-                                      d_plist->sorting.sci_histogram,
-                                      d_plist->sorting.sci_offset,
+                                      d_plist->sorting.sciHistogram,
+                                      d_plist->sorting.sciOffset,
                                       c_sciHistogramSize,
                                       deviceStream.stream());
 
-        reallocateDeviceBuffer(&d_plist->sorting.scan_temporary,
+        reallocateDeviceBuffer(&d_plist->sorting.scanTemporary,
                                (int)scan_temporary_size,
-                               &d_plist->sorting.nscan_temporary,
-                               &d_plist->sorting.scan_temporary_nalloc,
+                               &d_plist->sorting.nscanTemporary,
+                               &d_plist->sorting.scanTemporaryNalloc,
                                deviceContext);
     }
 

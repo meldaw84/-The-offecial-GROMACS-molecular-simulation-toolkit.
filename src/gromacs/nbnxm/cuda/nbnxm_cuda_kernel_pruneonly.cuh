@@ -135,7 +135,7 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
     }
 
     /* convenience variables */
-    const nbnxn_sci_t* pl_sci      = haveFreshList ? plist.sci : plist.sorting.sci_sorted;
+    const nbnxn_sci_t* pl_sci      = haveFreshList ? plist.sci : plist.sorting.sciSorted;
     nbnxn_cj_packed_t* pl_cjPacked = plist.cjPacked;
     const float4*      xq          = atdat.xq;
     const float3*      shift_vec   = asFloat3(atdat.shiftVec);
@@ -208,7 +208,7 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
     }
     __syncthreads();
 
-    int count = 0;
+    int prunedPairCount = 0;
     /* loop over the j clusters = seen by any of the atoms in the current super-cluster;
      * The loop stride NTHREAD_Z ensures that consecutive warps-pairs are assigned
      * consecutive jPacked's entries.
@@ -301,7 +301,7 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
                 /* copy the list pruned to rlistOuter to a separate buffer */
                 plist.imask[jPacked * c_nbnxnGpuClusterpairSplit + widx] = imaskFull;
                 // Add to neighbour count, to be used in bucket sci sort
-                count += __popc(imaskNew);
+                prunedPairCount += __popc(imaskNew);
             }
             /* update the imask with only the pairs up to rlistInner */
             plist.cjPacked[jPacked].imei[widx].imask = imaskNew;
@@ -317,25 +317,24 @@ nbnxn_kernel_prune_cuda<false>(const NBAtomDataGpu, const NBParamGpu, const Nbnx
     __syncthreads();
     if (haveFreshList && NTHREAD_Z > 1)
     {
-        char* sm_reuse = sm_dynamicShmem;
-        int*  count_sm = reinterpret_cast<int*>(sm_reuse);
-        *count_sm      = 0;
+        int*  sm_prunedPairCount = reinterpret_cast<int*>(sm_dynamicShmem);
+        *sm_prunedPairCount      = 0;
         __syncthreads();
         if (tidx == c_clSize * c_clSize - 1)
         {
-            atomicAdd(count_sm, count);
+            atomicAdd(sm_prunedPairCount, prunedPairCount);
         }
         __syncthreads();
-        count = *count_sm;
+        prunedPairCount = *sm_prunedPairCount;
     }
     if (haveFreshList && (tidx == c_clSize * c_clSize - 1))
     {
         if (tidxz == 0)
         {
-            int  index            = max(c_sciHistogramSize - (int)count - 1, 0);
-            int* pl_sci_histogram = plist.sorting.sci_histogram;
+            int  index            = max(c_sciHistogramSize - (int)prunedPairCount - 1, 0);
+            int* pl_sci_histogram = plist.sorting.sciHistogram;
             atomicAdd(pl_sci_histogram + index, 1);
-            int* pl_sci_count                    = plist.sorting.sci_count;
+            int* pl_sci_count                    = plist.sorting.sciCount;
             pl_sci_count[bidx * numParts + part] = index;
         }
     }

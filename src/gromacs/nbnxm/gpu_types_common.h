@@ -255,44 +255,44 @@ struct GpuTimers
 
 /*! \internal
  * \brief Sorted pair list on GPU and data required for performing the sorting */
-struct gpu_plistSorting
+struct gpuPlistSorting
 {
-    int nscan_temporary;
+    int nscanTemporary;
 
-    int scan_temporary_nalloc;
+    int scanTemporaryNalloc;
 
     // //! Temporary data of scan algorithm
-    DeviceBuffer<char> scan_temporary;
+    DeviceBuffer<char> scanTemporary;
 
-    int nsci_histogram;
+    int nsciHistogram;
 
-    int sci_histogram_nalloc;
+    int sciHistogramNalloc;
 
     //! Histogram of sci nsp
-    DeviceBuffer<int> sci_histogram;
+    DeviceBuffer<int> sciHistogram;
 
-    int nsci_offset;
+    int nsciOffset;
 
-    int sci_offset_nalloc;
+    int sciOffsetNalloc;
 
     //! Sci offset
-    DeviceBuffer<int> sci_offset;
+    DeviceBuffer<int> sciOffset;
 
     //! size of sci, # of i clusters in the list
-    int nsci_counted;
+    int nsciCounted;
     //! allocation size of sci
-    int sci_counted_nalloc;
+    int sciCountedNalloc;
 
     //! list of imask counts of sorted i-cluster ("super-clusters")
-    DeviceBuffer<int> sci_count;
+    DeviceBuffer<int> sciCount;
 
     //! size of sci, # of i clusters in the list
-    int nsci_sorted;
+    int nsciSorted;
     //! allocation size of sci
-    int sci_sorted_nalloc;
+    int sciSortedNalloc;
 
     //! list of sorted i-cluster ("super-clusters")
-    DeviceBuffer<nbnxn_sci_t> sci_sorted;
+    DeviceBuffer<nbnxn_sci_t> sciSorted;
 };
 
 /*! \internal
@@ -310,7 +310,7 @@ struct gpu_plist
     DeviceBuffer<nbnxn_sci_t> sci;
 
     //! sorted pair list and data used for sorting
-    gpu_plistSorting sorting;
+    gpuPlistSorting sorting;
 
     //! total # of packed j clusters
     int ncjPacked;

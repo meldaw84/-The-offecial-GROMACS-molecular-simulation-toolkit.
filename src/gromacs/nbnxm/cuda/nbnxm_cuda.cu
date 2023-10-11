@@ -115,7 +115,7 @@
 #    include "nbnxm_cuda_kernel_pruneonly.cu"
 #endif /* GMX_CUDA_NB_SINGLE_COMPILATION_UNIT */
 
-#include "nbnxm_cuda_kernel_sci_sort.cuh"
+#include "nbnxmCudaKernelSciSort.cuh"
 
 namespace Nbnxm
 {
@@ -653,7 +653,7 @@ void gpu_launch_kernel_pruneonly(NbnxmGpu* nb, const InteractionLocality iloc, c
 
     if (plist->haveFreshList)
     {
-        clearDeviceBufferAsync(&plist->sorting.sci_histogram, 0, c_sciHistogramSize, deviceStream);
+        clearDeviceBufferAsync(&plist->sorting.sciHistogram, 0, c_sciHistogramSize, deviceStream);
     }
 
     auto*          timingEvent  = bDoTime ? timer->fetchNextEvent() : nullptr;
@@ -665,12 +665,12 @@ void gpu_launch_kernel_pruneonly(NbnxmGpu* nb, const InteractionLocality iloc, c
 
     if (plist->haveFreshList)
     {
-        size_t scan_temporary_size = (size_t)plist->sorting.nscan_temporary;
+        size_t scan_temporary_size = (size_t)plist->sorting.nscanTemporary;
 
-        cub::DeviceScan::ExclusiveSum(plist->sorting.scan_temporary,
+        cub::DeviceScan::ExclusiveSum(plist->sorting.scanTemporary,
                                       scan_temporary_size,
-                                      plist->sorting.sci_histogram,
-                                      plist->sorting.sci_offset,
+                                      plist->sorting.sciHistogram,
+                                      plist->sorting.sciOffset,
                                       c_sciHistogramSize,
                                       deviceStream.stream());
 
@@ -682,7 +682,7 @@ void gpu_launch_kernel_pruneonly(NbnxmGpu* nb, const InteractionLocality iloc, c
         configSortSci.gridSize[0]      = (plist->nsci + items_per_block - 1) / items_per_block;
         configSortSci.sharedMemorySize = 0;
 
-        const auto kernelSciSort = nbnxn_kernel_bucket_sci_sort;
+        const auto kernelSciSort = nbnxnKernelBucketSciSort;
 
         const auto kernelSciSortArgs = prepareGpuKernelArguments(kernelSciSort, configSortSci, plist);
 
