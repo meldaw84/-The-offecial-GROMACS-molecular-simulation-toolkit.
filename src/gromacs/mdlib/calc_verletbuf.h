@@ -35,6 +35,8 @@
 #ifndef GMX_MDLIB_CALC_VERLETBUF_H
 #define GMX_MDLIB_CALC_VERLETBUF_H
 
+#include <cmath>
+
 #include "gromacs/math/vectypes.h"
 #include "gromacs/utility/basedefinitions.h"
 #include "gromacs/utility/gmxmpi.h"
@@ -188,18 +190,103 @@ real minCellSizeForAtomDisplacement(const gmx_mtop_t&      mtop,
                                     real                   chanceRequested,
                                     ChanceTarget           chanceTarget);
 
-/* Struct for unique atom type for calculating the energy drift.
- * The atom displacement depends on mass and constraints.
- * The energy jump for given distance depend on LJ type and q.
+/* Class for unique atom type for calculating the energy drift.
+ *
+ * The atom displacement depends on the (inverse)mass and constraints, if present.
+ * The energy jump for a given displacement depends on LJ types and charges of an atom pair
+ *
+ * The real valued properties are internally stored as 16-bit integers. This reduces
+ * the number of unique types, which is useful for reducing the cost of O(#types^2) operations.
  */
-struct atom_nonbonded_kinetic_prop_t
+class AtomNonbondedAndKineticProperties
 {
-    real mass     = 0;     /* mass */
-    int  type     = 0;     /* type (used for LJ parameters) */
-    real q        = 0;     /* charge */
-    bool bConstr  = false; /* constrained, if TRUE, use #DOF=2 iso 3 */
-    real con_mass = 0;     /* mass of heaviest atom connected by constraints */
-    real con_len  = 0;     /* constraint length to the heaviest atom */
+public:
+    // Set the resolution for storing 1/nass, charge and constraint length
+    AtomNonbondedAndKineticProperties(real invMassResolution,
+                                      real chargeResolution,
+                                      real constraintLengthResolution) :
+        invMassScale_(invMassResolution != 0 ? invMassResolution : 1),
+        chargeScale_(chargeResolution != 0 ? chargeResolution : 1),
+        constraintLengthScale_(constraintLengthResolution != 0 ? constraintLengthResolution : 1)
+    {
+    }
+
+    bool operator==(const AtomNonbondedAndKineticProperties& other) const
+    {
+        return other.invMass_ == invMass_ && other.type_ == type_ && other.charge_ == charge_
+               && other.constraintInvMass_ == constraintInvMass_
+               && other.constraintLength_ == constraintLength_;
+    }
+
+    // Returns 1/mass
+    real invMass() const { return invMassScale_ * invMass_; }
+
+    // Returns the atom type
+    int type() const { return type_; }
+
+    // Returns the charge
+    real charge() const { return chargeScale_ * charge_; }
+
+    /* Returns whether an atom of this type is connected by a constraint to a heavier atom
+     *
+     * We consider an atom constrained, #DOF=2, when it is
+     * connected with constraints to (at least one) atom with
+     * a mass of more than 0.4x its own mass. This is not a critical
+     * parameter, since with roughly equal masses the unconstrained
+     * and constrained displacement will not differ much (and both
+     * overestimate the displacement).
+     */
+    bool hasConstraint() const
+    {
+        const real c_massRatioThreshold = 0.4_real;
+
+        return c_massRatioThreshold * constraintInvMass_ < invMass_;
+    }
+
+    // Returns 1/mass for the atom connected by a constraint with the largest mass
+    real constraintInvMass() const { return invMassScale_ * constraintInvMass_; }
+
+    // Returns the length of the constraint to the atom with the largest mass
+    real constraintLength() const { return constraintLengthScale_ * constraintLength_; }
+
+    // Returns all bits of 1/mass, charge, constraint 1/mass and length concatenated
+    // This can be used to generate a hash, together with the type.
+    int64_t realBits() const
+    {
+        return int64_t(invMass_) | (int64_t(charge_) << 16) | (int64_t(constraintInvMass_) << 32)
+               | (int64_t(constraintLength_) << 48);
+    }
+
+    // Set the mass (stored as 1/mass), type and charge. \m mass can not be zero
+    void setMassTypeCharge(real mass, int type, real charge)
+    {
+        invMass_ = 1 / (mass * invMassScale_) + 0.5_real;
+        type_    = type;
+        charge_  = charge / chargeScale_ + std::copysign(0.5_real, charge);
+    }
+
+    // Add a constraint to an atom with mass \p mass and constraint length \p length
+    void addConstraint(real mass, real length)
+    {
+        real invMass = 1 / mass;
+
+        if (invMass < constraintInvMass_)
+        {
+            constraintInvMass_ = invMass / invMassScale_ + 0.5_real;
+            constraintLength_  = length / constraintLengthScale_ + 0.5_real;
+        }
+    }
+
+private:
+    int16_t invMass_ = 0; /* 1/mass */
+    int     type_    = 0; /* type (used for LJ parameters) */
+    int16_t charge_  = 0; /* charge */
+    int16_t constraintInvMass_ =
+            std::numeric_limits<int16_t>::max(); /* 1/mass of heaviest atom connected by constraints */
+    int16_t constraintLength_ = 0;               /* constraint length to the heaviest atom */
+    real    invMassScale_;
+    real    chargeScale_;
+    real    constraintLengthScale_;
 };
 
 /* This function computes two components of the estimate of the variance
@@ -211,6 +298,9 @@ struct atom_nonbonded_kinetic_prop_t
  *
  * Only exposed here for testing purposes.
  */
-void constrained_atom_sigma2(real kT_fac, const atom_nonbonded_kinetic_prop_t* prop, real* sigma2_2d, real* sigma2_3d);
+void constrained_atom_sigma2(real                                     kT_fac,
+                             const AtomNonbondedAndKineticProperties& prop,
+                             real*                                    sigma2_2d,
+                             real*                                    sigma2_3d);
 
 #endif
