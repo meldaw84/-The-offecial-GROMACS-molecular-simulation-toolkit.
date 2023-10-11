@@ -1261,11 +1261,15 @@ Use the following flags to do so:
 Building with Colvars support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-|Gromacs| bundles Colvars with its source code and the
-Colvars interface integration is enabled by default when building |Gromacs|.
-That default may be explicitly enabled with ``-DGMX_USE_COLVARS=internal``.
-Colvars support can be disabled with ``-DGMX_USE_COLVARS=none``.
-For further details about Colvars and its interface implementation follow :ref:`colvars`.
+|Gromacs| bundles the Colvars library (`link <https://colvars.github.io/>`_)
+in its source distribution.  The library and its interface with |Gromacs| are
+enabled by default when building |Gromacs|.  This behavior may also be
+enabled explicitly with ``-DGMX_USE_COLVARS=internal``.  Alternatively,
+Colvars support may be disabled with ``-DGMX_USE_COLVARS=none``.  How to use
+Colvars in a |Gromacs| simulation is described in the User Guide, as well as
+in the Colvars documentation at:
+`https://colvars.github.io/colvars-refman-gromacs/colvars-refman-gromacs.html
+<https://colvars.github.io/colvars-refman-gromacs/colvars-refman-gromacs.html>`_.
 
 .. _suffixes:
 
