@@ -791,7 +791,13 @@ int gmx_pmeonly(struct gmx_pme_t**              pmeFromRunnerPtr,
                                   pme_pp->useMdGpuGraph);
             pme_gpu_launch_complex_transforms(pme, wcycle, stepWork);
             pme_gpu_launch_gather(pme, wcycle, lambda_q);
-            output = pme_gpu_wait_finish_task(pme, computeEnergyAndVirial, lambda_q, wcycle);
+
+            const bool haveResultToWaitFor = !stepWork.useGpuPmeFReduction || stepWork.computeEnergy
+                                             || stepWork.computeVirial;
+            if (haveResultToWaitFor)
+            {
+                output = pme_gpu_wait_finish_task(pme, computeEnergyAndVirial, lambda_q, wcycle);
+            }
         }
         else
         {

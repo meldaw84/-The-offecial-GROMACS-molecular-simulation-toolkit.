@@ -392,19 +392,12 @@ PmeOutput pme_gpu_wait_finish_task(gmx_pme_t*     pme,
 {
     GMX_ASSERT(pme_gpu_active(pme), "This should be a GPU run of PME but it is not enabled.");
 
-    const bool haveResultToWaitFor = !pme->gpu->settings.useGpuForceReduction || computeEnergyAndVirial;
-
-    if (!haveResultToWaitFor)
-    {
-        PmeOutput emptyOutput;
-        return emptyOutput;
-    }
+    GMX_ASSERT(!pme->gpu->settings.useGpuForceReduction || computeEnergyAndVirial,
+               "This should be called only if there are results to wait for.");
 
     wallcycle_start(wcycle, WallCycleCounter::WaitGpuPmeGather);
 
-    // Synchronize the whole PME stream at once, including D2H result transfers
-    // if there are outputs we need to wait for at this step; we still call getOutputs
-    // for uniformity and because it sets the PmeOutput.haveForceOutput_.
+    // Synchronize the whole PME stream at once, including D2H result transfers.
     pme_gpu_synchronize(pme->gpu);
 
     PmeOutput output = pme_gpu_getOutput(
@@ -424,11 +417,8 @@ void pme_gpu_wait_and_reduce(gmx_pme_t*               pme,
     // There's no support for computing energy without virial, or vice versa
     const bool computeEnergyAndVirial = stepWork.computeEnergy || stepWork.computeVirial;
 
-    const bool haveResultToWaitFor = !stepWork.useGpuPmeFReduction || computeEnergyAndVirial;
-    if (!haveResultToWaitFor)
-    {
-        return;
-    }
+    GMX_ASSERT(!pme->gpu->settings.useGpuForceReduction || computeEnergyAndVirial,
+               "This should be called only if there are results to wait for.");
 
     wallcycle_start_nocount(wcycle, WallCycleCounter::PmeGpuMesh);
     PmeOutput output = pme_gpu_wait_finish_task(

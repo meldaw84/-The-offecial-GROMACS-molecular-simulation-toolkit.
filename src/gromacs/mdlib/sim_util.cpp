@@ -2382,7 +2382,10 @@ void do_force(FILE*                               fplog,
                                     wcycle);
     }
 
-    if (!alternateGpuWait && stepWork.haveGpuPmeOnThisRank && !needEarlyPmeResults)
+    const bool havePmeResultToWaitFor =
+            (!alternateGpuWait && stepWork.haveGpuPmeOnThisRank && !needEarlyPmeResults
+             && (!stepWork.useGpuPmeFReduction || stepWork.computeEnergy || stepWork.computeVirial));
+    if (havePmeResultToWaitFor)
     {
         pme_gpu_wait_and_reduce(fr->pmedata,
                                 stepWork,
