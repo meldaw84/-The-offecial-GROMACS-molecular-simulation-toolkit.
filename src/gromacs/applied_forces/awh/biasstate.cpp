@@ -330,7 +330,7 @@ double BiasState::scaleTargetByMetric()
     /* Points may have a very low correlation tensor from not being sampled enough.
      * This limit avoids scaling the target distribution of those points to a very
      * low value. */
-    const double lowerScalingLimit = averageVolume / 1e2;
+    const double lowerScalingLimit = averageVolume * 0.01;
 
     double sumTarget = 0;
     for (gmx::Index pointIndex = 0; pointIndex < ssize(points_); pointIndex++)
