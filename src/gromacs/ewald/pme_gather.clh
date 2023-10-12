@@ -159,26 +159,25 @@ inline void reduce_atom_forces(__local float* __restrict__ sm_forces,
     const int dimIndex  = warpIndex;
 
     // First 3 warps can now process 1 dimension each
-    if (dimIndex < DIM)
-    {
-        const int      sourceIndex             = lineIndex % warp_size;
-        __local float* sm_forceReductionPacked = sm_forceReduction + dimIndex * smemPerDim + sourceIndex;
+    const bool     doWork                  = (dimIndex < DIM);
+    const int      sourceIndex             = lineIndex % warp_size;
+    __local float* sm_forceReductionPacked = sm_forceReduction + dimIndex * smemPerDim + sourceIndex;
 #    pragma unroll
-        for (int redStride = minStride >> 1; redStride > 1; redStride >>= 1)
+    for (int redStride = minStride >> 1; redStride > 1; redStride >>= 1)
+    {
+        if (!(splineIndex & redStride) && doWork)
         {
-            if (!(splineIndex & redStride))
-            {
-                sm_forceReductionPacked[0] += sm_forceReductionPacked[redStride];
-            }
+            sm_forceReductionPacked[0] += sm_forceReductionPacked[redStride];
         }
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
 
-        const float n         = read_grid_size(realGridSizeFP, dimIndex);
-        const int   atomIndex = sourceIndex / minStride;
-        if (sourceIndex == minStride * atomIndex)
-        {
-            sm_forces[atomIndex * DIM + dimIndex] =
-                    (sm_forceReductionPacked[0] + sm_forceReductionPacked[1]) * n;
-        }
+    const float n         = doWork ? read_grid_size(realGridSizeFP, dimIndex) : 0;
+    const int   atomIndex = sourceIndex / minStride;
+    if (sourceIndex == minStride * atomIndex && doWork)
+    {
+        sm_forces[atomIndex * DIM + dimIndex] =
+                (sm_forceReductionPacked[0] + sm_forceReductionPacked[1]) * n;
     }
 }
 
