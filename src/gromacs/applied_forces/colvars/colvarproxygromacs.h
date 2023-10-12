@@ -42,7 +42,11 @@
 #ifndef GMX_APPLIED_FORCES_COLVARPROXYGROMACS_H
 #define GMX_APPLIED_FORCES_COLVARPROXYGROMACS_H
 
+// NOLINTBEGIN
+// Disabling clang-tidy checks on Colvars library code that is not called directly by GROMACS,
+// or is not even used at all (e.g. code used by NAMD or VMD interfaces)
 #include "external/colvars/colvarproxy.h"
+// NOLINTEND
 
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/random/tabulatednormaldistribution.h"
