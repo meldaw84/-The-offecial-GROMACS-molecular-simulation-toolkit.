@@ -157,10 +157,7 @@
 #include "replicaexchange.h"
 #include "shellfc.h"
 
-using gmx::DomainLifetimeWorkload;
 using gmx::SimulationSignaller;
-using gmx::SimulationWorkload;
-
 
 void gmx::LegacySimulator::do_md()
 {
