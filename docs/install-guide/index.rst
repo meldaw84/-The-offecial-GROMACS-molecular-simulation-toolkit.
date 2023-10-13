@@ -424,7 +424,9 @@ any issues faced at runtime.
 
 * cuFFTMp based PME decomposition build is broken with NVHPC SDK 23.3 or higher.
   To work around this build issue one can configure the ``cmake`` with these additional flags
-``-DCMAKE_CXX_FLAGS="-L <PATH_TO_CUDA_TOOLKIT>/lib64/stubs -lnvidia-ml -lcuda"``
+::
+
+-DCMAKE_CXX_FLAGS="-L <PATH_TO_CUDA_TOOLKIT>/lib64/stubs -lnvidia-ml -lcuda"
 
 .. _heffte installation:
 

@@ -66,17 +66,16 @@ To resolve, upgrade to CUDA 11.8 or 12.x.
 
 :issue:`4759`
 
-cuFFTMp based PME decomposition build broken with NVHPC SDK 23.3 or higher
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+cuFFTMp based PME decomposition build broken with NVHPC SDK 23.3+ when building on a node without CUDA driver installed
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Starting from cuFFTMp version ``11.0.5`` it depends on NVSHMEM version which has dependency on ``libnvshmem_host.so``.
-This cuFFTMp_ link: https://docs.nvidia.com/hpc-sdk/cufftmp/release_notes.html#new-features version is shipped
+This `cuFFTMp <https://docs.nvidia.com/hpc-sdk/cufftmp/release_notes.html#new-features>`_ version is shipped
 since NVHPC SDK 23.3+.
 
-To build with this cuFFTMp it is required for the user to explicitly link to the stub versions of
-``libnvidia-ml.so`` & ``libcuda.so`` which are shipped in cuda toolkit or else the build system
-should have cuda driver installed.
+To build with cuFFTMp 11.0.5 and later it is necessary to explicitly link to the ``libnvidia-ml.so`` and ``libcuda.so``
+libraries or the stub versions of these.
 
-To work around this build issue please refer to :ref:`_cufftmp` section.
+To work around this build issue please refer to :ref:`cufftmp <cufftmp installation>` section.
 
 :issue:`4886`
 
