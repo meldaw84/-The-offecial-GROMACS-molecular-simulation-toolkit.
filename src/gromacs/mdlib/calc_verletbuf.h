@@ -269,13 +269,14 @@ public:
     }
 
     // Add a constraint to an atom with mass \p mass and constraint length \p length
+    // The constraint with the largest mass will be kept.
     void addConstraint(real mass, real length)
     {
-        GMX_ASSERT(mass != 0, "Mass can not be zero here as we store 1/mass");
+        GMX_ASSERT(mass != 0, "Atoms involved in constraints cannot have zero mass");
 
         real invMass = 1 / mass;
 
-        if (invMass < constraintInvMass_)
+        if (invMass < constraintInvMass())
         {
             constraintInvMass_ = invMass / invMassScale_ + 0.5_real;
             constraintLength_  = length / constraintLengthScale_ + 0.5_real;
