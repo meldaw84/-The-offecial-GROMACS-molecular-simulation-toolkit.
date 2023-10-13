@@ -284,15 +284,22 @@ public:
     }
 
 private:
-    int16_t invMass_ = 0; /* 1/mass */
-    int     type_    = 0; /* type (used for LJ parameters) */
-    int16_t charge_  = 0; /* charge */
-    int16_t constraintInvMass_ =
-            std::numeric_limits<int16_t>::max(); /* 1/mass of heaviest atom connected by constraints */
-    int16_t constraintLength_ = 0;               /* constraint length to the heaviest atom */
-    real    invMassScale_;
-    real    chargeScale_;
-    real    constraintLengthScale_;
+    // Inverse mass of the atom divided by invMassScale_
+    int16_t invMass_ = 0;
+    // Type of the atom
+    int type_ = 0;
+    // Charge of the atom divided by chargeScale_
+    int16_t charge_ = 0;
+    // Inverse mass divided by invMassScale_ of heaviest atom this atom is conneced to by a constraint
+    int16_t constraintInvMass_ = std::numeric_limits<int16_t>::max();
+    // Constraint length divided by constraintLengthScale_ to the heaviest atom connected by a constraint
+    int16_t constraintLength_ = 0;
+    // The scaling factor for masses
+    real invMassScale_;
+    // The scaling factor for the charge
+    real chargeScale_;
+    // The scaling factor for the constraint length
+    real constraintLengthScale_;
 };
 
 /* This function computes two components of the estimate of the variance
