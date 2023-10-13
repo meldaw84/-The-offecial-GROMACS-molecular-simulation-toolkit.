@@ -405,6 +405,15 @@ static std::tuple<real, real, real> getResolutions(const gmx_mtop_t& mtop,
             std::max(constraintLengthRmsMax.absMax() / std::numeric_limits<int16_t>::max(),
                      constraintLengthRmsMax.rms() * c_resolution);
 
+    GMX_RELEASE_ASSERT(invMassResolution != 0, "We should have a least one non-zero mass");
+
+    // All charges could be zero, avoid division by zero for that case
+    if (chargeResolution == 0)
+    {
+        chargeResolution = 1;
+    }
+    // Note that with all constraint length zero constraints are not added, so resolution can be zero
+
     return { invMassResolution, chargeResolution, constraintLengthResolution };
 }
 
