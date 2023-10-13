@@ -296,6 +296,8 @@ static void get_vsite_masses(const gmx_moltype_t&  moltype,
     }
 }
 
+#ifndef DOXYGEN
+
 // Returns a hash for AtomNonbondedAndKineticProperties
 template<>
 struct std::hash<AtomNonbondedAndKineticProperties>
@@ -307,6 +309,8 @@ struct std::hash<AtomNonbondedAndKineticProperties>
         return p0 ^ (p1 << 1);
     }
 };
+
+#endif // ifndef DOXYGEN
 
 /* Returns the resolutions for 1/mass, charge and constraint length
  *
@@ -546,6 +550,7 @@ static std::vector<VerletbufAtomtype> getVerletBufferAtomtypes(const gmx_mtop_t&
 
     // Pack the types into a vector for fast sequential access
     std::vector<VerletbufAtomtype> att;
+    att.reserve(map.size());
     for (const auto& atomtype : map)
     {
         att.push_back({ atomtype.first, atomtype.second });
