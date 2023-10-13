@@ -333,7 +333,7 @@ static std::tuple<real, real, real> getResolutions(const gmx_mtop_t& mtop,
         }
 
         // Return the RMS of the values
-        real rms() const { return squaredSum_ / count_; }
+        real rms() const { return count_ > 0 ? squaredSum_ / count_ : 0; }
 
         // Return max(abs()) of the values
         real absMax() const { return absMax_; }
