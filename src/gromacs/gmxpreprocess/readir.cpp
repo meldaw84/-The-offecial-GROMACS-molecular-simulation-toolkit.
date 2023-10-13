@@ -2272,7 +2272,7 @@ void get_ir(const char*     mdparin,
             ir->useMts = false;
         }
     }
-    printStringNoNewline(&inp, "factor to multiply masses of the lightest atoms with");
+    printStringNoNewline(&inp, "factor by which to increase the mass of the lightest atoms");
     ir->massRepartitionFactor = get_ereal(&inp, "mass-repartition-factor", 1.0, wi);
     printStringNoNewline(&inp, "mode for center of mass motion removal");
     ir->comm_mode = getEnum<ComRemovalAlgorithm>(&inp, "comm-mode", wi);
