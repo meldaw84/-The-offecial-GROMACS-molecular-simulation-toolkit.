@@ -39,6 +39,7 @@
 
 #include "gromacs/math/vectypes.h"
 #include "gromacs/utility/basedefinitions.h"
+#include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/gmxmpi.h"
 #include "gromacs/utility/real.h"
 
@@ -260,6 +261,8 @@ public:
     // Set the mass (stored as 1/mass), type and charge. \m mass can not be zero
     void setMassTypeCharge(real mass, int type, real charge)
     {
+        GMX_ASSERT(mass != 0, "Mass can not be zero here as we store 1/mass");
+
         invMass_ = 1 / (mass * invMassScale_) + 0.5_real;
         type_    = type;
         charge_  = charge / chargeScale_ + std::copysign(0.5_real, charge);
@@ -268,6 +271,8 @@ public:
     // Add a constraint to an atom with mass \p mass and constraint length \p length
     void addConstraint(real mass, real length)
     {
+        GMX_ASSERT(mass != 0, "Mass can not be zero here as we store 1/mass");
+
         real invMass = 1 / mass;
 
         if (invMass < constraintInvMass_)
