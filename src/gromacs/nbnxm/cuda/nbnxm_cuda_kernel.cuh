@@ -161,7 +161,14 @@ __launch_bounds__(THREADS_PER_BLOCK)
 #else
 {
     /* convenience variables */
-    const nbnxn_sci_t* pl_sci = plist.sorting.sciSorted == nullptr ? plist.sci : plist.sorting.sciSorted;
+#    ifdef PRUNE_NBL
+    /* we can't use the sorted plist in this call as we need to use this kernel to perform counts
+     * which will be used in the sorting */
+    const nbnxn_sci_t* pl_sci = plist.sci;
+#    else
+    /* the sorted list has been generated using data from a previous call to this kernel */
+    const nbnxn_sci_t* pl_sci = plist.sorting.sciSorted;
+#    endif
 #    ifndef PRUNE_NBL
     const
 #    endif

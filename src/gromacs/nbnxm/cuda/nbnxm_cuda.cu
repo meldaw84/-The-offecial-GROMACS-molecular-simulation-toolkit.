@@ -115,7 +115,7 @@
 #    include "nbnxm_cuda_kernel_pruneonly.cu"
 #endif /* GMX_CUDA_NB_SINGLE_COMPILATION_UNIT */
 
-#include "nbnxmCudaKernelSciSort.cuh"
+#include "nbnxm_cuda_kernel_sci_sort.cuh"
 
 namespace Nbnxm
 {
@@ -526,15 +526,53 @@ void gpu_launch_kernel(NbnxmGpu* nb, const gmx::StepWorkload& stepWork, const In
     }
 
     auto*      timingEvent = bDoTime ? timers->interaction[iloc].nb_k.fetchNextEvent() : nullptr;
+
+    /* Whether we need to call a combined prune and interaction kernel or just an interaction kernel.
+     * bDoPrune being true implies we are not using dynamic pruning and are in the first call to the 
+     * interaction kernel after a neighbour list step */
+    bool       bDoPrune = (plist->haveFreshList && !nb->timers->interaction[iloc].didPrune);
+    if (bDoPrune){
+        /* Prepare histogram for sorting */ 
+        clearDeviceBufferAsync(&plist->sorting.sciHistogram, 0, c_sciHistogramSize, deviceStream);
+    }
     const auto kernel =
             select_nbnxn_kernel(nbp->elecType,
                                 nbp->vdwType,
                                 stepWork.computeEnergy,
-                                (plist->haveFreshList && !nb->timers->interaction[iloc].didPrune),
+                                bDoPrune,
                                 &nb->deviceContext_->deviceInfo());
     const auto kernelArgs =
             prepareGpuKernelArguments(kernel, config, adat, nbp, plist, &stepWork.computeVirial);
     launchGpuKernel(kernel, config, deviceStream, timingEvent, "k_calc_nb", kernelArgs);
+
+    if (bDoPrune){
+        /* Take counts prepared in combined prune and interaction kernel and use them to sort plist.
+         * Note that this sorted list is not available in the combined prune and interaction kernel 
+         * itself, which causes a performance degredation of 1-10% for that initial call */ 
+        size_t scan_temporary_size = (size_t)plist->sorting.nscanTemporary;
+
+        cub::DeviceScan::ExclusiveSum(plist->sorting.scanTemporary,
+                                      scan_temporary_size,
+                                      plist->sorting.sciHistogram,
+                                      plist->sorting.sciOffset,
+                                      c_sciHistogramSize,
+                                      deviceStream.stream());
+
+        KernelLaunchConfig configSortSci;
+        const int items_per_block      = c_sciSortingThreadsPerBlock * c_sciSortingItemsPerThread;
+        configSortSci.blockSize[0]     = c_sciSortingThreadsPerBlock;
+        configSortSci.blockSize[1]     = 1;
+        configSortSci.blockSize[2]     = 1;
+        configSortSci.gridSize[0]      = (plist->nsci + items_per_block - 1) / items_per_block;
+        configSortSci.sharedMemorySize = 0;
+
+        const auto kernelSciSort = nbnxnKernelBucketSciSort;
+
+        const auto kernelSciSortArgs = prepareGpuKernelArguments(kernelSciSort, configSortSci, plist);
+
+        launchGpuKernel(kernelSciSort, configSortSci, deviceStream, nullptr, "nbnxn_kernel_sci_sort", kernelSciSortArgs);
+    }
+
 
     if (bDoTime)
     {
